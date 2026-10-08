@@ -1,0 +1,8 @@
+{
+  "name": "com.vibejam.jamkit",
+  "displayName": "JamKit",
+  "version": "0.1.0",
+  "unity": "6000.0",
+  "description": "Shared game-jam shell and genre templates: pure C# core (testable outside Unity) plus Unity adapters.",
+  "author": { "name": "Muhammad Aitizaz Abro" }
+}

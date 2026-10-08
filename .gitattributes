@@ -1,0 +1,31 @@
+* text=auto
+
+# Unity YAML: merge with Unity's Smart Merge (driver registered by tools/setup-unity-merge.ps1)
+*.unity      merge=unityyamlmerge eol=lf
+*.prefab     merge=unityyamlmerge eol=lf
+*.asset      merge=unityyamlmerge eol=lf
+*.mat        merge=unityyamlmerge eol=lf
+*.anim       merge=unityyamlmerge eol=lf
+*.controller merge=unityyamlmerge eol=lf
+*.overrideController merge=unityyamlmerge eol=lf
+*.physicMaterial merge=unityyamlmerge eol=lf
+*.meta       eol=lf
+
+# Text
+*.cs   text diff=csharp
+*.ink  text
+*.json text
+*.md   text
+*.ps1  text eol=crlf
+
+# Binary
+*.png  binary
+*.jpg  binary
+*.psd  binary
+*.wav  binary
+*.ogg  binary
+*.mp3  binary
+*.fbx  binary
+*.glb  binary
+*.ttf  binary
+*.otf  binary

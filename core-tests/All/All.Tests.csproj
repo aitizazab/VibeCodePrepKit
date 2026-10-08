@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The whole core at once: what Unity will compile. Run this before every commit. -->
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\**\*.cs" Exclude="$(PkgRoot)Runtime\Core\Shared\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\**\*.cs" Exclude="$(PkgRoot)Tests\Core\Shared\**\*.cs" />
+  </ItemGroup>
+</Project>

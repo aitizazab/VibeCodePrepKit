@@ -1,0 +1,42 @@
+# Unity (generated; anchored to the project root so the package and core-tests are untouched)
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/Assets/Plugins/Editor/JetBrains*
+/*.csproj
+/*.sln
+/*.slnx
+/*.user
+/*.pidb
+/*.booproj
+/*.svd
+/*.pdb
+/*.mdb
+/*.opendb
+/*.VC.db
+*.apk
+*.aab
+*.unitypackage
+crashlytics-build.properties
+sysinfo.txt
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+
+# dotnet test harness (core-tests/)
+core-tests/**/bin/
+core-tests/**/obj/
+core-tests/**/TestResults/
+
+# Our tool outputs
+/out/
+/test-results/
+*.log

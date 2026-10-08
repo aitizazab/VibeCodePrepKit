@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared only (Rng, StateMachine); everything comes from Directory.Build.props. -->
+</Project>

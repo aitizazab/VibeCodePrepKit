@@ -1,0 +1,41 @@
+# VibeJamKit: rules for agents
+
+A Unity 6 project plus the embedded package `Packages/com.vibejam.jamkit`. It's a pre-built
+framework for a 3-day "Vibe Coding GameDev" hackathon. Plan and status: `docs/PLAN.md`.
+
+## Code
+- **`Runtime/Core` is pure C# with no UnityEngine** (its asmdef sets `noEngineReferences`). Game
+  rules and maths go there; MonoBehaviours in `Runtime/Unity` stay thin.
+- **C# 9 only** (Unity 6's language version): block-scoped namespaces, no records, no `init`, no
+  global usings, no file-scoped namespaces, no `required`, no nullable annotations.
+  `core-tests` enforces this with LangVersion 9.
+- **Serialized data** (inspector, JsonUtility, ScriptableObjects): `[Serializable]` classes with
+  **public fields**, `List<T>`, enums. No properties for saved state, no dictionaries.
+  Angles are in degrees in data and radians inside.
+- **Per-frame code doesn't allocate:** no LINQ in Tick/Update; output lists are passed in.
+- Vectors in the core use `System.Numerics`; adapters convert to `UnityEngine.Vector2/3`.
+- Tests are NUnit 3 style (`Assert.That(..., Is....)`). The same files run in Unity's Test
+  Framework and in `core-tests`.
+
+## Commands
+- Core tests (seconds, no Unity): `dotnet test core-tests/All/All.Tests.csproj --nologo -v q`.
+  The per-module projects (`core-tests/<Module>/`) exist so parallel agents don't share `obj/`.
+- Unity tests and builds: `tools/test.ps1`, `tools/build.ps1 -Target Windows|WebGL|All`.
+  - **Unity locks a project while the editor has it open** (`Temp/UnityLockfile`). Batch mode
+    then fails, so the scripts refuse. Either the creator closes the editor, or we work through
+    the MCP link to the open editor.
+  - Unity batch builds are heavy jobs: run them through the session memory cap
+    (`uv run python ~/.local/bin/capped-run.py --session VibeJamKit -- powershell -File tools/build.ps1 ...`).
+    For WebGL, raise `--share` if the cap kills it.
+  - **One GPU job at a time** on this laptop: no Blender renders while the editor is in play mode.
+
+## Git
+- Remote: private GitHub `aitizazab/VibeJamKit`. Commits use the repo-local email
+  `aitizaz.ab24@gmail.com` (already set in `.git/config`).
+- Commit in checkpoints with `core-tests/All` green.
+- Scenes have owners: never edit a scene a teammate has open. Prefer prefabs and data assets
+  over scene edits; they merge cleanly.
+
+## Content
+No copied character designs or other games' assets (it's a public, judged event). Parody,
+archetypes and mechanics are fine. Credit every sample and every CC0 sound on the credits screen.

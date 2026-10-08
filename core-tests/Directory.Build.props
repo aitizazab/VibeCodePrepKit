@@ -1,0 +1,28 @@
+<Project>
+  <!--
+    Runs JamKit's pure C# core and its NUnit tests outside Unity, with Unity's constraints:
+    C# 9 (Unity 6's language version), no implicit/global usings, no nullable annotations, and
+    NUnit 3 (Unity's Test Framework is NUnit 3, so NUnit 4's ClassicAssert split doesn't apply).
+    Each module has its own project (Shared + that module) so parallel work never shares obj/.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <PkgRoot>$(MSBuildThisFileDirectory)..\Packages\com.vibejam.jamkit\</PkgRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\Shared\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Shared\**\*.cs" />
+  </ItemGroup>
+</Project>
