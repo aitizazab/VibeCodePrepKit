@@ -265,6 +265,60 @@
     -unity-text-align: middle-center;
 }
 
+/* ---------- Sprint meter (left panel): dim tank = this room's budget, bright fill = stamina ---------- */
+
+.bh-sprint {
+    width: 280px;
+    height: 22px;
+    margin-top: 8px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.25);
+    overflow: hidden;
+}
+
+.bh-sprint-tank {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: rgba(120, 220, 255, 0.22);
+}
+
+.bh-sprint-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: rgb(120, 220, 255);
+}
+
+.bh-sprint--active {
+    border-color: rgb(120, 220, 255);
+}
+
+.bh-sprint--tired .bh-sprint-fill {
+    background-color: rgba(120, 220, 255, 0.45);
+}
+
+.bh-sprint--empty {
+    border-color: var(--jk-bad);
+}
+
+.bh-sprint--flash {
+    border-color: var(--jk-bad);
+    background-color: rgba(255, 90, 90, 0.55);
+}
+
+.bh-sprint-text {
+    font-size: 20px;
+    color: var(--jk-text-dim);
+    margin-top: 4px;
+}
+
 /* ---------- First-run Focus hint (below the ship's starting spot) ---------- */
 
 .bh-focus-hint {

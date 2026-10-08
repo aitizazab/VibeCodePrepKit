@@ -113,10 +113,15 @@ ink: a one-day writing job, which fits day 2 of the jam.
 9. What the death screen says, and what changes on run 2: ___
 10. Event scenes (one choice each, with a gameplay effect and a flag): ___
 
-## Template changes this calls for (to do before the jam)
+## Template changes this calls for (done 2026-10-08, Unity run pending)
 - Choose difficulty when starting a run, not only in Settings (creator's feedback, 2026-10-08).
-- Make Focus (Shift) unmistakable: the How to Play card says "Shift = slow, precise movement", and an
-  on-screen hint shows the first time. The creator's first run died to it.
-- Boss dialogue hooks: an ink knot before the fight, at each phase change and on defeat.
-- A death screen line chosen from ink (by killer, run number or flags).
-- A companion line on Rest rooms and run-start lines that change with run count.
+  **Done:** Play opens a Story / Normal / Hard picker (docs/SHELL.md).
+- ~~Make Focus (Shift) unmistakable~~. The creator then chose to make Shift a **Sprint** (what players
+  expect): stamina bar inside a per-room sprint budget, a first-run hint and a HUD legend; Focus stays
+  behind a flag (docs/TEMPLATE-BULLETHELL.md, Controls).
+- Boss dialogue hooks: an ink knot before the fight, at each phase change and on defeat. **Done.**
+- A death screen line chosen from ink (by killer, run number or flags). **Done.**
+- A companion line on Rest rooms and run-start lines that change with run count. **Done.**
+
+The knot names and the ink functions they can use are in docs/TEMPLATE-BULLETHELL.md, "Story hooks".
+The template ships one placeholder line per hook; the story is still yours to write.

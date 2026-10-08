@@ -486,6 +486,10 @@ The text box also has small buttons: Log, Auto, Skip, Save, Load, Q.Save, Q.Load
 - From code: `StoryGame.Current.SaveTo("slot1")`, `.LoadNow(...)`, `.UseHotspot("door", "ticket")`,
   `.HasItem(...)`, `.GiveAllItems()`, `.JumpToKnot(...)`, `.PlayToEnding()` (a coroutine: first choices
   and the rooms' walkthroughs, for tests and the smoke run), `StoryStorage.Memory`.
+- The smoke run (`-jamSmoke`) plays the story itself and logs what it did as `JAMKIT_SMOKE story ...`
+  lines: each choice taken (in which knot), each hotspot room opened and hotspot used, and the ending
+  reached, then a summary. No ending reached is an error, so a passing smoke run proves the story
+  was played, not only the debug win.
 - Editor: `Templates/Story/Editor`: `StoryArt` (placeholder art drawn in code), `StoryContent`
   (sample data, only what's missing), `StoryBuilder` (preset and scene; build step 220),
   `StoryTemplate` (Use Template; batch `-executeMethod JamKit.Narrative.EditorTools.StoryTemplate.UseFromCommandLine`),

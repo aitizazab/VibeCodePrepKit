@@ -118,11 +118,11 @@ namespace JamKit.BulletHell.EditorTools
             return mat;
         }
 
-        /// <summary>The first How to Play card: firing is automatic, and Shift is slow (the creator's first
-        /// playtest held Shift thinking it was a sprint). Tests check the preset says both.</summary>
+        /// <summary>The first How to Play card: firing is automatic, and Shift is a sprint (the creator's first
+        /// playtest held Shift expecting a sprint, so Shift now is one). Tests check the preset says both.</summary>
         public const string FlyCardText =
             "Move with WASD, the arrow keys or the left stick.\nYou fire automatically.\n" +
-            "Hold Shift (LB): slow, precise movement (shows your hitbox). It does not speed you up.";
+            "Hold Shift (LB) to sprint: limited stamina per room (the SPRINT bar on the left).";
 
         /// <summary>The GameConfig values "Use Template > Bullet Hell" copies into the active config.
         /// Created once; edit it freely (title, tagline, How to Play pages).</summary>

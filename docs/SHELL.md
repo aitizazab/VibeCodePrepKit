@@ -13,6 +13,11 @@ itself before the scene loads).
    - **Credits**: a text file, one line per credit (`Assets/JamKit/Credits.txt`). Credit every
      sample and CC0 sound there.
    - **How To Play** pages (title, text, optional picture) and **Show How To Play On First Run**.
+   - **Choose Difficulty On Play** (on): Play opens a Story / Normal / Hard picker before the run
+     (each with its one-line description; Normal the first time, then the last choice; the same value
+     as Settings' Difficulty, so the assists apply). Back returns to the title. It's only asked when
+     **Show Action Settings** is on, so the story template never shows it. Off: Play starts at once.
+   - **Show Control Legend** (on): templates with a small HUD control legend (the bullet hell) show it.
    - **Allow Debug Menu In Release**: leave off for the judged build.
 2. Make your game scene (next section) and set **First Gameplay Scene** to its name.
 3. Re-skin: edit the colours and sizes in **`Assets/JamKit/UI/Theme.uss`** (one block of
@@ -88,6 +93,14 @@ GameRoot.Lose();  // Game Over screen (Try Again / Back to Title)
 
 4. Functions (declare with `EXTERNAL has_flag(name)` etc.): `has_flag(name)`, `set_flag(name)`,
    `clear_flag(name)`. Flags are kept in the save file, so they survive retries and restarts.
+   Also `run_count()` (runs started on this save: 1 on the very first, a persistent playthrough
+   counter any template can use for "back again?" lines), `runs_won()` and `best_floor()`.
+   The story template adds its own memory functions (`playthrough_count()` and more).
+   To show a line somewhere else than the dialogue box, `GameRoot.Dialogue.TryReadLine(json, knot,
+   out speaker, out text)` reads a knot's first line without playing it, and
+   `GameRoot.Run.SetQuote(speaker, text)` puts a line on the Game Over / Victory screen (the bullet
+   hell's death line works this way). `StoryHooks` (core) builds "most specific first" knot names
+   with silent fallbacks (docs/TEMPLATE-BULLETHELL.md, "Story hooks").
 5. Events: `GameRoot.Dialogue.Ended += knot => ...` fires when a story finishes (with the knot it
    started at); `TagReceived` gets every tag, including your own; `StoryCreated` hands you each new
    ink `Story` (bind your own EXTERNAL functions there); `LineShown` and `ChoiceMade` follow the text.
@@ -124,7 +137,8 @@ cards: the blind tester reads them once.
 | Move | WASD, arrows | left stick, d-pad |
 | Look | mouse | right stick |
 | Fire / Alt fire | left / right mouse, J / K | RT / LT |
-| Focus | Left Shift | LB |
+| Sprint (the bullet hell's sprint, the DOOM-like's walk) | Left Shift | LB |
+| Focus (no default keys; the bullet hell's optional Focus mode) | - | - |
 | Dash | Space | A, RB |
 | Interact | E | X |
 | Pause | Escape, P | Start |

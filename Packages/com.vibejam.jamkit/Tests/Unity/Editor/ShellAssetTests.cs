@@ -52,7 +52,7 @@ namespace JamKit.Tests.Editor
         public void InputAssetHasEveryAction()
         {
             var a = Resources.Load<ShellAssets>(ShellAssets.ResourcePath);
-            foreach (var name in new[] { "Gameplay/Move", "Gameplay/Look", "Gameplay/Fire", "Gameplay/AltFire", "Gameplay/Focus",
+            foreach (var name in new[] { "Gameplay/Move", "Gameplay/Look", "Gameplay/Fire", "Gameplay/AltFire", "Gameplay/Sprint",
                          "Gameplay/Dash", "Gameplay/Interact", "Gameplay/Pause", "UI/Navigate", "UI/Submit", "UI/Cancel",
                          "UI/Point", "UI/Click", "UI/ScrollWheel" })
             {
@@ -60,6 +60,13 @@ namespace JamKit.Tests.Editor
                 Assert.That(action, Is.Not.Null, name);
                 Assert.That(action.bindings.Count, Is.GreaterThan(0), name + " has bindings");
             }
+            // Shift / LB is Sprint ("Shift = sprint" is what players expect); Focus stays, without keys.
+            var sprint = a.input.FindAction("Gameplay/Sprint");
+            Assert.That(sprint.bindings.Any(b => b.path == "<Keyboard>/leftShift"), Is.True, "Sprint on Left Shift");
+            Assert.That(sprint.bindings.Any(b => b.path == "<Gamepad>/leftShoulder"), Is.True, "Sprint on LB");
+            var focus = a.input.FindAction("Gameplay/Focus");
+            Assert.That(focus, Is.Not.Null, "Focus still exists (bind a key to bring it back)");
+            Assert.That(focus.bindings.Count, Is.EqualTo(0), "Focus has no default keys");
         }
 
         [Test]

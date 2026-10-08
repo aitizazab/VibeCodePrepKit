@@ -190,21 +190,64 @@ namespace JamKit.BulletHell.Tests
         }
 
         [UnityTest]
-        public IEnumerator TheFocusHintShowsOnTheFirstRunOnly()
+        public IEnumerator SprintBudgetRefillsEachFightRoomAndTheMeterShowsIt()
         {
             yield return StartBulletHell(4242);
             var game = BulletHellGame.Current;
-            Assert.That(GameRoot.Save.Data.HasFlag(BulletHellGame.FocusHintFlag), Is.False, "fresh save");
+            var sprint = game.player.Sprint;
+            DebugMenu.GodMode = true;
+            yield return WaitFor(() => game.Phase == BulletHellGame.RoomPhase.Waves, "the first fight", 20f);
+            yield return null;
+            Assert.That(sprint.BudgetFraction, Is.EqualTo(1f), "a fight room starts with its full sprint budget");
+            Assert.That(sprint.RoomBudgetMax, Is.EqualTo(game.config.player.sprint.roomBudgetSeconds).Within(1e-4));
+            Assert.That(game.Hud.SprintTankShown, Is.EqualTo(1f).Within(0.01f));
+            Assert.That(game.player.SprintMultiplier, Is.EqualTo(game.config.player.sprint.speedMultiplier).Within(1e-4));
+
+            // Spend the whole room's budget (as if Shift had been held in bursts).
+            for (int i = 0; i < 40 && !sprint.BudgetEmpty; i++)
+            {
+                sprint.Tick(sprint.Stamina, true, true);
+                sprint.Tick(5f, false, false);
+            }
+            Assert.That(sprint.BudgetEmpty, Is.True);
+            Assert.That(sprint.CanSprint, Is.False, "no sprint left in this room");
+            yield return null;
+            Assert.That(game.Hud.SprintTankShown, Is.EqualTo(0f).Within(0.01f), "the meter's tank is empty");
+
+            // The next fight room fills it again.
+            int room = game.Run.step, floor = game.Run.floor;
+            float end = Time.realtimeSinceStartup + 60f;
+            while (!((game.Run.step != room || game.Run.floor != floor) && game.Phase == BulletHellGame.RoomPhase.Waves))
+            {
+                if (Time.realtimeSinceStartup > end) Assert.Fail("never reached the next fight room");
+                if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.AutoStep();
+                else if (GameRoot.Flow.Current == GameState.Playing)
+                {
+                    if (game.Choice.IsOpen && game.Choice.Current == ChoicePanel.Kind.Draft) game.Choice.Choose(0);
+                    else if (game.Phase != BulletHellGame.RoomPhase.Waves || game.Run.step == room) game.DebugSkip();
+                }
+                yield return null;
+            }
+            Assert.That(sprint.BudgetFraction, Is.EqualTo(1f), "refilled for the new room");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator TheSprintHintShowsOnTheFirstRunOnly()
+        {
+            yield return StartBulletHell(4242);
+            var game = BulletHellGame.Current;
+            Assert.That(GameRoot.Save.Data.HasFlag(BulletHellGame.SprintHintFlag), Is.False, "fresh save");
             Assert.That(game.Hud.LegendShown, Is.True, "the control legend is on by default");
             yield return WaitFor(() => game.Phase == BulletHellGame.RoomPhase.Waves, "the first fight", 20f);
             yield return null;
-            Assert.That(game.FocusHint.IsVisible, Is.True, "the hint shows in the first fight");
-            Assert.That(game.Hud.FocusHintShown, Is.True);
-            Assert.That(GameRoot.Save.Data.HasFlag(BulletHellGame.FocusHintFlag), Is.True, "remembered at once");
+            Assert.That(game.SprintHint.IsVisible, Is.True, "the hint shows in the first fight");
+            Assert.That(game.Hud.SprintHintShown, Is.True);
+            Assert.That(GameRoot.Save.Data.HasFlag(BulletHellGame.SprintHintFlag), Is.True, "remembered at once");
             DebugMenu.GodMode = true;
             DebugMenu.TimeScale = 4f;
-            yield return WaitFor(() => !game.FocusHint.IsVisible, "the hint to time out (~8 s of game time)", 15f);
-            Assert.That(game.Hud.FocusHintShown, Is.False);
+            yield return WaitFor(() => !game.SprintHint.IsVisible, "the hint to time out (~8 s of game time)", 15f);
+            Assert.That(game.Hud.SprintHintShown, Is.False);
 
             // The next run (same save): no hint. And the legend follows GameConfig.
             GameRoot.Config.showControlLegend = false; // an in-memory copy (ShellTestUtil.UseSandboxConfig)
@@ -217,8 +260,8 @@ namespace JamKit.BulletHell.Tests
             Assert.That(game.Hud.LegendShown, Is.False, "GameConfig.showControlLegend off");
             yield return WaitFor(() => game.Phase == BulletHellGame.RoomPhase.Waves, "the first fight", 20f);
             yield return null;
-            Assert.That(game.FocusHint.IsVisible, Is.False, "second run: no hint");
-            Assert.That(game.Hud.FocusHintShown, Is.False);
+            Assert.That(game.SprintHint.IsVisible, Is.False, "second run: no hint");
+            Assert.That(game.Hud.SprintHintShown, Is.False);
             LogAssert.NoUnexpectedReceived();
         }
 

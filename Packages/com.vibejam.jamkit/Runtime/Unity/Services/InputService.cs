@@ -6,7 +6,7 @@ namespace JamKit.Shell
 {
     /// <summary>
     /// One action asset with two maps, both always enabled: Gameplay (Move, Look, Fire, AltFire,
-    /// Focus, Dash, Interact, Pause) and UI (Navigate, Submit, Cancel, Point, Click, ScrollWheel).
+    /// Focus (no default keys), Sprint, Dash, Interact, Pause) and UI (Navigate, Submit, Cancel, Point, Click, ScrollWheel).
     /// Keyboard + mouse and gamepad. Gameplay code reads e.g. <c>GameRoot.Input.Move.ReadValue&lt;Vector2&gt;()</c>
     /// and should check <see cref="GameplayAllowed"/> (false while paused, in dialogue or in menus).
     /// </summary>
@@ -16,7 +16,7 @@ namespace JamKit.Shell
         public readonly InputActionMap Gameplay;
         public readonly InputActionMap Ui;
 
-        public readonly InputAction Move, Look, Fire, AltFire, Focus, Dash, Interact, Pause;
+        public readonly InputAction Move, Look, Fire, AltFire, Focus, Sprint, Dash, Interact, Pause;
         public readonly InputAction Navigate, Submit, Cancel, Point, Click, ScrollWheel;
 
         readonly GameFlow _flow;
@@ -33,6 +33,14 @@ namespace JamKit.Shell
             Fire = Gameplay.FindAction("Fire", true);
             AltFire = Gameplay.FindAction("AltFire", true);
             Focus = Gameplay.FindAction("Focus", true);
+            // Sprint (Left Shift / LB) took over Focus's keys; Focus has none by default (bind one to use it).
+            Sprint = Gameplay.FindAction("Sprint", false);
+            if (Sprint == null)
+            {
+                Sprint = Gameplay.AddAction("Sprint", InputActionType.Button);
+                Sprint.AddBinding("<Keyboard>/leftShift");
+                Sprint.AddBinding("<Gamepad>/leftShoulder");
+            }
             Dash = Gameplay.FindAction("Dash", true);
             Interact = Gameplay.FindAction("Interact", true);
             Pause = Gameplay.FindAction("Pause", true);
@@ -95,7 +103,8 @@ namespace JamKit.Shell
 
             Button(g, "Fire", "<Mouse>/leftButton", "<Keyboard>/j", "<Gamepad>/rightTrigger");
             Button(g, "AltFire", "<Mouse>/rightButton", "<Keyboard>/k", "<Gamepad>/leftTrigger");
-            Button(g, "Focus", "<Keyboard>/leftShift", "<Gamepad>/leftShoulder");
+            g.AddAction("Focus", InputActionType.Button); // no default keys (the bullet hell's optional Focus mode)
+            Button(g, "Sprint", "<Keyboard>/leftShift", "<Gamepad>/leftShoulder");
             Button(g, "Dash", "<Keyboard>/space", "<Gamepad>/buttonSouth", "<Gamepad>/rightShoulder");
             Button(g, "Interact", "<Keyboard>/e", "<Gamepad>/buttonWest");
             Button(g, "Pause", "<Keyboard>/escape", "<Keyboard>/p", "<Gamepad>/start");

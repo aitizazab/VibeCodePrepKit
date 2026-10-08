@@ -6,7 +6,8 @@ using UnityEngine;
 namespace JamKit.BulletHell
 {
     /// <summary>
-    /// The player's ship: 8-way movement (Move), Focus (slower, shows the hitbox), auto or held fire
+    /// The player's ship: 8-way movement (Move), Sprint (Shift / LB: faster, on a stamina bar inside a
+    /// per-room budget, core <see cref="SprintMeter"/>), optional Focus (PlayerDef.focusEnabled), auto or held fire
     /// through the core <see cref="WeaponState"/> (shot ages keep streams even at any frame rate),
     /// lives as a core <see cref="Health"/> (1 per hit, i-frames, the difficulty's damage scale) and
     /// bombs. The game drives it (<see cref="BulletHellGame"/>): collisions and bombs live there.
@@ -28,14 +29,21 @@ namespace JamKit.BulletHell
         readonly List<float> _shotAges = new List<float>(8);
         int _bombs, _maxBombs;
         bool _focused, _controls = true;
-        float _blink, _shotSound;
+        float _blink, _shotSound, _sprintFraction;
         Color _baseColor = Color.white;
+        readonly SprintMeter _sprint = new SprintMeter();
 
         public PlayerDef Def => _def;
         public Health Health => _health;
         public int Bombs => _bombs;
         public int MaxBombs => _maxBombs;
         public bool Focused => _focused;
+        /// <summary>The sprint meter: stamina and this room's budget (the HUD draws it).</summary>
+        public SprintMeter Sprint => _sprint;
+        /// <summary>Sprinting this frame.</summary>
+        public bool Sprinting => _sprint.IsSprinting;
+        /// <summary>The run's speed while sprinting, times normal (data x the sprint_speed stat).</summary>
+        public float SprintMultiplier => _def != null && _loadout != null ? _loadout.SprintMultiplier(_def.sprint != null ? _def.sprint.speedMultiplier : 1.6f) : 1f;
         public bool IsInvulnerable => _health != null && _health.IsInvulnerable;
         public Vector2 Position => transform.position;
         public float HitboxRadius => _def != null ? _def.hitboxRadius : 0.07f;
@@ -73,6 +81,9 @@ namespace JamKit.BulletHell
                 body.transform.localScale = Vector3.one * def.size;
             }
             if (hitboxDot != null) hitboxDot.transform.localScale = Vector3.one * Mathf.Max(0.12f, def.hitboxRadius * 2.6f);
+            ConfigureSprint();
+            _sprint.Fill();
+            _sprintFraction = 0f;
             UpdateRing();
             transform.position = new Vector3(0f, -3.6f, transform.position.z);
         }
@@ -119,13 +130,18 @@ namespace JamKit.BulletHell
             if (_def == null) return;
             var input = GameRoot.Input;
             bool allowed = _controls && input.GameplayAllowed;
-            _focused = allowed && input.Focus.IsPressed();
+            _focused = _def.focusEnabled && allowed && input.Focus.IsPressed();
             _health.Tick(dt);
+
+            Vector2 move = allowed ? input.MoveVector : Vector2.zero;
+            ConfigureSprint(); // upgrades can change the stats at any time
+            bool wantSprint = allowed && !_focused && input.Sprint.IsPressed();
+            _sprintFraction = _sprint.Tick(dt, wantSprint, move.sqrMagnitude > 0.01f);
 
             if (allowed && dt > 0f)
             {
-                Vector2 move = input.MoveVector;
-                float speed = (_focused ? _def.focusSpeed : _def.moveSpeed) * _loadout.MoveSpeedScale;
+                float speed = _focused ? _def.focusSpeed : _def.moveSpeed * (1f + (SprintMultiplier - 1f) * _sprintFraction);
+                speed *= _loadout.MoveSpeedScale;
                 Vector2 p = (Vector2)transform.position + move * (speed * dt);
                 var clamped = bounds.Clamp(new System.Numerics.Vector2(p.x, p.y), 0.35f);
                 transform.position = new Vector3(clamped.X, clamped.Y, transform.position.z);
@@ -166,10 +182,24 @@ namespace JamKit.BulletHell
             }
         }
 
+        void ConfigureSprint()
+        {
+            if (_def == null || _loadout == null) return;
+            _sprint.Configure(_def.sprint, _loadout.StaminaMaxScale, _loadout.StaminaRegenScale, _loadout.RoomSprintBudgetScale);
+        }
+
+        /// <summary>A fight room starts: the room's sprint budget (and the bar) are full again.</summary>
+        public void RefillSprint()
+        {
+            ConfigureSprint();
+            _sprint.RefillRoom();
+        }
+
         void UpdateLooks()
         {
-            if (hitboxDot != null) hitboxDot.enabled = _focused;
-            if (focusAura != null) focusAura.enabled = _focused;
+            // Without Focus mode the hitbox is always shown (the How to Play says only the dot can be hit).
+            if (hitboxDot != null) hitboxDot.enabled = _focused || (_def != null && !_def.focusEnabled);
+            if (focusAura != null) focusAura.enabled = _focused || _sprint.IsSprinting;
             if (grazeRing != null)
             {
                 var c = grazeRing.color;

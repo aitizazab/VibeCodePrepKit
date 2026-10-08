@@ -133,9 +133,9 @@ namespace JamKit.BulletHell
         string _killer = "";
         readonly List<string> _storyKnotsPlayed = new List<string>();
 
-        // The first-run Focus hint (saved as a flag once shown).
-        public const string FocusHintFlag = "bh_hint_focus_seen";
-        readonly FirstTimeHint _focusHint = new FirstTimeHint();
+        // The first-run Sprint hint (saved as a flag once shown).
+        public const string SprintHintFlag = "bh_hint_sprint_seen";
+        readonly FirstTimeHint _sprintHint = new FirstTimeHint();
 
         // ---------- Read-only state (tests, debug, HUD) ----------
 
@@ -160,7 +160,7 @@ namespace JamKit.BulletHell
         public bool StoryLinePending => _runStartPending;
         /// <summary>Every story-hook knot played this run, in order (tests, the smoke log).</summary>
         public IReadOnlyList<string> StoryKnotsPlayed => _storyKnotsPlayed;
-        public FirstTimeHint FocusHint => _focusHint;
+        public FirstTimeHint SprintHint => _sprintHint;
         /// <summary>Who ended the run, as the death hooks see it: the boss's story id in a boss fight, else "elite" or "battle".</summary>
         public string Killer => _killer;
 
@@ -255,8 +255,8 @@ namespace JamKit.BulletHell
             _lineActive = false;
             _afterLine = null;
             _killer = "";
-            _focusHint.Reset();
-            _hud.SetFocusHint(0f);
+            _sprintHint.Reset();
+            _hud.SetSprintHint(0f);
             _runStartPending = true; // played on the first playing frame, after the fade-in
             EnterRoom();
         }
@@ -282,12 +282,19 @@ namespace JamKit.BulletHell
             bool fighting = _phase == RoomPhase.Intro || _phase == RoomPhase.Waves || _phase == RoomPhase.Boss || _phase == RoomPhase.Cleared;
             player.ControlsEnabled = fighting && !_choice.IsOpen;
             player.Tick(dt, field, _bounds);
-            if (_focusHint.IsVisible)
+            var sprint = player.Sprint;
+            if (sprint.StaminaEmptiedThisTick || sprint.BudgetEmptiedThisTick)
             {
-                _focusHint.Tick(dt, player.Focused);
-                _hud.SetFocusHint(_focusHint.Alpha);
+                // Out of breath (or out of this room's sprint): flash the meter, a soft "empty" sound.
+                _hud.FlashSprint(sprint.BudgetEmpty);
+                GameRoot.Audio.Play("ui_back", 0.5f);
             }
-            field.EnemyTimeScale = player.Focused && _loadout.Effect(ShmupEffects.FocusSlow) > 0 ? 0.6f : 1f;
+            if (_sprintHint.IsVisible)
+            {
+                _sprintHint.Tick(dt, player.Sprinting);
+                _hud.SetSprintHint(_sprintHint.Alpha);
+            }
+            field.EnemyTimeScale = (player.Focused || player.Sprinting) && _loadout.Effect(ShmupEffects.FocusSlow) > 0 ? 0.6f : 1f;
             var input = GameRoot.Input;
             // Bombs only while there's something to bomb (and never on the press that closed a menu).
             bool canBomb = (_phase == RoomPhase.Waves || _phase == RoomPhase.Boss) && player.ControlsEnabled;
@@ -442,6 +449,7 @@ namespace JamKit.BulletHell
             _hud.SetBombs(player.Bombs, player.MaxBombs);
             _hud.SetCoins(_run.currency);
             _hud.SetGraze(_grazes);
+            _hud.SetSprint(player.Sprint);
             if (boss.IsActive) _hud.SetBossHealth(boss.HealthFraction);
             _scoreTextClock -= udt;
             if (_scoreDirty && _scoreTextClock <= 0f)
@@ -466,6 +474,8 @@ namespace JamKit.BulletHell
             _pending.Clear();
             _wavesDone = false;
             _roomRng = new Rng(_run.RoomSeed());
+            // Each fight room has its own sprint budget (the HUD meter fills back up).
+            if (_roomType == RoomType.Combat || _roomType == RoomType.Elite || _roomType == RoomType.Boss) player.RefillSprint();
             field.Enemy.Clear();
             if (coins != null) coins.attractAll = false;
 
@@ -497,7 +507,7 @@ namespace JamKit.BulletHell
                     _waveIndex = -1;
                     _waveGap = 0f;
                     NextWave();
-                    StartFocusHint();
+                    StartSprintHint();
                     break;
                 case RoomType.Boss:
                     StartBoss();
@@ -835,7 +845,7 @@ namespace JamKit.BulletHell
             if (_phase == RoomPhase.Finished) return;
             _phase = RoomPhase.Finished;
             _choice.Close();
-            _hud.SetFocusHint(0f);
+            _hud.SetSprintHint(0f);
             RecordRun(false);
             GameRoot.Run.Set("Reached", "Floor " + (_run.floor + 1) + ", room " + (_run.step + 1));
             ChooseDeathLine();
@@ -891,15 +901,15 @@ namespace JamKit.BulletHell
             return true;
         }
 
-        void StartFocusHint()
+        void StartSprintHint()
         {
-            if (_focusHint.State != HintState.Waiting) return;
+            if (_sprintHint.State != HintState.Waiting) return;
             var save = GameRoot.Save.Data;
-            if (!_focusHint.Start(save.HasFlag(FocusHintFlag))) return;
+            if (!_sprintHint.Start(save.HasFlag(SprintHintFlag))) return;
             // First run only: remembered as soon as it shows.
-            save.SetFlag(FocusHintFlag);
+            save.SetFlag(SprintHintFlag);
             GameRoot.Save.Save();
-            _hud.SetFocusHint(_focusHint.Alpha);
+            _hud.SetSprintHint(_sprintHint.Alpha);
         }
 
         /// <summary>Sets off a bomb if the player has one (what the bomb button does). For tests and debug.</summary>
@@ -1312,7 +1322,7 @@ namespace JamKit.BulletHell
             Debug.Log("JAMKIT_SMOKE bullet hell reached floor " + (_run.floor + 1) + " room " + (_run.step + 1)
                 + ", " + _draftsTaken + " draft(s), " + field.Enemy.Count + " enemy bullets");
             Debug.Log("JAMKIT_SMOKE bullet hell story lines: " + (_storyKnotsPlayed.Count > 0 ? string.Join(", ", _storyKnotsPlayed) : "none")
-                + "; focus hint " + _focusHint.State + "; difficulty " + DifficultyText.Name(GameRoot.Settings.difficulty)
+                + "; sprint hint " + _sprintHint.State + ", sprint left in room " + player.Sprint.RoomBudget.ToString("0.0") + " s" + "; difficulty " + DifficultyText.Name(GameRoot.Settings.difficulty)
                 + "; control legend " + (_hud.LegendShown ? "on" : "off"));
             DebugMenu.TimeScale = previous;
         }

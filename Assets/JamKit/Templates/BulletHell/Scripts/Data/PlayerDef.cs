@@ -13,14 +13,24 @@ namespace JamKit.BulletHell
     {
         [Header("Movement (world units per second)")]
         public float moveSpeed = 7.5f;
-        [Tooltip("Speed while Focus (Shift / LB) is held.")]
+
+        [Header("Sprint (hold Shift / LB)")]
+        [Tooltip("Speed multiplier, stamina bar, recharge, and the seconds of sprint each fight room allows. " +
+                 "Upgrades scale them with the stats sprint_speed, stamina_max, stamina_regen, room_sprint_budget.")]
+        public SprintDef sprint = new SprintDef();
+
+        [Header("Focus (off by default)")]
+        [Tooltip("The classic shmup Focus: slower movement, a tighter volley and the hitbox shown while held. Off by " +
+                 "default (Shift is Sprint). To use it, tick this and give the Focus action a key in JamKitControls.inputactions.")]
+        public bool focusEnabled;
+        [Tooltip("Speed while Focus is held.")]
         public float focusSpeed = 3.2f;
 
         [Header("Body")]
         public Sprite sprite;
         public Color color = new Color(0.55f, 0.95f, 1f);
         public float size = 0.75f;
-        [Tooltip("Only this tiny circle can be hit (shown while focusing).")]
+        [Tooltip("Only this tiny circle can be hit (always shown; with Focus on, only while focusing).")]
         public float hitboxRadius = 0.07f;
         [Tooltip("Bullets passing inside this ring (but missing) count as grazes.")]
         public float grazeRadius = 0.6f;

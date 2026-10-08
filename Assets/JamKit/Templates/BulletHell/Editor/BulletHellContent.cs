@@ -37,6 +37,8 @@ namespace JamKit.BulletHell.EditorTools
                 p.size = 0.75f;
                 p.moveSpeed = 7.5f;
                 p.focusSpeed = 3.2f;
+                p.focusEnabled = false; // Shift is Sprint; Focus stays available behind this flag
+                p.sprint = new SprintDef();
                 p.hitboxRadius = 0.07f;
                 p.grazeRadius = 0.6f;
                 p.lives = 3;
@@ -213,7 +215,7 @@ namespace JamKit.BulletHell.EditorTools
                     new[] { M(ShmupStats.Damage, StatOp.PercentAdd, 0.2f) }),
                 Up("rapid_trigger", "Rapid Trigger", Rarity.Common, 3, "Fire 15% faster.", "Rt", new Color(1f, 0.75f, 0.35f),
                     new[] { M(ShmupStats.FireRate, StatOp.PercentAdd, 0.15f) }),
-                Up("light_frame", "Light Frame", Rarity.Common, 2, "Move 10% faster (focused too).", "Sp", new Color(0.5f, 1f, 0.8f),
+                Up("light_frame", "Light Frame", Rarity.Common, 2, "Move 10% faster.", "Sp", new Color(0.5f, 1f, 0.8f),
                     new[] { M(ShmupStats.MoveSpeed, StatOp.PercentAdd, 0.1f) }),
                 Up("wide_halo", "Wide Halo", Rarity.Common, 2, "A bigger graze ring: more points from near misses.", "Gz", new Color(0.7f, 0.9f, 1f),
                     new[] { M(ShmupStats.GrazeRadius, StatOp.PercentAdd, 0.35f) }),
@@ -243,7 +245,7 @@ namespace JamKit.BulletHell.EditorTools
                     null, ShmupEffects.AutoBomb),
                 Up("overdrive", "Overdrive", Rarity.Legendary, 1, "40% more damage and 25% faster fire.", "OD", new Color(1f, 0.4f, 0.3f),
                     new[] { M(ShmupStats.Damage, StatOp.Multiply, 1.4f), M(ShmupStats.FireRate, StatOp.PercentAdd, 0.25f) }),
-                Up("time_dilation", "Time Dilation", Rarity.Legendary, 1, "While focusing, enemy bullets slow to 60% speed.", "TD", new Color(0.6f, 0.9f, 1f),
+                Up("time_dilation", "Time Dilation", Rarity.Legendary, 1, "While sprinting, enemy bullets slow to 60% speed.", "TD", new Color(0.6f, 0.9f, 1f),
                     null, ShmupEffects.FocusSlow),
             };
             var fallback = Up("pocket_change", "Pocket Change", Rarity.Common, 0, "+15 coins.", "$", new Color(1f, 0.83f, 0.25f),

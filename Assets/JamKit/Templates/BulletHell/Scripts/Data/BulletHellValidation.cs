@@ -82,6 +82,13 @@ namespace JamKit.BulletHell
         static void ValidatePlayer(PlayerDef p, int styles, List<string> errors)
         {
             if (p.moveSpeed <= 0f || p.focusSpeed <= 0f) errors.Add("Player: speeds must be positive.");
+            if (p.sprint == null) errors.Add("Player: no sprint settings.");
+            else
+            {
+                if (p.sprint.speedMultiplier < 1f) errors.Add("Player: the sprint speed multiplier should be at least 1 (1.6 = 60% faster).");
+                if (p.sprint.staminaSeconds <= 0f || p.sprint.refillSeconds <= 0f) errors.Add("Player: sprint stamina and refill seconds must be positive.");
+                if (p.sprint.regenDelay < 0f || p.sprint.roomBudgetSeconds < 0f) errors.Add("Player: sprint delay and room budget can't be negative.");
+            }
             if (p.hitboxRadius <= 0f) errors.Add("Player: the hitbox radius must be positive.");
             if (p.grazeRadius <= p.hitboxRadius) errors.Add("Player: the graze radius must be bigger than the hitbox.");
             if (p.lives < 1) errors.Add("Player: at least one life.");

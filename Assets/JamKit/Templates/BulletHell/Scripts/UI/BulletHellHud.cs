@@ -17,21 +17,27 @@ namespace JamKit.BulletHell
         public readonly VisualElement Root;
         readonly VisualElement _lives, _bombs, _map, _upgrades, _boss, _bossFill, _card, _bossTicks;
         readonly Label _coins, _graze, _floor, _floorName, _bossName, _cardTitle, _cardSub, _hint;
-        readonly VisualElement _focusHint;
-        float _cardLeft;
+        readonly VisualElement _sprintHint, _sprintMeter, _sprintTank, _sprintFill;
+        readonly Label _sprintText;
+        float _cardLeft, _sprintFlashLeft;
         float _shownLives = -1f, _shownMaxLives = -1f;
         int _shownBombs = -1, _shownCoins = -1, _shownGraze = -1;
-        float _shownBoss = -1f, _shownFocusHint = -1f;
+        float _shownBoss = -1f, _shownSprintHint = -1f, _shownTank = -1f, _shownFill = -1f, _shownRoomSeconds = -1f;
+        int _shownSprintState = -1;
 
         /// <summary>The small control legend (bottom left), unless GameConfig.showControlLegend is off.</summary>
         public const string LegendText =
-            "Move: WASD / arrows / stick\nHold Shift / LB: slow + precise\nFire: automatic\nBomb: K, right click, Space / A\nPause: Esc / Start";
+            "Move: WASD / arrows / stick\nSprint: hold Shift / LB\nFire: automatic\nBomb: K, right click, Space / A\nPause: Esc / Start";
 
         public bool BossBarShown => _boss.style.display == DisplayStyle.Flex;
         public bool NameCardShown => _cardLeft > 0f;
         public string CoinsText => _coins.text;
         public bool LegendShown => _hint.style.display != DisplayStyle.None;
-        public bool FocusHintShown => _focusHint.style.display == DisplayStyle.Flex;
+        public bool SprintHintShown => _sprintHint.style.display == DisplayStyle.Flex;
+        /// <summary>The meter's widths as fractions of its track: the room's tank, and the stamina inside it.</summary>
+        public float SprintTankShown => _shownTank;
+        public float SprintFillShown => _shownFill;
+        public bool SprintFlashing => _sprintFlashLeft > 0f;
 
         public BulletHellHud(VisualElement parent, StyleSheet style, bool showLegend = true)
         {
@@ -49,20 +55,37 @@ namespace JamKit.BulletHell
             _coins = Value(left);
             Kicker(left, "GRAZE");
             _graze = Value(left);
+
+            // Sprint: one meter, two layers. The dim layer is this room's sprint budget (it only
+            // shrinks until the next fight room); the bright fill is the stamina bar inside it.
+            Kicker(left, "SPRINT");
+            _sprintMeter = new VisualElement { name = "bh-sprint", pickingMode = PickingMode.Ignore };
+            _sprintMeter.AddToClassList("bh-sprint");
+            _sprintTank = new VisualElement { pickingMode = PickingMode.Ignore };
+            _sprintTank.AddToClassList("bh-sprint-tank");
+            _sprintFill = new VisualElement { pickingMode = PickingMode.Ignore };
+            _sprintFill.AddToClassList("bh-sprint-fill");
+            _sprintMeter.Add(_sprintTank);
+            _sprintMeter.Add(_sprintFill);
+            left.Add(_sprintMeter);
+            _sprintText = new Label { pickingMode = PickingMode.Ignore };
+            _sprintText.AddToClassList("bh-sprint-text");
+            left.Add(_sprintText);
+
             _hint = new Label(LegendText) { name = "bh-legend", pickingMode = PickingMode.Ignore };
             _hint.AddToClassList("bh-hint");
             left.Add(_hint);
             _hint.style.display = showLegend ? DisplayStyle.Flex : DisplayStyle.None;
 
-            // The first-run Focus hint: a key cap and a plain sentence, low over the playfield.
-            _focusHint = new VisualElement { name = "bh-focus-hint", pickingMode = PickingMode.Ignore };
-            _focusHint.AddToClassList("bh-focus-hint");
+            // The first-run Sprint hint: a key cap and a plain sentence, low over the playfield.
+            _sprintHint = new VisualElement { name = "bh-sprint-hint", pickingMode = PickingMode.Ignore };
+            _sprintHint.AddToClassList("bh-focus-hint");
             var key = new Label("SHIFT") { pickingMode = PickingMode.Ignore };
             key.AddToClassList("bh-key");
             var words = new VisualElement { pickingMode = PickingMode.Ignore };
-            var line = new Label("Hold for slow, precise movement") { pickingMode = PickingMode.Ignore };
+            var line = new Label("Hold Shift to sprint") { pickingMode = PickingMode.Ignore };
             line.AddToClassList("bh-focus-hint-text");
-            var sub = new Label("It shows your hitbox. It does not speed you up. (Gamepad: LB)") { pickingMode = PickingMode.Ignore };
+            var sub = new Label("Limited stamina per room: watch the SPRINT bar on the left. (Gamepad: LB)") { pickingMode = PickingMode.Ignore };
             sub.AddToClassList("bh-focus-hint-sub");
             words.Add(line);
             words.Add(sub);
@@ -70,9 +93,9 @@ namespace JamKit.BulletHell
             pill.AddToClassList("bh-focus-hint-pill");
             pill.Add(key);
             pill.Add(words);
-            _focusHint.Add(pill);
-            Root.Add(_focusHint);
-            _focusHint.style.display = DisplayStyle.None;
+            _sprintHint.Add(pill);
+            Root.Add(_sprintHint);
+            _sprintHint.style.display = DisplayStyle.None;
 
             var right = Panel("bh-side bh-side--right");
             _floor = Value(right);
@@ -328,20 +351,63 @@ namespace JamKit.BulletHell
 
         public void Tick(float unscaledDt)
         {
+            if (_sprintFlashLeft > 0f)
+            {
+                _sprintFlashLeft -= unscaledDt;
+                if (_sprintFlashLeft <= 0f) _sprintMeter.RemoveFromClassList("bh-sprint--flash");
+            }
             if (_cardLeft <= 0f) return;
             _cardLeft -= unscaledDt;
             _card.style.opacity = Mathf.Clamp01(_cardLeft / 0.5f);
             if (_cardLeft <= 0f) _card.style.display = DisplayStyle.None;
         }
 
-        /// <summary>The first-run Focus hint at this opacity (0 hides it). Only touches styles when it changes.</summary>
-        public void SetFocusHint(float alpha)
+        /// <summary>The first-run Sprint hint at this opacity (0 hides it). Only touches styles when it changes.</summary>
+        public void SetSprintHint(float alpha)
         {
             alpha = Mathf.Clamp01(alpha);
-            if (Mathf.Abs(alpha - _shownFocusHint) < 0.01f && (alpha > 0f) == FocusHintShown) return;
-            _shownFocusHint = alpha;
-            _focusHint.style.display = alpha > 0f ? DisplayStyle.Flex : DisplayStyle.None;
-            _focusHint.style.opacity = alpha;
+            if (Mathf.Abs(alpha - _shownSprintHint) < 0.01f && (alpha > 0f) == SprintHintShown) return;
+            _shownSprintHint = alpha;
+            _sprintHint.style.display = alpha > 0f ? DisplayStyle.Flex : DisplayStyle.None;
+            _sprintHint.style.opacity = alpha;
+        }
+
+        /// <summary>The sprint meter: the tank is the room's remaining budget (of the room's full budget),
+        /// the fill is the stamina bar inside it. The line under it says what's left. Styles only change
+        /// when a value moves visibly.</summary>
+        public void SetSprint(SprintMeter m)
+        {
+            if (m == null) return;
+            float tank = m.BudgetFraction;
+            float fill = tank * m.StaminaFraction;
+            if (Mathf.Abs(tank - _shownTank) >= 0.004f)
+            {
+                _shownTank = tank;
+                _sprintTank.style.width = Length.Percent(tank * 100f);
+            }
+            if (Mathf.Abs(fill - _shownFill) >= 0.004f || (fill <= 0f) != (_shownFill <= 0f))
+            {
+                _shownFill = fill;
+                _sprintFill.style.width = Length.Percent(fill * 100f);
+            }
+            int state = m.BudgetEmpty ? 2 : m.Exhausted ? 1 : m.IsSprinting ? 3 : 0;
+            float seconds = Mathf.Ceil(m.RoomBudget * 10f) / 10f;
+            if (state == _shownSprintState && Mathf.Approximately(seconds, _shownRoomSeconds)) return;
+            _shownSprintState = state;
+            _shownRoomSeconds = seconds;
+            _sprintMeter.EnableInClassList("bh-sprint--tired", state == 1);
+            _sprintMeter.EnableInClassList("bh-sprint--empty", state == 2);
+            _sprintMeter.EnableInClassList("bh-sprint--active", state == 3);
+            _sprintText.text = state == 2 ? "None left this room"
+                : state == 1 ? "Catching breath..."
+                : seconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s left this room";
+        }
+
+        /// <summary>The meter flashes (stamina or the room's budget just ran out).</summary>
+        public void FlashSprint(bool roomEmpty)
+        {
+            _sprintFlashLeft = roomEmpty ? 0.6f : 0.35f;
+            _sprintMeter.AddToClassList("bh-sprint--flash");
         }
     }
 }

@@ -15,7 +15,7 @@ MonoBehaviour:
   def:
     id: time_dilation
     displayName: Time Dilation
-    description: While focusing, enemy bullets slow to 60% speed.
+    description: While sprinting, enemy bullets slow to 60% speed.
     rarity: 3
     weight: 0
     maxStacks: 1

@@ -243,7 +243,7 @@ namespace JamKit.Doomlike
         {
             var input = GameRoot.Input;
             move = input.MoveVector;
-            walk = input.GameplayAllowed && input.Focus.IsPressed();
+            walk = input.GameplayAllowed && input.Sprint.IsPressed(); // the Shift / LB action
             fireHeld = input.GameplayAllowed && input.Fire.IsPressed();
             firePressed = input.Pressed(input.Fire);
             use = input.Pressed(input.Interact) || input.Pressed(input.Dash);

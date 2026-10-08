@@ -203,16 +203,16 @@ namespace JamKit.BulletHell.Tests
         }
 
         [Test]
-        public void HowToPlaySaysFocusIsSlowAndFiringIsAutomatic()
+        public void HowToPlaySaysShiftSprintsAndFiringIsAutomatic()
         {
-            // The creator's first playtest held Shift thinking it was a sprint.
+            // The creator's first playtest held Shift expecting a sprint: now it is one.
             var preset = AssetDatabase.LoadAssetAtPath<GameConfig>(BulletHellBuilder.PresetPath);
             Assert.That(preset, Is.Not.Null);
             string fly = preset.howToPlay[0].body;
             Assert.That(fly, Does.Contain("Hold Shift"));
-            Assert.That(fly, Does.Contain("slow, precise movement (shows your hitbox)"));
+            Assert.That(fly, Does.Contain("to sprint: limited stamina per room"));
             Assert.That(fly, Does.Contain("You fire automatically"));
-            Assert.That(BulletHellHud.LegendText, Does.Contain("slow"));
+            Assert.That(BulletHellHud.LegendText, Does.Contain("Sprint: hold Shift"));
             Assert.That(preset.AsksDifficultyOnPlay, Is.True, "an action template asks for the difficulty on Play");
         }
 

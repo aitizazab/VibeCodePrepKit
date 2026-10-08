@@ -27,8 +27,20 @@ namespace JamKit.BulletHell
         public const string CoinGain = "coin_gain";
         /// <summary>Bomb radius and damage multiplier (base 1).</summary>
         public const string BombPower = "bomb_power";
+        /// <summary>Sprint speed bonus multiplier (base 1): 1.5 makes the sprint's extra speed 50% bigger.</summary>
+        public const string SprintSpeed = "sprint_speed";
+        /// <summary>Stamina bar size multiplier (base 1): longer sprints per burst.</summary>
+        public const string StaminaMax = "stamina_max";
+        /// <summary>Stamina recharge speed multiplier (base 1).</summary>
+        public const string StaminaRegen = "stamina_regen";
+        /// <summary>Sprint seconds per room multiplier (base 1).</summary>
+        public const string RoomSprintBudget = "room_sprint_budget";
 
-        public static readonly string[] All = { Damage, FireRate, MoveSpeed, ShotSpeed, GrazeRadius, Luck, Magnet, CoinGain, BombPower };
+        public static readonly string[] All =
+        {
+            Damage, FireRate, MoveSpeed, ShotSpeed, GrazeRadius, Luck, Magnet, CoinGain, BombPower,
+            SprintSpeed, StaminaMax, StaminaRegen, RoomSprintBudget,
+        };
 
         /// <summary>Base values and sane clamps, so no upgrade stack can break the game.</summary>
         public static void SetDefaults(StatBlock s)
@@ -42,6 +54,14 @@ namespace JamKit.BulletHell
             s.SetBase(Magnet, 1f);
             s.SetBase(CoinGain, 1f);
             s.SetBase(BombPower, 1f);
+            s.SetBase(SprintSpeed, 1f);
+            s.SetBase(StaminaMax, 1f);
+            s.SetBase(StaminaRegen, 1f);
+            s.SetBase(RoomSprintBudget, 1f);
+            s.SetClamp(SprintSpeed, 0f, 4f);
+            s.SetClamp(StaminaMax, 0.25f, 5f);
+            s.SetClamp(StaminaRegen, 0.25f, 5f);
+            s.SetClamp(RoomSprintBudget, 0f, 5f);
             s.SetClamp(Damage, 0.1f, 100f);
             s.SetClamp(FireRate, 0.25f, 4f);
             s.SetClamp(MoveSpeed, 0.4f, 2.5f);
@@ -78,7 +98,7 @@ namespace JamKit.BulletHell
         public const string LifeUp = "life_up";
         /// <summary>A hit that would cost a life spends a bomb instead (if you have one).</summary>
         public const string AutoBomb = "auto_bomb";
-        /// <summary>While focused, enemy bullets move slower.</summary>
+        /// <summary>While sprinting (or focused, when Focus mode is on), enemy bullets move slower.</summary>
         public const string FocusSlow = "focus_slow";
         /// <summary>Instant: coins, as "coins:15".</summary>
         public const string Coins = "coins";
@@ -184,6 +204,13 @@ namespace JamKit.BulletHell
         public float Luck => Stats.Get(ShmupStats.Luck);
         public float MagnetScale => Stats.Get(ShmupStats.Magnet);
         public float CoinGain => Stats.Get(ShmupStats.CoinGain);
+        public float SprintSpeedScale => Stats.Get(ShmupStats.SprintSpeed);
+        public float StaminaMaxScale => Stats.Get(ShmupStats.StaminaMax);
+        public float StaminaRegenScale => Stats.Get(ShmupStats.StaminaRegen);
+        public float RoomSprintBudgetScale => Stats.Get(ShmupStats.RoomSprintBudget);
+
+        /// <summary>Move speed multiplier while sprinting: 1 + (the data's bonus) x sprint_speed.</summary>
+        public float SprintMultiplier(float dataMultiplier) => 1f + Math.Max(0f, dataMultiplier - 1f) * SprintSpeedScale;
 
         /// <summary>Bomb radius and damage: the stat times 1.5 per bigger-bombs stack.</summary>
         public float BombPower => Stats.Get(ShmupStats.BombPower) * (1f + 0.5f * Effect(ShmupEffects.BiggerBombs));
