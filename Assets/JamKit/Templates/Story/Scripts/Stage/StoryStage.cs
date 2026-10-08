@@ -82,12 +82,14 @@ namespace JamKit.Narrative
             _cgB = El("st-cg", _camera);
             Hide(_cg);
             Hide(_cgB);
-            _ui = El("st-ui", Frame);
+            // Fade and glitch cover the picture but not the text (a line can be read on a black screen);
+            // the flash and the cards go over everything.
+            _fade = El("st-fade", Frame);
+            _fade.style.opacity = 0f;
             _glitch = El("st-glitch", Frame);
             for (int i = 0; i < 7; i++) _glitchBars.Add(El("st-glitch-bar", _glitch));
             Hide(_glitch);
-            _fade = El("st-fade", Frame);
-            _fade.style.opacity = 0f;
+            _ui = El("st-ui", Frame);
             _flash = El("st-flash", Frame);
             _flash.style.opacity = 0f;
 
@@ -288,10 +290,9 @@ namespace JamKit.Narrative
                     break;
                 }
                 default:
+                    // bgB sits just above bgA: fade it in, then copy it down and hide it again.
                     Paint(_bgB, BackgroundSprite(id), BackgroundColour(id));
                     _bgB.style.opacity = 0f;
-                    _bgB.BringToFront();
-                    _bgA.SendToBack();
                     _shownBg = id ?? "";
                     _tweens.Start("bg", seconds, k => _bgB.style.opacity = k, () =>
                     {

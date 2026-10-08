@@ -78,12 +78,21 @@ GameRoot.Lose();  // Game Over screen (Try Again / Back to Title)
 | `#sfx:coin` / `#music:music_game` / `#music:stop` | sounds by id |
 | `#shake:0.4` / `#flash` / `#flash:0.3` | screen shake (0..1) / white flash (seconds) |
 | `#wait:0.5` | pause before the line types |
+| `#auto:2` | this line goes on by itself 2 s after it has typed |
+| `#thought` | this line is a thought (the story template draws it in italics) |
 | `#event:door_opens` | `GameRoot.Dialogue.EventRaised += name => ...` |
+
+   Inside a line: `<b>`, `<i>`, `<color=red>` style the text, `<pause=0.4>` stops the typing for a
+   moment and `<speed=0.5>...</speed>` types a part slower (2 = faster). The player's **Text speed**
+   setting (up to Instant) applies to every dialogue.
 
 4. Functions (declare with `EXTERNAL has_flag(name)` etc.): `has_flag(name)`, `set_flag(name)`,
    `clear_flag(name)`. Flags are kept in the save file, so they survive retries and restarts.
 5. Events: `GameRoot.Dialogue.Ended += knot => ...` fires when a story finishes (with the knot it
-   started at); `TagReceived` gets every tag, including your own.
+   started at); `TagReceived` gets every tag, including your own; `StoryCreated` hands you each new
+   ink `Story` (bind your own EXTERNAL functions there); `LineShown` and `ChoiceMade` follow the text.
+   A template can draw the dialogue its own way (`UseView`) and steer it (`Presenter`): that's how
+   the story template adds its stage, saves and point-and-click rooms (docs/TEMPLATE-STORY.md).
 6. Portraits: duplicate `Assets/JamKit/Dialogue/Portraits/Guide.asset`, set **Character Id**, a
    **Base Sprite** and named **Expressions** (same size, transparent around the face), and add it
    to GameConfig's **Portraits** list.
@@ -94,7 +103,8 @@ arrows + Enter, the mouse or the pad.
 ## Add a sound
 
 - `GameRoot.Audio.Play("coin")` for effects (pooled, slight random pitch);
-  `GameRoot.Audio.PlayMusic("music_game")` crossfades music.
+  `GameRoot.Audio.PlayMusic("music_game")` crossfades music; `GameRoot.Audio.PlayAmbience("amb_rain")`
+  fades in a looping background sound (at the effects volume; `StopAmbience()`).
 - Ids live in **`Assets/JamKit/Audio/AudioRegistry.asset`**: add an entry (id, clip, volume,
   pitch variance, loop). Until an entry has a clip, these ids play a generated placeholder:
   `ui_move ui_select ui_back blip coin hurt win lose shoot dash explosion music_title music_game`.
@@ -134,10 +144,17 @@ or kills the boss), and can drive a few seconds of itself in the smoke run throu
 
 ## Templates
 
-`JamKit > Use Template > Bullet Hell` (or `> DOOM-like`, `> Sandbox`) points Play, the smoke test and
-Build Settings at a template: it copies the template's preset (title, tagline, first scene, music,
-How to Play cards, whether Settings shows the Pixel look option) into the active GameConfig. The
-bullet hell is documented in `docs/TEMPLATE-BULLETHELL.md`, the DOOM-like in `docs/TEMPLATE-DOOMLIKE.md`.
+`JamKit > Use Template > Bullet Hell` (or `> DOOM-like`, `> Story`, `> Sandbox`) points Play, the smoke
+test and Build Settings at a template: it copies the template's preset (title, tagline, first scene,
+music, How to Play cards, which Settings options show: Pixel look, the text options, the action
+options, best time) into the active GameConfig. The bullet hell is documented in
+`docs/TEMPLATE-BULLETHELL.md`, the DOOM-like in `docs/TEMPLATE-DOOMLIKE.md`, the story (visual novel,
+point-and-click) in `docs/TEMPLATE-STORY.md`.
+
+Templates can add to the shell's screens from code: `GameRoot.Ui.Title.AddButton(name, text, action,
+beforeName)` (also on Pause and the other screens; `SetButtonShown`), `GameRoot.Ui.Title.Shown` to
+change the title texts (`SetTitle`, `SetTagline`, `SetButtonText`), and `GameRoot.Ui.AddScreen(screen,
+uxml)` + `GameRoot.Ui.OpenOverlay(screen)` for a whole menu of their own that Back closes.
 
 ## Rebuild, test, build
 

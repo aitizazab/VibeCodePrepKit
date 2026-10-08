@@ -82,15 +82,12 @@ namespace JamKit.Shell
             if (before != null) parent.Insert(parent.IndexOf(before), b);
             else parent.Add(b);
             Bind(name, action);
-            // Keep keyboard order = visual order.
-            _buttons.Sort(CompareOrder);
+            // Keep the first-focus order the same as the order on screen.
+            var ordered = new List<Button>(_buttons.Count);
+            Root.Query<Button>().ForEach(x => { if (_buttons.Contains(x)) ordered.Add(x); });
+            _buttons.Clear();
+            _buttons.AddRange(ordered);
             return b;
-        }
-
-        static int CompareOrder(Button a, Button b)
-        {
-            if (a.parent == b.parent && a.parent != null) return a.parent.IndexOf(a).CompareTo(a.parent.IndexOf(b));
-            return 0;
         }
 
         /// <summary>Shows or hides a button by name (hidden buttons can't be activated or focused).</summary>
