@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Shared + Roguelite (stats, upgrades, run generation) + Flow (game states, settings, save data). -->
+  <!-- Shared + Roguelite (stats, upgrades, run generation) + Flow (game states, settings, save data) + Audio (the Flow tests use ToneSynth). -->
   <ItemGroup>
     <Compile Include="$(PkgRoot)Runtime\Core\Roguelite\**\*.cs" />
     <Compile Include="$(PkgRoot)Runtime\Core\Flow\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Audio\**\*.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\Roguelite\**\*.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\Flow\**\*.cs" />
   </ItemGroup>

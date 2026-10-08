@@ -22,7 +22,7 @@ namespace JamKit.Tests.Doomlike
         {
             var l = MapLegend.Default();
             foreach (var c in "mgshwW") l.AddEntity(c, EntityCategory.Enemy, 0, false, "enemy " + c);
-            foreach (var c in "+Hacol") l.AddEntity(c, EntityCategory.Pickup, 0, false, "pickup " + c);
+            foreach (var c in "+HaAco") l.AddEntity(c, EntityCategory.Pickup, 0, false, "pickup " + c);
             foreach (var c in "345") l.AddEntity(c, EntityCategory.Weapon, 0, false, "weapon " + c);
             l.AddEntity('T', EntityCategory.Decoration, 0, true, "pillar");
             l.AddEntity('j', EntityCategory.Decoration, 1, false, "junk");

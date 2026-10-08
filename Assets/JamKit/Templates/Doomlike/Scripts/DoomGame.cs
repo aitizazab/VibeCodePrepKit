@@ -88,6 +88,7 @@ namespace JamKit.Doomlike
         bool _focused, _padFocus, _fireNeedsRelease;
         float _flash;
         ulong _seed;
+        int _shownKills = -1, _shownEnemies = -1;
 
         public Phase CurrentPhase => _phase;
         public DoomHud Hud => _hud;
@@ -198,6 +199,12 @@ namespace JamKit.Doomlike
             if (_view != null) _view.Tick(dt, player.BobOffset, _arsenal.Lowered01, player.Alive && _phase != Phase.Tally && _phase != Phase.Draft);
             _hud.SetCrosshair(_phase == Phase.Playing && player.Alive);
             _hud.Refresh(player, _arsenal, config);
+            if (_tally.kills != _shownKills || _tally.totalEnemies != _shownEnemies)
+            {
+                _shownKills = _tally.kills;
+                _shownEnemies = _tally.totalEnemies;
+                GameRoot.Hud.SetScoreText("Kills " + _shownKills + " / " + _shownEnemies);
+            }
         }
 
         void Simulate(float dt)

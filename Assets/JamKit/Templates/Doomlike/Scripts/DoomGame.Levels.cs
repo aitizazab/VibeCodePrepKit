@@ -135,7 +135,7 @@ namespace JamKit.Doomlike
             _noiseCount = 0;
             if (_level == null) return;
             // Off at once (its NavMesh and colliders go now), destroyed at the end of the frame.
-            if (_level.surface != null) _level.surface.RemoveData();
+            _level.DestroyGeneratedAssets();
             _level.gameObject.SetActive(false);
             Destroy(_level.gameObject);
             _level = null;
@@ -164,14 +164,22 @@ namespace JamKit.Doomlike
                         if (player.Alive && pd < cs * 0.5f + 0.8f) TryLockedDoor(d);
                         break;
                     case DoomDoor.DoorKind.Secret:
-                        // Walk into it (pressed against the wall) or press E.
-                        if (player.Alive && pd < cs * 0.5f + player.Radius + 0.12f) OpenDoor(d);
+                        // Walk into it (pushing toward the wall, not sliding along it) or press E.
+                        if (player.Alive && pd < cs * 0.5f + player.Radius + 0.15f && PushingToward(c)) OpenDoor(d);
                         break;
                 }
             }
         }
 
         static float Flat(Vector3 v) => new Vector2(v.x, v.z).magnitude;
+
+        bool PushingToward(Vector3 c)
+        {
+            var w = player.Wish;
+            if (w.sqrMagnitude < 0.25f) return false;
+            var to = new Vector2(c.x - player.transform.position.x, c.z - player.transform.position.z);
+            return to.sqrMagnitude > 1e-4f && Vector2.Dot(w.normalized, to.normalized) > 0.7f;
+        }
 
         bool EnemyNear(Vector3 c, float r)
         {
@@ -332,7 +340,7 @@ namespace JamKit.Doomlike
             if (!_level.WorldToCell(player.transform.position, out int x, out int y)) return;
             var kind = map.KindAt(x, y);
             float hazard = player.HazardTick(dt, kind == CellKind.Hazard, config.player.hazardDamagePerSecond);
-            if (hazard > 0f) DamagePlayer(hazard, player.transform.position + player.transform.forward, JamKit.Combat.DamageKind.Hazard);
+            if (hazard > 0f) DamagePlayer(hazard, player.transform.position, JamKit.Combat.DamageKind.Hazard);
             int cell = y * map.width + x;
             switch (kind)
             {
@@ -558,9 +566,10 @@ namespace JamKit.Doomlike
             GameRoot.Hud.Message("All weapons, keys and ammo.", 2f);
         }
 
-        /// <summary>Spawns <paramref name="count"/> enemies of the first type in a ring around a point
-        /// that are already awake (perf tests, stress checks). Returns how many were placed.</summary>
-        public int DebugSpawnEnemies(int count, Vector3 around, float radius, EnemyAsset asset = null)
+        /// <summary>Spawns <paramref name="count"/> enemies (the first type unless given) in a ring around
+        /// a point, facing its centre, awake unless <paramref name="alert"/> is false (tests, stress
+        /// checks). Returns how many were placed.</summary>
+        public int DebugSpawnEnemies(int count, Vector3 around, float radius, EnemyAsset asset = null, bool alert = true)
         {
             if (_level == null) return 0;
             asset = asset != null ? asset : config.enemies.Count > 0 ? config.enemies[0] : null;
@@ -570,9 +579,9 @@ namespace JamKit.Doomlike
             {
                 float a = i * Mathf.PI * 2f / count;
                 var p = around + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * radius;
-                if (!UnityEngine.AI.NavMesh.SamplePosition(p, out var hit, radius, UnityEngine.AI.NavMesh.AllAreas)) continue;
+                if (!UnityEngine.AI.NavMesh.SamplePosition(p, out var hit, Mathf.Max(1f, radius), UnityEngine.AI.NavMesh.AllAreas)) continue;
                 var e = DoomEnemy.Create(new EnemySpawn { asset = asset, position = hit.position, facing = a + Mathf.PI }, this, _level.thingsRoot, ++_nextEnemyId, _rng.Fork());
-                e.Alert();
+                if (alert) e.Alert();
                 _enemies.Add(e);
                 _tally.totalEnemies++;
                 placed++;

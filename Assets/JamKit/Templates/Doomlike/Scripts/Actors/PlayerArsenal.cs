@@ -41,6 +41,8 @@ namespace JamKit.Doomlike
         /// <summary>0 = in hand, 1 = fully lowered (for the view).</summary>
         public float Lowered01 => Mathf.Clamp01(_swap / SwapHalf);
         public bool Swapping => _pending >= 0 || _swap > 0f;
+        /// <summary>The old gun is going down (the view switches sprites when this ends).</summary>
+        public bool Lowering => _pending >= 0;
         public IReadOnlyList<float> LastShotAges => _shotAges;
 
         public void Setup(DoomlikeConfig config)

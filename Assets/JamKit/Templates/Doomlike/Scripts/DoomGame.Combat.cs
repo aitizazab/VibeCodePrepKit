@@ -33,7 +33,7 @@ namespace JamKit.Doomlike
             int shots = _arsenal.Tick(dt, held, pressed, out bool dry);
             if (dry) PlaySound("blip", 0.6f);
             var gun = _arsenal.Current;
-            if (_view != null && _arsenal.CurrentAsset != _view.Weapon && !_arsenal.Swapping) _view.SetWeapon(_arsenal.CurrentAsset);
+            if (_view != null && _arsenal.CurrentAsset != _view.Weapon && !_arsenal.Lowering) _view.SetWeapon(_arsenal.CurrentAsset);
             if (shots <= 0 || gun == null) return;
             for (int i = 0; i < shots; i++) Shoot(gun.asset);
             _arsenal.SwitchIfEmpty();

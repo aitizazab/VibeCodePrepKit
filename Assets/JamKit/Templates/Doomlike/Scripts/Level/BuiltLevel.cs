@@ -84,6 +84,29 @@ namespace JamKit.Doomlike
 
         public CellKind KindAt(Vector3 p) => WorldToCell(p, out int x, out int y) ? map.KindAt(x, y) : CellKind.Void;
 
+        /// <summary>Destroys what the builder made in memory for this level (meshes, NavMesh data):
+        /// they aren't scene objects, so destroying the GameObjects alone would leak them.</summary>
+        public void DestroyGeneratedAssets()
+        {
+            if (surface != null)
+            {
+                surface.RemoveData();
+                if (surface.navMeshData != null) DestroyAsset(surface.navMeshData);
+                surface.navMeshData = null;
+            }
+            foreach (var mf in GetComponentsInChildren<MeshFilter>(true))
+            {
+                var mesh = mf.sharedMesh;
+                if (mesh != null && mesh != MeshKit.BillboardQuad) DestroyAsset(mesh);
+            }
+        }
+
+        static void DestroyAsset(Object o)
+        {
+            if (Application.isPlaying) Destroy(o);
+            else DestroyImmediate(o);
+        }
+
         /// <summary>The first exit's centre (debug skip, tests).</summary>
         public Vector3 ExitPosition => map.exits.Count > 0 ? CellCenter(map.exits[0].x, map.exits[0].y) : startPosition;
     }

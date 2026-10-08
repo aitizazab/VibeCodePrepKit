@@ -30,6 +30,7 @@ namespace JamKit.Doomlike
         int _keys;
         float _speedScale = 1f;
         float _hazardTimer;
+        Vector2 _wish;
 
         /// <summary>Tests and the smoke run drive the player with these instead of the input.</summary>
         public Vector2 ScriptedMove;
@@ -43,6 +44,8 @@ namespace JamKit.Doomlike
         public float Height => controller != null ? controller.height : 1.7f;
         public float Speed => _vel.magnitude;
         public Vector2 Velocity => _vel;
+        /// <summary>Where the input pushes this frame, world XZ (length 0..1): walking into a wall still counts.</summary>
+        public Vector2 Wish => _wish;
         public Vector3 EyePosition => transform.position + Vector3.up * _t.eyeHeight;
         public Vector3 Forward => cam != null ? cam.transform.forward : transform.forward;
         public int Keys => _keys;
@@ -124,6 +127,7 @@ namespace JamKit.Doomlike
             var motion = _t.motion ?? new PlayerMotionDef();
             float max = (walk ? motion.walkSpeed : motion.runSpeed) * _speedScale;
             var wish = PlayerMotion.WishFromInput(new System.Numerics.Vector2(moveInput.x, moveInput.y), _yaw);
+            _wish = new Vector2(wish.X, wish.Y);
             var v = PlayerMotion.Step(new System.Numerics.Vector2(_vel.x, _vel.y), wish, max, motion, dt);
             _vel = new Vector2(v.X, v.Y);
 

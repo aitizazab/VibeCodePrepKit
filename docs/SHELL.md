@@ -134,9 +134,10 @@ or kills the boss), and can drive a few seconds of itself in the smoke run throu
 
 ## Templates
 
-`JamKit > Use Template > Bullet Hell` (or `> Sandbox`) points Play, the smoke test and Build Settings
-at a template: it copies the template's preset (title, tagline, first scene, music, How to Play
-cards) into the active GameConfig. The bullet hell is documented in `docs/TEMPLATE-BULLETHELL.md`.
+`JamKit > Use Template > Bullet Hell` (or `> DOOM-like`, `> Sandbox`) points Play, the smoke test and
+Build Settings at a template: it copies the template's preset (title, tagline, first scene, music,
+How to Play cards, whether Settings shows the Pixel look option) into the active GameConfig. The
+bullet hell is documented in `docs/TEMPLATE-BULLETHELL.md`, the DOOM-like in `docs/TEMPLATE-DOOMLIKE.md`.
 
 ## Rebuild, test, build
 
