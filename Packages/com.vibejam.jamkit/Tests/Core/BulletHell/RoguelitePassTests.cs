@@ -651,6 +651,41 @@ namespace JamKit.Tests.BulletHell
         }
 
         [Test]
+        public void FewerHitsCountOncePastTheNoiseOfTheSample()
+        {
+            // The real report's Time Dilation: 61 hits down to 50 over 51 rooms is 18% fewer, not "0%"
+            // (the old rule wanted a quarter of a hit per room and missed it).
+            Assert.That(BalanceReport.HitGain(61, 50), Is.EqualTo(11f / 61f).Within(1e-4f));
+            Assert.That(BalanceReport.HitGain(6, 4), Is.EqualTo(0f), "2 saved of 6 is under the noise (sqrt 6 = 2.4)");
+            Assert.That(BalanceReport.HitGain(4, 1), Is.EqualTo(0.75f).Within(1e-4f));
+            Assert.That(BalanceReport.HitGain(3, 2), Is.EqualTo(0f), "a single hit is never enough");
+            Assert.That(BalanceReport.HitGain(0, 0), Is.EqualTo(0f));
+            Assert.That(BalanceReport.HitGain(20, 25), Is.EqualTo(0f), "more hits isn't a gain");
+        }
+
+        [Test]
+        public void TimeDilationRegistersAndGrazeOnlyUpgradesAreMeasuredNotFlagged()
+        {
+            var halo = new UpgradeDef("wide_halo", Rarity.Common) { displayName = "Wide Halo" };
+            halo.modifiers.Add(new StatModifier(ShmupStats.GrazeRadius, StatOp.PercentAdd, 0.35f));
+            var pool = new List<UpgradeDef> { Effect("time_dilation", Rarity.Legendary, ShmupEffects.FocusSlow), halo };
+            Assert.That(BalanceReport.IsGrazeOnly(halo), Is.True);
+            Assert.That(BalanceReport.IsGrazeOnly(pool[0]), Is.False);
+            var sim = new BalanceSim(); // 1/60 s steps, as in the report on the real rooms
+            var rows = BalanceReport.Run(sim, BalanceReport.DefaultRooms(), new SimPlayer(), pool, 6);
+            var byId = rows.ToDictionary(r => r.id);
+            TestContext.Out.WriteLine(BalanceReport.ToMarkdown(rows, BalanceReport.Baseline(sim, BalanceReport.DefaultRooms(), new SimPlayer(), 6), 5, 6, BalanceReport.DefaultThreshold));
+            var td = byId["time_dilation"];
+            Assert.That(td.hitsPerRoom, Is.LessThan(td.baselineHitsPerRoom));
+            Assert.That(td.verdict, Is.EqualTo(BalanceVerdict.Useful), "fewer hits register");
+            Assert.That(td.usefulness, Is.GreaterThan(0.05f));
+            var h = byId["wide_halo"];
+            Assert.That(h.verdict, Is.EqualTo(BalanceVerdict.NotSimulated), "score and graze synergies only: not flagged");
+            Assert.That(h.grazesPerRoom, Is.GreaterThan(h.baselineGrazesPerRoom), "but its grazes are measured");
+            Assert.That(h.note, Does.Contain("grazes x"));
+        }
+
+        [Test]
         public void TheSimulationIsDeterministic()
         {
             var sim = new BalanceSim { dt = 1f / 30f };

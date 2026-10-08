@@ -15,11 +15,11 @@ namespace JamKit.BulletHell.EditorTools
     /// per upgrade its DPS against the baseline, its own share of the damage, hits taken and time to clear.
     /// Anything under the usefulness threshold is FLAGGED (docs/DESIGN-ROGUELITE.md, section 2).
     /// Batch: <c>-executeMethod JamKit.BulletHell.EditorTools.BulletHellBalance.RunFromCommandLine</c>
-    /// (optional <c>-balanceSeeds 3</c>). Takes a minute or two.
+    /// (optional <c>-balanceSeeds N</c>, default 8: fewer seeds let noise flip borderline upgrades). Takes seconds.
     /// </summary>
     public static class BulletHellBalance
     {
-        public const int DefaultSeeds = 3;
+        public const int DefaultSeeds = 8;
 
         [MenuItem("JamKit/Bullet Hell/Balance Report")]
         static void Menu()

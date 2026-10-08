@@ -484,6 +484,7 @@ namespace JamKit.BulletHell
         public float damageShare;
         public float hitsPerRoom, baselineHitsPerRoom;
         public float clearSeconds, baselineClearSeconds;
+        public float grazesPerRoom, baselineGrazesPerRoom;
         /// <summary>The best of: DPS gain, fewer hits (fraction), faster clears (fraction). Flagged under the threshold.</summary>
         public float usefulness;
         public string note = "";
@@ -522,6 +523,29 @@ namespace JamKit.BulletHell
                     return false;
                 }
             return any || (def.modifiers == null || def.modifiers.Count == 0);
+        }
+
+        /// <summary>True when all it changes is the graze ring: worth score (and Ember Hunger or Close Shave),
+        /// which DPS, hits and clear time can't show. Simulated for its grazes, listed as not simulated.</summary>
+        public static bool IsGrazeOnly(UpgradeDef def)
+        {
+            if (def == null || def.modifiers == null || def.modifiers.Count == 0) return false;
+            if (def.effects != null && def.effects.Count > 0) return false;
+            foreach (var m in def.modifiers)
+                if (m == null || m.stat != ShmupStats.GrazeRadius) return false;
+            return true;
+        }
+
+        /// <summary>
+        /// Fewer hits as a fraction of the baseline's, when it's more than noise: the hits saved over the
+        /// whole sample must be at least 2 and at least the square root of the baseline's hits (about one
+        /// standard deviation of a count). 61 hits down to 50 counts (18%); 6 down to 4 doesn't.
+        /// </summary>
+        public static float HitGain(int baselineHits, int hits)
+        {
+            int saved = baselineHits - hits;
+            if (baselineHits <= 0 || saved < Math.Max(2.0, Math.Sqrt(baselineHits))) return 0f;
+            return saved / (float)baselineHits;
         }
 
         /// <summary>The damage sources an upgrade adds (its share is credited to it).</summary>
@@ -587,6 +611,13 @@ namespace JamKit.BulletHell
                 foreach (var s in sources) own += with.damageBySource[(int)s] - (hasReq ? reference.damageBySource[(int)s] : 0f);
                 Fill(row, with, reference, own, threshold, rooms.Count * seeds);
                 if (hasReq) row.note = "measured with " + string.Join(", ", def.requires);
+                if (IsGrazeOnly(def))
+                {
+                    row.verdict = BalanceVerdict.NotSimulated;
+                    float ratio = row.baselineGrazesPerRoom > 0f ? row.grazesPerRoom / row.baselineGrazesPerRoom : 1f;
+                    row.note = "score and graze synergies only (Ember Hunger, Close Shave): grazes x" + F(ratio) + " ("
+                        + F(row.grazesPerRoom, "0") + " a room)";
+                }
             }
             return rows;
         }
@@ -605,12 +636,10 @@ namespace JamKit.BulletHell
             row.baselineHitsPerRoom = reference.hits / (float)Math.Max(1, count);
             row.clearSeconds = with.clearSeconds / Math.Max(1, count);
             row.baselineClearSeconds = reference.clearSeconds / Math.Max(1, count);
+            row.grazesPerRoom = with.grazes / (float)Math.Max(1, count);
+            row.baselineGrazesPerRoom = reference.grazes / (float)Math.Max(1, count);
             float dpsGain = row.dpsRatio - 1f;
-            // Fewer hits only counts when it's more than noise: at least a quarter of a hit per room,
-            // and at least two hits over the whole sample.
-            float hitsSaved = row.baselineHitsPerRoom - row.hitsPerRoom;
-            bool real = hitsSaved >= 0.25f && reference.hits - with.hits >= 2;
-            float hitGain = real && row.baselineHitsPerRoom > 0f ? hitsSaved / row.baselineHitsPerRoom : 0f;
+            float hitGain = HitGain(reference.hits, with.hits);
             float timeGain = row.baselineClearSeconds > 0f ? (row.baselineClearSeconds - row.clearSeconds) / row.baselineClearSeconds : 0f;
             row.usefulness = Math.Max(dpsGain, Math.Max(hitGain, timeGain));
             row.verdict = row.usefulness < threshold ? BalanceVerdict.Flagged : BalanceVerdict.Useful;
@@ -646,7 +675,8 @@ namespace JamKit.BulletHell
             sb.AppendLine("A scripted dodge bot played " + roomCount + " rooms x " + seeds + " seeds with each upgrade alone (and a baseline with none).");
             sb.AppendLine("Baseline: " + F(baseline.damage / Math.Max(0.01f, baseline.engagedSeconds), "0.0") + " DPS, " + F(baseline.hits / (float)n)
                 + " hits per room, " + F(baseline.clearSeconds / n, "0.0") + " s per room.");
-            sb.AppendLine("Usefulness = the best of DPS gain, fewer hits and faster clears. Under " + F(threshold * 100f, "0") + "% it's FLAGGED.");
+            sb.AppendLine("Usefulness = the best of DPS gain, fewer hits and faster clears. Under " + F(threshold * 100f, "0") + "% it's FLAGGED."
+                + " Fewer hits count once the hits saved reach 2 and the square root of the baseline's hits (noise).");
             sb.AppendLine();
             sb.AppendLine("| Upgrade | Rarity | Verdict | DPS vs baseline | Own damage share | Hits/room (base) | Clear s (base) | Usefulness | Note |");
             sb.AppendLine("|---|---|---|---|---|---|---|---|---|");
@@ -657,6 +687,7 @@ namespace JamKit.BulletHell
                     sb.AppendLine("| " + r.name + " | " + r.rarity + " | not simulated | | | | | | " + r.note + " |");
                     continue;
                 }
+                // (hits saved count only past the noise margin: see BalanceReport.HitGain)
                 sb.AppendLine("| " + r.name + " | " + r.rarity + " | " + (r.verdict == BalanceVerdict.Flagged ? "**FLAGGED**" : "useful") + " | x"
                     + F(r.dpsRatio) + " | " + F(r.damageShare * 100f, "0") + "% | " + F(r.hitsPerRoom) + " (" + F(r.baselineHitsPerRoom) + ") | "
                     + F(r.clearSeconds, "0.0") + " (" + F(r.baselineClearSeconds, "0.0") + ") | " + F(r.usefulness * 100f, "0") + "% | " + r.note + " |");
