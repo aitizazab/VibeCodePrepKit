@@ -14,6 +14,11 @@ framework for a 3-day "Vibe Coding GameDev" hackathon. Plan and status: `docs/PL
   Angles are in degrees in data and radians inside.
 - **Per-frame code doesn't allocate:** no LINQ in Tick/Update; output lists are passed in.
 - Vectors in the core use `System.Numerics`; adapters convert to `UnityEngine.Vector2/3`.
+  System.Numerics vectors aren't Unity-serializable, so serialized data stores floats.
+- **The creator's secrets-guard hook blocks any write that contains a C# auto-property with a
+  setter** (it reads the setter's semicolon-then-"set" as a shell command that dumps the
+  environment). Use a backing field with explicit accessors, or a public field.
+- Angles: 0 = +X, counter-clockwise (so -90 is down). The 3D layer maps 2D pattern output onto XZ.
 - Tests are NUnit 3 style (`Assert.That(..., Is....)`). The same files run in Unity's Test
   Framework and in `core-tests`.
 
