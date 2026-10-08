@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 945c355521880f545884efe20ab4723b, type: 3}
+  m_Name: StoryGameConfig
+  m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.GameConfig
+  gameTitle: Last Train Home
+  tagline: A short story about what we leave behind.
+  bootScene: Boot
+  titleScene: Title
+  firstGameplayScene: Story
+  titleMusic: music_story_calm
+  gameMusic: 
+  audio: {fileID: 0}
+  portraits: []
+  credits: {fileID: 0}
+  howToPlay:
+  - title: Read and choose
+    body: 'Click, Space, Enter or (A) to go on (a click while text types shows it
+      all).
+
+      Choices: click one, press its number, or use the arrow keys and
+      Enter.'
+    image: {fileID: 0}
+  - title: Look around
+    body: 'Sometimes you can look around a room: click the glowing markers, or use
+      the arrow keys and Enter.
+
+      Items you find appear at the bottom left:
+      click one, then click where to use it.'
+    image: {fileID: 0}
+  - title: Your story is remembered
+    body: 'L or the mouse wheel shows what was said. A: auto, S or hold Ctrl: skip
+      what you''ve read, H: hide the text. F5 / F9: quick save and load. Escape:
+      menu.
+
+      The game remembers how your story ended. Play it more than once.'
+    image: {fileID: 0}
+  showHowToPlayOnFirstRun: 1
+  allowDebugMenuInRelease: 0
+  showPixelLookSetting: 0
+  showTextSettings: 1
+  showActionSettings: 0
+  showBestTime: 0

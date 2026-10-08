@@ -595,10 +595,23 @@ namespace JamKit.Narrative
         }
 
         readonly List<FilterFunction> _filters = new List<FilterFunction>();
+        bool _filterSet;
+
+        static bool _filtersEnabled = !Application.isBatchMode;
+
+        /// <summary>UI Toolkit filters (blur, colour filters) are optional polish: off in batch mode (nothing
+        /// is drawn there), and switched off for good if setting one ever fails. The rest of the stage
+        /// works the same without them.</summary>
+        public static bool FiltersEnabled
+        {
+            get => _filtersEnabled;
+            set => _filtersEnabled = value;
+        }
 
         /// <summary>Blur and the colour filter as UI Toolkit filters on the picture (not on the text).</summary>
         void ApplyFilters()
         {
+            if (!_filtersEnabled) return;
             _filters.Clear();
             float a = Mathf.Clamp01(_filterAmount);
             if (_blur > 0.05f) _filters.Add(F(FilterFunctionType.Blur, _blur));
@@ -619,12 +632,23 @@ namespace JamKit.Narrative
             }
             try
             {
-                if (_filters.Count == 0) _camera.style.filter = StyleKeyword.None;
-                else _camera.style.filter = new StyleList<FilterFunction>(new List<FilterFunction>(_filters));
+                if (_filters.Count == 0)
+                {
+                    // Never the None keyword: Unity 6.3 then fails reading resolvedStyle.filter on every
+                    // layout. Clearing the inline value (Null) leaves the default, an empty list.
+                    if (_filterSet) _camera.style.filter = StyleKeyword.Null;
+                    _filterSet = false;
+                }
+                else
+                {
+                    _camera.style.filter = new StyleList<FilterFunction>(new List<FilterFunction>(_filters));
+                    _filterSet = true;
+                }
             }
             catch (Exception)
             {
                 // A platform without UI filters: the picture just stays sharp and uncoloured.
+                _filtersEnabled = false;
             }
         }
 

@@ -1,0 +1,137 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14027232fce9c104494b19d283c1c54b, type: 3}
+  m_Name: Office
+  m_EditorClassIdentifier: JamKit.Story::JamKit.Narrative.HotspotScene
+  id: office
+  background: office
+  prompt: 'Find her ticket. Click things to look at them (or arrow keys and Enter).
+    Items appear at the bottom left: click one, then click where to use it.'
+  showMarkers: 1
+  hotspots:
+  - id: door
+    label: Door to the waiting room
+    shape: 0
+    rect:
+      serializedVersion: 2
+      x: 0.03
+      y: 0.18
+      width: 0.14
+      height: 0.77
+    points: []
+    knot: office_door
+    showIf: 
+    hideAfterUse: 0
+    itemUses: []
+  - id: coat
+    label: Grey coat
+    shape: 1
+    rect:
+      serializedVersion: 2
+      x: 0.4
+      y: 0.4
+      width: 0.2
+      height: 0.2
+    points:
+    - {x: 0.215, y: 0.3}
+    - {x: 0.252, y: 0.22}
+    - {x: 0.29, y: 0.3}
+    - {x: 0.3, y: 0.75}
+    - {x: 0.205, y: 0.75}
+    knot: office_coat
+    showIf: 
+    hideAfterUse: 0
+    itemUses: []
+  - id: board
+    label: Notice board
+    shape: 0
+    rect:
+      serializedVersion: 2
+      x: 0.36
+      y: 0.14
+      width: 0.2
+      height: 0.26
+    points: []
+    knot: office_board
+    showIf: 
+    hideAfterUse: 0
+    itemUses: []
+  - id: window
+    label: Window
+    shape: 0
+    rect:
+      serializedVersion: 2
+      x: 0.62
+      y: 0.12
+      width: 0.18
+      height: 0.3
+    points: []
+    knot: office_window
+    showIf: 
+    hideAfterUse: 0
+    itemUses: []
+  - id: shelves
+    label: Lost property shelves
+    shape: 0
+    rect:
+      serializedVersion: 2
+      x: 0.82
+      y: 0.1
+      width: 0.16
+      height: 0.82
+    points: []
+    knot: office_shelves
+    showIf: 
+    hideAfterUse: 0
+    itemUses: []
+  - id: desk
+    label: Bram's desk
+    shape: 1
+    rect:
+      serializedVersion: 2
+      x: 0.4
+      y: 0.4
+      width: 0.2
+      height: 0.2
+    points:
+    - {x: 0.34, y: 0.56}
+    - {x: 0.74, y: 0.56}
+    - {x: 0.76, y: 0.66}
+    - {x: 0.74, y: 0.92}
+    - {x: 0.34, y: 0.92}
+    - {x: 0.32, y: 0.66}
+    knot: office_desk
+    showIf: 
+    hideAfterUse: 0
+    itemUses: []
+  - id: desk_drawer
+    label: Desk drawer
+    shape: 0
+    rect:
+      serializedVersion: 2
+      x: 0.48
+      y: 0.66
+      width: 0.12
+      height: 0.08
+    points: []
+    knot: office_drawer
+    showIf: 
+    hideAfterUse: 0
+    itemUses:
+    - item: brass_key
+      knot: office_drawer_key
+  fallbackItemKnot: office_no_use
+  walkthrough:
+  - coat
+  - brass_key>desk_drawer
+  - shelves
+  - door

@@ -105,6 +105,8 @@ arrows + Enter, the mouse or the pad.
 - `GameRoot.Audio.Play("coin")` for effects (pooled, slight random pitch);
   `GameRoot.Audio.PlayMusic("music_game")` crossfades music; `GameRoot.Audio.PlayAmbience("amb_rain")`
   fades in a looping background sound (at the effects volume; `StopAmbience()`).
+- In batch mode (Unity test runs, the `-jamSmoke` smoke run) every shell sound is muted
+  (`GameRoot.Audio.Muted`), so tests stay quiet; normal play is unchanged.
 - Ids live in **`Assets/JamKit/Audio/AudioRegistry.asset`**: add an entry (id, clip, volume,
   pitch variance, loop). Until an entry has a clip, these ids play a generated placeholder:
   `ui_move ui_select ui_back blip coin hurt win lose shoot dash explosion music_title music_game`.

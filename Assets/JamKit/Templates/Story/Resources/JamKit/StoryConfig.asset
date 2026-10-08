@@ -1,0 +1,172 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97a8d1ae5dd7381489224d5466fff1da, type: 3}
+  m_Name: StoryConfig
+  m_EditorClassIdentifier: JamKit.Story::JamKit.Narrative.StoryConfig
+  story: {fileID: 6231892579173505729, guid: e8137c8d6efc7d14fb72bd883be62462, type: 3}
+  startKnot: 
+  sceneName: Story
+  backgrounds:
+  - id: platform_night
+    sprite: {fileID: 21300000, guid: efaca07e54cd8774bbb42e955236df70, type: 3}
+    color: {r: 0.11372549, g: 0.16470589, b: 0.2901961, a: 1}
+    note: the platform at night, in the rain
+  - id: waiting_room
+    sprite: {fileID: 21300000, guid: d3cb61ee415c1454fa86d006bb9cceae, type: 3}
+    color: {r: 0.47843137, g: 0.32156864, b: 0.17254902, a: 1}
+    note: the warm waiting room
+  - id: office
+    sprite: {fileID: 21300000, guid: be9abd7a6b1a737439cd6ba4f44c066d, type: 3}
+    color: {r: 0.24705882, g: 0.32156864, b: 0.26666668, a: 1}
+    note: the lost property office (hotspot scene)
+  - id: platform_dawn
+    sprite: {fileID: 21300000, guid: b61c592be3544bb438f0bba907c4aee9, type: 3}
+    color: {r: 0.9490196, g: 0.6431373, b: 0.41960785, a: 1}
+    note: the platform at sunrise
+  - id: train_interior
+    sprite: {fileID: 21300000, guid: ed727c46d95045348a138ba8f2fd3b3c, type: 3}
+    color: {r: 0.35686275, g: 0.27058825, b: 0.17254902, a: 1}
+    note: inside the last train
+  - id: street_rain
+    sprite: {fileID: 21300000, guid: 7fe8b132ba64cbb4c8df5b0c39ed2add, type: 3}
+    color: {r: 0.14901961, g: 0.1882353, b: 0.30980393, a: 1}
+    note: the street at the top of the station steps
+  - id: black
+    sprite: {fileID: 0}
+    color: {r: 0, g: 0, b: 0, a: 1}
+    note: plain black
+  - id: white
+    sprite: {fileID: 0}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    note: plain white
+  characters:
+  - id: iris
+    displayName: Iris
+    nameColor: {r: 0.9098039, g: 0.77254903, b: 0.2784314, a: 1}
+    portrait: {fileID: 11400000, guid: 52bc62ebf0a6c8a439c7cab9d68234ac, type: 2}
+    height: 0.92
+    yOffset: 0
+    voice: voice_high
+  - id: bram
+    displayName: Bram
+    nameColor: {r: 0.49411765, g: 0.6509804, b: 0.8784314, a: 1}
+    portrait: {fileID: 11400000, guid: fb643a964b1bed4419ebb28ffced6453, type: 2}
+    height: 0.98
+    yOffset: 0
+    voice: voice_low
+  cgs:
+  - id: cg_photo
+    sprite: {fileID: 21300000, guid: a56355b9d54cf954382a4bbabc10c7d4, type: 3}
+    color: {r: 0.7058824, g: 0.5764706, b: 0.37254903, a: 1}
+    note: the old photograph
+  - id: cg_train
+    sprite: {fileID: 21300000, guid: 96dcf163d0a85f7498e07d0366c9119f, type: 3}
+    color: {r: 0.0627451, g: 0.07450981, b: 0.12156863, a: 1}
+    note: the 23:52 arriving
+  - id: cg_umbrella
+    sprite: {fileID: 21300000, guid: 81522586da2306f4796bb5b211e5b939, type: 3}
+    color: {r: 0.3254902, g: 0.34509805, b: 0.5411765, a: 1}
+    note: two people under one umbrella
+  - id: cg_ticket
+    sprite: {fileID: 21300000, guid: 13a590f37fb0d1247b4601d7105b4905, type: 3}
+    color: {r: 0.7882353, g: 0.627451, b: 0.41568628, a: 1}
+    note: the ticket in the drawer
+  palette:
+  - name: accent
+    color: {r: 1, g: 0.7882353, b: 0.2901961, a: 1}
+  - name: memory
+    color: {r: 0.8509804, g: 0.7019608, b: 0.54901963, a: 1}
+  - name: danger
+    color: {r: 1, g: 0.41960785, b: 0.41960785, a: 1}
+  items:
+  - id: brass_key
+    displayName: Small brass key
+    description: From the pocket of a grey coat.
+    icon: {fileID: 21300000, guid: d8de5f977a90d8140bb9eea83cf4ec3c, type: 3}
+    color: {r: 0.84705883, g: 0.69411767, b: 0.24705882, a: 1}
+  - id: ticket
+    displayName: Ticket to Wexley
+    description: Brown card. A name in pencil on the back.
+    icon: {fileID: 21300000, guid: 8dd45b666f1274346b7de31bdd5c98ba, type: 3}
+    color: {r: 0.7882353, g: 0.627451, b: 0.41568628, a: 1}
+  - id: photograph
+    displayName: Old photograph
+    description: Two people on this platform, long ago.
+    icon: {fileID: 21300000, guid: ad0f57894d412b04e972cfb374ac9b09, type: 3}
+    color: {r: 0.9372549, g: 0.8901961, b: 0.78431374, a: 1}
+  hotspotScenes:
+  - {fileID: 11400000, guid: 0cb5b3c0dfa2a794cada4f143877c94a, type: 2}
+  itemsList: Items
+  inventoryVariable: inventory
+  endings:
+  - id: last_train
+    title: The Last Train
+    description: You caught the 23:52. Somebody stayed behind.
+    hint: Some people get on the train.
+    secret: 0
+    image: {fileID: 21300000, guid: ed727c46d95045348a138ba8f2fd3b3c, type: 3}
+    color: {r: 0.35686275, g: 0.27058825, b: 0.17254902, a: 1}
+  - id: missed_connection
+    title: Missed Connection
+    description: You missed the last train on purpose, and walked home at sunrise.
+    hint: Some people stay.
+    secret: 0
+    image: {fileID: 21300000, guid: 81522586da2306f4796bb5b211e5b939, type: 3}
+    color: {r: 0.3254902, g: 0.34509805, b: 0.5411765, a: 1}
+  - id: lost_property
+    title: Lost Property
+    description: You gave away your ticket. Something lost was found.
+    hint: Some things belong to someone. Look carefully in the office.
+    secret: 0
+    image: {fileID: 21300000, guid: a56355b9d54cf954382a4bbabc10c7d4, type: 3}
+    color: {r: 0.7058824, g: 0.5764706, b: 0.37254903, a: 1}
+  - id: return_ticket
+    title: Return Ticket
+    description: You came back, and this time she left the station.
+    hint: 
+    secret: 1
+    image: {fileID: 21300000, guid: 7fe8b132ba64cbb4c8df5b0c39ed2add, type: 3}
+    color: {r: 0.14901961, g: 0.1882353, b: 0.30980393, a: 1}
+  titleVariants:
+  - condition: endings_seen >= 1 && !ending:return_ticket
+    title: 
+    tagline: Somebody is still waiting on the platform.
+    playLabel: Go back
+  endingCardSeconds: 7
+  charsPerSecond: 40
+  nvlMaxLines: 8
+  inlineSpeakers: 1
+  quickMenu: 1
+  style: {fileID: 7433441132597879392, guid: 35ceb8c89c7c10e478ac39d1536daefe, type: 3}
+  extraTags: []
+  knotIndex:
+  - prologue
+  - platform
+  - waiting_room
+  - waiting_room_return
+  - bram_visits
+  - train_arrives
+  - deja_vu
+  - ending_last_train
+  - ending_missed_connection
+  - ending_lost_property
+  - ending_return_ticket
+  - office
+  - office_coat
+  - office_drawer
+  - office_drawer_key
+  - office_desk
+  - office_shelves
+  - office_board
+  - office_window
+  - office_door
+  - office_no_use

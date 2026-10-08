@@ -39,6 +39,22 @@ namespace JamKit.Shell
         /// <summary>The last sound effect id played, for tests and debugging.</summary>
         public string LastSfx;
 
+        bool _muted;
+
+        /// <summary>Every sound plays silently (on in batch mode: test runs and the smoke run stay quiet).
+        /// Volumes and the Settings screen work as usual.</summary>
+        public bool Muted
+        {
+            get => _muted;
+            set
+            {
+                _muted = value;
+                foreach (var m in _music) if (m != null) m.mute = value;
+                if (_ambience != null) _ambience.mute = value;
+                foreach (var p in _pool) if (p != null) p.mute = value;
+            }
+        }
+
         public void Init(AudioRegistry registry)
         {
             _registry = registry;
@@ -63,6 +79,8 @@ namespace JamKit.Shell
                 src.ignoreListenerPause = true;
                 _pool.Add(src);
             }
+            // Batch mode (Unity test runs, the -jamSmoke player) still plays audio: keep it silent.
+            Muted = Application.isBatchMode;
         }
 
         public void ApplySettings(Settings s)

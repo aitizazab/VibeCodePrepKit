@@ -498,7 +498,7 @@ The text box also has small buttons: Log, Auto, Skip, Save, Load, Q.Save, Q.Load
 - One story file tree per game (the main .ink and its INCLUDEs).
 - Characters are a base picture plus one expression layer (no separate outfits or animation).
 - `#blur` and `#filter` use UI Toolkit filters; very old GPUs or a platform without them just show
-  the picture unfiltered.
+  the picture unfiltered. They're off in batch mode (test runs, the smoke run), where nothing is drawn.
 - The hotspot editor is the Inspector (numbers); there's no drawing tool. The debug menu's "show all
   hotspots" checks the shapes in play.
 - Hot reload restarts the current knot: lines already shown in it are shown again.
