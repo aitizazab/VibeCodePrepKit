@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared + Dialogue + Flow + Story (the story template's pure rules); the rest comes from Directory.Build.props.
+       SampleStoryTests.cs (only here, not in Unity) compiles the template's real ink with the real ink
+       compiler (the source in Library/PackageCache, so open the project in Unity once first), plays it
+       headless and validates its tags. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS0618;CS0162;CS0168;CS0219;CS0414;CS0649;CS8632;CS0108;CS0114</NoWarn>
+    <InkLibs>$(MSBuildThisFileDirectory)..\..\Library\PackageCache\</InkLibs>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\Dialogue\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Flow\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Story\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Dialogue\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Story\**\*.cs" />
+    <InkSource Include="$(InkLibs)com.inkle.ink-unity-integration@*\InkLibs\**\*.cs" />
+    <Compile Include="@(InkSource)" LinkBase="InkLibs" />
+    <Compile Include="SampleStoryTests.cs" />
+  </ItemGroup>
+  <Target Name="RequireInkSource" BeforeTargets="CoreCompile" Condition="'@(InkSource)' == ''">
+    <Error Text="The ink compiler source wasn't found under Library/PackageCache/com.inkle.ink-unity-integration@*: open the project in Unity once first." />
+  </Target>
+</Project>

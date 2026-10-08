@@ -12,7 +12,7 @@ namespace JamKit.Flow
     public class SaveData
     {
         /// <summary>Bump when the layout changes, and add a step to <see cref="Migrate"/>.</summary>
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         public int version = CurrentVersion;
         public Settings settings = new Settings();
@@ -41,7 +41,8 @@ namespace JamKit.Flow
                 switch (version)
                 {
                     case 0: MigrateV0ToV1(); break;
-                    // case 1: MigrateV1ToV2(); break;
+                    case 1: MigrateV1ToV2(); break;
+                    // case 2: MigrateV2ToV3(); break;
                 }
                 version++;
                 changed = true;
@@ -61,6 +62,16 @@ namespace JamKit.Flow
         void MigrateV0ToV1()
         {
             if (settings != null) settings.ApplyDifficulty();
+        }
+
+        /// <summary>v1 had no dialogue settings: they'd load as 0 (and clamp to the slowest), so set the defaults.</summary>
+        void MigrateV1ToV2()
+        {
+            if (settings == null) return;
+            var d = new Settings();
+            settings.textSpeed = d.textSpeed;
+            settings.autoDelay = d.autoDelay;
+            settings.skipUnread = d.skipUnread;
         }
 
         public bool IsUnlocked(string id) => unlocked != null && unlocked.Contains(id);

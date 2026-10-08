@@ -24,6 +24,12 @@ namespace JamKit.Flow
         /// <summary>Low-resolution "pixel look" for games that offer it (GameConfig.showPixelLookSetting).</summary>
         public bool pixelLook = true;
         public Difficulty difficulty = Difficulty.Normal;
+        /// <summary>Dialogue typing speed multiplier; <see cref="InstantTextSpeed"/> or more shows lines at once.</summary>
+        public float textSpeed = 1f;
+        /// <summary>Auto-advance: seconds to wait after a line has finished typing (plus a little per character).</summary>
+        public float autoDelay = 1.2f;
+        /// <summary>Skip mode also skips lines never seen before (off: skipping stops at new text).</summary>
+        public bool skipUnread;
 
         public float enemyBulletSpeedScale = 1f;
         public float enemyDensityScale = 1f;
@@ -35,6 +41,8 @@ namespace JamKit.Flow
         public const float MinSensitivity = 0.05f, MaxSensitivity = 10f;
         public const float MinScale = 0.1f, MaxScale = 3f;
         public const int MaxExtraLives = 99;
+        public const float MinTextSpeed = 0.25f, InstantTextSpeed = 4f;
+        public const float MinAutoDelay = 0.2f, MaxAutoDelay = 6f;
 
         /// <summary>Set the assists to the preset for <see cref="difficulty"/>.</summary>
         public void ApplyDifficulty()
@@ -85,6 +93,8 @@ namespace JamKit.Flow
             enemyDensityScale = Fix(enemyDensityScale, MinScale, MaxScale, d.enemyDensityScale, ref changed);
             damageTakenScale = Fix(damageTakenScale, MinScale, MaxScale, d.damageTakenScale, ref changed);
             aimAssist = Fix(aimAssist, 0f, 1f, d.aimAssist, ref changed);
+            textSpeed = Fix(textSpeed, MinTextSpeed, InstantTextSpeed, d.textSpeed, ref changed);
+            autoDelay = Fix(autoDelay, MinAutoDelay, MaxAutoDelay, d.autoDelay, ref changed);
             int lives = extraLives < 0 ? 0 : extraLives > MaxExtraLives ? MaxExtraLives : extraLives;
             if (lives != extraLives) { extraLives = lives; changed = true; }
             return changed;

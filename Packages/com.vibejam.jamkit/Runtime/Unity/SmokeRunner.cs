@@ -84,6 +84,9 @@ namespace JamKit.Shell
                 {
                     GameRoot.Dialogue.AutoStep();
                     playUntil = Mathf.Max(playUntil, Time.realtimeSinceStartup + 1f);
+                    // A line a frame: story games have hundreds of lines.
+                    yield return null;
+                    continue;
                 }
                 else if (!paused && flow.Current == GameState.Playing)
                 {

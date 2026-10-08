@@ -35,7 +35,7 @@ namespace JamKit.Shell
             {
                 Root = new VisualElement();
                 Root.AddToClassList("jk-layer");
-                Root.Add(new Label(GetType().Name + ": UXML missing. Run JamKit > Rebuild Shell Scenes."));
+                if (!BuildsOwnContent) Root.Add(new Label(GetType().Name + ": UXML missing. Run JamKit > Rebuild Shell Scenes."));
             }
             Root.style.display = DisplayStyle.None;
             parent.Add(Root);
@@ -43,6 +43,9 @@ namespace JamKit.Shell
         }
 
         protected abstract void OnInit();
+
+        /// <summary>True for screens that build their elements in code (no UXML needed).</summary>
+        protected virtual bool BuildsOwnContent => false;
 
         /// <summary>Wires a button by name. Missing buttons log a warning instead of breaking the screen.</summary>
         protected Button Bind(string name, Action action)
@@ -63,6 +66,35 @@ namespace JamKit.Shell
             _buttons.Add(b);
             return b;
         }
+
+        /// <summary>Adds a button to this screen from code (templates add Continue, Load, Endings...),
+        /// before the button named <paramref name="beforeName"/> (or at the end of the first button's row).
+        /// It works like the UXML ones: focus, sounds, <see cref="Activate"/>. Adding a name twice returns the existing one.</summary>
+        public Button AddButton(string name, string text, Action action, string beforeName = null, string extraClass = null)
+        {
+            var existing = Root.Q<Button>(name);
+            if (existing != null) { existing.text = text; return existing; }
+            var b = new Button { name = name, text = text };
+            b.AddToClassList("jk-button");
+            if (!string.IsNullOrEmpty(extraClass)) b.AddToClassList(extraClass);
+            var before = string.IsNullOrEmpty(beforeName) ? null : Root.Q<Button>(beforeName);
+            VisualElement parent = before != null ? before.parent : (_buttons.Count > 0 ? _buttons[0].parent : Root);
+            if (before != null) parent.Insert(parent.IndexOf(before), b);
+            else parent.Add(b);
+            Bind(name, action);
+            // Keep keyboard order = visual order.
+            _buttons.Sort(CompareOrder);
+            return b;
+        }
+
+        static int CompareOrder(Button a, Button b)
+        {
+            if (a.parent == b.parent && a.parent != null) return a.parent.IndexOf(a).CompareTo(a.parent.IndexOf(b));
+            return 0;
+        }
+
+        /// <summary>Shows or hides a button by name (hidden buttons can't be activated or focused).</summary>
+        public void SetButtonShown(string name, bool shown) => SetShown(Root.Q<Button>(name), shown);
 
         /// <summary>Presses a bound button by name, as if clicked (tests, smoke run). Returns false if unknown or hidden.</summary>
         public bool Activate(string name)

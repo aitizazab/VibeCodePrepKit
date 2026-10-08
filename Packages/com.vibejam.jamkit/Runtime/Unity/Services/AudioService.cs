@@ -5,7 +5,8 @@ using UnityEngine;
 namespace JamKit.Shell
 {
     /// <summary>
-    /// Music with crossfades (two sources) and pooled one-shot sound effects with a little random
+    /// Music with crossfades (two sources), a looping ambience bed (rain, hum: <c>PlayAmbience("amb_rain")</c>)
+    /// and pooled one-shot sound effects with a little random
     /// pitch, all by id: <c>GameRoot.Audio.Play("coin")</c>, <c>GameRoot.Audio.PlayMusic("music_game")</c>.
     /// Clips come from the Audio Registry, else from <see cref="ProceduralAudio"/>. Fades run on real
     /// time, so they work while the game is paused.
@@ -26,6 +27,12 @@ namespace JamKit.Shell
         readonly List<AudioSource> _pool = new List<AudioSource>(PoolSize);
         int _next;
         readonly HashSet<string> _warned = new HashSet<string>();
+        AudioSource _ambience;
+        float _ambienceFade, _ambienceTarget, _ambienceSpeed = 1f, _ambienceEntryVolume = 1f;
+        string _ambienceId = "";
+
+        /// <summary>The ambience id playing (or fading in) now; empty when silent.</summary>
+        public string CurrentAmbience => _ambienceId;
 
         /// <summary>The id of the music playing (or fading in) now; empty when silent.</summary>
         public string CurrentMusic => _musicId;
@@ -44,6 +51,11 @@ namespace JamKit.Shell
                 src.volume = 0f;
                 _music[i] = src;
             }
+            _ambience = gameObject.AddComponent<AudioSource>();
+            _ambience.playOnAwake = false;
+            _ambience.loop = true;
+            _ambience.ignoreListenerPause = true;
+            _ambience.volume = 0f;
             for (int i = 0; i < PoolSize; i++)
             {
                 var src = gameObject.AddComponent<AudioSource>();
@@ -102,9 +114,42 @@ namespace JamKit.Shell
             _fadeTarget[1] = 0f;
         }
 
+        /// <summary>Fades a looping background sound in (replacing the one playing). Empty or "stop" fades it out.
+        /// Plays at the sound-effects volume.</summary>
+        public void PlayAmbience(string id, float fadeSeconds = 1.5f)
+        {
+            if (string.IsNullOrEmpty(id) || id == "stop" || id == "none") { StopAmbience(fadeSeconds); return; }
+            if (id == _ambienceId) return;
+            if (!Resolve(id, out var clip, out var entry)) return;
+            _ambienceId = id;
+            _ambienceSpeed = fadeSeconds > 0.01f ? 1f / fadeSeconds : 1000f;
+            _ambience.clip = clip;
+            _ambience.loop = true;
+            _ambienceEntryVolume = entry != null ? entry.volume : 1f;
+            _ambienceFade = 0f;
+            _ambienceTarget = 1f;
+            _ambience.Play();
+            UpdateMusicVolumes();
+        }
+
+        public void StopAmbience(float fadeSeconds = 1.5f)
+        {
+            _ambienceId = "";
+            _ambienceSpeed = fadeSeconds > 0.01f ? 1f / fadeSeconds : 1000f;
+            _ambienceTarget = 0f;
+        }
+
+        /// <summary>The clip an id plays (the registry's, else the generated placeholder), or null.</summary>
+        public AudioClip ClipFor(string id) => Resolve(id, out var clip, out _, false) ? clip : null;
+
         void Update()
         {
             float dt = Time.unscaledDeltaTime;
+            if (_ambience != null)
+            {
+                _ambienceFade = Mathf.MoveTowards(_ambienceFade, _ambienceTarget, _ambienceSpeed * dt);
+                if (_ambienceFade <= 0f && _ambienceTarget <= 0f && _ambience.isPlaying) _ambience.Stop();
+            }
             for (int i = 0; i < 2; i++)
             {
                 _fade[i] = Mathf.MoveTowards(_fade[i], _fadeTarget[i], _fadeSpeed * dt);
@@ -117,14 +162,15 @@ namespace JamKit.Shell
         {
             for (int i = 0; i < 2; i++)
                 if (_music[i] != null) _music[i].volume = _fade[i] * _musicEntryVolume[i] * _settings.musicVolume;
+            if (_ambience != null) _ambience.volume = _ambienceFade * _ambienceEntryVolume * _settings.sfxVolume;
         }
 
-        bool Resolve(string id, out AudioClip clip, out AudioRegistry.Entry entry)
+        bool Resolve(string id, out AudioClip clip, out AudioRegistry.Entry entry, bool warn = true)
         {
             entry = _registry != null ? _registry.Find(id) : null;
             clip = entry != null && entry.clip != null ? entry.clip : ProceduralAudio.Get(id);
             if (clip != null) return true;
-            if (!string.IsNullOrEmpty(id) && _warned.Add(id))
+            if (warn && !string.IsNullOrEmpty(id) && _warned.Add(id))
                 Debug.LogWarning($"JamKit: no sound with id \"{id}\". Add it to the Audio Registry (Assets/JamKit/Audio).");
             return false;
         }

@@ -8,7 +8,45 @@ namespace JamKit.Shell
 {
     public sealed class TitleScreen : ShellScreen
     {
+        /// <summary>After the title screen fills in its texts: templates change them here (a story's title
+        /// that changes after an ending), and show or hide their own buttons.</summary>
+        public event Action<TitleScreen> Shown;
+
+        public string TitleText { get { var l = Root.Q<Label>("title-label"); return l != null ? l.text : ""; } }
+        public string TaglineText { get { var l = Root.Q<Label>("tagline-label"); return l != null ? l.text : ""; } }
+
+        /// <summary>Overrides the title (null leaves it).</summary>
+        public void SetTitle(string title)
+        {
+            var l = Root.Q<Label>("title-label");
+            if (l != null && title != null) l.text = title;
+        }
+
+        /// <summary>Overrides the tagline (null leaves it; "" hides it).</summary>
+        public void SetTagline(string tagline)
+        {
+            var l = Root.Q<Label>("tagline-label");
+            if (l == null || tagline == null) return;
+            l.text = tagline;
+            SetShown(l, tagline.Length > 0);
+        }
+
+        /// <summary>Renames a button ("play" to "New game", or something stranger).</summary>
+        public void SetButtonText(string name, string text)
+        {
+            var b = Root.Q<Button>(name);
+            if (b != null && text != null) b.text = text;
+        }
+
+        string _playText;
+
         protected override void OnInit()
+        {
+            _playText = Root.Q<Button>("play")?.text;
+            InitButtons();
+        }
+
+        void InitButtons()
         {
             Bind("play", () => GameRoot.Instance.StartGame());
             Bind("howto", () => Ui.OpenHowToPlay(null));
@@ -34,15 +72,18 @@ namespace JamKit.Shell
             {
                 float t = GameRoot.Save.Data.bestTime;
                 best.text = t > 0f ? "Best time: " + RunStats.FormatTimePrecise(t) : "";
-                SetShown(best, t > 0f);
+                SetShown(best, t > 0f && config.showBestTime);
             }
+            var play = Root.Q<Button>("play");
+            if (play != null && _playText != null) play.text = _playText;
+            Shown?.Invoke(this);
         }
     }
 
     public sealed class SettingsScreen : ShellScreen
     {
-        Slider _master, _music, _sfx, _sensitivity, _shake;
-        Toggle _invertY, _fullscreen, _pixelLook;
+        Slider _master, _music, _sfx, _sensitivity, _shake, _textSpeed, _autoDelay;
+        Toggle _invertY, _fullscreen, _pixelLook, _skipUnread;
         Button _difficulty;
         Label _difficultyInfo;
 
@@ -56,6 +97,10 @@ namespace JamKit.Shell
             _sensitivity = Slider("sensitivity", 0.1f, v => S.mouseSensitivity = v);
             _shake = Slider("shake", 10f, v => S.screenShake = v / 100f);
             _invertY = Toggle("invert-y", v => S.invertY = v);
+            // Dialogue settings (GameConfig.showTextSettings): optional in the UXML.
+            _textSpeed = Root.Q<Slider>("text-speed") != null ? Slider("text-speed", 0.25f, v => S.textSpeed = v) : null;
+            _autoDelay = Root.Q<Slider>("auto-delay") != null ? Slider("auto-delay", 0.2f, v => S.autoDelay = v) : null;
+            _skipUnread = Root.Q<Toggle>("skip-unread") != null ? Toggle("skip-unread", v => S.skipUnread = v) : null;
             _fullscreen = Toggle("fullscreen", v => S.fullscreen = v);
             SetShown(_fullscreen, FullscreenAvailable);
             _pixelLook = Root.Q<Toggle>("pixel-look");
@@ -138,9 +183,14 @@ namespace JamKit.Shell
             if (s == null) return;
             string baseLabel = s.userData as string;
             if (baseLabel == null) { baseLabel = s.label; s.userData = baseLabel; }
-            s.label = s.name == "sensitivity"
-                ? baseLabel + "   x" + s.value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)
-                : baseLabel + "   " + Mathf.RoundToInt(s.value) + "%";
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            switch (s.name)
+            {
+                case "sensitivity": s.label = baseLabel + "   x" + s.value.ToString("0.0", inv); break;
+                case "text-speed": s.label = baseLabel + "   " + (s.value >= Settings.InstantTextSpeed - 0.001f ? "Instant" : "x" + s.value.ToString("0.00", inv)); break;
+                case "auto-delay": s.label = baseLabel + "   " + s.value.ToString("0.0", inv) + " s"; break;
+                default: s.label = baseLabel + "   " + Mathf.RoundToInt(s.value) + "%"; break;
+            }
         }
 
         protected override void OnShow()
@@ -154,7 +204,20 @@ namespace JamKit.Shell
             _invertY?.SetValueWithoutNotify(s.invertY);
             _fullscreen?.SetValueWithoutNotify(s.fullscreen);
             _pixelLook?.SetValueWithoutNotify(s.pixelLook);
-            SetShown(_pixelLook, GameRoot.Exists && GameRoot.Config.showPixelLookSetting);
+            Set(_textSpeed, s.textSpeed);
+            Set(_autoDelay, s.autoDelay);
+            _skipUnread?.SetValueWithoutNotify(s.skipUnread);
+            var config = GameRoot.Exists ? GameRoot.Config : null;
+            SetShown(_pixelLook, config != null && config.showPixelLookSetting);
+            bool text = config != null && config.showTextSettings;
+            bool action = config == null || config.showActionSettings;
+            SetShown(_textSpeed, text);
+            SetShown(_autoDelay, text);
+            SetShown(_skipUnread, text);
+            SetShown(_sensitivity, action);
+            SetShown(_invertY, action);
+            SetShown(_difficulty, action);
+            SetShown(_difficultyInfo, action);
             RefreshDifficulty();
         }
 

@@ -58,6 +58,12 @@ namespace JamKit.Shell
         [Header("Settings screen")]
         [Tooltip("Show the Pixel look toggle (games with a low-resolution render, like the DOOM-like template).")]
         public bool showPixelLookSetting;
+        [Tooltip("Show text speed, auto-advance delay and skip-unread (dialogue-heavy games, like the story template).")]
+        public bool showTextSettings;
+        [Tooltip("Show mouse sensitivity, invert Y and difficulty (games with action). Off for a pure story game.")]
+        public bool showActionSettings = true;
+        [Tooltip("Show the best time on the title screen.")]
+        public bool showBestTime = true;
 
         public Portrait FindPortrait(string id)
         {

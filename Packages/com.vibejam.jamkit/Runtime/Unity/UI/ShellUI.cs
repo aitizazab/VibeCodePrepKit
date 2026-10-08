@@ -109,6 +109,11 @@ namespace JamKit.Shell
             return e;
         }
 
+        /// <summary>Adds a template's own screen (save/load, a gallery...). Open it with <see cref="OpenOverlay"/>;
+        /// Back closes it like Settings. Built from <paramref name="tree"/> (UXML) or, with null, an empty layer
+        /// the screen fills in its OnInit.</summary>
+        public T AddScreen<T>(T screen, VisualTreeAsset tree) where T : ShellScreen => Add(screen, tree);
+
         T Add<T>(T screen, VisualTreeAsset tree) where T : ShellScreen
         {
             screen.Init(this, tree, _screenLayer);
@@ -149,7 +154,8 @@ namespace JamKit.Shell
             OpenOverlay(HowToPlay);
         }
 
-        void OpenOverlay(ShellScreen screen)
+        /// <summary>Opens a screen on top of the current one (Back/Escape closes it).</summary>
+        public void OpenOverlay(ShellScreen screen)
         {
             if (_overlays.Contains(screen)) return;
             var below = Top;

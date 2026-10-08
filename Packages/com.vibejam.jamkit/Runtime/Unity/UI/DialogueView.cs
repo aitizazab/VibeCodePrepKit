@@ -10,7 +10,7 @@ namespace JamKit.Shell
     /// The dialogue box: speaker name, typed text, choice buttons and two portrait slots (left,
     /// right), each a base sprite with an expression layer on top. Driven by <see cref="DialogueService"/>.
     /// </summary>
-    public sealed class DialogueView
+    public sealed class DialogueView : IDialogueView
     {
         public readonly VisualElement Root;
         readonly Label _speaker, _text, _hint;
@@ -60,6 +60,12 @@ namespace JamKit.Shell
             if (s.root != null) s.root.style.visibility = Visibility.Hidden;
             return s;
         }
+
+        public void SetChoiceHandler(Action<int> onChoice) => ChoiceClicked = onChoice;
+
+        public void BeginLine(DialogueLineInfo line, RichLine rich) { }
+
+        public void SetTyped(RichLine rich, int visible) => SetText(rich != null ? rich.Build(visible) : "");
 
         public void Open()
         {

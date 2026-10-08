@@ -288,25 +288,37 @@ namespace JamKit.EditorTools
         /// compiled story exists even in batch mode (the ink package normally detects this a frame later).</summary>
         public static void CompileInk()
         {
+            var paths = new List<string>();
             foreach (var guid in AssetDatabase.FindAssets("glob:\"*.ink\"", new[] { Root }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (!path.EndsWith(".ink", StringComparison.OrdinalIgnoreCase)) continue;
+                if (path.EndsWith(".ink", StringComparison.OrdinalIgnoreCase) && !paths.Contains(path)) paths.Add(path);
+            }
+            // Files INCLUDEd by another file are parts of that story, not stories of their own.
+            var included = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var path in paths)
+                foreach (var inc in InkImporter.GatherDependenciesFromSourceFile(path)) included.Add(inc.Replace(Path.DirectorySeparatorChar, '/'));
+            // Includes first, so their masters compile against the current text.
+            paths.Sort((a, b) => included.Contains(b).CompareTo(included.Contains(a)));
+            foreach (var path in paths)
+            {
                 var importer = AssetImporter.GetAtPath(path);
                 if (importer == null) continue;
+                bool shouldBeMaster = !included.Contains(path);
                 var so = new SerializedObject(importer);
                 var master = so.FindProperty("isMasterFile");
                 var file = AssetDatabase.LoadAssetAtPath<InkFile>(path);
-                if (master != null && !master.boolValue)
+                if (master != null && master.boolValue != shouldBeMaster)
                 {
-                    master.boolValue = true;
+                    master.boolValue = shouldBeMaster;
                     so.ApplyModifiedPropertiesWithoutUndo();
                     importer.SaveAndReimport();
                 }
-                else if (file == null || !file.isCompiled)
+                else if (shouldBeMaster && (file == null || !file.isCompiled))
                 {
                     importer.SaveAndReimport();
                 }
+                if (!shouldBeMaster) continue;
                 file = AssetDatabase.LoadAssetAtPath<InkFile>(path);
                 if (file == null || !file.isCompiled) Debug.LogError("JamKit: ink file didn't compile: " + path);
             }
