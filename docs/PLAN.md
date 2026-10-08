@@ -19,7 +19,13 @@ Written 2026-10-08, with the hackathon about 9 days away (around 2026-10-17).
 
 ## Decisions
 - **One Unity project** (this repo) holding the shell and all three templates. At the jam we copy it and delete the templates we don't use.
-- **Unity 6 LTS with URP** and two renderers in one asset: Universal (3D) and Renderer2D, chosen per camera.
+- **Unity 6.3 LTS (6000.3.25f1)** with the WebGL and Windows IL2CPP modules. It was installed through
+  the **Unity CLI** (`%LOCALAPPDATA%\Unity\bin\unity.exe`, 1.0.0-beta.13), so the Hub isn't required.
+- **Claude ↔ Unity link:** Unity's official Claude Code plugin (`unity@unity-agent-plugin`, enabled
+  in `.claude/settings.json`, project scope). Its CLI drives the open editor through the
+  `com.unity.pipeline` package (`unity pipeline install`). It can enter Play mode, run C#, and edit
+  scenes and assets. Batch mode (`tools/*.ps1`) is for when the editor is closed.
+- **URP** with two renderers in one asset: Universal (3D) and Renderer2D, chosen per camera.
 - **The new Input System:** keyboard and mouse plus gamepad.
 - **JamKit is an embedded package** (`Packages/com.vibejam.jamkit`):
   - `Runtime/Core`: **pure C# 9, no UnityEngine** (`noEngineReferences`). Game rules, maths and data, unit-tested outside Unity with `dotnet test` (`core-tests/`). Bugs get caught in seconds, before Unity is even open.
@@ -34,10 +40,11 @@ Written 2026-10-08, with the hackathon about 9 days away (around 2026-10-17).
 | Layer | Holds | Status |
 |---|---|---|
 | Core / Shared | `Rng` (seeded PCG32, forks), `StateMachine<T>` | done, 12 tests |
-| Core / Combat | Health and damage, i-frames, Cooldown, RepeatingTimer, HitStop, ScreenShake (trauma), WeaponDef and WeaponState | in progress |
-| Core / Patterns | PatternDef, PatternSequence, Emitter (frame-rate independent), BulletMotion, presets | in progress |
-| Core / Roguelite | StatBlock and modifiers, UpgradeDef, inventory, draft, RunGenerator/RunPlan/RunState | in progress |
-| Core / Flow | GameFlow states, Settings and difficulty assists, SaveData | in progress |
+| Core / Combat | Health and damage, i-frames, Cooldown, RepeatingTimer, HitStop (capped), ScreenShake (trauma), WeaponDef and WeaponState (frame-rate independent, magazine-less mode) | done, 59 tests |
+| Core / Patterns | PatternDef, PatternSequence, Emitter (frame-rate independent), BulletMotion (closed form), 7 presets | done, 30 tests |
+| Core / Roguelite | StatBlock and modifiers, UpgradeDef, inventory, draft (luck, reroll, fallback), RunGenerator/RunPlan/RunState | done, 22 tests |
+| Core / Flow | GameFlow states, Settings and difficulty assists, SaveData with migration | done, 11 tests |
+| **Core total** | `core-tests/All` | **131/131 passing** (2026-10-08) |
 | Unity / Shell | Boot, title, settings, pause, game over, victory, credits, how-to-play cards, scene loader, audio manager (crossfade), juice (hit-stop, Cinemachine shake, flash, particles), pooling, debug menu, ink dialogue UI with layered portraits | after the Unity install |
 | Template: bullet-hell roguelite (2D) | Focus-mode player, pooled bullets (thousands), pattern-driven enemies and waves, rooms → 3 floors + boss with phases, choose-1-of-3 upgrade draft, graze, assists | after the shell |
 | Template: DOOM-like (3D) | Fast first-person controller, hitscan, projectile and melee weapons, billboard enemies (8-angle sprites rendered from 3D in Blender), NavMesh AI, keys and doors, a ProBuilder modular kit, low-res palette render, optional roguelite layer | after the bullet hell |
@@ -47,7 +54,7 @@ Written 2026-10-08, with the hackathon about 9 days away (around 2026-10-17).
 ## Schedule (the creator has 3–4 h/day; Claude works in between)
 | Dates | Work | Creator |
 |---|---|---|
-| Oct 8–9 | Repo, core modules, scripts; Unity install, project creation, Claude ↔ Unity link, both builds, test itch.io upload | Install the Hub, create a Unity ID, sign in, licence (~1 h) |
+| Oct 8–9 | Repo, core modules, scripts; Unity install (CLI), project creation, Claude ↔ Unity link, both builds, test itch.io upload | Create a Unity ID, run `unity auth login`, approve the licence (~15 min) |
 | Oct 9–11 | Unity shell and the story template | Click through the menus and dialogue |
 | Oct 11–13 | Bullet-hell roguelite | Feel test |
 | Oct 13–15 | DOOM-like | Feel test |
@@ -68,4 +75,5 @@ Written 2026-10-08, with the hackathon about 9 days away (around 2026-10-17).
 
 ## Open questions
 - How the judges play (web or exe): ask the organisers if possible.
-- Unity's official MCP needs the project connected to Unity Cloud. The fallback is the community "MCP for Unity" bridge.
+- Whether the plugin's live-editor link needs a Unity Cloud project connection (check after sign-in).
+  If it does and that's blocked, the fallback is the community "MCP for Unity" bridge.

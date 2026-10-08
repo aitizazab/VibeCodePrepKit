@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared + Combat (health, damage, timers, hit stop, screen shake, weapons). -->
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\Combat\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Combat\**\*.cs" />
+  </ItemGroup>
+</Project>

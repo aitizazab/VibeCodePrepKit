@@ -1,0 +1,84 @@
+using System;
+using System.Collections.Generic;
+
+namespace JamKit.Flow
+{
+    /// <summary>
+    /// Everything that outlives a run: settings, records, unlocks. Serialized with JsonUtility by
+    /// the Unity side. Always call <see cref="Migrate"/> right after loading: a missing field loads
+    /// as 0/null, and a file written before versioning loads as version 0.
+    /// </summary>
+    [Serializable]
+    public class SaveData
+    {
+        /// <summary>Bump when the layout changes, and add a step to <see cref="Migrate"/>.</summary>
+        public const int CurrentVersion = 1;
+
+        public int version = CurrentVersion;
+        public Settings settings = new Settings();
+        /// <summary>Fastest winning run in seconds; 0 = no win yet.</summary>
+        public float bestTime;
+        /// <summary>Highest floor reached (1-based), 0 = never played.</summary>
+        public int bestFloor;
+        public int runsStarted;
+        public int runsWon;
+        public List<string> unlocked = new List<string>();
+
+        /// <summary>
+        /// Upgrade an older save to <see cref="CurrentVersion"/> one step at a time, then repair
+        /// nulls and out-of-range values. A save from a newer build is left at its version (we can't
+        /// know its layout) but still repaired so this build can run on it. Returns true if anything changed.
+        /// </summary>
+        public bool Migrate()
+        {
+            bool changed = false;
+            while (version < CurrentVersion)
+            {
+                switch (version)
+                {
+                    case 0: MigrateV0ToV1(); break;
+                    // case 1: MigrateV1ToV2(); break;
+                }
+                version++;
+                changed = true;
+            }
+            if (settings == null) { settings = new Settings(); changed = true; }
+            if (unlocked == null) { unlocked = new List<string>(); changed = true; }
+            if (settings.Clamp()) changed = true;
+            if (bestTime < 0f || float.IsNaN(bestTime)) { bestTime = 0f; changed = true; }
+            if (bestFloor < 0) { bestFloor = 0; changed = true; }
+            if (runsStarted < 0) { runsStarted = 0; changed = true; }
+            if (runsWon < 0) { runsWon = 0; changed = true; }
+            return changed;
+        }
+
+        /// <summary>v0 = before versioning: the assists didn't exist, so they load as 0. Derive them from the difficulty.</summary>
+        void MigrateV0ToV1()
+        {
+            if (settings != null) settings.ApplyDifficulty();
+        }
+
+        public bool IsUnlocked(string id) => unlocked != null && unlocked.Contains(id);
+
+        /// <summary>Returns true the first time (show the "unlocked!" toast only then).</summary>
+        public bool Unlock(string id)
+        {
+            if (unlocked == null) unlocked = new List<string>();
+            if (string.IsNullOrEmpty(id) || unlocked.Contains(id)) return false;
+            unlocked.Add(id);
+            return true;
+        }
+
+        public void RecordRunStarted() => runsStarted++;
+
+        /// <summary>Update the records. Returns true if this run set a new best time.</summary>
+        public bool RecordRunEnded(bool won, int floorReached, float time)
+        {
+            if (floorReached > bestFloor) bestFloor = floorReached;
+            if (!won) return false;
+            runsWon++;
+            if (time > 0f && (bestTime <= 0f || time < bestTime)) { bestTime = time; return true; }
+            return false;
+        }
+    }
+}

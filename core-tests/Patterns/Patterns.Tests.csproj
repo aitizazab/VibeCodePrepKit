@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared + Patterns (bullet patterns, emitter, motion); the rest comes from Directory.Build.props. -->
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\Patterns\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Patterns\**\*.cs" />
+  </ItemGroup>
+</Project>
