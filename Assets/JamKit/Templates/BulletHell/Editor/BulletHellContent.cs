@@ -10,7 +10,7 @@ namespace JamKit.BulletHell.EditorTools
 {
     /// <summary>
     /// The template's starting content, as code, so it can be rebuilt reproducibly: 11 enemies,
-    /// 13 waves, 15 rooms over 3 floors, 3 bosses (8 phases), 18 upgrades + a fallback, the player,
+    /// 13 waves, 14 rooms over 3 floors, 3 bosses (8 phases), 18 upgrades + a fallback, the player,
     /// the palette and the config. Normal rebuilds only create what's missing (team edits survive);
     /// "Reset Content to Defaults" rewrites every asset below to these values.
     /// </summary>
