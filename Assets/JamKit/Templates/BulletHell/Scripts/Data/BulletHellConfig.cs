@@ -40,6 +40,10 @@ namespace JamKit.BulletHell
         [Header("Player")]
         public PlayerDef player;
 
+        [Header("Gun")]
+        [Tooltip("Side streams, Seeker Rounds' homing streams, Backdraft's rebound, and the close-range Scatter and Blade.")]
+        public ShotRules shots = new ShotRules();
+
         [Header("Upgrades")]
         public List<UpgradeAsset> upgrades = new List<UpgradeAsset>();
         [Tooltip("Offered when the pool runs dry (coins, usually).")]

@@ -29,7 +29,9 @@ namespace JamKit.BulletHell
         Health _health;
         readonly List<float> _shotAges = new List<float>(8);
         readonly BombBay _bay = new BombBay();
-        bool _focused, _controls = true;
+        int _volley;
+        bool _focused, _controls = true, _moving;
+        Color _glow = Color.clear;
         float _blink, _shotSound, _sprintFraction;
         Color _baseColor = Color.white;
         readonly SprintMeter _sprint = new SprintMeter();
@@ -41,6 +43,14 @@ namespace JamKit.BulletHell
         /// <summary>The Bomb Bay (capacity, recharge).</summary>
         public BombBay Bay => _bay;
         public bool Focused => _focused;
+        /// <summary>Moved this frame (Still Point resets on any movement).</summary>
+        public bool Moving => _moving;
+        /// <summary>A colour the ship pulses toward (Last Gambit's red), or clear for none.</summary>
+        public Color Glow
+        {
+            get => _glow;
+            set => _glow = value;
+        }
         /// <summary>The sprint meter: stamina and this room's budget (the HUD draws it).</summary>
         public SprintMeter Sprint => _sprint;
         /// <summary>Sprinting this frame.</summary>
@@ -49,7 +59,7 @@ namespace JamKit.BulletHell
         public float SprintMultiplier => _def != null && _loadout != null ? _loadout.SprintMultiplier(_def.sprint != null ? _def.sprint.speedMultiplier : 1.6f) : 1f;
         public bool IsInvulnerable => _health != null && _health.IsInvulnerable;
         public Vector2 Position => transform.position;
-        public float HitboxRadius => _def != null ? _def.hitboxRadius : 0.07f;
+        public float HitboxRadius => (_def != null ? _def.hitboxRadius : 0.07f) * (_loadout != null ? _loadout.HitboxScale : 1f);
         public float GrazeRadius => (_def != null ? _def.grazeRadius : 0.6f) * (_loadout != null ? _loadout.GrazeRadiusScale : 1f);
         /// <summary>Movement and firing on/off (off in menus, intros and between rooms).</summary>
         public bool ControlsEnabled
@@ -95,6 +105,7 @@ namespace JamKit.BulletHell
         void UpdateRing()
         {
             if (grazeRing != null) grazeRing.transform.localScale = Vector3.one * (GrazeRadius * 2f);
+            if (hitboxDot != null) hitboxDot.transform.localScale = Vector3.one * Mathf.Max(0.12f, HitboxRadius * 2.6f); // a smaller hitbox shows smaller
         }
 
         /// <summary>Adds bombs up to the capacity (0 without a Bay). Returns how many were added.</summary>
@@ -160,6 +171,7 @@ namespace JamKit.BulletHell
             _health.Tick(dt);
 
             Vector2 move = allowed ? input.MoveVector : Vector2.zero;
+            _moving = move.sqrMagnitude > 0.01f;
             ConfigureSprint(); // upgrades can change the stats at any time
             bool wantSprint = allowed && !_focused && input.Sprint.IsPressed();
             _sprintFraction = _sprint.Tick(dt, wantSprint, move.sqrMagnitude > 0.01f);
@@ -189,15 +201,16 @@ namespace JamKit.BulletHell
             float speed = _def.shotSpeed * _loadout.ShotSpeedScale;
             float damage = _def.shotDamage * _loadout.ShotDamageScale;
             int pierce = _loadout.Pierce;
-            for (int s = 0; s < _shotAges.Count; s++)
+            for (int s = 0; s < _shotAges.Count; s++, _volley++)
             {
                 float age = _shotAges[s];
                 for (int i = 0; i < streams.Count; i++)
                 {
                     var st = streams[i];
+                    if (!st.FiresOn(_volley)) continue;
                     int style = st.homing ? _def.homingShotStyle : _def.shotStyle;
-                    field.FirePlayer(origin + new Vector2(st.offsetX, st.offsetY), st.angleDegrees * Mathf.Deg2Rad, speed,
-                        damage * st.damageScale, style, _def.shotLifetime, pierce, st.homing, age, st.bounce);
+                    field.FirePlayer(origin + new Vector2(st.offsetX, st.offsetY), st.angleDegrees * Mathf.Deg2Rad, speed * st.speedScale,
+                        damage * st.damageScale, style, st.lifetime > 0f ? st.lifetime : _def.shotLifetime, pierce, st.Flags, age);
                 }
             }
             _shotSound -= _shotAges.Count;
@@ -239,6 +252,11 @@ namespace JamKit.BulletHell
                 var c = _baseColor;
                 c.a = Mathf.Repeat(_blink, 0.16f) < 0.08f ? 0.25f : 1f;
                 body.color = c;
+            }
+            else if (_glow.a > 0f)
+            {
+                float k = 0.35f + 0.35f * Mathf.Sin(Time.unscaledTime * 9f);
+                body.color = Color.Lerp(_baseColor, new Color(_glow.r, _glow.g, _glow.b, 1f), k * _glow.a);
             }
             else if (body.color != _baseColor)
             {

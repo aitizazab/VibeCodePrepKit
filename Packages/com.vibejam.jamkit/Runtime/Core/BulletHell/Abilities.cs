@@ -59,7 +59,7 @@ namespace JamKit.BulletHell
         }
     }
 
-    /// <summary>Numbers for the moment-to-moment damage epics, as data (BulletHellConfig holds one).</summary>
+    /// <summary>Numbers for the moment-to-moment epics, as data (BulletHellConfig > Boosts).</summary>
     [Serializable]
     public class PowerBoostRules
     {
@@ -68,9 +68,28 @@ namespace JamKit.BulletHell
         public float heatMax = 0.6f;
         /// <summary>Heat lost per second.</summary>
         public float heatDecay = 0.15f;
-        // Red Line (last_stand)
-        public float lastStandDamage = 0.5f;
-        public float lastStandFireRate = 0.3f;
+        // Last Gambit (last_stand): on the last life.
+        public float lastStandDamage = 0.75f;
+        public float lastStandFireRate;
+        /// <summary>A ricochet's damage, times the hit that made it.</summary>
+        public float ricochetDamage = 0.8f;
+        /// <summary>How far a ricochet looks for another enemy.</summary>
+        public float ricochetRange = 4f;
+        /// <summary>A kill's blast: radius, and damage as a multiple of a main shot (times the damage stat and boost).</summary>
+        public float blastRadius = 1.3f;
+        public float blastDamage = 6f;
+        // Still Point (still_point): holding still ramps damage up; any movement resets it.
+        /// <summary>Seconds of holding still to reach the full bonus.</summary>
+        public float stillRampSeconds = 0.6f;
+        public float stillMax = 1f;
+        // Ghost Step (ghost_step): a short phase when a sprint starts, then a cooldown; a few per room.
+        public float ghostWindow = 0.5f;
+        public float ghostCooldown = 5f;
+        public int ghostPhasesPerRoom = 3;
+        // Guardian Angel (auto_bomb): spends every stored bomb, then waits.
+        public float guardianCooldown = 10f;
+        /// <summary>Its bomb's power grows by this per extra bomb it spent.</summary>
+        public float guardianPowerPerBomb = 0.25f;
         // Time Dilation (focus_slow): a bubble around the ship where enemy bullets slow down.
         public float slowRadius = 1.6f;
         /// <summary>Enemy bullet speed inside the bubble (0.5 = half).</summary>
@@ -78,27 +97,30 @@ namespace JamKit.BulletHell
     }
 
     /// <summary>
-    /// The damage and fire-rate multipliers from Ember Hunger (grazes heat the guns) and Red Line (the
-    /// last life). The game feeds it every frame and copies the result into
+    /// The damage and fire-rate multipliers from Ember Hunger (grazes heat the guns), Still Point (holding
+    /// still) and Last Gambit (the last life). The game feeds it every frame and copies the result into
     /// <see cref="ShmupLoadout.DamageBoost"/> and <see cref="ShmupLoadout.FireRateBoost"/>.
     /// </summary>
     public sealed class PowerBoosts
     {
-        float _heat;
+        float _heat, _still;
 
         public float Heat => _heat;
+        /// <summary>0..1 of Still Point's ramp.</summary>
+        public float StillCharge => _still;
         public float DamageMultiplier { get { return _damage; } }
         public float FireRateMultiplier { get { return _fireRate; } }
         float _damage = 1f, _fireRate = 1f;
 
         public void Reset()
         {
-            _heat = 0f;
+            _heat = _still = 0f;
             _damage = _fireRate = 1f;
         }
 
-        /// <summary>One frame. Stacks are the effect counts (0 = the upgrade isn't owned).</summary>
-        public void Tick(float dt, PowerBoostRules rules, int grazePower, int lastStand, int grazesThisFrame, bool lastLife)
+        /// <summary>One frame. Stacks are the effect counts (0 = the upgrade is not owned).</summary>
+        public void Tick(float dt, PowerBoostRules rules, int grazePower, int lastStand, int grazesThisFrame, bool lastLife,
+            int stillPoint = 0, bool moving = true)
         {
             if (rules == null) { _damage = _fireRate = 1f; return; }
             dt = Math.Max(0f, dt);
@@ -110,7 +132,9 @@ namespace JamKit.BulletHell
                 _heat = _heat < 0f ? 0f : _heat > cap ? cap : _heat;
             }
             else _heat = 0f;
-            float dmg = 1f + _heat;
+            if (stillPoint > 0 && !moving) _still = Math.Min(1f, _still + dt / Math.Max(0.02f, rules.stillRampSeconds));
+            else _still = 0f;
+            float dmg = 1f + _heat + (stillPoint > 0 ? _still * rules.stillMax * stillPoint : 0f);
             float rate = 1f;
             if (lastStand > 0 && lastLife)
             {
@@ -119,6 +143,91 @@ namespace JamKit.BulletHell
             }
             _damage = dmg;
             _fireRate = rate;
+        }
+    }
+
+    /// <summary>
+    /// Ghost Step's phases: starting a sprint opens a short window where bullets pass through, then a
+    /// cooldown; only a few per fight room (the HUD shows them as pips). Tapping sprint spends one.
+    /// </summary>
+    public sealed class GhostPhase
+    {
+        float _window, _cooldown;
+        int _left;
+        bool _wasSprinting;
+
+        public bool Phasing => _window > 0f;
+        public int PhasesLeft => _left;
+        public float CooldownLeft => Math.Max(0f, _cooldown);
+        public bool Ready => _left > 0 && _cooldown <= 0f;
+
+        /// <summary>A fight room starts: its phases are back (one more per extra Ghost Step stack or forge level).</summary>
+        public void RoomStarted(PowerBoostRules rules, int stacks = 1)
+        {
+            _left = rules != null ? Math.Max(0, rules.ghostPhasesPerRoom + Math.Max(0, stacks - 1)) : 0;
+            _window = _cooldown = 0f;
+        }
+
+        /// <summary>One frame. Returns true when a phase started.</summary>
+        public bool Tick(float dt, bool sprinting, PowerBoostRules rules)
+        {
+            dt = Math.Max(0f, dt);
+            if (_window > 0f) _window -= dt;
+            if (_cooldown > 0f) _cooldown -= dt;
+            bool started = sprinting && !_wasSprinting;
+            _wasSprinting = sprinting;
+            if (!started || rules == null || !Ready) return false;
+            _left--;
+            _window = rules.ghostWindow;
+            _cooldown = rules.ghostCooldown;
+            return true;
+        }
+    }
+
+    /// <summary>Guardian Angel: a hit fires a bomb instead of costing a life, spending EVERY stored bomb, then a cooldown.</summary>
+    public sealed class GuardianAngel
+    {
+        float _cooldown;
+
+        public float CooldownLeft => Math.Max(0f, _cooldown);
+        public bool Ready => _cooldown <= 0f;
+
+        public void Reset() => _cooldown = 0f;
+
+        public void Tick(float dt)
+        {
+            if (_cooldown > 0f) _cooldown -= Math.Max(0f, dt);
+        }
+
+        /// <summary>Ready and the bay has a bomb: empties it and starts the cooldown. Returns the bombs spent (0 = no save).</summary>
+        public int TryTrigger(BombBay bay, PowerBoostRules rules)
+        {
+            if (!Ready || bay == null || bay.Bombs <= 0) return 0;
+            int spent = bay.Bombs;
+            bay.Empty();
+            _cooldown = rules != null ? rules.guardianCooldown : 10f;
+            return spent;
+        }
+
+        /// <summary>The bomb's power for <paramref name="spent"/> bombs.</summary>
+        public static float PowerFor(int spent, PowerBoostRules rules) =>
+            1f + Math.Max(0, spent - 1) * (rules != null ? rules.guardianPowerPerBomb : 0.25f);
+    }
+
+    /// <summary>Last Gambit's ricochet: the nearest other active target within range, or -1.</summary>
+    public static class LastGambit
+    {
+        public static int RicochetTarget(HitTarget[] targets, int count, int exceptId, System.Numerics.Vector2 from, float range)
+        {
+            int best = -1;
+            float bestD = range * range;
+            for (int i = 0; i < count; i++)
+            {
+                if (!targets[i].active || targets[i].id == exceptId) continue;
+                float d = System.Numerics.Vector2.DistanceSquared(targets[i].position, from);
+                if (d < bestD) { bestD = d; best = i; }
+            }
+            return best;
         }
     }
 }

@@ -23,9 +23,10 @@ namespace JamKit.BulletHell.EditorTools
         public const string ConfigPath = DataDir + "/BulletHellConfig.asset";
         public const string CompanionPath = DataDir + "/Companion.asset";
         /// <summary>Round 2 (2026-10-08): the reward economy, epics, encounters, remnants, companion.</summary>
-        public const int ContentRevision = 2;
-        /// <summary>Upgrades the template no longer ships (deleted by the round-2 migration).</summary>
-        static readonly string[] Retired = { "rear_guard", "overdrive" };
+        public const int ContentRevision = 3;
+        /// <summary>Upgrades the template no longer ships (deleted by the migration): revision 2 dropped the
+        /// rear gun and Overdrive, revision 3 (the epic balance pass) Red Line, now Last Gambit.</summary>
+        static readonly string[] Retired = { "rear_guard", "overdrive", "red_line" };
 
         // Bullet style indices (see Styles()).
         const int Red = 0, Blue = 1, Pink = 2, Orange = 3, Rice = 4, Yellow = 5, PlayerShot = 6, PlayerHoming = 7, Violet = 8, Needle = 9;
@@ -50,7 +51,7 @@ namespace JamKit.BulletHell.EditorTools
                     if (AssetDatabase.LoadAssetAtPath<UpgradeAsset>(path) != null) AssetDatabase.DeleteAsset(path);
                 }
 
-            var player = Asset<PlayerDef>(DataDir + "/Player.asset", 2, p =>
+            var player = Asset<PlayerDef>(DataDir + "/Player.asset", 3, p =>
             {
                 p.sprite = art.ship;
                 p.color = new Color(0.55f, 0.95f, 1f);
@@ -68,6 +69,7 @@ namespace JamKit.BulletHell.EditorTools
                 p.bombRechargeSeconds = 20f;
                 p.shotStyle = PlayerShot;
                 p.homingShotStyle = PlayerHoming;
+                p.homingTurnRate = 4f; // Seeker Rounds: a capped turn (it was 7), so dodging still matters
                 p.baseStats = new List<StatEntry>();
             });
 
@@ -241,18 +243,18 @@ namespace JamKit.BulletHell.EditorTools
                     new[] { M(ShmupStats.Damage, StatOp.PercentAdd, 0.2f) }, Tags(Gun)),
                 Up("rapid_trigger", "Rapid Trigger", Rarity.Common, 3, "Fire 15% faster.", "Rt", new Color(1f, 0.75f, 0.35f),
                     new[] { M(ShmupStats.FireRate, StatOp.PercentAdd, 0.15f) }, Tags(Gun)),
-                Up("light_frame", "Light Frame", Rarity.Common, 2, "Move 10% faster.", "Sp", new Color(0.5f, 1f, 0.8f),
-                    new[] { M(ShmupStats.MoveSpeed, StatOp.PercentAdd, 0.1f) }, Tags(Move)),
+                Up("light_frame", "Light Frame", Rarity.Common, 2, "Your hitbox is 20% smaller and your stamina recharges 10% faster.", "LF", new Color(0.5f, 1f, 0.8f),
+                    new[] { M(ShmupStats.HitboxSize, StatOp.PercentAdd, -0.2f), M(ShmupStats.StaminaRegen, StatOp.PercentAdd, 0.1f) }, Tags(Move, Defense)),
                 Up("wide_halo", "Wide Halo", Rarity.Common, 2, "A bigger graze ring: more points from near misses.", "Gz", new Color(0.7f, 0.9f, 1f),
                     new[] { M(ShmupStats.GrazeRadius, StatOp.PercentAdd, 0.35f) }, Tags(Risk)),
                 Up("coin_magnet", "Coin Magnet", Rarity.Common, 2, "Coins fly to you from further away, and enemies drop 25% more.", "Mg", new Color(1f, 0.85f, 0.3f),
                     new[] { M(ShmupStats.Magnet, StatOp.PercentAdd, 1f), M(ShmupStats.CoinGain, StatOp.PercentAdd, 0.25f) }, Tags(Economy)),
-                Up("hot_barrels", "Hot Barrels", Rarity.Common, 2, "Shots fly 25% faster and hit a little harder.", "Hb", new Color(1f, 0.6f, 0.4f),
-                    new[] { M(ShmupStats.ShotSpeed, StatOp.PercentAdd, 0.25f), M(ShmupStats.Damage, StatOp.PercentAdd, 0.05f) }, Tags(Gun)),
+                Up("hot_barrels", "Hot Barrels", Rarity.Common, 2, "Shots fly 25% faster and hit 12% harder.", "Hb", new Color(1f, 0.6f, 0.4f),
+                    new[] { M(ShmupStats.ShotSpeed, StatOp.PercentAdd, 0.25f), M(ShmupStats.Damage, StatOp.PercentAdd, 0.12f) }, Tags(Gun)),
                 Up("spare_bomb", "Spare Bomb", Rarity.Common, 2, "Your Bomb Bay holds one more bomb (and you get it now).", "Bm", new Color(1f, 0.85f, 0.4f),
                     null, Tags(Bomb), Needs(ShmupEffects.BombBay), ShmupEffects.BombPlus),
-                Up("quick_fuse", "Quick Fuse", Rarity.Common, 2, "Your Bomb Bay recharges 35% faster.", "QF", new Color(1f, 0.75f, 0.35f),
-                    new[] { M(ShmupStats.BombRecharge, StatOp.PercentAdd, 0.35f) }, Tags(Bomb), Needs(ShmupEffects.BombBay)),
+                Up("quick_fuse", "Quick Fuse", Rarity.Common, 2, "Your Bomb Bay recharges 70% faster: bomb more freely.", "QF", new Color(1f, 0.75f, 0.35f),
+                    new[] { M(ShmupStats.BombRecharge, StatOp.PercentAdd, 0.7f) }, Tags(Bomb), Needs(ShmupEffects.BombBay)),
                 Up("twin_spread", "Twin Spread", Rarity.Rare, 2, "Two more streams fan out to the sides.", "Sd", new Color(0.4f, 0.75f, 1f),
                     null, Tags(Gun), null, ShmupEffects.Spread),
                 Up("piercing_shot", "Piercing Shot", Rarity.Rare, 2, "Shots pass through one more enemy and hit 8% harder.", "Pc", new Color(0.6f, 0.8f, 1f),
@@ -270,31 +272,29 @@ namespace JamKit.BulletHell.EditorTools
                 Up("steady_wings", "Steady Wings", Rarity.Rare, 2, "Your companion's guard comes back 30% sooner.", "SW", new Color(1f, 0.9f, 0.65f),
                     new[] { M(ShmupStats.CompanionShieldCooldown, StatOp.PercentAdd, -0.3f) }, Tags(BulletHellGame.CompanionTag, Defense)),
 
-                Epic(Up("seeker_rounds", "Seeker Rounds", Rarity.Epic, 1, "Your side streams curve toward enemies: dodge where you like, the damage still lands.", "Sk", new Color(0.8f, 0.6f, 1f),
+                Epic(Up("seeker_rounds", "Seeker Rounds", Rarity.Epic, 1, "Every third volley, slow seekers curve toward enemies: you still aim, they finish the job.", "Sk", new Color(0.8f, 0.6f, 1f),
                         null, Tags(Gun), null, ShmupEffects.Homing),
-                    UpgradeVerb.Aim, new[] { "waves", "sides", "crowded" }, "Anywhere: it frees you from lining up under enemies.",
+                    UpgradeVerb.Aim, new[] { "waves", "sides", "crowded" }, "Anywhere: it lets you dodge off the line and still land some damage.",
                     "Embers that know where they're going.", "+10% damage", new[] { M(ShmupStats.Damage, StatOp.PercentAdd, 0.1f) },
-                    "Changes aiming: dodge freely, damage still lands. Strongest damage epic (balance report: about x1.55 DPS); its homing streams were cut from 0.6 to 0.35 damage so it doesn't dwarf the rest."),
-                Epic(Up("backdraft", "Backdraft", Rarity.Epic, 2, "Two streams fire down, bounce off the floor and climb back hotter (+60% damage). The lower you sit, the sooner they return.", "BD", new Color(1f, 0.55f, 0.3f),
-                        null, Tags(Gun), null, ShmupEffects.Rebound),
-                    UpgradeVerb.Aim, new[] { "waves", "sides", "turrets" }, "Low on the screen, where players sit: the rear gun's replacement.",
-                    "The forge's bellows: what goes down comes back up hotter.", "+10% damage", new[] { M(ShmupStats.Damage, StatOp.PercentAdd, 0.1f) },
-                    "Replaces the rear twin gun, which the playtest and the balance report found useless (players sit low, enemies never get behind). Rebound shots reward sitting low and cover the lanes beside the main guns (about x1.26 DPS, 23% of all damage)."),
+                    "Epic pass: it removed aiming entirely (x1.59 DPS, 59% useful on the real rooms). Now its homing streams fire every third volley (Shots > Homing Volley Every), fly at 70% speed, turn at 4 rad/s (Player > Homing Turn Rate, was 7) and hit for 70%: x1.37 DPS. With Twin Spread the side streams home but fire less often: x1.38 against Twin Spread's x1.30."),
+                Up("backdraft", "Backdraft", Rarity.Rare, 1, "Two streams fire down, bounce off the floor and climb back 35% hotter.", "BD", new Color(1f, 0.55f, 0.3f),
+                    null, Tags(Gun), null, ShmupEffects.Rebound),
                 Epic(Up("bomb_bay", "Bomb Bay", Rarity.Epic, 2, "Hold 2 bombs (K / right click / Space) that recharge one every 20 s of fighting. More stacks hold more.", "BY", new Color(1f, 0.85f, 0.4f),
                         null, Tags(Bomb, Defense), null, ShmupEffects.BombBay),
                     UpgradeVerb.Risk, new[] { "boss", "crowded", "low_life" }, "Anywhere: a panic button for the densest moments.",
                     "A furnace hatch full of stored fire.", "+1 bomb, recharge 15% faster", new[] { M(ShmupStats.BombRecharge, StatOp.PercentAdd, 0.15f) },
                     "Bombs left the starting kit (rarely used, odd as free kit). Now an epic with its own upgrades: Spare Bomb, Quick Fuse, Big Bang, Guardian Angel. Balance report: about 40% fewer hits."),
-                Epic(Up("guardian_angel", "Guardian Angel", Rarity.Epic, 1, "When you're hit, a bomb goes off instead of losing a life (if your Bay has one).", "GA", new Color(1f, 0.95f, 0.7f),
+                Epic(Up("guardian_angel", "Guardian Angel", Rarity.Epic, 1, "When you're hit, your Bomb Bay fires EVERY bomb it holds instead of you losing a life. Then 10 s to recover.", "GA", new Color(1f, 0.95f, 0.7f),
                         null, Tags(Bomb, Defense), Needs(ShmupEffects.BombBay), ShmupEffects.AutoBomb),
                     UpgradeVerb.Risk, new[] { "boss", "crowded", "low_life" }, "Anywhere; it needs the Bomb Bay.",
                     "A warden's last mercy.", "Bomb Bay recharges 20% faster", new[] { M(ShmupStats.BombRecharge, StatOp.PercentAdd, 0.2f) },
-                    "Turns bombs into insurance: you can take risks while a bomb is stocked. Only offered with the Bomb Bay."),
-                Epic(Up("ghost_step", "Ghost Step", Rarity.Epic, 1, "While you sprint, enemy bullets pass through you. Sprinting drains 25% faster.", "GS", new Color(0.75f, 0.85f, 1f),
-                        new[] { M(ShmupStats.StaminaMax, StatOp.Multiply, 0.75f) }, Tags(Move, Defense), null, ShmupEffects.GhostStep),
-                    UpgradeVerb.Dodge, new[] { "boss", "crowded" }, "Anywhere: dash through a wall instead of around it.",
-                    "A spark too quick to burn.", "+20% stamina", new[] { M(ShmupStats.StaminaMax, StatOp.PercentAdd, 0.2f) },
-                    "Changes the dodge: sprint becomes a dash through bullets, so the per-room sprint budget becomes your shield. Balance report: the biggest cut in hits taken (about 75%). Bodies still hurt."),
+                    "Epic pass: with the Bay's recharge it was near-invulnerability (56% fewer hits). Now a save spends every stored bomb (one bigger blast) and waits 10 s (Boosts > Guardian Cooldown, shown under SPRINT): 47% fewer hits on the real rooms."),
+                Epic(Up("ghost_step", "Ghost Step", Rarity.Epic, 1, "Starting a sprint makes you a ghost for half a second: bullets pass through. 3 a room, 5 s apart.", "GS", new Color(0.75f, 0.85f, 1f),
+                        null, Tags(Move, Defense), null, ShmupEffects.GhostStep),
+                    UpgradeVerb.Dodge, new[] { "boss", "crowded" }, "Anywhere: dash through a wall instead of around it, at the right moment.",
+                    "A spark too quick to burn.", "+1 phase a room", null,
+                    "Epic pass: sprinting through everything had no drawback (77% fewer hits). Now only a sprint's first 0.5 s phases, 5 s apart, 3 per fight room (Boosts > Ghost ...), shown as pips: a timing skill, and tapping sprint to pass one bullet costs a phase. 11% fewer hits on the real rooms.",
+                    new[] { ShmupEffects.GhostStep }),
                 Epic(Up("ember_hunger", "Ember Hunger", Rarity.Epic, 1, "Grazing a bullet heats your guns: up to +60% damage, cooling over a few seconds.", "EH", new Color(1f, 0.45f, 0.3f),
                         null, Tags(Risk, Gun), null, ShmupEffects.GrazePower),
                     UpgradeVerb.Risk, new[] { "boss", "crowded", "long_fights" }, "Wherever the bullets are thickest: it pays you to stay close.",
@@ -305,11 +305,26 @@ namespace JamKit.BulletHell.EditorTools
                     UpgradeVerb.Dodge, new[] { "boss", "crowded", "turrets" }, "Anywhere: a bubble around the ship.",
                     "The forge's heat haze, where time runs thick.", "+10% move speed", new[] { M(ShmupStats.MoveSpeed, StatOp.PercentAdd, 0.1f) },
                     "Changes dodging: micro-dodges get easier in dense patterns. It used to slow bullets only while sprinting, which the balance report found did nothing measurable; the bubble cuts hits by about a third."),
-                Epic(Up("red_line", "Red Line", Rarity.Legendary, 1, "On your last life: +50% damage and 30% faster fire.", "RL", new Color(1f, 0.3f, 0.3f),
+                Epic(Up("last_gambit", "Last Gambit", Rarity.Legendary, 1, "On your last life: +75% damage, every hit ricochets to another enemy, and kills explode.", "LG", new Color(1f, 0.3f, 0.3f),
                         null, Tags(Risk, Gun), null, ShmupEffects.LastStand),
-                    UpgradeVerb.Risk, new[] { "boss", "low_life", "long_fights" }, "Anywhere, on your last life.",
+                    UpgradeVerb.Risk, new[] { "boss", "low_life", "crowded" }, "Anywhere, on your last life.",
                     "A star burning hottest just before it goes out.", "+10% damage", new[] { M(ShmupStats.Damage, StatOp.PercentAdd, 0.1f) },
-                    "Replaces Overdrive (only numbers, so it failed the rubric). A risk verb: playing on one life on purpose, which pairs with the Altar's life offering. Balance report: about x1.5 DPS on the last life."),
+                    "Replaces Red Line (+50% damage and fire rate: big but plain). Unique now: the only ricochet, and the only area damage besides bombs (kills blast, 1.3 radius). The ship pulses red while it's on. Pairs with the Altar's life offering. x1.68 DPS and 70% fewer hits on the last life (real rooms)."),
+                Epic(Up("still_point", "Still Point", Rarity.Epic, 1, "Hold still to focus: up to double damage after 0.6 s. Any movement resets it.", "SP", new Color(0.6f, 1f, 0.9f),
+                        null, Tags(Gun, Risk), null, ShmupEffects.StillPoint),
+                    UpgradeVerb.Move, new[] { "boss", "turrets", "long_fights" }, "Lined up under a target, in a gap you trust.",
+                    "The calm at the heart of the furnace.", "+10% damage", new[] { M(ShmupStats.Damage, StatOp.PercentAdd, 0.1f) },
+                    "A different playstyle: move only in fast bursts between gaps, then plant and burn (Boosts > Still Ramp Seconds, Still Max). The balance bot plays it as a burst mover (still while safe and lined up, sprinting when it must): x1.13 DPS, 7% fewer hits on the real rooms."),
+                Excluding(Epic(Up("scatter", "Scatter", Rarity.Epic, 1, "Your guns become a shotgun cone: huge up close, weak at range.", "SC", new Color(1f, 0.7f, 0.35f),
+                        null, Tags(Gun, Risk), null, ShmupEffects.Scatter),
+                    UpgradeVerb.Risk, new[] { "boss", "waves", "turrets" }, "Close under a target: the opposite of Backdraft's safe low spot.",
+                    "The forge's spray of hot slag.", "+10% damage", new[] { M(ShmupStats.Damage, StatOp.PercentAdd, 0.1f) },
+                    "A close-range epic: 6 pellets in a 30 degree cone replace the main guns, 1.4 damage each point-blank (about 3x the base DPS when all land), falling to half at the end of their 5-unit range (Shots > Scatter ...). At about 2x point-blank it lost damage for an aggressive bot (x0.82): closing in costs time and hits. Now x1.28 DPS for a bot that closes in, with more hits taken: the trade is the point."), "blade"),
+                Excluding(Epic(Up("blade", "Blade", Rarity.Epic, 1, "Your guns become a blade: an arc slash right in front of you, 3.5x the damage.", "BL", new Color(0.85f, 0.95f, 1f),
+                        null, Tags(Gun, Risk), null, ShmupEffects.Blade),
+                    UpgradeVerb.Risk, new[] { "boss", "divers", "turrets" }, "Right under a target, within a ship's length or two.",
+                    "A sliver of the forge's own anvil.", "+10% damage", new[] { M(ShmupStats.Damage, StatOp.PercentAdd, 0.1f) },
+                    "The closest-range epic: a 140 degree slash 1.7 units in front, 5 times a second, at 3.5x the main guns' base DPS (Shots > Blade ...). At 2.6x and 1.35 range it lost damage (x0.85). Now x1.25 DPS for an aggressive bot, with the most hits taken of any epic."), "scatter"),
             };
             var fallback = Up("pocket_change", "Pocket Change", Rarity.Common, 0, "+15 coins.", "$", new Color(1f, 0.83f, 0.25f),
                 null, Tags(Economy), null, ShmupEffects.Coins + ":15");
@@ -325,7 +340,7 @@ namespace JamKit.BulletHell.EditorTools
             });
 
             // ---------- Config ----------
-            var config = Asset<BulletHellConfig>(ConfigPath, 2, c =>
+            var config = Asset<BulletHellConfig>(ConfigPath, 3, c =>
             {
                 c.run = new RunConfig
                 {
@@ -351,6 +366,7 @@ namespace JamKit.BulletHell.EditorTools
                 };
                 c.rewards = new ShmupRewards();
                 c.boosts = new PowerBoostRules();
+                c.shots = new ShotRules();
                 c.forge = new ForgeRules();
                 c.altar = new AltarRules();
                 c.trader = new TraderRules();
@@ -482,16 +498,26 @@ namespace JamKit.BulletHell.EditorTools
 
         static string[] Tags(params string[] t) => t;
 
+        /// <summary>The two close-range epics replace the main guns: owning one rules out the other.</summary>
+        static UpgradeAsset Excluding(UpgradeAsset u, string id)
+        {
+            if (u.def.excludes.Contains(id)) return u;
+            u.def.excludes.Add(id);
+            EditorUtility.SetDirty(u);
+            return u;
+        }
+
         static string[] Needs(params string[] ids) => ids;
 
         /// <summary>Fills an epic's rubric, its forge bonus and design notes (part of the same asset fill).</summary>
         static UpgradeAsset Epic(UpgradeAsset u, UpgradeVerb verb, string[] situations, string where, string idea, string forgeText,
-            StatModifier[] forge, string notes)
+            StatModifier[] forge, string notes, string[] forgeEffects = null)
         {
-            if (!(_reset || _fromRevision < 2 || u.rubric == null || u.rubric.verb == UpgradeVerb.None)) return u;
+            if (!(_reset || _fromRevision < ContentRevision || u.rubric == null || u.rubric.verb == UpgradeVerb.None)) return u;
             u.rubric = new EpicRubric { verb = verb, situations = new List<string>(situations), wherePlayerIs = where, idea = idea };
             u.forgeText = forgeText;
-            u.forgeModifiers = new List<StatModifier>(forge);
+            u.forgeModifiers = forge != null ? new List<StatModifier>(forge) : new List<StatModifier>();
+            u.forgeEffects = forgeEffects != null ? new List<string>(forgeEffects) : new List<string>();
             u.designNotes = notes;
             EditorUtility.SetDirty(u);
             return u;
@@ -569,7 +595,7 @@ namespace JamKit.BulletHell.EditorTools
         static UpgradeAsset Up(string id, string name, Rarity rarity, int stacks, string description, string iconText, Color iconColor,
             StatModifier[] mods, string[] tags, string[] requires = null, params string[] effects)
         {
-            return Asset<UpgradeAsset>(DataDir + "/Upgrades/" + id + ".asset", 2, u =>
+            return Asset<UpgradeAsset>(DataDir + "/Upgrades/" + id + ".asset", 3, u =>
             {
                 u.def = new UpgradeDef(id, rarity, stacks)
                 {

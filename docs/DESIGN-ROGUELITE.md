@@ -58,13 +58,30 @@ and reports its share of damage, hits taken and time to clear. Anything near zer
 > around the ship), and a decoy on sprint. Light Frame and Piercing Shot (a common and a rare) sit near
 > the threshold: worth a look once the theme's rooms exist.
 >
-> **Epics now:** Seeker Rounds (aim), Backdraft (aim: shots bounce up off the floor, hotter: the rear
-> gun's replacement, it rewards sitting low), Bomb Bay (bombs left the starting kit; Spare Bomb, Quick
-> Fuse, Big Bang and Guardian Angel stack on it), Guardian Angel (risk), Ghost Step (dodge: sprint
-> through bullets), Ember Hunger (risk: grazes heat your guns); legendaries Time Dilation (dodge: bullets
-> near you at half speed) and Red Line (risk: power on your last life; replaces Overdrive, which was
-> only numbers). Extra Life moved to rare. Every epic carries its rubric (verb, situations, where the
-> player is, idea) and design notes in its asset; Validate Content and the EditMode tests check them.
+> **Epic balance pass (2026-10-08, the creator's notes).** On the real rooms, 8 seeds, before -> after:
+>
+> | Epic | Change | Before | After |
+> |---|---|---|---|
+> | Ghost Step | phases only in a sprint's first 0.5 s, 5 s apart, 3 a room (pips) | 77% fewer hits | 11% fewer hits |
+> | Red Line -> **Last Gambit** | last life: +75% damage, hits ricochet, kills blast (the only area damage besides bombs) | x1.43 DPS | x1.68 DPS, 70% fewer hits |
+> | **Still Point** (back) | holding still ramps to double damage in 0.6 s; any move resets it | flagged (bot never still) | x1.13 DPS (bot as a burst mover) |
+> | **Scatter** (new) | a shotgun cone instead of the guns, about 3x point-blank | x0.82 at 2x point-blank | x1.28 DPS, more hits (aggressive bot) |
+> | **Blade** (new) | an arc slash instead of the guns, 3.5x DPS, 1.7 range | x0.85 at 2.6x and 1.35 | x1.25 DPS, most hits taken |
+> | Backdraft | demoted to rare, toned down: it rewards the spot that's already best | x1.19 | x1.14 |
+> | Seeker Rounds | homing streams every third volley, 70% speed, 70% damage, turn rate 7 -> 4 | x1.59 | x1.37 |
+> | Guardian Angel | spends every stored bomb, then 10 s to recover (shown) | 56% fewer hits | 47% fewer hits |
+> | Light Frame (common) | a 20% smaller hitbox and +10% stamina regen (more move speed reads as more hits for the bot) | flagged | 16% |
+> | Hot Barrels / Quick Fuse | +12% damage / +70% recharge | flagged 3% / 14% | 15% / 17% |
+> | Time Dilation | checked, unchanged: a legendary under Bomb Bay and Guardian Angel | 28% fewer hits | 28% |
+>
+> **Epics now:** Seeker Rounds (aim), Bomb Bay (bombs left the starting kit; Spare Bomb, Quick Fuse, Big
+> Bang and Guardian Angel stack on it), Guardian Angel (risk), Ghost Step (dodge), Ember Hunger (risk:
+> grazes heat your guns), Still Point (move: burst between gaps, then plant), Scatter and Blade (risk:
+> close range, one or the other); legendaries Time Dilation (dodge: bullets near you at half speed) and
+> Last Gambit (risk: your last life). Backdraft (the rear gun's replacement) and Extra Life are rares.
+> Every epic carries its rubric (verb, situations, where the player is, idea) and design notes with its
+> balance numbers; Validate Content and the EditMode tests check them. The companion is unchanged until
+> the story decides its role.
 
 ## 3. Encounters between battles: risk the player chooses, reward for planning ahead
 Inscryption's campfire (buff a card again and again, at a growing risk of losing it) and its sacrifice

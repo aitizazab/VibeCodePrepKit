@@ -60,8 +60,11 @@ namespace JamKit.BulletHell
         public float[] damageBySource;
         public int hits;
         public int grazes;
-        /// <summary>Seconds the bot spent sprinting.</summary>
-        public float sprintSeconds;
+        /// <summary>Seconds the bot spent sprinting, and holding still.</summary>
+        public float sprintSeconds, stillSeconds;
+        /// <summary>The bot's height summed over time (divide by clearSeconds for its mean height: an
+        /// aggressive bot plays higher, closer to its targets).</summary>
+        public float heightSeconds;
         public float clearSeconds;
         public bool cleared;
         /// <summary>Seconds with at least one enemy on screen (DPS is damage over this).</summary>
@@ -85,6 +88,8 @@ namespace JamKit.BulletHell
         public IReadOnlyList<float> styleRadii;
         public CompanionRules companion;
         public PowerBoostRules boosts = new PowerBoostRules();
+        /// <summary>The gun's numbers (BulletHellConfig > Shots); null = the loadout's own.</summary>
+        public ShotRules shots;
         /// <summary>The bot's resting height (players sit low, where it's safest).</summary>
         public float homeY = -3.6f;
         /// <summary>Seconds between the bot's decisions (a human's reaction time; 0 = every frame, superhuman).</summary>
@@ -93,7 +98,13 @@ namespace JamKit.BulletHell
         public bool startOnLastLife;
 
         readonly BulletPool _enemyBullets = new BulletPool(4096);
-        readonly BulletPool _shots = new BulletPool(1024) { bounceDamageScale = PlayerShots.ReboundAfterBounce };
+        readonly BulletPool _shots = new BulletPool(1024);
+        readonly GhostPhase _ghostPhase = new GhostPhase();
+        readonly GuardianAngel _angel = new GuardianAngel();
+        ShmupLoadout _loadoutNow;
+        bool _gambitOn;
+        float _bladeClock;
+        int _volley;
         readonly List<BulletSpawn> _spawns = new List<BulletSpawn>(256);
         readonly List<BulletHit> _hits = new List<BulletHit>(128);
         readonly List<Live> _live = new List<Live>(64);
@@ -131,9 +142,16 @@ namespace JamKit.BulletHell
         public SimResult Play(SimRoom room, ShmupLoadout loadout, SimPlayer player, ulong seed)
         {
             var rng = new Rng(seed);
-            var result = new SimResult { damageBySource = new float[8] };
+            var result = new SimResult { damageBySource = new float[SourceCount] };
             _enemyBullets.Clear();
             _shots.Clear();
+            if (shots != null && !ReferenceEquals(loadout.Shots, shots)) loadout.Shots = shots;
+            _shots.bounceDamageScale = loadout.Shots.reboundAfterBounce;
+            _loadoutNow = loadout;
+            _ghostPhase.RoomStarted(boosts, loadout.Effect(ShmupEffects.GhostStep));
+            _angel.Reset();
+            _bladeClock = 0f;
+            _volley = 0;
             _live.Clear();
             _boost.Reset();
             _gun.Reset();
@@ -185,10 +203,16 @@ namespace JamKit.BulletHell
                 pos = bounds.Clamp(pos + move * (speed * dt), 0.35f);
 
                 // Boosts (Ember Hunger, Still Point, Red Line).
-                int grazed = _enemyBullets.Graze(pos, player.grazeRadius * loadout.GrazeRadiusScale, player.hitboxRadius);
+                int grazed = _enemyBullets.Graze(pos, player.grazeRadius * loadout.GrazeRadiusScale, player.hitboxRadius * loadout.HitboxScale);
                 result.grazes += grazed;
                 if (sprinting) result.sprintSeconds += dt;
-                _boost.Tick(dt, boosts, loadout.Effect(ShmupEffects.GrazePower), loadout.Effect(ShmupEffects.LastStand), grazed, livesLost >= player.lives - 1);
+                if (move.LengthSquared() <= 0.01f) result.stillSeconds += dt;
+                result.heightSeconds += pos.Y * dt;
+                _boost.Tick(dt, boosts, loadout.Effect(ShmupEffects.GrazePower), loadout.Effect(ShmupEffects.LastStand), grazed, livesLost >= player.lives - 1,
+                    loadout.Effect(ShmupEffects.StillPoint), move.LengthSquared() > 0.01f);
+                _gambitOn = loadout.Effect(ShmupEffects.LastStand) > 0 && livesLost >= player.lives - 1;
+                _ghostPhase.Tick(dt, sprinting, boosts);
+                _angel.Tick(dt);
 
                 loadout.DamageBoost = _boost.DamageMultiplier;
                 loadout.FireRateBoost = _boost.FireRateMultiplier;
@@ -200,13 +224,13 @@ namespace JamKit.BulletHell
                     var streams = loadout.Streams(false);
                     float damage = player.shotDamage * loadout.ShotDamageScale;
                     float shotSpeed = player.shotSpeed * loadout.ShotSpeedScale;
-                    for (int v = 0; v < volleys; v++)
+                    for (int v = 0; v < volleys; v++, _volley++)
                         for (int i = 0; i < streams.Count; i++)
                         {
                             var st = streams[i];
-                            var flags = (st.homing ? BulletFlags.Homing : BulletFlags.None) | (st.bounce ? BulletFlags.Bounce : BulletFlags.None);
-                            _shots.Spawn(new Vector2(pos.X + st.offsetX, pos.Y + st.offsetY), st.angleDegrees * (float)(Math.PI / 180.0), shotSpeed,
-                                (int)st.source, player.shotRadius, player.shotLifetime, 0f, 0f, damage * st.damageScale, loadout.Pierce, flags);
+                            if (!st.FiresOn(_volley)) continue;
+                            _shots.Spawn(new Vector2(pos.X + st.offsetX, pos.Y + st.offsetY), st.angleDegrees * (float)(Math.PI / 180.0), shotSpeed * st.speedScale,
+                                (int)st.source, player.shotRadius, st.lifetime > 0f ? st.lifetime : player.shotLifetime, 0f, 0f, damage * st.damageScale, loadout.Pierce, st.Flags);
                         }
                 }
 
@@ -250,14 +274,41 @@ namespace JamKit.BulletHell
                 for (int i = 0; i < _hits.Count; i++)
                 {
                     var h = _hits[i];
-                    DamageTarget(h.targetIndex, h.damage, h.style, ref result);
+                    float dmg = (h.flags & BulletFlags.Falloff) != 0 ? h.damage * loadout.Shots.ScatterFalloffAt(h.age) : h.damage;
+                    DamageTarget(h.targetIndex, dmg, h.style, ref result);
+                    // Last Gambit: every hit ricochets once to the nearest other enemy.
+                    if (_gambitOn && (h.flags & BulletFlags.Ricocheted) == 0)
+                    {
+                        int r = LastGambit.RicochetTarget(_targets, n, h.targetId, h.position, boosts.ricochetRange);
+                        if (r >= 0)
+                        {
+                            var to = _targets[r].position - h.position;
+                            _shots.Spawn(h.position, (float)Math.Atan2(to.Y, to.X), player.shotSpeed, (int)ShotSource.Ricochet, player.shotRadius, 0.6f, 0f, 0f,
+                                dmg * boosts.ricochetDamage, 0, BulletFlags.Ricocheted);
+                        }
+                    }
+                }
+
+                // The Blade: an arc slash in front, instead of the main guns.
+                if (loadout.Effect(ShmupEffects.Blade) > 0)
+                {
+                    _bladeClock += dt;
+                    var shots = loadout.Shots;
+                    if (_bladeClock >= shots.bladeInterval)
+                    {
+                        _bladeClock -= shots.bladeInterval;
+                        float slash = BladeArc.SlashDamage(shots, player.shotDamage * loadout.ShotDamageScale, loadout.FireInterval(player.fireInterval));
+                        for (int i = 0; i < n; i++)
+                            if (_targets[i].active && BladeArc.Touches(pos, _targets[i].position, _targets[i].radius, shots.bladeRange, shots.bladeHalfAngle))
+                                DamageTarget(i, slash, (int)ShotSource.Blade, ref result);
+                    }
                 }
 
                 // The Bomb Bay: the bot bombs when bullets crowd it.
                 _bay.Tick(dt, true);
                 if (_bay.Bombs > 0 && invuln <= 0f && danger && CountWithin(pos, 1.2f) >= 4 && _bay.TryUse())
                 {
-                    Bomb(pos, player, loadout, ref result);
+                    Bomb(pos, player, loadout, ref result, 1f);
                     invuln = player.bombInvulnerable;
                 }
 
@@ -265,13 +316,13 @@ namespace JamKit.BulletHell
                 if (invuln > 0f) invuln -= dt;
                 else
                 {
-                    bool bulletHit = !(sprinting && ghost > 0) && _enemyBullets.FirstOverlap(pos, player.hitboxRadius) >= 0;
+                    bool bulletHit = !(ghost > 0 && _ghostPhase.Phasing) && _enemyBullets.FirstOverlap(pos, player.hitboxRadius * loadout.HitboxScale) >= 0;
                     bool bodyHit = false;
                     for (int i = 0; i < _live.Count && !bodyHit; i++)
                     {
                         var l = _live[i];
                         if (!l.alive || !l.def.contact) continue;
-                        float r = l.def.radius * 0.8f + player.hitboxRadius;
+                        float r = l.def.radius * 0.8f + player.hitboxRadius * loadout.HitboxScale;
                         if (Vector2.DistanceSquared(l.mover.Position, pos) < r * r) bodyHit = true;
                     }
                     if (bulletHit || bodyHit)
@@ -281,9 +332,10 @@ namespace JamKit.BulletHell
                             _enemyBullets.ClearInCircle(pos, 0.6f);
                             invuln = 0.5f;
                         }
-                        else if (autoBomb > 0 && _bay.TryUse())
+                        else if (autoBomb > 0 && _angel.Ready && _bay.Bombs > 0)
                         {
-                            Bomb(pos, player, loadout, ref result);
+                            int spent = _angel.TryTrigger(_bay, boosts);
+                            Bomb(pos, player, loadout, ref result, GuardianAngel.PowerFor(spent, boosts));
                             invuln = player.bombInvulnerable;
                         }
                         else
@@ -310,9 +362,12 @@ namespace JamKit.BulletHell
             return result;
         }
 
-        void Bomb(Vector2 pos, SimPlayer player, ShmupLoadout loadout, ref SimResult result)
+        /// <summary>Damage sources tracked (ShotSource values).</summary>
+        public const int SourceCount = 12;
+
+        void Bomb(Vector2 pos, SimPlayer player, ShmupLoadout loadout, ref SimResult result, float powerScale)
         {
-            float power = loadout.BombPower;
+            float power = loadout.BombPower * powerScale;
             float radius = player.bombRadius * power, damage = player.bombDamage * power;
             _enemyBullets.Clear();
             int n = FillTargets();
@@ -329,7 +384,22 @@ namespace JamKit.BulletHell
             l.hp -= damage;
             result.damage += dealt;
             if (source >= 0 && source < result.damageBySource.Length) result.damageBySource[source] += dealt;
-            if (l.hp <= 0f) l.alive = false;
+            if (l.hp > 0f) return;
+            l.alive = false;
+            // Last Gambit: a kill bursts in a small blast (blast kills don't blast again).
+            if (_gambitOn && source != (int)ShotSource.Blast && _loadoutNow != null)
+            {
+                var at = l.mover.Position;
+                float blast = boosts.blastDamage * _loadoutNow.ShotDamageScale;
+                float rr = boosts.blastRadius;
+                for (int i = 0; i < _owners.Count; i++)
+                {
+                    var o = _owners[i];
+                    if (o == null || !o.alive) continue;
+                    float reach = rr + o.def.radius;
+                    if (Vector2.DistanceSquared(o.mover.Position, at) <= reach * reach) DamageTarget(i, blast, (int)ShotSource.Blast, ref result);
+                }
+            }
         }
 
         readonly List<Live> _owners = new List<Live>(64);
@@ -426,6 +496,14 @@ namespace JamKit.BulletHell
             // The bot plays to its upgrade, as a player would: with Ember Hunger it hugs bullets (a tighter
             // margin, so it grazes); with Ghost Step it sprints at the first sign of trouble.
             float avoid = loadout.Effect(ShmupEffects.GrazePower) > 0 ? 0.3f : 0.9f;
+            // Still Point: a burst mover. It holds still while it's safe and only moves (sprinting) when it must.
+            bool burstMover = loadout.Effect(ShmupEffects.StillPoint) > 0;
+            // Scatter and Blade: an aggressive bot that closes in under its target.
+            float closeIn = loadout.Effect(ShmupEffects.Blade) > 0 ? loadout.Shots.bladeRange * 0.75f
+                : loadout.Effect(ShmupEffects.Scatter) > 0 ? player.shotSpeed * loadout.ShotSpeedScale * loadout.Shots.scatterLifetime * 0.5f : 0f;
+            float wantY = homeY;
+            if (closeIn > 0f && bestY > float.NegativeInfinity)
+                wantY = Math.Max(homeY, Math.Min(bounds.maxY - 1.5f, -bestY - closeIn));
             bool sprintLover = loadout.Effect(ShmupEffects.GhostStep) > 0;
             // It sees bullets as they move: slowed inside a Time Dilation bubble.
             float slowR2 = loadout.Effect(ShmupEffects.FocusSlow) > 0 && boosts != null ? boosts.slowRadius * boosts.slowRadius : -1f;
@@ -448,7 +526,7 @@ namespace JamKit.BulletHell
                         float bx = b.position.X + c * b.speed * tau, by = b.position.Y + s * b.speed * tau;
                         float dx = bx - p.X, dy = by - p.Y;
                         float d2 = dx * dx + dy * dy;
-                        float r = b.radius + player.hitboxRadius + 0.12f;
+                        float r = b.radius + player.hitboxRadius * loadout.HitboxScale + 0.12f;
                         if (d2 < avoid) risk += 1f / (d2 + 0.01f) * (d2 < r * r ? 8f : 1f);
                     }
                 }
@@ -460,10 +538,16 @@ namespace JamKit.BulletHell
                     if (d2 < 2.5f) risk += 3f / (d2 + 0.05f);
                 }
                 if (m == 0) here = risk;
-                float score = risk * 0.05f + Math.Abs(p.X - targetX) * 0.25f + Math.Abs(p.Y - homeY) * 0.35f;
+                float score = risk * 0.05f + Math.Abs(p.X - targetX) * 0.25f + Math.Abs(p.Y - wantY) * 0.35f;
                 if (score < bestScore) { bestScore = score; best = Moves[m]; }
             }
-            danger = here > (sprintLover ? 8f : 25f);
+            danger = here > (sprintLover && (_ghostPhase.Ready || loadout.Effect(ShmupEffects.GhostStep) <= 0) ? 8f : 25f);
+            if (burstMover)
+            {
+                // Still while it's safe and lined up (the damage ramps); a sprinting burst when it has to move.
+                if (here < 4f && Math.Abs(pos.X - targetX) < 0.7f) return Vector2.Zero;
+                danger = here >= 4f;
+            }
             // Close enough to the spot: hold still (no jitter).
             if (best != Vector2.Zero && here < 1f && Math.Abs(pos.X - targetX) < 0.12f && Math.Abs(pos.Y - homeY) < 0.12f) best = Vector2.Zero;
             return best;
@@ -560,6 +644,9 @@ namespace JamKit.BulletHell
                 else if (e == ShmupEffects.RearShot) into.Add(ShotSource.Rear);
                 else if (e == ShmupEffects.Rebound) into.Add(ShotSource.Rebound);
                 else if (e == ShmupEffects.BombBay || e == ShmupEffects.BiggerBombs) into.Add(ShotSource.Bomb);
+                else if (e == ShmupEffects.Scatter) into.Add(ShotSource.Scatter);
+                else if (e == ShmupEffects.Blade) into.Add(ShotSource.Blade);
+                else if (e == ShmupEffects.LastStand) { into.Add(ShotSource.Ricochet); into.Add(ShotSource.Blast); }
             }
             if (def.modifiers != null)
                 foreach (var m in def.modifiers)
@@ -647,7 +734,7 @@ namespace JamKit.BulletHell
 
         static SimResult PlayAll(BalanceSim sim, IReadOnlyList<SimRoom> rooms, SimPlayer player, ShmupLoadout loadout, int seeds)
         {
-            var total = new SimResult { damageBySource = new float[8] };
+            var total = new SimResult { damageBySource = new float[BalanceSim.SourceCount] };
             for (int s = 0; s < Math.Max(1, seeds); s++)
                 for (int r = 0; r < rooms.Count; r++)
                 {

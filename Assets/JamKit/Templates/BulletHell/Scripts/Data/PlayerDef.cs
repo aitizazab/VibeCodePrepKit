@@ -70,7 +70,7 @@ namespace JamKit.BulletHell
         public int shotStyle = 6;
         public int homingShotStyle = 7;
         [Tooltip("Radians per second a homing shot can turn.")]
-        public float homingTurnRate = 7f;
+        public float homingTurnRate = 4f;
 
         [Header("Base stats (override the defaults: damage 1, fire_rate 1, ...)")]
         public List<StatEntry> baseStats = new List<StatEntry>();

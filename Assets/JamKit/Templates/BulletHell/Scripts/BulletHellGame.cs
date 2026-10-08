@@ -292,6 +292,7 @@ namespace JamKit.BulletHell
             _encounterLog.Clear();
             _draftSources.Clear();
             _boosts.Reset();
+            EpicsBeginRun();
             _firstDraftOfRun = true;
             _hud.SetTrials(_trials);
             BeginCompanion();
@@ -329,9 +330,10 @@ namespace JamKit.BulletHell
 
             bool fighting = _phase == RoomPhase.Intro || _phase == RoomPhase.Waves || _phase == RoomPhase.Boss || _phase == RoomPhase.Cleared;
             player.ControlsEnabled = fighting && !_choice.IsOpen;
-            // The moment-to-moment epics (Ember Hunger's heat, Red Line on the last life) set the gun's boost.
+            // The moment-to-moment epics (Ember Hunger's heat, Still Point's stillness, Last Gambit on the last
+            // life) set the gun's boost.
             _boosts.Tick(dt, config.boosts, _loadout.Effect(ShmupEffects.GrazePower), _loadout.Effect(ShmupEffects.LastStand),
-                _grazesLastFrame, player.Health.Current <= 1.01f);
+                _grazesLastFrame, player.Health.Current <= 1.01f, _loadout.Effect(ShmupEffects.StillPoint), player.Moving || !player.ControlsEnabled);
             _grazesLastFrame = 0;
             _loadout.DamageBoost = _boosts.DamageMultiplier;
             _loadout.FireRateBoost = _boosts.FireRateMultiplier;
@@ -386,6 +388,7 @@ namespace JamKit.BulletHell
 
             int targets = FillTargets();
             TickCompanion(dt, pp, targets);
+            TickEpics(dt, pp, targets);
             field.Player.SteerHoming(_targets, targets, config.player.homingTurnRate, dt);
             field.Tick(dt);
             // Time Dilation: the bullets close to the ship move slower.
@@ -457,13 +460,15 @@ namespace JamKit.BulletHell
             {
                 var h = _hits[i];
                 var owner = _owners[h.targetIndex];
+                float damage = HitDamage(h);
                 if (owner == null)
                 {
                     bool hurt = boss.CanBeHurt;
-                    boss.Damage(h.damage);
+                    boss.Damage(damage);
                     if (!hurt && fx != null) fx.Spark(new Vector2(h.position.X, h.position.Y), new Color(0.6f, 0.6f, 0.7f, 0.7f), new Vector2(0f, 2f), 0.08f, 0.15f);
                 }
-                else if (owner.Damage(h.damage)) KillEnemy(owner);
+                else if (owner.Damage(damage)) KillEnemy(owner);
+                AfterHit(h, damage, targetCount);
                 if (fx != null && (i & 1) == 0) fx.Spark(new Vector2(h.position.X, h.position.Y), new Color(1f, 1f, 0.8f, 0.9f), new Vector2(0f, 3f), 0.1f, 0.12f);
                 if (_sfxHit <= 0f)
                 {
@@ -478,8 +483,8 @@ namespace JamKit.BulletHell
             int grazed = field.Enemy.Graze(ppn, player.GrazeRadius, hitR);
             if (grazed > 0) OnGraze(grazed, pp, dt);
             if (player.IsInvulnerable || DebugMenu.GodMode || _bombTimer > 0f) return;
-            // Ghost Step: while sprinting, bullets pass through (bodies still hurt).
-            bool ghost = player.Sprinting && _loadout.Effect(ShmupEffects.GhostStep) > 0;
+            // Ghost Step: during a phase (the start of a sprint), bullets pass through (bodies still hurt).
+            bool ghost = _loadout.Effect(ShmupEffects.GhostStep) > 0 && _ghostPhase.Phasing;
             bool hit = !ghost && field.Enemy.FirstOverlap(ppn, hitR) >= 0;
             if (!hit)
                 for (int i = 0; i < _enemies.Count && !hit; i++)
@@ -516,6 +521,7 @@ namespace JamKit.BulletHell
             _hud.SetCoins(_run.currency);
             _hud.SetGraze(_grazes);
             _hud.SetSprint(player.Sprint);
+            UpdateAbilityHud();
             _hud.SetGuard(CompanionActive, _companion.Down ? 0f : _companion.GuardFraction, _companion.GuardReady && !_companion.Down);
             _trialHudClock -= udt;
             if (_trials.Count > 0 && _trialHudClock <= 0f)
@@ -548,7 +554,7 @@ namespace JamKit.BulletHell
             _wavesDone = false;
             _roomRng = new Rng(_run.RoomSeed());
             // Each fight room has its own sprint budget (the HUD meter fills back up).
-            if (RoomText.IsFight(_roomType)) player.RefillSprint();
+            if (RoomText.IsFight(_roomType)) { player.RefillSprint(); EpicsRoomStarted(); }
             if (_roomType == RoomType.Combat || _roomType == RoomType.Elite)
                 for (int i = 0; i < _trials.Count; i++) _trials[i].RoomStarted();
             field.Enemy.Clear();
@@ -737,6 +743,7 @@ namespace JamKit.BulletHell
                 fx.Ring(p, def.color, 0.1f, def.size * (def.big ? 1.6f : 0.9f), 0.3f);
             }
             GameRoot.Audio.Play("enemy_die", def.big ? 1f : 0.6f);
+            GambitBlast(p);
             if (def.big)
             {
                 GameRoot.Juice.Shake(0.3f);
@@ -955,12 +962,7 @@ namespace JamKit.BulletHell
             Vector2 pp = player.Position;
             // The companion takes the bullet if its guard is ready; then an auto-bomb; then a life.
             if (TryCompanionGuard(pp)) return;
-            if (_loadout.Effect(ShmupEffects.AutoBomb) > 0 && player.TryUseBomb())
-            {
-                GameRoot.Juice.FloatingText(pp, "Auto-bomb!", new Color(1f, 0.85f, 0.4f));
-                TriggerBomb(true);
-                return;
-            }
+            if (TryGuardian(pp)) return;
             var h = player.Health;
             h.DamageTakenScale = GameRoot.Settings.damageTakenScale;
             var r = h.Damage(new DamageInfo(1f, DamageKind.Bullet));
@@ -1093,12 +1095,12 @@ namespace JamKit.BulletHell
             return true;
         }
 
-        void TriggerBomb(bool auto)
+        void TriggerBomb(bool auto, float powerScale = 1f)
         {
             for (int i = 0; i < _trials.Count; i++) _trials[i].BombUsed();
             var def = config.player;
             Vector2 pp = player.Position;
-            float power = _loadout.BombPower;
+            float power = _loadout.BombPower * powerScale;
             float radius = def.bombRadius * power;
             float damage = def.bombDamage * power;
             ClearEnemyBullets(1);
@@ -1557,7 +1559,7 @@ namespace JamKit.BulletHell
             _wavesDone = false;
             _phaseTime = 0f;
             _roomRng = new Rng(_run.RoomSeed() ^ (ulong)(int)type * 0x9E37UL);
-            if (RoomText.IsFight(type)) player.RefillSprint();
+            if (RoomText.IsFight(type)) { player.RefillSprint(); EpicsRoomStarted(); }
             if (type == RoomType.Combat || type == RoomType.Elite)
                 for (int i = 0; i < _trials.Count; i++) _trials[i].RoomStarted();
             StartRoomContent();

@@ -159,8 +159,30 @@ namespace JamKit.BulletHell.Tests
             foreach (var id in new[] { "spare_bomb", "quick_fuse", "big_bang", "guardian_angel" })
                 Assert.That(byId[id].requires, Does.Contain(ShmupEffects.BombBay), id + " stacks on the Bay");
             Assert.That(byId.ContainsKey("rear_guard"), Is.False, "the useless rear gun is gone");
-            Assert.That(byId.ContainsKey("overdrive"), Is.False, "numbers-only legendary replaced by Red Line");
+            Assert.That(byId.ContainsKey("overdrive"), Is.False, "numbers-only legendary gone");
             Assert.That(byId.ContainsKey("backdraft"), Is.True, "the rear gun's replacement");
+        }
+
+        [Test]
+        public void TheEpicBalancePassIsInTheContent()
+        {
+            var c = Config();
+            var byId = c.upgrades.ToDictionary(u => u.def.id, u => u);
+            Assert.That(byId.ContainsKey("red_line"), Is.False, "Red Line became Last Gambit");
+            Assert.That(byId["last_gambit"].def.rarity, Is.EqualTo(Rarity.Legendary));
+            Assert.That(byId["last_gambit"].def.effects, Does.Contain(ShmupEffects.LastStand));
+            Assert.That(byId["backdraft"].def.rarity, Is.EqualTo(Rarity.Rare), "Backdraft rewards the already-best spot: a rare");
+            Assert.That(byId["still_point"].def.rarity, Is.EqualTo(Rarity.Epic));
+            Assert.That(byId["scatter"].def.excludes, Does.Contain("blade"), "the close-range epics replace the guns: one or the other");
+            Assert.That(byId["blade"].def.excludes, Does.Contain("scatter"));
+            Assert.That(byId["ghost_step"].def.modifiers, Is.Empty, "its drawback is the phase limit, not stamina");
+            Assert.That(c.player.homingTurnRate, Is.EqualTo(4f), "Seeker Rounds turn slower");
+            Assert.That(c.shots.homingVolleyEvery, Is.EqualTo(3));
+            Assert.That(c.boosts.ghostPhasesPerRoom, Is.EqualTo(3));
+            Assert.That(c.boosts.guardianCooldown, Is.EqualTo(10f));
+            Assert.That(byId["light_frame"].def.modifiers.Any(m => m.stat == ShmupStats.HitboxSize), Is.True);
+            foreach (var id in new[] { "seeker_rounds", "ghost_step", "guardian_angel", "last_gambit", "still_point", "scatter", "blade" })
+                Assert.That(byId[id].designNotes, Does.Contain("x1.").Or.Contain("fewer hits"), id + ": its notes quote the balance report");
         }
 
         [Test]
@@ -376,12 +398,13 @@ namespace JamKit.BulletHell.Tests
                 field.EnemyTimeScale = 0f;
                 Assert.That(field.EnemyTimeScale, Is.EqualTo(0f));
                 // A Backdraft shot: fired down, bounces up hotter.
+                field.Player.bounceDamageScale = 1.35f;
                 field.Player.Clear();
                 field.FirePlayer(new Vector2(0f, -4.7f), -Mathf.PI / 2f, 20f, 1f, 6, 1.5f, 0, false, 0f, true);
                 for (int i = 0; i < 4; i++) field.Tick(1f / 60f);
                 Assert.That(field.Player.Count, Is.EqualTo(1), "bounced off the floor");
                 Assert.That(Mathf.Sin(field.Player[0].angle), Is.GreaterThan(0.9f), "flying up");
-                Assert.That(field.Player[0].damage, Is.EqualTo(PlayerShots.ReboundAfterBounce).Within(1e-4f));
+                Assert.That(field.Player[0].damage, Is.EqualTo(1.35f).Within(1e-4f), "the game sets the pool's bounce scale from Shots");
             }
             finally
             {

@@ -20,7 +20,7 @@ namespace JamKit.BulletHell
         readonly VisualElement _sprintHint, _sprintMeter, _sprintTank, _sprintFill;
         readonly Label _sprintText;
         readonly VisualElement _guardKicker, _guard, _guardFill, _trials, _bark;
-        readonly Label _bombRecharge, _trialsKicker, _barkSpeaker, _barkText;
+        readonly Label _bombRecharge, _trialsKicker, _barkSpeaker, _barkText, _abilities;
         float _cardLeft, _sprintFlashLeft, _barkLeft, _shownGuard = -1f, _shownRecharge = -1f;
         int _shownGuardReady = -1, _shownMaxBombs = -1;
         string _shownTrials;
@@ -47,6 +47,8 @@ namespace JamKit.BulletHell
         public float GuardShownFraction => _shownGuard;
         /// <summary>The bark on screen ("" when none).</summary>
         public string BarkText => _barkLeft > 0f ? _barkText.text : "";
+        /// <summary>The ability line under the SPRINT meter (Ghost Step's phases, Guardian Angel's cooldown).</summary>
+        public string AbilitiesText => _abilities.text;
         /// <summary>The trial lines as shown (one per line).</summary>
         public string TrialsText => _shownTrials ?? "";
 
@@ -86,6 +88,10 @@ namespace JamKit.BulletHell
             _sprintText = new Label { pickingMode = PickingMode.Ignore };
             _sprintText.AddToClassList("bh-sprint-text");
             left.Add(_sprintText);
+            _abilities = new Label { name = "bh-abilities", pickingMode = PickingMode.Ignore };
+            _abilities.AddToClassList("bh-sprint-text");
+            left.Add(_abilities);
+            _abilities.style.display = DisplayStyle.None;
 
             // The companion's guard: full and bright = it will take the next bullet for you.
             _guardKicker = new Label("GUARD") { pickingMode = PickingMode.Ignore };
@@ -414,6 +420,13 @@ namespace JamKit.BulletHell
             _card.style.display = DisplayStyle.Flex;
             _card.style.opacity = 1f;
             _cardLeft = seconds;
+        }
+
+        /// <summary>The ability line (empty hides it). The game only calls this when the text changes.</summary>
+        public void SetAbilities(string text)
+        {
+            _abilities.text = text ?? "";
+            _abilities.style.display = string.IsNullOrEmpty(text) ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         /// <summary>The companion's guard meter (hidden when there's no companion).</summary>

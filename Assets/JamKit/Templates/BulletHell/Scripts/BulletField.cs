@@ -52,7 +52,7 @@ namespace JamKit.BulletHell
         {
             if (_enemy != null) return;
             _enemy = new BulletPool(Mathf.Max(16, enemyCapacity));
-            _player = new BulletPool(Mathf.Max(16, playerCapacity)) { bounceDamageScale = PlayerShots.ReboundAfterBounce };
+            _player = new BulletPool(Mathf.Max(16, playerCapacity));
             _enemyQuads = new InstancedQuads(material, enemyCapacity);
             _playerQuads = new InstancedQuads(material, playerCapacity);
         }
@@ -75,6 +75,15 @@ namespace JamKit.BulletHell
 
         /// <summary>Copies <see cref="Spawns"/> (or another list) into the enemy pool.</summary>
         public int EmitEnemy(List<BulletSpawn> spawns) => Enemy.AddSpawns(spawns, _radii);
+
+        /// <summary>A player shot with explicit flags (homing, bounce, falloff, ricochet), advanced by <paramref name="age"/>.</summary>
+        public bool FirePlayer(Vector2 position, float angleRad, float speed, float damage, int style, float lifetime, int pierce, BulletFlags flags, float age)
+        {
+            var dir = new Vector2(Mathf.Cos(angleRad), Mathf.Sin(angleRad));
+            Vector2 p = position + dir * (speed * age);
+            return Player.Spawn(new SVector2(p.x, p.y), angleRad, speed, style, RadiusOf(style), lifetime > 0f ? lifetime - age : 0f,
+                0f, 0f, damage, pierce, flags);
+        }
 
         /// <summary>A player shot, advanced by <paramref name="age"/> seconds so streams stay evenly spaced.
         /// <paramref name="bounce"/>: it bounces once off the bottom edge, hotter (Rebound).</summary>

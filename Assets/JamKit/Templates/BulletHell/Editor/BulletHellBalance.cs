@@ -105,6 +105,7 @@ namespace JamKit.BulletHell.EditorTools
                 bounds = PlayfieldBounds.Centered(half.x, half.y),
                 styleRadii = radii,
                 boosts = config.boosts ?? new PowerBoostRules(),
+                shots = config.shots ?? new ShotRules(),
                 companion = config.companionEnabled && config.companion != null ? config.companion.rules : null,
             };
         }

@@ -15,6 +15,10 @@ namespace JamKit.BulletHell
         Homing = 2,
         /// <summary>Bounces once off the bottom edge of the playfield (Rebound shots), then flies on normally.</summary>
         Bounce = 4,
+        /// <summary>Already a ricochet (Last Gambit): it doesn't ricochet again.</summary>
+        Ricocheted = 8,
+        /// <summary>Its damage falls off with its age (Scatter pellets: see ShotRules.ScatterFalloffAt).</summary>
+        Falloff = 16,
     }
 
     /// <summary>One bullet in a <see cref="BulletPool"/>. A plain struct: the pool keeps them in one
@@ -91,6 +95,11 @@ namespace JamKit.BulletHell
         public Vector2 position;
         /// <summary>The bullet's style (the balance report uses it to credit damage to an upgrade).</summary>
         public int style;
+        public BulletFlags flags;
+        /// <summary>Seconds it had flown (Scatter's falloff).</summary>
+        public float age;
+        /// <summary>The target's id (a ricochet looks for a different one).</summary>
+        public int targetId;
     }
 
     /// <summary>
@@ -350,7 +359,7 @@ namespace JamKit.BulletHell
                     if (!target.active || target.id == b.lastHitId) continue;
                     float rr = target.radius + b.radius;
                     if (Vector2.DistanceSquared(b.position, target.position) > rr * rr) continue;
-                    hits.Add(new BulletHit { targetIndex = t, damage = b.damage, position = b.position, style = b.style });
+                    hits.Add(new BulletHit { targetIndex = t, damage = b.damage, position = b.position, style = b.style, flags = b.flags, age = b.age, targetId = target.id });
                     if (b.pierce > 0)
                     {
                         b.pierce--;

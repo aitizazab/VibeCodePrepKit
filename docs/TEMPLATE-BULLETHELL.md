@@ -123,15 +123,19 @@ Duplicate a room in `Data/Rooms`, set **Type** (Combat or Elite), the **Waves** 
    - **Modifiers** change numbers. *Stat* is one of: `damage`, `fire_rate`, `move_speed`,
      `shot_speed`, `graze_radius`, `luck`, `magnet`, `coin_gain`, `bomb_power`, for the sprint
      `sprint_speed` (the sprint's extra speed), `stamina_max` (a longer bar), `stamina_regen` (faster
-     recharge), `room_sprint_budget` (more sprint per room), for the Bomb Bay `bomb_recharge` (faster
+     recharge), `room_sprint_budget` (more sprint per room), `hitbox_size` (0.8 = a 20% smaller
+     hitbox), for the Bomb Bay `bomb_recharge` (faster
      recharge), and for the companion `companion_damage` and `companion_shield_cooldown` (0.7 = its guard
      is back 30% sooner); all start at 1. *Op*: Flat (+value), PercentAdd (0.2 = +20%), Multiply (1.5 = x1.5).
    - **Effects** are special abilities, by id: `spread` (+2 side streams per stack), `pierce` (shots go
      through one more enemy per stack), `homing` (side streams curve to enemies), `rebound` (two
      streams fire down, bounce off the floor and climb back +60% hotter), `bomb_bay` (bombs: see below),
      `bomb_plus` (+1 bomb in the Bay), `bigger_bombs` (+50% per stack), `auto_bomb` (a hit fires a
-     bomb instead), `ghost_step` (bullets pass through you while sprinting), `graze_power` (grazes heat
-     your guns: up to +60% damage), `last_stand` (+50% damage, +30% fire rate on your last life),
+     bomb instead, spending every stored bomb, then a cooldown), `ghost_step` (a sprint's first half
+     second passes through bullets; a few per room), `graze_power` (grazes heat your guns: up to +60%
+     damage), `last_stand` (Last Gambit: on your last life +75% damage, hits ricochet, kills blast),
+     `still_point` (holding still ramps damage up to double), `scatter` / `blade` (the main guns become
+     a short-range shotgun cone / an arc slash; one or the other),
      `focus_slow` (bullets near you move at half speed), `graze_heal` (grazes restore life), `life_up`
      (+1 life), `coins:15` (15 coins now). `rear_shot` (two streams backwards) still works but isn't
      shipped: the balance report flags it (players sit low, nothing gets behind them).
@@ -152,20 +156,27 @@ Duplicate a room in `Data/Rooms`, set **Type** (Combat or Elite), the **Waves** 
 
 | | Upgrade | Does | For |
 |---|---|---|---|
-| Common | Sharp Rounds, Rapid Trigger, Hot Barrels | damage, fire rate, shot speed | |
-| Common | Light Frame, Wide Halo, Coin Magnet | move speed, graze ring, coins | |
-| Common | Spare Bomb, Quick Fuse | +1 bomb in the Bay, Bay recharges 35% faster (need the Bomb Bay) | |
-| Rare | Twin Spread, Piercing Shot | +2 side streams; pierce +1 and +8% damage | |
+| Common | Sharp Rounds, Rapid Trigger, Hot Barrels | damage, fire rate, shot speed and +12% damage | |
+| Common | Light Frame, Wide Halo, Coin Magnet | a 20% smaller hitbox and faster stamina, graze ring, coins | |
+| Common | Spare Bomb, Quick Fuse | +1 bomb in the Bay, Bay recharges 70% faster (need the Bomb Bay) | |
+| Rare | Twin Spread, Piercing Shot, Backdraft | +2 side streams; pierce +1 and +8% damage; two streams bounce up off the floor, hotter | |
 | Rare | Big Bang (needs the Bay), Lucky Charm, Close Shave, Extra Life | bigger bombs, luck, grazes heal, +1 life | |
 | Rare | Kindred Sting, Steady Wings | companion damage +60%, companion guard back 30% sooner | |
-| **Epic** | **Seeker Rounds** | side streams home in | aim: dodge where you like, damage still lands |
-| **Epic** | **Backdraft** | rebound shots off the floor, hotter | aim: rewards sitting low; the rear gun's replacement |
+| **Epic** | **Seeker Rounds** | every third volley, slow seekers home in | aim: dodge off the line and still land some damage |
 | **Epic** | **Bomb Bay** | 2 bombs that recharge every 20 s of fighting | risk: a panic button for bosses and crowds |
-| **Epic** | **Guardian Angel** (needs the Bay) | a hit fires a bomb instead | risk: insurance while a bomb is stocked |
-| **Epic** | **Ghost Step** | sprinting passes through bullets; sprint drains faster | dodge: dash through a wall |
+| **Epic** | **Guardian Angel** (needs the Bay) | a hit fires every stored bomb instead; 10 s to recover | risk: insurance, not invulnerability |
+| **Epic** | **Ghost Step** | a sprint's first 0.5 s passes through bullets; 3 a room, 5 s apart | dodge: dash through a wall, at the right moment |
 | **Epic** | **Ember Hunger** | grazes heat your guns, up to +60% | risk: stay close to the bullets |
+| **Epic** | **Still Point** | holding still ramps damage to double in 0.6 s; any move resets it | move: bursts between gaps, then plant and burn |
+| **Epic** | **Scatter** | the guns become a shotgun cone, about 3x up close, half at 5 units | risk: get close (the opposite of sitting low) |
+| **Epic** | **Blade** | the guns become an arc slash 1.7 units in front, 3.5x the damage | risk: closest range, most hits taken |
 | **Legendary** | **Time Dilation** | bullets near you move at half speed | dodge: dense boss patterns |
-| **Legendary** | **Red Line** | +50% damage, +30% fire rate on your last life | risk: pairs with the Altar's life offering |
+| **Legendary** | **Last Gambit** | on your last life: +75% damage, hits ricochet, kills blast (the ship pulses red) | risk: pairs with the Altar's life offering |
+
+The numbers behind them are data: `BulletHellConfig > Boosts` (Ember Hunger, Last Gambit, Still Point,
+Ghost Step, Guardian Angel, Time Dilation) and `> Shots` (side streams, Seeker's cadence and speed,
+Backdraft, Scatter, Blade); Seeker's turn rate is Player > Homing Turn Rate. Ghost Step's phases and
+Guardian Angel's cooldown show under the SPRINT meter.
 
 ## Where power comes from (reward tables)
 
@@ -245,10 +256,14 @@ Elite room (and each boss's first phase) with each upgrade alone and with none, 
 `out/balance-report.md` and `.csv`: per upgrade its **DPS against the baseline**, its own **share of the
 damage** (its streams, bombs, companion), **hits taken** and **time to clear**. Anything that improves
 none of them by 5% is **FLAGGED**. The bot sits low (where players are), lines up under enemies,
-reacts every 0.18 s, and plays to its upgrade (it grazes on purpose with Ember Hunger, sprints into
-danger with Ghost Step). Upgrades that only touch coins, luck or lives are listed as not simulated.
-Batch: `-executeMethod JamKit.BulletHell.EditorTools.BulletHellBalance.RunFromCommandLine` (optional
-`-balanceSeeds 3`). The simulation is pure C# (`BalanceSim`, `BalanceReport`), tested in core-tests.
+reacts every 0.18 s, and plays to its upgrade: it grazes on purpose with Ember Hunger, sprints into
+danger when Ghost Step has a phase, holds still between bursts with Still Point, and closes in under
+its target with Scatter or the Blade. Fewer hits count once they're more than noise (at least 2, and
+the square root of the baseline's hits). Upgrades that only touch coins, luck or lives, or only the
+graze ring (Wide Halo: score and graze synergies), are listed as not simulated (the graze one with its
+grazes). Batch: `-executeMethod JamKit.BulletHell.EditorTools.BulletHellBalance.RunFromCommandLine`
+(optional `-balanceSeeds N`, default 8). The simulation is pure C# (`BalanceSim`, `BalanceReport`),
+tested in core-tests.
 
 ## Add a boss phase, or a boss
 
