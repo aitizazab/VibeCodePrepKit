@@ -84,7 +84,7 @@ namespace JamKit.BulletHell.EditorTools
                 big: true, display: "Heavy Bloom");
             var twinSpinner = Enemy("TwinSpinner", art.diamond, new Color(1f, 0.82f, 0.3f), 180f, 1.6f, 0.75f, 1600, 12,
                 new EnemyMoveDef { kind = JamKit.BulletHell.EnemyMoveKind.Strafe, enterSeconds = 1.6f, amplitude = 2.5f, frequency = 0.1f, actSeconds = 0f, speed = 3f },
-                Seq(true, 1f, (0f, P(PatternLibrary.SpiralFlower(4, 3f), Yellow, d => { d.shots = 60; d.shotInterval = 0.07f; }))),
+                Seq(true, 1f, (0f, P(PatternLibrary.SpiralFlower(3, 2.6f), Yellow, d => { d.shots = 50; d.shotInterval = 0.08f; }))),
                 spin: 90f, big: true, display: "Twin Spinner");
 
             // ---------- Waves ----------
@@ -147,7 +147,7 @@ namespace JamKit.BulletHell.EditorTools
                         (0.8f, P(PatternLibrary.AimedTriple(5f), Blue)),
                         (1.6f, P(PatternLibrary.RingBurst(20, 2.6f), Pink, d => d.baseAngleDegrees = 9f)))),
                     Phase("Petal Storm", 0.5f, BossMoveKind.Hold, 0f, 0f, new Color(1f, 0.8f, 0.8f), Seq(true, 0.8f,
-                        (0f, P(PatternLibrary.SpiralFlower(3, 3f), Red, d => { d.shots = 70; d.shotInterval = 0.07f; })),
+                        (0f, P(PatternLibrary.SpiralFlower(2, 2.8f), Red, d => { d.shots = 60; d.shotInterval = 0.08f; })),
                         (2.5f, P(PatternLibrary.AimedStack(5, 3.5f), Rice)))),
                 };
             });
@@ -174,7 +174,7 @@ namespace JamKit.BulletHell.EditorTools
                         (0f, P(PatternLibrary.CurlRing(16, 2.4f), Yellow)),
                         (1.6f, P(PatternLibrary.AimedStack(6, 4f), Rice)))),
                     Phase("Meltdown", 0.33f, BossMoveKind.Hold, 0f, 0f, new Color(1f, 0.6f, 0.5f), Seq(true, 1f,
-                        (0f, P(PatternLibrary.SpiralFlower(5, 2.6f), Red, d => { d.shots = 90; d.shotInterval = 0.06f; })),
+                        (0f, P(PatternLibrary.SpiralFlower(3, 2.5f), Red, d => { d.shots = 70; d.shotInterval = 0.08f; })),
                         (0f, P(PatternLibrary.RingBurst(12, 1.8f), Orange, d => { d.shots = 4; d.shotInterval = 1.2f; })))),
                 };
             });
@@ -200,7 +200,7 @@ namespace JamKit.BulletHell.EditorTools
                         (0f, P(PatternLibrary.Shotgun(10, 5f), Red, d => { d.shots = 3; d.shotInterval = 0.35f; })),
                         (1.2f, P(new PatternDef { shape = PatternShape.Spiral, count = 4, rotatePerShotDegrees = 15f, shots = 30, shotInterval = 0.08f, speed = 3f }, Pink)))),
                     Phase("Supernova", 0.4f, BossMoveKind.Dash, 3f, 0.5f, new Color(1f, 0.75f, 1f), Seq(true, 0.8f,
-                        (0f, P(PatternLibrary.SpiralFlower(6, 2.8f), Blue, d => { d.shots = 100; d.shotInterval = 0.06f; })),
+                        (0f, P(PatternLibrary.SpiralFlower(4, 2.6f), Blue, d => { d.shots = 80; d.shotInterval = 0.075f; })),
                         (1f, P(PatternLibrary.CurlRing(18, 2.2f), Violet)),
                         (3f, P(PatternLibrary.AimedTriple(6f), Needle)))),
                 };

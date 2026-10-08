@@ -56,6 +56,7 @@ namespace JamKit.BulletHell.EditorTools
         public static bool ResetContent()
         {
             EnsureFolder(Root + "/Data");
+            EnsureFolder(BulletHellArt.Dir);
             var art = BulletHellArt.MakeAll();
             var config = BulletHellContent.EnsureAll(art, true);
             AssetDatabase.SaveAssets();
