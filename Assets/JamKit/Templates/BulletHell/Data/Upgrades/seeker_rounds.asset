@@ -15,8 +15,8 @@ MonoBehaviour:
   def:
     id: seeker_rounds
     displayName: Seeker Rounds
-    description: 'Your side streams curve toward enemies: dodge where you like, the
-      damage still lands.'
+    description: 'Every third volley, slow seekers curve toward enemies: you still
+      aim, they finish the job.'
     rarity: 2
     weight: 0
     maxStacks: 1
@@ -43,8 +43,11 @@ MonoBehaviour:
     - waves
     - sides
     - crowded
-    wherePlayerIs: 'Anywhere: it frees you from lining up under enemies.'
+    wherePlayerIs: 'Anywhere: it lets you dodge off the line and still land some
+      damage.'
     idea: Embers that know where they're going.
-  designNotes: 'Changes aiming: dodge freely, damage still lands. Strongest damage
-    epic (balance report: about x1.55 DPS); its homing streams were cut from 0.6
-    to 0.35 damage so it doesn''t dwarf the rest.'
+  designNotes: 'Epic pass: it removed aiming entirely (x1.59 DPS, 59% useful on the
+    real rooms). Now its homing streams fire every third volley (Shots > Homing Volley
+    Every), fly at 70% speed, turn at 4 rad/s (Player > Homing Turn Rate, was 7)
+    and hit for 70%: x1.37 DPS. With Twin Spread the side streams home but fire less
+    often: x1.38 against Twin Spread''s x1.30.'

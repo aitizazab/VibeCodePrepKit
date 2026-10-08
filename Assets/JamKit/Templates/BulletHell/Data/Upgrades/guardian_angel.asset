@@ -15,8 +15,8 @@ MonoBehaviour:
   def:
     id: guardian_angel
     displayName: Guardian Angel
-    description: When you're hit, a bomb goes off instead of losing a life (if your
-      Bay has one).
+    description: When you're hit, your Bomb Bay fires EVERY bomb it holds instead
+      of you losing a life. Then 10 s to recover.
     rarity: 2
     weight: 0
     maxStacks: 1
@@ -47,5 +47,7 @@ MonoBehaviour:
     - low_life
     wherePlayerIs: Anywhere; it needs the Bomb Bay.
     idea: A warden's last mercy.
-  designNotes: 'Turns bombs into insurance: you can take risks while a bomb is stocked.
-    Only offered with the Bomb Bay.'
+  designNotes: 'Epic pass: with the Bay''s recharge it was near-invulnerability (56%
+    fewer hits). Now a save spends every stored bomb (one bigger blast) and waits
+    10 s (Boosts > Guardian Cooldown, shown under SPRINT): 47% fewer hits on the
+    real rooms.'

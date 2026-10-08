@@ -15,21 +15,26 @@ MonoBehaviour:
   def:
     id: light_frame
     displayName: Light Frame
-    description: Move 10% faster.
+    description: Your hitbox is 20% smaller and your stamina recharges 10% faster.
     rarity: 0
     weight: 0
     maxStacks: 2
     tags:
     - move
+    - defense
     requires: []
     excludes: []
     modifiers:
-    - stat: move_speed
+    - stat: hitbox_size
+      op: 1
+      value: -0.2
+      sourceId: 
+    - stat: stamina_regen
       op: 1
       value: 0.1
       sourceId: 
     effects: []
-  iconText: Sp
+  iconText: LF
   iconColor: {r: 0.5, g: 1, b: 0.8, a: 1}
   icon: {fileID: 0}
   forgeModifiers: []

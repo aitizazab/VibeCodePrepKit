@@ -55,5 +55,5 @@ MonoBehaviour:
   shotLifetime: 1.5
   shotStyle: 6
   homingShotStyle: 7
-  homingTurnRate: 7
+  homingTurnRate: 4
   baseStats: []

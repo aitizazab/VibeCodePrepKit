@@ -10,25 +10,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b65f4c921c77e945825abdbaa5333d4, type: 3}
-  m_Name: red_line
+  m_Name: still_point
   m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.UpgradeAsset
   def:
-    id: red_line
-    displayName: Red Line
-    description: 'On your last life: +50% damage and 30% faster fire.'
-    rarity: 3
+    id: still_point
+    displayName: Still Point
+    description: 'Hold still to focus: up to double damage after 0.6 s. Any movement
+      resets it.'
+    rarity: 2
     weight: 0
     maxStacks: 1
     tags:
-    - risk
     - gun
+    - risk
     requires: []
     excludes: []
     modifiers: []
     effects:
-    - last_stand
-  iconText: RL
-  iconColor: {r: 1, g: 0.3, b: 0.3, a: 1}
+    - still_point
+  iconText: SP
+  iconColor: {r: 0.6, g: 1, b: 0.9, a: 1}
   icon: {fileID: 0}
   forgeModifiers:
   - stat: damage
@@ -38,13 +39,14 @@ MonoBehaviour:
   forgeEffects: []
   forgeText: +10% damage
   rubric:
-    verb: 4
+    verb: 1
     situations:
     - boss
-    - low_life
+    - turrets
     - long_fights
-    wherePlayerIs: Anywhere, on your last life.
-    idea: A star burning hottest just before it goes out.
-  designNotes: 'Replaces Overdrive (only numbers, so it failed the rubric). A risk
-    verb: playing on one life on purpose, which pairs with the Altar''s life offering.
-    Balance report: about x1.5 DPS on the last life.'
+    wherePlayerIs: Lined up under a target, in a gap you trust.
+    idea: The calm at the heart of the furnace.
+  designNotes: 'A different playstyle: move only in fast bursts between gaps, then
+    plant and burn (Boosts > Still Ramp Seconds, Still Max). The balance bot plays
+    it as a burst mover (still while safe and lined up, sprinting when it must):
+    x1.13 DPS, 7% fewer hits on the real rooms.'

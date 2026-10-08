@@ -15,11 +15,10 @@ MonoBehaviour:
   def:
     id: backdraft
     displayName: Backdraft
-    description: Two streams fire down, bounce off the floor and climb back hotter
-      (+60% damage). The lower you sit, the sooner they return.
-    rarity: 2
+    description: Two streams fire down, bounce off the floor and climb back 35% hotter.
+    rarity: 1
     weight: 0
-    maxStacks: 2
+    maxStacks: 1
     tags:
     - gun
     requires: []
@@ -30,22 +29,12 @@ MonoBehaviour:
   iconText: BD
   iconColor: {r: 1, g: 0.55, b: 0.3, a: 1}
   icon: {fileID: 0}
-  forgeModifiers:
-  - stat: damage
-    op: 1
-    value: 0.1
-    sourceId: 
+  forgeModifiers: []
   forgeEffects: []
-  forgeText: +10% damage
+  forgeText: 
   rubric:
-    verb: 2
-    situations:
-    - waves
-    - sides
-    - turrets
-    wherePlayerIs: 'Low on the screen, where players sit: the rear gun''s replacement.'
-    idea: 'The forge''s bellows: what goes down comes back up hotter.'
-  designNotes: Replaces the rear twin gun, which the playtest and the balance report
-    found useless (players sit low, enemies never get behind). Rebound shots reward
-    sitting low and cover the lanes beside the main guns (about x1.26 DPS, 23% of
-    all damage).
+    verb: 0
+    situations: []
+    wherePlayerIs: 
+    idea: 
+  designNotes: 

@@ -15,7 +15,7 @@ MonoBehaviour:
   def:
     id: hot_barrels
     displayName: Hot Barrels
-    description: Shots fly 25% faster and hit a little harder.
+    description: Shots fly 25% faster and hit 12% harder.
     rarity: 0
     weight: 0
     maxStacks: 2
@@ -30,7 +30,7 @@ MonoBehaviour:
       sourceId: 
     - stat: damage
       op: 1
-      value: 0.05
+      value: 0.12
       sourceId: 
     effects: []
   iconText: Hb

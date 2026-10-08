@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b65f4c921c77e945825abdbaa5333d4, type: 3}
+  m_Name: blade
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.UpgradeAsset
+  def:
+    id: blade
+    displayName: Blade
+    description: 'Your guns become a blade: an arc slash right in front of you, 3.5x
+      the damage.'
+    rarity: 2
+    weight: 0
+    maxStacks: 1
+    tags:
+    - gun
+    - risk
+    requires: []
+    excludes:
+    - scatter
+    modifiers: []
+    effects:
+    - blade
+  iconText: BL
+  iconColor: {r: 0.85, g: 0.95, b: 1, a: 1}
+  icon: {fileID: 0}
+  forgeModifiers:
+  - stat: damage
+    op: 1
+    value: 0.1
+    sourceId: 
+  forgeEffects: []
+  forgeText: +10% damage
+  rubric:
+    verb: 4
+    situations:
+    - boss
+    - divers
+    - turrets
+    wherePlayerIs: Right under a target, within a ship's length or two.
+    idea: A sliver of the forge's own anvil.
+  designNotes: 'The closest-range epic: a 140 degree slash 1.7 units in front, 5
+    times a second, at 3.5x the main guns'' base DPS (Shots > Blade ...). At 2.6x
+    and 1.35 range it lost damage (x0.85). Now x1.25 DPS for an aggressive bot, with
+    the most hits taken of any epic.'

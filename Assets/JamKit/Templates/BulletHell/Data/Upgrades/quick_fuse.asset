@@ -15,7 +15,7 @@ MonoBehaviour:
   def:
     id: quick_fuse
     displayName: Quick Fuse
-    description: Your Bomb Bay recharges 35% faster.
+    description: 'Your Bomb Bay recharges 70% faster: bomb more freely.'
     rarity: 0
     weight: 0
     maxStacks: 2
@@ -27,7 +27,7 @@ MonoBehaviour:
     modifiers:
     - stat: bomb_recharge
       op: 1
-      value: 0.35
+      value: 0.7
       sourceId: 
     effects: []
   iconText: QF

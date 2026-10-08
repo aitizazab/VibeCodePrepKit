@@ -15,8 +15,8 @@ MonoBehaviour:
   def:
     id: ghost_step
     displayName: Ghost Step
-    description: While you sprint, enemy bullets pass through you. Sprinting drains
-      25% faster.
+    description: 'Starting a sprint makes you a ghost for half a second: bullets
+      pass through. 3 a room, 5 s apart.'
     rarity: 2
     weight: 0
     maxStacks: 1
@@ -25,30 +25,25 @@ MonoBehaviour:
     - defense
     requires: []
     excludes: []
-    modifiers:
-    - stat: stamina_max
-      op: 2
-      value: 0.75
-      sourceId: 
+    modifiers: []
     effects:
     - ghost_step
   iconText: GS
   iconColor: {r: 0.75, g: 0.85, b: 1, a: 1}
   icon: {fileID: 0}
-  forgeModifiers:
-  - stat: stamina_max
-    op: 1
-    value: 0.2
-    sourceId: 
-  forgeEffects: []
-  forgeText: +20% stamina
+  forgeModifiers: []
+  forgeEffects:
+  - ghost_step
+  forgeText: +1 phase a room
   rubric:
     verb: 3
     situations:
     - boss
     - crowded
-    wherePlayerIs: 'Anywhere: dash through a wall instead of around it.'
+    wherePlayerIs: 'Anywhere: dash through a wall instead of around it, at the right
+      moment.'
     idea: A spark too quick to burn.
-  designNotes: 'Changes the dodge: sprint becomes a dash through bullets, so the
-    per-room sprint budget becomes your shield. Balance report: the biggest cut in
-    hits taken (about 75%). Bodies still hurt.'
+  designNotes: 'Epic pass: sprinting through everything had no drawback (77% fewer
+    hits). Now only a sprint''s first 0.5 s phases, 5 s apart, 3 per fight room (Boosts
+    > Ghost ...), shown as pips: a timing skill, and tapping sprint to pass one bullet
+    costs a phase. 11% fewer hits on the real rooms.'
