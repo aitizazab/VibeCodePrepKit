@@ -5,6 +5,7 @@
 # Safe to re-run (each step cleans its own outputs; builds publish only on success).
 param(
     [ValidateSet('Core', 'Scenes', 'EditMode', 'PlayMode', 'Build', 'Smoke')][string]$From = 'Core',
+    [ValidateSet('Core', 'Scenes', 'EditMode', 'PlayMode', 'Build', 'Smoke')][string]$To = 'Smoke',
     [switch]$WebGL
 )
 $ErrorActionPreference = 'Stop'
@@ -14,9 +15,11 @@ $summary = Join-Path $OutDir 'verify-summary.txt'
 "verify started $(Get-Date -Format s)" | Set-Content -Encoding utf8 $summary
 $order = 'Core', 'Scenes', 'EditMode', 'PlayMode', 'Build', 'Smoke'
 $start = [array]::IndexOf($order, $From)
+$end = [array]::IndexOf($order, $To)
 
 function Step([string]$name, [scriptblock]$body) {
-    if ([array]::IndexOf($order, $name) -lt $start) { return }
+    $i = [array]::IndexOf($order, $name)
+    if ($i -lt $start -or $i -gt $end) { return }
     $t = Get-Date
     Write-Host "=== $name ==="
     $ok = & $body

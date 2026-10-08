@@ -66,6 +66,10 @@ function Invoke-UnityBatch {
     $all = @('-batchmode', '-nographics', '-projectPath', "`"$RepoRoot`"", '-logFile', "`"$LogFile`"") + $UnityArgs
     Write-Host "Unity: $unity"
     Write-Host "Args : $($all -join ' ')"
-    $p = Start-Process -FilePath $unity -ArgumentList $all -Wait -PassThru -NoNewWindow
+    # Not -Wait: in Windows PowerShell that waits for the whole process tree, and Unity leaves its
+    # C# compiler server (VBCSCompiler) idling for minutes after it exits.
+    $p = Start-Process -FilePath $unity -ArgumentList $all -PassThru -NoNewWindow
+    $null = $p.Handle   # keeps ExitCode readable after exit
+    $p.WaitForExit()
     return $p.ExitCode
 }
