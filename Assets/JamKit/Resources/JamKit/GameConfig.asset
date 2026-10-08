@@ -12,45 +12,43 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 945c355521880f545884efe20ab4723b, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.GameConfig
-  gameTitle: Corecrawler
-  tagline: Three levels down. Find the keys. Find the exit.
+  gameTitle: Last Train Home
+  tagline: A short story about what we leave behind.
   bootScene: Boot
   titleScene: Title
-  firstGameplayScene: Doomlike
-  titleMusic: music_title
-  gameMusic: music_game
+  firstGameplayScene: Story
+  titleMusic: music_story_calm
+  gameMusic: 
   audio: {fileID: 11400000, guid: 24bd74896dbbd514a97d579586e9d96b, type: 2}
   portraits:
   - {fileID: 11400000, guid: 7272992dc05f7d64da45c758e2614ca6, type: 2}
   - {fileID: 11400000, guid: 5c4a424501321a34f86a06cd21a57faf, type: 2}
   credits: {fileID: 4900000, guid: c7dc43a8aab8e6f4e9b3f0b1efc963ed, type: 3}
   howToPlay:
-  - title: Move and look
-    body: 'WASD or the left stick to move: you run all the time (hold Shift or LB
-      to walk). Mouse or the right stick to look.
+  - title: Read and choose
+    body: 'Click, Space, Enter or (A) to go on (a click while text types shows it
+      all).
 
-      Click the game first so
-      it can hold the mouse.'
-    image: {fileID: 21300000, guid: 159d08fc5c566b44a8d218749d5ea257, type: 3}
-  - title: Shoot
-    body: 'Left click or RT fires. Keys 1-5, the mouse wheel or Y swap guns.
+      Choices: click one, press its number, or use the arrow keys and
+      Enter.'
+    image: {fileID: 0}
+  - title: Look around
+    body: 'Sometimes you can look around a room: click the glowing markers, or use
+      the arrow keys and Enter.
 
-      Guns
-      that fire the same ammo share it: grab boxes to refill. Watch for the red aim
-      line: get out of sight before it fires.'
-    image: {fileID: 21300000, guid: 4b4aa28d2f44dda49bfa97a16a66b949, type: 3}
-  - title: Keys and doors
-    body: 'Doors open as you walk up. A coloured door needs the key card of its colour.
+      Items you find appear at the bottom left:
+      click one, then click where to use it.'
+    image: {fileID: 0}
+  - title: Your story is remembered
+    body: 'L or the mouse wheel shows what was said. A: auto, S or hold Ctrl: skip
+      what you''ve read, H: hide the text. F5 / F9: quick save and load. Escape:
+      menu.
 
-      Odd-looking
-      walls can hide secrets: walk into them or press E / Space.'
-    image: {fileID: 21300000, guid: 053b62bc2aa09e34386496d861d0130b, type: 3}
-  - title: Find the exit
-    body: 'Each level ends on the glowing EXIT pad. Between levels, pick 1 of 3 upgrades.
-
-      Finish
-      level 3 to win. Escape or Start pauses.'
-    image: {fileID: 21300000, guid: 34126e1a2c9d5c249a6dac85a14807b8, type: 3}
+      The game remembers how your story ended. Play it more than once.'
+    image: {fileID: 0}
   showHowToPlayOnFirstRun: 1
   allowDebugMenuInRelease: 0
-  showPixelLookSetting: 1
+  showPixelLookSetting: 0
+  showTextSettings: 1
+  showActionSettings: 0
+  showBestTime: 0
