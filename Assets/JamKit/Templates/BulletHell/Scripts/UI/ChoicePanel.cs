@@ -8,18 +8,21 @@ using UnityEngine.UIElements;
 namespace JamKit.BulletHell
 {
     /// <summary>
-    /// The "pick one" screen used for drafts (1 of 3 upgrades), doors, the shop and rest sites:
-    /// a heading, a row of cards (rarity or type in colour, name, description, price) and footer
-    /// buttons (reroll, leave). Keyboard (arrows + Enter/Space), gamepad (stick + A) and mouse.
+    /// The "pick one" screen used for drafts (1 of 3 upgrades), doors, the shop, rest sites and the
+    /// encounter rooms (Forge, Altar, Wager, Trial board, Trader, and "pick one of your upgrades"):
+    /// a heading, an optional note (odds, a warning), a row of cards (rarity or type in colour, name,
+    /// description, price or odds) and footer buttons (reroll, leave). Compact cards wrap for long lists.
+    /// Keyboard (arrows + Enter/Space), gamepad (stick + A) and mouse.
     /// Built in code inside the template HUD; styled by BulletHell.uss with the shell's theme.
     /// Tests and the smoke run press cards with <see cref="Choose"/>.
     /// </summary>
     public sealed class ChoicePanel
     {
-        public enum Kind { None, Draft, Doors, Shop, Rest }
+        public enum Kind { None, Draft, Doors, Shop, Rest, Forge, Altar, Wager, Trial, Trader, Pick }
 
         readonly VisualElement _root, _cards, _footer;
-        readonly Label _heading, _sub;
+        readonly Label _heading, _sub, _note;
+        readonly List<string> _cardTitles = new List<string>();
         readonly List<Button> _cardButtons = new List<Button>();
         readonly List<Action> _cardActions = new List<Action>();
         readonly List<bool> _cardEnabled = new List<bool>();
@@ -34,6 +37,16 @@ namespace JamKit.BulletHell
         public int CardCount => _cardButtons.Count;
         public int FooterCount => _footerButtons.Count;
         public string Heading => _heading.text;
+        public string Note => _note.text;
+        /// <summary>Card <paramref name="i"/>'s title ("" if there's no such card), for tests and the smoke log.</summary>
+        public string CardTitle(int i) => i >= 0 && i < _cardTitles.Count ? _cardTitles[i] : "";
+        /// <summary>The first card whose title contains <paramref name="text"/>, or -1.</summary>
+        public int FindCard(string text)
+        {
+            for (int i = 0; i < _cardTitles.Count; i++)
+                if (_cardTitles[i] != null && _cardTitles[i].IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0) return i;
+            return -1;
+        }
 
         public ChoicePanel(VisualElement parent)
         {
@@ -47,12 +60,16 @@ namespace JamKit.BulletHell
             _sub = new Label();
             _sub.AddToClassList("jk-text");
             _sub.AddToClassList("jk-dim");
+            _note = new Label();
+            _note.AddToClassList("jk-text");
+            _note.AddToClassList("bh-choice-note");
             _cards = new VisualElement();
             _cards.AddToClassList("bh-cards");
             _footer = new VisualElement();
             _footer.AddToClassList("jk-button-row");
             panel.Add(_heading);
             panel.Add(_sub);
+            panel.Add(_note);
             panel.Add(_cards);
             panel.Add(_footer);
             _root.Add(panel);
@@ -60,13 +77,17 @@ namespace JamKit.BulletHell
             _root.style.display = DisplayStyle.None;
         }
 
-        /// <summary>Starts a fresh screen (clears the old cards). Add cards and buttons, then <see cref="Show"/>.</summary>
-        public void Begin(Kind kind, string heading, string subheading)
+        /// <summary>Starts a fresh screen (clears the old cards). Add cards and buttons, then <see cref="Show"/>.
+        /// <paramref name="compact"/>: smaller cards that wrap (a list of the player's upgrades).</summary>
+        public void Begin(Kind kind, string heading, string subheading, bool compact = false)
         {
             _kind = kind;
             _heading.text = heading ?? "";
             _sub.text = subheading ?? "";
             _sub.style.display = string.IsNullOrEmpty(subheading) ? DisplayStyle.None : DisplayStyle.Flex;
+            SetNote(null);
+            _cards.EnableInClassList("bh-cards--compact", compact);
+            _cardTitles.Clear();
             _cards.Clear();
             _footer.Clear();
             _cardButtons.Clear();
@@ -76,8 +97,16 @@ namespace JamKit.BulletHell
             _footerActions.Clear();
         }
 
+        /// <summary>A line under the heading: the odds of a forge push, what an offering costs. Null hides it.</summary>
+        public void SetNote(string text)
+        {
+            _note.text = text ?? "";
+            _note.style.display = string.IsNullOrEmpty(text) ? DisplayStyle.None : DisplayStyle.Flex;
+        }
+
         public void AddCard(string kicker, Color kickerColor, string title, string body, string price, bool enabled, Action onPick, Sprite icon = null)
         {
+            _cardTitles.Add(title ?? "");
             var b = new Button();
             b.AddToClassList("bh-card");
             b.text = "";

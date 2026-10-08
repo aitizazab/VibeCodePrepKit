@@ -38,12 +38,13 @@ MonoBehaviour:
       past bullets to GRAZE them for points.'
     image: {fileID: 21300000, guid: 202eb52d08abd6441b752407f66466fa, type: 3}
   - title: Bomb
-    body: 'K, right click or Space (A on a gamepad) sets off a BOMB: it wipes every
-      bullet and keeps you safe for a moment. You get 2 per life.'
+    body: 'Bombs come from the BOMB BAY, an epic upgrade. Once you have it, K, right
+      click or Space (A on a gamepad) wipes every bullet and keeps you safe for a moment;
+      the bay recharges while you fight.'
     image: {fileID: 21300000, guid: b230dd3b2bd2a23479aca0491aeb9275, type: 3}
   - title: The run
-    body: 'Clear rooms, pick 1 of 3 upgrades, choose your doors and spend coins in
-      shops.
+    body: 'Clear rooms and pick 1 of 3 upgrades. Bosses and trials offer epics. Between
+      battles: shops, forges, altars, wagers and traders.
 
       Beat the boss of each of the 3 floors to win. Escape or Start
       pauses.'

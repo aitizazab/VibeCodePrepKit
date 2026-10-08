@@ -277,6 +277,7 @@ namespace JamKit.BulletHell.Tests
             game.field.Enemy.Clear();
             var health = player.Health;
             float lives = health.Current;
+            game.Companion.SpendGuard(); // otherwise the companion takes the first bullet
 
             // A bullet right on the hitbox.
             var p = player.Position;
@@ -285,7 +286,9 @@ namespace JamKit.BulletHell.Tests
             Assert.That(health.Current, Is.EqualTo(lives - 1f), "one life lost");
             Assert.That(player.IsInvulnerable, Is.True, "i-frames after a hit");
 
-            // A bomb wipes the screen.
+            // A bomb wipes the screen (bombs come from the Bomb Bay epic now).
+            Assert.That(player.Bombs, Is.EqualTo(0), "no bombs in the starting kit");
+            game.TakeUpgrade(game.config.upgrades.First(u => u.def.id == "bomb_bay").def);
             for (int i = 0; i < 300; i++)
                 game.field.Enemy.Spawn(new System.Numerics.Vector2(-5f + (i % 30) * 0.33f, 1f + (i / 30) * 0.3f), -1.57f, 0.5f, i % 5, 0.08f, 10f);
             int bombs = player.Bombs;
@@ -306,6 +309,9 @@ namespace JamKit.BulletHell.Tests
             Assert.That(GameRoot.Run.quote, Does.Contain("Placeholder"), "the placeholder death line");
             Assert.That(GameRoot.Ui.GameOver.QuoteText, Does.Contain(GameRoot.Run.quote), "shown on the Game Over screen");
             Assert.That(GameRoot.Dialogue.IsActive, Is.False, "read, not played as a dialogue");
+            // ...and the run leaves a remnant (its best upgrade, weakened, plus a stat from how it died).
+            Assert.That(game.SavedRemnants.Count, Is.EqualTo(1));
+            Assert.That(GameRoot.Save.Data.GetEntry(BulletHellGame.RemnantSaveKey), Does.Contain("Echo of Bomb Bay"));
             LogAssert.NoUnexpectedReceived();
         }
 

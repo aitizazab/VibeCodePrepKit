@@ -37,9 +37,14 @@ namespace JamKit.BulletHell
 
         [Header("Lives and bombs")]
         [Min(1)] public int lives = 3;
-        [Tooltip("Bombs at the start, and refilled to this after losing a life.")]
-        public int bombsPerLife = 2;
-        public int maxBombs = 5;
+        [Tooltip("Bombs in the starting kit (0: bombs come from the Bomb Bay epic). Refilled to this after losing a life.")]
+        public int bombsPerLife = 0;
+        [Tooltip("Most bombs the ship can hold, Bay and upgrades included.")]
+        public int maxBombs = 6;
+        [Tooltip("Bombs the Bomb Bay epic holds (each extra Bay stack and each Spare Bomb adds one).")]
+        public int bayBombs = 2;
+        [Tooltip("Seconds for the Bay to recharge one bomb while fighting (the stat bomb_recharge speeds it up).")]
+        public float bombRechargeSeconds = 20f;
         public float invulnerableAfterHit = 2f;
         public float bombInvulnerable = 2.5f;
         [Tooltip("Seconds the bomb keeps erasing bullets.")]

@@ -19,7 +19,11 @@ namespace JamKit.BulletHell
         readonly Label _coins, _graze, _floor, _floorName, _bossName, _cardTitle, _cardSub, _hint;
         readonly VisualElement _sprintHint, _sprintMeter, _sprintTank, _sprintFill;
         readonly Label _sprintText;
-        float _cardLeft, _sprintFlashLeft;
+        readonly VisualElement _guardKicker, _guard, _guardFill, _trials, _bark;
+        readonly Label _bombRecharge, _trialsKicker, _barkSpeaker, _barkText;
+        float _cardLeft, _sprintFlashLeft, _barkLeft, _shownGuard = -1f, _shownRecharge = -1f;
+        int _shownGuardReady = -1, _shownMaxBombs = -1;
+        string _shownTrials;
         float _shownLives = -1f, _shownMaxLives = -1f;
         int _shownBombs = -1, _shownCoins = -1, _shownGraze = -1;
         float _shownBoss = -1f, _shownSprintHint = -1f, _shownTank = -1f, _shownFill = -1f, _shownRoomSeconds = -1f;
@@ -38,6 +42,13 @@ namespace JamKit.BulletHell
         public float SprintTankShown => _shownTank;
         public float SprintFillShown => _shownFill;
         public bool SprintFlashing => _sprintFlashLeft > 0f;
+        /// <summary>The companion's guard meter is on screen.</summary>
+        public bool GuardShown => _guard.style.display == DisplayStyle.Flex;
+        public float GuardShownFraction => _shownGuard;
+        /// <summary>The bark on screen ("" when none).</summary>
+        public string BarkText => _barkLeft > 0f ? _barkText.text : "";
+        /// <summary>The trial lines as shown (one per line).</summary>
+        public string TrialsText => _shownTrials ?? "";
 
         public BulletHellHud(VisualElement parent, StyleSheet style, bool showLegend = true)
         {
@@ -51,6 +62,10 @@ namespace JamKit.BulletHell
             _lives = Row(left, "bh-pips");
             Kicker(left, "BOMBS");
             _bombs = Row(left, "bh-pips");
+            _bombRecharge = new Label { pickingMode = PickingMode.Ignore };
+            _bombRecharge.AddToClassList("bh-sprint-text");
+            left.Add(_bombRecharge);
+            _bombRecharge.style.display = DisplayStyle.None;
             Kicker(left, "COINS");
             _coins = Value(left);
             Kicker(left, "GRAZE");
@@ -71,6 +86,19 @@ namespace JamKit.BulletHell
             _sprintText = new Label { pickingMode = PickingMode.Ignore };
             _sprintText.AddToClassList("bh-sprint-text");
             left.Add(_sprintText);
+
+            // The companion's guard: full and bright = it will take the next bullet for you.
+            _guardKicker = new Label("GUARD") { pickingMode = PickingMode.Ignore };
+            _guardKicker.AddToClassList("bh-kicker");
+            left.Add(_guardKicker);
+            _guard = new VisualElement { name = "bh-guard", pickingMode = PickingMode.Ignore };
+            _guard.AddToClassList("bh-guard");
+            _guardFill = new VisualElement { pickingMode = PickingMode.Ignore };
+            _guardFill.AddToClassList("bh-guard-fill");
+            _guard.Add(_guardFill);
+            left.Add(_guard);
+            _guardKicker.style.display = DisplayStyle.None;
+            _guard.style.display = DisplayStyle.None;
 
             _hint = new Label(LegendText) { name = "bh-legend", pickingMode = PickingMode.Ignore };
             _hint.AddToClassList("bh-hint");
@@ -106,6 +134,27 @@ namespace JamKit.BulletHell
             _map = Row(right, "bh-map");
             Kicker(right, "UPGRADES");
             _upgrades = Row(right, "bh-upgrades");
+            _trialsKicker = new Label("TRIALS") { pickingMode = PickingMode.Ignore };
+            _trialsKicker.AddToClassList("bh-kicker");
+            right.Add(_trialsKicker);
+            _trials = Row(right, "bh-trials");
+            _trials.style.flexDirection = FlexDirection.Column;
+            _trialsKicker.style.display = DisplayStyle.None;
+
+            // A companion bark: a short line low over the playfield that doesn't stop the game.
+            _bark = new VisualElement { name = "bh-bark", pickingMode = PickingMode.Ignore };
+            _bark.AddToClassList("bh-bark");
+            var barkPill = new VisualElement { pickingMode = PickingMode.Ignore };
+            barkPill.AddToClassList("bh-bark-pill");
+            _barkSpeaker = new Label { pickingMode = PickingMode.Ignore };
+            _barkSpeaker.AddToClassList("bh-bark-speaker");
+            _barkText = new Label { pickingMode = PickingMode.Ignore, enableRichText = true };
+            _barkText.AddToClassList("bh-bark-text");
+            barkPill.Add(_barkSpeaker);
+            barkPill.Add(_barkText);
+            _bark.Add(barkPill);
+            Root.Add(_bark);
+            _bark.style.display = DisplayStyle.None;
 
             _boss = new VisualElement { pickingMode = PickingMode.Ignore };
             _boss.AddToClassList("bh-boss");
@@ -197,10 +246,20 @@ namespace JamKit.BulletHell
             }
         }
 
-        public void SetBombs(int bombs, int max)
+        /// <summary>Bomb pips; <paramref name="recharge"/> (0..1) is the Bomb Bay's progress to the next one.</summary>
+        public void SetBombs(int bombs, int max, float recharge = 0f)
         {
-            if (bombs == _shownBombs) return;
+            float r = Mathf.Floor(Mathf.Clamp01(recharge) * 20f) / 20f;
+            if (!Mathf.Approximately(r, _shownRecharge) || max != _shownMaxBombs)
+            {
+                _shownRecharge = r;
+                bool show = max > 0 && bombs < max;
+                _bombRecharge.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+                if (show) _bombRecharge.text = "Next bomb " + Mathf.RoundToInt(r * 100f) + "%";
+            }
+            if (bombs == _shownBombs && max == _shownMaxBombs) return;
             _shownBombs = bombs;
+            _shownMaxBombs = max;
             _bombs.Clear();
             for (int i = 0; i < Mathf.Max(bombs, 0); i++)
             {
@@ -211,7 +270,7 @@ namespace JamKit.BulletHell
             }
             if (bombs <= 0)
             {
-                var none = new Label("none") { pickingMode = PickingMode.Ignore };
+                var none = new Label(max <= 0 ? "none (Bomb Bay)" : "recharging") { pickingMode = PickingMode.Ignore };
                 none.AddToClassList("bh-dim");
                 _bombs.Add(none);
             }
@@ -304,6 +363,14 @@ namespace JamKit.BulletHell
                     n.AddToClassList("bh-upgrade-count");
                     icon.Add(n);
                 }
+                int forged = inventory.BonusLevels(def.id);
+                if (forged > 0)
+                {
+                    var f = new Label("+" + forged) { pickingMode = PickingMode.Ignore };
+                    f.AddToClassList("bh-upgrade-forged");
+                    icon.Add(f);
+                }
+                if (Remnants.IsRemnant(def)) icon.AddToClassList("bh-upgrade--remnant");
                 icon.tooltip = def.displayName;
                 _upgrades.Add(icon);
             }
@@ -349,8 +416,75 @@ namespace JamKit.BulletHell
             _cardLeft = seconds;
         }
 
+        /// <summary>The companion's guard meter (hidden when there's no companion).</summary>
+        public void SetGuard(bool shown, float fraction, bool ready)
+        {
+            var d = shown ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_guard.style.display != d)
+            {
+                _guard.style.display = d;
+                _guardKicker.style.display = d;
+            }
+            if (!shown) return;
+            fraction = Mathf.Clamp01(fraction);
+            if (Mathf.Abs(fraction - _shownGuard) >= 0.01f)
+            {
+                _shownGuard = fraction;
+                _guardFill.style.width = Length.Percent(fraction * 100f);
+            }
+            int r = ready ? 1 : 0;
+            if (r == _shownGuardReady) return;
+            _shownGuardReady = r;
+            _guard.EnableInClassList("bh-guard--ready", ready);
+        }
+
+        /// <summary>The active trials, one line each ("Untouched: 1 fight left"). Rebuilt only when the text changes.</summary>
+        public void SetTrials(IReadOnlyList<TrialTracker> trials)
+        {
+            string text = "";
+            if (trials != null)
+                for (int i = 0; i < trials.Count; i++) text += (i > 0 ? "\n" : "") + trials[i].Status();
+            if (text == _shownTrials) return;
+            _shownTrials = text;
+            _trials.Clear();
+            var d = text.Length > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            _trialsKicker.style.display = d;
+            if (trials == null) return;
+            for (int i = 0; i < trials.Count; i++)
+            {
+                var l = new Label(trials[i].Status()) { pickingMode = PickingMode.Ignore };
+                l.AddToClassList("bh-trial-line");
+                if (trials[i].State == TrialState.Passed) l.AddToClassList("bh-trial-line--done");
+                else if (trials[i].State == TrialState.Failed) l.AddToClassList("bh-trial-line--failed");
+                _trials.Add(l);
+            }
+        }
+
+        /// <summary>A short companion line low over the playfield, for <paramref name="seconds"/> (the game doesn't stop).</summary>
+        public void Bark(string speaker, string text, float seconds)
+        {
+            _barkSpeaker.text = speaker ?? "";
+            _barkSpeaker.style.display = string.IsNullOrEmpty(speaker) ? DisplayStyle.None : DisplayStyle.Flex;
+            _barkText.text = text ?? "";
+            _barkLeft = Mathf.Max(0.5f, seconds);
+            _bark.style.display = DisplayStyle.Flex;
+            _bark.style.opacity = 1f;
+        }
+
+        public void HideBark()
+        {
+            _barkLeft = 0f;
+            _bark.style.display = DisplayStyle.None;
+        }
+
         public void Tick(float unscaledDt)
         {
+            if (_barkLeft > 0f)
+            {
+                _barkLeft -= unscaledDt;
+                _bark.style.opacity = Mathf.Clamp01(_barkLeft / 0.4f);
+                if (_barkLeft <= 0f) _bark.style.display = DisplayStyle.None;
+            }
             if (_sprintFlashLeft > 0f)
             {
                 _sprintFlashLeft -= unscaledDt;

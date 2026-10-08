@@ -606,9 +606,11 @@ namespace JamKit.BulletHell
             row.clearSeconds = with.clearSeconds / Math.Max(1, count);
             row.baselineClearSeconds = reference.clearSeconds / Math.Max(1, count);
             float dpsGain = row.dpsRatio - 1f;
-            // Fewer hits only counts when it's more than noise: at least a quarter of a hit per room.
+            // Fewer hits only counts when it's more than noise: at least a quarter of a hit per room,
+            // and at least two hits over the whole sample.
             float hitsSaved = row.baselineHitsPerRoom - row.hitsPerRoom;
-            float hitGain = hitsSaved >= 0.25f && row.baselineHitsPerRoom > 0f ? hitsSaved / row.baselineHitsPerRoom : 0f;
+            bool real = hitsSaved >= 0.25f && reference.hits - with.hits >= 2;
+            float hitGain = real && row.baselineHitsPerRoom > 0f ? hitsSaved / row.baselineHitsPerRoom : 0f;
             float timeGain = row.baselineClearSeconds > 0f ? (row.baselineClearSeconds - row.clearSeconds) / row.baselineClearSeconds : 0f;
             row.usefulness = Math.Max(dpsGain, Math.Max(hitGain, timeGain));
             row.verdict = row.usefulness < threshold ? BalanceVerdict.Flagged : BalanceVerdict.Useful;

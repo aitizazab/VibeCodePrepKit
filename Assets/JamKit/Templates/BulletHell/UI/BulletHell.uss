@@ -462,3 +462,120 @@
     color: var(--jk-accent);
     margin-top: 10px;
 }
+
+/* ---------- Round 2: encounters, trials, companion, remnants ---------- */
+
+.bh-choice-note {
+    color: var(--jk-accent);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    margin-top: 6px;
+    white-space: normal;
+    max-width: 1200px;
+}
+
+.bh-cards--compact .bh-card {
+    width: 260px;
+    min-height: 170px;
+    margin: 6px 8px;
+    padding: 14px 16px 12px 16px;
+}
+
+.bh-cards--compact .bh-card-title {
+    font-size: 28px;
+    margin: 4px 0 6px 0;
+}
+
+.bh-cards--compact .bh-card-icon {
+    height: 44px;
+}
+
+.bh-trials {
+    margin-top: 6px;
+}
+
+.bh-trial-line {
+    font-size: var(--jk-small-size);
+    color: var(--jk-text);
+    white-space: normal;
+    margin-bottom: 4px;
+}
+
+.bh-trial-line--done {
+    color: rgb(120, 255, 160);
+}
+
+.bh-trial-line--failed {
+    color: rgb(255, 120, 120);
+}
+
+.bh-guard {
+    height: 12px;
+    margin-top: 2px;
+    margin-bottom: 4px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    overflow: hidden;
+}
+
+.bh-guard-fill {
+    height: 100%;
+    width: 100%;
+    background-color: rgba(255, 215, 140, 0.55);
+}
+
+.bh-guard--ready .bh-guard-fill {
+    background-color: rgb(255, 215, 140);
+}
+
+.bh-bark {
+    position: absolute;
+    bottom: 22%;
+    left: 30%;
+    right: 30%;
+    align-items: center;
+    display: none;
+}
+
+.bh-bark-pill {
+    flex-direction: row;
+    align-items: center;
+    padding: 10px 22px;
+    background-color: rgba(10, 12, 24, 0.82);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+    border-left-width: 3px;
+    border-left-color: rgb(255, 215, 140);
+}
+
+.bh-bark-speaker {
+    font-size: var(--jk-small-size);
+    -unity-font-style: bold;
+    color: rgb(255, 215, 140);
+    margin-right: 12px;
+}
+
+.bh-bark-text {
+    font-size: var(--jk-font-size);
+    color: var(--jk-text);
+    white-space: normal;
+}
+
+.bh-upgrade--remnant {
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+}
+
+.bh-upgrade-forged {
+    position: absolute;
+    left: 2px;
+    top: 0;
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: rgb(255, 170, 80);
+}

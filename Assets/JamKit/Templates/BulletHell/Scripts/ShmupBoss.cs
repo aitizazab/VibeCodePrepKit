@@ -51,6 +51,11 @@ namespace JamKit.BulletHell
         public Vector2 Position => _pos;
         public float Radius => _def != null ? _def.radius : 1f;
         public float HealthFraction => _health != null ? _health.Fraction01 : 0f;
+        /// <summary>The running phase's attack (null while entering, dying or between phases): the companion
+        /// reads it to call out the next pattern.</summary>
+        public PatternSequence CurrentAttack => _emitter != null && CurrentPhase != null ? CurrentPhase.attack : null;
+        /// <summary>Seconds into the running phase's attack (its emitter's clock).</summary>
+        public float EmitterTime => _emitter != null ? _emitter.Time : 0f;
 
         /// <summary>Phase index (from 0) each time a new phase starts (not the first).</summary>
         public event Action<int> PhaseChanged;

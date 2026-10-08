@@ -48,7 +48,7 @@ namespace JamKit.Tests
         /// <summary>The game's state as ink sees it (what BulletHellGame and the shell bind).</summary>
         sealed class Facts
         {
-            public int runs = 1, floor = 1;
+            public int runs = 1, floor = 1, guards;
             public string killer = "battle";
             public readonly HashSet<string> flags = new HashSet<string>();
         }
@@ -62,6 +62,8 @@ namespace JamKit.Tests
             story.BindExternalFunction("run_count", () => (object)f.runs, true);
             story.BindExternalFunction("current_floor", () => (object)f.floor, true);
             story.BindExternalFunction("killer", () => (object)f.killer, true);
+            story.BindExternalFunction("companion_name", () => (object)"Companion", true);
+            story.BindExternalFunction("companion_guards", () => (object)f.guards, true);
             return story;
         }
 
@@ -113,6 +115,15 @@ namespace JamKit.Tests
                 { "rest", Resolve(StoryHooks.Rest(2)) },
                 { "run_start", Resolve(StoryHooks.RunStart(1)) },
                 { "death", Resolve(StoryHooks.Death("battle", 1)) },
+                { "forge", Resolve(StoryHooks.Encounter("forge", 2)) },
+                { "altar", Resolve(StoryHooks.Encounter("altar", 1)) },
+                { "wager", Resolve(StoryHooks.Encounter("wager", 3)) },
+                { "trial_board", Resolve(StoryHooks.Encounter("trial_board", 1)) },
+                { "trader", Resolve(StoryHooks.Encounter("trader", 2)) },
+                { "companion_bark_spiral", Resolve(StoryHooks.CompanionBark("spiral", "Forgemother")) },
+                { "companion_bark_gatekeeper_ring", Resolve(StoryHooks.CompanionBark("ring", "Gatekeeper")) },
+                { "companion_bark_guard", Resolve(StoryHooks.CompanionBark("guard")) },
+                { "companion_bark_low_life", Resolve(StoryHooks.CompanionBark("low_life")) },
             };
             foreach (var kv in expected)
             {
@@ -152,6 +163,22 @@ namespace JamKit.Tests
             Assert.That(c, Does.Contain("Gatekeeper"), "the killer picks the line");
             Assert.That(Play(first, "run_start")[0], Is.Not.EqualTo(Play(later, "run_start")[0]), "the second run starts differently");
             Assert.That(Play(later, "rest")[0], Does.Contain("Floor 2"));
+        }
+
+        [Test]
+        public void EveryPatternShapeHasABarkAndTheRestLineReadsTheCompanionsBattles()
+        {
+            foreach (var shape in new[] { "ring", "aimed", "spiral", "wall", "spread", "shotgun" })
+            {
+                string knot = Resolve(StoryHooks.CompanionBark(shape, "The Last Light"));
+                Assert.That(knot, Is.EqualTo("companion_bark_" + shape), shape + " falls back to the general bark");
+                Assert.That(Play(new Facts(), knot).Count, Is.EqualTo(1), knot + ": a bark is one line");
+            }
+            Assert.That(Resolve(StoryHooks.CompanionBark("nothing_written")), Is.Null, "an unwritten bark stays silent");
+            string quiet = Play(new Facts { guards = 0 }, "rest")[0];
+            string guarded = Play(new Facts { guards = 3 }, "rest")[0];
+            Assert.That(guarded, Does.Contain("3"));
+            Assert.That(guarded, Is.Not.EqualTo(quiet), "the companion's battles change its Rest line");
         }
     }
 }

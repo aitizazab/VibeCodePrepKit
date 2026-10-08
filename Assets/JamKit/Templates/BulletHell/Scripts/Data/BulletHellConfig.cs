@@ -24,9 +24,16 @@ namespace JamKit.BulletHell
             treasureWeight = 12f,
             shopWeight = 10f,
             restWeight = 4f,
-            eventWeight = 12f,
+            eventWeight = 9f,
+            forgeWeight = 6f,
+            altarWeight = 5f,
+            wagerWeight = 4f,
+            trialWeight = 6f,
+            traderWeight = 4f,
             branchChance = 0.55f,
         };
+        [Tooltip("Bumped by the template when its default content changes; a rebuild below this revision rewrites the config, the player and the changed upgrades once (see BulletHellContent).")]
+        public int contentRevision;
         [Tooltip("One entry per floor (as many as Run > Floors).")]
         public List<FloorDef> floors = new List<FloorDef>();
 
@@ -38,6 +45,29 @@ namespace JamKit.BulletHell
         [Tooltip("Offered when the pool runs dry (coins, usually).")]
         public UpgradeAsset fallbackUpgrade;
         public JamKit.BulletHell.ShmupEconomy economy = new JamKit.BulletHell.ShmupEconomy();
+
+        [Header("Where power comes from (docs/DESIGN-ROGUELITE.md, section 1)")]
+        [Tooltip("A reward table per source: rarity weights (0 = never), the small epic chance, cards, luck. Bosses, trials, sacrifices and wagers offer epics.")]
+        public ShmupRewards rewards = new ShmupRewards();
+        [Tooltip("Ember Hunger, Red Line and Time Dilation numbers.")]
+        public PowerBoostRules boosts = new PowerBoostRules();
+
+        [Header("Encounters between battles")]
+        public ForgeRules forge = new ForgeRules();
+        public AltarRules altar = new AltarRules();
+        public TraderRules trader = new TraderRules();
+        [Tooltip("Conditions a Trial board offers (it shows up to 3 the player can take).")]
+        public List<TrialDef> trials = new List<TrialDef>();
+        [Tooltip("Risky deals a Wager room offers (it shows up to 2).")]
+        public List<WagerDef> wagers = new List<WagerDef>();
+
+        [Header("Dying (remnants)")]
+        public RemnantRules remnants = new RemnantRules();
+
+        [Header("Companion")]
+        [Tooltip("Off: no companion in battle (its upgrades leave the pool too).")]
+        public bool companionEnabled = true;
+        public CompanionDef companion;
 
         [Header("Mystery rooms (ink)")]
         public InkFile events;
@@ -56,11 +86,15 @@ namespace JamKit.BulletHell
         {
             new Color(0.82f, 0.85f, 0.9f), new Color(0.38f, 0.68f, 1f), new Color(0.78f, 0.5f, 1f), new Color(1f, 0.79f, 0.29f),
         };
-        [Tooltip("Map and door colours by room type: Battle, Elite, Treasure, Shop, Rest, Mystery, Boss.")]
-        public List<Color> roomColors = new List<Color>
+        [Tooltip("Map and door colours by room type: Battle, Elite, Treasure, Shop, Rest, Mystery, Boss, Forge, Altar, Wager, Trial board, Trader.")]
+        public List<Color> roomColors = DefaultRoomColors();
+
+        public static List<Color> DefaultRoomColors() => new List<Color>
         {
             new Color(0.55f, 0.6f, 0.75f), new Color(1f, 0.45f, 0.4f), new Color(1f, 0.82f, 0.3f), new Color(0.4f, 0.9f, 0.55f),
             new Color(0.45f, 0.75f, 1f), new Color(0.8f, 0.55f, 1f), new Color(1f, 0.3f, 0.5f),
+            new Color(1f, 0.55f, 0.2f), new Color(0.75f, 0.3f, 0.45f), new Color(0.95f, 0.75f, 0.2f), new Color(0.35f, 0.85f, 0.85f),
+            new Color(0.6f, 0.8f, 0.4f),
         };
         public Color coinColor = new Color(1f, 0.83f, 0.25f);
         public Color sideColor = new Color(0.03f, 0.03f, 0.06f);

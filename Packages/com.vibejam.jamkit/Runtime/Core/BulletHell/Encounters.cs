@@ -116,7 +116,7 @@ namespace JamKit.BulletHell
             if (sellFraction < 0f || sellFraction > 1f) errors.Add("Trader: the sell fraction must be between 0 and 1.");
         }
 
-        /// <summary>Stacks of owned Common upgrades (what the trade can take).</summary>
+        /// <summary>Stacks of owned Common upgrades with a lasting effect (what the trade can take).</summary>
         public static int CommonStacks(UpgradeInventory inventory, string skipTag = null)
         {
             if (inventory == null) return 0;
@@ -125,7 +125,7 @@ namespace JamKit.BulletHell
             for (int i = 0; i < owned.Count; i++)
             {
                 var d = owned[i];
-                if (d.rarity != Rarity.Common) continue;
+                if (d.rarity != Rarity.Common || !Remnants.HasLastingEffect(d)) continue;
                 if (skipTag != null && d.tags != null && d.tags.Contains(skipTag)) continue;
                 n += inventory.Count(d.id);
             }

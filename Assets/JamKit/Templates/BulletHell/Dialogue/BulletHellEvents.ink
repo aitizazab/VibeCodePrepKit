@@ -16,6 +16,8 @@ EXTERNAL clear_flag(name)
 EXTERNAL run_count()
 EXTERNAL current_floor()
 EXTERNAL killer()
+EXTERNAL companion_name()
+EXTERNAL companion_guards()
 
 -> shrine
 
@@ -32,7 +34,7 @@ EXTERNAL killer()
     The candles flare. Something answers.
 * [Pray for protection]
     #event:bh:bomb:1 #flash:0.2
-    A warm light settles on your ship. (+1 bomb)
+    A warm light settles on your ship. (+1 bomb, or coins without a Bomb Bay)
 * [Walk on]
     You leave the shrine in peace.
 - -> END
@@ -95,10 +97,17 @@ A sealed supply cache drifts past, its lock blinking.
 //   boss_<id>_phase_<n>  -> boss_<id>_phase -> boss_phase   phase n starts (2, 3...)
 //   boss_<id>_defeat     -> boss_defeat                it falls
 //   death_<killer>       -> death_floor_<floor> -> death   the Game Over screen's line
+//   forge_floor_<floor>  -> forge                  before a Forge's choice (also altar, wager,
+//                                                  trial_board, trader: the encounter rooms)
+//   companion_bark_<boss>_<what> -> companion_bark_<what>   a short in-battle line, NOT a dialogue:
+//                        only its first line shows, low on the screen, and the game keeps going.
+//                        <what> = the boss's next pattern (ring, aimed, spiral, wall, spread,
+//                        shotgun), guard (it took a bullet for you) or low_life (your last life).
 //
 // Boss ids: gatekeeper, forgemother, the_last_light (or a boss's Story Id field).
 // killer = a boss id in a boss fight, else "elite" or "battle".
-// Functions: run_count() (1 on the first run), current_floor(), killer(), has_flag(...).
+// Functions: run_count() (1 on the first run), current_floor(), killer(), has_flag(...),
+// companion_name() and companion_guards() (bullets the companion took for you this run).
 // Boss and run-start lines stop the game while they show; boss lines clear the bullets.
 // The death knot is not a dialogue: only its FIRST line of text shows, on the Game Over screen.
 //
@@ -118,10 +127,96 @@ A sealed supply cache drifts past, its lock blinking.
 -> END
 
 === rest ===
-// PLACEHOLDER: the companion's line before the Rest room's choice.
+// PLACEHOLDER: the companion's line before the Rest room's choice. Its battles feed it:
+// companion_guards() counts the bullets it took for you this run.
 #speaker:Companion #portrait:Guide neutral left
-(Placeholder) Catch your breath. Floor {current_floor()} of 3.
+{ companion_guards() > 0:
+    (Placeholder) Catch your breath. I took {companion_guards()} for you up there. Floor {current_floor()} of 3.
+- else:
+    (Placeholder) Catch your breath. Floor {current_floor()} of 3.
+}
 #portrait:Guide hide
+-> END
+
+// ---------- Encounter rooms (a line before the choice; delete a knot to skip it) ----------
+
+=== forge ===
+// PLACEHOLDER: before the Forge. Push an upgrade; each push after the first may break it.
+#speaker:Smith #portrait:Guide hide #portrait:Rival hide
+(Placeholder) The anvil is hot. How far will you push it?
+-> END
+
+=== altar ===
+// PLACEHOLDER: before the Altar. One offering for an epic.
+#speaker:Altar
+(Placeholder) Something here wants what you carry.
+-> END
+
+=== wager ===
+// PLACEHOLDER: before the Wager. A stake now, an epic if you win.
+#speaker:Gambler #portrait:Rival smug right
+(Placeholder) Fancy a real bet, pilot?
+#portrait:Rival hide
+-> END
+
+=== trial_board ===
+// PLACEHOLDER: before the Trial board. Take a condition for the next fight.
+#speaker:Trial board
+(Placeholder) Names are scratched into the board. Add yours?
+-> END
+
+=== trader ===
+// PLACEHOLDER: before the Trader. Two commons for a rare.
+#speaker:Trader
+(Placeholder) Two of yours for one of mine. Fair's fair.
+-> END
+
+// ---------- Companion barks (one line each; the game doesn't stop) ----------
+
+=== companion_bark_ring ===
+#speaker:Companion
+(Placeholder) Ring coming! Find a gap.
+-> END
+
+=== companion_bark_aimed ===
+#speaker:Companion
+(Placeholder) It's aiming at you. Move!
+-> END
+
+=== companion_bark_spiral ===
+#speaker:Companion
+(Placeholder) Spiral! Circle with it.
+-> END
+
+=== companion_bark_wall ===
+#speaker:Companion
+(Placeholder) Wall coming. Look for the hole.
+-> END
+
+=== companion_bark_spread ===
+#speaker:Companion
+(Placeholder) Wide fan. Hug the edge.
+-> END
+
+=== companion_bark_shotgun ===
+#speaker:Companion
+(Placeholder) Scatter shot. Back off.
+-> END
+
+=== companion_bark_gatekeeper_ring ===
+// A boss-specific bark wins over the general one.
+#speaker:Companion
+(Placeholder) The Gatekeeper's rings again. Wait for the gap.
+-> END
+
+=== companion_bark_guard ===
+#speaker:Companion
+(Placeholder) Got that one!
+-> END
+
+=== companion_bark_low_life ===
+#speaker:Companion
+(Placeholder) Careful. One more and we're done.
 -> END
 
 === boss_gatekeeper_intro ===
@@ -174,3 +269,9 @@ A sealed supply cache drifts past, its lock blinking.
 
 === function killer() ===
 ~ return "battle"
+
+=== function companion_name() ===
+~ return "Companion"
+
+=== function companion_guards() ===
+~ return 0

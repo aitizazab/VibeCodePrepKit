@@ -10,7 +10,8 @@ namespace JamKit.BulletHell
     /// per-room budget, core <see cref="SprintMeter"/>), optional Focus (PlayerDef.focusEnabled), auto or held fire
     /// through the core <see cref="WeaponState"/> (shot ages keep streams even at any frame rate),
     /// lives as a core <see cref="Health"/> (1 per hit, i-frames, the difficulty's damage scale) and
-    /// bombs. The game drives it (<see cref="BulletHellGame"/>): collisions and bombs live there.
+    /// bombs in a core <see cref="BombBay"/> (none in the starting kit: the Bomb Bay epic gives a few that
+    /// recharge while fighting). The game drives it (<see cref="BulletHellGame"/>): collisions and bombs live there.
     /// </summary>
     public sealed class ShmupPlayer : MonoBehaviour
     {
@@ -27,7 +28,7 @@ namespace JamKit.BulletHell
         WeaponState _weapon;
         Health _health;
         readonly List<float> _shotAges = new List<float>(8);
-        int _bombs, _maxBombs;
+        readonly BombBay _bay = new BombBay();
         bool _focused, _controls = true;
         float _blink, _shotSound, _sprintFraction;
         Color _baseColor = Color.white;
@@ -35,8 +36,10 @@ namespace JamKit.BulletHell
 
         public PlayerDef Def => _def;
         public Health Health => _health;
-        public int Bombs => _bombs;
-        public int MaxBombs => _maxBombs;
+        public int Bombs => _bay.Bombs;
+        public int MaxBombs => _bay.Capacity;
+        /// <summary>The Bomb Bay (capacity, recharge).</summary>
+        public BombBay Bay => _bay;
         public bool Focused => _focused;
         /// <summary>The sprint meter: stamina and this room's budget (the HUD draws it).</summary>
         public SprintMeter Sprint => _sprint;
@@ -71,8 +74,9 @@ namespace JamKit.BulletHell
             };
             _weapon = new WeaponState(_weaponDef);
             _health = new Health(Mathf.Max(1, lives), def.invulnerableAfterHit);
-            _maxBombs = Mathf.Max(def.bombsPerLife, def.maxBombs);
-            _bombs = def.bombsPerLife;
+            _bay.Configure(0, 0f);
+            RefreshBombs();
+            _bay.Fill();
             if (body != null)
             {
                 body.sprite = def.sprite != null ? def.sprite : body.sprite;
@@ -93,23 +97,34 @@ namespace JamKit.BulletHell
             if (grazeRing != null) grazeRing.transform.localScale = Vector3.one * (GrazeRadius * 2f);
         }
 
-        public void AddBombs(int n) => _bombs = Mathf.Clamp(_bombs + n, 0, _maxBombs);
+        /// <summary>Adds bombs up to the capacity (0 without a Bay). Returns how many were added.</summary>
+        public int AddBombs(int n) => _bay.Add(n);
 
-        public void RaiseMaxBombs(int n)
+        /// <summary>Upgrades changed: the Bay's capacity and recharge follow the loadout; a bigger bay
+        /// comes with its new bombs.</summary>
+        public void RefreshBombs()
         {
-            _maxBombs += n;
-            AddBombs(n);
+            if (_def == null || _loadout == null) return;
+            int before = _bay.Capacity;
+            int capacity = _loadout.BombCapacity(_def.bombsPerLife, _def.bayBombs, Mathf.Max(_def.maxBombs, _def.bombsPerLife));
+            _bay.Configure(capacity, _loadout.BombRechargeSeconds(_def.bombRechargeSeconds));
+            if (capacity > before) _bay.Add(capacity - before);
         }
 
-        /// <summary>After a lost life: bombs back up to the per-life amount.</summary>
-        public void RefillBombs() => _bombs = Mathf.Max(_bombs, _def != null ? _def.bombsPerLife : 2);
-
-        public bool TryUseBomb()
+        /// <summary>After a lost life: bombs back up to the starting kit's amount (the Bay recharges by itself).</summary>
+        public void RefillBombs()
         {
-            if (_bombs <= 0) return false;
-            _bombs--;
-            return true;
+            int kit = _def != null ? _def.bombsPerLife : 0;
+            if (_bay.Bombs < kit) _bay.Add(kit - _bay.Bombs);
         }
+
+        /// <summary>A new floor: a full bay.</summary>
+        public void FillBombs() => _bay.Fill();
+
+        public bool TryUseBomb() => _bay.TryUse();
+
+        /// <summary>The Bay recharges while fighting. Returns true when a bomb came back.</summary>
+        public bool TickBombs(float dt, bool fighting) => _bay.Tick(dt, fighting);
 
         /// <summary>Adds lives (raising the max when needed). Returns the amount added.</summary>
         public float AddLives(float n)
@@ -121,6 +136,17 @@ namespace JamKit.BulletHell
 
         /// <summary>Heals up to the max only (rests, graze heal). Returns the amount restored.</summary>
         public float Heal(float n) => _health != null ? _health.Heal(n) : 0f;
+
+        /// <summary>Gives up <paramref name="n"/> lives now (an altar offering, a wager's stake): no hit, no
+        /// i-frames, the max stays. False (nothing changes) if it would leave less than half a life.</summary>
+        public bool PayLives(float n)
+        {
+            if (_health == null || n <= 0f || _health.Current - n < 0.5f) return false;
+            float max = _health.Max;
+            _health.SetMax(_health.Current - n); // clamps the current life down...
+            _health.SetMax(max);                 // ...and puts the max back (current isn't raised)
+            return true;
+        }
 
         public void Teleport(Vector2 p) => transform.position = new Vector3(p.x, p.y, transform.position.z);
 
@@ -161,7 +187,7 @@ namespace JamKit.BulletHell
             var streams = _loadout.Streams(_focused);
             Vector2 origin = transform.position;
             float speed = _def.shotSpeed * _loadout.ShotSpeedScale;
-            float damage = _def.shotDamage * _loadout.Damage;
+            float damage = _def.shotDamage * _loadout.ShotDamageScale;
             int pierce = _loadout.Pierce;
             for (int s = 0; s < _shotAges.Count; s++)
             {
@@ -171,7 +197,7 @@ namespace JamKit.BulletHell
                     var st = streams[i];
                     int style = st.homing ? _def.homingShotStyle : _def.shotStyle;
                     field.FirePlayer(origin + new Vector2(st.offsetX, st.offsetY), st.angleDegrees * Mathf.Deg2Rad, speed,
-                        damage * st.damageScale, style, _def.shotLifetime, pierce, st.homing, age);
+                        damage * st.damageScale, style, _def.shotLifetime, pierce, st.homing, age, st.bounce);
                 }
             }
             _shotSound -= _shotAges.Count;

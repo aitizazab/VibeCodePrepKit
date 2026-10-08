@@ -124,6 +124,15 @@ namespace JamKit.BulletHell.EditorTools
             "Move with WASD, the arrow keys or the left stick.\nYou fire automatically.\n" +
             "Hold Shift (LB) to sprint: limited stamina per room (the SPRINT bar on the left).";
 
+        /// <summary>The Bomb card: bombs are an epic now (docs/DESIGN-ROGUELITE.md, section 2).</summary>
+        public const string BombCardText =
+            "Bombs come from the BOMB BAY, an epic upgrade. Once you have it, K, right click or Space (A on a gamepad) " +
+            "wipes every bullet and keeps you safe for a moment; the bay recharges while you fight.";
+
+        public const string RunCardText =
+            "Clear rooms and pick 1 of 3 upgrades. Bosses and trials offer epics. Between battles: shops, forges, altars, wagers and traders.\n" +
+            "Beat the boss of each of the 3 floors to win. Escape or Start pauses.";
+
         /// <summary>The GameConfig values "Use Template > Bullet Hell" copies into the active config.
         /// Created once; edit it freely (title, tagline, How to Play pages).</summary>
         static void MakePreset(SceneBuilder.Context ctx, BulletHellArt.Set art)
@@ -155,13 +164,13 @@ namespace JamKit.BulletHell.EditorTools
                 new HowToPlayPage
                 {
                     title = "Bomb",
-                    body = "K, right click or Space (A on a gamepad) sets off a BOMB: it wipes every bullet and keeps you safe for a moment. You get 2 per life.",
+                    body = BombCardText,
                     image = art.howBomb,
                 },
                 new HowToPlayPage
                 {
                     title = "The run",
-                    body = "Clear rooms, pick 1 of 3 upgrades, choose your doors and spend coins in shops.\nBeat the boss of each of the 3 floors to win. Escape or Start pauses.",
+                    body = RunCardText,
                     image = art.howRun,
                 },
             };

@@ -76,7 +76,101 @@ namespace JamKit.BulletHell
                 if (c.fallbackUpgrade.def != null && ids.Contains(c.fallbackUpgrade.def.id))
                     errors.Add("Fallback upgrade: its id is also in the pool.");
             }
+            if (c.upgrades != null)
+                foreach (var u in c.upgrades)
+                {
+                    if (u == null || u.def == null || u.def.requires == null) continue;
+                    foreach (var r in u.def.requires)
+                        if (!ids.Contains(r)) errors.Add($"{u.name}: it requires \"{r}\", which isn't in the pool, so it can never be offered.");
+                }
+            ValidateRoguelite(c, ids, styles, errors);
             return errors;
+        }
+
+        /// <summary>Round 2 (docs/DESIGN-ROGUELITE.md): reward tables, encounters, trials and wagers, remnants,
+        /// the companion, room colours, and the epic rubric.</summary>
+        static void ValidateRoguelite(BulletHellConfig c, HashSet<string> ids, int styles, List<string> errors)
+        {
+            if (c.rewards == null) errors.Add("Config: no reward tables.");
+            else errors.AddRange(c.rewards.Validate());
+            if (c.boosts == null) errors.Add("Config: no boost rules.");
+            else
+            {
+                if (c.boosts.heatPerGraze < 0f || c.boosts.heatMax < 0f || c.boosts.heatDecay < 0f) errors.Add("Boosts: Ember Hunger numbers can't be negative.");
+                if (c.boosts.slowScale <= 0f || c.boosts.slowScale > 1f || c.boosts.slowRadius <= 0f) errors.Add("Boosts: Time Dilation needs a radius and a speed between 0 and 1.");
+            }
+            if (c.forge == null) errors.Add("Config: no forge rules."); else c.forge.Validate(errors);
+            if (c.altar == null) errors.Add("Config: no altar rules."); else c.altar.Validate(errors);
+            if (c.trader == null) errors.Add("Config: no trader rules."); else c.trader.Validate(errors);
+            if (c.remnants == null) errors.Add("Config: no remnant rules."); else c.remnants.Validate(errors);
+
+            var run = c.run;
+            if (run != null && run.trialWeight > 0f && (c.trials == null || c.trials.Count == 0)) errors.Add("Config: Trial boards can come up but there are no trials.");
+            if (run != null && run.wagerWeight > 0f && (c.wagers == null || c.wagers.Count == 0)) errors.Add("Config: Wager rooms can come up but there are no wagers.");
+            var trialIds = new HashSet<string>();
+            if (c.trials != null)
+                for (int i = 0; i < c.trials.Count; i++)
+                {
+                    var t = c.trials[i];
+                    if (t == null) { errors.Add($"Trials: entry {i} is empty."); continue; }
+                    t.Validate("Trial " + (string.IsNullOrEmpty(t.id) ? i.ToString() : t.id), errors);
+                    if (!string.IsNullOrEmpty(t.id) && !trialIds.Add(t.id)) errors.Add($"Trials: the id \"{t.id}\" is used twice.");
+                }
+            if (c.wagers != null)
+                for (int i = 0; i < c.wagers.Count; i++)
+                {
+                    var w = c.wagers[i];
+                    if (w == null) { errors.Add($"Wagers: entry {i} is empty."); continue; }
+                    w.Validate("Wager " + (string.IsNullOrEmpty(w.id) ? i.ToString() : w.id), errors);
+                    if (w.condition != null && !string.IsNullOrEmpty(w.condition.id) && !trialIds.Add(w.condition.id))
+                        errors.Add($"Wager {w.id}: its condition's id \"{w.condition.id}\" is also a trial's (or another wager's).");
+                }
+
+            int roomKinds = System.Enum.GetValues(typeof(RoomType)).Length;
+            if (c.roomColors == null || c.roomColors.Count < roomKinds)
+                errors.Add($"Config: {roomKinds} room types but {(c.roomColors == null ? 0 : c.roomColors.Count)} room colours.");
+
+            if (c.companionEnabled)
+            {
+                if (c.companion == null) errors.Add("Config: the companion is on but there's no Companion asset.");
+                else
+                {
+                    if (c.companion.sprite == null) errors.Add($"{c.companion.name}: no sprite.");
+                    if (c.companion.shotStyle < 0 || c.companion.shotStyle >= styles) errors.Add($"{c.companion.name}: shot style {c.companion.shotStyle} isn't a bullet style.");
+                    if (c.companion.rules == null) errors.Add($"{c.companion.name}: no rules.");
+                    else c.companion.rules.Validate(errors);
+                }
+            }
+            if (c.upgrades == null) return;
+            int epics = 0;
+            foreach (var u in c.upgrades)
+            {
+                if (u == null || u.def == null) continue;
+                if (u.def.rarity >= Rarity.Epic)
+                {
+                    epics++;
+                    foreach (var e in EpicRubric.Problems(u.def, u.rubric)) errors.Add("Epic rubric: " + e);
+                }
+                if (u.def.tags != null && u.def.tags.Contains(BulletHellGame.CompanionTag) && !TargetsCompanion(u.def))
+                    errors.Add($"{u.name}: tagged companion, but it changes no companion stat.");
+                if (u.forgeModifiers != null)
+                    foreach (var m in u.forgeModifiers)
+                        if (m == null || System.Array.IndexOf(ShmupStats.All, m.stat) < 0)
+                            errors.Add($"{u.name}: unknown forge stat \"{(m == null ? "" : m.stat)}\".");
+                if (u.forgeEffects != null)
+                    foreach (var e in u.forgeEffects)
+                        if (!ShmupEffects.IsKnown(e)) errors.Add($"{u.name}: unknown forge effect \"{e}\".");
+            }
+            if (c.rewards != null && c.rewards.boss != null && c.rewards.boss.enabled && epics < 3)
+                errors.Add($"Upgrades: a boss offers 3 epics but the pool has {epics}.");
+        }
+
+        static bool TargetsCompanion(UpgradeDef d)
+        {
+            if (d.modifiers == null) return false;
+            foreach (var m in d.modifiers)
+                if (m != null && (m.stat == ShmupStats.CompanionDamage || m.stat == ShmupStats.CompanionShieldCooldown)) return true;
+            return false;
         }
 
         static void ValidatePlayer(PlayerDef p, int styles, List<string> errors)

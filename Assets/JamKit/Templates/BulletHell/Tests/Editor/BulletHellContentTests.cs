@@ -110,9 +110,12 @@ namespace JamKit.BulletHell.Tests
         {
             var c = Config();
             var loadout = new ShmupLoadout();
+            var byId = c.upgrades.ToDictionary(x => x.def.id, x => x.def);
             foreach (var u in c.upgrades)
             {
                 loadout.Reset();
+                // What it requires first (the Bomb Bay for bomb upgrades).
+                foreach (var r in u.def.requires) loadout.Inventory.ForceTake(byId[r]);
                 var before = ShmupStats.All.Select(s => loadout.Stats.Get(s)).ToArray();
                 int streams = loadout.Streams(false).Count;
                 Assert.That(loadout.Inventory.Take(u.def), Is.True, u.name + " can be taken");
@@ -121,7 +124,7 @@ namespace JamKit.BulletHell.Tests
                 bool effect = u.def.effects.Any(e => loadout.Effect(e) > 0) || u.def.effects.Count > 0;
                 Assert.That(statChanged || effect, Is.True, u.name + " changes a stat or adds an effect");
                 if (u.def.effects.Contains(ShmupEffects.Spread)) Assert.That(loadout.Streams(false).Count, Is.GreaterThan(streams), u.name);
-                if (u.def.effects.Contains(ShmupEffects.RearShot)) Assert.That(loadout.Streams(false).Count, Is.GreaterThan(streams), u.name);
+                if (u.def.effects.Contains(ShmupEffects.Rebound)) Assert.That(loadout.Streams(false).Count(s => s.bounce), Is.GreaterThan(0), u.name);
                 if (u.def.effects.Contains(ShmupEffects.Pierce)) Assert.That(loadout.Pierce, Is.EqualTo(1), u.name);
                 if (u.def.effects.Contains(ShmupEffects.BiggerBombs)) Assert.That(loadout.BombPower, Is.GreaterThan(1f), u.name);
             }
@@ -135,12 +138,113 @@ namespace JamKit.BulletHell.Tests
             var l = new ShmupLoadout();
             l.Inventory.Take(byId["sharp_rounds"]);
             Assert.That(l.Damage, Is.EqualTo(1.2f).Within(1e-4f));
-            l.Inventory.Take(byId["overdrive"]);
-            Assert.That(l.Damage, Is.EqualTo(1.2f * 1.4f).Within(1e-4f));
-            Assert.That(l.FireRate, Is.EqualTo(1.25f).Within(1e-4f));
             l.Inventory.Take(byId["twin_spread"]);
             l.Inventory.Take(byId["seeker_rounds"]);
             Assert.That(l.Streams(false).Count(s => s.homing), Is.EqualTo(2));
+            Assert.That(l.BombCapacity(c.player.bombsPerLife, c.player.bayBombs, c.player.maxBombs), Is.EqualTo(0), "no bombs without the Bay");
+            l.Inventory.Take(byId["bomb_bay"]);
+            Assert.That(l.BombCapacity(c.player.bombsPerLife, c.player.bayBombs, c.player.maxBombs), Is.EqualTo(2));
+            l.Inventory.Take(byId["spare_bomb"]);
+            Assert.That(l.BombCapacity(c.player.bombsPerLife, c.player.bayBombs, c.player.maxBombs), Is.EqualTo(3));
+        }
+
+        [Test]
+        public void BombsLeftTheStartingKitForTheBombBayEpic()
+        {
+            var c = Config();
+            Assert.That(c.player.bombsPerLife, Is.EqualTo(0), "no bombs in the starting kit");
+            var byId = c.upgrades.ToDictionary(u => u.def.id, u => u.def);
+            Assert.That(byId["bomb_bay"].rarity, Is.EqualTo(Rarity.Epic));
+            Assert.That(byId["bomb_bay"].effects, Does.Contain(ShmupEffects.BombBay));
+            foreach (var id in new[] { "spare_bomb", "quick_fuse", "big_bang", "guardian_angel" })
+                Assert.That(byId[id].requires, Does.Contain(ShmupEffects.BombBay), id + " stacks on the Bay");
+            Assert.That(byId.ContainsKey("rear_guard"), Is.False, "the useless rear gun is gone");
+            Assert.That(byId.ContainsKey("overdrive"), Is.False, "numbers-only legendary replaced by Red Line");
+            Assert.That(byId.ContainsKey("backdraft"), Is.True, "the rear gun's replacement");
+        }
+
+        [Test]
+        public void EveryEpicPassesTheRubricAndSaysWhatItsFor()
+        {
+            var c = Config();
+            var epics = c.upgrades.Where(u => u.def.rarity >= Rarity.Epic).ToList();
+            Assert.That(epics.Count, Is.GreaterThanOrEqualTo(6));
+            foreach (var u in epics)
+            {
+                var problems = EpicRubric.Problems(u.def, u.rubric);
+                Assert.That(problems, Is.Empty, string.Join("\n", problems));
+                Assert.That(u.designNotes, Is.Not.Empty, u.name + ": design notes say which situations it's for");
+                Assert.That(u.CanForge, Is.True, u.name + ": the Forge can improve it");
+                Assert.That(u.def.description.Length, Is.LessThan(150), u.name + ": a short description");
+            }
+            var verbs = epics.Select(u => u.rubric.verb).Distinct().ToList();
+            Assert.That(verbs, Does.Contain(UpgradeVerb.Aim));
+            Assert.That(verbs, Does.Contain(UpgradeVerb.Dodge));
+            Assert.That(verbs, Does.Contain(UpgradeVerb.Risk));
+            // Normal battles hand out commons and rares; epics mostly come from bosses and conditions.
+            Assert.That(c.rewards.battle.epicWeight, Is.EqualTo(0f));
+            Assert.That(c.rewards.battle.epicChance, Is.InRange(0.01f, 0.25f));
+            Assert.That(c.rewards.boss.LowestRarity, Is.GreaterThanOrEqualTo(Rarity.Epic));
+            Assert.That(c.rewards.trial.LowestRarity, Is.GreaterThanOrEqualTo(Rarity.Epic));
+            Assert.That(c.rewards.sacrifice.LowestRarity, Is.GreaterThanOrEqualTo(Rarity.Epic));
+        }
+
+        [Test]
+        public void EncountersTrialsWagersAndTheCompanionAreSetUp()
+        {
+            var c = Config();
+            Assert.That(c.trials.Count, Is.GreaterThanOrEqualTo(4));
+            Assert.That(c.trials.Select(t => t.kind).Distinct().Count(), Is.GreaterThanOrEqualTo(4), "different kinds of condition");
+            Assert.That(c.wagers.Count, Is.GreaterThanOrEqualTo(2));
+            Assert.That(c.wagers.Select(w => w.stake).Distinct().Count(), Is.GreaterThanOrEqualTo(2));
+            Assert.That(c.companionEnabled, Is.True);
+            Assert.That(c.companion, Is.Not.Null);
+            Assert.That(c.companion.sprite, Is.Not.Null);
+            Assert.That(c.companion.rules.damageScale, Is.LessThan(1f), "weaker than the ship");
+            Assert.That(c.upgrades.Count(u => u.def.tags.Contains(BulletHellGame.CompanionTag)), Is.GreaterThanOrEqualTo(2), "upgrades for the companion");
+            Assert.That(c.roomColors.Count, Is.EqualTo(System.Enum.GetValues(typeof(RoomType)).Length));
+            Assert.That(c.contentRevision, Is.EqualTo(BulletHellContent.ContentRevision));
+
+            // Every encounter shows up across runs, and a floor still has its fights.
+            var seen = new HashSet<RoomType>();
+            int fights = 0, floors = 0;
+            for (ulong seed = 1; seed <= 60; seed++)
+            {
+                var plan = RunGenerator.Generate(c.run, new Rng(seed));
+                foreach (var f in plan.floors)
+                {
+                    floors++;
+                    foreach (var s in f.steps)
+                    {
+                        foreach (var o in s.options) seen.Add(o);
+                        if (s.options.Contains(RoomType.Combat) || s.options.Contains(RoomType.Elite) || s.options.Contains(RoomType.Boss)) fights++;
+                    }
+                }
+            }
+            foreach (var t in new[] { RoomType.Forge, RoomType.Altar, RoomType.Wager, RoomType.Trial, RoomType.Trader })
+                Assert.That(seen, Does.Contain(t), t + " appears in runs");
+            Assert.That(fights / (float)floors, Is.GreaterThanOrEqualTo(2.5f), "steps with a fight per floor (opening battle, middle fights, boss)");
+        }
+
+        [Test]
+        public void TheBalanceReportFlagsAUselessUpgradeOnTheRealRooms()
+        {
+            var c = Config();
+            var rooms = BulletHellBalance.Rooms(c, false, 1);
+            Assert.That(rooms.Count, Is.GreaterThanOrEqualTo(3), "floor 1's battle and elite rooms");
+            // Deliberately useless: bigger bombs for a ship with no Bomb Bay (the runs match the baseline exactly).
+            var useless = new UpgradeDef("useless_test", Rarity.Common) { displayName = "Useless" };
+            useless.modifiers.Add(new StatModifier(ShmupStats.BombPower, StatOp.PercentAdd, 0.5f));
+            var rear = new UpgradeDef("rear_test", Rarity.Epic) { displayName = "Rear Guard (old)" };
+            rear.effects.Add(ShmupEffects.RearShot);
+            var spread = c.upgrades.First(u => u.def.id == "twin_spread").def;
+            var rows = BalanceReport.Run(BulletHellBalance.Sim(c), rooms, BulletHellBalance.Player(c.player), new List<UpgradeDef> { useless, rear, spread }, 2);
+            Debug.Log(BalanceReport.ToMarkdown(rows, BalanceReport.Baseline(BulletHellBalance.Sim(c), rooms, BulletHellBalance.Player(c.player), 2), rooms.Count, 2, BalanceReport.DefaultThreshold));
+            var byId = rows.ToDictionary(r => r.id);
+            Assert.That(byId["useless_test"].verdict, Is.EqualTo(BalanceVerdict.Flagged));
+            Assert.That(byId["useless_test"].usefulness, Is.EqualTo(0f).Within(1e-4f));
+            Assert.That(byId["rear_test"].damageShare, Is.LessThan(0.1f), "the rear gun barely hits anything (core-tests check it's flagged)");
+            Assert.That(byId["twin_spread"].verdict, Is.EqualTo(BalanceVerdict.Useful));
         }
 
         [Test]
@@ -200,6 +304,20 @@ namespace JamKit.BulletHell.Tests
             Assert.That(JamKit.Dialogue.StoryHooks.Resolve(JamKit.Dialogue.StoryHooks.Rest(1), k => HasKnot(story, k)), Is.EqualTo("rest"));
             Assert.That(JamKit.Dialogue.StoryHooks.Resolve(JamKit.Dialogue.StoryHooks.RunStart(1), k => HasKnot(story, k)), Is.EqualTo("run_start"));
             Assert.That(JamKit.Dialogue.StoryHooks.Resolve(JamKit.Dialogue.StoryHooks.BossIntro("nobody"), k => HasKnot(story, k)), Is.Null, "missing hooks fall back to nothing");
+            foreach (var t in new[] { RoomType.Forge, RoomType.Altar, RoomType.Wager, RoomType.Trial, RoomType.Trader })
+            {
+                string kind = RoomText.HookKind(t);
+                Assert.That(JamKit.Dialogue.StoryHooks.Resolve(JamKit.Dialogue.StoryHooks.Encounter(kind, 1), k => HasKnot(story, k)), Is.EqualTo(kind), t + " has a placeholder line");
+            }
+            // Every shape the bosses use has a companion bark.
+            foreach (var floor in c.floors)
+                foreach (var phase in floor.boss.phases)
+                    foreach (var step in phase.attack.steps)
+                    {
+                        string shape = PatternCallout.ShapeWord(step.pattern.shape);
+                        Assert.That(JamKit.Dialogue.StoryHooks.Resolve(JamKit.Dialogue.StoryHooks.CompanionBark(shape, floor.boss.StoryId), k => HasKnot(story, k)),
+                            Is.Not.Null, floor.boss.name + " " + phase.name + ": a bark for its " + shape);
+                    }
         }
 
         [Test]
@@ -257,6 +375,13 @@ namespace JamKit.BulletHell.Tests
                 Assert.That(hits[0].damage, Is.EqualTo(3f));
                 field.EnemyTimeScale = 0f;
                 Assert.That(field.EnemyTimeScale, Is.EqualTo(0f));
+                // A Backdraft shot: fired down, bounces up hotter.
+                field.Player.Clear();
+                field.FirePlayer(new Vector2(0f, -4.7f), -Mathf.PI / 2f, 20f, 1f, 6, 1.5f, 0, false, 0f, true);
+                for (int i = 0; i < 4; i++) field.Tick(1f / 60f);
+                Assert.That(field.Player.Count, Is.EqualTo(1), "bounced off the floor");
+                Assert.That(Mathf.Sin(field.Player[0].angle), Is.GreaterThan(0.9f), "flying up");
+                Assert.That(field.Player[0].damage, Is.EqualTo(PlayerShots.ReboundAfterBounce).Within(1e-4f));
             }
             finally
             {

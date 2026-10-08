@@ -38,7 +38,8 @@ namespace JamKit.BulletHell
         public PlayfieldBounds Bounds => _bounds;
         public IReadOnlyList<float> StyleRadii => _radii;
 
-        /// <summary>Enemy bullets move at this fraction of game time (the focus-slow upgrade).</summary>
+        /// <summary>Enemy bullets move at this fraction of game time (1 normally; Time Dilation slows only the
+        /// bullets near the ship, with BulletPool.SlowNear).</summary>
         public float EnemyTimeScale
         {
             get => _enemyTimeScale;
@@ -51,7 +52,7 @@ namespace JamKit.BulletHell
         {
             if (_enemy != null) return;
             _enemy = new BulletPool(Mathf.Max(16, enemyCapacity));
-            _player = new BulletPool(Mathf.Max(16, playerCapacity));
+            _player = new BulletPool(Mathf.Max(16, playerCapacity)) { bounceDamageScale = PlayerShots.ReboundAfterBounce };
             _enemyQuads = new InstancedQuads(material, enemyCapacity);
             _playerQuads = new InstancedQuads(material, playerCapacity);
         }
@@ -75,13 +76,16 @@ namespace JamKit.BulletHell
         /// <summary>Copies <see cref="Spawns"/> (or another list) into the enemy pool.</summary>
         public int EmitEnemy(List<BulletSpawn> spawns) => Enemy.AddSpawns(spawns, _radii);
 
-        /// <summary>A player shot, advanced by <paramref name="age"/> seconds so streams stay evenly spaced.</summary>
-        public bool FirePlayer(Vector2 position, float angleRad, float speed, float damage, int style, float lifetime, int pierce, bool homing, float age)
+        /// <summary>A player shot, advanced by <paramref name="age"/> seconds so streams stay evenly spaced.
+        /// <paramref name="bounce"/>: it bounces once off the bottom edge, hotter (Rebound).</summary>
+        public bool FirePlayer(Vector2 position, float angleRad, float speed, float damage, int style, float lifetime, int pierce, bool homing, float age,
+            bool bounce = false)
         {
             var dir = new Vector2(Mathf.Cos(angleRad), Mathf.Sin(angleRad));
             Vector2 p = position + dir * (speed * age);
+            var flags = (homing ? BulletFlags.Homing : BulletFlags.None) | (bounce ? BulletFlags.Bounce : BulletFlags.None);
             return Player.Spawn(new SVector2(p.x, p.y), angleRad, speed, style, RadiusOf(style), lifetime > 0f ? lifetime - age : 0f,
-                0f, 0f, damage, pierce, homing ? BulletFlags.Homing : BulletFlags.None);
+                0f, 0f, damage, pierce, flags);
         }
 
         /// <summary>Moves both pools by dt (enemy bullets by dt x EnemyTimeScale) and culls.</summary>

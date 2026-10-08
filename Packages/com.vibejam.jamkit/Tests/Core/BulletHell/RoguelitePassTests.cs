@@ -320,11 +320,17 @@ namespace JamKit.Tests.BulletHell
         {
             var inv = new UpgradeInventory();
             var c = new UpgradeDef("c", Rarity.Common, 3);
+            c.modifiers.Add(new StatModifier(ShmupStats.Damage, StatOp.PercentAdd, 0.1f));
             var r = new UpgradeDef("r", Rarity.Rare, 3);
+            var coins = new UpgradeDef("pocket", Rarity.Common, 0);
+            coins.effects.Add("coins:15");
             inv.ForceTake(c);
             inv.ForceTake(c);
             inv.ForceTake(r);
-            Assert.That(TraderRules.CommonStacks(inv), Is.EqualTo(2));
+            inv.ForceTake(coins);
+            Assert.That(TraderRules.CommonStacks(inv), Is.EqualTo(2), "an instant pickup can't be traded");
+            Assert.That(Remnants.HasLastingEffect(coins), Is.False);
+            Assert.That(Remnants.HasLastingEffect(c), Is.True);
         }
 
         [Test]

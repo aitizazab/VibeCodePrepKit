@@ -126,7 +126,7 @@ namespace JamKit.BulletHell
                 for (int i = 0; i < owned.Count; i++)
                 {
                     var d = owned[i];
-                    if (IsRemnant(d) || !Echoable(d)) continue;
+                    if (IsRemnant(d) || !HasLastingEffect(d)) continue;
                     int stacks = inventory.Count(d.id);
                     if (best == null || d.rarity > best.rarity || (d.rarity == best.rarity && stacks >= bestStacks))
                     {
@@ -169,9 +169,12 @@ namespace JamKit.BulletHell
             return r;
         }
 
-        /// <summary>Upgrades worth echoing: anything with lasting modifiers or effects (not "+15 coins").</summary>
-        static bool Echoable(UpgradeDef d)
+        /// <summary>An upgrade that keeps doing something once owned: stat modifiers or a lasting effect. Not
+        /// "+15 coins" or "+1 life", which pay out once when taken: the encounters (altar offerings, trades,
+        /// sales) and remnants ignore those, so they can't be cashed in twice.</summary>
+        public static bool HasLastingEffect(UpgradeDef d)
         {
+            if (d == null) return false;
             if (d.modifiers != null && d.modifiers.Count > 0) return true;
             if (d.effects != null)
                 foreach (var e in d.effects) if (!IsInstant(e)) return true;

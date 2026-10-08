@@ -1,9 +1,12 @@
 # Bullet-hell roguelite template: how to change it without code
 
 A vertical shoot-'em-up run: **3 floors**, each a row of 5-6 rooms ending in a **boss**. Battle
-rooms play waves of enemies; between rooms the player picks **1 of 3 upgrades**, chooses doors,
-shops, rests or meets a stranger (an ink dialogue). Beat the third boss to win. A full run takes
-about 10-14 minutes.
+rooms play waves of enemies, then the player picks **1 of 3 upgrades** (commons and rares); a boss
+gives a **choice of 3 epics**. Between battles: doors, shops, rests, strangers (ink dialogues) and the
+**encounter rooms** where the player chooses a risk: the Forge, the Altar, a Wager, a Trial board and the
+Trader. A companion fights beside the ship, and a dead run leaves a **remnant** for the next. Beat the
+third boss to win. A full run takes about 10-15 minutes. The design rules behind all this are in
+`docs/DESIGN-ROGUELITE.md`.
 
 Everything you'd want to change is a **data asset** in the Inspector. Duplicate an asset
 (Ctrl+D), change numbers, drag it into a list. No code.
@@ -29,7 +32,9 @@ Everything you'd want to change is a **data asset** in the Inspector. Duplicate 
 | Rooms (a list of waves) | `Data/Rooms/*.asset` |
 | Bosses (phases) | `Data/Bosses/*.asset` |
 | Upgrades | `Data/Upgrades/*.asset` |
-| Mystery-room dialogue | `Dialogue/BulletHellEvents.ink` |
+| The companion | `Data/Companion.asset` |
+| Reward tables, trials, wagers, forge/altar/trader rules, remnants | `Data/BulletHellConfig.asset` |
+| Mystery-room dialogue, story hooks, encounter lines, companion barks | `Dialogue/BulletHellEvents.ink` |
 | HUD and card layout | `UI/BulletHell.uss` (colours come from `Assets/JamKit/UI/Theme.uss`) |
 | Placeholder art | `Art/Generated/*.png` |
 
@@ -39,7 +44,10 @@ EditMode tests run the same checks.
 
 **JamKit > Rebuild Shell Scenes** rebuilds the scene and art but **keeps your data**: it only creates
 assets that are missing. **JamKit > Bullet Hell > Reset Content to Defaults** puts every data asset
-back to the template's values (your changes to them are lost).
+back to the template's values (your changes to them are lost). One exception: when the template's
+content changes (a *content revision*, stored in the config), the first rebuild after it rewrites the
+assets that revision changed, once. Revision 2 (the roguelite round) rewrote the config, the player and
+the upgrades, and deleted Rear Guard and Overdrive.
 
 ## Coordinates
 
@@ -107,23 +115,134 @@ Duplicate a room in `Data/Rooms`, set **Type** (Combat or Elite), the **Waves** 
 
 1. Duplicate an upgrade in `Data/Upgrades`.
 2. **Def**: a unique **Id** (lowercase, no spaces), **Display Name**, **Description** (one line,
-   what it does), **Rarity** (Common, Rare, Epic, Legendary: rarer = shown less often),
-   **Max Stacks** (how many times it can be taken; 0 = unlimited).
+   what it does), **Rarity** (Common, Rare, Epic, Legendary), **Max Stacks** (how many times it can be
+   taken; 0 = unlimited) and **Tags** (`gun`, `move`, `bomb`, `defense`, `economy`, `risk`, `companion`:
+   trials count them, e.g. "own 3 gun upgrades"; `companion` upgrades leave the pool when the
+   companion is off).
 3. What it does, either or both:
    - **Modifiers** change numbers. *Stat* is one of: `damage`, `fire_rate`, `move_speed`,
-     `shot_speed`, `graze_radius`, `luck`, `magnet`, `coin_gain`, `bomb_power`, and for the sprint
+     `shot_speed`, `graze_radius`, `luck`, `magnet`, `coin_gain`, `bomb_power`, for the sprint
      `sprint_speed` (the sprint's extra speed), `stamina_max` (a longer bar), `stamina_regen` (faster
-     recharge), `room_sprint_budget` (more sprint per room); all start at 1. *Op*: Flat (+value),
-     PercentAdd (0.2 = +20%), Multiply (1.5 = x1.5).
+     recharge), `room_sprint_budget` (more sprint per room), for the Bomb Bay `bomb_recharge` (faster
+     recharge), and for the companion `companion_damage` and `companion_shield_cooldown` (0.7 = its guard
+     is back 30% sooner); all start at 1. *Op*: Flat (+value), PercentAdd (0.2 = +20%), Multiply (1.5 = x1.5).
    - **Effects** are special abilities, by id: `spread` (+2 side streams per stack), `pierce` (shots go
-     through one more enemy per stack), `homing` (side streams curve to enemies), `rear_shot`,
-     `bigger_bombs` (+50% per stack), `graze_heal` (grazes restore life), `bomb_plus` (+1 bomb now
-     and +1 max), `life_up` (+1 life), `auto_bomb` (a hit fires a bomb instead), `focus_slow`
-     (enemy bullets slow while sprinting, or focusing when Focus mode is on), `coins:15` (15 coins now).
-   - *Requires* / *Excludes*: ids it needs, or can't be owned with.
+     through one more enemy per stack), `homing` (side streams curve to enemies), `rebound` (two
+     streams fire down, bounce off the floor and climb back +60% hotter), `bomb_bay` (bombs: see below),
+     `bomb_plus` (+1 bomb in the Bay), `bigger_bombs` (+50% per stack), `auto_bomb` (a hit fires a
+     bomb instead), `ghost_step` (bullets pass through you while sprinting), `graze_power` (grazes heat
+     your guns: up to +60% damage), `last_stand` (+50% damage, +30% fire rate on your last life),
+     `focus_slow` (bullets near you move at half speed), `graze_heal` (grazes restore life), `life_up`
+     (+1 life), `coins:15` (15 coins now). `rear_shot` (two streams backwards) still works but isn't
+     shipped: the balance report flags it (players sit low, nothing gets behind them).
+   - *Requires* / *Excludes*: ids it needs (an upgrade id or an effect id, e.g. `bomb_bay`), or can't be
+     owned with. A required upgrade is only offered once its base is owned.
 4. **Icon Text** (2-3 letters) and **Icon Color** for the HUD, or an **Icon** sprite.
-5. Add it to `BulletHellConfig > Upgrades`. The **Fallback Upgrade** (Pocket Change) is offered when
-   nothing else can be.
+5. **Forge**: what one Forge push adds (*Forge Modifiers*, *Forge Effects*, a few words in *Forge
+   Text*). Left empty, a push adds half of the upgrade's own modifiers.
+6. **Epics and legendaries** must fill the **Rubric** (docs/DESIGN-ROGUELITE.md, section 2): the *Verb* it
+   changes (Move, Aim, Dodge, Risk), at least two *Situations* (`boss`, `waves`, `open`, `crowded`,
+   `divers`, `sides`, `turrets`, `low_life`, `long_fights`), *Where Player Is* when it works, and the
+   in-universe *Idea*; plus **Design Notes** (which situations it's for, what the balance report said).
+   Validate Content and the EditMode tests hold every epic to it.
+7. Add it to `BulletHellConfig > Upgrades`. The **Fallback Upgrade** (Pocket Change) is offered when
+   nothing else can be. Then run the **Balance Report** (below).
+
+### The shipped upgrades
+
+| | Upgrade | Does | For |
+|---|---|---|---|
+| Common | Sharp Rounds, Rapid Trigger, Hot Barrels | damage, fire rate, shot speed | |
+| Common | Light Frame, Wide Halo, Coin Magnet | move speed, graze ring, coins | |
+| Common | Spare Bomb, Quick Fuse | +1 bomb in the Bay, Bay recharges 35% faster (need the Bomb Bay) | |
+| Rare | Twin Spread, Piercing Shot | +2 side streams; pierce +1 and +8% damage | |
+| Rare | Big Bang (needs the Bay), Lucky Charm, Close Shave, Extra Life | bigger bombs, luck, grazes heal, +1 life | |
+| Rare | Kindred Sting, Steady Wings | companion damage +60%, companion guard back 30% sooner | |
+| **Epic** | **Seeker Rounds** | side streams home in | aim: dodge where you like, damage still lands |
+| **Epic** | **Backdraft** | rebound shots off the floor, hotter | aim: rewards sitting low; the rear gun's replacement |
+| **Epic** | **Bomb Bay** | 2 bombs that recharge every 20 s of fighting | risk: a panic button for bosses and crowds |
+| **Epic** | **Guardian Angel** (needs the Bay) | a hit fires a bomb instead | risk: insurance while a bomb is stocked |
+| **Epic** | **Ghost Step** | sprinting passes through bullets; sprint drains faster | dodge: dash through a wall |
+| **Epic** | **Ember Hunger** | grazes heat your guns, up to +60% | risk: stay close to the bullets |
+| **Legendary** | **Time Dilation** | bullets near you move at half speed | dodge: dense boss patterns |
+| **Legendary** | **Red Line** | +50% damage, +30% fire rate on your last life | risk: pairs with the Altar's life offering |
+
+## Where power comes from (reward tables)
+
+`BulletHellConfig > Rewards` has one **reward table** per source. Each has a weight per rarity (0 =
+never), **Epic Chance** (the small chance that one card is swapped for an epic), **Cards** (0 = the
+economy's draft size), **Luck Bonus** and **Include Remnants**. The defaults follow
+docs/DESIGN-ROGUELITE.md, section 1:
+
+| Source | Offers |
+|---|---|
+| Battle (after every Battle room) | commons and rares, 5% chance of one epic (turn **Enabled** off for no draft after battles) |
+| Elite, Treasure, Rest (Train), Mystery (`bh:draft`), Shop | commons and rares, 5-15% epic chance |
+| **Boss** | **a guaranteed choice of 3 epics** (legendaries rarely) |
+| **Trial**, **Sacrifice** (Altar), **Wager** | epics: a reward for a condition you planned for, or something given up |
+| Trader | rares |
+
+When an epic screen runs out of epics (late in a run), it tops up from the next rarity down. Validate
+Content checks the rules: bosses, trials, sacrifices and wagers offer only epics, and normal battles
+get epics only through the small chance.
+
+## Bombs (the Bomb Bay)
+
+There are **no bombs in the starting kit** (*Bombs Per Life* 0 in Player.asset). The **Bomb Bay** epic
+gives *Bay Bombs* (2) that recharge one every *Bomb Recharge Seconds* (20) while fighting; a new floor
+fills it. Its upgrades stack on it: Spare Bomb (+1), Quick Fuse (recharge), Big Bang (power), Guardian
+Angel (auto-bomb). Without a Bay, the shop sells no bombs and a bomb from a Rest or an event becomes
+coins. To give bombs from the start again, set *Bombs Per Life* above 0.
+
+## Encounter rooms (between battles)
+
+Five room types where the player chooses a risk (docs/DESIGN-ROGUELITE.md, section 3). Their weights
+are in `Run` (*Forge Weight*, *Altar Weight*, *Wager Weight*, *Trial Weight*, *Trader Weight*; 0 turns
+one off); each plays its ink line first (`forge`, `altar`, `wager`, `trial_board`, `trader`, or
+`<kind>_floor_<n>`), then a choice screen. The numbers and lists are in the config:
+
+| Room | What happens | Data |
+|---|---|---|
+| **Forge** | Pick an owned upgrade and push it: +1 level (its Forge bonus). The first push is safe; each further push on the visit shows its odds of **breaking** the upgrade (25%, 50%...), and a break loses it with everything forged into it | `Forge`: break chances, max pushes, default bonus scale, scrap coins |
+| **Altar** | One offering: an upgrade, a life, or your breath (max stamina -30% for the run) for a choice of epics; or feed one upgrade to another (+2 forge levels, no risk) | `Altar` |
+| **Wager** | Up to 2 deals: stake a life, coins or a curse (a stat penalty until the condition ends) on the next fight's condition; win and choose an epic | `Wagers` (a stake, a curse, a condition) |
+| **Trial board** | Up to 3 conditions for the next fight(s): no hits, no sprint, a timer, own N upgrades of a tag, graze N bullets, no bombs. Meet it, choose an epic; fail, lose nothing | `Trials` |
+| **Trader** | Two commons (one stack each) for a choice of rares, or sell a stack for half its shop price | `Trader` |
+
+Running trials and wagers are listed under **TRIALS** on the right of the HUD. Trials count Battle and
+Elite rooms only (a boss fight doesn't count or break them). Instant pickups (Pocket Change, Extra
+Life) can't be offered, traded or sold.
+
+## Dying leaves a remnant
+
+Dying is never limited, and something carries forward (docs/DESIGN-ROGUELITE.md, section 5). On death
+the run's **best upgrade** (the rarest with a lasting effect, then the most stacks) becomes a
+**remnant**: its stat modifiers at half strength, its effects kept, plus a small stat from how you died
+(a boss: damage; an elite: fire rate; a battle: move speed). The save keeps the newest 3
+(`BulletHellConfig > Remnants`, in `SaveData.entries` under `bh_remnants`). Later drafts can show one,
+marked **REMNANT** (always on the first draft of a run, then a 40% chance per draft); taking it uses
+it up. The Game Over screen lists "Remnant left".
+
+## The companion
+
+`Data/Companion.asset` (a CompanionDef; *Companion Enabled* in the config turns it off). In battle it
+orbits the ship and **shoots** the nearest enemy (40% of a ship shot), **guards**: takes one bullet
+meant for you, then recharges (18 s; the GUARD meter on the left and the ring around it show when it's
+ready), and **barks**: a one-line call-out of the boss's next pattern a moment before it starts, from
+ink, without stopping the game. Its conversations between battles are the Rest room's line. Upgrades
+target it with `companion_damage` and `companion_shield_cooldown` (Kindred Sting, Steady Wings).
+
+## Balance report
+
+**JamKit > Bullet Hell > Balance Report** (a minute or two): a scripted dodge bot plays every Battle and
+Elite room (and each boss's first phase) with each upgrade alone and with none, and writes
+`out/balance-report.md` and `.csv`: per upgrade its **DPS against the baseline**, its own **share of the
+damage** (its streams, bombs, companion), **hits taken** and **time to clear**. Anything that improves
+none of them by 5% is **FLAGGED**. The bot sits low (where players are), lines up under enemies,
+reacts every 0.18 s, and plays to its upgrade (it grazes on purpose with Ember Hunger, sprints into
+danger with Ghost Step). Upgrades that only touch coins, luck or lives are listed as not simulated.
+Batch: `-executeMethod JamKit.BulletHell.EditorTools.BulletHellBalance.RunFromCommandLine` (optional
+`-balanceSeeds 3`). The simulation is pure C# (`BalanceSim`, `BalanceReport`), tested in core-tests.
 
 ## Add a boss phase, or a boss
 
@@ -154,7 +273,7 @@ To add a boss: duplicate one, edit it, and set it as a floor's **Boss** in the c
 
 ## Tune the difficulty and the pace
 
-- **Player.asset**: *Lives* (3), *Bombs Per Life* (2), *Move Speed*, *Hitbox Radius*
+- **Player.asset**: *Lives* (3), *Bombs Per Life* (0: bombs come from the Bomb Bay epic), *Move Speed*, *Hitbox Radius*
   (tiny = forgiving), *Graze Radius*, *Invulnerable After Hit*, the gun's *Fire Interval*,
   *Shot Damage*, *Auto Fire*.
 - **Sprint** (Player.asset > Sprint): *Speed Multiplier* (1.6 = 60% faster), *Stamina Seconds* (1.5: one
@@ -180,7 +299,8 @@ To add a boss: duplicate one, edit it, and set it as a floor's **Boss** in the c
   The creator's first playtest reached floor 3 in under 10 minutes on Normal, so Normal suits a
   practised player; Story is the one for a nervous stranger. To skip the picker, untick
   **Choose Difficulty On Play** in GameConfig.
-- A run is about 10-14 minutes: ~2-3 battle rooms of ~30-40 s per floor plus a 45-75 s boss.
+- A run is about 10-15 minutes: ~2-3 fights of ~30-40 s per floor plus a 45-75 s boss, a draft after each
+  fight (a few seconds) and 1-2 encounter rooms per floor (the weights keep fights at about 2.5 steps a floor).
   More waves per room or more rooms per floor make it longer.
 
 ## Mystery rooms (ink)
@@ -209,6 +329,9 @@ one-line placeholders that say "(Placeholder)" in game.
 | A boss phase starts (2, 3...) | `boss_<id>_phase_<n>`, `boss_<id>_phase`, `boss_phase` | a dialogue; the boss has just cleared its bullets; cleared again after |
 | A boss falls | `boss_<id>_defeat`, `boss_defeat` | a dialogue, then "Boss defeated!" |
 | The player dies | `death_<killer>`, `death_floor_<floor>`, `death` | **not a dialogue**: the knot's first line of text shows on the Game Over screen, with its `#speaker` |
+| An encounter room, before its choice | `forge_floor_<floor>`, `forge` (also `altar`, `wager`, `trial_board`, `trader`) | a dialogue |
+| The companion calls out the boss's next pattern | `companion_bark_<id>_<shape>`, `companion_bark_<shape>` (`ring`, `aimed`, `spiral`, `wall`, `spread`, `shotgun`) | **not a dialogue**: its first line shows low on the screen for a moment; the game keeps going |
+| The companion takes a bullet; your last life | `companion_bark_guard`, `companion_bark_low_life` | the same kind of bark |
 
 - **`<id>`** is the boss's **Story Id** (BossDef), or, when that's empty, its display name in lowercase
   with underscores: `gatekeeper`, `forgemother`, `the_last_light`.
@@ -216,9 +339,12 @@ one-line placeholders that say "(Placeholder)" in game.
 - **`<run>`** counts runs started on this save (1 on the very first run), **`<floor>`** is 1, 2 or 3.
 - **ink functions** for choosing lines (declare them with `EXTERNAL`, as the file does):
   `run_count()` (1 on the first run: the persistent playthrough counter, from the shell, saved
-  across runs and restarts), `current_floor()`, `killer()`, `runs_won()`, `best_floor()`, and
-  `has_flag(name)` / `set_flag(name)` (saved across runs). So one `death` knot can say something
-  different on the first death, to a particular boss, or after an earlier choice.
+  across runs and restarts), `current_floor()`, `killer()`, `runs_won()`, `best_floor()`,
+  `companion_name()`, `companion_guards()` (bullets the companion took for you this run: the Rest line
+  uses it), and `has_flag(name)` / `set_flag(name)` (saved across runs). So one `death` knot can say
+  something different on the first death, to a particular boss, or after an earlier choice.
+- Barks are throttled (one every 6 s at most, each boss pattern step called out once per phase);
+  keep them to a few words.
 - While a line shows, the game is in the Dialogue state: time stops, Pause works, nothing moves.
   After any boss line the enemy bullets are cleared and the ship gets 1 s of safety, so nothing that
   was in the air hits the player when the line closes.
@@ -261,7 +387,9 @@ PLACEHOLDER examples (what the file ships with; replace the text, keep the names
 ```
 
 The shipped placeholders: `run_start`, `rest`, `boss_gatekeeper_intro`, `boss_gatekeeper_phase_2`,
-`boss_gatekeeper_defeat` and `death`. The other two bosses are silent until someone writes theirs.
+`boss_gatekeeper_defeat`, `death`, the five encounter lines, and barks for every pattern shape plus
+`companion_bark_gatekeeper_ring`, `companion_bark_guard` and `companion_bark_low_life`. The other two
+bosses are silent until someone writes theirs.
 `dotnet test core-tests/BulletHell/BulletHell.Tests.csproj` compiles the ink and plays every hook headless.
 
 ## Controls
@@ -271,7 +399,7 @@ The shipped placeholders: `run_start`, `rest`, `boss_gatekeeper_intro`, `boss_ga
 | Move | WASD, arrows | left stick, d-pad |
 | Sprint: hold (limited stamina, and a sprint budget per fight room) | Left Shift | LB |
 | Fire | automatic (or J / left mouse if Auto Fire is off) | RT |
-| Bomb | K, right mouse, Space | A, LT, RB |
+| Bomb (once you have the Bomb Bay) | K, right mouse, Space | A, LT, RB |
 | Pick a card / door | arrows + Enter, or click | stick + A |
 | Pause | Escape, P | Start |
 | Focus (off by default: slow, precise, hitbox shown) | no key until you bind one | - |
@@ -295,22 +423,32 @@ The creator's first run held Shift expecting a sprint, so **Shift is Sprint**:
 ## Debug
 
 The debug menu (` or F1): **God mode**, time x0.25 / x2, **Win**, **Lose** and **Next scene**, which
-here **skips the current step**: kills the room's enemies, kills the boss, takes a choice or ends a
-dialogue. From code: `BulletHellGame.Current.DebugSkip()`, `.Bomb()`,
-`BulletHellGame.SeedOverride = 123` (the next run uses that seed: same rooms, same drafts).
+here **skips the current step**: kills the room's enemies, kills the boss, takes a choice (walks out of
+shops and encounter rooms) or ends a dialogue. From code: `BulletHellGame.Current.DebugSkip()`,
+`.Bomb()`, `.DebugEnterRoom(RoomType.Forge)` (turns the current room into any room type, to try an
+encounter or a boss at once), `.DebugAddTrial(def)`, `BulletHellGame.SeedOverride = 123` (the next run
+uses that seed: same rooms, same drafts).
+
+The smoke run (`tools/smoke.ps1`) takes at least one draft and one encounter (a Forge if the doors
+didn't offer one) and logs both (`JAMKIT_SMOKE bullet hell draft from ...`, `... encounter ...`).
 
 ## For programmers
 
 - Pure rules (no Unity) are in `Packages/com.vibejam.jamkit/Runtime/Core/BulletHell`: `BulletPool`
-  (struct-array bullets, culling, hit/graze/bomb tests), `EnemyMover`, `BossPhaseTracker`,
-  `ShmupLoadout` (stats + upgrade effects + the shot volley), `ShmupEconomy`, `RoomEventEffect`.
-  Tested with `dotnet test core-tests/BulletHell/BulletHell.Tests.csproj`.
+  (struct-array bullets, culling, hit/graze/bomb tests, bounce, Time Dilation's `SlowNear`),
+  `EnemyMover`, `BossPhaseTracker`, `ShmupLoadout` (stats + upgrade effects + the shot volley),
+  `ShmupEconomy`, `RoomEventEffect`, `Rewards` (reward tables and `RewardDraw`), `Trials` (trials,
+  wagers, `TrialTracker`), `Encounters` (forge, altar, trader rules, `EpicRubric`), `Remnants`,
+  `Abilities` (`BombBay`, `PowerBoosts`), `Companion` (`CompanionState`, `PatternCallout`) and
+  `BalanceSim` (`BalanceReport`). `UpgradeInventory` (core Roguelite) can remove stacks and carries
+  bonus levels. Tested with `dotnet test core-tests/BulletHell/BulletHell.Tests.csproj`.
 - The Unity layer is `Templates/BulletHell/Scripts`: `BulletHellGame` (the run and the per-frame
-  order), `BulletField` (bullets, drawn with GPU instancing: `InstancedQuads` +
+  order; encounters in `BulletHellGame.Encounters.cs`, the companion in `BulletHellGame.Companion.cs`),
+  `BulletField` (bullets, drawn with GPU instancing: `InstancedQuads` +
   `Shaders/BulletInstanced.shader`), `ShmupPlayer`, `ShmupEnemy`, `ShmupBoss`, `FxField`, `CoinField`,
   `UI/BulletHellHud`, `UI/ChoicePanel`.
 - The editor builder is `Templates/BulletHell/Editor`: `BulletHellContent` (the default data, in
-  code), `BulletHellArt` (placeholder art), `BulletHellBuilder` (scene, material, preset),
-  `BulletHellTemplate` (the Use Template menu). Batch:
+  code, with its content revision), `BulletHellArt` (placeholder art), `BulletHellBuilder` (scene,
+  material, preset), `BulletHellBalance` (the balance report), `BulletHellTemplate` (the Use Template menu). Batch:
   `-executeMethod JamKit.BulletHell.EditorTools.BulletHellTemplate.UseFromCommandLine`.
 - Delete the whole `Templates/BulletHell` folder to drop the template.

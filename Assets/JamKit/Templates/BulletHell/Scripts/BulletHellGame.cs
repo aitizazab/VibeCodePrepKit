@@ -13,15 +13,17 @@ namespace JamKit.BulletHell
 {
     /// <summary>
     /// The bullet-hell roguelite: one run of 3 floors (core RunGenerator from the config's RunConfig),
-    /// room by room. Battle and Elite rooms play waves; Treasure is a free draft; Rest heals or
-    /// trains; Shop sells upgrades, lives and bombs; Mystery plays an ink event whose tags change the
-    /// run; Boss is the floor's boss. Doors appear when the plan forks. Clearing the last boss wins
-    /// (GameRoot.Win), losing every life loses (GameRoot.Lose).
+    /// room by room. Battle and Elite rooms play waves, then a draft from their reward table; Treasure
+    /// is a free draft; Rest heals or trains; Shop sells upgrades, lives and bombs; Mystery plays an ink
+    /// event whose tags change the run; Boss is the floor's boss, then a guaranteed choice of epics.
+    /// The encounter rooms (Forge, Altar, Wager, Trial board, Trader) are in BulletHellGame.Encounters.cs,
+    /// the companion in BulletHellGame.Companion.cs. Doors appear when the plan forks. Clearing the last
+    /// boss wins (GameRoot.Win), losing every life loses (GameRoot.Lose) and leaves a remnant.
     /// This component owns the per-frame order: player, waves, enemies, boss, bullets, collisions.
     /// Debug "Next scene" (and the smoke run) skip the current room, kill the boss or take a choice.
     /// </summary>
     [DefaultExecutionOrder(-100)]
-    public sealed class BulletHellGame : MonoBehaviour
+    public sealed partial class BulletHellGame : MonoBehaviour
     {
         public enum RoomPhase { Starting, Intro, Waves, Boss, Cleared, Choosing, Dialogue, Finished }
 
@@ -80,11 +82,10 @@ namespace JamKit.BulletHell
 
         RunState _run;
         readonly ShmupLoadout _loadout = new ShmupLoadout();
-        UpgradeDraft _draft, _shopDraft;
+        RewardDraw _draft, _shopDraft;
         UpgradeDef _fallback;
         Rng _draftRng, _roomRng;
         readonly List<UpgradeDef> _pool = new List<UpgradeDef>();
-        readonly List<UpgradeDef> _filtered = new List<UpgradeDef>();
         readonly Dictionary<string, UpgradeAsset> _assets = new Dictionary<string, UpgradeAsset>();
         readonly List<UpgradeDef> _offer = new List<UpgradeDef>();
         readonly List<ShopItem> _shop = new List<ShopItem>();
@@ -112,12 +113,33 @@ namespace JamKit.BulletHell
         float _grazeHeal, _bombTimer, _sfxGraze, _sfxHit, _sfxCoin, _scoreTextClock;
         bool _scoreDirty;
 
-        List<UpgradeDef> _draftPool;
+        RewardTable _draftTable;
+        RewardSource _draftSource;
+        readonly RewardTable _filteredTable = new RewardTable();
         float _draftLuck;
         string _draftHeading, _draftSub;
         Action _afterChoice;
-        bool _eventActive, _pendingDraft;
+        bool _eventActive, _pendingDraft, _firstDraftOfRun;
         Rarity _pendingDraftMin;
+
+        // Reward screens waiting after a room (a trial's epic, then the room's own draft).
+        struct PendingReward
+        {
+            public RewardSource source;
+            public string heading, sub;
+        }
+        readonly List<PendingReward> _rewardQueue = new List<PendingReward>();
+
+        // Trials and wagers in progress; boosts; remnants of earlier runs.
+        readonly List<TrialTracker> _trials = new List<TrialTracker>();
+        readonly PowerBoosts _boosts = new PowerBoosts();
+        int _grazesLastFrame;
+        float _trialHudClock;
+        RemnantBook _remnantBook = new RemnantBook();
+        /// <summary>Save entry the remnants live under (SaveData.entries).</summary>
+        public const string RemnantSaveKey = "bh_remnants";
+        readonly List<string> _encounterLog = new List<string>();
+        readonly List<RewardSource> _draftSources = new List<RewardSource>();
 
         BulletHellHud _hud;
         ChoicePanel _choice;
@@ -163,6 +185,19 @@ namespace JamKit.BulletHell
         public FirstTimeHint SprintHint => _sprintHint;
         /// <summary>Who ended the run, as the death hooks see it: the boss's story id in a boss fight, else "elite" or "battle".</summary>
         public string Killer => _killer;
+        /// <summary>Trials and wagers running now (cleared when they pass or fail).</summary>
+        public IReadOnlyList<TrialTracker> Trials => _trials;
+        /// <summary>The remnants saved from earlier runs (newest last).</summary>
+        public RemnantBook SavedRemnants => _remnantBook;
+        /// <summary>What happened in encounter rooms this run, in order ("forge: pushed Sharp Rounds +1"): tests, the smoke log.</summary>
+        public IReadOnlyList<string> EncounterLog => _encounterLog;
+        /// <summary>The reward source of every draft opened this run, in order.</summary>
+        public IReadOnlyList<RewardSource> DraftSources => _draftSources;
+        /// <summary>The source of the draft on screen (or the last one).</summary>
+        public RewardSource CurrentDraftSource => _draftSource;
+        /// <summary>The cards of the draft or shop on screen.</summary>
+        public IReadOnlyList<UpgradeDef> Offer => _offer;
+        public PowerBoosts Boosts => _boosts;
 
         // ---------- Setup ----------
 
@@ -185,13 +220,16 @@ namespace JamKit.BulletHell
             foreach (var a in config.upgrades)
             {
                 if (a == null || a.def == null || string.IsNullOrEmpty(a.def.id)) continue;
-                _pool.Add(a.def);
                 _assets[a.def.id] = a;
+                // Companion upgrades only exist when the companion does.
+                if (!CompanionOn && a.def.tags != null && a.def.tags.Contains(CompanionTag)) continue;
+                _pool.Add(a.def);
             }
             _fallback = config.fallbackUpgrade != null ? config.fallbackUpgrade.def : null;
             if (_fallback != null && !string.IsNullOrEmpty(_fallback.id)) _assets[_fallback.id] = config.fallbackUpgrade;
-            _draft = new UpgradeDraft(_fallback);
-            _shopDraft = new UpgradeDraft(null);
+            _draft = new RewardDraw(_fallback);
+            _shopDraft = new RewardDraw(null);
+            LoadRemnants();
 
             GameRoot.Hud.Show();
             _hud = new BulletHellHud(GameRoot.Hud.Root, hudStyle, GameRoot.Config.showControlLegend);
@@ -216,6 +254,7 @@ namespace JamKit.BulletHell
             DebugMenu.SkipHandler = _skipHandler;
             _smokeDriver = SmokeDrive;
             SmokeRunner.GameplayDriver = _smokeDriver;
+            CreateCompanion();
 
             BeginRun();
         }
@@ -247,6 +286,15 @@ namespace JamKit.BulletHell
             player.Health.Died += OnPlayerDied;
             _score = _grazes = _rerolls = _kills = _bossesBeaten = _draftsTaken = _hitsTaken = _roomsCleared = 0;
             _grazeHeal = 0f;
+            _grazesLastFrame = 0;
+            _trials.Clear();
+            _rewardQueue.Clear();
+            _encounterLog.Clear();
+            _draftSources.Clear();
+            _boosts.Reset();
+            _firstDraftOfRun = true;
+            _hud.SetTrials(_trials);
+            BeginCompanion();
             _lastFloor = -1;
             GameRoot.Run.score = 0;
             _scoreDirty = true;
@@ -281,8 +329,16 @@ namespace JamKit.BulletHell
 
             bool fighting = _phase == RoomPhase.Intro || _phase == RoomPhase.Waves || _phase == RoomPhase.Boss || _phase == RoomPhase.Cleared;
             player.ControlsEnabled = fighting && !_choice.IsOpen;
+            // The moment-to-moment epics (Ember Hunger's heat, Red Line on the last life) set the gun's boost.
+            _boosts.Tick(dt, config.boosts, _loadout.Effect(ShmupEffects.GrazePower), _loadout.Effect(ShmupEffects.LastStand),
+                _grazesLastFrame, player.Health.Current <= 1.01f);
+            _grazesLastFrame = 0;
+            _loadout.DamageBoost = _boosts.DamageMultiplier;
+            _loadout.FireRateBoost = _boosts.FireRateMultiplier;
             player.Tick(dt, field, _bounds);
             var sprint = player.Sprint;
+            if (player.Sprinting)
+                for (int i = 0; i < _trials.Count; i++) _trials[i].Sprinted();
             if (sprint.StaminaEmptiedThisTick || sprint.BudgetEmptiedThisTick)
             {
                 // Out of breath (or out of this room's sprint): flash the meter, a soft "empty" sound.
@@ -294,12 +350,16 @@ namespace JamKit.BulletHell
                 _sprintHint.Tick(dt, player.Sprinting);
                 _hud.SetSprintHint(_sprintHint.Alpha);
             }
-            field.EnemyTimeScale = (player.Focused || player.Sprinting) && _loadout.Effect(ShmupEffects.FocusSlow) > 0 ? 0.6f : 1f;
             var input = GameRoot.Input;
             // Bombs only while there's something to bomb (and never on the press that closed a menu).
-            bool canBomb = (_phase == RoomPhase.Waves || _phase == RoomPhase.Boss) && player.ControlsEnabled;
+            bool inFight = _phase == RoomPhase.Waves || _phase == RoomPhase.Boss;
+            bool canBomb = inFight && player.ControlsEnabled;
             if (canBomb && (input.Pressed(input.AltFire) || input.Pressed(input.Dash)) && player.TryUseBomb())
                 TriggerBomb(false);
+            // The Bomb Bay recharges while fighting.
+            if (player.TickBombs(dt, inFight)) GameRoot.Audio.Play("coin", 0.5f);
+            if (_phase == RoomPhase.Waves)
+                for (int i = 0; i < _trials.Count; i++) _trials[i].Tick(dt);
 
             switch (_phase)
             {
@@ -325,8 +385,12 @@ namespace JamKit.BulletHell
             if (boss.IsActive) boss.Tick(dt, pp);
 
             int targets = FillTargets();
+            TickCompanion(dt, pp, targets);
             field.Player.SteerHoming(_targets, targets, config.player.homingTurnRate, dt);
             field.Tick(dt);
+            // Time Dilation: the bullets close to the ship move slower.
+            if (_loadout.Effect(ShmupEffects.FocusSlow) > 0)
+                field.Enemy.SlowNear(new System.Numerics.Vector2(pp.x, pp.y), config.boosts.slowRadius, config.boosts.slowScale, dt);
             Collide(targets, pp, dt);
             Recycle();
 
@@ -414,7 +478,9 @@ namespace JamKit.BulletHell
             int grazed = field.Enemy.Graze(ppn, player.GrazeRadius, hitR);
             if (grazed > 0) OnGraze(grazed, pp, dt);
             if (player.IsInvulnerable || DebugMenu.GodMode || _bombTimer > 0f) return;
-            bool hit = field.Enemy.FirstOverlap(ppn, hitR) >= 0;
+            // Ghost Step: while sprinting, bullets pass through (bodies still hurt).
+            bool ghost = player.Sprinting && _loadout.Effect(ShmupEffects.GhostStep) > 0;
+            bool hit = !ghost && field.Enemy.FirstOverlap(ppn, hitR) >= 0;
             if (!hit)
                 for (int i = 0; i < _enemies.Count && !hit; i++)
                 {
@@ -446,10 +512,17 @@ namespace JamKit.BulletHell
         {
             var h = player.Health;
             _hud.SetLives(h.Current, h.Max);
-            _hud.SetBombs(player.Bombs, player.MaxBombs);
+            _hud.SetBombs(player.Bombs, player.MaxBombs, player.Bay.RechargeFraction);
             _hud.SetCoins(_run.currency);
             _hud.SetGraze(_grazes);
             _hud.SetSprint(player.Sprint);
+            _hud.SetGuard(CompanionOn, _companion.GuardFraction, _companion.GuardReady);
+            _trialHudClock -= udt;
+            if (_trials.Count > 0 && _trialHudClock <= 0f)
+            {
+                _trialHudClock = 0.25f;
+                _hud.SetTrials(_trials);
+            }
             if (boss.IsActive) _hud.SetBossHealth(boss.HealthFraction);
             _scoreTextClock -= udt;
             if (_scoreDirty && _scoreTextClock <= 0f)
@@ -475,7 +548,9 @@ namespace JamKit.BulletHell
             _wavesDone = false;
             _roomRng = new Rng(_run.RoomSeed());
             // Each fight room has its own sprint budget (the HUD meter fills back up).
-            if (_roomType == RoomType.Combat || _roomType == RoomType.Elite || _roomType == RoomType.Boss) player.RefillSprint();
+            if (RoomText.IsFight(_roomType)) player.RefillSprint();
+            if (_roomType == RoomType.Combat || _roomType == RoomType.Elite)
+                for (int i = 0; i < _trials.Count; i++) _trials[i].RoomStarted();
             field.Enemy.Clear();
             if (coins != null) coins.attractAll = false;
 
@@ -487,7 +562,7 @@ namespace JamKit.BulletHell
                 if (playfield != null && floor != null) playfield.color = floor.background;
                 if (fx != null && floor != null) fx.SetStarColor(new Color(floor.accent.r, floor.accent.g, floor.accent.b, 0.45f));
                 if (floor != null) _hud.NameCard("FLOOR " + (_run.floor + 1), floor.name, 2.2f);
-                if (_run.floor > 0) player.RefillBombs();
+                if (_run.floor > 0) player.FillBombs();
             }
             _hud.SetMap(_run, config);
             string where = "Floor " + (_run.floor + 1) + " - Room " + (_run.step + 1) + ": " + RoomText.Name(_roomType);
@@ -513,7 +588,7 @@ namespace JamKit.BulletHell
                     StartBoss();
                     break;
                 case RoomType.Treasure:
-                    OpenDraft("Treasure!", "Pick one upgrade to keep for this run.", 0f, Rarity.Common, Leave);
+                    OpenDraft("Treasure!", "Pick one upgrade to keep for this run.", RewardSource.Treasure, Leave);
                     break;
                 case RoomType.Rest:
                     // The companion's room: a line first (rest_floor_<n>, rest), then the choice.
@@ -525,6 +600,13 @@ namespace JamKit.BulletHell
                     break;
                 case RoomType.Event:
                     StartEvent();
+                    break;
+                case RoomType.Forge:
+                case RoomType.Altar:
+                case RoomType.Wager:
+                case RoomType.Trial:
+                case RoomType.Trader:
+                    StartEncounter(_roomType);
                     break;
                 default:
                     Leave();
@@ -688,19 +770,71 @@ namespace JamKit.BulletHell
                 coins.Clear();
                 coins.attractAll = false;
             }
+            _rewardQueue.Clear();
+            if (_roomType == RoomType.Combat || _roomType == RoomType.Elite) EvaluateTrials();
+            var rewards = config.rewards;
             switch (_roomType)
             {
+                case RoomType.Combat:
+                    if (rewards.battle != null && rewards.battle.enabled) QueueReward(RewardSource.Battle, "Room clear!", "Pick one upgrade.");
+                    break;
                 case RoomType.Elite:
-                    OpenDraft("Elite defeated!", "Pick one upgrade.", config.economy.eliteLuck, Rarity.Common, Leave);
+                    QueueReward(RewardSource.Elite, "Elite defeated!", "Pick one upgrade.");
                     break;
                 case RoomType.Boss:
-                    if (_run.IsLastFloor) Victory();
-                    else OpenDraft("Boss reward", "Pick one upgrade. The next floor is harder.", config.economy.bossLuck, Rarity.Common, Leave);
-                    break;
-                default:
-                    Leave();
+                    if (_run.IsLastFloor) { Victory(); return; }
+                    QueueReward(RewardSource.Boss, "Boss reward", "Choose an epic. The next floor is harder.");
                     break;
             }
+            NextReward();
+        }
+
+        void QueueReward(RewardSource source, string heading, string sub)
+        {
+            var t = config.rewards.Get(source);
+            if (t == null || !t.enabled) return;
+            _rewardQueue.Add(new PendingReward { source = source, heading = heading, sub = sub });
+        }
+
+        /// <summary>Opens the next queued reward screen, or leaves the room when there are none.</summary>
+        void NextReward()
+        {
+            if (_phase == RoomPhase.Finished) return;
+            if (_rewardQueue.Count == 0) { Leave(); return; }
+            var r = _rewardQueue[0];
+            _rewardQueue.RemoveAt(0);
+            OpenDraft(r.heading, r.sub, r.source, NextReward);
+        }
+
+        /// <summary>A Battle or Elite room was cleared: each running trial checks its condition. Passed ones
+        /// queue their reward (an epic choice); failed ones say why. Wager curses lift either way.</summary>
+        void EvaluateTrials()
+        {
+            for (int i = _trials.Count - 1; i >= 0; i--)
+            {
+                var t = _trials[i];
+                var state = t.RoomCleared(_loadout.Inventory);
+                if (state == TrialState.Running) continue;
+                EndTrial(t);
+                _trials.RemoveAt(i);
+                if (state == TrialState.Passed)
+                {
+                    QueueReward(t.reward, t.Def.displayName + ": done!", "You met the condition. Choose your reward.");
+                    _encounterLog.Add("trial passed: " + t.Def.id);
+                    GameRoot.Audio.Play("powerup");
+                }
+                else
+                {
+                    GameRoot.Hud.Message(t.Def.displayName + " failed. " + t.FailReason, 2.4f);
+                    _encounterLog.Add("trial failed: " + t.Def.id);
+                }
+            }
+            _hud.SetTrials(_trials);
+        }
+
+        void EndTrial(TrialTracker t)
+        {
+            if (!string.IsNullOrEmpty(t.curseSource)) _loadout.Stats.RemoveBySource(t.curseSource);
         }
 
         /// <summary>After a room: doors if the path forks, else straight on; the end of the last floor wins.</summary>
@@ -792,6 +926,8 @@ namespace JamKit.BulletHell
         void OnGraze(int n, Vector2 pp, float dt)
         {
             _grazes += n;
+            _grazesLastFrame += n;
+            for (int i = 0; i < _trials.Count; i++) _trials[i].Grazed(n);
             AddScore(20 * n);
             _sfxGraze -= dt;
             if (_sfxGraze <= 0f)
@@ -807,17 +943,16 @@ namespace JamKit.BulletHell
             if (_grazeHeal < every) return;
             _grazeHeal -= every;
             if (player.Heal(0.5f) > 0f) GameRoot.Juice.FloatingText(pp, "+1/2 life", new Color(0.5f, 1f, 0.6f));
-            else
-            {
-                player.AddBombs(1);
-                GameRoot.Juice.FloatingText(pp, "+1 bomb", new Color(1f, 0.85f, 0.4f));
-            }
+            else if (player.AddBombs(1) > 0) GameRoot.Juice.FloatingText(pp, "+1 bomb", new Color(1f, 0.85f, 0.4f));
+            else AddCoins(10, true);
             GameRoot.Audio.Play("powerup", 0.5f);
         }
 
         void OnPlayerHit()
         {
             Vector2 pp = player.Position;
+            // The companion takes the bullet if its guard is ready; then an auto-bomb; then a life.
+            if (TryCompanionGuard(pp)) return;
             if (_loadout.Effect(ShmupEffects.AutoBomb) > 0 && player.TryUseBomb())
             {
                 GameRoot.Juice.FloatingText(pp, "Auto-bomb!", new Color(1f, 0.85f, 0.4f));
@@ -829,6 +964,7 @@ namespace JamKit.BulletHell
             var r = h.Damage(new DamageInfo(1f, DamageKind.Bullet));
             if (r.applied <= 0f && !r.killed) return;
             _hitsTaken++;
+            for (int i = 0; i < _trials.Count; i++) _trials[i].PlayerHit();
             GameRoot.Audio.Play("hurt");
             GameRoot.Juice.HitStop(0.15f);
             GameRoot.Juice.Shake(0.6f);
@@ -838,6 +974,7 @@ namespace JamKit.BulletHell
             if (r.killed) return; // OnPlayerDied ends the run
             field.Enemy.ClearInCircle(new System.Numerics.Vector2(pp.x, pp.y), 3f);
             player.RefillBombs();
+            if (h.Current <= 1.01f) Bark("low_life", null);
         }
 
         void OnPlayerDied(DamageInfo info)
@@ -849,7 +986,38 @@ namespace JamKit.BulletHell
             RecordRun(false);
             GameRoot.Run.Set("Reached", "Floor " + (_run.floor + 1) + ", room " + (_run.step + 1));
             ChooseDeathLine();
+            LeaveRemnant();
             GameRoot.Lose();
+        }
+
+        // ---------- Remnants (docs/DESIGN-ROGUELITE.md, section 5) ----------
+
+        void LoadRemnants()
+        {
+            _remnantBook = new RemnantBook();
+            string json = GameRoot.Save.Data.GetEntry(RemnantSaveKey);
+            if (string.IsNullOrEmpty(json)) return;
+            try { JsonUtility.FromJsonOverwrite(json, _remnantBook); }
+            catch (Exception e) { Debug.LogWarning("BulletHellGame: the saved remnants didn't load (" + e.Message + ")."); _remnantBook = new RemnantBook(); }
+            if (_remnantBook.remnants == null) _remnantBook.remnants = new List<RemnantRecord>();
+        }
+
+        void SaveRemnants()
+        {
+            GameRoot.Save.Data.SetEntry(RemnantSaveKey, JsonUtility.ToJson(_remnantBook));
+            GameRoot.Save.Save();
+        }
+
+        /// <summary>The dead run leaves a remnant: its best upgrade, weakened, plus a stat from how it died.
+        /// Saved at once; later drafts can offer it (marked REMNANT).</summary>
+        void LeaveRemnant()
+        {
+            var r = JamKit.BulletHell.Remnants.Build(_loadout.Inventory, _killer, _run.floor + 1, Mathf.Max(1, GameRoot.Save.Data.runsStarted), config.remnants);
+            if (r == null) return;
+            _remnantBook.Remove(r.id);
+            _remnantBook.Add(r, config.remnants.maxKept);
+            SaveRemnants();
+            GameRoot.Run.Set("Remnant left", r.displayName);
         }
 
         /// <summary>The death screen's line, from ink: death_&lt;killer&gt;, death_floor_&lt;n&gt;, death. Read without
@@ -878,6 +1046,9 @@ namespace JamKit.BulletHell
         {
             story.BindExternalFunction("current_floor", () => (object)(_run != null ? _run.floor + 1 : 1), true);
             story.BindExternalFunction("killer", () => (object)(_killer ?? ""), true);
+            // The companion's battles feed its conversations (the Rest room's line can mention them).
+            story.BindExternalFunction("companion_name", () => (object)CompanionName, true);
+            story.BindExternalFunction("companion_guards", () => (object)(_companion != null ? _companion.Guards : 0), true);
         }
 
         /// <summary>Plays the first knot of <paramref name="candidates"/> the ink has, then runs
@@ -922,6 +1093,7 @@ namespace JamKit.BulletHell
 
         void TriggerBomb(bool auto)
         {
+            for (int i = 0; i < _trials.Count; i++) _trials[i].BombUsed();
             var def = config.player;
             Vector2 pp = player.Position;
             float power = _loadout.BombPower;
@@ -989,23 +1161,48 @@ namespace JamKit.BulletHell
 
         // ---------- Drafts, doors, shop, rest ----------
 
-        void OpenDraft(string heading, string sub, float luckBonus, Rarity minRarity, Action after)
+        /// <summary>A reward screen from <paramref name="source"/>'s table (BulletHellConfig > Rewards): rarities,
+        /// the small epic chance and maybe a remnant. <paramref name="minRarity"/> narrows it (an event's "draft:rare").</summary>
+        void OpenDraft(string heading, string sub, RewardSource source, Action after, Rarity minRarity = Rarity.Common)
         {
             _phase = RoomPhase.Choosing;
             _afterChoice = after;
             _draftHeading = heading;
             _draftSub = sub;
-            _draftLuck = _loadout.Luck + luckBonus;
-            if (minRarity == Rarity.Common) _draftPool = _pool;
-            else
+            _draftSource = source;
+            _draftSources.Add(source);
+            var table = config.rewards.Get(source) ?? new RewardTable();
+            if (minRarity > Rarity.Common)
             {
-                _filtered.Clear();
-                foreach (var d in _pool) if (d.rarity >= minRarity) _filtered.Add(d);
-                _draftPool = _filtered.Count > 0 ? _filtered : _pool;
+                _filteredTable.commonWeight = minRarity <= Rarity.Common ? table.commonWeight : 0f;
+                _filteredTable.rareWeight = minRarity <= Rarity.Rare ? Mathf.Max(table.rareWeight, 35f) : 0f;
+                _filteredTable.epicWeight = minRarity <= Rarity.Epic ? Mathf.Max(table.epicWeight, minRarity == Rarity.Epic ? 100f : 0f) : 0f;
+                _filteredTable.legendaryWeight = table.legendaryWeight;
+                _filteredTable.epicChance = table.epicChance;
+                _filteredTable.cards = table.cards;
+                _filteredTable.luckBonus = table.luckBonus;
+                _filteredTable.includeRemnants = table.includeRemnants;
+                table = _filteredTable;
             }
-            _draft.Offer(_draftPool, _loadout.Inventory, Mathf.Max(1, config.economy.draftSize), _draftRng, _offer, _draftLuck);
+            _draftTable = table;
+            float bonus = source == RewardSource.Elite ? config.economy.eliteLuck : source == RewardSource.Boss ? config.economy.bossLuck : 0f;
+            _draftLuck = _loadout.Luck + bonus;
+            DrawDraft(false);
             BuildDraft();
         }
+
+        void DrawDraft(bool reroll)
+        {
+            int cards = _draftTable.cards > 0 ? _draftTable.cards : Mathf.Max(1, config.economy.draftSize);
+            _draft.Offer(_draftTable, _pool, _loadout.Inventory, cards, _draftRng, _offer, _draftLuck, reroll);
+            // A remnant of an earlier run may take a card (always on the first draft of a run).
+            if (_draftTable.includeRemnants)
+                JamKit.BulletHell.Remnants.MaybeOffer(_remnantBook, config.remnants, _loadout.Inventory, _offer, _fallback, _draftRng,
+                    _firstDraftOfRun && config.remnants.firstDraftGuaranteed && !reroll);
+            _firstDraftOfRun = false;
+        }
+
+        static readonly Color RemnantColor = new Color(0.65f, 0.95f, 0.85f);
 
         void BuildDraft()
         {
@@ -1017,8 +1214,9 @@ namespace JamKit.BulletHell
                 string body = d.description;
                 if (owned > 0) body += d.Unlimited ? "\n(owned: " + owned + ")" : "\n(owned: " + owned + " / " + d.maxStacks + ")";
                 var asset = AssetFor(d.id);
-                _choice.AddCard(d.rarity.ToString().ToUpperInvariant(), config.RarityColor(d.rarity), d.displayName, body, "", true,
-                    () => PickUpgrade(d), asset != null ? asset.icon : null);
+                bool remnant = JamKit.BulletHell.Remnants.IsRemnant(d);
+                _choice.AddCard(remnant ? "REMNANT" : d.rarity.ToString().ToUpperInvariant(), remnant ? RemnantColor : config.RarityColor(d.rarity),
+                    d.displayName, body, "", true, () => PickUpgrade(d), asset != null ? asset.icon : null);
             }
             int cost = config.economy.RerollCost(_rerolls);
             _choice.AddFooter("Reroll (" + cost + " coins)", _run.currency >= cost, Reroll);
@@ -1031,7 +1229,7 @@ namespace JamKit.BulletHell
             int cost = config.economy.RerollCost(_rerolls);
             if (!_run.TrySpend(cost)) return;
             _rerolls++;
-            _draft.Reroll(_draftPool, _loadout.Inventory, Mathf.Max(1, config.economy.draftSize), _draftRng, _offer, _draftLuck);
+            DrawDraft(true);
             BuildDraft();
         }
 
@@ -1039,6 +1237,8 @@ namespace JamKit.BulletHell
         {
             TakeUpgrade(def);
             _draftsTaken++;
+            // A remnant is used up when taken.
+            if (JamKit.BulletHell.Remnants.IsRemnant(def) && _remnantBook.Remove(def.id)) SaveRemnants();
             FinishChoice();
         }
 
@@ -1051,13 +1251,20 @@ namespace JamKit.BulletHell
                 foreach (var e in def.effects)
                 {
                     if (e == ShmupEffects.LifeUp) player.AddLives(1f);
-                    else if (e == ShmupEffects.BombPlus) player.RaiseMaxBombs(1);
                     else if (ShmupEffects.TryParseAmount(e, ShmupEffects.Coins, out int n)) AddCoins(n, true);
                 }
-            _hud.SetUpgrades(_loadout.Inventory.Owned, _loadout.Inventory, AssetFor, config);
-            GameRoot.Run.Set("Upgrades", _loadout.Inventory.Owned.Count.ToString());
+            InventoryChanged();
             GameRoot.Audio.Play("powerup");
             GameRoot.Juice.FloatingText(player.Position + Vector2.up * 0.8f, def.displayName, config.RarityColor(def.rarity));
+        }
+
+        /// <summary>After any upgrade comes or goes (a pick, a sacrifice, a forge push or break): bombs follow
+        /// the Bay, the HUD redraws its icons.</summary>
+        void InventoryChanged()
+        {
+            player.RefreshBombs();
+            _hud.SetUpgrades(_loadout.Inventory.Owned, _loadout.Inventory, AssetFor, config);
+            GameRoot.Run.Set("Upgrades", _loadout.Inventory.Owned.Count.ToString());
         }
 
         void FinishChoice()
@@ -1088,10 +1295,11 @@ namespace JamKit.BulletHell
             _phase = RoomPhase.Choosing;
             _afterChoice = Leave;
             _shop.Clear();
-            _shopDraft.Offer(_pool, _loadout.Inventory, Mathf.Max(0, config.economy.shopUpgrades), _roomRng, _offer, _loadout.Luck);
+            _shopDraft.Offer(config.rewards.shop, _pool, _loadout.Inventory, Mathf.Max(0, config.economy.shopUpgrades), _roomRng, _offer, _loadout.Luck);
             foreach (var d in _offer) _shop.Add(new ShopItem { kind = ShopKind.Upgrade, def = d, price = config.economy.PriceOf(d.rarity) });
             _shop.Add(new ShopItem { kind = ShopKind.Life, price = config.economy.lifePrice });
-            _shop.Add(new ShopItem { kind = ShopKind.Bomb, price = config.economy.bombPrice });
+            // Bombs only for a ship with a Bomb Bay.
+            if (player.MaxBombs > 0) _shop.Add(new ShopItem { kind = ShopKind.Bomb, price = config.economy.bombPrice });
             BuildShop();
         }
 
@@ -1147,19 +1355,20 @@ namespace JamKit.BulletHell
             var h = player.Health;
             bool hurt = h.Current < h.Max - 0.01f;
             _choice.Begin(ChoicePanel.Kind.Rest, "Rest site", "Catch your breath before the boss.");
+            bool bombRoom = player.Bombs < player.MaxBombs;
             _choice.AddCard("REST", new Color(0.5f, 1f, 0.6f), hurt ? "Heal" : "Stock up",
-                hurt ? "Restore 1 life." : "Your lives are full: take a bomb instead.", "", true, RestHeal);
+                hurt ? "Restore 1 life." : bombRoom ? "Your lives are full: take a bomb instead." : "Your lives are full: take 20 coins instead.", "", true, RestHeal);
             _choice.AddCard("TRAIN", new Color(0.45f, 0.75f, 1f), "Train", "Pick one upgrade.", "", true, () =>
             {
                 _choice.Close();
-                OpenDraft("Training", "Pick one upgrade.", 0f, Rarity.Common, Leave);
+                OpenDraft("Training", "Pick one upgrade.", RewardSource.Rest, Leave);
             });
             _choice.Show();
         }
 
         void RestHeal()
         {
-            if (player.Heal(1f) <= 0f) player.AddBombs(1);
+            if (player.Heal(1f) <= 0f && player.AddBombs(1) <= 0) AddCoins(20, true);
             GameRoot.Audio.Play("powerup");
             FinishChoice();
         }
@@ -1194,7 +1403,10 @@ namespace JamKit.BulletHell
                     if (e.amount > 0) { player.AddLives(e.amount); GameRoot.Juice.FloatingText(pp, "+" + e.amount + " life", new Color(0.5f, 1f, 0.6f)); }
                     break;
                 case RoomEventKind.Bombs:
-                    if (e.amount > 0) { player.AddBombs(e.amount); GameRoot.Juice.FloatingText(pp, "+" + e.amount + " bomb", new Color(1f, 0.85f, 0.4f)); }
+                    if (e.amount <= 0) break;
+                    int added = player.AddBombs(e.amount);
+                    if (added > 0) GameRoot.Juice.FloatingText(pp, "+" + added + " bomb", new Color(1f, 0.85f, 0.4f));
+                    else AddCoins(15 * e.amount, true); // no Bomb Bay (or it's full): coins instead
                     break;
                 case RoomEventKind.Score:
                     AddScore(e.amount);
@@ -1227,7 +1439,7 @@ namespace JamKit.BulletHell
             if (!_eventActive) return;
             _eventActive = false;
             if (_phase == RoomPhase.Finished) return;
-            if (_pendingDraft) OpenDraft("A gift", "Pick one upgrade.", 0f, _pendingDraftMin, Leave);
+            if (_pendingDraft) OpenDraft("A gift", "Pick one upgrade.", RewardSource.Event, Leave, _pendingDraftMin);
             else Leave();
         }
 
@@ -1287,7 +1499,8 @@ namespace JamKit.BulletHell
                     FinishCleared();
                     return true;
                 case RoomPhase.Choosing:
-                    if (_choice.Current == ChoicePanel.Kind.Shop) { FinishChoice(); return true; }
+                    // Shops and encounter rooms: skipping walks out (nothing risked, nothing bought).
+                    if (_choice.Current == ChoicePanel.Kind.Shop || IsEncounterPanel(_choice.Current)) { FinishChoice(); return true; }
                     int first = _choice.FirstEnabledCard();
                     if (first >= 0) return _choice.Choose(first);
                     FinishChoice();
@@ -1300,31 +1513,121 @@ namespace JamKit.BulletHell
             return false;
         }
 
+        static bool IsEncounterPanel(ChoicePanel.Kind k) =>
+            k == ChoicePanel.Kind.Forge || k == ChoicePanel.Kind.Altar || k == ChoicePanel.Kind.Wager
+            || k == ChoicePanel.Kind.Trial || k == ChoicePanel.Kind.Trader || k == ChoicePanel.Kind.Pick;
+
+        /// <summary>
+        /// Debug and tests: turn the current room into <paramref name="type"/> right now (enemies, bullets
+        /// and any boss go quietly; the run's position doesn't change, so leaving it advances as usual).
+        /// Returns false when the run is over.
+        /// </summary>
+        public bool DebugEnterRoom(RoomType type)
+        {
+            if (_run == null || _phase == RoomPhase.Finished) return false;
+            _choice.Close();
+            _afterChoice = null;
+            _rewardQueue.Clear();
+            _eventActive = false;
+            _pending.Clear();
+            for (int i = 0; i < _enemies.Count; i++) if (_enemies[i].Alive) _enemies[i].Despawn();
+            field.Enemy.Clear();
+            if (boss.IsActive) boss.Hide();
+            _hud.HideBoss();
+            _roomType = type;
+            _room = null;
+            _wavesDone = false;
+            _phaseTime = 0f;
+            _roomRng = new Rng(_run.RoomSeed() ^ (ulong)(int)type * 0x9E37UL);
+            if (RoomText.IsFight(type)) player.RefillSprint();
+            if (type == RoomType.Combat || type == RoomType.Elite)
+                for (int i = 0; i < _trials.Count; i++) _trials[i].RoomStarted();
+            StartRoomContent();
+            return true;
+        }
+
         IEnumerator SmokeDrive()
         {
             float previous = DebugMenu.TimeScale;
             DebugMenu.TimeScale = 3f;
             float end = Time.realtimeSinceStartup + 5f;
             int steps = 0;
+            string encounter = null;
             Debug.Log("JAMKIT_SMOKE bullet hell seed " + (_run != null ? _run.seed : 0UL));
             while (Time.realtimeSinceStartup < end && steps < 8 && GameRoot.Flow.InRun && _phase != RoomPhase.Finished)
             {
                 if (GameRoot.Flow.Current == GameState.Playing)
                 {
                     if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.AutoStep();
-                    else if (_choice.IsOpen && _choice.Current == ChoicePanel.Kind.Draft) { _choice.Choose(0); steps++; }
+                    else if (_choice.IsOpen && _choice.Current == ChoicePanel.Kind.Draft) { SmokeLogDraft(); _choice.Choose(0); steps++; }
+                    else if (_choice.IsOpen && IsEncounterPanel(_choice.Current) && encounter == null)
+                    {
+                        encounter = SmokeTakeEncounter();
+                        steps++;
+                    }
                     else if (DebugSkip()) steps++;
                 }
                 else if (GameRoot.Flow.Current == GameState.Dialogue) GameRoot.Dialogue.AutoStep();
                 float wait = Time.realtimeSinceStartup + 0.3f;
                 while (Time.realtimeSinceStartup < wait) yield return null;
             }
+            // The run's doors may not have offered an encounter or a draft in 5 s: make one of each happen.
+            if (_draftsTaken == 0 && GameRoot.Flow.InRun && _phase != RoomPhase.Finished && DebugEnterRoom(RoomType.Treasure))
+            {
+                for (int i = 0; i < 10 && !(_choice.IsOpen && _choice.Current == ChoicePanel.Kind.Draft); i++) yield return null;
+                if (_choice.IsOpen && _choice.Current == ChoicePanel.Kind.Draft) { SmokeLogDraft(); _choice.Choose(0); }
+            }
+            if (encounter == null && GameRoot.Flow.InRun && _phase != RoomPhase.Finished && DebugEnterRoom(RoomType.Forge))
+            {
+                for (int i = 0; i < 120 && !(_choice.IsOpen && IsEncounterPanel(_choice.Current)); i++)
+                {
+                    if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.AutoStep();
+                    yield return null;
+                }
+                encounter = SmokeTakeEncounter();
+                for (int i = 0; i < 10 && _choice.IsOpen && IsEncounterPanel(_choice.Current); i++)
+                {
+                    DebugSkip(); // walk out
+                    yield return null;
+                }
+            }
             Debug.Log("JAMKIT_SMOKE bullet hell reached floor " + (_run.floor + 1) + " room " + (_run.step + 1)
                 + ", " + _draftsTaken + " draft(s), " + field.Enemy.Count + " enemy bullets");
+            Debug.Log("JAMKIT_SMOKE bullet hell encounter: " + (encounter ?? "none") + "; log: "
+                + (_encounterLog.Count > 0 ? string.Join(" | ", _encounterLog) : "empty")
+                + "; companion " + (CompanionOn ? "on, " + _companionShots + " shots" : "off") + "; remnants saved " + _remnantBook.Count);
             Debug.Log("JAMKIT_SMOKE bullet hell story lines: " + (_storyKnotsPlayed.Count > 0 ? string.Join(", ", _storyKnotsPlayed) : "none")
                 + "; sprint hint " + _sprintHint.State + ", sprint left in room " + player.Sprint.RoomBudget.ToString("0.0") + " s" + "; difficulty " + DifficultyText.Name(GameRoot.Settings.difficulty)
                 + "; control legend " + (_hud.LegendShown ? "on" : "off"));
             DebugMenu.TimeScale = previous;
+        }
+
+        void SmokeLogDraft()
+        {
+            var names = new List<string>();
+            for (int i = 0; i < _offer.Count; i++) names.Add(_offer[i].displayName + " (" + (JamKit.BulletHell.Remnants.IsRemnant(_offer[i]) ? "remnant" : _offer[i].rarity.ToString()) + ")");
+            Debug.Log("JAMKIT_SMOKE bullet hell draft from " + _draftSource + ": " + string.Join(", ", names) + "; taking the first");
+        }
+
+        /// <summary>Smoke run: takes the first enabled card of an encounter screen (and the first card of any
+        /// pick list it opens), and says what happened.</summary>
+        string SmokeTakeEncounter()
+        {
+            var kind = _choice.Current;
+            string what = kind + " / " + _choice.Heading;
+            int card = _choice.FirstEnabledCard();
+            if (card >= 0)
+            {
+                what += " -> " + _choice.CardTitle(card);
+                _choice.Choose(card);
+                if (_choice.IsOpen && _choice.Current == ChoicePanel.Kind.Pick)
+                {
+                    int pick = _choice.FirstEnabledCard();
+                    if (pick >= 0) { what += " -> " + _choice.CardTitle(pick); _choice.Choose(pick); }
+                }
+            }
+            Debug.Log("JAMKIT_SMOKE bullet hell encounter " + what);
+            return what;
         }
     }
 }
