@@ -8,6 +8,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\unity-env.ps1"
+# powershell -File passes "A,B,C" as one string; accept both forms
+$Templates = @($Templates | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 $switch = @{
     Sandbox    = 'JamKit.Sandbox.EditorTools.SandboxTemplate.UseFromCommandLine'
     BulletHell = 'JamKit.BulletHell.EditorTools.BulletHellTemplate.UseFromCommandLine'
