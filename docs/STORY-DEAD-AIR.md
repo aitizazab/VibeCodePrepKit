@@ -1,123 +1,133 @@
-# *Dead Air*: a grounded story for the bullet-hell demo (draft 2, for the creator to edit)
+# *Dead Air*: the bullet-hell demo's story (draft 3, for the creator to edit)
 
-Replaces the *Ember* draft (`STORY-EMBER.md`), following the creator's critique: commit to what it's about, start
-ordinary and get deeper in layers, give death a cost without the villain looking incompetent, use characters
-who read as people, make floors 2 and 3 different ideas, have the game argue something, and keep the companion's
-fate on a separate axis from losing. Everything here is a proposal; names and lines are the creator's.
+Draft 2 had a grounded hook but only one layer, because "save forty innocents or take a bribe" has an obvious
+answer. Draft 3 keeps the hook and gives the deeper layers a real question with **no right answer**: the people
+inside are neither innocent nor monsters, every side can argue its case, and the player can go against the
+current. (Draft 1, *Ember*, is in `STORY-EMBER.md`; draft 2 is in git history.)
 
-## What it's about
-**On the surface:** a salvage pilot doing a dangerous job. **Underneath:** what you owe the people in front of
-you when your job says they don't count. **At the bottom:** how far you'll go for the one person you came for, and
-whether that's love or selfishness. Each layer leaks into the next: the job becomes a rescue, and the rescue turns
-out to be personal.
+## The question
+**What do you do with people who did something terrible for a reason you understand?**
 
-**What the game argues** (the way Undertale argues for mercy): doing right costs you something real. Helping the
-people inside makes your runs harder and your pay smaller, and the game never pretends otherwise. But the endings
-that leave you proud are only reachable if you pay that cost.
+Meridian's workers sealed themselves in after a strike that killed twelve people. Halden worked them half to
+death in a failing station; they vented a reactor section to force a shutdown, and twelve of Halden's
+strikebreakers were inside it. Did the strikers know? The black box holds the answer, and even that is not
+clean. Justice for the twelve, mercy for the forty, the truth for everyone, or loyalty to your own blood: each
+has a voice in the game arguing for it, and each costs something.
+
+## Two audiences: the character and the player
+- **Wren (the character)** feels the pulls the player is meant to share: pride at her first big job; the money
+  that would get her off the belt and into a pilot's licence; loyalty to Ilse, whose company dies without this
+  payout; and, once she learns it, love and fury towards the mother who left her family and is now inside.
+- **The player (the person)** gets questions Wren never says out loud:
+  1. **You shot what you were told to shoot.** On floor 2, Ilse calls the work rigs "maintenance bots". Some of
+     them were residents in work suits. Most drifted back to the airlock; two didn't. The player believed the
+     game, just as Wren believed Ilse.
+  2. **Your deaths were never free.** The roguelite loop (another drone, another try) turns out to cost the
+     people inside a day of air each time. Something you treated as disposable wasn't.
+  3. **Do reasons excuse acts?** The game never answers. The endings only show what each answer costs.
+
+## Layers
+1. **The job (everyone sees this):** fly drones down a dead station's shaft, beat its security, get paid. It's a
+   complete arcade experience with banter.
+2. **People inside (floor 2):** the station isn't dead and the grid isn't Halden's: it belongs to the strikers.
+   You're the invader. The goal changes from "recover the box" to "decide what happens to them".
+3. **What happened (floor 3):** the strike, the venting, the twelve, all told by people with stakes in the telling.
+4. **Hidden (players who look):**
+   - Ana Halloway, who led the strike, is Wren's mother.
+   - T. Halloway, the child whose drawings are on the walls, is Wren's brother.
+   - Ilse built the grid, has known about Ana all along, and took the contract anyway: she needs the money too.
+   - The black box's last four seconds show Ana, hand over the vent control, hesitating, and then pressing it.
+     Whether she knew is never said.
 
 ## The story
 
-**Wren Halloway** is nineteen and three weeks into her first real job: drone pilot for **Kestrel Recovery**, a
-salvage outfit of exactly two people and one rusting tug. The other person is **Ilse Varga**, sixty-eight,
-foul-mouthed and brilliant, who flew rescue drones for thirty years until her hands started to shake. Ilse
-doesn't fly any more. She sits behind Wren on the tug's cramped flight deck, eats terrible noodles and tells her
-what she's doing wrong.
+**Wren Halloway** is nineteen and three weeks into her first real job: drone pilot for **Kestrel Recovery**, two
+people and a rusting tug. The other is **Ilse Varga**, sixty-eight, foul-mouthed and brilliant, a rescue pilot
+for thirty years until her hands began to shake. Kestrel is three missed payments from being repossessed. When
+**Halden** posts a contract to recover the black box from **Meridian**, a habitat station that went dark three
+weeks ago, it's the biggest job Kestrel has ever had, and its payout is enough to save the company and pay for
+the pilot's licence Wren has wanted since she was nine.
 
-Their contract is the biggest Kestrel has ever landed. **Meridian**, a habitat station owned by the **Halden
-Corporation**, went silent three weeks ago after a "reactor incident". Its automated defence grid now fires on
-anything that comes close. Halden is paying salvage crews to fly drones down Meridian's central shaft to the core
-and pull out the black box. Drones are cheap; pilots fly them from safely outside. Lose one and you launch
-another, and Halden docks your pay. Half a dozen other crews are working the same wreck, including the **Gulls**,
-led by a loud, grinning gambler called **Pike**, who runs a betting pool on whose drones die first.
+Meridian's defence grid fires on anything that comes near. Drones are cheap; you fly them from the tug, and when
+one dies you print another. A dozen crews are working the wreck. The loudest is the **Gulls**, run by **Pike**, a
+grinning gambler who runs a betting pool on whose drones die first, and who is there for a reason he doesn't
+mention: his sister was one of the twelve.
 
-**Floor 1, the Outer Ring,** is just the job. Turrets, sentry drones, slag from the reactor fire. Ilse calls the
-patterns ("left turret's on a four-count, don't get cute"), and Halden's automated voice thanks you for your
-patience as it tries to shoot you down. The first boss, **the Gate**, is a security platform that apologises
-politely before every barrage. It's a machine and nothing more. That's the point: the first layer is an arcade
-job, and a player who only wants that gets a satisfying one.
+**Floor 1** is the job. Turrets, sentries, and **the Gate**, a security platform that apologises before every
+barrage. **Floor 2** is where the job comes apart. The lights are on. A child has drawn a ship on a wall, signed
+*T.H.* The work rigs that rush your drone aren't bots, though Ilse says they are and Wren wants to believe her.
+The boss is **Teodor Brask**, the strikers' security chief, flying the station's drones by hand. He's defending
+his people, and he says so: Halden ran Meridian until it was killing them, they warned, they struck, they did
+what they had to. Mid-fight his voice cracks: "We thought the section was empty."
 
-**Floor 2, the Habitat Ring,** is where it turns. The lights are on. There are handprints on the inside of the
-windows. A child has drawn a ship on the wall with a marker, and under it the word *HELP*. **Forty people are
-alive in there**, sealed in by the defence grid. The reactor incident was real, but it was weeks ago, and it
-didn't lock the doors. Halden did. The black box isn't a recording of the accident: it's proof of what Halden was
-doing on Meridian, and the people inside are witnesses. The contract never mentioned them because Halden never
-meant them to leave.
+**Floor 3** is the reckoning. **Director Ines Calloway** patches in, and she's good at this: the twelve had
+families, the strikers vented a populated section, the box will give them a fair trial, and Wren's licence and
+Kestrel's debt will simply... be handled. She is persuasive because half of what she says is true. **Ana
+Halloway** answers on the station channel, and she is persuasive too, because the other half is. Pike wants a
+name. Ilse wants Wren to take the money and not look back. The last fight is against Halden's clean-up protocol,
+which takes the grid off the strikers and turns it on everything. Through it, everyone keeps talking, and the
+player keeps choosing who to believe.
 
-The second boss is **Teodor Brask**, Meridian's security chief, flying the station's security drones by hand from
-inside. He's exhausted, half-starved, and he thinks you're Halden's clean-up crew, because every drone that's come
-down the shaft so far has been. He fights like a man defending his family, because he is. Mid-fight he starts to
-listen. In his last phase he stops shooting at you and starts shooting the turrets around you. After that, the
-game's goal changes: **you're not recovering a box any more. You're getting forty people out.**
+## Endings: no right answer, real costs
+| Ending | What you do | What it gives | What it costs |
+|---|---|---|---|
+| **The Contract** | Deliver the box to Halden | Kestrel is saved, Wren gets her licence, Pike gets his trial | The strikers go to a Halden court; Ana is arrested; Halden's own negligence stays buried |
+| **Asylum** | Destroy the box; the strikers take their shuttle and run | Ana and the forty walk free | The twelve go unanswered; Pike swears revenge; Kestrel goes bankrupt; Wren becomes a fugitive |
+| **Daylight** | Broadcast the box to every channel | The whole truth is out: Halden's negligence *and* the strikers' venting, judged by everyone | Ilse's old codes are exposed and she faces charges; Kestrel ends; nobody is spared |
+| **Hold the Line** *(against the current)* | Side with Brask, take the grid, defend Meridian from Halden | The strikers keep their home on their own terms; Wren stays with her mother and brother | A failing station under siege; Wren gives up the sky for her family. Only reachable through the partner path below |
 
-**Floor 3, the Core,** is where Halden itself arrives. **Director Ines Calloway** patches into every channel, calm
-and reasonable. She explains why the people inside have to stay: the data would sink Halden, thirty thousand jobs
-would go with it, the station programme would die, and these forty "made their choices". She's not a monster;
-she's worse, she's sensible. She just keeps saying sensible things until you notice none of them are reasons.
-Her clean-up protocol takes over the grid, and the last fight is against everything Halden owns. She keeps
-talking through it, and she keeps losing the argument.
+**Secret:** if you found every log, the box's last four seconds play before you choose. They don't settle anything.
 
-**The hidden layer, for players who look:**
-- Ilse built Meridian's defence grid, thirty years ago. That's why she can read its patterns, and why she has
-  codes Halden forgot to revoke.
-- Wren's mother, **Ana Halloway**, worked on Meridian. Wren never says so. Her name is on the station's memorial
-  wall, and the child's drawing in the habitat is signed *T. Halloway*, Wren's little brother, whom Wren hasn't
-  seen since their parents split.
-- Ilse knew all along. She took the contract *because* of it.
+## Going against the current
+Beyond the final choice, the player can defy the job during the run:
+- **Defiance** options in encounters: sabotage Halden's contract on the Trial board, sell Halden's data to Pike
+  at the Trader, feed parts to the strikers at the memorial (Altar).
+- Two hidden scores track it: **Standing** with Halden and **Trust** with the strikers. Pike's **Respect** comes
+  from his wagers. The endings read these scores.
+- Defiance has gameplay costs (Halden's floor 3 is harder at low Standing), so going against the current is a
+  real decision, not a free extra.
 
-Nothing forces the player to find any of this. It's in the memorial names, a signature, and a line Ilse only says
-if you ask the right question at the third rest stop.
+## Companions: one from the start, two you can earn
+**Ilse, the mentor (from the start, on a separate axis):**
+- She's never in danger from your flying.
+- **Foresight** on machine bosses (not on Brask: she can't predict a person).
+- **Know-how** in encounters.
+- **Override (E):** freeze the grid for 3 seconds.
+- **Her cost:** each Override raises **Exposure** in Halden's system. At the limit she's cut off the channel and
+  the Daylight ending closes. Losing a drone never touches this.
+- Her flaw: she lies to you about the rigs. She tells you why on the last rest stop if you ask: "I needed them to be bots."
 
-**Dying, and why you can keep trying:** that's literally the job. When a drone dies, the tug's fabricator prints
-another and you send it down. Nobody is being incompetent: the grid destroys drones automatically, and Halden
-sells you new ones. **But it isn't free.** Every lost drone is another day of air for the people inside, and the
-station's air reserve is shown between runs. The first couple of losses are covered by the reserve, so a
-first-time player isn't punished. After that, each loss shrinks how many people the Rescue ending can carry out.
-You can die as often as you like and still finish. You just can't save everyone that way.
+**Brask, a partner (earned by sparing him):**
+- **How:** in his final phase, stop shooting (hold the cease-fire key) and survive his last pattern without
+  firing. Ilse notices: "He's stopped aiming at you."
+- **Gameplay, rough:** his hand-flown security drone joins you on floor 3 at roughly your strength.
+  - It strafes the upper screen and draws about a third of the aimed fire.
+  - **Crossfire:** an enemy hit by both of you within half a second takes +40% damage.
+  - He knows the station, so he marks Halden's weak points.
+- **Separate axis:** if he's shot down he relaunches after about 8 seconds. Your play never loses him for good.
+- **Cost:** Halden's Standing collapses (a full-strength clean-up on floor 3), the Contract ending closes, and
+  Pike turns hostile (his wagers become ambushes). Opens **Hold the Line**.
 
-## The companion: Ilse is a **mentor**, on a separate axis from losing
-- **She's never in danger from your flying.** She's on the tug, behind you. Your drone exploding costs a drone,
-  not Ilse.
-- **She's beyond you in what only she can do:**
-  - **Foresight:** she built the grid, so a moment before a machine boss's pattern fires she marks the gaps.
-    *Not* for Brask: he flies by hand, and she can't predict a person. The second boss feels different because of it.
-  - **Know-how:** she reads the fabricator's misprint odds exactly, knows when Pike's bet is rigged, and can talk
-    a trader down.
-  - **Override (E):** her old builder codes freeze the grid for 3 seconds and clear the shots around you.
-- **Her cost is on its own axis: Exposure.** Every Override is logged in Halden's system. At a set Exposure,
-  Halden finds her codes and **cuts her off the channel**: Wren flies the rest of the run alone, and the endings
-  that need Ilse's codes close. Losing a drone never touches this, and using Ilse never ends a run. Two separate
-  axes.
-- The game is beatable without a single Override. Using her makes you safer now and costs you later.
+**Tomas, a sidekick (earned through Trust):**
+- **How:** leave parts at the memorial and read the messages the residents send back. After enough Trust, a
+  tiny maintenance drone joins you, flown by a ten-year-old who signs his drawings *T.H.*
+- **Gameplay, rough:** weaker than you, and the game is fully doable without him.
+  - He pulls coins to you.
+  - Once per room he bumps one bullet away.
+  - He spots hidden logs, which are the layer-4 content.
+  - His lines are funny until they aren't.
+- **Separate axis:** hit, he tumbles away and comes back.
+- **Cost:** the parts you gave make your drone weaker. Finding out who he is changes Wren's lines from then on.
 
 ## The mechanics in the world
-| Mechanic | In the world |
-|---|---|
-| Your ship | A salvage drone, flown remotely |
-| Bullets | Turrets, sentry drones, reactor slag; later, Brask's hand-flown drones and Halden's clean-up swarm |
-| Sprint (with a per-room budget) | Afterburner on a small fuel cell, topped up at each docking point |
-| Normal upgrades | Parts salvaged from the machines you destroy |
-| **Epics (bosses)** | Each boss's own hardware, salvaged when it falls (the Gate's shield emitter, Brask's targeting rig...) |
-| **Forge** | The tug's **fabricator**: Ilse reprints a part stronger, and each extra pass risks a misprint that ruins it (she tells you the exact odds) |
-| **Altar** | The habitat's **memorial wall**, where the residents have been leaving things. Leaving a part there sends it to the people inside: your drone gets weaker, they get to fix an air pump. They send something back, and a hidden **Trust** score rises |
-| **Wager** | **Pike and the Gulls**, betting on your runs over an open channel. Win enough of his bets and he respects you, and the Rescue ending needs his ship |
-| **Trial board** | Halden's open contract board and other crews' side jobs ("clear this vent without a scratch") |
-| **Trader** | Other crews' drones meeting in the shaft to swap parts: a whole small economy inside a dead station |
-| **Rest** | Docking points where the drone recharges; conversations with Ilse, and later with the residents over a crackling line |
-| **Death** | A lost drone: a new one is printed, and the residents lose a day of air |
-| **The Echo** | As your drone breaks up you get one second to **eject a module** (the death screen: pick one of the run's upgrades). The next drone finds it in the wreck, damaged (weakened). **Chosen, not random** |
-| Run count | Pike's odds get longer, Brask recognises your drone's markings, the residents start counting your drones |
-
-## Endings (from the flags you set)
-- **Paid:** deliver the black box to Halden. The residents stay. The easiest ending, and Calloway thanks you.
-- **Rescue:** open the grid, and Pike's ship takes them off. Needs Pike's respect and enough Trust. How many get
-  out depends on the air reserve, which means how many drones you lost.
-- **Broadcast:** use Ilse's codes to send the black box to every channel at once. Halden falls, and it costs Ilse
-  everything she has. Needs Ilse still on the channel, which means Exposure kept under the limit.
-- **Hidden:** if you found the Halloway names, Wren gets one more line at the end, whoever she saved.
-
-## Why this structure works for the jam
-- Characters are people with faces: portraits in the dialogue box (the Story template's portrait system), so
-  motives read clearly.
-- The layers come in on a schedule the template already has: floor 1 is the job, floor 2's boss is the turn,
-  floor 3's boss is the argument.
-- Every in-between room says something about the world: it isn't empty, and helping costs you.
+Same as draft 2, re-pointed at the new story:
+- **Forge:** the tug's fabricator; misprint odds.
+- **Altar:** the memorial wall; Trust.
+- **Wager:** Pike's pool; Respect.
+- **Trial board:** Halden's contracts; Standing and Defiance.
+- **Trader:** crews swapping parts.
+- **Rest:** docking points.
+- **Sprint:** the afterburner, with a fuel cell per room.
+- **Epics:** salvaged boss hardware.
+- **Death:** a new drone, and a day of the residents' air.
+- **The Echo:** eject one module as you break up, *chosen*. The next drone finds it, damaged.
