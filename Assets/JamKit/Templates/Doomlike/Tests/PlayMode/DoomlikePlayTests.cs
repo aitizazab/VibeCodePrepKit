@@ -210,21 +210,29 @@ namespace JamKit.Doomlike.Tests
             yield return StartDoomlike(777);
             var game = DoomGame.Current;
             DebugMenu.GodMode = true;
-            int placed = game.DebugSpawnEnemies(40, game.player.transform.position, 5f);
-            Assert.That(placed, Is.GreaterThanOrEqualTo(30), "most of the ring fits on the NavMesh");
+            // Half biters, half shooters (fireball spitters), all awake: walking, pathing, sight checks
+            // and a stream of projectiles at the player.
+            var biter = game.config.enemies.First(e => e.attack.kind == EnemyAttackKind.Melee && !e.isBoss);
+            var shooter = game.config.enemies.First(e => e.attack.kind == EnemyAttackKind.Projectile && !e.isBoss);
+            Vector3 centre = game.player.transform.position;
+            int placed = game.DebugSpawnEnemies(20, centre, 4f, biter) + game.DebugSpawnEnemies(20, centre, 6.5f, shooter);
+            Assert.That(placed, Is.GreaterThanOrEqualTo(30), "most of the rings fit on the NavMesh");
             int alive = game.Enemies.Count(e => e.Alive);
-            // At least 120 frames and 3 seconds (batch mode can run frames very fast).
+            // At least 120 frames and 4 seconds (batch mode can run frames very fast).
             float start = Time.realtimeSinceStartup;
-            int frames = 0;
-            while (frames < 120 || Time.realtimeSinceStartup - start < 3f)
+            int frames = 0, maxShots = 0;
+            while (frames < 120 || Time.realtimeSinceStartup - start < 4f)
             {
                 frames++;
+                maxShots = Mathf.Max(maxShots, game.projectiles.Count);
                 yield return null;
             }
             float avgMs = (Time.realtimeSinceStartup - start) * 1000f / frames;
-            TestContext.Out.WriteLine($"DOOM-like perf: {frames} frames with {alive} enemies ({placed} spawned awake around the player), "
-                + $"{game.projectiles.Count} shots in flight, average {avgMs:0.00} ms per frame (simulation; batch mode draws nothing)");
-            Assert.That(game.Enemies.Count(e => e.Alive), Is.EqualTo(alive), "god mode, nobody shooting: all still alive");
+            int fired = game.Enemies.Sum(e => e.AttacksMade);
+            TestContext.Out.WriteLine($"DOOM-like perf: {frames} frames with {alive} enemies ({placed} spawned awake around the player: half biters, half shooters), "
+                + $"{fired} attacks, up to {maxShots} shots in flight, {game.PlayerHitsTaken} hits on the player, average {avgMs:0.00} ms per frame (simulation; batch mode draws nothing)");
+            Assert.That(game.Enemies.Count(e => e.Alive), Is.EqualTo(alive), "god mode, nobody shooting back: all still alive");
+            Assert.That(maxShots, Is.GreaterThan(0), "the shooters fired projectiles");
             Assert.That(game.projectiles.Dropped, Is.EqualTo(0), "the shot pool had room");
             Assert.That(avgMs, Is.LessThan(100f), "no frame-killing work per enemy");
             Assert.That(game.PlayerHitsTaken, Is.GreaterThan(0), "they attacked");

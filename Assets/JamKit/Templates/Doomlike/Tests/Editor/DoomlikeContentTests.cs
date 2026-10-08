@@ -63,36 +63,54 @@ namespace JamKit.Doomlike.Tests
         public void EveryLevelBuildsWithAWalkableNavMesh()
         {
             var c = Config();
+            var failures = new List<string>();
             for (int i = 0; i < c.LevelCount; i++)
             {
                 var map = c.ParseLevel(i, new MapProblems());
                 var root = new GameObject("Doomlike test level");
+                string n = "level " + (i + 1) + " (" + map.name + ")";
                 try
                 {
-                    var level = LevelBuilder.Build(map, c, root.transform, true);
-                    string n = "level " + (i + 1);
-                    Assert.That(level.navMeshBuilt, Is.True, n + " NavMesh");
+                    var level = LevelBuilder.Build(map, c, root.transform, false);
                     int doors = map.Count(CellKind.Door) + map.Count(CellKind.LockedDoor) + map.Count(CellKind.SecretDoor) + map.Count(CellKind.ClosetWall);
-                    Assert.That(level.doors.Count, Is.EqualTo(doors), n + " doors");
-                    Assert.That(level.enemySpawns.Count, Is.EqualTo(map.CountThings(EntityCategory.Enemy)), n + " enemies");
-                    Assert.That(level.geometry.GetComponentsInChildren<MeshRenderer>().Length, Is.GreaterThanOrEqualTo(4), n + " floor, wall meshes");
-                    Assert.That(level.geometry.GetComponentsInChildren<BoxCollider>().Length, Is.GreaterThan(4), n + " colliders");
+                    if (level.doors.Count != doors) failures.Add($"{n}: {level.doors.Count} doors built, the map has {doors}.");
+                    if (level.enemySpawns.Count != map.CountThings(EntityCategory.Enemy)) failures.Add($"{n}: enemy spawns don't match the map.");
+                    if (level.geometry.GetComponentsInChildren<MeshRenderer>().Length < 4) failures.Add($"{n}: missing floor or wall meshes.");
+                    if (level.geometry.GetComponentsInChildren<BoxCollider>().Length <= 4) failures.Add($"{n}: missing colliders.");
 
-                    // Carving only happens in play mode; open every door so the path test sees the layout.
-                    foreach (var d in level.doors) if (d.obstacle != null) d.obstacle.enabled = false;
-                    Assert.That(NavMesh.SamplePosition(level.startPosition, out var start, 1f, NavMesh.AllAreas), Is.True, n + " start on the NavMesh");
-                    Assert.That(NavMesh.SamplePosition(level.ExitPosition, out var exit, 1f, NavMesh.AllAreas), Is.True, n + " exit on the NavMesh");
+                    // Locked doors and closets cut themselves out of the NavMesh while shut. Carving is
+                    // applied by the NavMesh update, which never runs in an EditMode test (and can't be
+                    // undone without one), so take the obstacles off before building: this checks the layout.
+                    foreach (var d in level.doors)
+                        if (d.obstacle != null) { Object.DestroyImmediate(d.obstacle); d.obstacle = null; }
+                    LevelBuilder.BuildNavMesh(level);
+                    if (!level.navMeshBuilt) { failures.Add($"{n}: no NavMesh was built."); continue; }
+
+                    if (!NavMesh.SamplePosition(level.startPosition, out var start, 1f, NavMesh.AllAreas)) { failures.Add($"{n}: the start isn't on the NavMesh."); continue; }
+                    if (!NavMesh.SamplePosition(level.ExitPosition, out var exit, 1f, NavMesh.AllAreas)) { failures.Add($"{n}: the exit isn't on the NavMesh."); continue; }
                     var path = new NavMeshPath();
                     NavMesh.CalculatePath(start.position, exit.position, NavMesh.AllAreas, path);
-                    Assert.That(path.status, Is.EqualTo(NavMeshPathStatus.PathComplete), n + ": enemies can walk from the start to the exit (doors open)");
+                    if (path.status != NavMeshPathStatus.PathComplete)
+                    {
+                        string where = "";
+                        if (path.corners.Length > 0)
+                        {
+                            var last = path.corners[path.corners.Length - 1];
+                            level.WorldToCell(last, out int lx, out int ly);
+                            where = $" It stops at {MapData.Where(lx, ly)} ('{map.Get(lx, ly).ch}'), world {last}.";
+                        }
+                        failures.Add($"{n}: no complete NavMesh path from the start to the exit ({path.status}).{where}");
+                    }
                     int off = level.enemySpawns.Count(s => !NavMesh.SamplePosition(s.position, out _, 1.6f, NavMesh.AllAreas));
-                    Assert.That(off, Is.EqualTo(0), n + ": every enemy starts on the NavMesh");
+                    if (off > 0) failures.Add($"{n}: {off} enemies start off the NavMesh.");
+                    TestContext.Out.WriteLine($"{n}: NavMesh path {path.status}, {path.corners.Length} corners.");
                 }
                 finally
                 {
                     Object.DestroyImmediate(root);
                 }
             }
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
         }
 
         [Test]
