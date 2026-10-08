@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b412b74e1055ce546b5eb647ce20f339, type: 3}
+  m_Name: Bloom
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.EnemyDef
+  displayName: Bloom
+  hp: 40
+  sprite: {fileID: 21300000, guid: 9b4f9abd4ee1fd448853b2fb5a2df321, type: 3}
+  color: {r: 0.75, g: 0.5, b: 1, a: 1}
+  size: 1
+  radius: 0.48
+  spin: 0
+  big: 0
+  movement:
+    kind: 0
+    enterSeconds: 1.3
+    amplitude: 2
+    frequency: 0.25
+    speed: 4
+    actSeconds: 12
+  attack:
+    steps:
+    - time: 0
+      pattern:
+        shape: 0
+        count: 16
+        spreadDegrees: 60
+        lineWidth: 4
+        baseAngleDegrees: 0
+        rotatePerShotDegrees: 11
+        shots: 0
+        shotInterval: 2.2
+        speed: 2.6
+        speedStep: 0
+        acceleration: 0
+        angularVelocityDegrees: 0
+        aimAtTarget: 0
+        jitterDegrees: 0
+        startDelay: 0
+        lifetime: 8
+        mirror: 0
+        styleIndex: 2
+        spawnRadius: 0
+    loop: 0
+    loopDelay: 0
+  attackDelay: 0.4
+  hurtsOnContact: 1
+  score: 450
+  coins: 4

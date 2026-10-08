@@ -1,0 +1,203 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5db3bc717882f924692c5667c4d597fe, type: 3}
+  m_Name: LastLight
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.BossDef
+  displayName: The Last Light
+  title: Heart of the Core
+  hp: 2000
+  sprite: {fileID: 21300000, guid: 64069f06a1d3ed84386b2624e1689752, type: 3}
+  color: {r: 0.85, g: 0.6, b: 1, a: 1}
+  size: 2.8
+  radius: 1.05
+  homePosition: {x: 0, y: 3.1}
+  phases:
+  - name: Halo
+    startsAtHealth: 1
+    attack:
+      steps:
+      - time: 0
+        pattern:
+          shape: 1
+          count: 7
+          spreadDegrees: 70
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 0
+          shots: 4
+          shotInterval: 0.25
+          speed: 4
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 1
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 9
+          spawnRadius: 0
+      - time: 1.4
+        pattern:
+          shape: 0
+          count: 24
+          spreadDegrees: 60
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 7
+          shots: 2
+          shotInterval: 0.6
+          speed: 2.4
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 8
+          spawnRadius: 0
+      loop: 1
+      loopDelay: 0.6
+    movement: 1
+    moveWidth: 3.2
+    moveSpeed: 0.09
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - name: Pursuit
+    startsAtHealth: 0.7
+    attack:
+      steps:
+      - time: 0
+        pattern:
+          shape: 4
+          count: 10
+          spreadDegrees: 35
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 0
+          shots: 3
+          shotInterval: 0.35
+          speed: 5
+          speedStep: 0.25
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 1
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 0
+          spawnRadius: 0
+      - time: 1.2
+        pattern:
+          shape: 2
+          count: 4
+          spreadDegrees: 60
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 15
+          shots: 30
+          shotInterval: 0.08
+          speed: 3
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 2
+          spawnRadius: 0
+      loop: 1
+      loopDelay: 0.7
+    movement: 3
+    moveWidth: 4
+    moveSpeed: 0.6
+    tint: {r: 0.8, g: 0.8, b: 1, a: 1}
+  - name: Supernova
+    startsAtHealth: 0.4
+    attack:
+      steps:
+      - time: 0
+        pattern:
+          shape: 2
+          count: 4
+          spreadDegrees: 60
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 9
+          shots: 80
+          shotInterval: 0.075
+          speed: 2.6
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 10
+          mirror: 1
+          styleIndex: 1
+          spawnRadius: 0
+      - time: 1
+        pattern:
+          shape: 0
+          count: 18
+          spreadDegrees: 60
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 0
+          shots: 3
+          shotInterval: 0.5
+          speed: 2.2
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 40
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 1
+          styleIndex: 8
+          spawnRadius: 0
+      - time: 3
+        pattern:
+          shape: 3
+          count: 3
+          spreadDegrees: 24
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 0
+          shots: 3
+          shotInterval: 0.12
+          speed: 6
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 9
+          spawnRadius: 0
+      loop: 1
+      loopDelay: 0.8
+    movement: 4
+    moveWidth: 3
+    moveSpeed: 0.5
+    tint: {r: 1, g: 0.75, b: 1, a: 1}
+  phaseChangeInvulnerable: 1.8
+  score: 40000
+  coins: 0

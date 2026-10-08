@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c5b72aa4101c6b44b84393f2797cacb, type: 3}
+  m_Name: W04_Spinner
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.WaveDef
+  spawns:
+  - time: 0
+    enemy: {fileID: 11400000, guid: d7ac5174637e426468ccf244a186675d, type: 2}
+    position: {x: 0, y: 3.3}
+    from: 0
+    count: 1
+    spacing: {x: 1.5, y: 0}
+    interval: 0.25
+    mirror: 0
+  - time: 3
+    enemy: {fileID: 11400000, guid: 5be6f8ec42e4c064b91b1c0a6f80ddc5, type: 2}
+    position: {x: 0, y: 3}
+    from: 0
+    count: 4
+    spacing: {x: 2.5, y: 0}
+    interval: 0.35
+    mirror: 0
+  maxDuration: 12

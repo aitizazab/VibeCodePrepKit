@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc968dd5d66e3a547baa46a0ff21b2c5, type: 3}
+  m_Name: Player
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.PlayerDef
+  moveSpeed: 7.5
+  focusSpeed: 3.2
+  sprite: {fileID: 21300000, guid: 43d789db18a36604ea8ad0363594ab96, type: 3}
+  color: {r: 0.55, g: 0.95, b: 1, a: 1}
+  size: 0.75
+  hitboxRadius: 0.07
+  grazeRadius: 0.6
+  lives: 3
+  bombsPerLife: 2
+  maxBombs: 5
+  invulnerableAfterHit: 2
+  bombInvulnerable: 2.5
+  bombDuration: 1
+  bombRadius: 5
+  bombDamage: 40
+  weapon:
+    magazineSize: 0
+    startingReserve: 0
+    maxReserve: 0
+    infiniteReserve: 1
+    ammoPerShot: 1
+    fireMode: 1
+    fireInterval: 0.085
+    burstCount: 3
+    burstInterval: 0.06
+    reloadTime: 1.2
+    autoReloadOnEmpty: 1
+  autoFire: 1
+  shotSpeed: 20
+  shotDamage: 1
+  shotLifetime: 1.5
+  shotStyle: 6
+  homingShotStyle: 7
+  homingTurnRate: 7
+  baseStats: []

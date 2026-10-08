@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 945c355521880f545884efe20ab4723b, type: 3}
+  m_Name: BulletHellGameConfig
+  m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.GameConfig
+  gameTitle: Starfall Gauntlet
+  tagline: Three floors. Three bosses. One tiny hitbox.
+  bootScene: Boot
+  titleScene: Title
+  firstGameplayScene: BulletHell
+  titleMusic: music_title
+  gameMusic: music_game
+  audio: {fileID: 0}
+  portraits: []
+  credits: {fileID: 0}
+  howToPlay:
+  - title: Fly
+    body: 'Move with WASD, the arrow keys or the left stick. Your ship fires by itself.
+
+      Hold
+      Shift (LB) to FOCUS: you fly slower and your tiny hitbox shows.'
+    image: {fileID: 21300000, guid: 40ffe955a6ea6ec499b96f6c6dc508c8, type: 3}
+  - title: Dodge
+    body: 'Only the small dot in the middle of your ship can be hit.
+
+      Slip
+      past bullets to GRAZE them for points.'
+    image: {fileID: 21300000, guid: 202eb52d08abd6441b752407f66466fa, type: 3}
+  - title: Bomb
+    body: 'K, right click or Space (A on a gamepad) sets off a BOMB: it wipes every
+      bullet and keeps you safe for a moment. You get 2 per life.'
+    image: {fileID: 21300000, guid: b230dd3b2bd2a23479aca0491aeb9275, type: 3}
+  - title: The run
+    body: 'Clear rooms, pick 1 of 3 upgrades, choose your doors and spend coins in
+      shops.
+
+      Beat the boss of each of the 3 floors to win. Escape or Start
+      pauses.'
+    image: {fileID: 21300000, guid: 6b8ebf874b661ba469bdaa23569f47f7, type: 3}
+  showHowToPlayOnFirstRun: 1
+  allowDebugMenuInRelease: 0

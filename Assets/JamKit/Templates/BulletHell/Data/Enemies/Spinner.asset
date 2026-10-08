@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b412b74e1055ce546b5eb647ce20f339, type: 3}
+  m_Name: Spinner
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.EnemyDef
+  displayName: Spinner
+  hp: 30
+  sprite: {fileID: 21300000, guid: 4409b33d22b178440a7c4a24115f573f, type: 3}
+  color: {r: 1, g: 0.5, b: 0.8, a: 1}
+  size: 0.9
+  radius: 0.42
+  spin: 120
+  big: 0
+  movement:
+    kind: 1
+    enterSeconds: 1.2
+    amplitude: 2
+    frequency: 0.15
+    speed: 4
+    actSeconds: 12
+  attack:
+    steps:
+    - time: 0
+      pattern:
+        shape: 2
+        count: 3
+        spreadDegrees: 60
+        lineWidth: 4
+        baseAngleDegrees: 0
+        rotatePerShotDegrees: 13
+        shots: 0
+        shotInterval: 0.13
+        speed: 2.8
+        speedStep: 0
+        acceleration: 0
+        angularVelocityDegrees: 0
+        aimAtTarget: 0
+        jitterDegrees: 0
+        startDelay: 0
+        lifetime: 9
+        mirror: 0
+        styleIndex: 0
+        spawnRadius: 0
+    loop: 0
+    loopDelay: 0
+  attackDelay: 0.4
+  hurtsOnContact: 1
+  score: 400
+  coins: 4

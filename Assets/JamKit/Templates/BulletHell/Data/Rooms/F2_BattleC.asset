@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f40723f073c7da4bb55fd13dcbe36ab, type: 3}
+  m_Name: F2_BattleC
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.RoomDef
+  type: 0
+  waves:
+  - {fileID: 11400000, guid: a658cd0842b443d42b1f8b0809c2a129, type: 2}
+  - {fileID: 11400000, guid: ca07f8f80ba24794eb7b9e1115aff8e1, type: 2}
+  - {fileID: 11400000, guid: bec517eb9c1b9cb45a04b2b427bceb6a, type: 2}
+  bonusCoins: 6

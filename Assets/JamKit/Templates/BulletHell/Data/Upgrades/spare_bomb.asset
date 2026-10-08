@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b65f4c921c77e945825abdbaa5333d4, type: 3}
+  m_Name: spare_bomb
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.UpgradeAsset
+  def:
+    id: spare_bomb
+    displayName: Spare Bomb
+    description: +1 bomb now, and room for one more.
+    rarity: 0
+    weight: 0
+    maxStacks: 2
+    tags: []
+    requires: []
+    excludes: []
+    modifiers: []
+    effects:
+    - bomb_plus
+  iconText: Bm
+  iconColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  icon: {fileID: 0}

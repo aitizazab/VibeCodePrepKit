@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 945c355521880f545884efe20ab4723b, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.GameConfig
-  gameTitle: JamKit Sandbox
-  tagline: A tiny game that tests the shell
+  gameTitle: Starfall Gauntlet
+  tagline: Three floors. Three bosses. One tiny hitbox.
   bootScene: Boot
   titleScene: Title
-  firstGameplayScene: Sandbox
+  firstGameplayScene: BulletHell
   titleMusic: music_title
   gameMusic: music_game
   audio: {fileID: 11400000, guid: 24bd74896dbbd514a97d579586e9d96b, type: 2}
@@ -25,20 +25,28 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5c4a424501321a34f86a06cd21a57faf, type: 2}
   credits: {fileID: 4900000, guid: c7dc43a8aab8e6f4e9b3f0b1efc963ed, type: 3}
   howToPlay:
-  - title: Move
-    body: 'Move with WASD, the arrow keys or the left stick.
+  - title: Fly
+    body: 'Move with WASD, the arrow keys or the left stick. Your ship fires by itself.
 
-      Space or (A)
-      does a quick dash.'
-    image: {fileID: 21300000, guid: e40a1616e7c241c45bf6c44d409afc97, type: 3}
-  - title: Collect
-    body: Grab all three coins to win.
-    image: {fileID: 21300000, guid: 3f0ac6f792648764c809b316da060ded, type: 3}
-  - title: Stay safe
-    body: 'The red block hurts. You have 3 hearts, and after a hit you blink and
-      can''t be hurt for a moment.
+      Hold
+      Shift (LB) to FOCUS: you fly slower and your tiny hitbox shows.'
+    image: {fileID: 21300000, guid: 40ffe955a6ea6ec499b96f6c6dc508c8, type: 3}
+  - title: Dodge
+    body: 'Only the small dot in the middle of your ship can be hit.
 
-      Escape or Start pauses.'
-    image: {fileID: 21300000, guid: 14b34aa9d520147419d61ee5eca56e18, type: 3}
+      Slip
+      past bullets to GRAZE them for points.'
+    image: {fileID: 21300000, guid: 202eb52d08abd6441b752407f66466fa, type: 3}
+  - title: Bomb
+    body: 'K, right click or Space (A on a gamepad) sets off a BOMB: it wipes every
+      bullet and keeps you safe for a moment. You get 2 per life.'
+    image: {fileID: 21300000, guid: b230dd3b2bd2a23479aca0491aeb9275, type: 3}
+  - title: The run
+    body: 'Clear rooms, pick 1 of 3 upgrades, choose your doors and spend coins in
+      shops.
+
+      Beat the boss of each of the 3 floors to win. Escape or Start
+      pauses.'
+    image: {fileID: 21300000, guid: 6b8ebf874b661ba469bdaa23569f47f7, type: 3}
   showHowToPlayOnFirstRun: 1
   allowDebugMenuInRelease: 0

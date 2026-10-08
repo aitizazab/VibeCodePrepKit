@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 945c355521880f545884efe20ab4723b, type: 3}
+  m_Name: SandboxGameConfig
+  m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.GameConfig
+  gameTitle: JamKit Sandbox
+  tagline: A tiny game that tests the shell
+  bootScene: Boot
+  titleScene: Title
+  firstGameplayScene: Sandbox
+  titleMusic: music_title
+  gameMusic: music_game
+  audio: {fileID: 11400000, guid: 24bd74896dbbd514a97d579586e9d96b, type: 2}
+  portraits: []
+  credits: {fileID: 4900000, guid: c7dc43a8aab8e6f4e9b3f0b1efc963ed, type: 3}
+  howToPlay:
+  - title: Move
+    body: 'Move with WASD, the arrow keys or the left stick.
+
+      Space or (A)
+      does a quick dash.'
+    image: {fileID: 21300000, guid: e40a1616e7c241c45bf6c44d409afc97, type: 3}
+  - title: Collect
+    body: Grab all three coins to win.
+    image: {fileID: 21300000, guid: 3f0ac6f792648764c809b316da060ded, type: 3}
+  - title: Stay safe
+    body: 'The red block hurts. You have 3 hearts, and after a hit you blink and
+      can''t be hurt for a moment.
+
+      Escape or Start pauses.'
+    image: {fileID: 21300000, guid: 14b34aa9d520147419d61ee5eca56e18, type: 3}
+  showHowToPlayOnFirstRun: 1
+  allowDebugMenuInRelease: 0

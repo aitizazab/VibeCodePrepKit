@@ -1,0 +1,203 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5db3bc717882f924692c5667c4d597fe, type: 3}
+  m_Name: Forgemother
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.BossDef
+  displayName: Forgemother
+  title: Queen of the Furnace
+  hp: 1300
+  sprite: {fileID: 21300000, guid: 39c7d49fed618c34787999d839a2e95f, type: 3}
+  color: {r: 1, g: 0.65, b: 0.25, a: 1}
+  size: 2.6
+  radius: 1
+  homePosition: {x: 0, y: 3.1}
+  phases:
+  - name: Molten Walls
+    startsAtHealth: 1
+    attack:
+      steps:
+      - time: 0
+        pattern:
+          shape: 5
+          count: 13
+          spreadDegrees: 60
+          lineWidth: 12
+          baseAngleDegrees: -90
+          rotatePerShotDegrees: 0
+          shots: 1
+          shotInterval: 0.1
+          speed: 2
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 3
+          spawnRadius: 0
+      - time: 1.2
+        pattern:
+          shape: 4
+          count: 9
+          spreadDegrees: 35
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 0
+          shots: 1
+          shotInterval: 0.1
+          speed: 4.5
+          speedStep: 0.25
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 1
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 0
+          spawnRadius: 0
+      - time: 2.4
+        pattern:
+          shape: 5
+          count: 12
+          spreadDegrees: 60
+          lineWidth: 11
+          baseAngleDegrees: -90
+          rotatePerShotDegrees: 0
+          shots: 1
+          shotInterval: 0.1
+          speed: 2
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 3
+          spawnRadius: 0
+      loop: 1
+      loopDelay: 0.8
+    movement: 1
+    moveWidth: 2.5
+    moveSpeed: 0.1
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - name: Sparks
+    startsAtHealth: 0.66
+    attack:
+      steps:
+      - time: 0
+        pattern:
+          shape: 0
+          count: 16
+          spreadDegrees: 60
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 0
+          shots: 3
+          shotInterval: 0.5
+          speed: 2.4
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 40
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 1
+          styleIndex: 5
+          spawnRadius: 0
+      - time: 1.6
+        pattern:
+          shape: 3
+          count: 6
+          spreadDegrees: 0
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 0
+          shots: 1
+          shotInterval: 0.1
+          speed: 4
+          speedStep: 0.8
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 4
+          spawnRadius: 0
+      loop: 1
+      loopDelay: 0.6
+    movement: 2
+    moveWidth: 3
+    moveSpeed: 0.1
+    tint: {r: 1, g: 0.9, b: 0.7, a: 1}
+  - name: Meltdown
+    startsAtHealth: 0.33
+    attack:
+      steps:
+      - time: 0
+        pattern:
+          shape: 2
+          count: 3
+          spreadDegrees: 60
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 9
+          shots: 70
+          shotInterval: 0.08
+          speed: 2.5
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 10
+          mirror: 1
+          styleIndex: 0
+          spawnRadius: 0
+      - time: 0
+        pattern:
+          shape: 0
+          count: 12
+          spreadDegrees: 60
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 0
+          shots: 4
+          shotInterval: 1.2
+          speed: 1.8
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 3
+          spawnRadius: 0
+      loop: 1
+      loopDelay: 1
+    movement: 0
+    moveWidth: 0
+    moveSpeed: 0
+    tint: {r: 1, g: 0.6, b: 0.5, a: 1}
+  phaseChangeInvulnerable: 1.5
+  score: 20000
+  coins: 40

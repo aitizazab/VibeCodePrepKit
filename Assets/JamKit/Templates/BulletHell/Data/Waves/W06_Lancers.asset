@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c5b72aa4101c6b44b84393f2797cacb, type: 3}
+  m_Name: W06_Lancers
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.WaveDef
+  spawns:
+  - time: 0
+    enemy: {fileID: 11400000, guid: 05c5e27a77c11df468b1fae83e491df1, type: 2}
+    position: {x: 0, y: 4}
+    from: 0
+    count: 3
+    spacing: {x: 2.6, y: -0.4}
+    interval: 0.3
+    mirror: 0
+  - time: 2.5
+    enemy: {fileID: 11400000, guid: 1e423200590d06c468beb55e0bc9fd0e, type: 2}
+    position: {x: 0, y: 2.4}
+    from: 1
+    count: 4
+    spacing: {x: 0, y: 0}
+    interval: 0.45
+    mirror: 0
+  maxDuration: 11

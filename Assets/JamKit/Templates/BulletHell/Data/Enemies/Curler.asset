@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b412b74e1055ce546b5eb647ce20f339, type: 3}
+  m_Name: Curler
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.EnemyDef
+  displayName: Curler
+  hp: 35
+  sprite: {fileID: 21300000, guid: 04633ad2f0ca4794691373bffd46cd4b, type: 3}
+  color: {r: 0.4, g: 0.9, b: 1, a: 1}
+  size: 0.95
+  radius: 0.45
+  spin: -60
+  big: 0
+  movement:
+    kind: 0
+    enterSeconds: 1.2
+    amplitude: 2
+    frequency: 0.25
+    speed: 4
+    actSeconds: 11
+  attack:
+    steps:
+    - time: 0
+      pattern:
+        shape: 0
+        count: 14
+        spreadDegrees: 60
+        lineWidth: 4
+        baseAngleDegrees: 0
+        rotatePerShotDegrees: 0
+        shots: 3
+        shotInterval: 0.5
+        speed: 2.4
+        speedStep: 0
+        acceleration: 0
+        angularVelocityDegrees: 40
+        aimAtTarget: 0
+        jitterDegrees: 0
+        startDelay: 0
+        lifetime: 8
+        mirror: 1
+        styleIndex: 1
+        spawnRadius: 0
+    loop: 1
+    loopDelay: 1.8
+  attackDelay: 0.4
+  hurtsOnContact: 1
+  score: 450
+  coins: 4

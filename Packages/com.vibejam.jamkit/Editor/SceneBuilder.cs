@@ -100,7 +100,9 @@ namespace JamKit.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("JAMKIT_SCENES_OK " + string.Join(", ", ctx.scenes.Select(Path.GetFileNameWithoutExtension)));
-            if (shell == null) return false;
+            // ReferenceEquals, not ==: later build steps open new scenes, which unloads the asset, and
+            // Unity's == reports an unloaded (but saved) object as null.
+            if (ReferenceEquals(shell, null)) return false;
             return true;
         }
 

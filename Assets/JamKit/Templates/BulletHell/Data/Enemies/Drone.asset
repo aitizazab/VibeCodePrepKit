@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b412b74e1055ce546b5eb647ce20f339, type: 3}
+  m_Name: Drone
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.EnemyDef
+  displayName: Drone
+  hp: 4
+  sprite: {fileID: 21300000, guid: 4ae117b1a943b364f94f159c6295b993, type: 3}
+  color: {r: 0.35, g: 0.95, b: 0.85, a: 1}
+  size: 0.6
+  radius: 0.3
+  spin: 0
+  big: 0
+  movement:
+    kind: 3
+    enterSeconds: 1.2
+    amplitude: 0.6
+    frequency: 0.35
+    speed: 3.2
+    actSeconds: 0
+  attack:
+    steps:
+    - time: 0
+      pattern:
+        shape: 3
+        count: 1
+        spreadDegrees: 60
+        lineWidth: 4
+        baseAngleDegrees: 0
+        rotatePerShotDegrees: 0
+        shots: 0
+        shotInterval: 1.6
+        speed: 3.6
+        speedStep: 0
+        acceleration: 0
+        angularVelocityDegrees: 0
+        aimAtTarget: 0
+        jitterDegrees: 0
+        startDelay: 0.5
+        lifetime: 8
+        mirror: 0
+        styleIndex: 0
+        spawnRadius: 0
+    loop: 0
+    loopDelay: 0
+  attackDelay: 0.4
+  hurtsOnContact: 1
+  score: 100
+  coins: 1

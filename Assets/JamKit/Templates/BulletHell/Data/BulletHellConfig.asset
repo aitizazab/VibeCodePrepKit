@@ -1,0 +1,179 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66afa993046db74428feb50e5c731810, type: 3}
+  m_Name: BulletHellConfig
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.BulletHellConfig
+  run:
+    floors: 3
+    roomsPerFloorMin: 5
+    roomsPerFloorMax: 6
+    combatWeight: 46
+    eliteWeight: 12
+    treasureWeight: 12
+    shopWeight: 10
+    restWeight: 4
+    eventWeight: 12
+    noBackToBackElites: 1
+    restBeforeBoss: 1
+    branching: 1
+    branchChance: 0.55
+  floors:
+  - name: The Outer Ring
+    background: {r: 0.04, g: 0.08, b: 0.12, a: 1}
+    accent: {r: 0.35, g: 0.9, b: 0.85, a: 1}
+    combatRooms:
+    - {fileID: 11400000, guid: 6e325d9ac8c186649b656a1e0690697b, type: 2}
+    - {fileID: 11400000, guid: 7adfa5ed203490a40991cb1aded3fed1, type: 2}
+    - {fileID: 11400000, guid: 5e98466b4b0dd41458854e4ba195b581, type: 2}
+    eliteRooms:
+    - {fileID: 11400000, guid: 3d08741295a8b4e4cb7239bb0ab90d39, type: 2}
+    boss: {fileID: 11400000, guid: 20c07e967390c6c43808954d63b92065, type: 2}
+    hpScale: 1
+    coinScale: 1
+  - name: The Furnace
+    background: {r: 0.12, g: 0.06, b: 0.05, a: 1}
+    accent: {r: 1, g: 0.6, b: 0.3, a: 1}
+    combatRooms:
+    - {fileID: 11400000, guid: 5e6d017b459dc4a428e651cf5192d82c, type: 2}
+    - {fileID: 11400000, guid: c72d8796f0423da488cef3fd33fd3872, type: 2}
+    - {fileID: 11400000, guid: 302489054baebd94d9113c458be2cd24, type: 2}
+    eliteRooms:
+    - {fileID: 11400000, guid: b96871215b76ba745b6ab23fce119094, type: 2}
+    - {fileID: 11400000, guid: 1cb2ccc86baf843429f784d01f01647d, type: 2}
+    boss: {fileID: 11400000, guid: 8d652486813a36e4782c04c8408e3df5, type: 2}
+    hpScale: 1.35
+    coinScale: 1.2
+  - name: The Core
+    background: {r: 0.08, g: 0.05, b: 0.13, a: 1}
+    accent: {r: 0.8, g: 0.55, b: 1, a: 1}
+    combatRooms:
+    - {fileID: 11400000, guid: f597e557dcaa63b45bfb51a29b1ca1c8, type: 2}
+    - {fileID: 11400000, guid: fbb6ca6a40325a948be10757c9c697df, type: 2}
+    - {fileID: 11400000, guid: ed1f540c8c748ea4fad8e21de89baec0, type: 2}
+    eliteRooms:
+    - {fileID: 11400000, guid: 586f7daba4ece8b41bc1ad45a877ea50, type: 2}
+    - {fileID: 11400000, guid: 60556962c407fe847b9396d9f5e8234d, type: 2}
+    boss: {fileID: 11400000, guid: 5a20a2e350f07b04780c12a391a5fcd3, type: 2}
+    hpScale: 1.75
+    coinScale: 1.4
+  player: {fileID: 11400000, guid: 3d2ed4623cd500f408feb2501586f32c, type: 2}
+  upgrades:
+  - {fileID: 11400000, guid: fdfb417cc7730414481fde70f0cbe0af, type: 2}
+  - {fileID: 11400000, guid: 331248bfaf86aca45ab8b69b33cf0fcd, type: 2}
+  - {fileID: 11400000, guid: 2cb4f15e48718ea428cd7aea1d0ad89e, type: 2}
+  - {fileID: 11400000, guid: e92c96dadb2de1f48b97a7a4d05cf858, type: 2}
+  - {fileID: 11400000, guid: ba45210e70080244aa0f9fe3cbbc133e, type: 2}
+  - {fileID: 11400000, guid: 6c63aa0482ead19478daf8a6965f6633, type: 2}
+  - {fileID: 11400000, guid: 2fe3d9a5d0745b5458f965569d4db6b6, type: 2}
+  - {fileID: 11400000, guid: 4d5e0ab11b673314599a808adca8182d, type: 2}
+  - {fileID: 11400000, guid: a2b842bd3d358694f905637c4d752e46, type: 2}
+  - {fileID: 11400000, guid: 9d4955dacebcb0443927a3d230d94510, type: 2}
+  - {fileID: 11400000, guid: 096fa1fb5f00f7546b8dc2ef9cc31f52, type: 2}
+  - {fileID: 11400000, guid: 59b2afdf71c6e2243824cb9ea9587120, type: 2}
+  - {fileID: 11400000, guid: 3c341d79d4cc3ac4fa508eb95101df5c, type: 2}
+  - {fileID: 11400000, guid: 6ba83c43a779a3a45b3202feca20c87b, type: 2}
+  - {fileID: 11400000, guid: 3c9da28d3467bd94f99d9d856429d201, type: 2}
+  - {fileID: 11400000, guid: f9e6b5e3769acd847b3f28b8f414f876, type: 2}
+  - {fileID: 11400000, guid: 30263de5ce3da3143bc186f1de0ea296, type: 2}
+  - {fileID: 11400000, guid: f967fdc573229d94097d7ecbf824e6f0, type: 2}
+  fallbackUpgrade: {fileID: 11400000, guid: 9f3d5c41b841be3419de88ac1d14f889, type: 2}
+  economy:
+    commonPrice: 25
+    rarePrice: 40
+    epicPrice: 60
+    legendaryPrice: 90
+    lifePrice: 45
+    bombPrice: 20
+    rerollBaseCost: 10
+    rerollStep: 5
+    shopUpgrades: 3
+    draftSize: 3
+    grazeHealEvery: 120
+    eliteLuck: 0.5
+    bossLuck: 1
+  events: {fileID: 6231892579173505729, guid: 0dd0237c59160924581735f1fd568a8a, type: 3}
+  eventKnots:
+  - shrine
+  - gambler
+  - medic
+  - cache
+  playfieldHalfSize: {x: 6, y: 5.3}
+  bulletStyles:
+  - name: Red pellet
+    color: {r: 1, g: 0.33, b: 0.43, a: 1}
+    hitRadius: 0.075
+    size: 0.24
+    stretch: 1
+  - name: Blue pellet
+    color: {r: 0.36, g: 0.66, b: 1, a: 1}
+    hitRadius: 0.075
+    size: 0.24
+    stretch: 1
+  - name: Pink orb
+    color: {r: 1, g: 0.45, b: 0.85, a: 1}
+    hitRadius: 0.13
+    size: 0.4
+    stretch: 1
+  - name: Orange ball
+    color: {r: 1, g: 0.62, b: 0.25, a: 1}
+    hitRadius: 0.22
+    size: 0.62
+    stretch: 1
+  - name: Green rice
+    color: {r: 0.45, g: 1, b: 0.55, a: 1}
+    hitRadius: 0.065
+    size: 0.2
+    stretch: 2.2
+  - name: Yellow pellet
+    color: {r: 1, g: 0.88, b: 0.35, a: 1}
+    hitRadius: 0.075
+    size: 0.24
+    stretch: 1
+  - name: Player shot
+    color: {r: 0.55, g: 0.95, b: 1, a: 0.7}
+    hitRadius: 0.12
+    size: 0.2
+    stretch: 3
+  - name: Player homing shot
+    color: {r: 0.8, g: 0.6, b: 1, a: 0.8}
+    hitRadius: 0.12
+    size: 0.22
+    stretch: 2.2
+  - name: Violet ball
+    color: {r: 0.7, g: 0.45, b: 1, a: 1}
+    hitRadius: 0.2
+    size: 0.56
+    stretch: 1
+  - name: White needle
+    color: {r: 0.92, g: 0.95, b: 1, a: 1}
+    hitRadius: 0.06
+    size: 0.16
+    stretch: 3
+  rarityColors:
+  - {r: 0.82, g: 0.85, b: 0.9, a: 1}
+  - {r: 0.38, g: 0.68, b: 1, a: 1}
+  - {r: 0.78, g: 0.5, b: 1, a: 1}
+  - {r: 1, g: 0.79, b: 0.29, a: 1}
+  roomColors:
+  - {r: 0.55, g: 0.6, b: 0.75, a: 1}
+  - {r: 1, g: 0.45, b: 0.4, a: 1}
+  - {r: 1, g: 0.82, b: 0.3, a: 1}
+  - {r: 0.4, g: 0.9, b: 0.55, a: 1}
+  - {r: 0.45, g: 0.75, b: 1, a: 1}
+  - {r: 0.8, g: 0.55, b: 1, a: 1}
+  - {r: 1, g: 0.3, b: 0.5, a: 1}
+  coinColor: {r: 1, g: 0.83, b: 0.25, a: 1}
+  sideColor: {r: 0.03, g: 0.03, b: 0.06, a: 1}
+  roomIntroSeconds: 1.4
+  roomClearedSeconds: 1.6
+  waveGapSeconds: 0.6
+  bossMusic: music_boss
