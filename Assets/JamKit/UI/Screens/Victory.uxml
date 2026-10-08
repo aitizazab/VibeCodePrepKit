@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="victory-screen" class="jk-screen jk-scrim">
+        <ui:VisualElement class="jk-panel">
+            <ui:Label name="heading" text="You Win!" class="jk-heading jk-heading--good" />
+            <ui:Label name="subheading" text="Thanks for playing." class="jk-text jk-dim" />
+            <ui:VisualElement name="stats" class="jk-stats" />
+            <ui:Button name="continue" text="Continue" class="jk-button jk-button--primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Unity layer as a player build sees it (no UNITY_EDITOR). See ../UnityLayer/UnityLayer.props. -->
+  <Import Project="..\UnityLayer\UnityLayer.props" />
+</Project>

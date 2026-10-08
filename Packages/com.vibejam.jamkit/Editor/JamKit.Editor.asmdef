@@ -2,7 +2,12 @@
     "name": "JamKit.Editor",
     "rootNamespace": "JamKit.EditorTools",
     "references": [
-        "JamKit.Core"
+        "JamKit.Core",
+        "JamKit.Unity",
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Ink",
+        "Ink-Libraries"
     ],
     "includePlatforms": [
         "Editor"

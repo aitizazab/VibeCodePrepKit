@@ -1,0 +1,21 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="debug" class="jk-debug-layer" picking-mode="Ignore">
+        <ui:Label name="debug-fps-label" text="" class="jk-debug-fps" picking-mode="Ignore" />
+        <ui:VisualElement name="debug-panel" class="jk-debug-panel">
+            <ui:Label text="Debug  (` or F1)" class="jk-debug-title" />
+            <ui:Button name="debug-god" text="God mode: off" class="jk-debug-button" />
+            <ui:VisualElement class="jk-debug-row">
+                <ui:Button name="debug-time-slow" text="Time x0.25" class="jk-debug-button" />
+                <ui:Button name="debug-time-normal" text="x1" class="jk-debug-button" />
+                <ui:Button name="debug-time-fast" text="x2" class="jk-debug-button" />
+            </ui:VisualElement>
+            <ui:VisualElement class="jk-debug-row">
+                <ui:Button name="debug-win" text="Win" class="jk-debug-button" />
+                <ui:Button name="debug-lose" text="Lose" class="jk-debug-button" />
+                <ui:Button name="debug-next" text="Next scene" class="jk-debug-button" />
+            </ui:VisualElement>
+            <ui:Button name="debug-fps" text="FPS counter: off" class="jk-debug-button" />
+            <ui:Button name="debug-close" text="Close" class="jk-debug-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="hud" class="jk-hud" picking-mode="Ignore">
+        <ui:VisualElement name="hud-left" class="jk-hud-corner" picking-mode="Ignore">
+            <ui:VisualElement name="hud-health" class="jk-health" picking-mode="Ignore">
+                <ui:VisualElement name="hud-health-fill" class="jk-health-fill" picking-mode="Ignore" />
+                <ui:Label name="hud-health-text" text="" class="jk-health-text" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="hud-center" class="jk-hud-center" picking-mode="Ignore">
+            <ui:Label name="hud-message" text="" class="jk-hud-message" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="hud-right" class="jk-hud-corner jk-hud-corner--right" picking-mode="Ignore">
+            <ui:Label name="hud-timer" text="0:00" class="jk-hud-label" picking-mode="Ignore" />
+            <ui:Label name="hud-score" text="" class="jk-hud-label" picking-mode="Ignore" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

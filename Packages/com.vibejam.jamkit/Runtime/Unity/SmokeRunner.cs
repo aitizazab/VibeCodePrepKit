@@ -1,0 +1,167 @@
+using System;
+using System.Collections;
+using System.Globalization;
+using JamKit.Flow;
+using UnityEngine;
+
+namespace JamKit.Shell
+{
+    /// <summary>
+    /// Build smoke test: run the player with <c>-jamSmoke 20</c> and it plays itself through
+    /// boot, title, Play, the first gameplay scene (mashing through any dialogue), a pause and resume,
+    /// a debug win, victory, credits and back to the title, then quits with exit code 0. Any logged
+    /// error or exception, or running out of time, quits with exit code 1. Uses its own save slot.
+    /// Log lines start with JAMKIT_SMOKE so tools/smoke.ps1 can report them.
+    /// </summary>
+    public sealed class SmokeRunner : MonoBehaviour
+    {
+        float _seconds = 20f;
+        int _errors;
+        string _firstError = "";
+        bool _done;
+
+        public static bool Requested(out float seconds)
+        {
+            seconds = 0f;
+            if (Application.platform == RuntimePlatform.WebGLPlayer) return false;
+            string[] args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] != "-jamSmoke") continue;
+                seconds = 20f;
+                if (i + 1 < args.Length && float.TryParse(args[i + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out float s) && s > 0f)
+                    seconds = s;
+                return true;
+            }
+            return false;
+        }
+
+        void Awake()
+        {
+            Requested(out _seconds);
+            Application.logMessageReceived += OnLog;
+            if (Application.isBatchMode) Application.targetFrameRate = 60;
+        }
+
+        IEnumerator Start()
+        {
+            Log("start, budget " + _seconds.ToString("0", CultureInfo.InvariantCulture) + " s");
+            StartCoroutine(Watchdog());
+            var flow = GameRoot.Flow;
+            var ui = GameRoot.Ui;
+
+            yield return Until(() => flow.Current == GameState.Title && !GameRoot.IsLoadingScene, "title screen");
+            yield return Real(0.5f);
+            Log("title");
+            ui.Title.Activate("play");
+            yield return null;
+            // First run: the How to Play cards come up before the game starts.
+            for (int i = 0; i < 10 && ui.IsOverlayOpen(ui.HowToPlay); i++)
+            {
+                ui.HowToPlay.Activate("next");
+                yield return null;
+            }
+
+            yield return Until(() => flow.InRun && !GameRoot.IsLoadingScene, "gameplay scene");
+            Log("playing " + SceneService.ActiveName);
+
+            float playUntil = Time.realtimeSinceStartup + 2.5f;
+            bool paused = false;
+            while (Time.realtimeSinceStartup < playUntil)
+            {
+                if (GameRoot.Dialogue.IsActive)
+                {
+                    GameRoot.Dialogue.AutoStep();
+                    playUntil = Mathf.Max(playUntil, Time.realtimeSinceStartup + 1f);
+                }
+                else if (!paused && flow.Current == GameState.Playing)
+                {
+                    paused = true;
+                    GameRoot.Instance.Pause();
+                    yield return Real(0.3f);
+                    if (flow.Current != GameState.Paused) Fail("pause didn't pause");
+                    ui.Pause.Activate("resume");
+                }
+                yield return Real(0.1f);
+            }
+
+            Log("debug win");
+            DebugMenu.Win();
+            yield return Until(() => flow.Current == GameState.Victory, "victory");
+            yield return Real(0.5f);
+            ui.Victory.Activate("continue");
+            yield return Until(() => flow.Current == GameState.Credits && !GameRoot.IsLoadingScene, "credits");
+            yield return Real(1f);
+            ui.Credits.Activate("back");
+            yield return Until(() => flow.Current == GameState.Title && !GameRoot.IsLoadingScene, "back to title");
+            yield return Real(0.5f);
+            Finish();
+        }
+
+        IEnumerator Until(Func<bool> condition, string what)
+        {
+            while (!condition())
+            {
+                if (_done) yield break;
+                yield return null;
+            }
+            Log("reached " + what);
+        }
+
+        static IEnumerator Real(float seconds)
+        {
+            float end = Time.realtimeSinceStartup + seconds;
+            while (Time.realtimeSinceStartup < end) yield return null;
+        }
+
+        IEnumerator Watchdog()
+        {
+            float end = Time.realtimeSinceStartup + _seconds;
+            while (!_done && Time.realtimeSinceStartup < end) yield return null;
+            if (!_done) Fail("timed out after " + _seconds + " s in state " + GameRoot.Flow.Current);
+        }
+
+        void OnLog(string message, string stack, LogType type)
+        {
+            if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert) return;
+            if (message.StartsWith("JAMKIT_SMOKE", StringComparison.Ordinal)) return;
+            _errors++;
+            if (_firstError.Length == 0) _firstError = message;
+        }
+
+        void Fail(string why)
+        {
+            if (_done) return;
+            _done = true;
+            Debug.Log("JAMKIT_SMOKE_FAIL " + why);
+            Quit(1);
+        }
+
+        void Finish()
+        {
+            if (_done) return;
+            _done = true;
+            if (_errors > 0)
+            {
+                Debug.Log($"JAMKIT_SMOKE_FAIL {_errors} error(s) logged; first: {_firstError}");
+                Quit(1);
+                return;
+            }
+            Debug.Log("JAMKIT_SMOKE_PASS in " + Time.realtimeSinceStartup.ToString("0.0", CultureInfo.InvariantCulture) + " s");
+            Quit(0);
+        }
+
+        static void Log(string what) => Debug.Log("JAMKIT_SMOKE " + what);
+
+        static void Quit(int code)
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit(code);
+#endif
+        }
+
+        void OnDestroy() => Application.logMessageReceived -= OnLog;
+    }
+}

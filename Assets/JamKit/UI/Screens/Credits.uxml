@@ -1,0 +1,9 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="credits-screen" class="jk-screen jk-credits-screen">
+        <ui:Label text="Credits" class="jk-heading" />
+        <ui:VisualElement name="credits-viewport" class="jk-credits-viewport">
+            <ui:Label name="credits-content" text="" class="jk-credits-content" />
+        </ui:VisualElement>
+        <ui:Button name="back" text="Back to Title" class="jk-button" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,28 @@
+MY JAM GAME
+
+Made in 3 days at Vibe Coding GameDev
+
+
+DESIGN AND CODE
+Your names here
+
+
+ART
+Your names here
+
+
+MUSIC AND SOUND
+Placeholder sounds generated in code by JamKit
+(replace this line with your sound credits)
+
+
+DIALOGUE
+Written with ink by inkle (MIT licence)
+
+
+BUILT WITH
+Unity 6
+JamKit, our jam framework
+
+
+THANK YOU FOR PLAYING!

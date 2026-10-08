@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="title-screen" class="jk-screen jk-title-screen">
+        <ui:VisualElement class="jk-title-block">
+            <ui:Label name="title-label" text="My Jam Game" class="jk-title" />
+            <ui:Label name="tagline-label" text="Made in 3 days" class="jk-tagline" />
+        </ui:VisualElement>
+        <ui:VisualElement class="jk-menu">
+            <ui:Button name="play" text="Play" class="jk-button jk-button--primary" />
+            <ui:Button name="howto" text="How to Play" class="jk-button" />
+            <ui:Button name="settings" text="Settings" class="jk-button" />
+            <ui:Button name="credits" text="Credits" class="jk-button" />
+            <ui:Button name="quit" text="Quit" class="jk-button" />
+        </ui:VisualElement>
+        <ui:Label name="best-label" text="" class="jk-footnote" />
+        <ui:Label name="hint-label" text="Arrow keys or stick to choose, Enter or (A) to select" class="jk-footnote jk-dim" />
+    </ui:VisualElement>
+</ui:UXML>

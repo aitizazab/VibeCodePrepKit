@@ -1,0 +1,36 @@
+/*
+ * JamKit theme: re-skin the whole shell for the jam's theme by editing these values.
+ * Every screen, the HUD and the dialogue box read them (Shell.uss uses var(--jk-...)).
+ * Sizes are in pixels at 1920x1080; the panel scales to any window.
+ */
+.jk-root {
+    /* Colours */
+    --jk-text: #f3f1ea;
+    --jk-text-dim: #b4b0c4;
+    --jk-accent: #ffc94a;          /* focus ring, titles, primary buttons */
+    --jk-accent-text: #241a02;     /* text on accent backgrounds */
+    --jk-good: #7be08f;
+    --jk-bad: #ff6b6b;
+    --jk-panel: #20203a;
+    --jk-panel-border: #43437a;
+    --jk-button: #2e2e52;
+    --jk-button-hover: #3d3d6e;
+    --jk-scrim: rgba(8, 8, 20, 0.62);   /* darkening behind menus */
+    --jk-scrim-dark: rgba(20, 2, 6, 0.75);
+    --jk-title-bg: #15152a;              /* title screen background */
+    --jk-dialogue-bg: rgba(18, 18, 36, 0.94);
+    --jk-health: #ff5a6e;
+    --jk-health-back: rgba(0, 0, 0, 0.55);
+
+    /* Text sizes */
+    --jk-font-size: 32px;
+    --jk-small-size: 24px;
+    --jk-heading-size: 64px;
+    --jk-title-size: 120px;
+    --jk-dialogue-size: 36px;
+
+    /* Shapes */
+    --jk-radius: 16px;
+    --jk-button-radius: 12px;
+    --jk-border: 3px;
+}

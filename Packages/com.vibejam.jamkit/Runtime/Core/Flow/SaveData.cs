@@ -23,6 +23,10 @@ namespace JamKit.Flow
         public int runsStarted;
         public int runsWon;
         public List<string> unlocked = new List<string>();
+        /// <summary>Story and world flags (ink's set_flag/has_flag): "met_ava", "door_open".</summary>
+        public List<string> flags = new List<string>();
+        /// <summary>The How to Play pages were shown once (GameConfig.showHowToPlayOnFirstRun).</summary>
+        public bool seenHowToPlay;
 
         /// <summary>
         /// Upgrade an older save to <see cref="CurrentVersion"/> one step at a time, then repair
@@ -44,6 +48,7 @@ namespace JamKit.Flow
             }
             if (settings == null) { settings = new Settings(); changed = true; }
             if (unlocked == null) { unlocked = new List<string>(); changed = true; }
+            if (flags == null) { flags = new List<string>(); changed = true; }
             if (settings.Clamp()) changed = true;
             if (bestTime < 0f || float.IsNaN(bestTime)) { bestTime = 0f; changed = true; }
             if (bestFloor < 0) { bestFloor = 0; changed = true; }
@@ -68,6 +73,19 @@ namespace JamKit.Flow
             unlocked.Add(id);
             return true;
         }
+
+        public bool HasFlag(string name) => flags != null && !string.IsNullOrEmpty(name) && flags.Contains(name);
+
+        /// <summary>Returns true if the flag was newly set.</summary>
+        public bool SetFlag(string name)
+        {
+            if (flags == null) flags = new List<string>();
+            if (string.IsNullOrEmpty(name) || flags.Contains(name)) return false;
+            flags.Add(name);
+            return true;
+        }
+
+        public bool ClearFlag(string name) => flags != null && flags.Remove(name);
 
         public void RecordRunStarted() => runsStarted++;
 

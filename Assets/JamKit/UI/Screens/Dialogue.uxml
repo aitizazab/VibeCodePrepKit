@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="dialogue" class="jk-dialogue" picking-mode="Ignore">
+        <ui:VisualElement class="jk-portraits" picking-mode="Ignore">
+            <ui:VisualElement name="portrait-left" class="jk-portrait jk-portrait--left" picking-mode="Ignore">
+                <ui:VisualElement name="portrait-left-base" class="jk-portrait-layer" picking-mode="Ignore" />
+                <ui:VisualElement name="portrait-left-expr" class="jk-portrait-layer" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="portrait-right" class="jk-portrait jk-portrait--right" picking-mode="Ignore">
+                <ui:VisualElement name="portrait-right-base" class="jk-portrait-layer" picking-mode="Ignore" />
+                <ui:VisualElement name="portrait-right-expr" class="jk-portrait-layer" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="dialogue-box" class="jk-dialogue-box">
+            <ui:Label name="speaker-name" text="" class="jk-speaker" />
+            <ui:Label name="dialogue-text" text="" class="jk-dialogue-text" />
+            <ui:VisualElement name="choices" class="jk-choices" />
+            <ui:Label name="continue-hint" text="Enter, Space, click or (A)" class="jk-continue-hint" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

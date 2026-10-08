@@ -1,0 +1,11 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="gameover-screen" class="jk-screen jk-scrim jk-scrim--dark">
+        <ui:VisualElement class="jk-panel">
+            <ui:Label name="heading" text="Game Over" class="jk-heading jk-heading--bad" />
+            <ui:Label name="subheading" text="So close. Have another go!" class="jk-text jk-dim" />
+            <ui:VisualElement name="stats" class="jk-stats" />
+            <ui:Button name="retry" text="Try Again" class="jk-button jk-button--primary" />
+            <ui:Button name="title" text="Back to Title" class="jk-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

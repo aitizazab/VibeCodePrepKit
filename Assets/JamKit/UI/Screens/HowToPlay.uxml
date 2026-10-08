@@ -1,0 +1,16 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="howto-screen" class="jk-screen jk-scrim">
+        <ui:VisualElement class="jk-panel jk-panel--card">
+            <ui:Label text="How to Play" class="jk-kicker" />
+            <ui:Label name="howto-title" text="Move" class="jk-heading" />
+            <ui:VisualElement name="howto-image" class="jk-howto-image" />
+            <ui:Label name="howto-body" text="" class="jk-text jk-howto-body" />
+            <ui:Label name="howto-page" text="1 / 1" class="jk-footnote jk-dim" />
+            <ui:VisualElement class="jk-button-row">
+                <ui:Button name="prev" text="Back" class="jk-button jk-button--small" />
+                <ui:Button name="next" text="Next" class="jk-button jk-button--small jk-button--primary" />
+            </ui:VisualElement>
+            <ui:Button name="close" text="Close" class="jk-button jk-button--back" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

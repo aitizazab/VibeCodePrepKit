@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="settings-screen" class="jk-screen jk-scrim">
+        <ui:VisualElement class="jk-panel jk-panel--wide">
+            <ui:Label text="Settings" class="jk-heading" />
+            <ui:Slider name="master" label="Master volume" low-value="0" high-value="100" class="jk-option" />
+            <ui:Slider name="music" label="Music volume" low-value="0" high-value="100" class="jk-option" />
+            <ui:Slider name="sfx" label="Sound effects" low-value="0" high-value="100" class="jk-option" />
+            <ui:Slider name="sensitivity" label="Mouse sensitivity" low-value="0.1" high-value="5" class="jk-option" />
+            <ui:Toggle name="invert-y" label="Invert up/down look" class="jk-option" />
+            <ui:Slider name="shake" label="Screen shake" low-value="0" high-value="100" class="jk-option" />
+            <ui:Button name="difficulty" text="Difficulty: Normal" class="jk-option jk-stepper" />
+            <ui:Label name="difficulty-info" text="" class="jk-option-info" />
+            <ui:Toggle name="fullscreen" label="Fullscreen" class="jk-option" />
+            <ui:Button name="back" text="Back" class="jk-button jk-button--back" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

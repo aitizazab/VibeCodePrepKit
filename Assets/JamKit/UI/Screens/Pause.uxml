@@ -1,0 +1,12 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="pause-screen" class="jk-screen jk-scrim">
+        <ui:VisualElement class="jk-panel">
+            <ui:Label text="Paused" class="jk-heading" />
+            <ui:Button name="resume" text="Resume" class="jk-button jk-button--primary" />
+            <ui:Button name="restart" text="Restart" class="jk-button" />
+            <ui:Button name="settings" text="Settings" class="jk-button" />
+            <ui:Button name="howto" text="How to Play" class="jk-button" />
+            <ui:Button name="quit" text="Quit to Title" class="jk-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

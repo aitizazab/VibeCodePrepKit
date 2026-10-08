@@ -1,0 +1,525 @@
+/* JamKit shell layout. Colours and sizes live in Theme.uss. */
+
+.jk-root {
+    flex-grow: 1;
+    color: var(--jk-text);
+    font-size: var(--jk-font-size);
+}
+
+.jk-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.jk-screen {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.jk-scrim {
+    background-color: var(--jk-scrim);
+}
+
+.jk-scrim--dark {
+    background-color: var(--jk-scrim-dark);
+}
+
+/* ---------- Panels and text ---------- */
+
+.jk-panel {
+    background-color: var(--jk-panel);
+    border-color: var(--jk-panel-border);
+    border-width: var(--jk-border);
+    border-radius: var(--jk-radius);
+    padding: 40px 64px 48px 64px;
+    min-width: 640px;
+    max-width: 1500px;
+    align-items: stretch;
+}
+
+.jk-panel--wide {
+    width: 1100px;
+}
+
+.jk-panel--card {
+    width: 980px;
+}
+
+.jk-title {
+    font-size: var(--jk-title-size);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: var(--jk-accent);
+    white-space: normal;
+}
+
+.jk-tagline {
+    -unity-text-align: middle-center;
+    color: var(--jk-text-dim);
+    margin-bottom: 40px;
+}
+
+.jk-heading {
+    font-size: var(--jk-heading-size);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    margin-bottom: 20px;
+    white-space: normal;
+}
+
+.jk-heading--good {
+    color: var(--jk-good);
+}
+
+.jk-heading--bad {
+    color: var(--jk-bad);
+}
+
+.jk-kicker {
+    font-size: var(--jk-small-size);
+    color: var(--jk-accent);
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+.jk-text {
+    white-space: normal;
+    -unity-text-align: middle-center;
+    margin-bottom: 16px;
+}
+
+.jk-dim {
+    color: var(--jk-text-dim);
+}
+
+.jk-footnote {
+    font-size: var(--jk-small-size);
+    -unity-text-align: middle-center;
+    margin-top: 12px;
+}
+
+/* ---------- Buttons ---------- */
+
+.jk-button {
+    font-size: var(--jk-font-size);
+    background-image: none;
+    background-color: var(--jk-button);
+    color: var(--jk-text);
+    border-width: var(--jk-border);
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: var(--jk-button-radius);
+    padding: 14px 40px;
+    margin: 8px 0;
+    min-width: 440px;
+    -unity-text-align: middle-center;
+    transition-duration: 0.08s;
+}
+
+.jk-button:hover {
+    background-color: var(--jk-button-hover);
+}
+
+.jk-button:focus {
+    border-color: var(--jk-accent);
+    background-color: var(--jk-button-hover);
+    scale: 1.04 1.04;
+}
+
+.jk-button:active {
+    background-color: var(--jk-accent);
+    color: var(--jk-accent-text);
+}
+
+.jk-button--primary {
+    -unity-font-style: bold;
+}
+
+.jk-button--small {
+    min-width: 260px;
+    margin: 8px 12px;
+}
+
+.jk-button--back {
+    margin-top: 24px;
+}
+
+.jk-button-row {
+    flex-direction: row;
+    justify-content: center;
+}
+
+.jk-menu {
+    align-items: center;
+}
+
+/* ---------- Title ---------- */
+
+.jk-title-screen {
+    background-color: var(--jk-title-bg);
+}
+
+.jk-title-block {
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+/* ---------- Settings rows ---------- */
+
+.jk-option {
+    margin: 4px 0;
+    padding: 8px 16px;
+    border-width: var(--jk-border);
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: var(--jk-button-radius);
+    font-size: var(--jk-font-size);
+    color: var(--jk-text);
+}
+
+.jk-option:focus {
+    border-color: var(--jk-accent);
+    background-color: var(--jk-button-hover);
+}
+
+.jk-option:hover {
+    background-color: var(--jk-button);
+}
+
+.jk-option > .unity-label,
+.jk-option .unity-base-field__label {
+    font-size: var(--jk-font-size);
+    color: var(--jk-text);
+    min-width: 440px;
+}
+
+.jk-stepper {
+    background-image: none;
+    background-color: var(--jk-button);
+    -unity-text-align: middle-left;
+    margin-top: 10px;
+}
+
+.jk-option-info {
+    font-size: var(--jk-small-size);
+    color: var(--jk-text-dim);
+    white-space: normal;
+    padding: 0 20px 8px 20px;
+}
+
+/* ---------- Game over / victory stats ---------- */
+
+.jk-stats {
+    margin: 8px 0 24px 0;
+}
+
+.jk-stat {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 6px 24px;
+}
+
+.jk-stat-label {
+    color: var(--jk-text-dim);
+}
+
+.jk-stat-value {
+    -unity-font-style: bold;
+}
+
+.jk-stat--highlight .jk-stat-value {
+    color: var(--jk-accent);
+}
+
+/* ---------- Credits ---------- */
+
+.jk-credits-screen {
+    background-color: var(--jk-title-bg);
+    padding: 60px 0;
+}
+
+.jk-credits-viewport {
+    overflow: hidden;
+    flex-grow: 1;
+    width: 1200px;
+    margin: 16px 0 24px 0;
+}
+
+.jk-credits-content {
+    white-space: normal;
+    -unity-text-align: upper-center;
+    font-size: var(--jk-font-size);
+}
+
+/* ---------- How to Play ---------- */
+
+.jk-howto-image {
+    height: 300px;
+    margin: 8px 0 20px 0;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.jk-howto-body {
+    min-height: 120px;
+}
+
+/* ---------- HUD ---------- */
+
+.jk-hud {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 28px 40px;
+}
+
+.jk-hud-corner {
+    min-width: 400px;
+}
+
+.jk-hud-corner--right {
+    align-items: flex-end;
+}
+
+.jk-hud-center {
+    flex-grow: 1;
+    align-items: center;
+}
+
+.jk-health {
+    width: 400px;
+    height: 40px;
+    background-color: var(--jk-health-back);
+    border-radius: 10px;
+    border-width: var(--jk-border);
+    border-color: rgba(255, 255, 255, 0.25);
+    overflow: hidden;
+    justify-content: center;
+}
+
+.jk-health-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: var(--jk-health);
+}
+
+.jk-health-text {
+    -unity-text-align: middle-center;
+    font-size: var(--jk-small-size);
+    -unity-font-style: bold;
+    color: var(--jk-text);
+}
+
+.jk-hud-label {
+    font-size: var(--jk-font-size);
+    -unity-font-style: bold;
+    -unity-text-align: middle-right;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+.jk-hud-message {
+    font-size: var(--jk-font-size);
+    -unity-text-align: middle-center;
+    background-color: rgba(0, 0, 0, 0.55);
+    border-radius: 10px;
+    padding: 10px 28px;
+    white-space: normal;
+    max-width: 1000px;
+    transition-duration: 0.2s;
+    transition-property: opacity;
+}
+
+/* ---------- Dialogue ---------- */
+
+.jk-dialogue {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: flex-end;
+    padding: 0 120px 48px 120px;
+}
+
+.jk-portraits {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 460px;
+    margin-bottom: -40px;
+    padding: 0 40px;
+}
+
+.jk-portrait {
+    width: 420px;
+    height: 420px;
+    transition-duration: 0.15s;
+    transition-property: opacity, scale;
+}
+
+.jk-portrait--inactive {
+    opacity: 0.55;
+    scale: 0.94 0.94;
+}
+
+.jk-portrait-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.jk-dialogue-box {
+    background-color: var(--jk-dialogue-bg);
+    border-color: var(--jk-panel-border);
+    border-width: var(--jk-border);
+    border-radius: var(--jk-radius);
+    padding: 24px 40px 20px 40px;
+    min-height: 240px;
+}
+
+.jk-speaker {
+    font-size: var(--jk-font-size);
+    -unity-font-style: bold;
+    color: var(--jk-accent);
+    margin-bottom: 8px;
+}
+
+.jk-dialogue-text {
+    font-size: var(--jk-dialogue-size);
+    white-space: normal;
+    min-height: 100px;
+}
+
+.jk-choices {
+    margin-top: 8px;
+    align-items: flex-start;
+}
+
+.jk-choice {
+    font-size: var(--jk-font-size);
+    background-image: none;
+    background-color: var(--jk-button);
+    color: var(--jk-text);
+    border-width: var(--jk-border);
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: var(--jk-button-radius);
+    padding: 8px 28px;
+    margin: 4px 0;
+    -unity-text-align: middle-left;
+}
+
+.jk-choice:hover {
+    background-color: var(--jk-button-hover);
+}
+
+.jk-choice:focus {
+    border-color: var(--jk-accent);
+    background-color: var(--jk-button-hover);
+}
+
+.jk-continue-hint {
+    font-size: var(--jk-small-size);
+    color: var(--jk-text-dim);
+    -unity-text-align: middle-right;
+}
+
+/* ---------- Floating text, flash, fade ---------- */
+
+.jk-float {
+    position: absolute;
+    font-size: var(--jk-font-size);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+    translate: -50% -50%;
+}
+
+.jk-flash {
+    background-color: rgb(255, 255, 255);
+    opacity: 0;
+}
+
+.jk-fade {
+    background-color: rgb(0, 0, 0);
+    opacity: 0;
+}
+
+/* ---------- Debug ---------- */
+
+.jk-debug-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.jk-debug-fps {
+    position: absolute;
+    left: 12px;
+    bottom: 8px;
+    font-size: 22px;
+    color: rgb(140, 255, 140);
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 2px 8px;
+}
+
+.jk-debug-panel {
+    position: absolute;
+    right: 24px;
+    top: 120px;
+    width: 460px;
+    background-color: rgba(10, 10, 10, 0.88);
+    border-color: rgb(140, 255, 140);
+    border-width: 2px;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.jk-debug-title {
+    font-size: 22px;
+    color: rgb(140, 255, 140);
+    -unity-font-style: bold;
+    margin-bottom: 6px;
+}
+
+.jk-debug-row {
+    flex-direction: row;
+}
+
+.jk-debug-button {
+    flex-grow: 1;
+    font-size: 22px;
+    background-image: none;
+    background-color: rgb(40, 40, 40);
+    color: rgb(230, 230, 230);
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: 6px;
+    margin: 3px;
+    padding: 6px 8px;
+}
+
+.jk-debug-button:hover {
+    background-color: rgb(60, 60, 60);
+}
+
+.jk-debug-button:focus {
+    border-color: rgb(140, 255, 140);
+}

@@ -25,7 +25,13 @@ framework for a 3-day "Vibe Coding GameDev" hackathon. Plan and status: `docs/PL
 ## Commands
 - Core tests (seconds, no Unity): `dotnet test core-tests/All/All.Tests.csproj --nologo -v q`.
   The per-module projects (`core-tests/<Module>/`) exist so parallel agents don't share `obj/`.
-- Unity tests and builds: `tools/test.ps1`, `tools/build.ps1 -Target Windows|WebGL|All`.
+- Unity layer compile check (seconds, no Unity; needs Library/ScriptAssemblies from one Unity run):
+  `dotnet build core-tests/UnityLayerEditor/UnityLayerEditor.Check.csproj --nologo -v q` (editor view,
+  incl. editor tools and Unity tests) and `core-tests/UnityLayerPlayer/UnityLayerPlayer.Check.csproj` (player view).
+- Unity tests and builds: `tools/test.ps1`, `tools/build.ps1 -Target Windows|WebGL|All`,
+  `tools/smoke.ps1` (runs the Windows build with `-jamSmoke`), and `tools/verify.ps1` for the whole
+  chain (core, Rebuild Shell Scenes, EditMode, PlayMode, Windows build, smoke; `-From <step>`).
+- The shell (GameRoot, menus, dialogue, juice) is documented for jam teams in `docs/SHELL.md`.
   - **Unity locks a project while the editor has it open** (`Temp/UnityLockfile`). Batch mode
     then fails, so the scripts refuse. Either the creator closes the editor, or we work through
     the MCP link to the open editor.
