@@ -15,12 +15,14 @@ MonoBehaviour:
   def:
     id: close_shave
     displayName: Close Shave
-    description: Every 120 grazes restore half a life (or give a bomb when you're
-      full).
+    description: Every 120 grazes restore half a life (or a bomb, or coins, when
+      you're full).
     rarity: 1
     weight: 0
     maxStacks: 1
-    tags: []
+    tags:
+    - defense
+    - risk
     requires: []
     excludes: []
     modifiers: []
@@ -29,3 +31,12 @@ MonoBehaviour:
   iconText: CS
   iconColor: {r: 0.5, g: 1, b: 0.7, a: 1}
   icon: {fileID: 0}
+  forgeModifiers: []
+  forgeEffects: []
+  forgeText: 
+  rubric:
+    verb: 0
+    situations: []
+    wherePlayerIs: 
+    idea: 
+  designNotes: 

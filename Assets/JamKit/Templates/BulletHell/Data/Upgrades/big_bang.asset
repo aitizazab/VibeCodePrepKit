@@ -19,8 +19,10 @@ MonoBehaviour:
     rarity: 1
     weight: 0
     maxStacks: 2
-    tags: []
-    requires: []
+    tags:
+    - bomb
+    requires:
+    - bomb_bay
     excludes: []
     modifiers: []
     effects:
@@ -28,3 +30,12 @@ MonoBehaviour:
   iconText: BB
   iconColor: {r: 1, g: 0.7, b: 0.3, a: 1}
   icon: {fileID: 0}
+  forgeModifiers: []
+  forgeEffects: []
+  forgeText: 
+  rubric:
+    verb: 0
+    situations: []
+    wherePlayerIs: 
+    idea: 
+  designNotes: 

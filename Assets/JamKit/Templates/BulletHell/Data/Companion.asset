@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 373f443279ba438fa9db64d87659910e, type: 3}
+  m_Name: Companion
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.CompanionDef
+  displayName: Companion
+  sprite: {fileID: 21300000, guid: 04633ad2f0ca4794691373bffd46cd4b, type: 3}
+  color: {r: 1, g: 0.85, b: 0.55, a: 1}
+  size: 0.42
+  shotStyle: 7
+  rules:
+    orbitRadius: 0.95
+    orbitSpeed: 110
+    fireInterval: 0.32
+    damageScale: 0.4
+    shotSpeed: 15
+    guardCooldown: 18
+    barkCooldown: 6
+    barkLead: 1.2
+    barkSeconds: 2.4
+    joinAfterBosses: 0
+    maxHealth: 0
+    hitRadius: 0.22
+    reviveSeconds: 12

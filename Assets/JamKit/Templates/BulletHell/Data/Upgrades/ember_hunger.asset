@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b65f4c921c77e945825abdbaa5333d4, type: 3}
+  m_Name: ember_hunger
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.UpgradeAsset
+  def:
+    id: ember_hunger
+    displayName: Ember Hunger
+    description: 'Grazing a bullet heats your guns: up to +60% damage, cooling over
+      a few seconds.'
+    rarity: 2
+    weight: 0
+    maxStacks: 1
+    tags:
+    - risk
+    - gun
+    requires: []
+    excludes: []
+    modifiers: []
+    effects:
+    - graze_power
+  iconText: EH
+  iconColor: {r: 1, g: 0.45, b: 0.3, a: 1}
+  icon: {fileID: 0}
+  forgeModifiers:
+  - stat: graze_radius
+    op: 1
+    value: 0.15
+    sourceId: 
+  forgeEffects: []
+  forgeText: +15% graze ring
+  rubric:
+    verb: 4
+    situations:
+    - boss
+    - crowded
+    - long_fights
+    wherePlayerIs: 'Wherever the bullets are thickest: it pays you to stay close.'
+    idea: A spark that feeds on near misses.
+  designNotes: 'Changes risk: hugging bullets is rewarded with damage. Balance report:
+    about x1.1 DPS for a bot that grazes on purpose, and more hits taken: the trade
+    is the point.'

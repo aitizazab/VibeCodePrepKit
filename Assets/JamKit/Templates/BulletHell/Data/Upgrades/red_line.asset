@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b65f4c921c77e945825abdbaa5333d4, type: 3}
+  m_Name: red_line
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.UpgradeAsset
+  def:
+    id: red_line
+    displayName: Red Line
+    description: 'On your last life: +50% damage and 30% faster fire.'
+    rarity: 3
+    weight: 0
+    maxStacks: 1
+    tags:
+    - risk
+    - gun
+    requires: []
+    excludes: []
+    modifiers: []
+    effects:
+    - last_stand
+  iconText: RL
+  iconColor: {r: 1, g: 0.3, b: 0.3, a: 1}
+  icon: {fileID: 0}
+  forgeModifiers:
+  - stat: damage
+    op: 1
+    value: 0.1
+    sourceId: 
+  forgeEffects: []
+  forgeText: +10% damage
+  rubric:
+    verb: 4
+    situations:
+    - boss
+    - low_life
+    - long_fights
+    wherePlayerIs: Anywhere, on your last life.
+    idea: A star burning hottest just before it goes out.
+  designNotes: 'Replaces Overdrive (only numbers, so it failed the rubric). A risk
+    verb: playing on one life on purpose, which pairs with the Altar''s life offering.
+    Balance report: about x1.5 DPS on the last life.'

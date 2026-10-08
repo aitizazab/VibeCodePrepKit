@@ -10,21 +10,34 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b65f4c921c77e945825abdbaa5333d4, type: 3}
-  m_Name: rear_guard
+  m_Name: kindred_sting
   m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.UpgradeAsset
   def:
-    id: rear_guard
-    displayName: Rear Guard
-    description: Two streams fire backwards too.
-    rarity: 2
+    id: kindred_sting
+    displayName: Kindred Sting
+    description: Your companion's shots hit 60% harder.
+    rarity: 1
     weight: 0
-    maxStacks: 1
-    tags: []
+    maxStacks: 2
+    tags:
+    - companion
     requires: []
     excludes: []
-    modifiers: []
-    effects:
-    - rear_shot
-  iconText: RG
-  iconColor: {r: 0.7, g: 0.7, b: 1, a: 1}
+    modifiers:
+    - stat: companion_damage
+      op: 1
+      value: 0.6
+      sourceId: 
+    effects: []
+  iconText: KS
+  iconColor: {r: 1, g: 0.85, b: 0.55, a: 1}
   icon: {fileID: 0}
+  forgeModifiers: []
+  forgeEffects: []
+  forgeText: 
+  rubric:
+    verb: 0
+    situations: []
+    wherePlayerIs: 
+    idea: 
+  designNotes: 

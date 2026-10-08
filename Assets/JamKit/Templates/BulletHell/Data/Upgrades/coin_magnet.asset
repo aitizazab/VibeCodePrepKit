@@ -19,7 +19,8 @@ MonoBehaviour:
     rarity: 0
     weight: 0
     maxStacks: 2
-    tags: []
+    tags:
+    - economy
     requires: []
     excludes: []
     modifiers:
@@ -35,3 +36,12 @@ MonoBehaviour:
   iconText: Mg
   iconColor: {r: 1, g: 0.85, b: 0.3, a: 1}
   icon: {fileID: 0}
+  forgeModifiers: []
+  forgeEffects: []
+  forgeText: 
+  rubric:
+    verb: 0
+    situations: []
+    wherePlayerIs: 
+    idea: 
+  designNotes: 

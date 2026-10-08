@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b65f4c921c77e945825abdbaa5333d4, type: 3}
+  m_Name: bomb_bay
+  m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.UpgradeAsset
+  def:
+    id: bomb_bay
+    displayName: Bomb Bay
+    description: Hold 2 bombs (K / right click / Space) that recharge one every 20
+      s of fighting. More stacks hold more.
+    rarity: 2
+    weight: 0
+    maxStacks: 2
+    tags:
+    - bomb
+    - defense
+    requires: []
+    excludes: []
+    modifiers: []
+    effects:
+    - bomb_bay
+  iconText: BY
+  iconColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  icon: {fileID: 0}
+  forgeModifiers:
+  - stat: bomb_recharge
+    op: 1
+    value: 0.15
+    sourceId: 
+  forgeEffects: []
+  forgeText: +1 bomb, recharge 15% faster
+  rubric:
+    verb: 4
+    situations:
+    - boss
+    - crowded
+    - low_life
+    wherePlayerIs: 'Anywhere: a panic button for the densest moments.'
+    idea: A furnace hatch full of stored fire.
+  designNotes: 'Bombs left the starting kit (rarely used, odd as free kit). Now an
+    epic with its own upgrades: Spare Bomb, Quick Fuse, Big Bang, Guardian Angel.
+    Balance report: about 40% fewer hits.'

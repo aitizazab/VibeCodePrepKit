@@ -15,11 +15,12 @@ MonoBehaviour:
   def:
     id: time_dilation
     displayName: Time Dilation
-    description: While sprinting, enemy bullets slow to 60% speed.
+    description: Enemy bullets close to you move at half speed.
     rarity: 3
     weight: 0
     maxStacks: 1
-    tags: []
+    tags:
+    - defense
     requires: []
     excludes: []
     modifiers: []
@@ -28,3 +29,21 @@ MonoBehaviour:
   iconText: TD
   iconColor: {r: 0.6, g: 0.9, b: 1, a: 1}
   icon: {fileID: 0}
+  forgeModifiers:
+  - stat: move_speed
+    op: 1
+    value: 0.1
+    sourceId: 
+  forgeEffects: []
+  forgeText: +10% move speed
+  rubric:
+    verb: 3
+    situations:
+    - boss
+    - crowded
+    - turrets
+    wherePlayerIs: 'Anywhere: a bubble around the ship.'
+    idea: The forge's heat haze, where time runs thick.
+  designNotes: 'Changes dodging: micro-dodges get easier in dense patterns. It used
+    to slow bullets only while sprinting, which the balance report found did nothing
+    measurable; the bubble cuts hits by about a third.'

@@ -10,28 +10,35 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b65f4c921c77e945825abdbaa5333d4, type: 3}
-  m_Name: overdrive
+  m_Name: quick_fuse
   m_EditorClassIdentifier: JamKit.BulletHell::JamKit.BulletHell.UpgradeAsset
   def:
-    id: overdrive
-    displayName: Overdrive
-    description: 40% more damage and 25% faster fire.
-    rarity: 3
+    id: quick_fuse
+    displayName: Quick Fuse
+    description: Your Bomb Bay recharges 35% faster.
+    rarity: 0
     weight: 0
-    maxStacks: 1
-    tags: []
-    requires: []
+    maxStacks: 2
+    tags:
+    - bomb
+    requires:
+    - bomb_bay
     excludes: []
     modifiers:
-    - stat: damage
-      op: 2
-      value: 1.4
-      sourceId: 
-    - stat: fire_rate
+    - stat: bomb_recharge
       op: 1
-      value: 0.25
+      value: 0.35
       sourceId: 
     effects: []
-  iconText: OD
-  iconColor: {r: 1, g: 0.4, b: 0.3, a: 1}
+  iconText: QF
+  iconColor: {r: 1, g: 0.75, b: 0.35, a: 1}
   icon: {fileID: 0}
+  forgeModifiers: []
+  forgeEffects: []
+  forgeText: 
+  rubric:
+    verb: 0
+    situations: []
+    wherePlayerIs: 
+    idea: 
+  designNotes: 

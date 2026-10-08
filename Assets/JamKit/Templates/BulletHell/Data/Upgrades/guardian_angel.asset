@@ -15,13 +15,16 @@ MonoBehaviour:
   def:
     id: guardian_angel
     displayName: Guardian Angel
-    description: When you're hit, a bomb goes off instead of losing a life (if you
-      have a bomb).
+    description: When you're hit, a bomb goes off instead of losing a life (if your
+      Bay has one).
     rarity: 2
     weight: 0
     maxStacks: 1
-    tags: []
-    requires: []
+    tags:
+    - bomb
+    - defense
+    requires:
+    - bomb_bay
     excludes: []
     modifiers: []
     effects:
@@ -29,3 +32,20 @@ MonoBehaviour:
   iconText: GA
   iconColor: {r: 1, g: 0.95, b: 0.7, a: 1}
   icon: {fileID: 0}
+  forgeModifiers:
+  - stat: bomb_recharge
+    op: 1
+    value: 0.2
+    sourceId: 
+  forgeEffects: []
+  forgeText: Bomb Bay recharges 20% faster
+  rubric:
+    verb: 4
+    situations:
+    - boss
+    - crowded
+    - low_life
+    wherePlayerIs: Anywhere; it needs the Bomb Bay.
+    idea: A warden's last mercy.
+  designNotes: 'Turns bombs into insurance: you can take risks while a bomb is stocked.
+    Only offered with the Bomb Bay.'

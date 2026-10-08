@@ -15,11 +15,13 @@ MonoBehaviour:
   def:
     id: seeker_rounds
     displayName: Seeker Rounds
-    description: Your side streams curve toward enemies.
+    description: 'Your side streams curve toward enemies: dodge where you like, the
+      damage still lands.'
     rarity: 2
     weight: 0
     maxStacks: 1
-    tags: []
+    tags:
+    - gun
     requires: []
     excludes: []
     modifiers: []
@@ -28,3 +30,21 @@ MonoBehaviour:
   iconText: Sk
   iconColor: {r: 0.8, g: 0.6, b: 1, a: 1}
   icon: {fileID: 0}
+  forgeModifiers:
+  - stat: damage
+    op: 1
+    value: 0.1
+    sourceId: 
+  forgeEffects: []
+  forgeText: +10% damage
+  rubric:
+    verb: 2
+    situations:
+    - waves
+    - sides
+    - crowded
+    wherePlayerIs: 'Anywhere: it frees you from lining up under enemies.'
+    idea: Embers that know where they're going.
+  designNotes: 'Changes aiming: dodge freely, damage still lands. Strongest damage
+    epic (balance report: about x1.55 DPS); its homing streams were cut from 0.6
+    to 0.35 damage so it doesn''t dwarf the rest.'

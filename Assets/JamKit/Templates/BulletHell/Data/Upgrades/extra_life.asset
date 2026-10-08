@@ -16,10 +16,11 @@ MonoBehaviour:
     id: extra_life
     displayName: Extra Life
     description: +1 life.
-    rarity: 2
+    rarity: 1
     weight: 0
-    maxStacks: 2
-    tags: []
+    maxStacks: 1
+    tags:
+    - defense
     requires: []
     excludes: []
     modifiers: []
@@ -28,3 +29,12 @@ MonoBehaviour:
   iconText: 1U
   iconColor: {r: 1, g: 0.45, b: 0.55, a: 1}
   icon: {fileID: 0}
+  forgeModifiers: []
+  forgeEffects: []
+  forgeText: 
+  rubric:
+    verb: 0
+    situations: []
+    wherePlayerIs: 
+    idea: 
+  designNotes: 

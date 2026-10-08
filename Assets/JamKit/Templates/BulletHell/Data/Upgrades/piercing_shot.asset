@@ -15,16 +15,30 @@ MonoBehaviour:
   def:
     id: piercing_shot
     displayName: Piercing Shot
-    description: Shots pass through one more enemy.
+    description: Shots pass through one more enemy and hit 8% harder.
     rarity: 1
     weight: 0
     maxStacks: 2
-    tags: []
+    tags:
+    - gun
     requires: []
     excludes: []
-    modifiers: []
+    modifiers:
+    - stat: damage
+      op: 1
+      value: 0.08
+      sourceId: 
     effects:
     - pierce
   iconText: Pc
   iconColor: {r: 0.6, g: 0.8, b: 1, a: 1}
   icon: {fileID: 0}
+  forgeModifiers: []
+  forgeEffects: []
+  forgeText: 
+  rubric:
+    verb: 0
+    situations: []
+    wherePlayerIs: 
+    idea: 
+  designNotes: 

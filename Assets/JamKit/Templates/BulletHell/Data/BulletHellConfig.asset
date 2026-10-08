@@ -16,16 +16,22 @@ MonoBehaviour:
     floors: 3
     roomsPerFloorMin: 5
     roomsPerFloorMax: 6
-    combatWeight: 46
-    eliteWeight: 12
-    treasureWeight: 12
-    shopWeight: 10
-    restWeight: 4
-    eventWeight: 12
+    combatWeight: 40
+    eliteWeight: 11
+    treasureWeight: 6
+    shopWeight: 8
+    restWeight: 3
+    eventWeight: 8
+    forgeWeight: 6
+    altarWeight: 5
+    wagerWeight: 4
+    trialWeight: 6
+    traderWeight: 4
     noBackToBackElites: 1
     restBeforeBoss: 1
     branching: 1
     branchChance: 0.55
+  contentRevision: 2
   floors:
   - name: The Outer Ring
     background: {r: 0.04, g: 0.08, b: 0.12, a: 1}
@@ -74,17 +80,23 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ba45210e70080244aa0f9fe3cbbc133e, type: 2}
   - {fileID: 11400000, guid: 6c63aa0482ead19478daf8a6965f6633, type: 2}
   - {fileID: 11400000, guid: 2fe3d9a5d0745b5458f965569d4db6b6, type: 2}
+  - {fileID: 11400000, guid: a4faeeae87c656c49878ef61f747c59a, type: 2}
   - {fileID: 11400000, guid: 4d5e0ab11b673314599a808adca8182d, type: 2}
   - {fileID: 11400000, guid: a2b842bd3d358694f905637c4d752e46, type: 2}
   - {fileID: 11400000, guid: 9d4955dacebcb0443927a3d230d94510, type: 2}
   - {fileID: 11400000, guid: 096fa1fb5f00f7546b8dc2ef9cc31f52, type: 2}
   - {fileID: 11400000, guid: 59b2afdf71c6e2243824cb9ea9587120, type: 2}
-  - {fileID: 11400000, guid: 3c341d79d4cc3ac4fa508eb95101df5c, type: 2}
-  - {fileID: 11400000, guid: 6ba83c43a779a3a45b3202feca20c87b, type: 2}
   - {fileID: 11400000, guid: 3c9da28d3467bd94f99d9d856429d201, type: 2}
+  - {fileID: 11400000, guid: 24918bfddee547346bc7368807027f61, type: 2}
+  - {fileID: 11400000, guid: 9229cdbf312d8744e88a990557a76d13, type: 2}
+  - {fileID: 11400000, guid: 3c341d79d4cc3ac4fa508eb95101df5c, type: 2}
+  - {fileID: 11400000, guid: c69b9be8e9e491f49bb901f8df78dc46, type: 2}
+  - {fileID: 11400000, guid: e6ae69d0290c9864d9a7d35629263ec4, type: 2}
   - {fileID: 11400000, guid: f9e6b5e3769acd847b3f28b8f414f876, type: 2}
-  - {fileID: 11400000, guid: 30263de5ce3da3143bc186f1de0ea296, type: 2}
+  - {fileID: 11400000, guid: 6a07b53ffca64694880a9855e6305ddc, type: 2}
+  - {fileID: 11400000, guid: e0a579cfa20295b478302d15e1e0fce5, type: 2}
   - {fileID: 11400000, guid: f967fdc573229d94097d7ecbf824e6f0, type: 2}
+  - {fileID: 11400000, guid: 844923f96f634f34889940513e279bcc, type: 2}
   fallbackUpgrade: {fileID: 11400000, guid: 9f3d5c41b841be3419de88ac1d14f889, type: 2}
   economy:
     commonPrice: 25
@@ -100,6 +112,268 @@ MonoBehaviour:
     grazeHealEvery: 120
     eliteLuck: 0.5
     bossLuck: 1
+  rewards:
+    battle:
+      enabled: 1
+      commonWeight: 100
+      rareWeight: 35
+      epicWeight: 0
+      legendaryWeight: 0
+      epicChance: 0.05
+      cards: 0
+      luckBonus: 0
+      includeRemnants: 1
+    elite:
+      enabled: 1
+      commonWeight: 60
+      rareWeight: 60
+      epicWeight: 0
+      legendaryWeight: 0
+      epicChance: 0.15
+      cards: 0
+      luckBonus: 0.3
+      includeRemnants: 1
+    treasure:
+      enabled: 1
+      commonWeight: 100
+      rareWeight: 45
+      epicWeight: 0
+      legendaryWeight: 0
+      epicChance: 0.1
+      cards: 0
+      luckBonus: 0
+      includeRemnants: 1
+    rest:
+      enabled: 1
+      commonWeight: 100
+      rareWeight: 35
+      epicWeight: 0
+      legendaryWeight: 0
+      epicChance: 0.05
+      cards: 0
+      luckBonus: 0
+      includeRemnants: 1
+    eventDraft:
+      enabled: 1
+      commonWeight: 100
+      rareWeight: 40
+      epicWeight: 0
+      legendaryWeight: 0
+      epicChance: 0.05
+      cards: 0
+      luckBonus: 0
+      includeRemnants: 1
+    shop:
+      enabled: 1
+      commonWeight: 100
+      rareWeight: 40
+      epicWeight: 0
+      legendaryWeight: 0
+      epicChance: 0.1
+      cards: 0
+      luckBonus: 0
+      includeRemnants: 1
+    boss:
+      enabled: 1
+      commonWeight: 0
+      rareWeight: 0
+      epicWeight: 100
+      legendaryWeight: 12
+      epicChance: 0
+      cards: 0
+      luckBonus: 0
+      includeRemnants: 1
+    trial:
+      enabled: 1
+      commonWeight: 0
+      rareWeight: 0
+      epicWeight: 100
+      legendaryWeight: 8
+      epicChance: 0
+      cards: 0
+      luckBonus: 0
+      includeRemnants: 1
+    sacrifice:
+      enabled: 1
+      commonWeight: 0
+      rareWeight: 0
+      epicWeight: 100
+      legendaryWeight: 8
+      epicChance: 0
+      cards: 0
+      luckBonus: 0
+      includeRemnants: 1
+    wager:
+      enabled: 1
+      commonWeight: 0
+      rareWeight: 0
+      epicWeight: 100
+      legendaryWeight: 10
+      epicChance: 0
+      cards: 0
+      luckBonus: 0
+      includeRemnants: 1
+    trader:
+      enabled: 1
+      commonWeight: 0
+      rareWeight: 100
+      epicWeight: 0
+      legendaryWeight: 0
+      epicChance: 0
+      cards: 0
+      luckBonus: 0
+      includeRemnants: 1
+  boosts:
+    heatPerGraze: 0.12
+    heatMax: 0.6
+    heatDecay: 0.15
+    lastStandDamage: 0.5
+    lastStandFireRate: 0.3
+    slowRadius: 1.6
+    slowScale: 0.5
+  forge:
+    firstPushBreakChance: 0
+    breakChancePerPush: 0.25
+    maxBreakChance: 0.85
+    maxPushes: 4
+    defaultBonusScale: 0.5
+    scrapCoins: 15
+  altar:
+    lifeCost: 1
+    staminaKept: 0.7
+    empowerLevels: 2
+    allowUpgradeOffering: 1
+    allowLifeOffering: 1
+    allowStaminaOffering: 1
+    allowFeeding: 1
+  trader:
+    commonsForRare: 2
+    sellFraction: 0.5
+  trials:
+  - id: untouched
+    displayName: Untouched
+    description: Clear the next fight without being hit.
+    kind: 0
+    amount: 0
+    tag: 
+    rooms: 1
+    requires: 
+  - id: grounded
+    displayName: Feet on the Ground
+    description: Clear the next fight without sprinting.
+    kind: 1
+    amount: 0
+    tag: 
+    rooms: 1
+    requires: 
+  - id: swift
+    displayName: Swift Hand
+    description: Clear the next fight within 45 seconds.
+    kind: 2
+    amount: 45
+    tag: 
+    rooms: 1
+    requires: 
+  - id: arsenal
+    displayName: Arsenal
+    description: Own 3 gun upgrades (stacks count) by the end of the second fight
+      from now.
+    kind: 3
+    amount: 3
+    tag: gun
+    rooms: 2
+    requires: 
+  - id: needle
+    displayName: Thread the Needle
+    description: Graze 100 bullets in the next fight.
+    kind: 4
+    amount: 100
+    tag: 
+    rooms: 1
+    requires: 
+  - id: steady_nerves
+    displayName: Steady Nerves
+    description: Don't bomb in the next two fights.
+    kind: 5
+    amount: 0
+    tag: 
+    rooms: 2
+    requires: bomb_bay
+  wagers:
+  - id: blood_price
+    displayName: Blood Price
+    description: 'Lose a life now. Clear the next fight without being hit: choose
+      an epic.'
+    stake: 0
+    amount: 1
+    curse:
+      stat: move_speed
+      op: 1
+      value: -0.2
+      sourceId: 
+    condition:
+      id: blood_price
+      displayName: 'Blood Price: no hits'
+      description: Clear the next fight without being hit.
+      kind: 0
+      amount: 0
+      tag: 
+      rooms: 1
+      requires: 
+    reward: 9
+  - id: leaden_wings
+    displayName: Leaden Wings
+    description: 'Move 20% slower until the next fight ends. Clear it within 50 seconds:
+      choose an epic.'
+    stake: 2
+    amount: 1
+    curse:
+      stat: move_speed
+      op: 1
+      value: -0.2
+      sourceId: 
+    condition:
+      id: leaden_wings
+      displayName: 'Leaden Wings: 50 s'
+      description: Clear the next fight within 50 seconds.
+      kind: 2
+      amount: 50
+      tag: 
+      rooms: 1
+      requires: 
+    reward: 9
+  - id: gilded_nerve
+    displayName: Gilded Nerve
+    description: 'Pay 30 coins. Graze 80 bullets in the next fight: choose an epic.'
+    stake: 1
+    amount: 30
+    curse:
+      stat: move_speed
+      op: 1
+      value: -0.2
+      sourceId: 
+    condition:
+      id: gilded_nerve
+      displayName: 'Gilded Nerve: 80 grazes'
+      description: Graze 80 bullets in the next fight.
+      kind: 4
+      amount: 80
+      tag: 
+      rooms: 1
+      requires: 
+    reward: 9
+  remnants:
+    enabled: 1
+    maxKept: 3
+    statScale: 0.5
+    offerChance: 0.4
+    firstDraftGuaranteed: 1
+    bossDeathStat: damage
+    eliteDeathStat: fire_rate
+    battleDeathStat: move_speed
+    deathStatValue: 0.06
+  companionEnabled: 1
+  companion: {fileID: 11400000, guid: 440bab1df0835b24a9e6b489f492bfbc, type: 2}
   events: {fileID: 6231892579173505729, guid: 0dd0237c59160924581735f1fd568a8a, type: 3}
   eventKnots:
   - shrine
@@ -171,6 +445,11 @@ MonoBehaviour:
   - {r: 0.45, g: 0.75, b: 1, a: 1}
   - {r: 0.8, g: 0.55, b: 1, a: 1}
   - {r: 1, g: 0.3, b: 0.5, a: 1}
+  - {r: 1, g: 0.55, b: 0.2, a: 1}
+  - {r: 0.75, g: 0.3, b: 0.45, a: 1}
+  - {r: 0.95, g: 0.75, b: 0.2, a: 1}
+  - {r: 0.35, g: 0.85, b: 0.85, a: 1}
+  - {r: 0.6, g: 0.8, b: 0.4, a: 1}
   coinColor: {r: 1, g: 0.83, b: 0.25, a: 1}
   sideColor: {r: 0.03, g: 0.03, b: 0.06, a: 1}
   roomIntroSeconds: 1.4
