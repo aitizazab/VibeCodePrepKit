@@ -3,7 +3,10 @@ using System.Collections.Generic;
 
 namespace JamKit.Roguelite
 {
-    public enum RoomType { Combat, Elite, Treasure, Shop, Rest, Event, Boss }
+    /// <summary>Room kinds. New kinds go at the end (saved data and colour lists index by the number).
+    /// Forge, Altar, Wager, Trial and Trader are the encounter rooms between battles: their weights
+    /// default to 0, so a game that doesn't use them never sees them.</summary>
+    public enum RoomType { Combat, Elite, Treasure, Shop, Rest, Event, Boss, Forge, Altar, Wager, Trial, Trader }
 
     /// <summary>
     /// Shape of a run. Room counts include the opening Combat and the Boss. Weights pick the
@@ -22,6 +25,11 @@ namespace JamKit.Roguelite
         public float shopWeight = 8f;
         public float restWeight = 6f;
         public float eventWeight = 12f;
+        public float forgeWeight;
+        public float altarWeight;
+        public float wagerWeight;
+        public float trialWeight;
+        public float traderWeight;
 
         /// <summary>Never Elite at two consecutive steps (whichever door the player takes).</summary>
         public bool noBackToBackElites = true;
@@ -42,6 +50,11 @@ namespace JamKit.Roguelite
                 case RoomType.Shop: return shopWeight;
                 case RoomType.Rest: return restWeight;
                 case RoomType.Event: return eventWeight;
+                case RoomType.Forge: return forgeWeight;
+                case RoomType.Altar: return altarWeight;
+                case RoomType.Wager: return wagerWeight;
+                case RoomType.Trial: return trialWeight;
+                case RoomType.Trader: return traderWeight;
                 default: return 0f; // Boss is placed, never rolled
             }
         }
@@ -123,7 +136,10 @@ namespace JamKit.Roguelite
     public static class RunGenerator
     {
         static readonly RoomType[] Rollable =
-            { RoomType.Combat, RoomType.Elite, RoomType.Treasure, RoomType.Shop, RoomType.Rest, RoomType.Event };
+        {
+            RoomType.Combat, RoomType.Elite, RoomType.Treasure, RoomType.Shop, RoomType.Rest, RoomType.Event,
+            RoomType.Forge, RoomType.Altar, RoomType.Wager, RoomType.Trial, RoomType.Trader,
+        };
 
         public static RunPlan Generate(RunConfig config, Rng rng)
         {

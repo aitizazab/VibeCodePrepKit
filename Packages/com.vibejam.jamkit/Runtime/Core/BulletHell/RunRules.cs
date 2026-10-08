@@ -56,7 +56,33 @@ namespace JamKit.BulletHell
                 case RoomType.Rest: return "Rest";
                 case RoomType.Event: return "Mystery";
                 case RoomType.Boss: return "Boss";
+                case RoomType.Forge: return "Forge";
+                case RoomType.Altar: return "Altar";
+                case RoomType.Wager: return "Wager";
+                case RoomType.Trial: return "Trial board";
+                case RoomType.Trader: return "Trader";
                 default: return t.ToString();
+            }
+        }
+
+        /// <summary>The encounter rooms between battles (risk the player chooses).</summary>
+        public static bool IsEncounter(RoomType t) =>
+            t == RoomType.Forge || t == RoomType.Altar || t == RoomType.Wager || t == RoomType.Trial || t == RoomType.Trader;
+
+        /// <summary>A room the player fights in (its own sprint budget; trials count Battle and Elite only).</summary>
+        public static bool IsFight(RoomType t) => t == RoomType.Combat || t == RoomType.Elite || t == RoomType.Boss;
+
+        /// <summary>The story-hook kind of an encounter room ("forge", "altar", "wager", "trial_board", "trader").</summary>
+        public static string HookKind(RoomType t)
+        {
+            switch (t)
+            {
+                case RoomType.Forge: return "forge";
+                case RoomType.Altar: return "altar";
+                case RoomType.Wager: return "wager";
+                case RoomType.Trial: return "trial_board";
+                case RoomType.Trader: return "trader";
+                default: return "";
             }
         }
 
@@ -72,6 +98,11 @@ namespace JamKit.BulletHell
                 case RoomType.Rest: return "R";
                 case RoomType.Event: return "?";
                 case RoomType.Boss: return "!";
+                case RoomType.Forge: return "F";
+                case RoomType.Altar: return "A";
+                case RoomType.Wager: return "W";
+                case RoomType.Trial: return "*";
+                case RoomType.Trader: return "%";
                 default: return "-";
             }
         }
@@ -81,13 +112,18 @@ namespace JamKit.BulletHell
         {
             switch (t)
             {
-                case RoomType.Combat: return "Waves of enemies. Coins.";
-                case RoomType.Elite: return "A tough fight. Pick an upgrade after.";
+                case RoomType.Combat: return "Waves of enemies. Pick an upgrade after.";
+                case RoomType.Elite: return "A tough fight. A better upgrade after.";
                 case RoomType.Treasure: return "A free upgrade.";
                 case RoomType.Shop: return "Spend coins on upgrades, lives and bombs.";
                 case RoomType.Rest: return "Heal a life, or train for an upgrade.";
                 case RoomType.Event: return "Something unexpected.";
-                case RoomType.Boss: return "The floor's guardian.";
+                case RoomType.Boss: return "The floor's guardian. Choose an epic after.";
+                case RoomType.Forge: return "Improve an upgrade. Push your luck and it may break.";
+                case RoomType.Altar: return "Give something up for an epic.";
+                case RoomType.Wager: return "Stake a life or a curse on the next fight.";
+                case RoomType.Trial: return "Take a challenge: meet it for an epic.";
+                case RoomType.Trader: return "Swap two commons for a rare.";
                 default: return "";
             }
         }

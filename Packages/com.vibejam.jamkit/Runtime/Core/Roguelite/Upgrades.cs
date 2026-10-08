@@ -133,9 +133,127 @@ namespace JamKit.Roguelite
                 foreach (var pair in _counts)
                     for (int s = 1; s <= pair.Value; s++)
                         Stats.RemoveBySource(SourceId(pair.Key, s));
+            _scratchIds.Clear();
+            foreach (var pair in _bonuses) _scratchIds.Add(pair.Key);
+            for (int i = 0; i < _scratchIds.Count; i++) RemoveBonuses(_scratchIds[i]);
             _counts.Clear();
             _effects.Clear();
             _owned.Clear();
+            _bonuses.Clear();
+        }
+
+        /// <summary>Every stack of every owned upgrade.</summary>
+        public int TotalStacks
+        {
+            get
+            {
+                int n = 0;
+                foreach (var pair in _counts) n += pair.Value;
+                return n;
+            }
+        }
+
+        /// <summary>The owned def with this id, or null.</summary>
+        public UpgradeDef Find(string id)
+        {
+            for (int i = 0; i < _owned.Count; i++)
+                if (_owned[i].id == id) return _owned[i];
+            return null;
+        }
+
+        /// <summary>
+        /// Takes up to <paramref name="stacks"/> stacks of an owned upgrade away (the newest first): their
+        /// modifiers come off the stats and their effects stop counting. When the last stack goes, the
+        /// upgrade leaves <see cref="Owned"/> and its bonus levels (<see cref="AddBonus"/>) go with it.
+        /// Sacrifices, trades and a forge that breaks use this. Returns how many stacks were removed.
+        /// </summary>
+        public int Remove(string id, int stacks = int.MaxValue)
+        {
+            int owned = Count(id);
+            if (owned <= 0 || stacks <= 0) return 0;
+            var def = Find(id);
+            int n = Math.Min(owned, stacks);
+            for (int s = owned; s > owned - n; s--)
+            {
+                if (Stats != null) Stats.RemoveBySource(SourceId(id, s));
+                if (def != null && def.effects != null)
+                    for (int i = 0; i < def.effects.Count; i++) DropEffect(def.effects[i]);
+            }
+            int left = owned - n;
+            if (left > 0) _counts[id] = left;
+            else
+            {
+                _counts.Remove(id);
+                if (def != null) _owned.Remove(def);
+                RemoveBonuses(id);
+            }
+            Removed?.Invoke(def, left);
+            return n;
+        }
+
+        /// <summary>Raised after <see cref="Remove"/>, with the def and the stacks left (0 = gone).</summary>
+        public event Action<UpgradeDef, int> Removed;
+
+        // ---------- Bonus levels (a forge push, an altar's blessing) ----------
+
+        sealed class BonusLevel
+        {
+            public readonly List<string> effects = new List<string>();
+        }
+
+        readonly Dictionary<string, List<BonusLevel>> _bonuses = new Dictionary<string, List<BonusLevel>>();
+        readonly List<string> _scratchIds = new List<string>();
+
+        public static string BonusSourceId(string upgradeId, int level) => "bonus:" + upgradeId + "#" + level;
+
+        /// <summary>Bonus levels on an owned upgrade (0 = none).</summary>
+        public int BonusLevels(string id) => id != null && _bonuses.TryGetValue(id, out var list) ? list.Count : 0;
+
+        /// <summary>
+        /// One more level on an owned upgrade: extra modifiers and effects that belong to it, so they
+        /// leave with it (sacrificed, broken, traded). Returns the new level, or 0 if it isn't owned.
+        /// </summary>
+        public int AddBonus(string id, IReadOnlyList<StatModifier> modifiers, IReadOnlyList<string> effects)
+        {
+            if (!Has(id)) return 0;
+            if (!_bonuses.TryGetValue(id, out var list)) _bonuses[id] = list = new List<BonusLevel>();
+            var level = new BonusLevel();
+            list.Add(level);
+            string source = BonusSourceId(id, list.Count);
+            if (Stats != null && modifiers != null)
+                for (int i = 0; i < modifiers.Count; i++)
+                    if (modifiers[i] != null) Stats.Add(modifiers[i].WithSource(source));
+            if (effects != null)
+                for (int i = 0; i < effects.Count; i++)
+                {
+                    if (string.IsNullOrEmpty(effects[i])) continue;
+                    level.effects.Add(effects[i]);
+                    _effects[effects[i]] = EffectStacks(effects[i]) + 1;
+                }
+            return list.Count;
+        }
+
+        /// <summary>Takes every bonus level off an upgrade. Returns how many there were.</summary>
+        public int RemoveBonuses(string id)
+        {
+            if (id == null || !_bonuses.TryGetValue(id, out var list)) return 0;
+            int n = list.Count;
+            for (int l = 0; l < n; l++)
+            {
+                if (Stats != null) Stats.RemoveBySource(BonusSourceId(id, l + 1));
+                var fx = list[l].effects;
+                for (int i = 0; i < fx.Count; i++) DropEffect(fx[i]);
+            }
+            _bonuses.Remove(id);
+            return n;
+        }
+
+        void DropEffect(string effect)
+        {
+            if (effect == null) return;
+            int left = EffectStacks(effect) - 1;
+            if (left > 0) _effects[effect] = left;
+            else _effects.Remove(effect);
         }
     }
 

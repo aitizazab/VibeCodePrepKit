@@ -27,6 +27,33 @@ namespace JamKit.Flow
         public List<string> flags = new List<string>();
         /// <summary>The How to Play pages were shown once (GameConfig.showHowToPlayOnFirstRun).</summary>
         public bool seenHowToPlay;
+        /// <summary>A template's own data that outlives runs, as key + text (usually JSON): the bullet hell
+        /// keeps its remnants here ("bh_remnants"). Keeps template fields out of the shell's save.</summary>
+        public List<SaveEntry> entries = new List<SaveEntry>();
+
+        /// <summary>The text saved under <paramref name="key"/>, or null.</summary>
+        public string GetEntry(string key)
+        {
+            if (entries == null || string.IsNullOrEmpty(key)) return null;
+            for (int i = 0; i < entries.Count; i++)
+                if (entries[i] != null && entries[i].key == key) return entries[i].value;
+            return null;
+        }
+
+        /// <summary>Saves <paramref name="value"/> under <paramref name="key"/> (null removes it).</summary>
+        public void SetEntry(string key, string value)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            if (entries == null) entries = new List<SaveEntry>();
+            for (int i = 0; i < entries.Count; i++)
+            {
+                if (entries[i] == null || entries[i].key != key) continue;
+                if (value == null) entries.RemoveAt(i);
+                else entries[i].value = value;
+                return;
+            }
+            if (value != null) entries.Add(new SaveEntry { key = key, value = value });
+        }
 
         /// <summary>
         /// Upgrade an older save to <see cref="CurrentVersion"/> one step at a time, then repair
@@ -50,6 +77,7 @@ namespace JamKit.Flow
             if (settings == null) { settings = new Settings(); changed = true; }
             if (unlocked == null) { unlocked = new List<string>(); changed = true; }
             if (flags == null) { flags = new List<string>(); changed = true; }
+            if (entries == null) { entries = new List<SaveEntry>(); changed = true; }
             if (settings.Clamp()) changed = true;
             if (bestTime < 0f || float.IsNaN(bestTime)) { bestTime = 0f; changed = true; }
             if (bestFloor < 0) { bestFloor = 0; changed = true; }
@@ -109,5 +137,13 @@ namespace JamKit.Flow
             if (time > 0f && (bestTime <= 0f || time < bestTime)) { bestTime = time; return true; }
             return false;
         }
+    }
+
+    /// <summary>One <see cref="SaveData.entries"/> item.</summary>
+    [Serializable]
+    public class SaveEntry
+    {
+        public string key;
+        public string value;
     }
 }

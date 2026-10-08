@@ -13,6 +13,8 @@ namespace JamKit.BulletHell
         Grazed = 1,
         /// <summary>Turns toward the nearest target (player shots with the homing upgrade).</summary>
         Homing = 2,
+        /// <summary>Bounces once off the bottom edge of the playfield (Rebound shots), then flies on normally.</summary>
+        Bounce = 4,
     }
 
     /// <summary>One bullet in a <see cref="BulletPool"/>. A plain struct: the pool keeps them in one
@@ -87,6 +89,8 @@ namespace JamKit.BulletHell
         public int targetIndex;
         public float damage;
         public Vector2 position;
+        /// <summary>The bullet's style (the balance report uses it to credit damage to an upgrade).</summary>
+        public int style;
     }
 
     /// <summary>
@@ -101,6 +105,9 @@ namespace JamKit.BulletHell
         readonly Bullet[] _items;
         int _count;
         int _dropped;
+
+        /// <summary>Damage multiplier a bullet gets when it bounces off the floor (Rebound shots come back hotter).</summary>
+        public float bounceDamageScale = 1f;
 
         public BulletPool(int capacity)
         {
@@ -211,12 +218,45 @@ namespace JamKit.BulletHell
                     b.dirY = (float)Math.Sin(b.angle);
                 }
                 float x = b.position.X, y = b.position.Y;
+                if ((b.flags & BulletFlags.Bounce) != 0 && y < bounds.minY && b.dirY < 0f)
+                {
+                    // Off the floor: mirror the heading (and any curve) and keep going, once.
+                    b.position.Y = y = bounds.minY + (bounds.minY - y);
+                    b.angle = -b.angle;
+                    b.angularVelocity = -b.angularVelocity;
+                    b.dirY = -b.dirY;
+                    b.flags &= ~BulletFlags.Bounce;
+                    b.damage *= bounceDamageScale;
+                }
                 if (b.lifeLeft <= 0f || x < minX || x > maxX || y < minY || y > maxY)
                 {
                     _items[i] = _items[--_count]; // the moved bullet is stepped next, at this index
                     continue;
                 }
                 i++;
+            }
+        }
+
+        /// <summary>
+        /// Time Dilation: bullets within <paramref name="radius"/> of <paramref name="centre"/> are pulled
+        /// back along their heading so that, this step, they moved at <paramref name="scale"/> of their speed.
+        /// Call right after <see cref="Step"/> with the same dt. Exact for straight bullets, close for curving ones.
+        /// </summary>
+        public void SlowNear(Vector2 centre, float radius, float scale, float dt)
+        {
+            if (!(dt > 0f) || scale >= 1f) return;
+            float back = (1f - Math.Max(0f, scale)) * dt;
+            float rr = radius * radius;
+            for (int i = 0; i < _count; i++)
+            {
+                ref Bullet b = ref _items[i];
+                float dx = b.position.X - centre.X, dy = b.position.Y - centre.Y;
+                if (dx * dx + dy * dy > rr) continue;
+                float d = b.speed * back;
+                b.position.X -= b.dirX * d;
+                b.position.Y -= b.dirY * d;
+                b.age -= back;
+                b.lifeLeft += back;
             }
         }
 
@@ -310,7 +350,7 @@ namespace JamKit.BulletHell
                     if (!target.active || target.id == b.lastHitId) continue;
                     float rr = target.radius + b.radius;
                     if (Vector2.DistanceSquared(b.position, target.position) > rr * rr) continue;
-                    hits.Add(new BulletHit { targetIndex = t, damage = b.damage, position = b.position });
+                    hits.Add(new BulletHit { targetIndex = t, damage = b.damage, position = b.position, style = b.style });
                     if (b.pierce > 0)
                     {
                         b.pierce--;

@@ -17,6 +17,8 @@ namespace JamKit.Dialogue
     /// death_&lt;killer&gt;            -> death_floor_&lt;n&gt; -> death           (death screen line)
     /// rest_floor_&lt;n&gt;            -> rest                                 (companion on Rest rooms)
     /// run_start_&lt;run&gt;           -> run_start                            (run = 1 on the first run)
+    /// &lt;kind&gt;_floor_&lt;n&gt;          -> &lt;kind&gt;                               (an encounter room: forge, altar, wager, trial_board, trader)
+    /// companion_bark_&lt;boss&gt;_&lt;what&gt; -> companion_bark_&lt;what&gt;            (a short in-battle line; never a dialogue)
     /// </code>
     /// Ids are lowercase with underscores (<see cref="Id"/>): "The Last Light" is "the_last_light".
     /// </summary>
@@ -84,6 +86,29 @@ namespace JamKit.Dialogue
         /// <summary><paramref name="runNumber"/>: 1 on the very first run (the save's runs started).</summary>
         public static string[] RunStart(int runNumber) =>
             runNumber > 0 ? new[] { "run_start_" + N(runNumber), "run_start" } : new[] { "run_start" };
+
+        /// <summary>An encounter room's line before its choice: <c>forge_floor_2</c>, then <c>forge</c>.</summary>
+        public static string[] Encounter(string kind, int floor)
+        {
+            string k = Id(kind);
+            if (k.Length == 0) return new string[0];
+            return floor > 0 ? new[] { k + "_floor_" + N(floor), k } : new[] { k };
+        }
+
+        /// <summary>
+        /// A companion bark: <paramref name="what"/> is the context ("spiral", "ring", "guard"...), and with a
+        /// boss id the boss-specific knot is tried first: <c>companion_bark_gatekeeper_spiral</c>, then
+        /// <c>companion_bark_spiral</c>. No general fallback: an unwritten context stays silent.
+        /// </summary>
+        public static string[] CompanionBark(string what, string bossId = null)
+        {
+            string w = Id(what);
+            if (w.Length == 0) return new string[0];
+            string b = Id(bossId);
+            return b.Length > 0
+                ? new[] { "companion_bark_" + b + "_" + w, "companion_bark_" + w }
+                : new[] { "companion_bark_" + w };
+        }
 
         /// <summary>The first candidate the story has, or null (then play nothing). A throwing
         /// <paramref name="exists"/> counts as "no".</summary>
