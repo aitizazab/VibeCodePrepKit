@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 871f6555ffb18144896f919893c3999f, type: 3}
+  m_Name: Knuckles
+  m_EditorClassIdentifier: JamKit.Doomlike::JamKit.Doomlike.WeaponAsset
+  displayName: Knuckles
+  slot: 1
+  mapChar: 
+  kind: 0
+  def:
+    magazineSize: 0
+    startingReserve: 0
+    maxReserve: 0
+    infiniteReserve: 0
+    ammoPerShot: 1
+    fireMode: 1
+    fireInterval: 0.42
+    burstCount: 3
+    burstInterval: 0.06
+    reloadTime: 1.2
+    autoReloadOnEmpty: 0
+  ammoType: 
+  damage: 20
+  pellets: 1
+  spreadDegrees: 2
+  verticalSpreadDegrees: 1
+  firstPelletCentered: 1
+  range: 1.8
+  falloffStart: 25
+  minFalloff: 0.5
+  damageVariance: 0.25
+  projectileSpeed: 26
+  projectileRadius: 0.25
+  splashRadius: 3.5
+  selfDamageScale: 0.4
+  projectileColor: {r: 1, g: 0.6, b: 0.2, a: 1}
+  recoilDegrees: 0
+  shake: 0.05
+  noiseRadius: 3
+  fireSound: punch
+  pickupAmmo: 8
+  priority: 0
+  viewTexture: {fileID: 2800000, guid: 492ea2a43b0fe6b40b2b06fb702a8e58, type: 3}
+  viewFrames: 3
+  fireFrameSeconds: 0.12
+  viewScale: 1
+  viewOffset: {x: 0, y: 0}
+  pickupTexture: {fileID: 0}
+  pickupSize: 0.9

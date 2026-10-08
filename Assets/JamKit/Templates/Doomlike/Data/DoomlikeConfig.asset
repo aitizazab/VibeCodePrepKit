@@ -1,0 +1,181 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6726b69fe2149be47812c40e165cc1e1, type: 3}
+  m_Name: DoomlikeConfig
+  m_EditorClassIdentifier: JamKit.Doomlike::JamKit.Doomlike.DoomlikeConfig
+  levels:
+  - {fileID: 4900000, guid: b5254a2087675d14291055f1733991f5, type: 3}
+  - {fileID: 4900000, guid: b3246c75a64f9ce4f8dbd338da487643, type: 3}
+  - {fileID: 4900000, guid: e84b9199dc397924fa0431660f983aaa, type: 3}
+  cellSize: 2.5
+  defaultCeiling: 3.6
+  ambushRadius: 8
+  levelMusic: music_game
+  bossMusic: music_boss
+  player:
+    maxHealth: 100
+    motion:
+      runSpeed: 9.5
+      walkSpeed: 4.5
+      acceleration: 70
+      friction: 45
+      turnGrip: 1.6
+    gravity: 30
+    radius: 0.38
+    height: 1.7
+    eyeHeight: 1.5
+    mouseDegreesPerPixel: 0.09
+    gamepadDegreesPerSecond: 170
+    maxPitch: 80
+    bobAmount: 0.045
+    footstepStride: 2.3
+    hazardDamagePerSecond: 12
+    useRange: 2.2
+    verticalAutoAimDegrees: 6
+  weapons:
+  - {fileID: 11400000, guid: 72d2d130fe3c95f47b992f4f8a54c3db, type: 2}
+  - {fileID: 11400000, guid: 5ae8b03565f793240ba35dcd7d3de51b, type: 2}
+  - {fileID: 11400000, guid: 0e60a0fbe8798ba44bd873cad580cefc, type: 2}
+  - {fileID: 11400000, guid: 7edb844296b85d946a85df734329cfc2, type: 2}
+  - {fileID: 11400000, guid: ad2578c78294a23418e6cdd15967b420, type: 2}
+  startingWeapons:
+  - {fileID: 11400000, guid: 72d2d130fe3c95f47b992f4f8a54c3db, type: 2}
+  - {fileID: 11400000, guid: 5ae8b03565f793240ba35dcd7d3de51b, type: 2}
+  ammoTypes:
+  - id: bullets
+    displayName: Bullets
+    shortName: BULL
+    start: 50
+    max: 200
+  - id: shells
+    displayName: Shells
+    shortName: SHEL
+    start: 0
+    max: 50
+  - id: charges
+    displayName: Charges
+    shortName: CHRG
+    start: 0
+    max: 30
+  enemies:
+  - {fileID: 11400000, guid: d318474e5f3004344923bcaf0c0c7fbe, type: 2}
+  - {fileID: 11400000, guid: 1e9b0c1af93d7764ca0f9d915c0d1dcf, type: 2}
+  - {fileID: 11400000, guid: 102c0648fe2352c4dac2d6c0c6ad60b5, type: 2}
+  - {fileID: 11400000, guid: 39512ea65fe3a794b9e8606b4493a819, type: 2}
+  - {fileID: 11400000, guid: aa89244d5f9f80948933769c62f49f42, type: 2}
+  - {fileID: 11400000, guid: 03ebac92d4713df43a249bae5d1990c1, type: 2}
+  pickups:
+  - {fileID: 11400000, guid: 592c6793ef172e547a80b29fa8386184, type: 2}
+  - {fileID: 11400000, guid: d7f25d0224766f44d986d0a742003889, type: 2}
+  - {fileID: 11400000, guid: 76a014130f9d7c7468c22a12f7f0da5d, type: 2}
+  - {fileID: 11400000, guid: 6cee3a07cf6ac0046bbb2c8d27030892, type: 2}
+  - {fileID: 11400000, guid: fb53367e2b3e546438710ca051280c1c, type: 2}
+  - {fileID: 11400000, guid: 467910e72a53fe24480498a4b0878853, type: 2}
+  decorations:
+  - {fileID: 11400000, guid: b5db5d94743a9e44482048d3c5cd77bd, type: 2}
+  - {fileID: 11400000, guid: 38ebc2012c6de62488aa69e99931e9cc, type: 2}
+  upgradeDraft: 1
+  draftSize: 3
+  upgrades:
+  - {fileID: 11400000, guid: 7c1c6de99cd03d84fa09b2676e0b5c95, type: 2}
+  - {fileID: 11400000, guid: 5e76d543d6fbd1b46998de57cb12efaa, type: 2}
+  - {fileID: 11400000, guid: df9b959ff44975d4c8586fd6a69142d8, type: 2}
+  - {fileID: 11400000, guid: 3891ede30bcc1074b816f542e4cb3613, type: 2}
+  - {fileID: 11400000, guid: dde931081ff049342b9a18ab44846e28, type: 2}
+  - {fileID: 11400000, guid: a3d523847c1c6114eaf56fcd85ec8413, type: 2}
+  - {fileID: 11400000, guid: 2984c165464106649bbe932ea2657452, type: 2}
+  - {fileID: 11400000, guid: 5667f3e2a4f772649ad7cc00f4b8edf3, type: 2}
+  - {fileID: 11400000, guid: a0cf1c62f430aee4ea82664274ee457e, type: 2}
+  - {fileID: 11400000, guid: 8998e79476499fb4dbf3f8f6f22c2c4a, type: 2}
+  - {fileID: 11400000, guid: 53009d141e0fd464cb7402409458d905, type: 2}
+  fallbackUpgrade: {fileID: 11400000, guid: 0920c530840bc0f4180ef68d5b4b6e27, type: 2}
+  healthFloorPerLevel: 50
+  themes:
+  - name: base
+    wallTints:
+    - {r: 0.85, g: 0.85, b: 0.9, a: 1}
+    - {r: 0.8, g: 0.85, b: 0.95, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 0.75, g: 0.7, b: 0.65, a: 1}
+    floorTint: {r: 0.8, g: 0.8, b: 0.85, a: 1}
+    ceilingTint: {r: 0.65, g: 0.65, b: 0.7, a: 1}
+    fogColor: {r: 0.04, g: 0.05, b: 0.08, a: 1}
+    fogStart: 8
+    fogEnd: 48
+    fogStrength: 0.9
+  - name: rust
+    wallTints:
+    - {r: 1, g: 0.78, b: 0.6, a: 1}
+    - {r: 0.95, g: 0.7, b: 0.5, a: 1}
+    - {r: 1, g: 0.9, b: 0.8, a: 1}
+    - {r: 0.85, g: 0.6, b: 0.45, a: 1}
+    floorTint: {r: 0.85, g: 0.7, b: 0.55, a: 1}
+    ceilingTint: {r: 0.6, g: 0.5, b: 0.42, a: 1}
+    fogColor: {r: 0.12, g: 0.06, b: 0.03, a: 1}
+    fogStart: 6
+    fogEnd: 40
+    fogStrength: 0.92
+  - name: toxic
+    wallTints:
+    - {r: 0.7, g: 0.85, b: 0.65, a: 1}
+    - {r: 0.65, g: 0.8, b: 0.7, a: 1}
+    - {r: 0.8, g: 1, b: 0.85, a: 1}
+    - {r: 0.55, g: 0.65, b: 0.5, a: 1}
+    floorTint: {r: 0.65, g: 0.75, b: 0.6, a: 1}
+    ceilingTint: {r: 0.45, g: 0.55, b: 0.45, a: 1}
+    fogColor: {r: 0.03, g: 0.08, b: 0.04, a: 1}
+    fogStart: 5
+    fogEnd: 34
+    fogStrength: 0.95
+  - name: ember
+    wallTints:
+    - {r: 1, g: 0.55, b: 0.45, a: 1}
+    - {r: 0.9, g: 0.5, b: 0.45, a: 1}
+    - {r: 1, g: 0.75, b: 0.6, a: 1}
+    - {r: 0.8, g: 0.4, b: 0.3, a: 1}
+    floorTint: {r: 0.85, g: 0.5, b: 0.4, a: 1}
+    ceilingTint: {r: 0.5, g: 0.25, b: 0.2, a: 1}
+    fogColor: {r: 0.16, g: 0.03, b: 0.02, a: 1}
+    fogStart: 6
+    fogEnd: 44
+    fogStrength: 0.9
+  retro:
+    pixelHeight: 270
+    colorLevels: 12
+    dither: 0.6
+  keyColors:
+  - {r: 1, g: 0.25, b: 0.25, a: 1}
+  - {r: 0.3, g: 0.5, b: 1, a: 1}
+  - {r: 1, g: 0.85, b: 0.2, a: 1}
+  killHitStop: 0.045
+  hurtShake: 0.35
+  hurtFlashAlpha: 0.35
+  wallMaterials:
+  - {fileID: 2100000, guid: 3d7023c101b5c084eaa95314653a04d7, type: 2}
+  - {fileID: 2100000, guid: 6cbdcfa77aa714e49b2293bfe657817f, type: 2}
+  - {fileID: 2100000, guid: de88008143e29e048a42f28c8032f30c, type: 2}
+  - {fileID: 2100000, guid: 39dba2d99f7c77f4b8caab3f2c64bf56, type: 2}
+  floorMaterials:
+  - {fileID: 2100000, guid: c21b648425f04d0478519860ac0c228c, type: 2}
+  - {fileID: 2100000, guid: a660ed5b55e8d6743917aafd13b51a1b, type: 2}
+  ceilingMaterial: {fileID: 2100000, guid: 6d9b9360f2e8ba84db13353cf15136c9, type: 2}
+  hazardMaterial: {fileID: 2100000, guid: feb951f60968a5a4faf34b98e2994b87, type: 2}
+  exitMaterial: {fileID: 2100000, guid: 690d1e73afbc9be4caa1f582db16ad2b, type: 2}
+  doorMaterial: {fileID: 2100000, guid: 860e22ae9bbb54d47acc1772e9dfae6e, type: 2}
+  lockedDoorMaterial: {fileID: 2100000, guid: b71727d5ff08f0c4a9e2544483110b99, type: 2}
+  spriteMaterial: {fileID: 2100000, guid: f76b42c35d16ccf42bc23e994ba35eb3, type: 2}
+  weaponMaterial: {fileID: 2100000, guid: 67e671af48756774a9e9fdca8573e867, type: 2}
+  screenMaterial: {fileID: 2100000, guid: d782985a80b4ff64b9c5a948040d1abe, type: 2}
+  lineMaterial: {fileID: 2100000, guid: 0c721fc00e5723c458317852b556a0ea, type: 2}
+  keyTexture: {fileID: 2800000, guid: 5490c41d4cddca840b35fec01a9a6c0a, type: 3}
+  exitSignTexture: {fileID: 2800000, guid: 04640ccfa7bf2c044b244d81eb0ddcf7, type: 3}
+  fxTexture: {fileID: 2800000, guid: 67e2873569665ac41a68637d3b2126c4, type: 3}

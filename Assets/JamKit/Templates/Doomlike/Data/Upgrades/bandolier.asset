@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09118e6092860fd4cb4aa4f2342acfcf, type: 3}
+  m_Name: bandolier
+  m_EditorClassIdentifier: JamKit.Doomlike::JamKit.Doomlike.DoomUpgradeAsset
+  def:
+    id: bandolier
+    displayName: Bandolier
+    description: Carry 40% more ammo, and fill every pouch now.
+    rarity: 0
+    weight: 0
+    maxStacks: 2
+    tags: []
+    requires: []
+    excludes: []
+    modifiers:
+    - stat: ammo_capacity
+      op: 1
+      value: 0.4
+      sourceId: 
+    effects:
+    - fill_ammo
+  iconText: AMO
+  iconColor: {r: 0.9, g: 0.75, b: 0.4, a: 1}

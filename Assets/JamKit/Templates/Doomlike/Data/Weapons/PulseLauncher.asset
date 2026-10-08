@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 871f6555ffb18144896f919893c3999f, type: 3}
+  m_Name: PulseLauncher
+  m_EditorClassIdentifier: JamKit.Doomlike::JamKit.Doomlike.WeaponAsset
+  displayName: Pulse Launcher
+  slot: 5
+  mapChar: 5
+  kind: 2
+  def:
+    magazineSize: 0
+    startingReserve: 0
+    maxReserve: 0
+    infiniteReserve: 0
+    ammoPerShot: 1
+    fireMode: 1
+    fireInterval: 0.8
+    burstCount: 3
+    burstInterval: 0.06
+    reloadTime: 1.2
+    autoReloadOnEmpty: 0
+  ammoType: charges
+  damage: 110
+  pellets: 1
+  spreadDegrees: 2
+  verticalSpreadDegrees: 1
+  firstPelletCentered: 1
+  range: 80
+  falloffStart: 25
+  minFalloff: 0.5
+  damageVariance: 0.15
+  projectileSpeed: 26
+  projectileRadius: 0.25
+  splashRadius: 3.6
+  selfDamageScale: 0.4
+  projectileColor: {r: 0.45, g: 0.85, b: 1, a: 1}
+  recoilDegrees: 5
+  shake: 0.25
+  noiseRadius: 34
+  fireSound: launcher
+  pickupAmmo: 4
+  priority: 4
+  viewTexture: {fileID: 2800000, guid: 51abc83350f96884a94f46f97bfb7400, type: 3}
+  viewFrames: 3
+  fireFrameSeconds: 0.12
+  viewScale: 1
+  viewOffset: {x: 0, y: 0}
+  pickupTexture: {fileID: 2800000, guid: 264c57b05f2a6a641aad7e746497ab52, type: 3}
+  pickupSize: 0.45

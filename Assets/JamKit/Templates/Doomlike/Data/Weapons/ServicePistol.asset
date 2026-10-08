@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 871f6555ffb18144896f919893c3999f, type: 3}
+  m_Name: ServicePistol
+  m_EditorClassIdentifier: JamKit.Doomlike::JamKit.Doomlike.WeaponAsset
+  displayName: Service Pistol
+  slot: 2
+  mapChar: 
+  kind: 1
+  def:
+    magazineSize: 0
+    startingReserve: 0
+    maxReserve: 0
+    infiniteReserve: 0
+    ammoPerShot: 1
+    fireMode: 1
+    fireInterval: 0.34
+    burstCount: 3
+    burstInterval: 0.06
+    reloadTime: 1.2
+    autoReloadOnEmpty: 0
+  ammoType: bullets
+  damage: 12
+  pellets: 1
+  spreadDegrees: 2.5
+  verticalSpreadDegrees: 1
+  firstPelletCentered: 1
+  range: 80
+  falloffStart: 25
+  minFalloff: 0.6
+  damageVariance: 0.15
+  projectileSpeed: 26
+  projectileRadius: 0.25
+  splashRadius: 3.5
+  selfDamageScale: 0.4
+  projectileColor: {r: 1, g: 0.6, b: 0.2, a: 1}
+  recoilDegrees: 1.2
+  shake: 0.06
+  noiseRadius: 24
+  fireSound: pistol
+  pickupAmmo: 20
+  priority: 1
+  viewTexture: {fileID: 2800000, guid: 05458d5306cf4b64988e0c6d598c9685, type: 3}
+  viewFrames: 3
+  fireFrameSeconds: 0.07
+  viewScale: 1
+  viewOffset: {x: 0, y: 0}
+  pickupTexture: {fileID: 0}
+  pickupSize: 0.9

@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 945c355521880f545884efe20ab4723b, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.GameConfig
-  gameTitle: Starfall Gauntlet
-  tagline: Three floors. Three bosses. One tiny hitbox.
+  gameTitle: Corecrawler
+  tagline: Three levels down. Find the keys. Find the exit.
   bootScene: Boot
   titleScene: Title
-  firstGameplayScene: BulletHell
+  firstGameplayScene: Doomlike
   titleMusic: music_title
   gameMusic: music_game
   audio: {fileID: 11400000, guid: 24bd74896dbbd514a97d579586e9d96b, type: 2}
@@ -25,28 +25,32 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5c4a424501321a34f86a06cd21a57faf, type: 2}
   credits: {fileID: 4900000, guid: c7dc43a8aab8e6f4e9b3f0b1efc963ed, type: 3}
   howToPlay:
-  - title: Fly
-    body: 'Move with WASD, the arrow keys or the left stick. Your ship fires by itself.
+  - title: Move and look
+    body: 'WASD or the left stick to move: you run all the time (hold Shift or LB
+      to walk). Mouse or the right stick to look.
 
-      Hold
-      Shift (LB) to FOCUS: you fly slower and your tiny hitbox shows.'
-    image: {fileID: 21300000, guid: 40ffe955a6ea6ec499b96f6c6dc508c8, type: 3}
-  - title: Dodge
-    body: 'Only the small dot in the middle of your ship can be hit.
+      Click the game first so
+      it can hold the mouse.'
+    image: {fileID: 21300000, guid: 159d08fc5c566b44a8d218749d5ea257, type: 3}
+  - title: Shoot
+    body: 'Left click or RT fires. Keys 1-5, the mouse wheel or Y swap guns.
 
-      Slip
-      past bullets to GRAZE them for points.'
-    image: {fileID: 21300000, guid: 202eb52d08abd6441b752407f66466fa, type: 3}
-  - title: Bomb
-    body: 'K, right click or Space (A on a gamepad) sets off a BOMB: it wipes every
-      bullet and keeps you safe for a moment. You get 2 per life.'
-    image: {fileID: 21300000, guid: b230dd3b2bd2a23479aca0491aeb9275, type: 3}
-  - title: The run
-    body: 'Clear rooms, pick 1 of 3 upgrades, choose your doors and spend coins in
-      shops.
+      Guns
+      that fire the same ammo share it: grab boxes to refill. Watch for the red aim
+      line: get out of sight before it fires.'
+    image: {fileID: 21300000, guid: 4b4aa28d2f44dda49bfa97a16a66b949, type: 3}
+  - title: Keys and doors
+    body: 'Doors open as you walk up. A coloured door needs the key card of its colour.
 
-      Beat the boss of each of the 3 floors to win. Escape or Start
-      pauses.'
-    image: {fileID: 21300000, guid: 6b8ebf874b661ba469bdaa23569f47f7, type: 3}
+      Odd-looking
+      walls can hide secrets: walk into them or press E / Space.'
+    image: {fileID: 21300000, guid: 053b62bc2aa09e34386496d861d0130b, type: 3}
+  - title: Find the exit
+    body: 'Each level ends on the glowing EXIT pad. Between levels, pick 1 of 3 upgrades.
+
+      Finish
+      level 3 to win. Escape or Start pauses.'
+    image: {fileID: 21300000, guid: 34126e1a2c9d5c249a6dac85a14807b8, type: 3}
   showHowToPlayOnFirstRun: 1
   allowDebugMenuInRelease: 0
+  showPixelLookSetting: 1

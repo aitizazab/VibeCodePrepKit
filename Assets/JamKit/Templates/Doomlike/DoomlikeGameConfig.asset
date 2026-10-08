@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 945c355521880f545884efe20ab4723b, type: 3}
+  m_Name: DoomlikeGameConfig
+  m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.GameConfig
+  gameTitle: Corecrawler
+  tagline: Three levels down. Find the keys. Find the exit.
+  bootScene: Boot
+  titleScene: Title
+  firstGameplayScene: Doomlike
+  titleMusic: music_title
+  gameMusic: music_game
+  audio: {fileID: 0}
+  portraits: []
+  credits: {fileID: 0}
+  howToPlay:
+  - title: Move and look
+    body: 'WASD or the left stick to move: you run all the time (hold Shift or LB
+      to walk). Mouse or the right stick to look.
+
+      Click the game first so
+      it can hold the mouse.'
+    image: {fileID: 21300000, guid: 159d08fc5c566b44a8d218749d5ea257, type: 3}
+  - title: Shoot
+    body: 'Left click or RT fires. Keys 1-5, the mouse wheel or Y swap guns.
+
+      Guns
+      that fire the same ammo share it: grab boxes to refill. Watch for the red aim
+      line: get out of sight before it fires.'
+    image: {fileID: 21300000, guid: 4b4aa28d2f44dda49bfa97a16a66b949, type: 3}
+  - title: Keys and doors
+    body: 'Doors open as you walk up. A coloured door needs the key card of its colour.
+
+      Odd-looking
+      walls can hide secrets: walk into them or press E / Space.'
+    image: {fileID: 21300000, guid: 053b62bc2aa09e34386496d861d0130b, type: 3}
+  - title: Find the exit
+    body: 'Each level ends on the glowing EXIT pad. Between levels, pick 1 of 3 upgrades.
+
+      Finish
+      level 3 to win. Escape or Start pauses.'
+    image: {fileID: 21300000, guid: 34126e1a2c9d5c249a6dac85a14807b8, type: 3}
+  showHowToPlayOnFirstRun: 1
+  allowDebugMenuInRelease: 0
+  showPixelLookSetting: 1
