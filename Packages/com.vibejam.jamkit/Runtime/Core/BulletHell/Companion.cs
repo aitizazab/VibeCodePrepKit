@@ -27,6 +27,14 @@ namespace JamKit.BulletHell
         public float barkLead = 1.2f;
         /// <summary>Seconds a bark stays on screen.</summary>
         public float barkSeconds = 2.4f;
+        /// <summary>When it joins the run: after this many bosses (0 = from the start, 1 = met after the first boss).</summary>
+        public int joinAfterBosses;
+        /// <summary>Its own health: enemy bullets that touch it cost 1. 0 = it can't be hurt.</summary>
+        public float maxHealth;
+        /// <summary>Hit radius when it has health.</summary>
+        public float hitRadius = 0.22f;
+        /// <summary>Seconds it's down (no shots, no guard) before it's back at full health. 0 = it stays down until a Rest.</summary>
+        public float reviveSeconds = 12f;
 
         public void Validate(List<string> errors)
         {
@@ -36,6 +44,8 @@ namespace JamKit.BulletHell
             if (shotSpeed <= 0f) errors.Add("Companion: shot speed must be positive.");
             if (guardCooldown < 1f) errors.Add("Companion: the guard cooldown must be at least 1 s.");
             if (barkCooldown < 0f || barkLead < 0f || barkSeconds <= 0f) errors.Add("Companion: bark timings must be positive.");
+            if (joinAfterBosses < 0) errors.Add("Companion: join after 0 or more bosses.");
+            if (maxHealth < 0f || reviveSeconds < 0f || (maxHealth > 0f && hitRadius <= 0f)) errors.Add("Companion: health, hit radius and revive time can't be negative.");
         }
     }
 
@@ -43,8 +53,9 @@ namespace JamKit.BulletHell
     public sealed class CompanionState
     {
         CompanionRules _rules;
-        float _angle, _fireClock, _guardLeft, _guardMax, _barkLeft;
-        int _guards;
+        float _angle, _fireClock, _guardLeft, _guardMax, _barkLeft, _health, _downLeft;
+        int _guards, _knockdowns;
+        bool _down;
 
         public CompanionRules Rules => _rules;
         /// <summary>Degrees around the ship (0 = right).</summary>
@@ -56,6 +67,34 @@ namespace JamKit.BulletHell
         /// <summary>Bullets it took for the player this run.</summary>
         public int Guards => _guards;
         public bool CanBark => _barkLeft <= 0f;
+        /// <summary>Its health (only when <see cref="CompanionRules.maxHealth"/> is above 0).</summary>
+        public float Health => _health;
+        public bool HasHealth => _rules != null && _rules.maxHealth > 0f;
+        /// <summary>Knocked down: no shots, no guard, until it revives.</summary>
+        public bool Down => _down;
+        public int Knockdowns => _knockdowns;
+        /// <summary>0 right after it went down, 1 when it's back (for a meter).</summary>
+        public float ReviveFraction => !_down || _rules == null || _rules.reviveSeconds <= 0f ? (_down ? 0f : 1f) : 1f - _downLeft / _rules.reviveSeconds;
+
+        /// <summary>An enemy bullet touched it. Returns true when that knocked it down.</summary>
+        public bool Hurt(float amount)
+        {
+            if (!HasHealth || _down || amount <= 0f) return false;
+            _health = Math.Max(0f, _health - amount);
+            if (_health > 0f) return false;
+            _down = true;
+            _knockdowns++;
+            _downLeft = _rules.reviveSeconds;
+            return true;
+        }
+
+        /// <summary>Back on its feet at full health (a Rest room, a revive).</summary>
+        public void Revive()
+        {
+            _down = false;
+            _downLeft = 0f;
+            _health = _rules != null ? _rules.maxHealth : 0f;
+        }
 
         public void Begin(CompanionRules rules)
         {
@@ -66,6 +105,8 @@ namespace JamKit.BulletHell
             _guardMax = _rules.guardCooldown;
             _barkLeft = 0f;
             _guards = 0;
+            _knockdowns = 0;
+            Revive();
         }
 
         /// <summary>Where it is, relative to the ship.</summary>
@@ -91,7 +132,12 @@ namespace JamKit.BulletHell
             _guardMax = max;
             if (_guardLeft > 0f) _guardLeft -= dt;
             if (_barkLeft > 0f) _barkLeft -= dt;
-            if (!shooting) { _fireClock = 0f; return 0; }
+            if (_down && _rules.reviveSeconds > 0f)
+            {
+                _downLeft -= dt;
+                if (_downLeft <= 0f) Revive();
+            }
+            if (!shooting || _down) { _fireClock = 0f; return 0; }
             _fireClock += dt;
             int shots = 0;
             float interval = Math.Max(0.02f, _rules.fireInterval);
@@ -106,7 +152,7 @@ namespace JamKit.BulletHell
         /// <summary>A bullet would hit the player: if the guard is ready it takes it (true) and cools down.</summary>
         public bool TryGuard()
         {
-            if (_rules == null || !GuardReady) return false;
+            if (_rules == null || !GuardReady || _down) return false;
             _guardLeft = _guardMax;
             _guards++;
             return true;

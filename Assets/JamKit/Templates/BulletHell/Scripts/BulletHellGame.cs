@@ -516,7 +516,7 @@ namespace JamKit.BulletHell
             _hud.SetCoins(_run.currency);
             _hud.SetGraze(_grazes);
             _hud.SetSprint(player.Sprint);
-            _hud.SetGuard(CompanionOn, _companion.GuardFraction, _companion.GuardReady);
+            _hud.SetGuard(CompanionActive, _companion.Down ? 0f : _companion.GuardFraction, _companion.GuardReady && !_companion.Down);
             _trialHudClock -= udt;
             if (_trials.Count > 0 && _trialHudClock <= 0f)
             {
@@ -591,7 +591,9 @@ namespace JamKit.BulletHell
                     OpenDraft("Treasure!", "Pick one upgrade to keep for this run.", RewardSource.Treasure, Leave);
                     break;
                 case RoomType.Rest:
-                    // The companion's room: a line first (rest_floor_<n>, rest), then the choice.
+                    // The companion's room: a line first (rest_floor_<n>, rest), then the choice. Resting
+                    // revives a companion that's down.
+                    if (CompanionActive && _companion.Down) _companion.Revive();
                     _phase = RoomPhase.Dialogue;
                     if (!PlayStoryLine(StoryHooks.Rest(_run.floor + 1), OpenRest)) OpenRest();
                     break;
@@ -1194,7 +1196,7 @@ namespace JamKit.BulletHell
         void DrawDraft(bool reroll)
         {
             int cards = _draftTable.cards > 0 ? _draftTable.cards : Mathf.Max(1, config.economy.draftSize);
-            _draft.Offer(_draftTable, _pool, _loadout.Inventory, cards, _draftRng, _offer, _draftLuck, reroll);
+            _draft.Offer(_draftTable, DraftPool(), _loadout.Inventory, cards, _draftRng, _offer, _draftLuck, reroll);
             // A remnant of an earlier run may take a card (always on the first draft of a run).
             if (_draftTable.includeRemnants)
                 JamKit.BulletHell.Remnants.MaybeOffer(_remnantBook, config.remnants, _loadout.Inventory, _offer, _fallback, _draftRng,
@@ -1203,6 +1205,17 @@ namespace JamKit.BulletHell
         }
 
         static readonly Color RemnantColor = new Color(0.65f, 0.95f, 0.85f);
+        readonly List<UpgradeDef> _poolWithoutCompanion = new List<UpgradeDef>();
+
+        /// <summary>The upgrade pool, minus the companion's upgrades until it has joined the run.</summary>
+        List<UpgradeDef> DraftPool()
+        {
+            if (CompanionActive || !CompanionOn) return _pool;
+            _poolWithoutCompanion.Clear();
+            foreach (var d in _pool)
+                if (d.tags == null || !d.tags.Contains(CompanionTag)) _poolWithoutCompanion.Add(d);
+            return _poolWithoutCompanion;
+        }
 
         void BuildDraft()
         {
@@ -1295,7 +1308,7 @@ namespace JamKit.BulletHell
             _phase = RoomPhase.Choosing;
             _afterChoice = Leave;
             _shop.Clear();
-            _shopDraft.Offer(config.rewards.shop, _pool, _loadout.Inventory, Mathf.Max(0, config.economy.shopUpgrades), _roomRng, _offer, _loadout.Luck);
+            _shopDraft.Offer(config.rewards.shop, DraftPool(), _loadout.Inventory, Mathf.Max(0, config.economy.shopUpgrades), _roomRng, _offer, _loadout.Luck);
             foreach (var d in _offer) _shop.Add(new ShopItem { kind = ShopKind.Upgrade, def = d, price = config.economy.PriceOf(d.rarity) });
             _shop.Add(new ShopItem { kind = ShopKind.Life, price = config.economy.lifePrice });
             // Bombs only for a ship with a Bomb Bay.
@@ -1368,6 +1381,7 @@ namespace JamKit.BulletHell
 
         void RestHeal()
         {
+            if (CompanionActive && _companion.Down) _companion.Revive();
             if (player.Heal(1f) <= 0f && player.AddBombs(1) <= 0) AddCoins(20, true);
             GameRoot.Audio.Play("powerup");
             FinishChoice();
@@ -1525,10 +1539,14 @@ namespace JamKit.BulletHell
         public bool DebugEnterRoom(RoomType type)
         {
             if (_run == null || _phase == RoomPhase.Finished) return false;
+            // Whatever was on screen goes without its follow-up (a line's panel, an event's draft).
+            _lineActive = false;
+            _afterLine = null;
+            _eventActive = false;
+            if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.Stop(true);
             _choice.Close();
             _afterChoice = null;
             _rewardQueue.Clear();
-            _eventActive = false;
             _pending.Clear();
             for (int i = 0; i < _enemies.Count; i++) if (_enemies[i].Alive) _enemies[i].Despawn();
             field.Enemy.Clear();

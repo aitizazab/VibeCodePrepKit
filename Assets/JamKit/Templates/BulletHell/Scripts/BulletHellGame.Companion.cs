@@ -26,6 +26,8 @@ namespace JamKit.BulletHell
         readonly List<string> _barksPlayed = new List<string>();
 
         public bool CompanionOn => config != null && config.companionEnabled && config.companion != null;
+        /// <summary>On, and it has joined the run (CompanionRules.joinAfterBosses: 0 = from the start).</summary>
+        public bool CompanionActive => CompanionOn && _bossesBeaten >= Mathf.Max(0, config.companion.rules.joinAfterBosses);
         public CompanionState Companion => _companion;
         /// <summary>Shots the companion fired this run.</summary>
         public int CompanionShots => _companionShots;
@@ -76,6 +78,9 @@ namespace JamKit.BulletHell
         void TickCompanion(float dt, Vector2 pp, int targets)
         {
             if (!CompanionOn || _companionBody == null) return;
+            bool active = CompanionActive;
+            if (_companionBody.gameObject.activeSelf != active) _companionBody.gameObject.SetActive(active);
+            if (!active) return;
             var rules = config.companion.rules;
             bool fighting = (_phase == RoomPhase.Waves || _phase == RoomPhase.Boss) && player.ControlsEnabled;
             int shots = _companion.Tick(dt, fighting && targets > 0, _loadout.CompanionCooldownScale);
@@ -83,10 +88,27 @@ namespace JamKit.BulletHell
             Vector2 at = pp + new Vector2(off.X, off.Y);
             _companionBody.transform.position = new Vector3(at.x, at.y, player.transform.position.z - 0.05f);
 
+            // With its own health, enemy bullets that touch it hurt it; at 0 it's down until it revives.
+            if (_companion.HasHealth && !_companion.Down && fighting)
+            {
+                int hitIndex = field.Enemy.FirstOverlap(new System.Numerics.Vector2(at.x, at.y), rules.hitRadius);
+                if (hitIndex >= 0)
+                {
+                    field.Enemy.RemoveAt(hitIndex);
+                    if (_companion.Hurt(1f))
+                    {
+                        GameRoot.Juice.FloatingText(at + Vector2.up * 0.4f, CompanionName + " is down!", new Color(1f, 0.5f, 0.4f));
+                        Bark("down", null);
+                    }
+                }
+            }
+
             // The guard ring: bright and full when ready, a growing dim ring while it recharges.
             float f = _companion.GuardFraction;
             bool ready = _companion.GuardReady;
             var c = config.companion.color;
+            _companionBody.color = _companion.Down ? new Color(c.r * 0.4f, c.g * 0.4f, c.b * 0.4f, 0.5f) : c;
+            if (_companion.Down) { f = 0f; ready = false; }
             _companionRing.color = new Color(c.r, c.g, c.b, ready ? 0.85f : 0.15f + 0.35f * f);
             _companionRing.transform.localScale = Vector3.one * (ready ? 2.1f : 1.2f + 0.7f * f);
 
@@ -110,7 +132,7 @@ namespace JamKit.BulletHell
         /// <summary>A bullet would hit the player: the companion takes it if its guard is ready.</summary>
         bool TryCompanionGuard(Vector2 pp)
         {
-            if (!CompanionOn || !_companion.TryGuard()) return false;
+            if (!CompanionActive || !_companion.TryGuard()) return false;
             field.Enemy.ClearInCircle(new System.Numerics.Vector2(pp.x, pp.y), 0.9f);
             player.Health.GrantInvulnerability(0.6f);
             var c = config.companion.color;
@@ -143,7 +165,7 @@ namespace JamKit.BulletHell
         /// the screen, without stopping the game. False when it's off, cooling down or nothing is written.</summary>
         bool Bark(string what, string bossId)
         {
-            if (!CompanionOn || _hookProbe == null || !_companion.CanBark) return false;
+            if (!CompanionActive || _hookProbe == null || !_companion.CanBark) return false;
             string knot = StoryHooks.Resolve(StoryHooks.CompanionBark(what, bossId), _hasKnot);
             if (knot == null) return false;
             if (!GameRoot.Dialogue.TryReadLine(config.events.storyJson, knot, out string speaker, out string line, _bindInk)) return false;

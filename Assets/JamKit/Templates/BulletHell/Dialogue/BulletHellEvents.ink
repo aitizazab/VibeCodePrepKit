@@ -102,7 +102,8 @@ A sealed supply cache drifts past, its lock blinking.
 //   companion_bark_<boss>_<what> -> companion_bark_<what>   a short in-battle line, NOT a dialogue:
 //                        only its first line shows, low on the screen, and the game keeps going.
 //                        <what> = the boss's next pattern (ring, aimed, spiral, wall, spread,
-//                        shotgun), guard (it took a bullet for you) or low_life (your last life).
+//                        shotgun), guard (it took a bullet for you), low_life (your last life) or
+//                        down (it was knocked down, when it has health).
 //
 // Boss ids: gatekeeper, forgemother, the_last_light (or a boss's Story Id field).
 // killer = a boss id in a boss fight, else "elite" or "battle".
@@ -212,6 +213,12 @@ A sealed supply cache drifts past, its lock blinking.
 === companion_bark_guard ===
 #speaker:Companion
 (Placeholder) Got that one!
+-> END
+
+=== companion_bark_down ===
+// Only with companion health on (CompanionRules.maxHealth above 0): it was knocked down.
+#speaker:Companion
+(Placeholder) I'm hit! Give me a moment.
 -> END
 
 === companion_bark_low_life ===

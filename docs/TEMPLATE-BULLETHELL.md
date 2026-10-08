@@ -232,6 +232,12 @@ ready), and **barks**: a one-line call-out of the boss's next pattern a moment b
 ink, without stopping the game. Its conversations between battles are the Rest room's line. Upgrades
 target it with `companion_damage` and `companion_shield_cooldown` (Kindred Sting, Steady Wings).
 
+Hooks for a companion the player looks after (all off by default, in the Companion asset's rules):
+*Join After Bosses* (1 = it's met after the first boss; its upgrades aren't offered before that),
+*Max Health* (above 0: enemy bullets that touch it hurt it; at 0 it's down: no shots, no guard,
+`companion_bark_down`) and *Revive Seconds* (a Rest room also revives it). The companion's design is
+being reworked (2026-10-08); expect these to change.
+
 ## Balance report
 
 **JamKit > Bullet Hell > Balance Report** (a minute or two): a scripted dodge bot plays every Battle and

@@ -546,6 +546,31 @@ namespace JamKit.Tests.BulletHell
         }
 
         [Test]
+        public void WithHealthItCanBeKnockedDownAndRevives()
+        {
+            var c = new CompanionState();
+            c.Begin(new CompanionRules());
+            Assert.That(c.HasHealth, Is.False, "maxHealth 0 (the default): it can't be hurt");
+            Assert.That(c.Hurt(5f), Is.False);
+
+            c.Begin(new CompanionRules { maxHealth = 2f, reviveSeconds = 4f, fireInterval = 0.5f, joinAfterBosses = 1 });
+            Assert.That(c.Health, Is.EqualTo(2f));
+            Assert.That(c.Hurt(1f), Is.False);
+            Assert.That(c.Hurt(1f), Is.True, "knocked down");
+            Assert.That(c.Down, Is.True);
+            Assert.That(c.TryGuard(), Is.False, "no guard while down");
+            Assert.That(c.Tick(1f, true, 1f), Is.EqualTo(0), "no shots while down");
+            Assert.That(c.ReviveFraction, Is.EqualTo(0.25f).Within(1e-4f));
+            c.Tick(3.1f, true, 1f);
+            Assert.That(c.Down, Is.False, "back after its revive time");
+            Assert.That(c.Health, Is.EqualTo(2f));
+            Assert.That(c.Knockdowns, Is.EqualTo(1));
+            var errors = new List<string>();
+            new CompanionRules { joinAfterBosses = -1, maxHealth = -1f }.Validate(errors);
+            Assert.That(errors.Count, Is.EqualTo(2));
+        }
+
+        [Test]
         public void TheCalloutFindsTheNextStepIncludingTheNextLoop()
         {
             var seq = new PatternSequence { loop = true, loopDelay = 1f };
