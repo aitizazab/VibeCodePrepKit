@@ -227,6 +227,7 @@ namespace JamKit.Shell
                 case SceneRole.Boot:
                     _ui.SetFade(1f); // start black and fade into the title
                     GoToTitleState();
+                    _ui.OnFlowChanged(GameState.Title, GameState.Title); // a fresh boot: no overlays left open
                     _scenes.LoadQueued(_config.titleScene);
                     break;
                 case SceneRole.Title:

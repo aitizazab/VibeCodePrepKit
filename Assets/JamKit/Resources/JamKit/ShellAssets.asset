@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aed163b16caf42e41b868a4d6948ae9e, type: 3}
+  m_Name: ShellAssets
+  m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.ShellAssets
+  panelSettings: {fileID: 11400000, guid: f947483461bfef545abb21ce3bcdb9a0, type: 2}
+  styleSheets:
+  - {fileID: 7433441132597879392, guid: f2b2046a5cfaec040b752789b78ea66a, type: 3}
+  - {fileID: 7433441132597879392, guid: 48b2240a03bd3794d8d30f70fa18fb18, type: 3}
+  input: {fileID: -944628639613478452, guid: 573316769dd79db4e81402b9c4a10d43, type: 3}
+  title: {fileID: 9197481963319205126, guid: 5d115d7238864df41b95676d913852b4, type: 3}
+  settings: {fileID: 9197481963319205126, guid: 1e5ba0aca9ffba440a8718b709bec49d, type: 3}
+  pause: {fileID: 9197481963319205126, guid: 65a3ba8b912e4b54190c0eac8800917e, type: 3}
+  gameOver: {fileID: 9197481963319205126, guid: d0fbd7dcef6483b479399494b77b39be, type: 3}
+  victory: {fileID: 9197481963319205126, guid: 276085dcd43c39e489e9c25df989d3b5, type: 3}
+  credits: {fileID: 9197481963319205126, guid: d123556311a8d31439170d003fb05392, type: 3}
+  howToPlay: {fileID: 9197481963319205126, guid: 12a4edcf2f6409c4ebbb5f67516639be, type: 3}
+  hud: {fileID: 9197481963319205126, guid: 1ede36aaad8ac7046afcb6fcdeec3de4, type: 3}
+  dialogue: {fileID: 9197481963319205126, guid: 16699c65142217946b3030a963ebc29a, type: 3}
+  debugMenu: {fileID: 9197481963319205126, guid: 64ae68f7bf8428f468b70a919c84862f, type: 3}

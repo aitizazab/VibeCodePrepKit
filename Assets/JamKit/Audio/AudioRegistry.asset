@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2c2f396bcba1064a968d50cd5e52394, type: 3}
+  m_Name: AudioRegistry
+  m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.AudioRegistry
+  entries:
+  - id: ui_move
+    clip: {fileID: 0}
+    volume: 1
+    pitchVariance: 0
+    loop: 0
+  - id: ui_select
+    clip: {fileID: 0}
+    volume: 1
+    pitchVariance: 0
+    loop: 0
+  - id: ui_back
+    clip: {fileID: 0}
+    volume: 1
+    pitchVariance: 0
+    loop: 0
+  - id: blip
+    clip: {fileID: 0}
+    volume: 0.5
+    pitchVariance: 0.06
+    loop: 0
+  - id: coin
+    clip: {fileID: 0}
+    volume: 1
+    pitchVariance: 0.06
+    loop: 0
+  - id: hurt
+    clip: {fileID: 0}
+    volume: 1
+    pitchVariance: 0.06
+    loop: 0
+  - id: win
+    clip: {fileID: 0}
+    volume: 1
+    pitchVariance: 0.06
+    loop: 0
+  - id: lose
+    clip: {fileID: 0}
+    volume: 1
+    pitchVariance: 0.06
+    loop: 0
+  - id: shoot
+    clip: {fileID: 0}
+    volume: 1
+    pitchVariance: 0.06
+    loop: 0
+  - id: dash
+    clip: {fileID: 0}
+    volume: 1
+    pitchVariance: 0.06
+    loop: 0
+  - id: explosion
+    clip: {fileID: 0}
+    volume: 1
+    pitchVariance: 0.06
+    loop: 0
+  - id: music_title
+    clip: {fileID: 0}
+    volume: 0.6
+    pitchVariance: 0
+    loop: 1
+  - id: music_game
+    clip: {fileID: 0}
+    volume: 0.6
+    pitchVariance: 0
+    loop: 1

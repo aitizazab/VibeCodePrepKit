@@ -137,6 +137,57 @@ namespace JamKit.Tests.Play
         [UnitySetUp]
         public IEnumerator SetUp() => BootToTitle();
 
+        [UnityTest]
+        public IEnumerator SettingsScreenChangesApplyAndPersist()
+        {
+            var ui = GameRoot.Ui;
+            ui.Title.Activate("settings");
+            yield return null;
+            Assert.That(ui.IsOverlayOpen(ui.Settings), Is.True);
+            Assert.That(ui.Title.IsVisible, Is.False, "the overlay replaces the title while open");
+
+            var root = ui.Settings.Root;
+            root.Q<Slider>("music").value = 20f;
+            root.Q<Slider>("master").value = 50f;
+            root.Q<Toggle>("invert-y").value = true;
+            Assert.That(GameRoot.Settings.musicVolume, Is.EqualTo(0.2f).Within(0.001f));
+            Assert.That(AudioListener.volume, Is.EqualTo(0.5f).Within(0.001f), "master volume applies at once");
+            Assert.That(GameRoot.Settings.invertY, Is.True);
+
+            Assert.That(GameRoot.Settings.difficulty, Is.EqualTo(Difficulty.Normal));
+            ui.Settings.Activate("difficulty");
+            Assert.That(GameRoot.Settings.difficulty, Is.EqualTo(Difficulty.Hard));
+            Assert.That(GameRoot.Settings.damageTakenScale, Is.EqualTo(1.5f));
+            Assert.That(root.Q<Label>("difficulty-info").text, Is.EqualTo(DifficultyText.Describe(Difficulty.Hard)));
+            Assert.That(root.Q<Button>("difficulty").text, Does.Contain("Hard"));
+
+            ui.Settings.Activate("back");
+            yield return null;
+            Assert.That(ui.IsOverlayOpen(ui.Settings), Is.False);
+            Assert.That(ui.Title.IsVisible, Is.True);
+
+            var reloaded = new SaveService(GameRoot.Save.Slot);
+            reloaded.Load();
+            Assert.That(reloaded.Data.settings.musicVolume, Is.EqualTo(0.2f).Within(0.001f), "saved on close");
+            Assert.That(reloaded.Data.settings.difficulty, Is.EqualTo(Difficulty.Hard));
+
+            // How to Play from the title pages through and closes with Back.
+            ui.Title.Activate("howto");
+            Assert.That(ui.HowToPlay.Page, Is.EqualTo(0));
+            ui.HowToPlay.Activate("next");
+            Assert.That(ui.HowToPlay.Page, Is.EqualTo(1));
+            ui.HowToPlay.Activate("prev");
+            Assert.That(ui.HowToPlay.Page, Is.EqualTo(0));
+            ui.Back();
+            Assert.That(ui.IsOverlayOpen(ui.HowToPlay), Is.False);
+            Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.Title), "Back from How to Play doesn't start the game");
+            LogAssert.NoUnexpectedReceived();
+        }
+    }
+
+    /// <summary>SaveService on its own slots; no shell set-up needed.</summary>
+    public class SaveServiceTests
+    {
         [Test]
         public void SaveLoadRoundTrip()
         {
@@ -183,53 +234,6 @@ namespace JamKit.Tests.Play
             save.Load();
             Assert.That(save.Data.settings.masterVolume, Is.EqualTo(new Settings().masterVolume));
             save.Delete();
-        }
-
-        [UnityTest]
-        public IEnumerator SettingsScreenChangesApplyAndPersist()
-        {
-            var ui = GameRoot.Ui;
-            ui.Title.Activate("settings");
-            yield return null;
-            Assert.That(ui.IsOverlayOpen(ui.Settings), Is.True);
-            Assert.That(ui.Title.IsVisible, Is.False, "the overlay replaces the title while open");
-
-            var root = ui.Settings.Root;
-            root.Q<Slider>("music").value = 20f;
-            root.Q<Slider>("master").value = 50f;
-            root.Q<Toggle>("invert-y").value = true;
-            Assert.That(GameRoot.Settings.musicVolume, Is.EqualTo(0.2f).Within(0.001f));
-            Assert.That(AudioListener.volume, Is.EqualTo(0.5f).Within(0.001f), "master volume applies at once");
-            Assert.That(GameRoot.Settings.invertY, Is.True);
-
-            Assert.That(GameRoot.Settings.difficulty, Is.EqualTo(Difficulty.Normal));
-            ui.Settings.Activate("difficulty");
-            Assert.That(GameRoot.Settings.difficulty, Is.EqualTo(Difficulty.Hard));
-            Assert.That(GameRoot.Settings.damageTakenScale, Is.EqualTo(1.5f));
-            Assert.That(root.Q<Label>("difficulty-info").text, Is.EqualTo(DifficultyText.Describe(Difficulty.Hard)));
-            Assert.That(root.Q<Button>("difficulty").text, Does.Contain("Hard"));
-
-            ui.Settings.Activate("back");
-            yield return null;
-            Assert.That(ui.IsOverlayOpen(ui.Settings), Is.False);
-            Assert.That(ui.Title.IsVisible, Is.True);
-
-            var reloaded = new SaveService(GameRoot.Save.Slot);
-            reloaded.Load();
-            Assert.That(reloaded.Data.settings.musicVolume, Is.EqualTo(0.2f).Within(0.001f), "saved on close");
-            Assert.That(reloaded.Data.settings.difficulty, Is.EqualTo(Difficulty.Hard));
-
-            // How to Play from the title pages through and closes with Back.
-            ui.Title.Activate("howto");
-            Assert.That(ui.HowToPlay.Page, Is.EqualTo(0));
-            ui.HowToPlay.Activate("next");
-            Assert.That(ui.HowToPlay.Page, Is.EqualTo(1));
-            ui.HowToPlay.Activate("prev");
-            Assert.That(ui.HowToPlay.Page, Is.EqualTo(0));
-            ui.Back();
-            Assert.That(ui.IsOverlayOpen(ui.HowToPlay), Is.False);
-            Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.Title), "Back from How to Play doesn't start the game");
-            LogAssert.NoUnexpectedReceived();
         }
     }
 }

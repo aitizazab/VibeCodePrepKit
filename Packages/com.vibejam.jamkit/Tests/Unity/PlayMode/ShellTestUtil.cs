@@ -37,8 +37,12 @@ namespace JamKit.Tests.Play
             yield return WaitFor(() => !GameRoot.IsLoadingScene, "any running load to finish");
             DebugMenu.GodMode = false;
             DebugMenu.TimeScale = 1f;
+            // Fresh save for every test (settings, flags, records, first-run cards).
             GameRoot.Save.UseSlot(Slot, true);
-            SceneManager.LoadScene("Boot");
+            // Wait for Boot itself to load first: the previous test may already have left us on
+            // the title, and a "title reached" check that passes before Boot loads races the boot.
+            var op = SceneManager.LoadSceneAsync("Boot");
+            while (!op.isDone) yield return null;
             yield return WaitFor(() => GameRoot.Flow.Current == GameState.Title && !GameRoot.IsLoadingScene
                 && SceneManager.GetActiveScene().name == "Title", "the title screen");
             Assert.That(GameRoot.Ui.Title.IsVisible, Is.True, "title screen visible");
