@@ -1,0 +1,30 @@
+{
+    "name": "JamKit.Story.EditorTests",
+    "rootNamespace": "JamKit.Narrative.Tests",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "JamKit.Editor",
+        "JamKit.Story",
+        "JamKit.Story.Editor",
+        "Ink",
+        "Ink-Libraries",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -178,10 +178,22 @@ namespace JamKit.Narrative
                 if (nextHash >= 0) end = nextHash;
                 int divert = line.IndexOf("->", hash + 1, StringComparison.Ordinal);
                 if (divert >= 0 && divert < end) end = divert;
+                // Inside inline logic ({cond: text #tag}) the tag ends at the brace that closes it.
+                int depth = 0;
+                for (int k = hash + 1; k < end; k++)
+                {
+                    if (line[k] == '{') depth++;
+                    else if (line[k] == '}')
+                    {
+                        if (depth == 0) { end = k; break; }
+                        depth--;
+                    }
+                }
                 string tag = line.Substring(hash + 1, end - hash - 1).Trim();
                 if (tag.Length > 0) tags.Add(new TagUse { text = tag, file = file, line = lineNo, knot = knot, dynamic = tag.IndexOf('{') >= 0 });
                 i = end;
                 if (end == divert) i = end + 2;
+                else if (end < line.Length && line[end] == '}') i = end + 1;
             }
         }
 

@@ -45,7 +45,7 @@ namespace JamKit.Shell
         string _speaker = "";
         string _lastKnot = "";
         bool _active, _parked, _choicesShown, _ownsFlowState, _autoMode, _skipMode;
-        bool _lineThought;
+        bool _lineThought, _waitingForPresenter;
         float _lineAuto;
         float _pendingWait, _inputBlock, _autoClock, _skipClock;
         int _shownChars;
@@ -302,6 +302,7 @@ namespace JamKit.Shell
                 _presenter.Hurry();
                 return;
             }
+            if (_waitingForPresenter) { Next(); return; }
             if (!_typewriter.IsComplete)
             {
                 _typewriter.Complete();
@@ -425,6 +426,7 @@ namespace JamKit.Shell
 
         void Next()
         {
+            _waitingForPresenter = false;
             _choicesShown = false;
             _choiceTexts.Clear();
             _view.HideChoices();
@@ -441,7 +443,17 @@ namespace JamKit.Shell
                 HandleTags(_story.currentTags);
                 if (!_active || _story == null) return; // a tag handler stopped the dialogue
                 line = line.Trim();
-                if (line.Length == 0) continue;
+                if (line.Length == 0)
+                {
+                    // A line of tags only: if they started something that takes time (a fade, a
+                    // chapter card), what follows waits for it, so effects on their own lines play in order.
+                    if (_presenter != null && _presenter.IsBusy)
+                    {
+                        _waitingForPresenter = true;
+                        return;
+                    }
+                    continue;
+                }
                 ShowLine(MakeLine(line), false);
                 return;
             }
@@ -594,6 +606,12 @@ namespace JamKit.Shell
             // Capped so a loading hitch doesn't type half a line in one frame.
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             bool busy = _presenter != null && _presenter.IsBusy;
+            if (_waitingForPresenter && !busy)
+            {
+                Next();
+                if (!_active) return;
+                busy = _presenter != null && _presenter.IsBusy;
+            }
             if (!busy)
             {
                 ApplyTextSpeed();
@@ -603,7 +621,7 @@ namespace JamKit.Shell
                     if (!string.IsNullOrEmpty(typeSound) && _shownChars % 3 == 1) GameRoot.Audio.Play(typeSound, 0.6f);
                 }
             }
-            bool complete = _typewriter.IsComplete;
+            bool complete = _typewriter.IsComplete && !_waitingForPresenter;
             if (complete && !_choicesShown && _story != null && !_story.canContinue && _story.currentChoices.Count > 0)
                 ShowChoices();
             _view.SetContinueHint(complete && !_choicesShown && !busy);

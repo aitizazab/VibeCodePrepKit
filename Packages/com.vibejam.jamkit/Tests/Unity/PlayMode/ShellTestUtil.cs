@@ -61,6 +61,11 @@ namespace JamKit.Tests.Play
             if (active.firstGameplayScene == "Sandbox") { GameRoot.UseConfig(active); return; }
             var copy = UnityEngine.Object.Instantiate(active);
             copy.firstGameplayScene = "Sandbox";
+            // The sandbox's Settings screen (another template's preset may hide some options).
+            copy.showActionSettings = true;
+            copy.showTextSettings = false;
+            copy.showPixelLookSetting = false;
+            copy.showBestTime = true;
 #if UNITY_EDITOR
             var preset = UnityEditor.AssetDatabase.LoadAssetAtPath<GameConfig>(SandboxPresetPath);
             if (preset != null)

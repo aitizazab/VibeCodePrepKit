@@ -40,6 +40,8 @@ namespace JamKit.Narrative
         public bool parked;
         /// <summary>An #ending tag was passed and the story is about to end.</summary>
         public string pendingEnding = "";
+        /// <summary>Hotspots already used in this playthrough (for "hide after use").</summary>
+        public List<string> used = new List<string>();
 
         public bool IsValid => !string.IsNullOrEmpty(inkState);
 
@@ -60,6 +62,7 @@ namespace JamKit.Narrative
             if (lineText == null) lineText = "";
             if (investigation == null) investigation = "";
             if (pendingEnding == null) pendingEnding = "";
+            if (used == null) { used = new List<string>(); changed = true; }
             if (version < CurrentVersion) { version = CurrentVersion; changed = true; }
             return changed;
         }

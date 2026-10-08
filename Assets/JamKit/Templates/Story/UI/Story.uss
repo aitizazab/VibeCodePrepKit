@@ -1,0 +1,416 @@
+/*
+ * The story template's look: stage, text box, full-screen text, choices, hotspots, inventory,
+ * menus. Colours come from Assets/JamKit/UI/Theme.uss (var(--jk-...)), so re-skinning the theme
+ * re-skins the story too. Sizes are pixels at 1920x1080 (the panel scales).
+ */
+
+/* ---------- Stage ---------- */
+
+.st-root {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgb(0, 0, 0);
+}
+
+.st-frame {
+    position: absolute;
+    overflow: hidden;
+    left: 0; top: 0; width: 1920px; height: 1080px;
+}
+
+.st-camera, .st-bg, .st-chars, .st-cg, .st-ui, .st-glitch, .st-fade, .st-flash, .st-chapter, .st-freeze, .st-popup-scrim, .st-hotspots, .st-hotspot-canvas, .st-text-root {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+}
+
+.st-bg, .st-cg {
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.st-char {
+    position: absolute;
+    bottom: 0;
+}
+
+.st-char-layer {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    -unity-background-scale-mode: scale-to-fit;
+    transition-property: -unity-background-image-tint-color;
+    transition-duration: 0.2s;
+}
+
+.st-char--dim .st-char-layer {
+    -unity-background-image-tint-color: rgb(150, 150, 165);
+}
+
+.st-glitch-bar {
+    position: absolute;
+    left: 0; right: 0; height: 2%;
+}
+
+.st-fade { background-color: rgb(0, 0, 0); }
+.st-flash { background-color: rgb(255, 255, 255); }
+
+.st-chapter {
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(5, 5, 12, 0.55);
+}
+
+.st-chapter-title {
+    font-size: 72px;
+    color: var(--jk-text);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    padding: 24px 80px;
+    border-top-width: 2px; border-bottom-width: 2px;
+    border-color: var(--jk-accent);
+    white-space: normal;
+}
+
+/* The game pretending to hang (#meta:fakecrash). */
+.st-freeze {
+    background-color: rgba(255, 255, 255, 0.45);
+}
+
+.st-freeze-bar {
+    height: 44px;
+    background-color: rgb(235, 235, 238);
+    border-bottom-width: 1px;
+    border-color: rgb(170, 170, 175);
+    justify-content: center;
+    padding-left: 16px;
+}
+
+.st-freeze-title {
+    font-size: 22px;
+    color: rgb(30, 30, 30);
+}
+
+/* A system-style message box (#meta:popup). */
+.st-popup-scrim {
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.25);
+}
+
+.st-popup {
+    width: 720px;
+    background-color: rgb(240, 240, 242);
+    border-width: 1px;
+    border-color: rgb(120, 120, 130);
+    border-radius: 6px;
+    padding-bottom: 20px;
+    align-items: center;
+}
+
+.st-popup-bar {
+    align-self: stretch;
+    height: 44px;
+    background-color: rgb(225, 225, 230);
+    border-top-left-radius: 6px; border-top-right-radius: 6px;
+    justify-content: center;
+    padding-left: 16px;
+}
+
+.st-popup-title { font-size: 22px; color: rgb(30, 30, 30); }
+
+.st-popup-text {
+    font-size: 28px;
+    color: rgb(20, 20, 20);
+    white-space: normal;
+    margin: 28px 36px;
+    align-self: stretch;
+}
+
+.st-popup-button {
+    font-size: 24px;
+    min-width: 140px;
+    background-color: rgb(250, 250, 252);
+    color: rgb(20, 20, 20);
+    border-width: 1px;
+    border-color: rgb(90, 120, 200);
+    border-radius: 4px;
+}
+
+.st-popup-button:focus { border-width: 2px; }
+
+/* ---------- Text box (ADV) ---------- */
+
+.st-box {
+    position: absolute;
+    left: 110px; right: 110px; bottom: 34px;
+    min-height: 250px;
+    padding: 34px 48px 26px 48px;
+    background-color: var(--jk-dialogue-bg);
+    border-width: var(--jk-border);
+    border-color: var(--jk-panel-border);
+    border-radius: var(--jk-radius);
+}
+
+.st-name {
+    position: absolute;
+    left: 36px; top: -30px;
+    padding: 4px 26px;
+    border-radius: 10px;
+    background-color: var(--jk-accent);
+}
+
+.st-name-label {
+    font-size: 32px;
+    -unity-font-style: bold;
+    color: var(--jk-accent-text);
+}
+
+.st-text {
+    font-size: var(--jk-dialogue-size);
+    color: var(--jk-text);
+    white-space: normal;
+    min-height: 120px;
+    margin-bottom: 28px;
+}
+
+.st-text--narration { color: rgb(226, 222, 240); }
+
+.st-text--thought {
+    -unity-font-style: italic;
+    color: var(--jk-text-dim);
+}
+
+.st-next {
+    position: absolute;
+    right: 34px; bottom: 50px;
+    width: 18px; height: 18px;
+    rotate: 45deg;
+    border-right-width: 4px; border-bottom-width: 4px;
+    border-color: var(--jk-accent);
+}
+
+.st-next--nvl { right: 70px; bottom: 60px; }
+
+.st-quick {
+    position: absolute;
+    right: 18px; bottom: 6px;
+    flex-direction: row;
+}
+
+.st-quick-button {
+    font-size: 18px;
+    margin: 0 2px;
+    padding: 2px 10px;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: none;
+    border-width: 0;
+    color: var(--jk-text-dim);
+}
+
+.st-quick-button:hover { color: var(--jk-text); }
+.st-quick-button--on { color: var(--jk-accent); -unity-font-style: bold; }
+
+/* ---------- Full-screen text (NVL) ---------- */
+
+.st-nvl {
+    position: absolute;
+    left: 140px; right: 140px; top: 70px; bottom: 70px;
+    padding: 50px 70px;
+    background-color: rgba(8, 8, 18, 0.86);
+    border-radius: var(--jk-radius);
+}
+
+.st-nvl-line {
+    font-size: 34px;
+    color: var(--jk-text);
+    white-space: normal;
+    margin-bottom: 18px;
+}
+
+.st-nvl-line--thought {
+    -unity-font-style: italic;
+    color: var(--jk-text-dim);
+}
+
+/* ---------- Choices ---------- */
+
+.st-choices {
+    position: absolute;
+    left: 0; right: 0; top: 160px; bottom: 330px;
+    justify-content: center;
+    align-items: center;
+}
+
+.st-choices--nvl { top: 560px; bottom: 90px; }
+
+.st-choice {
+    min-width: 900px;
+    max-width: 1400px;
+    margin: 8px 0;
+    padding: 14px 40px;
+    font-size: 32px;
+    white-space: normal;
+    background-image: none;
+    background-color: rgba(22, 22, 44, 0.94);
+    color: var(--jk-text);
+    border-width: var(--jk-border);
+    border-color: var(--jk-panel-border);
+    border-radius: var(--jk-button-radius);
+}
+
+.st-choice:hover { background-color: var(--jk-button-hover); }
+
+.st-choice:focus {
+    border-color: var(--jk-accent);
+    background-color: var(--jk-button-hover);
+}
+
+/* ---------- Hotspots and inventory ---------- */
+
+.st-hotspot-prompt {
+    position: absolute;
+    left: 0; right: 0; top: 24px;
+    -unity-text-align: middle-center;
+    font-size: 28px;
+    color: var(--jk-text);
+    background-color: rgba(0, 0, 0, 0.45);
+    padding: 8px 0;
+}
+
+.st-hotspot-label {
+    position: absolute;
+    translate: -50% 0;
+    font-size: 28px;
+    -unity-font-style: bold;
+    color: var(--jk-accent-text);
+    background-color: var(--jk-accent);
+    padding: 4px 16px;
+    border-radius: 8px;
+}
+
+.st-inventory {
+    position: absolute;
+    left: 40px; bottom: 30px;
+    padding: 10px 16px;
+    background-color: rgba(10, 10, 24, 0.85);
+    border-radius: var(--jk-radius);
+    border-width: 2px;
+    border-color: var(--jk-panel-border);
+}
+
+.st-inventory-caption {
+    font-size: 20px;
+    color: var(--jk-text-dim);
+    margin-bottom: 6px;
+}
+
+.st-inventory-row { flex-direction: row; }
+
+.st-item {
+    flex-direction: column;
+    align-items: center;
+    width: 150px;
+    margin-right: 8px;
+    padding: 6px;
+    background-image: none;
+    background-color: var(--jk-button);
+    border-width: 3px;
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: 10px;
+}
+
+.st-item:hover { background-color: var(--jk-button-hover); }
+.st-item--held { border-color: var(--jk-accent); }
+
+.st-item-icon {
+    width: 72px; height: 72px;
+    -unity-background-scale-mode: scale-to-fit;
+    border-radius: 8px;
+}
+
+.st-item-name {
+    font-size: 18px;
+    color: var(--jk-text);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+/* ---------- Ending card ---------- */
+
+.st-ending-card {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(4, 4, 10, 0.88);
+}
+
+.st-ending-card-number { font-size: 30px; color: var(--jk-text-dim); letter-spacing: 4px; }
+.st-ending-card-title { font-size: 96px; color: var(--jk-accent); -unity-font-style: bold; margin: 10px 0 20px 0; }
+.st-ending-card-text { font-size: 32px; color: var(--jk-text); white-space: normal; max-width: 1200px; -unity-text-align: middle-center; }
+.st-ending-card-new { font-size: 28px; color: var(--jk-good); margin-top: 26px; }
+.st-ending-card-hint { font-size: 22px; color: var(--jk-text-dim); margin-top: 40px; }
+
+/* ---------- Menus (save/load, endings, backlog, knots) ---------- */
+
+.st-panel { width: 1400px; max-height: 960px; }
+
+.st-panel-body {
+    flex-shrink: 1;
+    margin: 10px 0 18px 0;
+}
+
+.st-scroll { max-height: 690px; }
+
+.st-slot {
+    margin: 6px 0;
+    padding: 12px 24px;
+    background-image: none;
+    background-color: var(--jk-button);
+    border-width: var(--jk-border);
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: var(--jk-button-radius);
+    -unity-text-align: middle-left;
+}
+
+.st-slot:hover { background-color: var(--jk-button-hover); }
+.st-slot:focus { border-color: var(--jk-accent); background-color: var(--jk-button-hover); }
+.st-slot--empty { opacity: 0.7; }
+
+.st-slot-text {
+    font-size: 26px;
+    color: var(--jk-text);
+    white-space: normal;
+}
+
+.st-endings { flex-direction: row; flex-wrap: wrap; }
+
+.st-ending {
+    width: 640px;
+    flex-direction: row;
+    margin: 8px;
+    padding: 12px;
+    background-color: var(--jk-button);
+    border-radius: var(--jk-radius);
+}
+
+.st-ending--locked { opacity: 0.6; }
+
+.st-ending-pic {
+    width: 160px; height: 120px;
+    border-radius: 10px;
+    -unity-background-scale-mode: scale-and-crop;
+    margin-right: 16px;
+}
+
+.st-ending-text { flex-shrink: 1; flex-grow: 1; }
+.st-ending-number { font-size: 20px; color: var(--jk-text-dim); }
+.st-ending-title { font-size: 32px; color: var(--jk-accent); -unity-font-style: bold; }
+.st-ending-desc { font-size: 22px; color: var(--jk-text); white-space: normal; }
+
+.st-backlog-line {
+    font-size: 28px;
+    color: var(--jk-text);
+    white-space: normal;
+    margin: 6px 0;
+}
+
+.st-knot-button { -unity-text-align: middle-left; }

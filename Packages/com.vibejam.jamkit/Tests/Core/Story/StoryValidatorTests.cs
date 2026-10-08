@@ -62,10 +62,12 @@ Nobody comes here.
         [Test]
         public void TagEndsAtADivertAndDynamicTagsAreMarked()
         {
-            var scan = InkScan.Read("t.ink", "=== a ===\nHi #bg:x -> b\nYo #show:{who} #wait:1\n=== b ===\n-> END\n");
+            var scan = InkScan.Read("t.ink", "=== a ===\nHi #bg:x -> b\nYo #show:{who} #wait:1\n{x: Iris: Hi. #show:iris smile} and on\n=== b ===\n-> END\n");
             Assert.That(scan.tags[0].text, Is.EqualTo("bg:x"));
             Assert.That(scan.tags[1].dynamic, Is.True);
+            Assert.That(scan.tags[1].text, Is.EqualTo("show:{who}"));
             Assert.That(scan.tags[2].text, Is.EqualTo("wait:1"));
+            Assert.That(scan.tags[3].text, Is.EqualTo("show:iris smile"), "a tag inside {inline logic} ends at its closing brace");
         }
     }
 
