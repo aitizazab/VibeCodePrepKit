@@ -84,6 +84,8 @@ namespace JamKit.BulletHell.EditorTools
             AssetDatabase.SaveAssets();
             MakePreset(ctx, art);
             string path = BuildScene(ctx, config, art, material, ringMaterial);
+            // A new single scene unloads unused assets, which leaves earlier references "destroyed": reload.
+            config = AssetDatabase.LoadAssetAtPath<BulletHellConfig>(BulletHellContent.ConfigPath);
             BulletHellValidation.LogProblems(config);
             Debug.Log("JAMKIT_BULLETHELL_OK " + path);
             return path;
@@ -164,6 +166,8 @@ namespace JamKit.BulletHell.EditorTools
         static string BuildScene(SceneBuilder.Context ctx, BulletHellConfig config, BulletHellArt.Set art, Material bulletMat, Material ringMat)
         {
             var scene = SceneBuilder.NewScene(config.sideColor, out var cam, 5.6f);
+            var reloaded = AssetDatabase.LoadAssetAtPath<BulletHellConfig>(BulletHellContent.ConfigPath);
+            if (reloaded != null) config = reloaded;
             cam.gameObject.AddComponent<CameraShaker>();
             var half = config.playfieldHalfSize;
             var floor = config.Floor(0);

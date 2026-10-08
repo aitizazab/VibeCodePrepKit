@@ -28,6 +28,14 @@ namespace JamKit.BulletHell.Tests
             yield return null;
         }
 
+        /// <summary>Every stack of every owned upgrade (a repeat pick adds a stack, not a new entry).</summary>
+        static int Stacks(JamKit.Roguelite.UpgradeInventory inv)
+        {
+            int n = 0;
+            foreach (var d in inv.Owned) n += inv.Count(d.id);
+            return n;
+        }
+
         static IEnumerator StartBulletHell(ulong seed)
         {
             BulletHellGame.SeedOverride = seed;
@@ -64,11 +72,11 @@ namespace JamKit.BulletHell.Tests
                 {
                     if (game.Choice.IsOpen && game.Choice.Current == ChoicePanel.Kind.Draft)
                     {
-                        int owned = game.Loadout.Inventory.Owned.Count + game.Loadout.Inventory.Count("pocket_change");
+                        int owned = Stacks(game.Loadout.Inventory);
                         Assert.That(game.Choice.CardCount, Is.InRange(1, 3), "1 to 3 cards");
                         Assert.That(game.Choice.Choose(0), Is.True, "take the first card");
                         picked++;
-                        Assert.That(game.Loadout.Inventory.Owned.Count + game.Loadout.Inventory.Count("pocket_change"), Is.GreaterThan(owned), "the pick was added");
+                        Assert.That(Stacks(game.Loadout.Inventory), Is.EqualTo(owned + 1), "the pick added one stack");
                     }
                     else game.DebugSkip();
                 }
@@ -143,7 +151,7 @@ namespace JamKit.BulletHell.Tests
             float start = Time.realtimeSinceStartup;
             for (int f = 0; f < 120; f++) yield return null;
             float avgMs = (Time.realtimeSinceStartup - start) * 1000f / 120f;
-            Debug.Log($"Bullet hell perf: 120 frames with {pool.Count} enemy bullets and {game.field.Player.Count} player shots, average {avgMs:0.00} ms per frame (simulation; batch mode draws nothing)");
+            TestContext.Out.WriteLine($"Bullet hell perf: 120 frames with {pool.Count} enemy bullets and {game.field.Player.Count} player shots, average {avgMs:0.00} ms per frame (simulation; batch mode draws nothing)");
             Assert.That(pool.Count, Is.GreaterThan(2500), "slow bullets stay on screen");
             Assert.That(pool.Dropped, Is.EqualTo(0), "the pool had room");
             Assert.That(avgMs, Is.LessThan(100f), "no frame-killing work per bullet");
