@@ -52,3 +52,5 @@ MonoBehaviour:
   showTextSettings: 1
   showActionSettings: 0
   showBestTime: 0
+  chooseDifficultyOnPlay: 0
+  showControlLegend: 1

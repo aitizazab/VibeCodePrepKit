@@ -43,6 +43,26 @@ namespace JamKit.BulletHell.Tests
             yield return WaitFor(() => GameRoot.Flow.InRun && !GameRoot.IsLoadingScene && SceneManager.GetActiveScene().name == "BulletHell"
                 && BulletHellGame.Current != null && BulletHellGame.Current.Run != null, "the bullet-hell scene");
             Assert.That(BulletHellGame.Current.Run.seed, Is.EqualTo(seed));
+            // The run-start story line (if the ink has one) plays on the first frame: read through it.
+            var game = BulletHellGame.Current;
+            yield return WaitFor(() => !game.StoryLinePending, "the run-start line to be tried");
+            for (int i = 0; i < 200 && GameRoot.Dialogue.IsActive; i++)
+            {
+                GameRoot.Dialogue.AutoStep();
+                yield return null;
+            }
+            Assert.That(GameRoot.Dialogue.IsActive, Is.False, "run-start line finished");
+        }
+
+        /// <summary>Mashes through any dialogue on screen.</summary>
+        static IEnumerator FinishLines()
+        {
+            for (int i = 0; i < 400 && GameRoot.Dialogue.IsActive; i++)
+            {
+                GameRoot.Dialogue.AutoStep();
+                yield return null;
+            }
+            yield return null;
         }
 
         [UnityTest]
@@ -90,6 +110,115 @@ namespace JamKit.BulletHell.Tests
             Assert.That(GameRoot.Ui.Victory.IsVisible, Is.True);
             Assert.That(GameRoot.Run.score, Is.EqualTo(game.Score));
             Assert.That(GameRoot.Run.Extra.Any(s => s.label == "Floors cleared" && s.value == "3 / 3"), Is.True);
+            // The placeholder story hooks played, and the ones nobody wrote stayed silent.
+            var knots = game.StoryKnotsPlayed;
+            Assert.That(knots, Does.Contain("run_start"));
+            Assert.That(knots, Does.Contain("boss_gatekeeper_intro"));
+            Assert.That(knots, Does.Contain("boss_gatekeeper_defeat"));
+            Assert.That(knots.Any(k => k.StartsWith("boss_forgemother") || k.StartsWith("boss_the_last_light")), Is.False, "no lines written for the other bosses yet");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator BossLinesPauseTheGameAndLeaveNoBulletsBehind()
+        {
+            yield return StartBulletHell(12345);
+            var game = BulletHellGame.Current;
+            var player = game.player;
+            DebugMenu.GodMode = true;
+            DebugMenu.TimeScale = 4f;
+
+            // Skip ahead to the first boss's intro line.
+            float end = Time.realtimeSinceStartup + 120f;
+            while (!(game.Phase == BulletHellGame.RoomPhase.Boss && game.InStoryLine))
+            {
+                if (Time.realtimeSinceStartup > end) Assert.Fail("never reached the first boss's line (phase " + game.Phase + ")");
+                if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.AutoStep();
+                else if (GameRoot.Flow.Current == GameState.Playing)
+                {
+                    if (game.Choice.IsOpen && game.Choice.Current == ChoicePanel.Kind.Draft) game.Choice.Choose(0);
+                    else game.DebugSkip();
+                }
+                yield return null;
+            }
+            DebugMenu.GodMode = false;
+            Assert.That(game.StoryKnotsPlayed[game.StoryKnotsPlayed.Count - 1], Is.EqualTo("boss_gatekeeper_intro"));
+            yield return null;
+            Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.Dialogue), "the line stops the game");
+            Assert.That(Time.timeScale, Is.EqualTo(0f));
+
+            // A bullet sitting on the ship during the line: nothing moves, nothing hits...
+            float lives = player.Health.Current;
+            var p = player.Position;
+            game.field.Enemy.Spawn(new System.Numerics.Vector2(p.x, p.y), 0f, 0f, 0, 0.2f, 30f);
+            game.field.Enemy.Spawn(new System.Numerics.Vector2(p.x, p.y + 1f), -1.57f, 2f, 0, 0.2f, 30f);
+            yield return Frames(5);
+            Assert.That(player.Health.Current, Is.EqualTo(lives), "frozen during the line");
+            Assert.That(game.field.Enemy.Count, Is.EqualTo(2));
+
+            // ...and when the line ends, the bullets are gone and the ship has a moment.
+            yield return FinishLines();
+            Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.Playing));
+            Assert.That(game.field.Enemy.Count, Is.EqualTo(0), "bullets cleared after a boss line");
+            Assert.That(player.IsInvulnerable, Is.True, "a moment of safety after the line");
+            Assert.That(player.Health.Current, Is.EqualTo(lives));
+
+            // A phase change has its own line (boss_gatekeeper_phase_2), also cleanly paused.
+            DebugMenu.GodMode = true;
+            yield return WaitFor(() => game.boss.CanBeHurt, "the boss to start fighting", 20f);
+            var def = game.boss.Def;
+            Assert.That(def.phases.Count, Is.GreaterThan(1));
+            float target = def.phases[1].startsAtHealth;
+            for (int i = 0; i < 400 && !game.InStoryLine && game.boss.HealthFraction > target - 0.01f; i++)
+            {
+                game.boss.Damage(game.boss.Health.Max * 0.02f);
+                yield return null;
+            }
+            Assert.That(game.InStoryLine, Is.True, "the phase change played a line");
+            Assert.That(game.StoryKnotsPlayed[game.StoryKnotsPlayed.Count - 1], Is.EqualTo("boss_gatekeeper_phase_2"));
+            yield return FinishLines();
+            Assert.That(game.field.Enemy.Count, Is.EqualTo(0));
+
+            // Last words, then the room clears.
+            game.boss.DebugKill();
+            yield return WaitFor(() => game.InStoryLine || game.Phase != BulletHellGame.RoomPhase.Boss, "the boss to fall", 20f);
+            Assert.That(game.StoryKnotsPlayed[game.StoryKnotsPlayed.Count - 1], Is.EqualTo("boss_gatekeeper_defeat"));
+            yield return FinishLines();
+            yield return WaitFor(() => game.Phase != BulletHellGame.RoomPhase.Boss, "the room to clear after the last words", 10f);
+            Assert.That(game.BossesDefeated, Is.EqualTo(1));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator TheFocusHintShowsOnTheFirstRunOnly()
+        {
+            yield return StartBulletHell(4242);
+            var game = BulletHellGame.Current;
+            Assert.That(GameRoot.Save.Data.HasFlag(BulletHellGame.FocusHintFlag), Is.False, "fresh save");
+            Assert.That(game.Hud.LegendShown, Is.True, "the control legend is on by default");
+            yield return WaitFor(() => game.Phase == BulletHellGame.RoomPhase.Waves, "the first fight", 20f);
+            yield return null;
+            Assert.That(game.FocusHint.IsVisible, Is.True, "the hint shows in the first fight");
+            Assert.That(game.Hud.FocusHintShown, Is.True);
+            Assert.That(GameRoot.Save.Data.HasFlag(BulletHellGame.FocusHintFlag), Is.True, "remembered at once");
+            DebugMenu.GodMode = true;
+            DebugMenu.TimeScale = 4f;
+            yield return WaitFor(() => !game.FocusHint.IsVisible, "the hint to time out (~8 s of game time)", 15f);
+            Assert.That(game.Hud.FocusHintShown, Is.False);
+
+            // The next run (same save): no hint. And the legend follows GameConfig.
+            GameRoot.Config.showControlLegend = false; // an in-memory copy (ShellTestUtil.UseSandboxConfig)
+            GameRoot.Instance.Retry();
+            yield return WaitFor(() => GameRoot.Flow.InRun && !GameRoot.IsLoadingScene && BulletHellGame.Current != null
+                && BulletHellGame.Current != game && BulletHellGame.Current.Run != null, "the second run");
+            game = BulletHellGame.Current;
+            yield return WaitFor(() => !game.StoryLinePending, "the run-start line");
+            yield return FinishLines();
+            Assert.That(game.Hud.LegendShown, Is.False, "GameConfig.showControlLegend off");
+            yield return WaitFor(() => game.Phase == BulletHellGame.RoomPhase.Waves, "the first fight", 20f);
+            yield return null;
+            Assert.That(game.FocusHint.IsVisible, Is.False, "second run: no hint");
+            Assert.That(game.Hud.FocusHintShown, Is.False);
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -128,6 +257,12 @@ namespace JamKit.BulletHell.Tests
             yield return null;
             Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.GameOver));
             Assert.That(GameRoot.Run.Extra.Any(s => s.label == "Reached"), Is.True);
+            // The death screen's line comes from ink (death_<killer> -> death_floor_<n> -> death).
+            Assert.That(game.Killer, Is.EqualTo("battle"), "died in a battle room");
+            Assert.That(game.StoryKnotsPlayed, Does.Contain("death"));
+            Assert.That(GameRoot.Run.quote, Does.Contain("Placeholder"), "the placeholder death line");
+            Assert.That(GameRoot.Ui.GameOver.QuoteText, Does.Contain(GameRoot.Run.quote), "shown on the Game Over screen");
+            Assert.That(GameRoot.Dialogue.IsActive, Is.False, "read, not played as a dialogue");
             LogAssert.NoUnexpectedReceived();
         }
 

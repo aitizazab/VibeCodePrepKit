@@ -66,6 +66,17 @@ namespace JamKit.Shell
             Log("title");
             ui.Title.Activate("play");
             yield return null;
+            // Action games ask for the difficulty first: take the preselected one (Normal on a fresh save).
+            if (ui.IsOverlayOpen(ui.DifficultyPicker))
+            {
+                var d = ui.DifficultyPicker.Preselected;
+                Log("difficulty picker: " + DifficultyText.Name(d));
+                if (!ui.DifficultyPicker.Activate(DifficultyScreen.ButtonName(d))) Fail("the difficulty picker has no " + d + " card");
+                yield return null;
+                if (ui.IsOverlayOpen(ui.DifficultyPicker)) Fail("choosing a difficulty didn't close the picker");
+                Log("difficulty is " + DifficultyText.Name(GameRoot.Settings.difficulty) + ", extra lives " + GameRoot.Settings.extraLives);
+            }
+            else Log("no difficulty picker (GameConfig.chooseDifficultyOnPlay off)");
             // First run: the How to Play cards come up before the game starts.
             for (int i = 0; i < 10 && ui.IsOverlayOpen(ui.HowToPlay); i++)
             {

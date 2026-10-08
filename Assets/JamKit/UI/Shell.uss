@@ -523,3 +523,98 @@
 .jk-debug-button:focus {
     border-color: rgb(140, 255, 140);
 }
+
+/* ---------- Difficulty picker (Play, GameConfig.chooseDifficultyOnPlay) ---------- */
+
+.jk-difficulty-panel {
+    width: 1000px;
+    align-items: center;
+}
+
+.jk-difficulty-list {
+    align-self: stretch;
+    margin: 4px 0 8px 0;
+}
+
+.jk-difficulty-option {
+    flex-direction: row;
+    align-items: stretch;
+    padding: 0;
+    margin: 10px 0;
+    min-height: 116px;
+    overflow: hidden;
+    -unity-text-align: middle-left;
+}
+
+.jk-difficulty-stripe {
+    width: 14px;
+    background-color: var(--jk-accent);
+}
+
+.jk-difficulty-option--story .jk-difficulty-stripe {
+    background-color: var(--jk-good);
+}
+
+.jk-difficulty-option--hard .jk-difficulty-stripe {
+    background-color: var(--jk-bad);
+}
+
+.jk-difficulty-texts {
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 16px 32px 18px 28px;
+    justify-content: center;
+}
+
+.jk-difficulty-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.jk-difficulty-name {
+    font-size: 44px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+}
+
+.jk-difficulty-badge {
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: var(--jk-accent-text);
+    background-color: var(--jk-accent);
+    border-radius: 8px;
+    padding: 2px 14px;
+    letter-spacing: 1px;
+}
+
+.jk-difficulty-desc {
+    font-size: var(--jk-small-size);
+    color: var(--jk-text-dim);
+    white-space: normal;
+    -unity-text-align: middle-left;
+    margin-top: 6px;
+}
+
+.jk-difficulty-option:focus .jk-difficulty-desc,
+.jk-difficulty-option:hover .jk-difficulty-desc {
+    color: var(--jk-text);
+}
+
+/* ---------- End screen story line (GameRoot.Run.SetQuote) ---------- */
+
+.jk-end-quote {
+    white-space: normal;
+    -unity-text-align: middle-center;
+    -unity-font-style: italic;
+    color: var(--jk-text);
+    font-size: var(--jk-font-size);
+    max-width: 900px;
+    align-self: center;
+    margin: 4px 0 16px 0;
+    padding: 12px 24px;
+    border-left-width: 4px;
+    border-left-color: var(--jk-accent);
+    background-color: rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+}

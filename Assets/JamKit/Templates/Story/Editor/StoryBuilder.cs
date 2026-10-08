@@ -103,6 +103,7 @@ namespace JamKit.Narrative.EditorTools
             p.showTextSettings = true;
             p.showActionSettings = false;
             p.showBestTime = false;
+            p.chooseDifficultyOnPlay = false; // the story has its own text settings; no run-start picker
             p.credits = ctx.config != null ? ctx.config.credits : null;
             p.audio = ctx.config != null ? ctx.config.audio : null;
             p.howToPlay = new List<HowToPlayPage>

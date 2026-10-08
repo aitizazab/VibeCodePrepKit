@@ -185,6 +185,129 @@ namespace JamKit.Tests.Play
         }
     }
 
+    /// <summary>Play's run-start difficulty picker: Normal preselected, a choice is the Settings
+    /// difficulty (assists applied, saved, remembered next time), Back returns to the title, and the
+    /// GameConfig flag (or a game without action settings) skips it.</summary>
+    public class DifficultyPickerTests
+    {
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            yield return BootToTitle();
+            GameRoot.Save.Data.seenHowToPlay = true; // straight from the picker into the run
+        }
+
+        [UnityTest]
+        public IEnumerator ChoosingHardSetsTheDifficultyAndItsAssists()
+        {
+            var ui = GameRoot.Ui;
+            Assert.That(GameRoot.Config.AsksDifficultyOnPlay, Is.True);
+            ui.Title.Activate("play");
+            yield return null;
+            Assert.That(ui.IsOverlayOpen(ui.DifficultyPicker), Is.True, "Play opens the picker");
+            Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.Title), "nothing started yet");
+            Assert.That(ui.DifficultyPicker.Preselected, Is.EqualTo(Difficulty.Normal), "Normal the first time");
+            var root = ui.DifficultyPicker.Root;
+            foreach (var d in DifficultyText.All)
+            {
+                var card = root.Q<Button>(DifficultyScreen.ButtonName(d));
+                Assert.That(card, Is.Not.Null, d + " card");
+                Assert.That(card.Q<Label>(className: "jk-difficulty-desc").text, Is.EqualTo(DifficultyText.Describe(d)), "the shared one-line description");
+            }
+
+            ui.DifficultyPicker.Activate(DifficultyScreen.ButtonName(Difficulty.Hard));
+            yield return null;
+            Assert.That(ui.IsOverlayOpen(ui.DifficultyPicker), Is.False);
+            var s = GameRoot.Settings;
+            Assert.That(s.difficulty, Is.EqualTo(Difficulty.Hard), "the picker writes the Settings difficulty");
+            Assert.That(s.extraLives, Is.EqualTo(0), "Hard's assists applied");
+            Assert.That(s.enemyBulletSpeedScale, Is.EqualTo(1.2f).Within(0.001f));
+            Assert.That(s.damageTakenScale, Is.EqualTo(1.5f).Within(0.001f));
+            var reloaded = new SaveService(GameRoot.Save.Slot);
+            reloaded.Load();
+            Assert.That(reloaded.Data.settings.difficulty, Is.EqualTo(Difficulty.Hard), "saved at once");
+            yield return WaitFor(() => GameRoot.Flow.InRun && !GameRoot.IsLoadingScene, "the run");
+            yield return FinishDialogue();
+
+            // Back on the title, Play remembers Hard, and Settings shows the same value.
+            GameRoot.Instance.QuitToTitle();
+            yield return WaitFor(() => GameRoot.Flow.Current == GameState.Title && !GameRoot.IsLoadingScene, "the title");
+            ui.Title.Activate("play");
+            yield return null;
+            Assert.That(ui.DifficultyPicker.Preselected, Is.EqualTo(Difficulty.Hard), "last choice remembered");
+            var badge = root.Q<Button>(DifficultyScreen.ButtonName(Difficulty.Hard)).Q<Label>(className: "jk-difficulty-badge");
+            Assert.That(badge.text, Is.EqualTo("Last played"));
+            ui.Back();
+            yield return null;
+            Assert.That(ui.IsOverlayOpen(ui.DifficultyPicker), Is.False, "Back closes the picker");
+            Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.Title), "and goes back to the title");
+            Assert.That(ui.Title.IsVisible, Is.True);
+            ui.Title.Activate("settings");
+            yield return null;
+            Assert.That(ui.Settings.Root.Q<Button>("difficulty").text, Does.Contain("Hard"), "Settings has the same value");
+            ui.Back();
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator BackButtonReturnsToTheTitle()
+        {
+            var ui = GameRoot.Ui;
+            ui.Title.Activate("play");
+            yield return null;
+            Assert.That(ui.DifficultyPicker.Activate("back"), Is.True);
+            yield return null;
+            Assert.That(ui.IsOverlayOpen(ui.DifficultyPicker), Is.False);
+            Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.Title));
+            Assert.That(GameRoot.Settings.difficulty, Is.EqualTo(Difficulty.Normal), "nothing changed");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator TheSkipFlagStartsTheRunAtOnce()
+        {
+            var ui = GameRoot.Ui;
+            GameRoot.Config.chooseDifficultyOnPlay = false; // an in-memory copy (ShellTestUtil.UseSandboxConfig)
+            ui.Title.Activate("play");
+            yield return null;
+            Assert.That(ui.IsOverlayOpen(ui.DifficultyPicker), Is.False, "no picker");
+            yield return WaitFor(() => GameRoot.Flow.InRun && !GameRoot.IsLoadingScene, "the run");
+            Assert.That(GameRoot.Settings.difficulty, Is.EqualTo(Difficulty.Normal), "the Settings difficulty is used as it is");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator AGameWithoutActionSettingsNeverAsks()
+        {
+            var ui = GameRoot.Ui;
+            GameRoot.Config.showActionSettings = false; // a pure story game: no difficulty anywhere
+            Assert.That(GameRoot.Config.AsksDifficultyOnPlay, Is.False);
+            ui.Title.Activate("play");
+            yield return null;
+            Assert.That(ui.IsOverlayOpen(ui.DifficultyPicker), Is.False);
+            yield return WaitFor(() => GameRoot.Flow.InRun && !GameRoot.IsLoadingScene, "the run");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator TheEndScreenShowsTheRunsQuote()
+        {
+            yield return StartSandbox();
+            GameRoot.Run.SetQuote("Guide", "Again? Fine.");
+            GameRoot.Lose();
+            yield return null;
+            Assert.That(GameRoot.Ui.GameOver.QuoteText, Does.Contain("Guide").And.Contain("Again? Fine."));
+            GameRoot.Ui.GameOver.Activate("retry");
+            yield return WaitFor(() => GameRoot.Dialogue.IsActive && !GameRoot.IsLoadingScene, "the retried run's dialogue");
+            Assert.That(GameRoot.Run.quote, Is.Empty, "a new run starts without a quote");
+            yield return FinishDialogue();
+            GameRoot.Lose();
+            yield return null;
+            Assert.That(GameRoot.Ui.GameOver.QuoteText, Is.Empty, "no quote: nothing shown");
+            LogAssert.NoUnexpectedReceived();
+        }
+    }
+
     /// <summary>SaveService on its own slots; no shell set-up needed.</summary>
     public class SaveServiceTests
     {

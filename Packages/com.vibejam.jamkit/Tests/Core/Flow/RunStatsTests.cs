@@ -46,6 +46,40 @@ namespace JamKit.Tests
                 Assert.That(DifficultyText.Describe(d), Is.Not.Empty);
                 Assert.That(DifficultyText.Name(d), Is.EqualTo(d.ToString()));
             }
+            Assert.That(DifficultyText.All, Is.EqualTo(new[] { Difficulty.Story, Difficulty.Normal, Difficulty.Hard }), "picker order: easiest first");
+            Assert.That(DifficultyText.Badge(Difficulty.Normal), Is.Not.Empty, "Normal is the recommended start");
+            Assert.That(DifficultyText.Badge(Difficulty.Hard), Is.Empty);
+        }
+
+        [Test]
+        public void TheEndScreenQuoteResetsWithTheRun()
+        {
+            var r = new RunStats();
+            Assert.That(r.quote, Is.Empty);
+            r.SetQuote(" Moth ", "  Again? Fine. I'm not going anywhere. ");
+            Assert.That(r.quote, Is.EqualTo("Again? Fine. I'm not going anywhere."));
+            Assert.That(r.quoteSpeaker, Is.EqualTo("Moth"));
+            r.SetQuote("Moth", null);
+            Assert.That(r.quote, Is.Empty);
+            Assert.That(r.quoteSpeaker, Is.Empty, "no speaker without a line");
+            r.SetQuote(null, "The door stays shut.");
+            Assert.That(r.quoteSpeaker, Is.Empty, "narration");
+            r.Reset();
+            Assert.That(r.quote, Is.Empty);
+        }
+
+        [Test]
+        public void ChoosingADifficultyAppliesItsAssists()
+        {
+            // What the run-start picker does with a choice (same value as Settings).
+            var s = new Settings();
+            Assert.That(s.difficulty, Is.EqualTo(Difficulty.Normal), "Normal is preselected the first time");
+            s.SetDifficulty(Difficulty.Hard);
+            Assert.That(s.extraLives, Is.EqualTo(0));
+            Assert.That(s.enemyBulletSpeedScale, Is.GreaterThan(1f));
+            s.SetDifficulty(Difficulty.Story);
+            Assert.That(s.damageTakenScale, Is.EqualTo(0.5f));
+            Assert.That(s.extraLives, Is.GreaterThan(1));
         }
 
         [Test]

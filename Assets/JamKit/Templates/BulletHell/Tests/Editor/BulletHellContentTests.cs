@@ -173,6 +173,49 @@ namespace JamKit.BulletHell.Tests
                 Assert.That(story.ContentAtPath(new Path(knot)).correctObj, Is.Not.Null, "knot " + knot);
         }
 
+        static bool HasKnot(Story story, string knot)
+        {
+            try { return story.ContentAtPath(new Path(knot)).correctObj != null; }
+            catch (System.Exception) { return false; }
+        }
+
+        [Test]
+        public void StoryHooksResolveAgainstTheRealData()
+        {
+            var c = Config();
+            var story = new Story(c.events.storyJson);
+            var ids = new HashSet<string>();
+            foreach (var floor in c.floors)
+            {
+                Assert.That(floor.boss, Is.Not.Null);
+                string id = floor.boss.StoryId;
+                Assert.That(id, Is.Not.Empty, floor.boss.name + " has a story id");
+                Assert.That(id, Does.Match("^[a-z0-9_]+$"), floor.boss.name + ": ink-safe id");
+                Assert.That(ids.Add(id), Is.True, "boss story ids are unique: " + id);
+            }
+            // The placeholder lines: the first boss speaks, the others are silent until someone writes them.
+            string first = c.floors[0].boss.StoryId;
+            Assert.That(JamKit.Dialogue.StoryHooks.Resolve(JamKit.Dialogue.StoryHooks.BossIntro(first), k => HasKnot(story, k)), Is.EqualTo("boss_" + first + "_intro"));
+            Assert.That(JamKit.Dialogue.StoryHooks.Resolve(JamKit.Dialogue.StoryHooks.Death("battle", 1), k => HasKnot(story, k)), Is.EqualTo("death"));
+            Assert.That(JamKit.Dialogue.StoryHooks.Resolve(JamKit.Dialogue.StoryHooks.Rest(1), k => HasKnot(story, k)), Is.EqualTo("rest"));
+            Assert.That(JamKit.Dialogue.StoryHooks.Resolve(JamKit.Dialogue.StoryHooks.RunStart(1), k => HasKnot(story, k)), Is.EqualTo("run_start"));
+            Assert.That(JamKit.Dialogue.StoryHooks.Resolve(JamKit.Dialogue.StoryHooks.BossIntro("nobody"), k => HasKnot(story, k)), Is.Null, "missing hooks fall back to nothing");
+        }
+
+        [Test]
+        public void HowToPlaySaysFocusIsSlowAndFiringIsAutomatic()
+        {
+            // The creator's first playtest held Shift thinking it was a sprint.
+            var preset = AssetDatabase.LoadAssetAtPath<GameConfig>(BulletHellBuilder.PresetPath);
+            Assert.That(preset, Is.Not.Null);
+            string fly = preset.howToPlay[0].body;
+            Assert.That(fly, Does.Contain("Hold Shift"));
+            Assert.That(fly, Does.Contain("slow, precise movement (shows your hitbox)"));
+            Assert.That(fly, Does.Contain("You fire automatically"));
+            Assert.That(BulletHellHud.LegendText, Does.Contain("slow"));
+            Assert.That(preset.AsksDifficultyOnPlay, Is.True, "an action template asks for the difficulty on Play");
+        }
+
         [Test]
         public void SceneAndPresetExist()
         {

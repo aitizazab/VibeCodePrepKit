@@ -23,6 +23,8 @@ namespace JamKit.Shell
         public ResultScreen Victory;
         public CreditsScreen Credits;
         public HowToPlayScreen HowToPlay;
+        /// <summary>Play's Story / Normal / Hard picker (GameConfig.chooseDifficultyOnPlay).</summary>
+        public DifficultyScreen DifficultyPicker;
         public HudView Hud;
         public DialogueView Dialogue;
         public DebugMenu DebugPanel;
@@ -95,6 +97,7 @@ namespace JamKit.Shell
             Credits = Add(new CreditsScreen(), assets != null ? assets.credits : null);
             Settings = Add(new SettingsScreen(), assets != null ? assets.settings : null);
             HowToPlay = Add(new HowToPlayScreen(), assets != null ? assets.howToPlay : null);
+            DifficultyPicker = Add(new DifficultyScreen(), null);
 
             Hud = new HudView(assets != null ? assets.hud : null, _hudLayer);
             Dialogue = new DialogueView(assets != null ? assets.dialogue : null, _dialogueLayer);
@@ -148,6 +151,9 @@ namespace JamKit.Shell
 
         public void OpenSettings() => OpenOverlay(Settings);
 
+        /// <summary>Opens Play's difficulty picker (choosing a card starts the run; Back closes it).</summary>
+        public void OpenDifficultyPicker() => OpenOverlay(DifficultyPicker);
+
         public void OpenHowToPlay(System.Action onClosed)
         {
             HowToPlay.Open(onClosed);
@@ -165,13 +171,17 @@ namespace JamKit.Shell
         }
 
         /// <summary>Closes the top overlay and gives focus back to the screen below.</summary>
-        public void CloseOverlay()
+        public void CloseOverlay() => CloseOverlay(true);
+
+        /// <summary>Closes the top overlay; <paramref name="backSound"/> false when it closes because
+        /// something was chosen (the select sound already played).</summary>
+        public void CloseOverlay(bool backSound)
         {
             if (_overlays.Count == 0) return;
             var top = _overlays[_overlays.Count - 1];
             _overlays.RemoveAt(_overlays.Count - 1);
             top.Hide();
-            PlayUiSound("ui_back");
+            if (backSound) PlayUiSound("ui_back");
             var below = Top;
             if (below != null)
             {

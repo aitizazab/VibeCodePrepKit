@@ -26,6 +26,10 @@ namespace JamKit.Flow
     {
         public float time;
         public int score;
+        /// <summary>A line of story for the end screen (the death screen's "Again? Fine." from a companion);
+        /// "" for none. <see cref="quoteSpeaker"/> is who says it ("" for narration).</summary>
+        public string quote = "";
+        public string quoteSpeaker = "";
         readonly List<RunStat> _extra = new List<RunStat>();
 
         public IReadOnlyList<RunStat> Extra => _extra;
@@ -34,7 +38,16 @@ namespace JamKit.Flow
         {
             time = 0f;
             score = 0;
+            quote = "";
+            quoteSpeaker = "";
             _extra.Clear();
+        }
+
+        /// <summary>Sets the end screen's story line (null or "" clears it).</summary>
+        public void SetQuote(string speaker, string line)
+        {
+            quote = line != null ? line.Trim() : "";
+            quoteSpeaker = quote.Length > 0 && speaker != null ? speaker.Trim() : "";
         }
 
         public void Tick(float dt)
@@ -97,6 +110,12 @@ namespace JamKit.Flow
                 default: return "The game as designed.";
             }
         }
+
+        /// <summary>The options in the order menus show them (the run-start picker, Settings).</summary>
+        public static readonly Difficulty[] All = { Difficulty.Story, Difficulty.Normal, Difficulty.Hard };
+
+        /// <summary>A short label for the picker's corner badge ("" for none): Normal is the recommended start.</summary>
+        public static string Badge(Difficulty d) => d == Difficulty.Normal ? "Recommended" : "";
 
         public static Difficulty Next(Difficulty d, int step)
         {

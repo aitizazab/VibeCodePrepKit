@@ -480,6 +480,7 @@ namespace JamKit.Narrative
 
         void ShowEndingCard(string id, bool first)
         {
+            SmokeNoteEnding(id);
             var infos = config.EndingInfos();
             var def = config.FindEnding(id);
             int number = EndingsRegistry.Number(infos, id);

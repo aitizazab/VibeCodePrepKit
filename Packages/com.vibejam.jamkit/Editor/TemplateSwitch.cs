@@ -82,6 +82,8 @@ namespace JamKit.EditorTools
             to.showTextSettings = from.showTextSettings;
             to.showActionSettings = from.showActionSettings;
             to.showBestTime = from.showBestTime;
+            to.chooseDifficultyOnPlay = from.chooseDifficultyOnPlay;
+            to.showControlLegend = from.showControlLegend;
             to.howToPlay = new List<HowToPlayPage>();
             if (from.howToPlay != null)
                 foreach (var p in from.howToPlay)

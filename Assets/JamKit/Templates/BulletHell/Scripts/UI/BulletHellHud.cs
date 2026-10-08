@@ -17,16 +17,23 @@ namespace JamKit.BulletHell
         public readonly VisualElement Root;
         readonly VisualElement _lives, _bombs, _map, _upgrades, _boss, _bossFill, _card, _bossTicks;
         readonly Label _coins, _graze, _floor, _floorName, _bossName, _cardTitle, _cardSub, _hint;
+        readonly VisualElement _focusHint;
         float _cardLeft;
         float _shownLives = -1f, _shownMaxLives = -1f;
         int _shownBombs = -1, _shownCoins = -1, _shownGraze = -1;
-        float _shownBoss = -1f;
+        float _shownBoss = -1f, _shownFocusHint = -1f;
+
+        /// <summary>The small control legend (bottom left), unless GameConfig.showControlLegend is off.</summary>
+        public const string LegendText =
+            "Move: WASD / arrows / stick\nHold Shift / LB: slow + precise\nFire: automatic\nBomb: K, right click, Space / A\nPause: Esc / Start";
 
         public bool BossBarShown => _boss.style.display == DisplayStyle.Flex;
         public bool NameCardShown => _cardLeft > 0f;
         public string CoinsText => _coins.text;
+        public bool LegendShown => _hint.style.display != DisplayStyle.None;
+        public bool FocusHintShown => _focusHint.style.display == DisplayStyle.Flex;
 
-        public BulletHellHud(VisualElement parent, StyleSheet style)
+        public BulletHellHud(VisualElement parent, StyleSheet style, bool showLegend = true)
         {
             Root = new VisualElement { name = "bh-hud", pickingMode = PickingMode.Ignore };
             Root.AddToClassList("bh-hud");
@@ -42,9 +49,30 @@ namespace JamKit.BulletHell
             _coins = Value(left);
             Kicker(left, "GRAZE");
             _graze = Value(left);
-            _hint = new Label("Move: WASD / stick\nFocus: Shift / LB\nBomb: K, right click, Space / A\nPause: Esc / Start") { pickingMode = PickingMode.Ignore };
+            _hint = new Label(LegendText) { name = "bh-legend", pickingMode = PickingMode.Ignore };
             _hint.AddToClassList("bh-hint");
             left.Add(_hint);
+            _hint.style.display = showLegend ? DisplayStyle.Flex : DisplayStyle.None;
+
+            // The first-run Focus hint: a key cap and a plain sentence, low over the playfield.
+            _focusHint = new VisualElement { name = "bh-focus-hint", pickingMode = PickingMode.Ignore };
+            _focusHint.AddToClassList("bh-focus-hint");
+            var key = new Label("SHIFT") { pickingMode = PickingMode.Ignore };
+            key.AddToClassList("bh-key");
+            var words = new VisualElement { pickingMode = PickingMode.Ignore };
+            var line = new Label("Hold for slow, precise movement") { pickingMode = PickingMode.Ignore };
+            line.AddToClassList("bh-focus-hint-text");
+            var sub = new Label("It shows your hitbox. It does not speed you up. (Gamepad: LB)") { pickingMode = PickingMode.Ignore };
+            sub.AddToClassList("bh-focus-hint-sub");
+            words.Add(line);
+            words.Add(sub);
+            var pill = new VisualElement { pickingMode = PickingMode.Ignore };
+            pill.AddToClassList("bh-focus-hint-pill");
+            pill.Add(key);
+            pill.Add(words);
+            _focusHint.Add(pill);
+            Root.Add(_focusHint);
+            _focusHint.style.display = DisplayStyle.None;
 
             var right = Panel("bh-side bh-side--right");
             _floor = Value(right);
@@ -304,6 +332,16 @@ namespace JamKit.BulletHell
             _cardLeft -= unscaledDt;
             _card.style.opacity = Mathf.Clamp01(_cardLeft / 0.5f);
             if (_cardLeft <= 0f) _card.style.display = DisplayStyle.None;
+        }
+
+        /// <summary>The first-run Focus hint at this opacity (0 hides it). Only touches styles when it changes.</summary>
+        public void SetFocusHint(float alpha)
+        {
+            alpha = Mathf.Clamp01(alpha);
+            if (Mathf.Abs(alpha - _shownFocusHint) < 0.01f && (alpha > 0f) == FocusHintShown) return;
+            _shownFocusHint = alpha;
+            _focusHint.style.display = alpha > 0f ? DisplayStyle.Flex : DisplayStyle.None;
+            _focusHint.style.opacity = alpha;
         }
     }
 }

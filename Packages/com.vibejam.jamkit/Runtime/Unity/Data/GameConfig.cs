@@ -65,6 +65,19 @@ namespace JamKit.Shell
         [Tooltip("Show the best time on the title screen.")]
         public bool showBestTime = true;
 
+        [Header("Starting a run")]
+        [Tooltip("Play opens a small Story / Normal / Hard picker before the run (it remembers the last choice; Settings keeps the same value). " +
+                 "On for action games; off for a pure story game. Only asked when Show Action Settings is on.")]
+        public bool chooseDifficultyOnPlay = true;
+
+        [Header("HUD")]
+        [Tooltip("A small control legend at the edge of the HUD (templates that have one, like the bullet hell). Turn it off for a cleaner screen.")]
+        public bool showControlLegend = true;
+
+        /// <summary>Play asks for the difficulty first (<see cref="chooseDifficultyOnPlay"/>, and only in games
+        /// whose Settings show the difficulty).</summary>
+        public bool AsksDifficultyOnPlay => chooseDifficultyOnPlay && showActionSettings;
+
         public Portrait FindPortrait(string id)
         {
             if (portraits == null || string.IsNullOrEmpty(id)) return null;

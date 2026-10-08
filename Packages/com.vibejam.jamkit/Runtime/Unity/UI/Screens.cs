@@ -80,6 +80,143 @@ namespace JamKit.Shell
         }
     }
 
+    /// <summary>
+    /// Play's difficulty picker (GameConfig.chooseDifficultyOnPlay): three cards, Story / Normal / Hard,
+    /// each with its one-line description. The remembered choice (Settings' difficulty, Normal the first
+    /// time) has focus; picking a card saves it and starts the run; Back returns to the title.
+    /// Buttons: "difficulty-story", "difficulty-normal", "difficulty-hard", "back".
+    /// Built in code with the shell's theme classes (jk-difficulty-* in Shell.uss).
+    /// </summary>
+    public sealed class DifficultyScreen : ShellScreen
+    {
+        readonly Dictionary<Difficulty, Button> _options = new Dictionary<Difficulty, Button>();
+        readonly Dictionary<Difficulty, Label> _badges = new Dictionary<Difficulty, Label>();
+
+        protected override bool BuildsOwnContent => true;
+
+        public static string ButtonName(Difficulty d) => "difficulty-" + DifficultyText.Name(d).ToLowerInvariant();
+
+        /// <summary>The card that has focus when the picker opens: the last choice (Normal the first time).</summary>
+        public Difficulty Preselected => GameRoot.Exists ? GameRoot.Settings.difficulty : Difficulty.Normal;
+
+        /// <summary>The name of the card that has keyboard focus ("" if none): tests check the preselection.</summary>
+        public string FocusedName
+        {
+            get
+            {
+                var f = Root.focusController != null ? Root.focusController.focusedElement as Button : null;
+                return f != null ? f.name : "";
+            }
+        }
+
+        protected override void OnInit()
+        {
+            var screen = new VisualElement { name = "difficulty-screen" };
+            screen.AddToClassList("jk-screen");
+            screen.AddToClassList("jk-scrim");
+            var panel = new VisualElement();
+            panel.AddToClassList("jk-panel");
+            panel.AddToClassList("jk-difficulty-panel");
+            screen.Add(panel);
+
+            var kicker = new Label("NEW RUN");
+            kicker.AddToClassList("jk-kicker");
+            panel.Add(kicker);
+            var heading = new Label("Choose your difficulty");
+            heading.AddToClassList("jk-heading");
+            panel.Add(heading);
+
+            var list = new VisualElement();
+            list.AddToClassList("jk-difficulty-list");
+            panel.Add(list);
+            foreach (var d in DifficultyText.All) list.Add(MakeOption(d));
+
+            var note = new Label("You can change this any time in Settings.");
+            note.AddToClassList("jk-footnote");
+            note.AddToClassList("jk-dim");
+            panel.Add(note);
+            var back = new Button { name = "back", text = "Back" };
+            back.AddToClassList("jk-button");
+            back.AddToClassList("jk-button--back");
+            back.AddToClassList("jk-button--small");
+            panel.Add(back);
+            var hint = new Label("Up / Down to choose, Enter or (A) to start, Esc or (B) to go back");
+            hint.AddToClassList("jk-footnote");
+            hint.AddToClassList("jk-dim");
+            screen.Add(hint);
+            Root.Add(screen);
+
+            foreach (var d in DifficultyText.All)
+            {
+                var choice = d;
+                Bind(ButtonName(d), () => Choose(choice));
+            }
+            Bind("back", () => Ui.CloseOverlay());
+        }
+
+        Button MakeOption(Difficulty d)
+        {
+            string lower = DifficultyText.Name(d).ToLowerInvariant();
+            var b = new Button { name = ButtonName(d), text = "" };
+            b.AddToClassList("jk-button");
+            b.AddToClassList("jk-difficulty-option");
+            b.AddToClassList("jk-difficulty-option--" + lower);
+            var stripe = new VisualElement { pickingMode = PickingMode.Ignore };
+            stripe.AddToClassList("jk-difficulty-stripe");
+            b.Add(stripe);
+            var texts = new VisualElement { pickingMode = PickingMode.Ignore };
+            texts.AddToClassList("jk-difficulty-texts");
+            var row = new VisualElement { pickingMode = PickingMode.Ignore };
+            row.AddToClassList("jk-difficulty-row");
+            var name = new Label(DifficultyText.Name(d)) { pickingMode = PickingMode.Ignore };
+            name.AddToClassList("jk-difficulty-name");
+            var badge = new Label("") { pickingMode = PickingMode.Ignore };
+            badge.AddToClassList("jk-difficulty-badge");
+            row.Add(name);
+            row.Add(badge);
+            var desc = new Label(DifficultyText.Describe(d)) { pickingMode = PickingMode.Ignore };
+            desc.AddToClassList("jk-difficulty-desc");
+            texts.Add(row);
+            texts.Add(desc);
+            b.Add(texts);
+            _options[d] = b;
+            _badges[d] = badge;
+            return b;
+        }
+
+        protected override void OnShow()
+        {
+            var current = Preselected;
+            bool playedBefore = GameRoot.Exists && GameRoot.Save.Data.runsStarted > 0;
+            foreach (var d in DifficultyText.All)
+            {
+                string text = playedBefore && d == current ? "Last played" : DifficultyText.Badge(d);
+                var badge = _badges[d];
+                badge.text = text;
+                SetShown(badge, text.Length > 0);
+            }
+        }
+
+        protected override VisualElement FirstFocusable() =>
+            _options.TryGetValue(Preselected, out var b) ? b : base.FirstFocusable();
+
+        public override void FocusFirst()
+        {
+            // Always open on the remembered choice (not on whichever card had focus last time).
+            Root.schedule.Execute(() =>
+            {
+                if (Root.style.display == DisplayStyle.None) return;
+                FirstFocusable()?.Focus();
+            });
+            FirstFocusable()?.Focus();
+        }
+
+        void Choose(Difficulty d)
+        {
+            if (GameRoot.Exists) GameRoot.Instance.StartRun(d);
+        }
+    }
+
     public sealed class SettingsScreen : ShellScreen
     {
         Slider _master, _music, _sfx, _sensitivity, _shake, _textSpeed, _autoDelay;
@@ -265,8 +402,31 @@ namespace JamKit.Shell
             }
         }
 
+        Label _quote;
+
+        /// <summary>The story line on this screen ("" when none): GameRoot.Run.SetQuote(speaker, line).</summary>
+        public string QuoteText => _quote != null && _quote.style.display != DisplayStyle.None ? _quote.text : "";
+
+        void ShowQuote(RunStats run)
+        {
+            var stats = Root.Q<VisualElement>("stats");
+            if (_quote == null && stats != null && stats.parent != null)
+            {
+                _quote = new Label { name = "end-quote" };
+                _quote.AddToClassList("jk-end-quote");
+                stats.parent.Insert(stats.parent.IndexOf(stats), _quote);
+            }
+            if (_quote == null) return;
+            bool has = !string.IsNullOrEmpty(run.quote);
+            _quote.text = !has ? "" : string.IsNullOrEmpty(run.quoteSpeaker)
+                ? "“" + run.quote + "”"
+                : "<b>" + run.quoteSpeaker + "</b>:  “" + run.quote + "”";
+            SetShown(_quote, has);
+        }
+
         protected override void OnShow()
         {
+            ShowQuote(GameRoot.Run);
             var stats = Root.Q<VisualElement>("stats");
             if (stats == null) return;
             stats.Clear();

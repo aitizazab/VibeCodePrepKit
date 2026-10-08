@@ -28,6 +28,7 @@ namespace JamKit.Narrative
                 return;
             }
             _investigation = scene;
+            SmokeNoteRoom(id);
             if (!string.IsNullOrEmpty(scene.background) && _state.background != scene.background)
             {
                 var cmd = StoryCommand.Parse("bg:" + scene.background);
@@ -109,6 +110,7 @@ namespace JamKit.Narrative
             RefreshHotspotStates();
             if (!_enabledBuffer[index]) return false;
             _inventory.SetHeld(string.IsNullOrEmpty(item) ? "" : item);
+            SmokeNoteHotspot(hotspotId, item);
             OnHotspotActivated(index);
             return true;
         }

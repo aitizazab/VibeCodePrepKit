@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using JamKit.Combat;
+using JamKit.Dialogue;
 using JamKit.Flow;
 using JamKit.Roguelite;
 using JamKit.Shell;
@@ -122,6 +123,19 @@ namespace JamKit.BulletHell
         ChoicePanel _choice;
         Func<bool> _skipHandler;
         Func<IEnumerator> _smokeDriver;
+        Action<Ink.Runtime.Story> _bindInk;
+
+        // Story hooks (ink knots looked up by name; see docs/TEMPLATE-BULLETHELL.md "Story hooks").
+        Ink.Runtime.Story _hookProbe;
+        Func<string, bool> _hasKnot;
+        Action _afterLine;
+        bool _lineActive, _runStartPending;
+        string _killer = "";
+        readonly List<string> _storyKnotsPlayed = new List<string>();
+
+        // The first-run Focus hint (saved as a flag once shown).
+        public const string FocusHintFlag = "bh_hint_focus_seen";
+        readonly FirstTimeHint _focusHint = new FirstTimeHint();
 
         // ---------- Read-only state (tests, debug, HUD) ----------
 
@@ -140,6 +154,15 @@ namespace JamKit.BulletHell
         public int EnemiesAlive => CountAlive();
         public PlayfieldBounds Bounds => _bounds;
         public UpgradeAsset AssetFor(string id) => id != null && _assets.TryGetValue(id, out var a) ? a : null;
+        /// <summary>A story-hook line (boss, rest, run start) is on screen.</summary>
+        public bool InStoryLine => _lineActive;
+        /// <summary>The run-start line hasn't been tried yet (it waits for the scene's fade-in).</summary>
+        public bool StoryLinePending => _runStartPending;
+        /// <summary>Every story-hook knot played this run, in order (tests, the smoke log).</summary>
+        public IReadOnlyList<string> StoryKnotsPlayed => _storyKnotsPlayed;
+        public FirstTimeHint FocusHint => _focusHint;
+        /// <summary>Who ended the run, as the death hooks see it: the boss's story id in a boss fight, else "elite" or "battle".</summary>
+        public string Killer => _killer;
 
         // ---------- Setup ----------
 
@@ -171,11 +194,21 @@ namespace JamKit.BulletHell
             _shopDraft = new UpgradeDraft(null);
 
             GameRoot.Hud.Show();
-            _hud = new BulletHellHud(GameRoot.Hud.Root, hudStyle);
+            _hud = new BulletHellHud(GameRoot.Hud.Root, hudStyle, GameRoot.Config.showControlLegend);
             _choice = new ChoicePanel(_hud.Root);
+
+            // One parsed copy of the ink, only to ask which hook knots exist.
+            if (config.events != null && config.events.isCompiled)
+            {
+                try { _hookProbe = new Ink.Runtime.Story(config.events.storyJson); }
+                catch (Exception e) { Debug.LogWarning("BulletHellGame: story hooks off, the ink didn't load (" + e.Message + ")."); }
+            }
+            _hasKnot = HasKnot;
+            _bindInk = BindInk;
 
             GameRoot.Dialogue.EventRaised += OnDialogueEvent;
             GameRoot.Dialogue.Ended += OnDialogueEnded;
+            GameRoot.Dialogue.StoryCreated += _bindInk;
             boss.PhaseChanged += OnBossPhase;
             boss.Dying += OnBossDying;
             boss.Defeated += OnBossDefeated;
@@ -193,6 +226,7 @@ namespace JamKit.BulletHell
             if (!GameRoot.Exists) return;
             GameRoot.Dialogue.EventRaised -= OnDialogueEvent;
             GameRoot.Dialogue.Ended -= OnDialogueEnded;
+            GameRoot.Dialogue.StoryCreated -= _bindInk;
             if (DebugMenu.SkipHandler == _skipHandler) DebugMenu.SkipHandler = null;
             if (SmokeRunner.GameplayDriver == _smokeDriver) SmokeRunner.GameplayDriver = null;
             _hud?.Remove();
@@ -217,6 +251,13 @@ namespace JamKit.BulletHell
             GameRoot.Run.score = 0;
             _scoreDirty = true;
             _hud.SetUpgrades(_loadout.Inventory.Owned, _loadout.Inventory, AssetFor, config);
+            _storyKnotsPlayed.Clear();
+            _lineActive = false;
+            _afterLine = null;
+            _killer = "";
+            _focusHint.Reset();
+            _hud.SetFocusHint(0f);
+            _runStartPending = true; // played on the first playing frame, after the fade-in
             EnterRoom();
         }
 
@@ -229,6 +270,11 @@ namespace JamKit.BulletHell
             _choice?.Tick(udt);
             if (_run == null || _phase == RoomPhase.Finished || !GameRoot.Exists) return;
             if (GameRoot.Flow.Current != GameState.Playing || GameRoot.IsLoadingScene) return;
+            if (_runStartPending)
+            {
+                _runStartPending = false;
+                if (PlayStoryLine(StoryHooks.RunStart(GameRoot.Save.Data.runsStarted), null)) return;
+            }
             float dt = Time.deltaTime;
             _run.Tick(dt);
             _phaseTime += dt;
@@ -236,6 +282,11 @@ namespace JamKit.BulletHell
             bool fighting = _phase == RoomPhase.Intro || _phase == RoomPhase.Waves || _phase == RoomPhase.Boss || _phase == RoomPhase.Cleared;
             player.ControlsEnabled = fighting && !_choice.IsOpen;
             player.Tick(dt, field, _bounds);
+            if (_focusHint.IsVisible)
+            {
+                _focusHint.Tick(dt, player.Focused);
+                _hud.SetFocusHint(_focusHint.Alpha);
+            }
             field.EnemyTimeScale = player.Focused && _loadout.Effect(ShmupEffects.FocusSlow) > 0 ? 0.6f : 1f;
             var input = GameRoot.Input;
             // Bombs only while there's something to bomb (and never on the press that closed a menu).
@@ -446,6 +497,7 @@ namespace JamKit.BulletHell
                     _waveIndex = -1;
                     _waveGap = 0f;
                     NextWave();
+                    StartFocusHint();
                     break;
                 case RoomType.Boss:
                     StartBoss();
@@ -454,7 +506,9 @@ namespace JamKit.BulletHell
                     OpenDraft("Treasure!", "Pick one upgrade to keep for this run.", 0f, Rarity.Common, Leave);
                     break;
                 case RoomType.Rest:
-                    OpenRest();
+                    // The companion's room: a line first (rest_floor_<n>, rest), then the choice.
+                    _phase = RoomPhase.Dialogue;
+                    if (!PlayStoryLine(StoryHooks.Rest(_run.floor + 1), OpenRest)) OpenRest();
                     break;
                 case RoomType.Shop:
                     OpenShop();
@@ -668,15 +722,33 @@ namespace JamKit.BulletHell
             var floor = Floor;
             if (floor == null || floor.boss == null) { RoomCleared(); return; }
             _phase = RoomPhase.Boss;
+            ClearEnemyBulletsQuietly();
             boss.Begin(floor.boss, floor.hpScale, new Rng(_run.RoomSeed() ^ 0xB055UL), GameRoot.Settings, field, fx);
             _hud.NameCard(floor.boss.displayName.ToUpperInvariant(), floor.boss.title, 2.6f);
             _hud.ShowBoss(floor.boss.displayName, floor.boss.phases);
+            // Before the fight: boss_<id>_intro, boss_intro. The boss is still flying in (it can't shoot yet).
+            PlayStoryLine(StoryHooks.BossIntro(floor.boss.StoryId), AfterBossLine);
         }
 
         void OnBossPhase(int phase)
         {
             var def = boss.Def;
             if (def != null && phase < def.phases.Count) GameRoot.Hud.Message(def.phases[phase].name, 1.6f);
+            // The boss has just cleared its bullets; a line here is the phase's emotional beat.
+            if (def != null) PlayStoryLine(StoryHooks.BossPhase(def.StoryId, phase + 1), AfterBossLine);
+        }
+
+        /// <summary>After any boss line: nothing that was in the air before it can hit the player, and
+        /// the player gets a moment to find their bearings.</summary>
+        void AfterBossLine()
+        {
+            ClearEnemyBulletsQuietly();
+            player.Health.GrantInvulnerability(1f);
+        }
+
+        void ClearEnemyBulletsQuietly()
+        {
+            if (field != null) field.Enemy.Clear();
         }
 
         void OnBossDying()
@@ -693,6 +765,15 @@ namespace JamKit.BulletHell
             _bossesBeaten++;
             _hud.HideBoss();
             GameRoot.Audio.PlayMusic(GameRoot.Config.gameMusic);
+            ClearEnemyBulletsQuietly();
+            // Last words: boss_<id>_defeat, boss_defeat. The room counts as cleared after them.
+            var def = boss.Def;
+            if (def == null || !PlayStoryLine(StoryHooks.BossDefeat(def.StoryId), BossLineThenCleared)) RoomCleared();
+        }
+
+        void BossLineThenCleared()
+        {
+            AfterBossLine();
             RoomCleared();
         }
 
@@ -754,9 +835,71 @@ namespace JamKit.BulletHell
             if (_phase == RoomPhase.Finished) return;
             _phase = RoomPhase.Finished;
             _choice.Close();
+            _hud.SetFocusHint(0f);
             RecordRun(false);
             GameRoot.Run.Set("Reached", "Floor " + (_run.floor + 1) + ", room " + (_run.step + 1));
+            ChooseDeathLine();
             GameRoot.Lose();
+        }
+
+        /// <summary>The death screen's line, from ink: death_&lt;killer&gt;, death_floor_&lt;n&gt;, death. Read without
+        /// showing a dialogue (the Game Over screen shows it). No knot: no line.</summary>
+        void ChooseDeathLine()
+        {
+            var def = boss.Def;
+            _killer = _roomType == RoomType.Boss && def != null && boss.Current != ShmupBoss.State.Inactive ? def.StoryId
+                : _roomType == RoomType.Elite ? "elite" : "battle";
+            string knot = _hookProbe != null ? StoryHooks.Resolve(StoryHooks.Death(_killer, _run.floor + 1), _hasKnot) : null;
+            if (knot == null) return;
+            if (GameRoot.Dialogue.TryReadLine(config.events.storyJson, knot, out string speaker, out string line, _bindInk))
+            {
+                GameRoot.Run.SetQuote(speaker, line);
+                _storyKnotsPlayed.Add(knot);
+            }
+        }
+
+        // ---------- Story hooks ----------
+
+        bool HasKnot(string knot) => DialogueService.PathExists(_hookProbe, knot);
+
+        /// <summary>The ink functions the hook knots (and Mystery rooms) can call, on top of the shell's
+        /// has_flag/set_flag/run_count(): current_floor() (1, 2, 3) and killer() (on the death screen).</summary>
+        void BindInk(Ink.Runtime.Story story)
+        {
+            story.BindExternalFunction("current_floor", () => (object)(_run != null ? _run.floor + 1 : 1), true);
+            story.BindExternalFunction("killer", () => (object)(_killer ?? ""), true);
+        }
+
+        /// <summary>Plays the first knot of <paramref name="candidates"/> the ink has, then runs
+        /// <paramref name="after"/>. Game time stops while it shows (GameFlow's Dialogue state).
+        /// Returns false, having done nothing, when no knot exists or a dialogue is already up.</summary>
+        bool PlayStoryLine(string[] candidates, Action after)
+        {
+            if (_hookProbe == null || _phase == RoomPhase.Finished || GameRoot.Dialogue.IsActive) return false;
+            if (GameRoot.Flow.Current != GameState.Playing) return false;
+            string knot = StoryHooks.Resolve(candidates, _hasKnot);
+            if (knot == null) return false;
+            _lineActive = true;
+            _afterLine = after;
+            if (!GameRoot.Dialogue.Play(config.events, knot))
+            {
+                _lineActive = false;
+                _afterLine = null;
+                return false;
+            }
+            _storyKnotsPlayed.Add(knot);
+            return true;
+        }
+
+        void StartFocusHint()
+        {
+            if (_focusHint.State != HintState.Waiting) return;
+            var save = GameRoot.Save.Data;
+            if (!_focusHint.Start(save.HasFlag(FocusHintFlag))) return;
+            // First run only: remembered as soon as it shows.
+            save.SetFlag(FocusHintFlag);
+            GameRoot.Save.Save();
+            _hud.SetFocusHint(_focusHint.Alpha);
         }
 
         /// <summary>Sets off a bomb if the player has one (what the bomb button does). For tests and debug.</summary>
@@ -1063,6 +1206,14 @@ namespace JamKit.BulletHell
 
         void OnDialogueEnded(string knot)
         {
+            if (_lineActive)
+            {
+                _lineActive = false;
+                var next = _afterLine;
+                _afterLine = null;
+                if (_phase != RoomPhase.Finished) next?.Invoke();
+                return;
+            }
             if (!_eventActive) return;
             _eventActive = false;
             if (_phase == RoomPhase.Finished) return;
@@ -1160,6 +1311,9 @@ namespace JamKit.BulletHell
             }
             Debug.Log("JAMKIT_SMOKE bullet hell reached floor " + (_run.floor + 1) + " room " + (_run.step + 1)
                 + ", " + _draftsTaken + " draft(s), " + field.Enemy.Count + " enemy bullets");
+            Debug.Log("JAMKIT_SMOKE bullet hell story lines: " + (_storyKnotsPlayed.Count > 0 ? string.Join(", ", _storyKnotsPlayed) : "none")
+                + "; focus hint " + _focusHint.State + "; difficulty " + DifficultyText.Name(GameRoot.Settings.difficulty)
+                + "; control legend " + (_hud.LegendShown ? "on" : "off"));
             DebugMenu.TimeScale = previous;
         }
     }

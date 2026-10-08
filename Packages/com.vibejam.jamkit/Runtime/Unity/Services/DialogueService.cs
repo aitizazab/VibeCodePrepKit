@@ -279,12 +279,62 @@ namespace JamKit.Shell
             _parked = false;
         }
 
+        /// <summary>True if <paramref name="story"/> has this knot or path (false for null, empty or broken paths).</summary>
+        public static bool PathExists(Story story, string path)
+        {
+            if (story == null || string.IsNullOrEmpty(path)) return false;
+            try { return story.ContentAtPath(new Ink.Runtime.Path(path)).correctObj != null; }
+            catch (Exception) { return false; }
+        }
+
+        /// <summary>
+        /// Runs <paramref name="knot"/> of a compiled story without showing anything and returns its first
+        /// line of text (as label markup) and the #speaker in effect: for a line on an end screen or a
+        /// tooltip, chosen by ink. A missing knot, an ink error or a knot without text returns false,
+        /// quietly. The shell's ink functions are bound; <paramref name="bind"/> can add the game's own.
+        /// Flags the knot sets (set_flag) are kept.
+        /// </summary>
+        public bool TryReadLine(string storyJson, string knot, out string speaker, out string text, Action<Story> bind = null)
+        {
+            speaker = "";
+            text = "";
+            if (string.IsNullOrEmpty(storyJson) || string.IsNullOrEmpty(knot)) return false;
+            try
+            {
+                var story = new Story(storyJson);
+                story.allowExternalFunctionFallbacks = true;
+                BindExternals(story);
+                bind?.Invoke(story);
+                if (!GoTo(story, knot)) return false;
+                for (int guard = 0; guard < 200 && story.canContinue; guard++)
+                {
+                    string line = story.Continue();
+                    var tags = story.currentTags;
+                    if (tags != null)
+                        foreach (var raw in tags)
+                            if (DialogueTag.TryParse(raw, out var tag) && tag.key == "speaker") speaker = tag.value;
+                    line = line != null ? line.Trim() : "";
+                    if (line.Length == 0) continue;
+                    text = RichLine.Parse(line, Palette).Markup;
+                    return text.Length > 0;
+                }
+            }
+            catch (Exception) { }
+            speaker = "";
+            text = "";
+            return false;
+        }
+
         void BindExternals(Story story)
         {
             var save = GameRoot.Save;
             story.BindExternalFunction("has_flag", new Func<string, object>(name => save.Data.HasFlag(name)), true);
             story.BindExternalFunction("set_flag", new Action<string>(name => save.Data.SetFlag(name)));
             story.BindExternalFunction("clear_flag", new Action<string>(name => save.Data.ClearFlag(name)));
+            // Cross-run memory any template can use (the story template adds playthrough_count() and more).
+            story.BindExternalFunction("run_count", new Func<object>(() => Math.Max(1, save.Data.runsStarted)), true);
+            story.BindExternalFunction("runs_won", new Func<object>(() => save.Data.runsWon), true);
+            story.BindExternalFunction("best_floor", new Func<object>(() => save.Data.bestFloor), true);
         }
 
         void OnInkError(string message, Ink.ErrorType type)

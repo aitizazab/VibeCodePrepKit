@@ -52,3 +52,5 @@ MonoBehaviour:
   showHowToPlayOnFirstRun: 1
   allowDebugMenuInRelease: 0
   showPixelLookSetting: 1
+  chooseDifficultyOnPlay: 1
+  showControlLegend: 1

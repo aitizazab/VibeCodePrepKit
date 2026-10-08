@@ -14,7 +14,13 @@ namespace JamKit.BulletHell
         public string displayName = "Gatekeeper";
         [Tooltip("The line under the name on its intro card.")]
         public string title = "Warden of the first floor";
+        [Tooltip("Its id in the story hooks (ink knots boss_<id>_intro, boss_<id>_phase_2, boss_<id>_defeat, death_<id>). " +
+                 "Empty = the display name in lowercase with underscores (\"The Last Light\" -> the_last_light).")]
+        public string storyId = "";
         [Min(1f)] public float hp = 900f;
+
+        /// <summary>The id the story hooks use (see <see cref="storyId"/>).</summary>
+        public string StoryId => JamKit.Dialogue.StoryHooks.Id(string.IsNullOrEmpty(storyId) ? displayName : storyId);
 
         [Header("Look")]
         public Sprite sprite;

@@ -51,14 +51,13 @@ namespace JamKit.Tests.Play
 
         public const string SandboxPresetPath = "Assets/JamKit/Sandbox/SandboxGameConfig.asset";
 
-        /// <summary>The shell tests play the sandbox. When another template is the active one
-        /// ("JamKit/Use Template/..."), run on an in-memory copy of the config pointed at the sandbox
-        /// (with the sandbox's How to Play cards), so the asset on disk is never changed.</summary>
+        /// <summary>The shell tests play the sandbox, always on an in-memory copy of the active config
+        /// pointed at the sandbox (with the sandbox's How to Play cards and Settings options, and the
+        /// difficulty picker on), so tests can change it and the asset on disk is never changed.</summary>
         public static void UseSandboxConfig()
         {
             var active = Resources.Load<GameConfig>(GameConfig.ResourcePath);
             if (active == null) return;
-            if (active.firstGameplayScene == "Sandbox") { GameRoot.UseConfig(active); return; }
             var copy = UnityEngine.Object.Instantiate(active);
             copy.firstGameplayScene = "Sandbox";
             // The sandbox's Settings screen (another template's preset may hide some options).
@@ -66,6 +65,8 @@ namespace JamKit.Tests.Play
             copy.showTextSettings = false;
             copy.showPixelLookSetting = false;
             copy.showBestTime = true;
+            copy.chooseDifficultyOnPlay = true;
+            copy.showControlLegend = true;
 #if UNITY_EDITOR
             var preset = UnityEditor.AssetDatabase.LoadAssetAtPath<GameConfig>(SandboxPresetPath);
             if (preset != null)
@@ -79,11 +80,21 @@ namespace JamKit.Tests.Play
             GameRoot.UseConfig(copy);
         }
 
+        /// <summary>The title's Play, through the difficulty picker when it opens (choosing
+        /// <paramref name="difficulty"/>). Returns at once; the run starts after the scene loads.</summary>
+        public static void PressPlay(Difficulty difficulty = Difficulty.Normal)
+        {
+            var ui = GameRoot.Ui;
+            Assert.That(ui.Title.Activate("play"), Is.True, "Play on the title");
+            if (ui.IsOverlayOpen(ui.DifficultyPicker))
+                Assert.That(ui.DifficultyPicker.Activate(DifficultyScreen.ButtonName(difficulty)), Is.True, "pick " + difficulty);
+        }
+
         /// <summary>From the title: Play (skipping the first-run cards) and finish the intro dialogue.</summary>
         public static IEnumerator StartSandbox(bool skipIntro = true)
         {
             GameRoot.Save.Data.seenHowToPlay = true;
-            GameRoot.Ui.Title.Activate("play");
+            PressPlay();
             yield return WaitFor(() => GameRoot.Flow.InRun && !GameRoot.IsLoadingScene && SceneManager.GetActiveScene().name == "Sandbox", "the sandbox");
             yield return WaitFor(() => GameRoot.Dialogue.IsActive, "the intro dialogue");
             if (skipIntro) yield return FinishDialogue();

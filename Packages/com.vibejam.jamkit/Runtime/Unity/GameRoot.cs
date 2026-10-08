@@ -330,15 +330,47 @@ namespace JamKit.Shell
 
         // ---------- Shell actions (menus call these; so can game code) ----------
 
-        /// <summary>Title's Play: How to Play first on the very first run (if configured), then the first gameplay scene.</summary>
-        public void StartGame()
+        /// <summary>Title's Play: the difficulty picker first (GameConfig.chooseDifficultyOnPlay), then How to
+        /// Play on the very first run (if configured), then the first gameplay scene.</summary>
+        public void StartGame() => StartGame(true);
+
+        /// <summary>Like Play, but <paramref name="askDifficulty"/> false skips the picker (loading a story
+        /// save, a "Continue" button: the player already chose).</summary>
+        public void StartGame(bool askDifficulty)
+        {
+            if (_scenes.IsLoading || _flow.Current != GameState.Title) return;
+            if (askDifficulty && _config.AsksDifficultyOnPlay && _ui.DifficultyPicker != null)
+            {
+                _ui.OpenDifficultyPicker();
+                return;
+            }
+            LaunchRun();
+        }
+
+        /// <summary>The picker's choice: saves <paramref name="difficulty"/> as the Settings difficulty (its
+        /// assists apply; the same choice as before keeps any hand-tuned assists) and starts the run.</summary>
+        public void StartRun(Difficulty difficulty)
+        {
+            if (_scenes.IsLoading || _flow.Current != GameState.Title) return;
+            var s = _save.Settings;
+            if (s.difficulty != difficulty)
+            {
+                s.SetDifficulty(difficulty);
+                _save.NotifySettingsChanged();
+            }
+            _save.Save();
+            if (_ui.IsOverlayOpen(_ui.DifficultyPicker)) _ui.CloseOverlay(false);
+            LaunchRun();
+        }
+
+        void LaunchRun()
         {
             if (_scenes.IsLoading || _flow.Current != GameState.Title) return;
             if (_config.showHowToPlayOnFirstRun && !_save.Data.seenHowToPlay && _config.howToPlay != null && _config.howToPlay.Count > 0)
             {
                 _save.Data.seenHowToPlay = true;
                 _save.Save();
-                _ui.OpenHowToPlay(StartGame);
+                _ui.OpenHowToPlay(LaunchRun);
                 return;
             }
             _runScene = _config.firstGameplayScene;

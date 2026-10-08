@@ -23,9 +23,15 @@ namespace JamKit.Tests.Play
             var ui = GameRoot.Ui;
             var flow = GameRoot.Flow;
 
-            // First run: Play shows the How to Play cards, and the last card starts the game.
+            // Play asks for the difficulty (Normal preselected), then, on the first run, shows the
+            // How to Play cards, and the last card starts the game.
             ui.Title.Activate("play");
             yield return null;
+            Assert.That(ui.IsOverlayOpen(ui.DifficultyPicker), Is.True, "the difficulty picker");
+            Assert.That(ui.DifficultyPicker.Preselected, Is.EqualTo(Difficulty.Normal));
+            Assert.That(ui.DifficultyPicker.Activate(DifficultyScreen.ButtonName(Difficulty.Normal)), Is.True);
+            yield return null;
+            Assert.That(ui.IsOverlayOpen(ui.DifficultyPicker), Is.False, "choosing closes the picker");
             Assert.That(ui.IsOverlayOpen(ui.HowToPlay), Is.True, "first-run How to Play");
             Assert.That(ui.HowToPlay.PageCount, Is.EqualTo(3));
             for (int i = 0; i < 3; i++)

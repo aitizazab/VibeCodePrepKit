@@ -88,7 +88,7 @@ namespace JamKit.Narrative
             if (!GameRoot.Exists || !StoryStorage.Exists(slot)) return;
             _pendingLoad = slot;
             var cfg = StoryConfig.Load();
-            if (GameRoot.Flow.Current == GameState.Title) GameRoot.Instance.StartGame();
+            if (GameRoot.Flow.Current == GameState.Title) GameRoot.Instance.StartGame(false); // a save: no difficulty picker
             else if (cfg != null) GameRoot.Instance.SceneService.Load(cfg.sceneName);
         }
 

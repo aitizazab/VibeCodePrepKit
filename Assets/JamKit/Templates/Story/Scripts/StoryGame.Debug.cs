@@ -29,10 +29,17 @@ namespace JamKit.Narrative
 #if UNITY_EDITOR
             gameObject.AddComponent<StoryInkReloader>().Init(this);
 #endif
+            _smokeLog = SmokeRunner.Requested(out _);
+            if (_smokeLog)
+            {
+                GameRoot.Dialogue.ChoiceMade += SmokeChoice;
+                SmokeLog("story: playthrough " + Memory.playthroughs + ", starting at knot \"" + config.startKnot + "\"");
+            }
         }
 
         void TeardownDebug()
         {
+            if (_smokeLog) GameRoot.Dialogue.ChoiceMade -= SmokeChoice;
             if (DebugMenu.SkipHandler == _skipHandler) DebugMenu.SkipHandler = null;
             if (SmokeRunner.GameplayDriver == _smokeDriver) SmokeRunner.GameplayDriver = null;
             foreach (var b in _debugButtons) b.RemoveFromHierarchy();
@@ -162,9 +169,52 @@ namespace JamKit.Narrative
 
         IEnumerator SmokeDrive()
         {
+            SmokeLog("story driver: playing on to an ending (first choices, hotspot rooms by their walkthrough)");
             yield return PlayToEnding();
             float end = Time.realtimeSinceStartup + 5f;
             while (GameRoot.Flow.Current != GameState.Victory && Time.realtimeSinceStartup < end) yield return null;
+            SmokeLog("story summary: " + _smokeChoices + " choice(s), " + _smokeHotspots + " hotspot(s) used in "
+                + (_smokeRooms.Count > 0 ? "room(s) " + string.Join(", ", _smokeRooms) : "no hotspot room")
+                + ", ending " + (_smokeEnding.Length > 0 ? "\"" + _smokeEnding + "\"" : "NONE") + ", state " + GameRoot.Flow.Current);
+            // The smoke run must prove the story was played, not only that the debug win works.
+            if (_smokeEnding.Length == 0) Debug.LogError("StoryGame smoke: the story didn't reach an ending (stopped at knot \"" + _knot + "\").");
+            else if (GameRoot.Flow.Current != GameState.Victory) Debug.LogError("StoryGame smoke: the ending didn't lead to the Victory screen.");
+        }
+
+        // ---------- Smoke log (only in a -jamSmoke run): what the run actually did ----------
+
+        bool _smokeLog;
+        int _smokeChoices, _smokeHotspots;
+        readonly List<string> _smokeRooms = new List<string>();
+        string _smokeEnding = "";
+
+        static void SmokeLog(string what) => Debug.Log("JAMKIT_SMOKE " + what);
+
+        void SmokeChoice(int index, string text)
+        {
+            _smokeChoices++;
+            SmokeLog("story choice " + _smokeChoices + " (in \"" + _knot + "\"): #" + (index + 1) + " \"" + JamKit.Dialogue.RichLine.StripTags(text ?? "") + "\"");
+        }
+
+        void SmokeNoteRoom(string id)
+        {
+            if (!_smokeLog) return;
+            if (!_smokeRooms.Contains(id)) _smokeRooms.Add(id);
+            SmokeLog("story hotspot room \"" + id + "\" opened");
+        }
+
+        void SmokeNoteHotspot(string spot, string item)
+        {
+            if (!_smokeLog) return;
+            _smokeHotspots++;
+            SmokeLog("story hotspot \"" + spot + "\"" + (string.IsNullOrEmpty(item) ? "" : " with item \"" + item + "\""));
+        }
+
+        void SmokeNoteEnding(string id)
+        {
+            if (!_smokeLog) return;
+            _smokeEnding = string.IsNullOrEmpty(id) ? "the_end" : id;
+            SmokeLog("story ending reached: \"" + _smokeEnding + "\" (playthrough " + Memory.playthroughs + ")");
         }
     }
 }

@@ -123,6 +123,8 @@ namespace JamKit.Narrative.Tests
             Assert.That(preset, Is.Not.Null);
             Assert.That(preset.firstGameplayScene, Is.EqualTo(StoryBuilder.SceneName));
             Assert.That(preset.showTextSettings, Is.True);
+            Assert.That(preset.chooseDifficultyOnPlay, Is.False, "no run-start difficulty picker: the story has its own text settings");
+            Assert.That(preset.AsksDifficultyOnPlay, Is.False);
             Assert.That(preset.howToPlay.Count, Is.InRange(2, 4));
             Assert.That(Resources.Load<StoryConfig>(StoryConfig.ResourcePath), Is.Not.Null, "the config loads from Resources");
         }
