@@ -39,6 +39,7 @@ namespace JamKit.Tests.Play
             DebugMenu.TimeScale = 1f;
             // Fresh save for every test (settings, flags, records, first-run cards).
             GameRoot.Save.UseSlot(Slot, true);
+            UseSandboxConfig();
             // Wait for Boot itself to load first: the previous test may already have left us on
             // the title, and a "title reached" check that passes before Boot loads races the boot.
             var op = SceneManager.LoadSceneAsync("Boot");
@@ -46,6 +47,31 @@ namespace JamKit.Tests.Play
             yield return WaitFor(() => GameRoot.Flow.Current == GameState.Title && !GameRoot.IsLoadingScene
                 && SceneManager.GetActiveScene().name == "Title", "the title screen");
             Assert.That(GameRoot.Ui.Title.IsVisible, Is.True, "title screen visible");
+        }
+
+        public const string SandboxPresetPath = "Assets/JamKit/Sandbox/SandboxGameConfig.asset";
+
+        /// <summary>The shell tests play the sandbox. When another template is the active one
+        /// ("JamKit/Use Template/..."), run on an in-memory copy of the config pointed at the sandbox
+        /// (with the sandbox's How to Play cards), so the asset on disk is never changed.</summary>
+        public static void UseSandboxConfig()
+        {
+            var active = Resources.Load<GameConfig>(GameConfig.ResourcePath);
+            if (active == null) return;
+            if (active.firstGameplayScene == "Sandbox") { GameRoot.UseConfig(active); return; }
+            var copy = UnityEngine.Object.Instantiate(active);
+            copy.firstGameplayScene = "Sandbox";
+#if UNITY_EDITOR
+            var preset = UnityEditor.AssetDatabase.LoadAssetAtPath<GameConfig>(SandboxPresetPath);
+            if (preset != null)
+            {
+                copy.gameTitle = preset.gameTitle;
+                copy.tagline = preset.tagline;
+                copy.howToPlay = preset.howToPlay;
+                copy.showHowToPlayOnFirstRun = preset.showHowToPlayOnFirstRun;
+            }
+#endif
+            GameRoot.UseConfig(copy);
         }
 
         /// <summary>From the title: Play (skipping the first-run cards) and finish the intro dialogue.</summary>

@@ -19,6 +19,8 @@ namespace JamKit.Shell
         {
             "ui_move", "ui_select", "ui_back", "blip", "coin", "hurt", "win", "lose",
             "shoot", "dash", "explosion", "music_title", "music_game",
+            // Used by the bullet-hell template (harmless for other games).
+            "graze", "bomb", "enemy_hit", "enemy_die", "boss_phase", "powerup", "music_boss",
         };
 
         public static bool Knows(string id) => System.Array.IndexOf(Ids, id) >= 0;
@@ -54,6 +56,13 @@ namespace JamKit.Shell
                 case "lose": return Arpeggio(new[] { 3, -2, -6, -9 }, 0.16f, 0.5f);
                 case "music_title": return Loop(new[] { -9, -5, -2, 3, -12, -5, -2, 3, -14, -7, -2, 2, -16, -9, -5, 0 }, 0.25f, 0.12f);
                 case "music_game": return Loop(new[] { -9, 3, -2, 3, -5, 3, -2, 3, -7, 2, -3, 2, -5, 2, -3, 7 }, 0.18f, 0.12f);
+                case "graze": return ToneSynth.Sequence(Rate, 1, N(Waveform.Square, 1900f, 2300f, 0.02f, 0.07f));
+                case "bomb": return ToneSynth.Sequence(Rate, 11, N(Waveform.Square, 140f, 40f, 0.25f, 0.45f), N(Waveform.Noise, 2600f, 70f, 0.85f, 0.6f));
+                case "enemy_hit": return ToneSynth.Sequence(Rate, 1, N(Waveform.Square, 950f, 720f, 0.025f, 0.08f));
+                case "enemy_die": return ToneSynth.Sequence(Rate, 13, N(Waveform.Square, 420f, 120f, 0.08f, 0.3f), N(Waveform.Noise, 2200f, 200f, 0.18f, 0.35f));
+                case "boss_phase": return ToneSynth.Sequence(Rate, 17, N(Waveform.Square, 220f, 880f, 0.3f, 0.35f), N(Waveform.Noise, 3000f, 400f, 0.35f, 0.4f));
+                case "powerup": return Arpeggio(new[] { 0, 4, 7, 12 }, 0.07f, 0.22f);
+                case "music_boss": return Loop(new[] { -12, -9, -5, -9, -12, -9, -4, -9, -14, -10, -7, -10, -14, -10, -5, -2 }, 0.14f, 0.12f);
                 default: return null;
             }
         }

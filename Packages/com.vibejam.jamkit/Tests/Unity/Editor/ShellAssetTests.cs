@@ -40,7 +40,8 @@ namespace JamKit.Tests.Editor
             var config = Resources.Load<GameConfig>(GameConfig.ResourcePath);
             var names = EditorBuildSettings.scenes.Where(s => s.enabled)
                 .Select(s => System.IO.Path.GetFileNameWithoutExtension(s.path)).ToList();
-            Assert.That(names.Take(3), Is.EqualTo(new[] { "Boot", "Title", "Sandbox" }));
+            Assert.That(names.Take(2), Is.EqualTo(new[] { "Boot", "Title" }));
+            Assert.That(names, Does.Contain("Sandbox"));
             Assert.That(names, Does.Contain(config.bootScene));
             Assert.That(names, Does.Contain(config.titleScene));
             Assert.That(names, Does.Contain(config.firstGameplayScene));

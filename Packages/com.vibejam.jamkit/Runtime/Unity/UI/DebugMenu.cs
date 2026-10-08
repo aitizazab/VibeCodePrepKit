@@ -128,12 +128,25 @@ namespace JamKit.Shell
             GameRoot.Lose();
         }
 
-        /// <summary>Loads the next scene in Build Settings; from the last one, wins the run.</summary>
+        /// <summary>Loads the next scene in Build Settings; from the last one, wins the run.
+        /// A game with its own idea of "next" (the bullet hell skips a room) sets <see cref="SkipHandler"/>.</summary>
         public static void NextScene()
         {
             if (!GameRoot.Exists) return;
+            var skip = _skipHandler;
+            if (skip != null && skip()) return;
             if (GameRoot.Instance.SceneService.LoadNext()) return;
             Win();
+        }
+
+        static System.Func<bool> _skipHandler;
+
+        /// <summary>Replaces "Next scene" while a game is running: return true when handled (e.g. the
+        /// room or boss was skipped). Set it in Start, clear it in OnDestroy. Cleared on play-mode start.</summary>
+        public static System.Func<bool> SkipHandler
+        {
+            get => _skipHandler;
+            set => _skipHandler = value;
         }
     }
 }

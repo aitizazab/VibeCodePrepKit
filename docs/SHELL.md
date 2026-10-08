@@ -128,11 +128,22 @@ allows it): god mode, time x0.25 / x1 / x2, Win, Lose, Next scene, FPS counter.
 From code, in any build: `DebugMenu.Win()`, `DebugMenu.Lose()`, `DebugMenu.NextScene()`,
 `DebugMenu.GodMode`, `DebugMenu.TimeScale`.
 
+A game whose "next" isn't the next scene sets `DebugMenu.SkipHandler` (the bullet hell skips a room
+or kills the boss), and can drive a few seconds of itself in the smoke run through
+`SmokeRunner.GameplayDriver`. Set both in `Start`, clear them in `OnDestroy`.
+
+## Templates
+
+`JamKit > Use Template > Bullet Hell` (or `> Sandbox`) points Play, the smoke test and Build Settings
+at a template: it copies the template's preset (title, tagline, first scene, music, How to Play
+cards) into the active GameConfig. The bullet hell is documented in `docs/TEMPLATE-BULLETHELL.md`.
+
 ## Rebuild, test, build
 
 | | Command |
 |---|---|
-| Regenerate Boot/Title/Sandbox scenes, UI and shell assets | menu **JamKit > Rebuild Shell Scenes** (keeps GameConfig, AudioRegistry and the input actions) |
+| Regenerate Boot/Title/Sandbox scenes, UI and shell assets (and every template's scene) | menu **JamKit > Rebuild Shell Scenes** (keeps GameConfig, AudioRegistry, the input actions and template data) |
+| Switch the game to a template | menu **JamKit > Use Template > ...** |
 | Fast C# check, no Unity | `dotnet build core-tests/UnityLayerEditor/UnityLayerEditor.Check.csproj` |
 | Everything (tests, Windows build, smoke run) | `powershell -File tools/verify.ps1` (through the memory cap, see CLAUDE.md) |
 | Smoke run of the Windows build | `powershell -File tools/smoke.ps1` |

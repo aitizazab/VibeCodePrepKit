@@ -22,6 +22,7 @@
     <Compile Remove="$(PkgRoot)Tests\Core\Shared\**\*.cs" />
     <Compile Include="$(PkgRoot)Runtime\Unity\**\*.cs" />
     <Compile Include="$(ProjectAssets)Sandbox\Scripts\**\*.cs" />
+    <Compile Include="$(ProjectAssets)Templates\*\Scripts\**\*.cs" />
     <EngineDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEngine*.dll" />
     <Reference Include="@(EngineDll)" Private="false" />
     <PkgDll Include="$(ScriptAssemblies)Unity.InputSystem.dll;$(ScriptAssemblies)UnityEngine.UI.dll;$(ScriptAssemblies)Ink.dll;$(ScriptAssemblies)Ink-Libraries.dll;$(ScriptAssemblies)Unity.RenderPipelines.Universal.Runtime.dll;$(ScriptAssemblies)Unity.RenderPipelines.Core.Runtime.dll" />

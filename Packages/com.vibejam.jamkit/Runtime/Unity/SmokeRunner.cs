@@ -15,6 +15,17 @@ namespace JamKit.Shell
     /// </summary>
     public sealed class SmokeRunner : MonoBehaviour
     {
+        static Func<IEnumerator> _driver;
+
+        /// <summary>A gameplay scene can drive a few seconds of its own game here (skip a room, take a
+        /// draft...) before the smoke run's debug win. Set it in Start, clear it in OnDestroy. Keep it
+        /// short: the whole smoke run has one time budget.</summary>
+        public static Func<IEnumerator> GameplayDriver
+        {
+            get => _driver;
+            set => _driver = value;
+        }
+
         float _seconds = 20f;
         int _errors;
         string _firstError = "";
@@ -83,6 +94,14 @@ namespace JamKit.Shell
                     ui.Pause.Activate("resume");
                 }
                 yield return Real(0.1f);
+            }
+
+            var driver = GameplayDriver;
+            if (driver != null && flow.InRun)
+            {
+                Log("template driver");
+                yield return driver();
+                Log("template driver done");
             }
 
             Log("debug win");

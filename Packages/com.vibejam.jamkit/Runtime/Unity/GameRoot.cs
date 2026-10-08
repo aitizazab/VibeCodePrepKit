@@ -76,6 +76,15 @@ namespace JamKit.Shell
             Ready = null;
             DebugMenu.GodMode = false;
             DebugMenu.TimeScale = 1f;
+            DebugMenu.SkipHandler = null;
+            SmokeRunner.GameplayDriver = null;
+        }
+
+        /// <summary>Runs on a different config (tests use an in-memory copy, so the asset on disk is
+        /// never touched). Scenes, How to Play pages and music ids are read from it from then on.</summary>
+        public static void UseConfig(GameConfig config)
+        {
+            if (_instance != null && config != null) _instance._config = config;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]

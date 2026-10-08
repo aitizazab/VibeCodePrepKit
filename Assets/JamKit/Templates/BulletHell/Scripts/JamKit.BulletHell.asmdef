@@ -1,0 +1,20 @@
+{
+    "name": "JamKit.BulletHell",
+    "rootNamespace": "JamKit.BulletHell",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "Unity.InputSystem",
+        "Ink",
+        "Ink-Libraries"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

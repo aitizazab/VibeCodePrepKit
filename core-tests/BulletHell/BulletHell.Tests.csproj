@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared + Patterns + Roguelite + BulletHell (the bullet-hell template's pure rules); the rest comes from Directory.Build.props. -->
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\Patterns\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Roguelite\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\BulletHell\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\BulletHell\**\*.cs" />
+  </ItemGroup>
+</Project>
