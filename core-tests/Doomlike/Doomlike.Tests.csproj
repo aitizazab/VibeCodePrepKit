@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared + Combat + Roguelite + Doomlike (the DOOM-like template's pure rules); the rest comes from Directory.Build.props.
+       SampleMapsTests.cs (only here, not in Unity) parses and validates the template's real level files. -->
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\Combat\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Roguelite\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Doomlike\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Doomlike\**\*.cs" />
+    <Compile Include="SampleMapsTests.cs" />
+  </ItemGroup>
+</Project>

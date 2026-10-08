@@ -169,6 +169,13 @@ namespace JamKit.Combat
             return added;
         }
 
+        /// <summary>Overwrites the reserve (never below 0, ignoring maxReserve). For games that keep ammo
+        /// outside the gun: shared pools by ammo type feed the reserve before Tick and read it back after.</summary>
+        public void SetReserve(int amount)
+        {
+            Reserve = Math.Max(0, amount);
+        }
+
         void ConsumeShot()
         {
             int cost = ShotCost;
