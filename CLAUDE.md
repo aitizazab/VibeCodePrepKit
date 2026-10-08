@@ -37,7 +37,10 @@ framework for a 3-day "Vibe Coding GameDev" hackathon. Plan and status: `docs/PL
     the MCP link to the open editor.
   - Unity batch builds are heavy jobs: run them through the session memory cap
     (`uv run python ~/.local/bin/capped-run.py --session VibeJamKit -- powershell -File tools/build.ps1 ...`).
-    For WebGL, raise `--share` if the cap kills it.
+    **WebGL needs `--share 0.6`:** at 0.3–0.4, il2cpp.exe crashes natively (0xC0000005, about 7 s
+    into IL2CPP_CodeGen) instead of failing cleanly. A WebGL build takes ~9–12 min, Windows ~2 min.
+  - Run long Unity steps in the foreground, one verify step at a time (`tools/verify.ps1 -From X -To X`):
+    background shells get reaped when memory runs low while the session is idle.
   - **One GPU job at a time** on this laptop: no Blender renders while the editor is in play mode.
 
 ## Git
