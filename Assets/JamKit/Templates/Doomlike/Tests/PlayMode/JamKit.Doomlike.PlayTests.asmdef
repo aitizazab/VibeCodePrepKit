@@ -1,0 +1,27 @@
+{
+    "name": "JamKit.Doomlike.PlayTests",
+    "rootNamespace": "JamKit.Doomlike.Tests",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "JamKit.Doomlike",
+        "JamKit.Unity.PlayTests",
+        "Unity.InputSystem",
+        "Unity.AI.Navigation",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

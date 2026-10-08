@@ -1,0 +1,472 @@
+/*
+ * DOOM-like HUD, tally and draft. Colours come from the shell's theme (Assets/JamKit/UI/Theme.uss,
+ * the --jk-... variables), so re-skinning the theme re-skins this too. Sizes are pixels at 1920x1080.
+ */
+
+.dl-hud {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* ---------- Crosshair and hit marker ---------- */
+
+.dl-cross {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+}
+
+.dl-cross-h, .dl-cross-v {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.85);
+}
+
+.dl-cross-h {
+    left: -12px;
+    top: -2px;
+    width: 24px;
+    height: 4px;
+}
+
+.dl-cross-v {
+    left: -2px;
+    top: -12px;
+    width: 4px;
+    height: 24px;
+}
+
+.dl-hit {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    rotate: 45deg;
+}
+
+.dl-hit-a, .dl-hit-b {
+    position: absolute;
+    background-color: var(--jk-text);
+}
+
+.dl-hit-a {
+    left: -22px;
+    top: -3px;
+    width: 44px;
+    height: 6px;
+}
+
+.dl-hit-b {
+    left: -3px;
+    top: -22px;
+    width: 6px;
+    height: 44px;
+}
+
+.dl-hit--kill .dl-hit-a, .dl-hit--kill .dl-hit-b {
+    background-color: var(--jk-bad);
+}
+
+/* ---------- Damage direction ---------- */
+
+.dl-dmg {
+    position: absolute;
+    background-color: rgba(255, 40, 40, 0.75);
+}
+
+.dl-dmg--left {
+    left: 0;
+    top: 25%;
+    bottom: 25%;
+    width: 26px;
+}
+
+.dl-dmg--right {
+    right: 0;
+    top: 25%;
+    bottom: 25%;
+    width: 26px;
+}
+
+.dl-dmg--top {
+    top: 0;
+    left: 25%;
+    right: 25%;
+    height: 26px;
+}
+
+.dl-dmg--bottom {
+    bottom: 170px;
+    left: 25%;
+    right: 25%;
+    height: 26px;
+}
+
+/* ---------- Bottom bar ---------- */
+
+.dl-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 150px;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    background-color: rgba(10, 10, 20, 0.78);
+    border-top-width: var(--jk-border);
+    border-top-color: var(--jk-panel-border);
+    padding: 10px 24px;
+}
+
+.dl-section {
+    min-width: 200px;
+    margin: 0 18px;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.dl-section--wide {
+    min-width: 320px;
+}
+
+.dl-kicker {
+    font-size: 20px;
+    color: var(--jk-text-dim);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+.dl-big {
+    font-size: 72px;
+    -unity-font-style: bold;
+    color: var(--jk-accent);
+    -unity-text-align: middle-center;
+    text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.8);
+}
+
+.dl-big--low {
+    color: var(--jk-bad);
+}
+
+.dl-small {
+    font-size: var(--jk-small-size);
+    color: var(--jk-text);
+    -unity-text-align: middle-center;
+}
+
+.dl-weapon-name {
+    font-size: 30px;
+    -unity-font-style: bold;
+    margin: 6px 0 8px 0;
+}
+
+.dl-slots {
+    flex-direction: row;
+}
+
+.dl-slot {
+    width: 44px;
+    height: 44px;
+    margin: 0 4px;
+    border-radius: 8px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+    font-size: 26px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.dl-slot--owned {
+    color: var(--jk-text);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.dl-slot--current {
+    color: var(--jk-accent-text);
+    background-color: var(--jk-accent);
+    border-color: var(--jk-accent);
+}
+
+.dl-keys {
+    flex-direction: row;
+    margin-top: 18px;
+}
+
+.dl-key {
+    width: 36px;
+    height: 52px;
+    margin: 0 6px;
+    border-radius: 6px;
+    border-width: 3px;
+}
+
+.dl-pools {
+    margin-top: 4px;
+    align-items: flex-start;
+}
+
+.dl-pool {
+    font-size: 22px;
+    color: var(--jk-text);
+    -unity-font-style: bold;
+}
+
+/* ---------- Upgrades (top left) ---------- */
+
+.dl-upgrades {
+    position: absolute;
+    left: 28px;
+    top: 28px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 420px;
+}
+
+.dl-upgrade {
+    width: 52px;
+    height: 52px;
+    margin: 4px;
+    border-radius: 10px;
+    border-width: 3px;
+    background-color: rgba(0, 0, 0, 0.5);
+    font-size: 20px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.dl-upgrade-count {
+    position: absolute;
+    right: -4px;
+    bottom: -6px;
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: var(--jk-accent);
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+}
+
+/* ---------- Boss bar ---------- */
+
+.dl-boss {
+    position: absolute;
+    top: 110px;
+    left: 460px;
+    right: 460px;
+}
+
+.dl-boss-name {
+    font-size: var(--jk-small-size);
+    -unity-font-style: bold;
+    color: var(--jk-text);
+    -unity-text-align: middle-center;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+    margin-bottom: 4px;
+}
+
+.dl-boss-bar {
+    height: 22px;
+    background-color: var(--jk-health-back);
+    border-radius: 6px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+}
+
+.dl-boss-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: var(--jk-bad);
+}
+
+/* ---------- Level name card ---------- */
+
+.dl-card-name {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 300px;
+    align-items: center;
+}
+
+.dl-card-name-title {
+    font-size: var(--jk-title-size);
+    -unity-font-style: bold;
+    color: var(--jk-accent);
+    text-shadow: 5px 5px 0 rgba(0, 0, 0, 0.85);
+    -unity-text-align: middle-center;
+}
+
+.dl-card-name-sub {
+    font-size: var(--jk-font-size);
+    color: var(--jk-text);
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.85);
+    -unity-text-align: middle-center;
+}
+
+/* ---------- Click to play ---------- */
+
+.dl-click {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--jk-scrim);
+}
+
+.dl-click-title {
+    font-size: var(--jk-heading-size);
+    -unity-font-style: bold;
+    color: var(--jk-accent);
+    text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.8);
+}
+
+.dl-click-sub {
+    font-size: var(--jk-small-size);
+    color: var(--jk-text);
+    margin-top: 12px;
+}
+
+/* ---------- Tally ---------- */
+
+.dl-tally {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--jk-scrim);
+}
+
+.dl-tally-panel {
+    min-width: 760px;
+    align-items: stretch;
+}
+
+.dl-tally-rows {
+    margin: 18px 0 26px 0;
+}
+
+.dl-tally-row {
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 6px 0;
+}
+
+.dl-tally-label {
+    font-size: var(--jk-font-size);
+    color: var(--jk-text-dim);
+}
+
+.dl-tally-value {
+    font-size: var(--jk-font-size);
+    -unity-font-style: bold;
+    color: var(--jk-text);
+}
+
+.dl-tally-value--good {
+    color: var(--jk-good);
+}
+
+/* ---------- Upgrade draft ---------- */
+
+.dl-choice {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--jk-scrim);
+}
+
+.dl-choice-panel {
+    align-items: center;
+    max-width: 1800px;
+}
+
+.dl-cards {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 16px 0 20px 0;
+}
+
+.dl-card {
+    width: 380px;
+    min-height: 330px;
+    margin: 10px 14px;
+    padding: 22px 22px 18px 22px;
+    background-image: none;
+    background-color: var(--jk-panel);
+    border-width: var(--jk-border);
+    border-top-width: 10px;
+    border-color: var(--jk-panel-border);
+    border-radius: var(--jk-radius);
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    transition-duration: 0.08s;
+}
+
+.dl-card:hover {
+    background-color: var(--jk-button-hover);
+}
+
+.dl-card:focus {
+    border-left-color: var(--jk-accent);
+    border-right-color: var(--jk-accent);
+    border-bottom-color: var(--jk-accent);
+    background-color: var(--jk-button-hover);
+    scale: 1.05 1.05;
+}
+
+.dl-card-icon {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border-width: 3px;
+    font-size: 28px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    align-self: center;
+}
+
+.dl-card-kicker {
+    font-size: var(--jk-small-size);
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+    letter-spacing: 2px;
+}
+
+.dl-card-title {
+    font-size: 38px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+    color: var(--jk-text);
+    white-space: normal;
+    margin: 6px 0 10px 0;
+}
+
+.dl-card-body {
+    font-size: var(--jk-small-size);
+    -unity-text-align: upper-left;
+    color: var(--jk-text-dim);
+    white-space: normal;
+    flex-grow: 1;
+}

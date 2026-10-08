@@ -21,6 +21,8 @@ namespace JamKit.Flow
         public bool fullscreen = true;
         /// <summary>0 turns camera shake and flashes' shake off (accessibility), 1 is full.</summary>
         public float screenShake = 1f;
+        /// <summary>Low-resolution "pixel look" for games that offer it (GameConfig.showPixelLookSetting).</summary>
+        public bool pixelLook = true;
         public Difficulty difficulty = Difficulty.Normal;
 
         public float enemyBulletSpeedScale = 1f;

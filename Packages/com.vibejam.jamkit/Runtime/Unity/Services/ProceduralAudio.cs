@@ -21,6 +21,9 @@ namespace JamKit.Shell
             "shoot", "dash", "explosion", "music_title", "music_game",
             // Used by the bullet-hell template (harmless for other games).
             "graze", "bomb", "enemy_hit", "enemy_die", "boss_phase", "powerup", "music_boss",
+            // Used by the DOOM-like template.
+            "punch", "pistol", "shotgun", "rapid", "launcher", "door", "item", "key", "step",
+            "alert", "pain", "enemy_shot", "bite", "secret", "weapon_up", "level_done",
         };
 
         public static bool Knows(string id) => System.Array.IndexOf(Ids, id) >= 0;
@@ -62,6 +65,22 @@ namespace JamKit.Shell
                 case "enemy_die": return ToneSynth.Sequence(Rate, 13, N(Waveform.Square, 420f, 120f, 0.08f, 0.3f), N(Waveform.Noise, 2200f, 200f, 0.18f, 0.35f));
                 case "boss_phase": return ToneSynth.Sequence(Rate, 17, N(Waveform.Square, 220f, 880f, 0.3f, 0.35f), N(Waveform.Noise, 3000f, 400f, 0.35f, 0.4f));
                 case "powerup": return Arpeggio(new[] { 0, 4, 7, 12 }, 0.07f, 0.22f);
+                case "punch": return ToneSynth.Sequence(Rate, 19, N(Waveform.Noise, 900f, 200f, 0.08f, 0.45f), N(Waveform.Square, 120f, 60f, 0.06f, 0.3f));
+                case "pistol": return ToneSynth.Sequence(Rate, 23, N(Waveform.Noise, 3200f, 500f, 0.07f, 0.45f), N(Waveform.Square, 700f, 180f, 0.08f, 0.25f));
+                case "shotgun": return ToneSynth.Sequence(Rate, 29, N(Waveform.Noise, 2600f, 90f, 0.32f, 0.65f), N(Waveform.Square, 140f, 50f, 0.12f, 0.3f));
+                case "rapid": return ToneSynth.Sequence(Rate, 31, N(Waveform.Noise, 3600f, 900f, 0.045f, 0.35f));
+                case "launcher": return ToneSynth.Sequence(Rate, 37, N(Waveform.Square, 260f, 900f, 0.14f, 0.3f), N(Waveform.Noise, 1800f, 300f, 0.2f, 0.35f));
+                case "door": return ToneSynth.Sequence(Rate, 41, N(Waveform.Square, 80f, 105f, 0.4f, 0.25f), N(Waveform.Noise, 500f, 200f, 0.12f, 0.3f));
+                case "item": return ToneSynth.Sequence(Rate, 1, N(Waveform.Square, 660f, 990f, 0.07f, 0.25f));
+                case "key": return Arpeggio(new[] { 0, 7, 12 }, 0.08f, 0.2f);
+                case "step": return ToneSynth.Sequence(Rate, 43, N(Waveform.Noise, 500f, 160f, 0.05f, 0.18f));
+                case "alert": return ToneSynth.Sequence(Rate, 47, N(Waveform.Square, 220f, 330f, 0.12f, 0.25f), N(Waveform.Noise, 1200f, 600f, 0.15f, 0.2f));
+                case "pain": return ToneSynth.Sequence(Rate, 53, N(Waveform.Square, 520f, 240f, 0.12f, 0.25f));
+                case "enemy_shot": return ToneSynth.Sequence(Rate, 59, N(Waveform.Noise, 2000f, 400f, 0.12f, 0.4f), N(Waveform.Square, 600f, 260f, 0.08f, 0.2f));
+                case "bite": return ToneSynth.Sequence(Rate, 61, N(Waveform.Noise, 1300f, 300f, 0.1f, 0.45f), N(Waveform.Square, 210f, 90f, 0.08f, 0.25f));
+                case "secret": return Arpeggio(new[] { 0, 4, 7, 11, 14 }, 0.07f, 0.3f);
+                case "weapon_up": return Arpeggio(new[] { 0, 5, 9, 12 }, 0.06f, 0.2f);
+                case "level_done": return Arpeggio(new[] { 0, 4, 7, 12, 16 }, 0.1f, 0.4f);
                 case "music_boss": return Loop(new[] { -12, -9, -5, -9, -12, -9, -4, -9, -14, -10, -7, -10, -14, -10, -5, -2 }, 0.14f, 0.12f);
                 default: return null;
             }

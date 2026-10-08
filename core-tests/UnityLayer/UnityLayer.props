@@ -25,7 +25,7 @@
     <Compile Include="$(ProjectAssets)Templates\*\Scripts\**\*.cs" />
     <EngineDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEngine*.dll" />
     <Reference Include="@(EngineDll)" Private="false" />
-    <PkgDll Include="$(ScriptAssemblies)Unity.InputSystem.dll;$(ScriptAssemblies)UnityEngine.UI.dll;$(ScriptAssemblies)Ink.dll;$(ScriptAssemblies)Ink-Libraries.dll;$(ScriptAssemblies)Unity.RenderPipelines.Universal.Runtime.dll;$(ScriptAssemblies)Unity.RenderPipelines.Core.Runtime.dll" />
+    <PkgDll Include="$(ScriptAssemblies)Unity.InputSystem.dll;$(ScriptAssemblies)UnityEngine.UI.dll;$(ScriptAssemblies)Ink.dll;$(ScriptAssemblies)Ink-Libraries.dll;$(ScriptAssemblies)Unity.RenderPipelines.Universal.Runtime.dll;$(ScriptAssemblies)Unity.RenderPipelines.Core.Runtime.dll;$(ScriptAssemblies)Unity.AI.Navigation.dll" />
     <Reference Include="@(PkgDll)" Private="false" />
   </ItemGroup>
 </Project>

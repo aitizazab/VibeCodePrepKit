@@ -78,6 +78,7 @@ namespace JamKit.EditorTools
             to.titleMusic = from.titleMusic;
             to.gameMusic = from.gameMusic;
             to.showHowToPlayOnFirstRun = from.showHowToPlayOnFirstRun;
+            to.showPixelLookSetting = from.showPixelLookSetting;
             to.howToPlay = new List<HowToPlayPage>();
             if (from.howToPlay != null)
                 foreach (var p in from.howToPlay)

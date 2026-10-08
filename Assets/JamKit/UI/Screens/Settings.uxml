@@ -8,6 +8,7 @@
             <ui:Slider name="sensitivity" label="Mouse sensitivity" low-value="0.1" high-value="5" class="jk-option" />
             <ui:Toggle name="invert-y" label="Invert up/down look" class="jk-option" />
             <ui:Slider name="shake" label="Screen shake" low-value="0" high-value="100" class="jk-option" />
+            <ui:Toggle name="pixel-look" label="Pixel look (retro low resolution)" class="jk-option" />
             <ui:Button name="difficulty" text="Difficulty: Normal" class="jk-option jk-stepper" />
             <ui:Label name="difficulty-info" text="" class="jk-option-info" />
             <ui:Toggle name="fullscreen" label="Fullscreen" class="jk-option" />

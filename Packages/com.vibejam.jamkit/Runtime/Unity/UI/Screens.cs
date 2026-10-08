@@ -42,7 +42,7 @@ namespace JamKit.Shell
     public sealed class SettingsScreen : ShellScreen
     {
         Slider _master, _music, _sfx, _sensitivity, _shake;
-        Toggle _invertY, _fullscreen;
+        Toggle _invertY, _fullscreen, _pixelLook;
         Button _difficulty;
         Label _difficultyInfo;
 
@@ -58,6 +58,12 @@ namespace JamKit.Shell
             _invertY = Toggle("invert-y", v => S.invertY = v);
             _fullscreen = Toggle("fullscreen", v => S.fullscreen = v);
             SetShown(_fullscreen, FullscreenAvailable);
+            _pixelLook = Root.Q<Toggle>("pixel-look");
+            _pixelLook?.RegisterValueChangedCallback(e =>
+            {
+                S.pixelLook = e.newValue;
+                Changed();
+            });
 
             _difficulty = Bind("difficulty", () => StepDifficulty(1));
             _difficulty?.RegisterCallback<NavigationMoveEvent>(e =>
@@ -147,6 +153,8 @@ namespace JamKit.Shell
             Set(_shake, s.screenShake * 100f);
             _invertY?.SetValueWithoutNotify(s.invertY);
             _fullscreen?.SetValueWithoutNotify(s.fullscreen);
+            _pixelLook?.SetValueWithoutNotify(s.pixelLook);
+            SetShown(_pixelLook, GameRoot.Exists && GameRoot.Config.showPixelLookSetting);
             RefreshDifficulty();
         }
 

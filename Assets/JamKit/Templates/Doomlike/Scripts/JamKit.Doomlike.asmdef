@@ -1,0 +1,19 @@
+{
+    "name": "JamKit.Doomlike",
+    "rootNamespace": "JamKit.Doomlike",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "Unity.InputSystem",
+        "Unity.AI.Navigation"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

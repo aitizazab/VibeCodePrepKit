@@ -1,0 +1,29 @@
+{
+    "name": "JamKit.Doomlike.EditorTests",
+    "rootNamespace": "JamKit.Doomlike.Tests",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "JamKit.Editor",
+        "JamKit.Doomlike",
+        "JamKit.Doomlike.Editor",
+        "Unity.AI.Navigation",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

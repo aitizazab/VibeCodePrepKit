@@ -55,6 +55,10 @@ namespace JamKit.Shell
         [Tooltip("The debug menu (` or F1) always works in the editor and development builds. Tick this to allow it in release builds too.")]
         public bool allowDebugMenuInRelease;
 
+        [Header("Settings screen")]
+        [Tooltip("Show the Pixel look toggle (games with a low-resolution render, like the DOOM-like template).")]
+        public bool showPixelLookSetting;
+
         public Portrait FindPortrait(string id)
         {
             if (portraits == null || string.IsNullOrEmpty(id)) return null;
