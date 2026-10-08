@@ -23,6 +23,8 @@ if (Test-Path $log) { Remove-Item $log }
 Write-Host "smoke: $Exe -jamSmoke $Seconds"
 $started = Get-Date
 $p = Start-Process -FilePath $Exe -ArgumentList @('-batchmode', '-nographics', '-jamSmoke', "$Seconds", '-logFile', "`"$log`"") -PassThru -NoNewWindow
+# Windows PowerShell only fills ExitCode later if the handle was read while the process ran.
+$null = $p.Handle
 # The player has its own watchdog; this one only catches a hang (it never quits).
 if (-not $p.WaitForExit(($Seconds + 90) * 1000)) {
     Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue

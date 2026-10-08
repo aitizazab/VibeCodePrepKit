@@ -213,9 +213,22 @@ namespace JamKit.Shell
             return SceneRole.Gameplay;
         }
 
+        // In a player the first scene is already loaded when GameRoot is created (BeforeSceneLoad),
+        // and sceneLoaded doesn't fire for it, so Start handles it. The editor does fire it; the
+        // handle check makes sure each scene is handled once either way.
+        int _handledScene = -1;
+
+        void Start()
+        {
+            var active = SceneManager.GetActiveScene();
+            if (active.IsValid() && active.isLoaded) OnSceneLoaded(active, LoadSceneMode.Single);
+        }
+
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (mode != LoadSceneMode.Single) return;
+            if (scene.handle == _handledScene) return;
+            _handledScene = scene.handle;
             var role = RoleOf(scene.name);
             if (role == SceneRole.Ignored) return;
             // Our listener hears the shell's sounds; if the scene brings its own (a camera's), use that one.
