@@ -3,8 +3,8 @@
 # Each: switch template -> Windows build -> copy to Builds/Play/<Template>/. Restores the active
 # template at the end so tracked files (GameConfig, EditorBuildSettings) end where they started.
 param(
-    [string[]]$Templates = @('BulletHell', 'Doomlike'),
-    [string]$RestoreTo = 'Doomlike'
+    [string[]]$Templates = @('BulletHell', 'Doomlike', 'Story'),
+    [string]$RestoreTo = 'Story'
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\unity-env.ps1"
@@ -12,6 +12,7 @@ $switch = @{
     Sandbox    = 'JamKit.Sandbox.EditorTools.SandboxTemplate.UseFromCommandLine'
     BulletHell = 'JamKit.BulletHell.EditorTools.BulletHellTemplate.UseFromCommandLine'
     Doomlike   = 'JamKit.Doomlike.EditorTools.DoomlikeTemplate.UseFromCommandLine'
+    Story      = 'JamKit.Narrative.EditorTools.StoryTemplate.UseFromCommandLine'
 }
 function Use-Template([string]$name) {
     Assert-ProjectUnlocked
