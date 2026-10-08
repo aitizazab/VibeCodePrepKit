@@ -15,11 +15,11 @@ EditorBuildSettings:
     path: Assets/JamKit/Templates/Story/Scenes/Story.unity
     guid: d8517cdd3bd852741bd891c9bc8938cb
   - enabled: 1
-    path: Assets/JamKit/Scenes/Sandbox.unity
-    guid: 9d1da31e6ecb0034d89cbda65b4c21a3
-  - enabled: 1
     path: Assets/JamKit/Templates/BulletHell/Scenes/BulletHell.unity
     guid: 6257f3702d0f96143829e1eff664930b
+  - enabled: 1
+    path: Assets/JamKit/Scenes/Sandbox.unity
+    guid: 9d1da31e6ecb0034d89cbda65b4c21a3
   - enabled: 1
     path: Assets/JamKit/Templates/Doomlike/Scenes/Doomlike.unity
     guid: f3e48b19f8fba2048bfa9bdd16013008
