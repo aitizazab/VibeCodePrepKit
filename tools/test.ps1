@@ -9,6 +9,11 @@ $bad = @()
 if ($Only -in 'All', 'Core') {
     & dotnet test (Join-Path $RepoRoot 'core-tests\All\All.Tests.csproj') --nologo -v q
     if ($LASTEXITCODE -ne 0) { $bad += 'Core' }
+    # Same sources against Unity's own NUnit 3.5 (compile only; needs one Unity open first)
+    if (Test-Path (Join-Path $RepoRoot 'Library\PackageCache')) {
+        & dotnet build (Join-Path $RepoRoot 'core-tests\UnityApi\UnityApi.Check.csproj') --nologo -v q
+        if ($LASTEXITCODE -ne 0) { $bad += 'Core-UnityNUnit' }
+    }
 }
 
 foreach ($platform in 'EditMode', 'PlayMode') {

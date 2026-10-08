@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using JamKit.Roguelite;
 using NUnit.Framework;
 
@@ -175,7 +175,7 @@ namespace JamKit.Tests
             draft.Offer(pool, new UpgradeInventory(), 3, rng, first);
             draft.Reroll(pool, new UpgradeInventory(), 3, rng, second);
             Assert.That(second.Count, Is.EqualTo(3));
-            foreach (var d in second) Assert.That(first, Does.Not.Contain(d));
+            foreach (var d in second) Assert.That(first.Contains(d), Is.False, d.id);
 
             // only 4 in the pool: a reroll of 3 must bring back some of the last ones, still distinct
             var small = Pool(4);

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Compile-only check: the whole core and its tests against the nunit.framework.dll Unity ships
+    (NUnit 3.5, in Library/PackageCache after the first Unity open). Nothing runs here; it only has
+    to build. Imports nothing from Directory.Build.props' test packages.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <IsTestProject>false</IsTestProject>
+    <NoWarn>$(NoWarn);MSB3270;MSB3277</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Remove="Microsoft.NET.Test.Sdk" />
+    <PackageReference Remove="NUnit" />
+    <PackageReference Remove="NUnit3TestAdapter" />
+    <UnityNUnit Include="$(MSBuildThisFileDirectory)..\..\Library\PackageCache\com.unity.ext.nunit@*\net40\unity-custom\nunit.framework.dll" />
+    <Reference Include="nunit.framework">
+      <HintPath>@(UnityNUnit)</HintPath>
+    </Reference>
+    <Compile Include="$(PkgRoot)Runtime\Core\**\*.cs" Exclude="$(PkgRoot)Runtime\Core\Shared\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\**\*.cs" Exclude="$(PkgRoot)Tests\Core\Shared\**\*.cs" />
+  </ItemGroup>
+  <Target Name="RequireUnityNUnit" BeforeTargets="ResolveAssemblyReferences" Condition="'@(UnityNUnit)' == ''">
+    <Error Text="Unity's nunit.framework.dll not found under Library/PackageCache: open the project in Unity once first." />
+  </Target>
+</Project>
