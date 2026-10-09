@@ -1,0 +1,195 @@
+using System;
+
+namespace JamKit.Movement
+{
+    /// <summary>
+    /// Every number of the Titanfall-style movement (docs/MOVEMENT.md explains each one, and
+    /// docs/RESEARCH-MOVEMENT.md section 4 where the starting values come from). Metres, seconds,
+    /// m/s and degrees. Serializable with public fields so a ScriptableObject or a component can
+    /// hold it and the inspector can tune it live.
+    /// </summary>
+    [Serializable]
+    public class MoveDef
+    {
+        // ---------- Simulation ----------
+        /// <summary>Fixed simulation rate (steps per second). Air strafing depends on it, so it is fixed.</summary>
+        public float tickRate = 120f;
+        /// <summary>At most this many steps per rendered frame (a long hitch drops the rest).</summary>
+        public int maxStepsPerFrame = 6;
+
+        // ---------- Body ----------
+        public float radius = 0.38f;
+        public float standHeight = 1.7f;
+        /// <summary>Capsule height while sliding or crouched (fits under 1.1 m bars).</summary>
+        public float slideHeight = 1.0f;
+        public float eyeHeight = 1.5f;
+        public float slideEyeHeight = 0.8f;
+        /// <summary>Seconds to blend the eye between standing and sliding heights.</summary>
+        public float eyeBlendTime = 0.12f;
+        /// <summary>Steepest walkable ground, degrees.</summary>
+        public float slopeLimit = 50f;
+        /// <summary>When grounded, ground within this distance below pulls you down (slopes, small drops).</summary>
+        public float groundSnap = 0.4f;
+        /// <summary>Ground closer than this counts as standing on it.</summary>
+        public float groundEpsilon = 0.08f;
+
+        // ---------- Ground ----------
+        public float walkSpeed = 5f;
+        /// <summary>Running speed (the DOOM-like template's run speed).</summary>
+        public float sprintSpeed = 9.5f;
+        public float crouchSpeed = 3f;
+        /// <summary>On (default): moving forward always sprints. Off: hold Sprint.</summary>
+        public bool autoSprint = true;
+        /// <summary>Source "accelerate": reaches full speed in about 1/accel seconds.</summary>
+        public float groundAccel = 10f;
+        /// <summary>Source friction (speed lost per second, proportional to speed).</summary>
+        public float friction = 6f;
+        /// <summary>Below this speed friction is constant, so you really stop.</summary>
+        public float stopSpeed = 2.5f;
+        /// <summary>Speed above sprint (from a slide boost, a wall jump) fades at this rate per second
+        /// while you keep moving, instead of friction: the momentum lingers.</summary>
+        public float overspeedDecay = 1.5f;
+        /// <summary>No ground friction for this long after landing (a wide bunny-hop / chain window).</summary>
+        public float landingGrace = 0.15f;
+        /// <summary>A stick pushed this far counts as fully pushed (gamepad players reach sprint).</summary>
+        public float stickFullAt = 0.7f;
+
+        // ---------- Jumps ----------
+        public float gravity = 24f;
+        /// <summary>Ground jump height (7.75 m/s at gravity 24).</summary>
+        public float jumpHeight = 1.25f;
+        /// <summary>Extra height of the double jump.</summary>
+        public float doubleJumpHeight = 1.0f;
+        /// <summary>The double jump can't fire this soon after a jump.</summary>
+        public float doubleJumpLockout = 0.1f;
+        /// <summary>How far the double jump turns your flight toward the stick (0 none, 1 all the way). Speed is kept.</summary>
+        public float doubleJumpRedirect = 0.5f;
+        /// <summary>A double jump from a near standstill pushes you at least this fast toward the stick.</summary>
+        public float doubleJumpMinSpeed = 4f;
+        /// <summary>Jump still works this long after walking off a ledge.</summary>
+        public float coyoteTime = 0.12f;
+        /// <summary>A jump pressed this long before landing (or reaching a wall) still fires.</summary>
+        public float jumpBuffer = 0.12f;
+
+        // ---------- Air ----------
+        /// <summary>Source air accelerate (air strafing).</summary>
+        public float airAccel = 12f;
+        /// <summary>Source air speed cap (0.8 m/s = 30 Quake units): small, so strafing gains slowly.</summary>
+        public float airCap = 0.8f;
+        /// <summary>Gentle extra air steering up to this speed, so standing jumps can be aimed.</summary>
+        public float airControlSpeed = 5f;
+        public float airControlAccel = 2f;
+        /// <summary>Horizontal speed never goes above this (about 2.3x sprint).</summary>
+        public float maxHorizontalSpeed = 22f;
+        public float terminalFall = 40f;
+
+        // ---------- Slide ----------
+        /// <summary>Crouch at or above this speed starts a slide.</summary>
+        public float slideMinSpeed = 6.5f;
+        /// <summary>Speed added when a slide starts (once per cooldown).</summary>
+        public float slideBoost = 3f;
+        public float slideBoostCooldown = 2f;
+        /// <summary>The boost never takes you above this cap...</summary>
+        public float slideBoostMaxSpeed = 13f;
+        /// <summary>...and the cap drops by this much per second of recent sliding (Titanfall 2: the cap decays the
+        /// longer you slide). Recent sliding wears off at 1 s per second off the slide.</summary>
+        public float slideCapDecay = 1.5f;
+        /// <summary>Slide deceleration for the first <see cref="slideEarlyTime"/> seconds, then <see cref="slideDecel"/>.</summary>
+        public float slideDecelEarly = 2.5f;
+        public float slideEarlyTime = 0.6f;
+        public float slideDecel = 6f;
+        /// <summary>Downhill pull while sliding on a slope (1 = full gravity along the slope).</summary>
+        public float slideSlopeScale = 1f;
+        /// <summary>The slide ends below this speed.</summary>
+        public float slideExitSpeed = 4f;
+        /// <summary>Steering while sliding, degrees per second.</summary>
+        public float slideTurnRate = 60f;
+        /// <summary>A jump out of a slide is this fraction of a full jump (all horizontal speed is kept).</summary>
+        public float slideJumpScale = 0.9f;
+        /// <summary>Crouch pressed this long before landing turns the landing into a slide (slide hop).</summary>
+        public float slideHopBuffer = 0.2f;
+
+        // ---------- Wallrun ----------
+        public float wallMinSpeed = 5f;
+        /// <summary>Only this high above the ground or more.</summary>
+        public float wallMinHeight = 0.6f;
+        /// <summary>Walls must be near vertical: |normal.y| at most this.</summary>
+        public float wallMaxNormalY = 0.25f;
+        /// <summary>Moving along the wall, not into it: dot(direction, wall tangent) at least this (70 degrees).</summary>
+        public float wallMinAlongDot = 0.34f;
+        /// <summary>The stick may not push away from the wall more than this (dot(wish, -normal)).</summary>
+        public float wallMinTowardDot = -0.1f;
+        /// <summary>Wall probes: from this height above the feet, sphere radius, reach beyond the body radius.</summary>
+        public float wallProbeHeight = 1.0f;
+        public float wallProbeRadius = 0.25f;
+        public float wallProbeReach = 0.35f;
+        /// <summary>Wallrun goal speed. Titanfall 2 measured 340 u/s = 8.64 m/s (docs/RESEARCH-MOVEMENT.md 9):
+        /// slower entries accelerate up to it, faster ones are slowed toward it by wall friction, so a quick
+        /// wall kick keeps the most speed.</summary>
+        public float wallRunSpeed = 8.64f;
+        /// <summary>Acceleration up to the goal while holding forward (m/s per second).</summary>
+        public float wallRunAccel = 6f;
+        /// <summary>Wall friction above the goal: the excess fades at this rate per second (exponential).</summary>
+        public float wallRunFriction = 2f;
+        /// <summary>Holding no direction (or into the wall) brakes toward 0 at this Source friction; backwards twice as hard.</summary>
+        public float wallNeutralFriction = 4f;
+        /// <summary>Forward input along the wall at least this (dot(wish, tangent)) counts as holding forward.</summary>
+        public float wallForwardDot = 0.3f;
+        /// <summary>Longest wallrun, seconds (Titanfall 2: 1.75 s).</summary>
+        public float wallRunDuration = 1.75f;
+        /// <summary>Gravity scale on the wall: nearly weightless at first, sinking later.</summary>
+        public float wallGravityStart = 0.1f;
+        public float wallGravityEnd = 0.8f;
+        /// <summary>Fastest sink on the wall: from this at the start to <see cref="wallSinkEnd"/> at the end.</summary>
+        public float wallSinkStart = 1f;
+        public float wallSinkEnd = 6f;
+        /// <summary>A small push into the wall keeps contact.</summary>
+        public float wallStick = 0.5f;
+        /// <summary>Losing the wall for longer than this ends the run (bridges seams).</summary>
+        public float wallLostGrace = 0.1f;
+        /// <summary>The run ends when the speed along the wall drops below this.</summary>
+        public float wallExitSpeed = 4f;
+        /// <summary>The stick pointing away from the wall (dot(wish, normal) over this) ends the run at once (Titanfall 2).</summary>
+        public float wallAwayDot = 0.5f;
+        /// <summary>Wall jump, Titanfall 2 measured: always this much along the wall normal (205 u/s)...</summary>
+        public float wallJumpOut = 5.21f;
+        /// <summary>...plus up to this along the wall, scaled by how much the stick points along it (75 u/s)...</summary>
+        public float wallJumpAlong = 1.91f;
+        /// <summary>...minus up to this along the normal when the stick points into the wall (172 u/s x dot(wish, -normal)).</summary>
+        public float wallJumpInward = 4.37f;
+        /// <summary>Crouch held during a wall jump adds this along the normal (crouch kick, 70 u/s).</summary>
+        public float wallJumpCrouchKick = 1.78f;
+        /// <summary>Upward speed of a wall jump (same as a ground jump by default).</summary>
+        public float wallJumpUp = 7.75f;
+        /// <summary>A wall jump this soon after touching the wall is a "wall kick" (5 ticks at 60 Hz): it has lost almost nothing to wall friction.</summary>
+        public float wallKickWindow = 0.083f;
+        /// <summary>Jump still counts as a wall jump this long after leaving a wall.</summary>
+        public float wallCoyote = 0.2f;
+        /// <summary>The same wall can be caught again only this much lower than where you left it (or after touching ground).</summary>
+        public float sameWallDrop = 0.1f;
+        /// <summary>Walls whose normals differ by less than this (degrees) count as the same wall (Titanfall 2: a 25 degree curve is a new wall).</summary>
+        public float sameWallAngle = 25f;
+
+        // ---------- Mantle ----------
+        /// <summary>Ledges this high above the feet (and up to <see cref="mantleMaxHeight"/>) pull you up.</summary>
+        public float mantleMinHeight = 0.4f;
+        public float mantleMaxHeight = 1.9f;
+        /// <summary>How close the ledge face must be (beyond the body radius).</summary>
+        public float mantleReach = 0.6f;
+        /// <summary>Not when falling faster than this.</summary>
+        public float mantleMaxFall = 10f;
+        /// <summary>Mantle time = base + perMetre x height.</summary>
+        public float mantleBaseTime = 0.2f;
+        public float mantlePerMetre = 0.07f;
+        /// <summary>You leave a mantle at max(keep x entry speed, min).</summary>
+        public float mantleSpeedKeep = 0.8f;
+        public float mantleExitSpeed = 5f;
+
+        public float JumpSpeed => (float)Math.Sqrt(2.0 * gravity * jumpHeight);
+        public float DoubleJumpSpeed => (float)Math.Sqrt(2.0 * gravity * doubleJumpHeight);
+        public float StepSeconds => 1f / (tickRate > 1f ? tickRate : 1f);
+        public float WalkableMinNormalY => (float)Math.Cos(slopeLimit * Math.PI / 180.0);
+
+        public MoveDef Clone() => (MoveDef)MemberwiseClone();
+    }
+}

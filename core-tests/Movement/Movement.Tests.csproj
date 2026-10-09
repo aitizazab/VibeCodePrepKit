@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared + Movement (the Titanfall-style movement core, the Movement Lab's course, autopilot and chase);
+       the rest comes from Directory.Build.props. -->
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\Movement\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Movement\**\*.cs" />
+  </ItemGroup>
+</Project>
