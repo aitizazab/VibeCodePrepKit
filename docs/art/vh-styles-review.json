@@ -1,0 +1,362 @@
+{
+ "name": "visiting-hours-styles",
+ "title": "Visiting Hours: five style options",
+ "subtitle": "The same subjects in five styles, made 2026-10-09/10 with Flow (0 credits): Walt in his billboard pose, Nadia, Mags, the dream street as a first-person concept for the 3D engine, and the hospital corridor at night. E is your split: the waking world grounded, the dream cutesy, with the same characters in both. Green = my pick for each subject, blue = the alternate.",
+ "questions": [
+  "Which style: A cut-paper, B storybook, C cel-shaded, D crayon sketchbook, or E the split?",
+  "Does each neutral pose say who they are? Walt wiping his hands on a rag, Nadia guarded with her phone, Mags with her mug.",
+  "Does the split (E) work: is the jump from the grounded waking world to the cute dream strong enough, or should the dream be even more childlike?",
+  "Do the street frames give the 3D build a clear target (real houses, lawns, depth), or should the street be simpler and blockier so it's buildable?",
+  "Mix and match? For example B's warmth for the dream with A's flatness for the hospital."
+ ],
+ "notes": [
+  "Model: Flow's Nano Banana Pro hit its usage limit after the first two Walts (A and B). Everything else is Nano Banana 2.1 (the new model that replaced Nano Banana 2 today). Quality looked comparable, but A and B's Walt are Pro.",
+  "Honest weak spots: C's environment frames read more like western cartoon backgrounds than anime. D and E's dream register came out close to each other (both crayon), so E differs from D mostly by having the grounded waking-world half. E's dream 'something faintly wrong' is subtle at best (Nadia's blank stare is the closest).",
+  "No cut-outs were made for this exploration; the characters are on plain backgrounds, so whichever style wins can be cut out later.",
+  "The earlier painterly set (visiting-hours-art.html) is untouched."
+ ],
+ "sections": [
+  {
+   "title": "A. Flat cut-paper cartoon",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-A-walt-take1.jpg",
+     "label": "A: Walt (billboard pose)",
+     "verdict": "pick",
+     "note": "Walt is each style's anchor: the rest of the set was drawn with him attached as the style reference."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-A-walt-take3.jpg",
+     "label": "A: Walt (billboard pose) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-A-nadia-take2.jpg",
+     "label": "A: Nadia",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-A-nadia-take3.jpg",
+     "label": "A: Nadia (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-A-mags-take1.jpg",
+     "label": "A: Mags",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-A-mags-take2.jpg",
+     "label": "A: Mags (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-A-street-take1.jpg",
+     "label": "A: The dream street, first person",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-A-street-take2.jpg",
+     "label": "A: The dream street, first person (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-A-corridor-take1.jpg",
+     "label": "A: The hospital corridor at night",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-A-corridor-take2.jpg",
+     "label": "A: The hospital corridor at night (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "B. Soft storybook cartoon",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-B-walt-take1.jpg",
+     "label": "B: Walt (billboard pose)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-B-walt-take3.jpg",
+     "label": "B: Walt (billboard pose) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-B-nadia-take1.jpg",
+     "label": "B: Nadia",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-B-nadia-take2.jpg",
+     "label": "B: Nadia (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-B-mags-take1.jpg",
+     "label": "B: Mags",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-B-mags-take2.jpg",
+     "label": "B: Mags (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-B-street-take1.jpg",
+     "label": "B: The dream street, first person",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-B-street-take2.jpg",
+     "label": "B: The dream street, first person (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-B-corridor-take2.jpg",
+     "label": "B: The hospital corridor at night",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-B-corridor-take1.jpg",
+     "label": "B: The hospital corridor at night (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "C. Clean cel-shaded, anime-adjacent",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-C-walt-take7.jpg",
+     "label": "C: Walt (billboard pose)",
+     "verdict": "pick",
+     "note": "Both takes shown are from a second round: the first round came out as western comic line art with soft blotchy shading, so I pushed the prompt to flat anime cel fills."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-C-walt-take6.jpg",
+     "label": "C: Walt (billboard pose) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-C-nadia-take1.jpg",
+     "label": "C: Nadia",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-C-nadia-take2.jpg",
+     "label": "C: Nadia (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-C-mags-take1.jpg",
+     "label": "C: Mags",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-C-mags-take2.jpg",
+     "label": "C: Mags (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-C-street-take1.jpg",
+     "label": "C: The dream street, first person",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-C-street-take2.jpg",
+     "label": "C: The dream street, first person (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-C-corridor-take1.jpg",
+     "label": "C: The hospital corridor at night",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-C-corridor-take2.jpg",
+     "label": "C: The hospital corridor at night (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "D. Crayon and pastel sketchbook",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-D-walt-take3.jpg",
+     "label": "D: Walt (billboard pose)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-D-walt-take2.jpg",
+     "label": "D: Walt (billboard pose) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-D-nadia-take1.jpg",
+     "label": "D: Nadia",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-D-nadia-take2.jpg",
+     "label": "D: Nadia (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-D-mags-take2.jpg",
+     "label": "D: Mags",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-D-mags-take1.jpg",
+     "label": "D: Mags (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-D-street-take1.jpg",
+     "label": "D: The dream street, first person",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-D-street-take2.jpg",
+     "label": "D: The dream street, first person (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-D-corridor-take1.jpg",
+     "label": "D: The hospital corridor at night",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-D-corridor-take2.jpg",
+     "label": "D: The hospital corridor at night (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "E. The split: grounded waking world, cutesy dream",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-walt-real-take2.jpg",
+     "label": "E: Walt, waking-world register",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-walt-real-take4.jpg",
+     "label": "E: Walt, waking-world register (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-walt-dream-take1.jpg",
+     "label": "E: Walt, dream register",
+     "verdict": "pick",
+     "note": "Drawn from the waking-world Walt, so he stays the same man."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-walt-dream-take3.jpg",
+     "label": "E: Walt, dream register (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-nadia-real-take1.jpg",
+     "label": "E: Nadia, waking-world register",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-nadia-real-take2.jpg",
+     "label": "E: Nadia, waking-world register (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-nadia-dream-take2.jpg",
+     "label": "E: Nadia, dream register",
+     "verdict": "pick",
+     "note": "Drawn from the waking-world Nadia plus the dream Walt (for the style)."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-nadia-dream-take1.jpg",
+     "label": "E: Nadia, dream register (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-street-take1.jpg",
+     "label": "E: The dream street (dream register)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-street-take2.jpg",
+     "label": "E: The dream street (dream register) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-corridor-take2.jpg",
+     "label": "E: The hospital corridor (waking register)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\style-E-corridor-take1.jpg",
+     "label": "E: The hospital corridor (waking register) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  }
+ ]
+}

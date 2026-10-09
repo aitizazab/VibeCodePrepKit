@@ -1,7 +1,18 @@
 {
- "subtitle": "",
- "questions": [],
- "notes": [],
+ "subtitle": "The same subjects in five styles, made 2026-10-09/10 with Flow (0 credits): Walt in his billboard pose, Nadia, Mags, the dream street as a first-person concept for the 3D engine, and the hospital corridor at night. E is your split: the waking world grounded, the dream cutesy, with the same characters in both. Green = my pick for each subject, blue = the alternate.",
+ "questions": [
+  "Which style: A cut-paper, B storybook, C cel-shaded, D crayon sketchbook, or E the split?",
+  "Does each neutral pose say who they are? Walt wiping his hands on a rag, Nadia guarded with her phone, Mags with her mug.",
+  "Does the split (E) work: is the jump from the grounded waking world to the cute dream strong enough, or should the dream be even more childlike?",
+  "Do the street frames give the 3D build a clear target (real houses, lawns, depth), or should the street be simpler and blockier so it's buildable?",
+  "Mix and match? For example B's warmth for the dream with A's flatness for the hospital."
+ ],
+ "notes": [
+  "Model: Flow's Nano Banana Pro hit its usage limit after the first two Walts (A and B). Everything else is Nano Banana 2.1 (the new model that replaced Nano Banana 2 today). Quality looked comparable, but A and B's Walt are Pro.",
+  "Honest weak spots: C's environment frames read more like western cartoon backgrounds than anime. D and E's dream register came out close to each other (both crayon), so E differs from D mostly by having the grounded waking-world half. E's dream 'something faintly wrong' is subtle at best (Nadia's blank stare is the closest).",
+  "No cut-outs were made for this exploration; the characters are on plain backgrounds, so whichever style wins can be cut out later.",
+  "The earlier painterly set (visiting-hours-art.html) is untouched."
+ ],
  "sections": [
   {
    "title": "A. Flat cut-paper cartoon",
@@ -10,7 +21,8 @@
     {
      "label": "A: Walt (billboard pose)",
      "pick": "style-A-walt-take1.jpg",
-     "alt": "style-A-walt-take3.jpg"
+     "alt": "style-A-walt-take3.jpg",
+     "note": "Walt is each style's anchor: the rest of the set was drawn with him attached as the style reference."
     },
     {
      "label": "A: Nadia",
@@ -71,28 +83,29 @@
    "items": [
     {
      "label": "C: Walt (billboard pose)",
-     "pick": "style-C-walt-take1.jpg",
-     "alt": ""
+     "pick": "style-C-walt-take7.jpg",
+     "alt": "style-C-walt-take6.jpg",
+     "note": "Both takes shown are from a second round: the first round came out as western comic line art with soft blotchy shading, so I pushed the prompt to flat anime cel fills."
     },
     {
      "label": "C: Nadia",
      "pick": "style-C-nadia-take1.jpg",
-     "alt": ""
+     "alt": "style-C-nadia-take2.jpg"
     },
     {
      "label": "C: Mags",
      "pick": "style-C-mags-take1.jpg",
-     "alt": ""
+     "alt": "style-C-mags-take2.jpg"
     },
     {
      "label": "C: The dream street, first person",
      "pick": "style-C-street-take1.jpg",
-     "alt": ""
+     "alt": "style-C-street-take2.jpg"
     },
     {
      "label": "C: The hospital corridor at night",
      "pick": "style-C-corridor-take1.jpg",
-     "alt": ""
+     "alt": "style-C-corridor-take2.jpg"
     }
    ]
   },
@@ -133,33 +146,35 @@
    "items": [
     {
      "label": "E: Walt, waking-world register",
-     "pick": "style-E-walt-real-take1.jpg",
-     "alt": ""
+     "pick": "style-E-walt-real-take2.jpg",
+     "alt": "style-E-walt-real-take4.jpg"
     },
     {
      "label": "E: Walt, dream register",
      "pick": "style-E-walt-dream-take1.jpg",
-     "alt": ""
+     "alt": "style-E-walt-dream-take3.jpg",
+     "note": "Drawn from the waking-world Walt, so he stays the same man."
     },
     {
      "label": "E: Nadia, waking-world register",
      "pick": "style-E-nadia-real-take1.jpg",
-     "alt": ""
+     "alt": "style-E-nadia-real-take2.jpg"
     },
     {
      "label": "E: Nadia, dream register",
-     "pick": "style-E-nadia-dream-take1.jpg",
-     "alt": ""
+     "pick": "style-E-nadia-dream-take2.jpg",
+     "alt": "style-E-nadia-dream-take1.jpg",
+     "note": "Drawn from the waking-world Nadia plus the dream Walt (for the style)."
     },
     {
      "label": "E: The dream street (dream register)",
      "pick": "style-E-street-take1.jpg",
-     "alt": ""
+     "alt": "style-E-street-take2.jpg"
     },
     {
      "label": "E: The hospital corridor (waking register)",
-     "pick": "style-E-corridor-take1.jpg",
-     "alt": ""
+     "pick": "style-E-corridor-take2.jpg",
+     "alt": "style-E-corridor-take1.jpg"
     }
    ]
   }
