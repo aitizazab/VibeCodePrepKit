@@ -25,8 +25,6 @@ Read from the repo (not changed):
 | `core-tests/Doomlike/*.csproj` (`dotnet test`) | Pure rules are tested outside Unity. | The new movement core can be tested the same way (4.10). |
 | Project | Unity 6000.3.25f1, URP 17.3, Input System 1.20, Cinemachine 3.1.7. `Fixed Timestep` 0.02 (50 Hz). Browser builds are a target (`docs/TEMPLATE-DOOMLIKE.md`, "click to play"). | 50 Hz is coarse at 20 m/s (0.4 m per step). Run your own 120 Hz loop (4.9). |
 
-<!-- S1 -->
-
 ## 1. What Titanfall 2's pilot movement is
 
 **Engine.** "A heavily modified version of Valve's Source engine powers the game" **[Doc]**
@@ -93,8 +91,6 @@ general game-feel sources:
   wall-run write-up adds: [Medium](https://dude123code.medium.com/finally-a-good-wall-run-in-unity-4de42bcb7289).)
 - **Audio**: a wind layer that rises with speed, a slide scrape, a faster wallrun step cadence, a
   landing thud scaled by impact.
-
-<!-- S2 -->
 
 ## 2. The physics it descends from: Quake / Source
 
@@ -174,8 +170,6 @@ window is too hard for a narrative game, so widen it into a **landing friction g
 TF2's "crouch before landing" slide hop is the same idea: a slide has almost no friction, so landing
 into one keeps your speed.
 
-<!-- S3 -->
-
 ## 3. Unity implementation options
 
 **Facts used:**
@@ -232,8 +226,6 @@ into one keeps your speed.
 
 Switch to KCC only if moving platforms or complex stairs become central. Avoid Rigidbody for the
 player.
-
-<!-- S4 -->
 
 ## 4. Implementation blueprint
 
@@ -418,8 +410,6 @@ Leave with `forward · max(0.6·entrySpeed, 5)`. The camera pitches down 3° and
 - A buffered jump fires on landing.
 - The same wall can't be re-attached at the same height.
 
-<!-- S5 -->
-
 ## 5. Open-source references and tutorials
 
 Licence, last push and stars come from the GitHub API on 2026-10-10. The quality notes are **[Op]**,
@@ -455,8 +445,6 @@ No credible open-source *Titanfall-complete* Unity controller turned up. Paid on
   (beginner level).
 - ["Finally, a good wall run in Unity"](https://dude123code.medium.com/finally-a-good-wall-run-in-unity-4de42bcb7289)
   (Rigidbody, with camera tilt and FOV).
-
-<!-- S6 -->
 
 ## 6. Designing escape and chase sequences around it
 
@@ -522,8 +510,6 @@ All of the following is [Op], drawn from the cases above.
   screen.
 - After 2-3 deaths at the same spot, quietly widen that spot (pursuer slower, a ledge highlighted).
 
-<!-- S7 -->
-
 ## 7. Risks for this team
 
 ### 7.1 Motion sickness
@@ -581,6 +567,130 @@ Keep the crosshair or a centre dot visible during fast motion (it gives the eye 
 4. The template's own `DoomPlayer` must not be broken. Build a new player class that reuses its
    look, bob and health code, rather than editing it.
 
+## 8. Feel: how speed is shown and heard
+
+Labels as before: **[Doc]** developer or engine docs, **[Comm]** community or press, **[Op]** my
+recommendation. Few studios document feel in numbers, so most parameters here are [Op] starting
+points.
+
+### 8.1 The visible first-person body
+
+| Game | What you see | Source |
+|---|---|---|
+| Mirror's Edge | Arms, legs and torso are visible; looking down you see yourself. A preview found that seeing her feet "came in handy during an early jump". DICE's fix for sickness was to "animate ones perceptions of movement and to not try and replicate the exact body movements". Its tuck-and-roll (a quick full camera pitch) was called "rather disorienting". | [Wurb blog](https://www.wurb.com/stack/?p=669), [Wikipedia](https://en.wikipedia.org/wiki/Mirror%27s_Edge), [Engadget (legs carried into BF3)](https://www.engadget.com/2012-08-13-how-mirrors-edge-gave-legs-and-more-to-battlefield-3.html) [Comm] |
+| Titanfall 2 | Arms and weapon. I found **no written source** for its wallrun or slide body animation (for example a hand on the wall). Check the IGN developer video (8.6 #6) or gameplay. | unverified |
+| Apex Legends | Extended TF2's knee slide so it keeps speed downhill and chains into jumps (SI feature, now offline). The movement Legend Axle's "Drift" adds speed and lateral control while sliding. | [EA](https://www.ea.com/news/apex-legends-s29-meet-axle) [Doc] |
+
+**What to build for the jam** [Op]: an **arms-only rig**, mostly procedural (springs plus a few
+poses), not a full body. Lower in priority order:
+1. **Sprint**: arms pump in sync with the footstep phase (reuse DoomPlayer's `_bob` phase).
+   Amplitude about 4 cm forward and back, 1.5 cm vertical; zero in the air.
+2. **Wallrun**: the wall-side hand reaches out to `wallHit.point + t̂·0.35 m` (Animation Rigging
+   Two-Bone IK, or just a lerped transform). The other arm swings normally. This is the cheapest
+   strong "I'm on the wall" cue.
+3. **Slide**: both hands drop and spread (balance pose). Optionally a simple shins/feet mesh rises
+   into the bottom 15% of the screen. This is the Mirror's Edge "see your feet" cue for distance
+   judgement.
+4. **Jump / double jump**: arms lift 3-5 cm on the jump. On the double jump they sweep down and back
+   (a "push off the air" pose), 0.15 s.
+5. **Landing**: the arms take the same dip spring as the camera (4.8), slightly later (an extra 0.03 s
+   delay) so they feel heavy.
+
+### 8.2 Camera and screen effects
+
+| Effect | Reception (what the community says) | Starting parameters [Op] |
+|---|---|---|
+| **FOV widening with speed** | Widening the FOV "makes the perspective deform faster, which gives a sense of motion"; many games do it subtly ([GDQuest](https://www.gdquest.com/library/glossary/field_of_view)). Players generally find a *higher* base FOV reduces sickness ([Ghostrunner guide](https://www.gamerevolution.com/?p=663792): start around 90). | +8° vertical at the 22 m/s cap (4.8), smoothed. Above about 100° horizontal, consider URP **Panini Projection**, which "helps render perspective views in scenes with a very wide field of view" ([URP](https://docs.unity3d.com/6000.3/Documentation/Manual/urp/Post-Processing-Panini-Projection.html)). |
+| **Wallrun roll** | Subtle tilt is standard. Big camera rotations (Mirror's Edge's roll) disorient. | 8°, slider (4.8). |
+| **Landing dip** | Standard and rarely criticised. | 0.1 m max (4.8). |
+| **Shake** | Trauma model from Squirrel Eiserloh's GDC 2016 "Juicing Your Cameras With Math": noise-driven offsets ∝ trauma², trauma decays. Bevy's reference uses decay 0.5/s, shake = trauma², max roll 10°, noise speed 20 ([Bevy](https://bevy.org/examples/camera/2d-screen-shake/)). | Far smaller in first person: max roll 1.5°, translation 0.02 m. Only on hard landings, collapses and near-miss grabs; **never continuous at speed**. Slider. |
+| **Speed lines** | A classic cheap cue: a BioWare developer recalls "just added some wind lines" to make sprinting horses feel faster ([Yahoo/Kotaku report](https://sg.news.yahoo.com/vile-treachery-ran-citadel-mass-214034627.html)) [Comm]. | Edge-only streaks, alpha `0.35·smoothstep(12, 20, speed)`. Never inside the central ~40% of the screen. |
+| **Motion blur** | The setting players most often turn off for nausea ([Lemmy thread](https://lemmy.ndlug.org/post/1628435/3245359), [Doom Steam thread](https://steamcommunity.com/app/782330/discussions/0/2264691750486371019)); the Ghostrunner guide suggests "Off" as the starting point [Comm]. Some like it in Doom Eternal. | URP Motion Blur **Camera Only** mode, Intensity 0.15, Clamp 0.02 (the default is 0.05) ([URP](https://docs.unity3d.com/6000.3/Documentation/Manual/urp/Post-Processing-Motion-Blur.html)). **Default off**, offered as an option. |
+| **Vignette at speed** | Research backs it: dynamically narrowing the FOV during fast motion "significantly reduced" VR sickness, and most participants didn't notice (Fernandes & Feiner, IEEE VR 2016, via [IEEE Spectrum](https://spectrum.ieee.org/dynamic-field-of-view-restriction-makes-virtual-reality-less-barfy)) [Doc, VR study]. | Intensity 0.15 → 0.32 with speed, smoothness 0.4. This doubles as a comfort feature, so keep it even when other effects are off. |
+| **Chromatic aberration** | Commonly disabled along with blur and DoF ([Lemmy](https://lemmy.ndlug.org/post/1628435/3245359)) [Comm]. | Only as a 0.2 s pulse on slide boost or wall jump, intensity ≤ 0.3. Off when "reduce effects" is on. |
+
+Note the tension: a **wider** FOV sells speed, while a **narrower** visible field (vignette) reduces
+sickness. Doing both (a modest FOV kick plus a soft vignette) gives speed without much extra optic
+flow at the edges [Op].
+
+### 8.3 Audio
+
+| Sound | How it behaves | Starting parameters [Op] |
+|---|---|---|
+| **Wind** | The main speed cue. Titanfall 2's audio team used "variables like speed, angle, distance, or health at runtime to create a much more dynamic mix" (Tyler Parsons, [A Sound Effect](https://asoundeffect.com/titanfall-2-sound/)) [Doc]. | Loop. Volume `smoothstep(6, 18, speed)`; low-pass cutoff 800 Hz → 8 kHz with speed; pitch 0.9 → 1.15. Slight extra on the side away from a wallrun wall. |
+| **Footsteps** | Cadence from distance travelled (DoomPlayer already does this with `footstepStride` 2.3 m). | At sprint, a stride of about 2.0 m gives ~4.7 steps/s; random pitch ±5%. |
+| **Slide** | TF2 has dedicated slide Foley (Parsons, same source). | A scrape loop starting with a short "drop" transient. Volume and pitch follow speed and fade out by 4 m/s. Boost: an extra "whoosh" layer. |
+| **Wallrun** | | Steps at 1.5× cadence, harder and brighter; plus a quiet shoe scrape loop. A "catch" transient on attach (the most important one: it confirms the wall took you). |
+| **Jump / double jump** | TF2's double jump is a jump-kit thrust ([Wikipedia](https://en.wikipedia.org/wiki/Titanfall_2)). | Jump: a cloth/breath whoosh. Double jump: a distinct thruster-like puff (in a dream world, a chime or "air pop"). The two must sound clearly different. |
+| **Landing** | | Thud gain `clamp01((|vy| − 3)/15)`, plus a low-frequency layer above 12 m/s. Soft landing into a slide = no thud, just the slide start. |
+| **Music** | Mirror's Edge Catalyst's score was described as adaptive, adjusting its tempo to the player's pace ([Xboxygen](https://www.xboxygen.com/?p=84006)) [Comm]. | Vertical layering is easier than tempo: 3 stems (base, drive, peak) whose volumes follow speed tiers (< 8, 8-13, > 13 m/s), with 1 s attack and 2 s release so a brief stumble doesn't drop the music. |
+
+### 8.4 Why going fast *stays* fun
+
+| Principle | Evidence |
+|---|---|
+| **Speed is kept when you chain well** | Respawn's TF2 goal: "accumulate and retain more speed when chaining wallruns" (section 1) [Doc]. |
+| **Restraint makes choices meaningful** | Doom Eternal's Hugo Martin: the dash has a cooldown and doesn't recharge in mid-air, deliberately, so players make smarter choices; traversal is a skill puzzle that becomes "second nature" ([Stevivor](https://stevivor.com/features/interviews/id-software-on-the-slayer-2-0-in-doom-eternal), [GameSpot](https://www.gamespot.com/articles/why-doom-eternal-incorporates-puzzle-platforming/1100-6473287/)) [Doc, via press]. |
+| **Mastery through replay** | Neon White: levels are easy to finish but reward finding faster routes on repeat ([Game Developer](https://www.gamedeveloper.com/road-to-igf-2023/-neon-white-and-designing-for-player-creativity)) [Doc]. |
+| **Cheap failure keeps the flow** | Ghostrunner: one-hit death plus many checkpoints makes "each section … like a mini-puzzle" ([Inverse](https://www.inverse.com/gaming/ghostrunner-interview-cyberpunk-hotline-miami)) [Doc]. |
+
+Rules for this game [Op]:
+1. **Every move outputs speed into the next one.** Wall-jump exits point at the next surface. Slide
+   ends feed into a jump. A mantle keeps 60% of the speed.
+2. **Speed tiers you can feel**: 3 tiers (running, fast, flying), each adding a sound layer, the FOV
+   step and speed lines. Players notice they've "levelled up" their momentum without a speedometer.
+3. **Losing speed is felt, not punished**: the wind drops and a music stem fades, but nothing fails.
+4. **Risk lines**: a faster line runs near the hazard (along the collapsing edge, a wallrun over the
+   pit), with a safe slower line beside it.
+5. **Visible reward**: in a chase, speed buys a bigger gap, which you can see and hear (the pursuer's
+   sound fades), plus small dream-world payoffs (the world blooms or colours brighten at the flying
+   tier).
+
+### 8.5 Unity URP implementation notes
+
+- **Arms on an overlay camera.** URP camera stacking: "A camera stack consists of a Base Camera and
+  one or more Overlay Cameras" ([URP](https://docs.unity3d.com/6000.3/Documentation/Manual/urp/cameras/camera-stacking-concepts.html)).
+  Render the arms layer on an overlay camera with a **fixed FOV (~60° vertical)** so the speed FOV
+  kick doesn't stretch the arms and the arms never clip into walls [Op].
+- **One "speed" Volume.** A second global Volume holding Vignette, Motion Blur (Camera Only) and
+  Chromatic Aberration. Drive `volume.weight = speed01 · userEffectsSlider` from script. The base
+  Volume keeps the grade, and the RetroCamera pixel look stays separate.
+- **Speed lines**: a camera-parented ParticleSystem with *Stretched Billboard* particles spawned in a
+  ring outside the central area, flying past the camera; emission rate ∝ `speed01`. Or a full-screen
+  Shader Graph material through URP's Full Screen Pass renderer feature. The particles are cheaper to
+  tune.
+- **Shake / dip / roll** as additive offsets on the existing `rig` transform (DoomPlayer already
+  separates `head` pitch from `rig` bob), applied after the fixed-step interpolation (4.9).
+  Cinemachine 3 (in the project) has Impulse, but the player doesn't use Cinemachine, so a custom
+  30-line trauma shake is simpler.
+- **Audio**: one AudioMixer group "Movement" with exposed parameters (wind volume, wind cutoff, music
+  stems). Drive them from the movement core's output (`speed`, `state`, events) once per frame with
+  smoothing. Movement sounds are 2D (spatial blend 0) and doppler is off.
+- **Browser builds**: motion blur and chromatic aberration cost full-screen passes. Gate them behind a
+  quality check and keep them off by default there.
+
+**Settings to add (extends 7.1):** *Reduce effects* (one toggle: blur, CA, speed lines and shake off;
+vignette kept), *Speed lines* 0-100%, *Motion blur* off/low.
+
+### 8.6 Videos likely to contain measured Titanfall 2 numbers (to transcribe)
+
+Found with a YouTube search via yt-dlp on 2026-10-10. Length and date come from the video metadata.
+"Why" is my guess, from each video's description and chapter list; **none has been transcribed yet**.
+
+| # | Video | Channel | Length | Date | Why it likely has numbers |
+|---|---|---|---|---|---|
+| 1 | [Jumping off walls is really complicated, actually](https://www.youtube.com/watch?v=Vk_RaEgux2Q) | zweek (speedrunner) | 27:49 | 2026-01 | Described as "a certified spreadsheet gaming moment". Chapters "The Lab", "Anatomy of a Wallkick", "Building our Model". The most likely source of measured wall-jump and wallkick velocities. |
+| 2 | [The ULTIMATE Movement Guide for Titanfall 2](https://www.youtube.com/watch?v=C_cXYyA4LaU) | bryonato | 43:44 | 2021-12 | The full reference: sliding, slidehopping, bhopping, air strafing, strafe lurch, "Rules of the Wall", wall-jump arc, wallkicks, **Coyote Time**, edge/end boost, crouch kicks. Likely states windows and speeds. |
+| 3 | [The mechanic that shaped Titanfall speedruns](https://www.youtube.com/watch?v=AjPSwwnKm1o) | zweek | 19:56 | 2022-04 | Strafe lurch explained in depth, including keyboard vs controller and TAS: likely lurch strength and timing windows. |
+| 4 | [Titanfall 2 – Tvcx's Ultimate Movement Guide](https://www.youtube.com/watch?v=uw-Do_JW3bI) | Tvcx | 16:05 | 2021-07 | Its first chapter is **"Different Speeds"** (0:21-1:48): likely speedometer readings for walk, sprint, slide, bhop and stim. |
+| 5 | [ADVANCED Movement Tutorial for TITANFALL 2](https://www.youtube.com/watch?v=0YHiBXUTHwU) | bryonato | 13:53 | 2020-03 | Spring jump, forced-end boost, no-lurch double jump and wall jump, circle jumps: probably speed gains per technique. |
+| 6 | [How Titanfall 2 Made Movement the Star of the Show – Art of the Level](https://www.youtube.com/watch?v=279q6NzJkrk) | IGN (with Respawn designer David Shaver) | 15:34 | 2022-09 | **Developer** commentary on *Into the Abyss*: design intent and teaching movement, probably not raw numbers. Best for 1 and 6 of this doc. |
+
+Backups: [The PERFECT Titanfall 2 Movement Guide](https://www.youtube.com/watch?v=SF3SAJ4jvRY) (Ask
+Heinzy, 20:25, with a "Source Thoughts" chapter); [The tech that nearly ruined Titanfall Speedruns](https://www.youtube.com/watch?v=Cwa0qbDx2dA)
+(zweek, 23:44); [Iniquity's Movement Guide](https://www.youtube.com/watch?v=yvzXFQKwH8k) (6:17, 2016,
+1.4 M views, mostly technique).
+
 ## Uncertain or unverified
 
 - **No Titanfall 2 speeds, timings or caps were found published.** The numbers here are Titanfall 1
@@ -595,4 +705,5 @@ Keep the crosshair or a centre dot visible during fast motion (it gives the eye 
   relying on it.
 - The repo quality notes in section 5 are from READMEs and metadata, not code review.
 - Every value in section 4 is a starting point, not a measured or proven value.
-
+- Section 8: I found no written source for Titanfall 2's first-person wallrun and slide body animation, or its movement audio beyond the slide Foley. Most feel parameters are my own starting points; the reception notes are player anecdotes, except the FOV-restriction study.
+- The 8.6 videos are chosen from titles, chapters and descriptions only. Whether they state numbers is a guess until they are transcribed.
