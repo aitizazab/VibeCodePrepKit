@@ -21,8 +21,10 @@ journal of facts and deductions, and Undertale-style argument battles. The story
   - **The Long Night** creeps up. It needs a hard-to-reach but slippery hidden despair value, and it locks in
     well before the end **through an innocuous choice** (for example, "Your phone is at 3%. The charger's across
     the room. Leave it?").
-  - **The rule-break (the Sans equivalent) is Lena:** in the Force route the battle box itself breaks; in the
-    Long Night it becomes gentle, empty and wrong. Not in the slice.
+  - **The rule-break (the Sans equivalent) is broader than battles** (the creator, 2026-10-09). In the Force
+    route it's **Lena as a character**: she breaks the game's rules wherever she appears, not only in her battle
+    box. In the Despair route it's **the whole route after the lock-in**: the game itself stops behaving normally,
+    and that's the uncanniness. Not in the slice.
 - **Teaching, each by someone it makes sense for:**
   - **Mags** explains the rig: movement and the journal.
   - **Nadia's charting habit** teaches recording facts (day 1).

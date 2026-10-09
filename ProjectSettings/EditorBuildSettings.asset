@@ -12,17 +12,20 @@ EditorBuildSettings:
     path: Assets/JamKit/Scenes/Title.unity
     guid: ebf6cb7d799f9994990a2d76b5cb4414
   - enabled: 1
-    path: Assets/JamKit/Templates/Story/Scenes/Story.unity
-    guid: d8517cdd3bd852741bd891c9bc8938cb
-  - enabled: 1
-    path: Assets/JamKit/Templates/BulletHell/Scenes/BulletHell.unity
-    guid: 6257f3702d0f96143829e1eff664930b
+    path: Assets/JamKit/Templates/VisitingHours/Scenes/VisitingHours.unity
+    guid: 3d33ab6ce2287114196cc134363f970d
   - enabled: 1
     path: Assets/JamKit/Scenes/Sandbox.unity
     guid: 9d1da31e6ecb0034d89cbda65b4c21a3
   - enabled: 1
+    path: Assets/JamKit/Templates/BulletHell/Scenes/BulletHell.unity
+    guid: 6257f3702d0f96143829e1eff664930b
+  - enabled: 1
     path: Assets/JamKit/Templates/Doomlike/Scenes/Doomlike.unity
     guid: f3e48b19f8fba2048bfa9bdd16013008
+  - enabled: 1
+    path: Assets/JamKit/Templates/Story/Scenes/Story.unity
+    guid: d8517cdd3bd852741bd891c9bc8938cb
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

@@ -15,6 +15,7 @@ $switch = @{
     BulletHell = 'JamKit.BulletHell.EditorTools.BulletHellTemplate.UseFromCommandLine'
     Doomlike   = 'JamKit.Doomlike.EditorTools.DoomlikeTemplate.UseFromCommandLine'
     Story      = 'JamKit.Narrative.EditorTools.StoryTemplate.UseFromCommandLine'
+    VisitingHours = 'JamKit.VisitingHours.EditorTools.VisitingHoursTemplate.UseFromCommandLine'
 }
 function Use-Template([string]$name) {
     Assert-ProjectUnlocked

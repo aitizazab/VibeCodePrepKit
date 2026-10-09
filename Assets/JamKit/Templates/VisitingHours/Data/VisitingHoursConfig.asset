@@ -401,6 +401,9 @@ MonoBehaviour:
     - 0.085
     - 0.08
   showZoneWords: 1
+  portraits:
+  - {fileID: 11400000, guid: 4be936235bed2ac40bd7300697f14eb0, type: 2}
+  - {fileID: 11400000, guid: 6978bebb024b418439363623713f5eac, type: 2}
   examinables:
   - id: chart
     area: 0
