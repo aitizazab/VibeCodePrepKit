@@ -17,6 +17,17 @@
  ],
  "sections": [
   {
+   "title": "The processed files (cut out, tiled), over a checkerboard",
+   "cols": 1,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\VibeJamKit\\docs\\art\\vh-final-sheet.jpg",
+     "label": "Everything in Assets/JamKit/Templates/VisitingHours/Art/",
+     "verdict": "pick"
+    }
+   ]
+  },
+  {
    "title": "Characters",
    "cols": 3,
    "items": [
