@@ -6,19 +6,13 @@ it picks the lines up from here.
 ## Elias's voicemail (you record it)
 Directions in (brackets); change those too.
 
-Hey, Nads. It's me. Could I bother you for a... (stops; realises the time) ...it's five in the morning. You're
-asleep. And your phone's probably dead again, isn't it. (a tired half-laugh) No cabs out here at this hour.
-Figures. (a long pause, deciding to say it) Look. About yesterday. I'm sorry. I shouldn't have said that.
-(pause) ...G'night.
+Hey, Nads. It's me. You still good for picking me up? ... Well, it's three in the morning. You're probably asleep, and you'd pick up if your phone wasn't dead anyways... Look. About yesterday. I'm sorry. I shouldn't have said that. It's not true, and it was rude of me to even imply it. I'll see if I can get a cab back home, or maybe call Lena... (pause) ...G'night.
 
 ## The news report (Nicole reads it, through the tablet's speaker)
-Two people have died and a third is in critical condition after an early-morning crash on Route Nine.
-Police say a car crossed the median shortly after six a.m. on Saturday.
-The driver, a thirty-four-year-old emergency physician, was taken to Saint Brigid's.
-The names of the victims, a woman and a ten-year-old boy, have not been released.
+Great Tragedy befell our district last night, as Doctor Elias Lasname and his family were caught in the crossfire between LeBaget and the WeWork corporation, as he drove back from his workplace. The doctor is in critical condition, being treated by the best at his own hospital, Saint Brigid. This reporter gives his condolences to the Good Doctor, and the town eagerly awaits the day he wakes from his coma.
 
 ## The tablet's scrolling headline (the text along the bottom of the video)
-ROUTE 9: TWO DEAD, DRIVER CRITICAL AFTER EARLY-MORNING CRASH
+ROUTE 9: THREE CASUALTIES OF EARLY-MORNING GANG VIOLENCE - DOCTOR IN CRITICAL CONDITION - WIFE MISSING
 
 ---
 Notes on how broadcast news is usually written (to use or ignore):
