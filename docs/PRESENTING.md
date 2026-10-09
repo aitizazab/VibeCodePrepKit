@@ -264,6 +264,10 @@ Rules:
 
 ## 7. Known limits
 
+- Presenter mode is quiet in the console: it logs its jumps, photos and attract steps only with
+  `-jamPresenterLog` (or in a `-jamSmoke` run, or while JamKit > Record films attract mode), so a game's
+  own tests aren't tripped by unexpected log lines. Warnings and errors always log.
+
 - Hide UI restores what it hid exactly, except in one case: game code that hides one of those
   elements *while* the UI is hidden gets it shown again on restore. The next update usually fixes it.
 - The photo's 2x supersampling uses `ScreenCapture`. Under `-nographics` (batch tests) it writes a

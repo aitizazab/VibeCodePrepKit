@@ -46,6 +46,7 @@ namespace JamKit.VisitingHours.Tests
             Assert.That(PresenterMode.Jump(VhPresenter.Scene, chapter), Is.EqualTo(JumpResult.Pending));
             yield return WaitFor(() => !PresenterMode.Chapters.HasPending && Game != null && SceneManager.GetActiveScene().name == VhPresenter.Scene,
                 "the slice to load and jump", 20f);
+            yield return WaitFor(() => GameRoot.Ui.FadeAlpha == 0f, "the scene's fade-in", 3f);
             yield return Frames(2);
         }
 

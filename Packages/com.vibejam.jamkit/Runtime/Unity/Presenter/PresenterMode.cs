@@ -60,9 +60,34 @@ namespace JamKit.Shell
             _photoFolder = null;
             _lastPhoto = "";
             _runner = null;
+            _verbose = VerboseRequested();
         }
 
         internal static void Attach(PresenterRunner runner) => _runner = runner;
+
+        static bool _verbose = VerboseRequested();
+
+        /// <summary>Log what presenter mode does ("jumped to...", "photo saved to...", attract on/off).
+        /// Off in normal play so a game's console and its tests stay clean; on in a -jamSmoke run, with
+        /// -jamPresenterLog, and while JamKit > Record drives attract mode. Warnings and errors always log.</summary>
+        public static bool Verbose
+        {
+            get => _verbose;
+            set => _verbose = value;
+        }
+
+        static bool VerboseRequested()
+        {
+            if (Application.platform == RuntimePlatform.WebGLPlayer) return false;
+            foreach (var a in Environment.GetCommandLineArgs())
+                if (a == "-jamPresenterLog" || a == "-jamSmoke") return true;
+            return false;
+        }
+
+        internal static void Note(string what)
+        {
+            if (_verbose) Debug.Log("JamKit presenter: " + what);
+        }
 
         public static ChapterRegistry Chapters => _chapters;
         public static PresenterTime Time => _time;
@@ -254,7 +279,7 @@ namespace JamKit.Shell
         {
             var r = _chapters.Jump(group, name);
             if (r == JumpResult.Failed) Debug.LogError("JamKit presenter: chapter \"" + name + "\" failed: " + _chapters.LastError);
-            else if (r == JumpResult.Jumped) Debug.Log("JamKit presenter: jumped to \"" + name + "\"");
+            else if (r == JumpResult.Jumped) PresenterMode.Note("jumped to \"" + name + "\"");
             return r;
         }
 
@@ -542,7 +567,7 @@ namespace JamKit.Shell
             {
                 GameRoot.Juice.Flash(new Color(1f, 1f, 1f, 0.85f), 0.3f);
                 GameRoot.Audio.Play("ui_select");
-                Debug.Log("JamKit presenter: photo saved to " + path);
+                PresenterMode.Note("photo saved to " + path);
                 PresenterMode.NotePhoto(path);
             }
         }
@@ -557,7 +582,7 @@ namespace JamKit.Shell
             _savedAuto = GameRoot.Dialogue.AutoMode;
             _choiceWait = 0f;
             _attract = StartCoroutine(AttractLoop(script));
-            Debug.Log("JamKit presenter: attract mode on (" + script.scene + ", " + script.steps.Count + " steps, "
+            PresenterMode.Note("attract mode on (" + script.scene + ", " + script.steps.Count + " steps, "
                 + script.TotalSeconds.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " s a loop)");
             return true;
         }
@@ -576,7 +601,7 @@ namespace JamKit.Shell
                 GameRoot.Dialogue.AutoMode = _savedAuto;
             }
             _synthetic = null;
-            Debug.Log("JamKit presenter: attract mode off");
+            PresenterMode.Note("attract mode off");
         }
 
         Coroutine _segment;

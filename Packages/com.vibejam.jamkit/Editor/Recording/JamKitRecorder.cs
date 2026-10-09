@@ -171,6 +171,7 @@ namespace JamKit.EditorTools.Recording
             if (preset == 0) return;
             float seconds = SessionState.GetFloat(SecondsKey, 0f);
             string output = SessionState.GetString(OutKey, "");
+            if (SessionState.GetBool(AttractKey, false)) PresenterMode.Verbose = true; // the log shows the steps it filmed
             if (SessionState.GetBool(AttractKey, false) && !PresenterMode.StartAttract())
             {
                 Debug.LogError("JAMKIT_RECORD_FAIL attract mode didn't start (does the active template have an attract script?)");
