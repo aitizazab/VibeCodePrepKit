@@ -104,7 +104,7 @@ How some of them start:
 - **The argument** starts in front of Walt with everything found and worked out.
 - Each **end card** shows on the dimmed street.
 
-Route: the **Opening** (about 20 s, or skip it), then **Day 1** (chart one thing), then **The street**,
+Route: the **Opening** (hold Escape to skip it), then **Day 1** (chart one thing), then **The street**,
 then **The argument** (invincible on, if you want no risk), then the end card it reaches.
 
 ### Sandbox

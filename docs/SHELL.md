@@ -143,6 +143,7 @@ cards: the blind tester reads them once.
 | Interact | E | X |
 | Pause | Escape, P | Start |
 | Menus | arrows, Enter, Escape, mouse | stick/d-pad, A, B |
+| Presenter mode (hidden) | Ctrl+Shift+P | hold L3+R3 for 1 s |
 
 The bindings are in `Assets/JamKit/Input/JamKitControls.inputactions` (edit freely).
 Mouse sensitivity and invert Y are applied by `GameRoot.Input.LookDelta(GameRoot.Settings)`.
@@ -153,6 +154,21 @@ Mouse sensitivity and invert Y are applied by `GameRoot.Input.LookDelta(GameRoot
 allows it): god mode, time x0.25 / x1 / x2, Win, Lose, Next scene, FPS counter.
 From code, in any build: `DebugMenu.Win()`, `DebugMenu.Lose()`, `DebugMenu.NextScene()`,
 `DebugMenu.GodMode`, `DebugMenu.TimeScale`.
+
+Player damage code checks `DebugMenu.PlayerInvincible` (god mode, presenter Invincible or attract
+mode), not `GodMode` alone.
+
+## Presenter mode (for presenting live)
+
+**Ctrl+Shift+P**, or holding both stick clicks (L3+R3) for 1 s, opens the presenter panel in any
+build. It's hidden until opened. It has chapter select, Invincible, Slow motion x1/x0.5/x0.25, Freeze
+frame, Hide HUD/UI, Photo (a 2x PNG to Pictures/JamKit), Attract mode, and Exit (which undoes
+everything). `-jamAttract` on the command line starts attract mode after the title. A game adds
+chapters with `PresenterMode.Declare`/`Register` and an attract script and driver. Read input through
+`GameRoot.Input` (`MoveVector`, `LookDelta`, `Pressed`, `Held`, `LookFromGamepad`) so attract mode
+can drive it. The whole guide, the demo routes and the 4-minute pitch are in `docs/PRESENTING.md`.
+Footage: menu **JamKit > Record** (Unity Recorder, editor only), `tools/record-attract.ps1`, and
+`tools/obs-notes.md` for builds.
 
 A game whose "next" isn't the next scene sets `DebugMenu.SkipHandler` (the bullet hell skips a room
 or kills the boss), and can drive a few seconds of itself in the smoke run through
