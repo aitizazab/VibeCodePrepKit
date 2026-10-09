@@ -244,7 +244,7 @@ namespace JamKit.VisitingHours
 
         void OnJournalClosed()
         {
-            if (!_afterJournalKnot) return;
+            if (!_afterJournalKnot || !isActiveAndEnabled) return;
             _afterJournalKnot = false;
             StartCoroutine(PlayWhenFree(SliceContent.KnotBoothAfterJournal));
         }

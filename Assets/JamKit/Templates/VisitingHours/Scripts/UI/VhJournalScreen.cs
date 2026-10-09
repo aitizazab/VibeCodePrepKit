@@ -53,6 +53,12 @@ namespace JamKit.VisitingHours
         int _shownRevision = -1, _gentle;
         string _lastResult = "";
 
+        /// <summary>The journal closed (Escape, J, Tab, Close, or anything that shut the overlay): the
+        /// game hears it at once, even when it opened and closed within one frame.</summary>
+        public event Action Closed;
+
+        protected override void OnHide() => Closed?.Invoke();
+
         public Tab CurrentTab => _tab;
         public bool IsOpen => GameRoot.Exists && GameRoot.Ui.IsOverlayOpen(this);
         public string Shown => _shown;

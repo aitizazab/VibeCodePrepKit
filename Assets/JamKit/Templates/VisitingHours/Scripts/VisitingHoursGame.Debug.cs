@@ -100,26 +100,38 @@ namespace JamKit.VisitingHours
 
         static void Log(string what) => Debug.Log("JAMKIT_SMOKE vh " + what);
 
-        /// <summary>Mashes through the current dialogue (first choice at each choice), a line a frame.</summary>
-        static IEnumerator MashDialogue(float timeout = 20f)
+        bool _smokeFailed;
+
+        /// <summary>A step of the smoke run didn't happen: an error the smoke run counts (its own
+        /// JAMKIT_SMOKE lines aren't counted, so this one isn't prefixed), and the driver stops.</summary>
+        void SmokeFail(string why)
+        {
+            if (_smokeFailed) return;
+            _smokeFailed = true;
+            Debug.LogError("Visiting Hours smoke run: " + why + " (mode " + _mode + ", area " + Area + ")");
+        }
+
+        /// <summary>Mashes through the current dialogue (first choice at each choice): several lines a
+        /// frame, so the whole slice fits the smoke run's budget.</summary>
+        static IEnumerator MashDialogue(float timeout = 10f)
         {
             float end = Time.realtimeSinceStartup + timeout;
             while (GameRoot.Dialogue.IsActive && Time.realtimeSinceStartup < end)
             {
-                GameRoot.Dialogue.AutoStep();
+                for (int i = 0; i < 4 && GameRoot.Dialogue.IsActive; i++) GameRoot.Dialogue.AutoStep();
                 yield return null;
             }
         }
 
-        IEnumerator WaitFor(Func<bool> condition, string what, float timeout = 10f)
+        IEnumerator WaitFor(Func<bool> condition, string what, float timeout = 6f)
         {
             float end = Time.realtimeSinceStartup + timeout;
-            while (!condition())
+            while (!_smokeFailed && !condition())
             {
-                if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.AutoStep();
+                for (int i = 0; i < 4 && GameRoot.Dialogue.IsActive; i++) GameRoot.Dialogue.AutoStep();
                 if (Time.realtimeSinceStartup > end)
                 {
-                    Debug.LogError("JAMKIT_SMOKE vh timed out waiting for " + what + " (mode " + _mode + ", area " + Area + ")");
+                    SmokeFail("timed out waiting for " + what);
                     yield break;
                 }
                 yield return null;
@@ -132,6 +144,7 @@ namespace JamKit.VisitingHours
         IEnumerator LookAt(string id)
         {
             yield return WaitFor(() => Ready, "free to look at " + id);
+            if (_smokeFailed) yield break;
             StandAt(id);
             yield return null;
             yield return null;
@@ -144,54 +157,73 @@ namespace JamKit.VisitingHours
 
         /// <summary>The smoke run: the whole slice, played by itself. Day 1 (the four facts), the booth
         /// (the journal opens, is closed), the street (the memories, Walt notices), two deductions,
-        /// Walt's argument with the autopilot (it says the key deduction: Convinced), the end card.</summary>
+        /// Walt's argument with the autopilot (it says the key deduction: Convinced), the end card.
+        /// Any step that doesn't happen is an error, so the run fails instead of passing on the debug win.</summary>
         IEnumerator SmokeDrive()
         {
+            _smokeFailed = false;
             Log("start in " + Area);
             BattleSpeed = 1f;
-            yield return WaitFor(() => Ready, "Day 1", 15f);
+            yield return WaitFor(() => Ready, "Day 1", 8f);
+            if (_smokeFailed) yield break;
             if (Area == SliceArea.Hospital)
             {
-                foreach (var id in new[] { "chart", "effects", "police_report", "photo" }) yield return LookAt(id);
+                foreach (var id in new[] { "chart", "effects", "police_report", "photo" })
+                {
+                    yield return LookAt(id);
+                    if (_smokeFailed) yield break;
+                }
                 Log("journal: " + _state.journal.Count + " entries");
                 yield return LookAt("stairwell");
-                yield return WaitFor(() => Area == SliceArea.Booth, "the booth", 10f);
+                yield return WaitFor(() => Area == SliceArea.Booth, "the booth");
+                if (_smokeFailed) yield break;
             }
             if (Area == SliceArea.Booth)
             {
-                yield return WaitFor(() => _journal.IsOpen, "the journal to open in the booth", 15f);
+                yield return WaitFor(() => _journal.IsOpen, "the journal to open in the booth");
+                if (_smokeFailed) yield break;
                 Log("journal opened by Mags (" + _journal.CurrentTab + ")");
                 _journal.Close();
-                yield return WaitFor(() => Area == SliceArea.Street && Ready, "the street", 20f);
+                yield return WaitFor(() => Area == SliceArea.Street && Ready, "the street", 8f);
+                if (_smokeFailed) yield break;
             }
-            if (Area != SliceArea.Street) { Debug.LogError("JAMKIT_SMOKE vh never reached the street"); yield break; }
+            if (Area != SliceArea.Street) { SmokeFail("never reached the street"); yield break; }
             Log("on the street");
-            foreach (var id in new[] { "newspaper", "shop_sign", "roses" }) yield return LookAt(id);
+            foreach (var id in new[] { "newspaper", "shop_sign", "roses" })
+            {
+                yield return LookAt(id);
+                if (_smokeFailed) yield break;
+            }
             // Walk up to the barbecue: Walt waves.
             yield return WaitFor(() => Ready, "free to see Walt");
+            if (_smokeFailed) yield break;
             StandAt("walt");
             player.Teleport(player.transform.position + new Vector3(-4f, 0f, -4f));
-            yield return WaitFor(() => _state.journal.Knows(SliceContent.MemWaltAlive), "Walt to wave", 5f);
+            yield return WaitFor(() => _state.journal.Knows(SliceContent.MemWaltAlive), "Walt to wave");
+            if (_smokeFailed) yield break;
             yield return MashDialogue();
             Log("open questions before combining: " + _state.journal.OpenQuestions(_openScratch));
             var r1 = Combine(SliceContent.FactEffects, SliceContent.MemWaltAlive);
             var r2 = Combine(SliceContent.MemNewspaper, SliceContent.MemSaturday);
             Log("combined: " + r1 + ", " + r2 + "; open questions now " + _state.journal.OpenQuestions(_openScratch));
-            if (!_state.journal.Knows(SliceContent.DedWaltDead)) Debug.LogError("JAMKIT_SMOKE vh the key deduction wasn't made");
+            if (!_state.journal.Knows(SliceContent.DedWaltDead)) { SmokeFail("the key deduction wasn't made"); yield break; }
             _journal.Close();
             yield return null;
 
             Pilot = new[] { PilotAction.Listen, PilotAction.Listen, PilotAction.Touch, PilotAction.Touch };
             PilotInvulnerable = true;
-            BattleSpeed = 14f;
+            BattleSpeed = 22f;
             yield return LookAt("walt");
-            yield return WaitFor(() => _mode == Mode.Battle, "the argument", 10f);
+            yield return WaitFor(() => _mode == Mode.Battle, "the argument");
+            if (_smokeFailed) yield break;
             Log("argument started");
-            yield return WaitFor(() => _battle != null && _battle.Phase == BattlePhase.Done, "the argument to end", 20f);
-            Log("outcome " + (_battle != null ? _battle.Outcome.ToString() : "none") + ", force " + _state.force);
-            if (_battle == null || _battle.Outcome != BattleOutcome.Convinced) Debug.LogError("JAMKIT_SMOKE vh expected Convinced");
-            yield return WaitFor(() => _mode == Mode.End, "the end card", 20f);
-            Log("end card: " + _hud.EndBody.Replace("\n", " / "));
+            yield return WaitFor(() => _battle != null && _battle.Phase == BattlePhase.Done, "the argument to end", 10f);
+            if (_smokeFailed) yield break;
+            Log("outcome " + _battle.Outcome + ", force " + _state.force);
+            if (_battle.Outcome != BattleOutcome.Convinced) { SmokeFail("expected Convinced, got " + _battle.Outcome); yield break; }
+            yield return WaitFor(() => _mode == Mode.End, "the end card", 8f);
+            if (_smokeFailed) yield break;
+            Log("end card: " + _hud.EndBody.Replace('\n', ' '));
             Pilot = null;
             BattleSpeed = 1f;
         }

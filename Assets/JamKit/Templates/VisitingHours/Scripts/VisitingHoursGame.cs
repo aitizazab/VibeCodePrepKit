@@ -72,7 +72,8 @@ namespace JamKit.VisitingHours
         Action<string> _onDialogueEnded;
         Action<Story> _bindInk;
         AudioSource _monitor;
-        bool _focused, _journalWasOpen, _walked;
+        bool _focused, _walked;
+        Action _onJournalClosed;
 
         public SliceState State => _state;
         public Journal Journal => _state != null ? _state.journal : null;
@@ -109,6 +110,8 @@ namespace JamKit.VisitingHours
             _battleView = new VhBattleView(GameRoot.Hud.Root, style, config.walt != null ? config.walt.maxObjects : 2);
             _journal = VhJournalScreen.Ensure(style);
             _journal.Attach(this, config, _state.journal);
+            _onJournalClosed = OnJournalClosed;
+            _journal.Closed += _onJournalClosed;
 
             _onInkEvent = OnInkEvent;
             _onDialogueEnded = OnDialogueEnded;
@@ -141,7 +144,11 @@ namespace JamKit.VisitingHours
             GameRoot.Dialogue.StoryCreated -= _bindInk;
             if (DebugMenu.SkipHandler == _skipHandler) DebugMenu.SkipHandler = null;
             if (SmokeRunner.GameplayDriver == _smokeDriver) SmokeRunner.GameplayDriver = null;
-            if (_journal != null) _journal.Close();
+            if (_journal != null)
+            {
+                _journal.Closed -= _onJournalClosed;
+                _journal.Close();
+            }
             _hud?.Remove();
             _battleView?.Root.RemoveFromHierarchy();
         }
@@ -183,8 +190,6 @@ namespace JamKit.VisitingHours
             float dt = Time.deltaTime;
             _hud.Tick(udt);
             bool journalOpen = _journal.IsOpen;
-            if (_journalWasOpen && !journalOpen) OnJournalClosed();
-            _journalWasOpen = journalOpen;
 
             bool playing = GameRoot.Flow.Current == GameState.Playing && !GameRoot.IsLoadingScene;
             UpdatePointerLock(playing && _mode == Mode.Explore && !journalOpen);
