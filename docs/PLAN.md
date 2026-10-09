@@ -1,82 +1,75 @@
 # VibeJamKit plan
 
-Written 2026-10-08, with the hackathon about 9 days away (around 2026-10-17).
+Started 2026-10-08. **Updated 2026-10-10.** The event is the weekend of about 2026-10-16 to 18.
 
-## The event (what we know)
-- "Vibe Coding GameDev": a 3-day hackathon. The theme is revealed on day 1 and games are presented on day 3. AI use is expected.
-- **Unity only** (per the event sheet). No rule booklet: we assume pre-made code is allowed.
-- Judging:
-  - a panel scores **completeness, bug-freeness, originality and scope**;
-  - a fellow participant gives a **blind playthrough** rating.
-  - Each participant plays 3 games in at most 4 hours, so **target 10–20 minutes** to finish.
-- How games are played (browser or download) is unknown, so **both a Windows and a WebGL build work from day 1**.
-- There should be internet at the venue (Claude, generation tools).
+## The event (from the official rulebook)
+- **"Vibe Coding GameDev"**, part of an annual festival at a friend's university (not a game jam, and only a
+  year or two old, so there are no past themes). Teams of 2–4.
+- **The theme comes on day 1**, you build on days 1–2, and on **day 3 you present to a panel of judges.**
+  **No playtesting by other participants.**
+- **Unity 6 is required.** Pre-made online assets and AI-generated code and assets are allowed. Source code goes
+  to Google Classroom before the deadline. **A game that's copied or already available online is
+  disqualified.** Whether our own pre-built toolkit is acceptable is being asked by the creator's friend.
+- **Judging criteria:** Originality & Creativity, Technical Implementation, Art & Design, Playability & Fun
+  Factor, Conformity to Theme.
+- **What wins:** what the panel *sees*: gameplay, art, and a confident live demo backed by footage. Story is
+  flavour: an Urdu-speaking panel may not engage with dilemmas.
+
+## The team (3, all presenting)
+| Role | Who | Owns |
+|---|---|---|
+| Director | the creator | concept, final calls, working with Claude, art direction, the trailer |
+| Builder | the teammate with coding experience | the Unity editor: content in data assets, tuning, builds, bug triage |
+| Player / Producer | the other teammate | scheduled critical playtests, levels and short text, asset curation, the pitch |
+
+Roles are flexible: each takes on more as they show they can. Rule for three people in one project: work in
+**data assets and prefabs**, one owner per scene.
 
 ## Goals, in order
-1. **Tools ready.** Day 1 of the event is spent on the game, not on setting up Unity, MCP or builds.
-2. **Genre frameworks finished:** a shared shell plus three templates (below).
-3. **If time is left:** a compressed practice run on a random theme, with a teammate as the blind tester.
+1. **Tools ready:** done. Unity 6.3, the link with Claude, Windows and WebGL builds, tests, smoke runs.
+2. **Genre frameworks:** done and verified (table below).
+3. **A full practice game,** *Visiting Hours* (`docs/VISITING-HOURS.md`), taken to a point the creator is
+   satisfied with, to learn how long that really takes. Then a **mock jam** on a practice theme.
 
 ## Decisions
-- **One Unity project** (this repo) holding the shell and all three templates. At the jam we copy it and delete the templates we don't use.
-- **Unity 6.3 LTS (6000.3.25f1)** with the WebGL and Windows IL2CPP modules. It was installed through
-  the **Unity CLI** (`%LOCALAPPDATA%\Unity\bin\unity.exe`, 1.0.0-beta.13), so the Hub isn't required.
-- **Claude ↔ Unity link:** Unity's official Claude Code plugin (`unity@unity-agent-plugin`, enabled
-  in `.claude/settings.json`, project scope). Its CLI drives the open editor through the
-  `com.unity.pipeline` package (`unity pipeline install`). It can enter Play mode, run C#, and edit
-  scenes and assets. Batch mode (`tools/*.ps1`) is for when the editor is closed.
-- **URP** with two renderers in one asset: Universal (3D) and Renderer2D, chosen per camera.
-- **The new Input System:** keyboard and mouse plus gamepad.
-- **JamKit is an embedded package** (`Packages/com.vibejam.jamkit`):
-  - `Runtime/Core`: **pure C# 9, no UnityEngine** (`noEngineReferences`). Game rules, maths and data, unit-tested outside Unity with `dotnet test` (`core-tests/`). Bugs get caught in seconds, before Unity is even open.
-  - `Runtime/Unity` (next): thin MonoBehaviour and ScriptableObject adapters over the core.
-  - `Editor`: the build script, import presets, validators.
-- **Content is data:** one asset per enemy, upgrade, pattern, weapon or room. Teammates make content by duplicating an asset and changing numbers, with no code.
-- **Dialogue in ink** (inkle, MIT). It's plain-text scripts that a writer can play in the Inky editor on its own.
-- **Gameplay animation** comes from libraries (Mixamo etc.) or code. The sketcher is the fallback only where those miss.
-- **Retro presentation as a consistency tool:** low-res render plus a palette lock, so generated assets look like one set.
+- **One Unity project** (this repo), holding the shell and every template. At the jam: copy it, delete what
+  isn't used.
+- **Unity 6.3 LTS (6000.3.25f1)**, WebGL + Windows modules, installed with the Unity CLI. Claude ↔ Unity via
+  Unity's official Claude Code plugin; batch scripts in `tools/` when the editor is closed.
+- **JamKit is an embedded package:** a pure C# 9 core (testable with `dotnet test`, no Unity), thin Unity
+  adapters, editor tools. **Content is data.** **Dialogue in ink.**
+- **Running Unity on this laptop:** every heavy job goes through `capped-run.py`. **WebGL needs `--share 0.6`**
+  (il2cpp crashes below it). Long steps run in the foreground one verify step at a time, because background
+  shells get reaped on low memory. Subagents can't run Unity; they hand back commands.
 
-## Architecture
-| Layer | Holds | Status |
+## What's built (all verified in Unity on 2026-10-09/10 unless noted)
+| Part | What it is | Docs |
 |---|---|---|
-| Core / Shared | `Rng` (seeded PCG32, forks), `StateMachine<T>` | done, 12 tests |
-| Core / Combat | Health and damage, i-frames, Cooldown, RepeatingTimer, HitStop (capped), ScreenShake (trauma), WeaponDef and WeaponState (frame-rate independent, magazine-less mode) | done, 59 tests |
-| Core / Patterns | PatternDef, PatternSequence, Emitter (frame-rate independent), BulletMotion (closed form), 7 presets | done, 30 tests |
-| Core / Roguelite | StatBlock and modifiers, UpgradeDef, inventory, draft (luck, reroll, fallback), RunGenerator/RunPlan/RunState | done, 22 tests |
-| Core / Flow | GameFlow states, Settings and difficulty assists, SaveData with migration | done, 11 tests |
-| **Core total** | `core-tests/All` | **333/333 passing** (2026-10-08, after the roguelite round; `core-tests/BulletHell` 85 incl. the ink) |
-| Unity / Shell | GameRoot (self-creating), Boot/Title/Sandbox scenes from SceneBuilder, UI Toolkit menus (title, settings, pause, game over, victory, credits, how-to-play), HUD, scene loader with fade, audio (crossfade, pooled SFX, generated placeholder sounds), juice (hit stop, shake, flash, sprite flash, floating text), debug menu, ink dialogue with layered portraits, `-jamSmoke` build smoke test. How-to: `docs/SHELL.md` | written 2026-10-08; see the latest verify run |
-| Template: bullet-hell roguelite (2D) | Player with Sprint on Shift (stamina bar inside a per-room sprint budget; classic Focus kept behind a flag), struct-array bullets drawn with GPU instancing (3000+), pattern-driven enemies and waves, rooms to 3 floors + boss with phases, choose-1-of-3 upgrade draft, shop, rest, ink events, graze, bombs, assists; 11 enemies, 13 waves, 14 rooms, 3 bosses (8 phases), 18 upgrades. How-to: `docs/TEMPLATE-BULLETHELL.md` | written 2026-10-08; core tests green, Unity run pending |
-| Template: DOOM-like (3D) | Levels from ASCII text maps (built at runtime: merged meshes, colliders, doors, NavMesh), validator with key-order reachability, fast FPS controller with click-to-play pointer lock, 5 weapons on shared ammo pools (fist, pistol, shotgun, rapid gun, launcher), 8-angle billboard enemies (generated placeholder sheets; Blender renders drop in) with core-StateMachine AI and telegraphed attacks, ambush closets, secrets, low-res palette render (Settings toggle), tally, 1-of-3 upgrade draft between levels; 6 enemies (1 boss), 3 levels, 11 upgrades. How-to: `docs/TEMPLATE-DOOMLIKE.md` | written 2026-10-08; core tests green, Unity run pending |
-| Template: story (visual novel / point-and-click) | ink drives everything through tags: backgrounds and CGs with transitions, characters with layered expressions, places and slides, shake/flash/fade/zoom/blur/colour filters/glitch, music and ambience, text box or full-screen text, chapter cards, inline markup (bold, palette colours, pauses, typing speed); backlog, auto, skip-read, 3 slots + quick + autosave; cross-playthrough memory visible to ink (playthroughs, endings seen, remember/recall, quits, reloads and rewinds), endings gallery, title screen changes and fake system moments (#meta); point-and-click rooms from data (rect/polygon hotspots, conditions, keyboard/pad selection) with an inventory used on hotspots; story check (unknown tags, missing ids, broken hotspots, unreachable knots) on save, in tests and before builds; hot reload of edited ink in play mode. Sample "Last Train Home": ~10-12 min, 4 endings (1 only on a second playthrough), a 7-hotspot office with 3 items. How-to: `docs/TEMPLATE-STORY.md` | written 2026-10-08; core tests green (incl. the sample played headless), Unity run pending |
-| Playtest round 1 (2026-10-08) | From the creator's first bullet-hell playtest: Play opens a Story / Normal / Hard picker (shell, all action templates); Shift is Sprint (was Focus) with a first-run hint, a two-layer SPRINT meter and a HUD legend; story hooks from ink (boss intro/phase/defeat, death-screen line, Rest companion line, run-start line by run count) with placeholder lines only; the story smoke run logs its choices, rooms and ending. Story method: `docs/STORY-STRUCTURE-BULLETHELL.md` | code and core tests green; Unity run pending |
-| Roguelite round 2 (2026-10-08) | `docs/DESIGN-ROGUELITE.md` sections 1, 2, 3, 5, 6 in the bullet hell: reward tables per source (battles: commons/rares with a small epic chance; bosses: a guaranteed choice of 3 epics; trials, sacrifices, wagers: epics); the epic rubric as data on each epic; rear gun replaced by Backdraft, Bomb Bay epic (no bombs in the starting kit), Ghost Step, Ember Hunger, Red Line, Time Dilation as a bubble; encounter rooms (Forge with odds, Altar, Wager, Trial board, Trader); remnants from dead runs; a companion that shoots, guards and barks; a headless balance report (JamKit/Bullet Hell/Balance Report). The hub room (section 4) is next | code and core tests green; Unity run pending |
-| Presenter mode and footage (2026-10-09) | Shell-level, in every build: hidden chord (Ctrl+Shift+P / hold L3+R3) opens a panel with chapter select (each template registers named jump points: floors and bosses, levels and the tally, knots and endings, the slice's places and end cards), Invincible, Slow motion, Freeze frame, Hide HUD/UI, Photo (2x PNG); attract mode (`-jamAttract` or the panel) plays each template's best moments at real speed through a synthetic pad; Unity Recorder 5.1.7 pinned with JamKit > Record presets and `tools/record-attract.ps1`. How-to, demo routes and the 4-minute pitch: `docs/PRESENTING.md` | core tests green (`core-tests/Presenting`); Unity run pending |
-| Tools | `tools/build.ps1` (Windows/WebGL, batch mode), `tools/test.ps1` (core plus Unity EditMode/PlayMode, results read from the XML), `tools/setup-unity-merge.ps1`, itch.io upload | scripts written; checked after the install |
+| Core | randomness, state machines, combat and feel, bullet patterns, roguelite systems, flow, settings and saves, presenting, movement (in progress) | `CLAUDE.md` |
+| Shell | self-starting GameRoot, menus (UI Toolkit), difficulty picker on Play, ink dialogue with portraits, audio, juice, debug menu, saves, `-jamSmoke` build test | `SHELL.md` |
+| Bullet-hell roguelite | sprint with stamina and a room budget, instanced bullets (3000+), 3 floors and 3 bosses, reward economy (boss epics, trials, sacrifices, wagers), Forge/Altar/Wager/Trial/Trader rooms, remnants, a passive companion, the balance report | `TEMPLATE-BULLETHELL.md`, `DESIGN-ROGUELITE.md`, `STORY-STRUCTURE-BULLETHELL.md` |
+| DOOM-like | levels from text maps, a fast FPS controller, 5 weapons, 8-angle billboard enemies, pixel look, upgrade drafts | `TEMPLATE-DOOMLIKE.md` |
+| Story | ink-driven stage, saves and backlog, cross-playthrough memory, point-and-click rooms, story checks | `TEMPLATE-STORY.md` |
+| Presenter mode | Ctrl+Shift+P (pad: hold L3+R3): chapter select, invincibility, slow-mo, freeze, hide UI, photo; attract mode; Unity Recorder presets | `PRESENTING.md` |
+| *Visiting Hours* slice | the opening, Day 1, the booth, Walt's street, the journal and deductions, the argument battle (in its first, superseded art and opening) | `VISITING-HOURS.md`, `SLICE-NOTES.md` |
+| Movement Lab | Titanfall-style movement (double jump, wallrun, slide, momentum) and a test course with a chase. **In progress** | `RESEARCH-MOVEMENT.md`, `MOVEMENT.md` (when built) |
 
-## Schedule (the creator has 3–4 h/day; Claude works in between)
-| Dates | Work | Creator |
-|---|---|---|
-| Oct 8–9 | Repo, core modules, scripts; Unity install (CLI), project creation, Claude ↔ Unity link, both builds, test itch.io upload | Create a Unity ID, run `unity auth login`, approve the licence (~15 min) |
-| Oct 9–11 | Unity shell and the story template | Click through the menus and dialogue |
-| Oct 11–13 | Bullet-hell roguelite | Feel test |
-| Oct 13–15 | DOOM-like | Feel test |
-| Oct 15–16 | Buffer, the jam runbook (`docs/JAM-RUNBOOK.md`), teammate onboarding, optional mini practice | Bring a blind tester |
+Totals at the last full run: EditMode 456/456, PlayMode 73/73; every template builds for Windows and passes its smoke run.
 
-**If time slips, cut in this order:** first the DOOM-like's extras (keep the controller, one weapon, one enemy and one level), then the story template's hotspots. The bullet hell and the shell stay complete.
-
-## Team
-- **Creator:** decisions, feel tests, writing, the final call on art.
-- **Teammates:** art review (review grids at play size), content as data (duplicate an asset, tune it), references and scene descriptions, progression ideas, and **one stays blind** to the practice game.
-- **Claude:** all code, tools, builds, tests and integration.
+## Next
+1. The movement build (in progress), then the creator feels it in the Movement Lab.
+2. Style-E character sheets (in progress), then 3D models for the waking world (Tripo, after the creator approves the credits).
+3. Rebuild the opening and the diegetic title in style E (`OPENING-AND-TITLE.md`).
+4. The dream street in 3D with style-E billboards, then an escape sequence on the new movement.
+5. Walt's argument in the new style; music composed with the creator; polish.
+6. A build for the teammates (once it has art, a small story and music); then the mock jam.
 
 ## Content rules (public, judged event)
-- **No copied character designs.** Archetypes, mechanics and parody premises are fine; a renamed copy of a design is not.
-- Assets from other games (models, sounds, maps' art) are never used directly.
-- Samples and third-party audio are credited on the credits screen, or replaced with original material.
-- Sound effects: CC0 sources (Freesound etc.), credited anyway.
+- **No copied character designs**; parody, archetypes and mechanics are fine.
+- **No real company names in a negative light** (e.g. the crossfire corporations are fictional).
+- Other games' assets are never used directly. Samples and third-party audio are credited; CC0 sounds credited anyway.
+- Licence notes for every asset source: `JAM-ASSETS-AND-PRESENTATION.md`.
 
 ## Open questions
-- How the judges play (web or exe): ask the organisers if possible.
-- Whether the plugin's live-editor link needs a Unity Cloud project connection (check after sign-in).
-  If it does and that's blocked, the fallback is the community "MCP for Unity" bridge.
+- Whether the organisers accept a team's own pre-built toolkit (the friend is asking).
+- How the judges view games (web or exe): both builds stay ready.

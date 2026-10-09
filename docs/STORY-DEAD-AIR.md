@@ -1,5 +1,7 @@
 # *Dead Air*: the bullet-hell demo's story (draft 3, for the creator to edit)
 
+> **Status: rejected draft (2026-10-08), kept for history.** The creator's critique: the 'no right answer' was fake (an oppressed community against a corporation has an obvious side). Current game: `VISITING-HOURS.md`.
+
 Draft 2 had a grounded hook but only one layer, because "save forty innocents or take a bribe" has an obvious
 answer. Draft 3 keeps the hook and gives the deeper layers a real question with **no right answer**: the people
 inside are neither innocent nor monsters, every side can argue its case, and the player can go against the

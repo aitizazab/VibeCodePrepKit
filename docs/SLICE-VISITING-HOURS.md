@@ -1,5 +1,7 @@
 # *Visiting Hours*: the vertical slice (spec, 2026-10-09)
 
+> **Status: the spec the first slice was built from (2026-10-09).** Superseded where it conflicts with `VISITING-HOURS.md`: the **art** (now style E: 3D waking world, billboards only in the dream, a 3D dream), the **opening and title** (`OPENING-AND-TITLE.md`), and the premise. Its systems (journal, deductions, argument battle, rushing check, teaching plan) still stand.
+
 The slice tests whether the format works before more is built: first-person exploration with no guns, a
 journal of facts and deductions, and Undertale-style argument battles. The story is in
 `STORY-VISITING-HOURS.md` (draft 1), and the decisions below supersede it where they differ.

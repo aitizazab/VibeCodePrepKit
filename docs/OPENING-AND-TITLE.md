@@ -1,5 +1,16 @@
 # Visiting Hours: the opening and the title screen (the creator's direction, 2026-10-09)
 
+> **Confirmed by the creator on 2026-10-10:**
+> - The **ID badge (Settings)** and the **notepad (Credits)**, and these **timings**, as long as the result
+>   looks good.
+> - The **anchor is af_nicole** (a woman, so "her condolences").
+> - The **script changed** (`script/opening-script.md` is the source): the voicemail now asks "You still good
+>   for picking me up?", it's **three** in the morning, it adds "It's not true, and it was rude of me to even
+>   imply it", and ends with "I'll see if I can get a cab back home, or maybe call Lena... G'night." **Nadia drops
+>   the phone at "Well, it's three in the morning. You're probably asleep..."**
+> - **The report names Elias** and the crossfire.
+> - **Art is now style E** (the waking world in 3D), so the bedroom and the table are 3D scenes.
+
 Replaces the slice's first opening (a ceiling with a phone overlay) and its TV-room title. To be built after the
 art style is chosen and presenter mode is verified, in the chosen style. Timings are a first proposal for the
 creator to adjust.

@@ -1,5 +1,7 @@
 # *Visiting Hours*: notes on the vertical slice (for the creator)
 
+> **Status: notes on the first slice build (2026-10-09)**, in its superseded painterly art and old opening. The questions about the battle, journal and teaching still apply. Current state: `VISITING-HOURS.md`.
+
 The slice is built to the spec in `SLICE-VISITING-HOURS.md`. It's about 8 to 12 minutes long. This page says what
 to judge in each part, what's missing, and the questions I'd like answered before more gets built.
 

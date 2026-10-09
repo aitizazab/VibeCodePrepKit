@@ -1,5 +1,7 @@
 # *Ember*: the demo's story (draft for the creator to edit)
 
+> **Status: rejected draft (2026-10-08), kept for history.** The creator's critique: no clear theme, mindless sparks undermined the stakes, the death loop made the antagonist look incompetent. Current game: `VISITING-HOURS.md`.
+
 Status: a proposal (2026-10-08). The story, names and lines are the creator's to rewrite. Gameplay ties to it
 only through the hooks listed at the end, so renaming things is cheap.
 

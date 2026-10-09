@@ -1,5 +1,7 @@
 # *Visiting Hours*: a new story, built from first principles (draft for the creator)
 
+> **Status: draft 1 of the current story.** Its structure (layers, the dilemma, companions, endings) still stands, but **the premise details are superseded by `VISITING-HOURS.md`** (2026-10-10): Elias founded St. Brigid's and comes from money; the call is at 3 AM because he stayed late avoiding Nadia; the crash was crossfire between corporations; Lena is missing; the setting is a near-future dystopia.
+
 A fresh start after *Ember* and *Dead Air*. Built in order: genre, setting, scope, message, then the checklist.
 
 ## 1. Genre: a psychological drama with an action surface
