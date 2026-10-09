@@ -198,6 +198,18 @@ namespace JamKit.Narrative
             Refresh();
         }
 
+        /// <summary>Selects hotspot <paramref name="index"/> as the keyboard would (its label shows):
+        /// attract mode "points" at a thing before using it.</summary>
+        public void Select(int index)
+        {
+            if (!_active || !IsEnabled(index)) return;
+            _pointerInside = false;
+            _selected = index;
+            SetHover(-1);
+            PlaceLabelAtShape(index);
+            Refresh();
+        }
+
         /// <summary>Enter / (A): use the selected hotspot (selects the first one if none is).</summary>
         public void ActivateSelected()
         {

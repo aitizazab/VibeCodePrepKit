@@ -167,13 +167,13 @@ namespace JamKit.BulletHell
             if (_def == null) return;
             var input = GameRoot.Input;
             bool allowed = _controls && input.GameplayAllowed;
-            _focused = _def.focusEnabled && allowed && input.Focus.IsPressed();
+            _focused = _def.focusEnabled && allowed && input.Held(input.Focus);
             _health.Tick(dt);
 
             Vector2 move = allowed ? input.MoveVector : Vector2.zero;
             _moving = move.sqrMagnitude > 0.01f;
             ConfigureSprint(); // upgrades can change the stats at any time
-            bool wantSprint = allowed && !_focused && input.Sprint.IsPressed();
+            bool wantSprint = allowed && !_focused && input.Held(input.Sprint);
             _sprintFraction = _sprint.Tick(dt, wantSprint, move.sqrMagnitude > 0.01f);
 
             if (allowed && dt > 0f)
@@ -185,7 +185,7 @@ namespace JamKit.BulletHell
                 transform.position = new Vector3(clamped.X, clamped.Y, transform.position.z);
             }
 
-            bool held = allowed && (_def.autoFire || input.Fire.IsPressed());
+            bool held = allowed && (_def.autoFire || input.Held(input.Fire));
             _weaponDef.fireInterval = _loadout.FireInterval(_def.weapon != null ? _def.weapon.fireInterval : 0.085f);
             int shots = _weapon.Tick(dt, held, false, _shotAges);
             if (shots > 0) Fire(field);

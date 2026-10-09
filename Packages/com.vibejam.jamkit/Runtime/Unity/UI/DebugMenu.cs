@@ -23,6 +23,10 @@ namespace JamKit.Shell
             set => _godMode = value;
         }
 
+        /// <summary>True while the player must take no damage: the debug god mode, presenter mode's
+        /// Invincible, or attract mode. Player damage code checks this (not <see cref="GodMode"/>).</summary>
+        public static bool PlayerInvincible => JamKit.Presenting.Invincibility.Blocks(true, _godMode, PresenterMode.InvincibleNow);
+
         /// <summary>Multiplies game time while playing (0.25, 1 or 2 from the menu).</summary>
         public static float TimeScale
         {

@@ -100,7 +100,7 @@ namespace JamKit.Doomlike
         public float CameraYaw => player != null ? player.Yaw : 0f;
         public Vector3 CameraPosition => cam != null ? cam.transform.position : Vector3.zero;
 
-        static bool AutoFocus => _skipClickToPlay || Application.isBatchMode;
+        static bool AutoFocus => _skipClickToPlay || Application.isBatchMode || (GameRoot.Exists && GameRoot.Input.IsSynthetic);
 
         // ---------- Setup ----------
 
@@ -136,6 +136,7 @@ namespace JamKit.Doomlike
             DebugMenu.SkipHandler = _skipHandler;
             _smokeDriver = SmokeDrive;
             SmokeRunner.GameplayDriver = _smokeDriver;
+            SetupPresenter();
 
             SetupRun();
             BeginRun();
@@ -154,6 +155,7 @@ namespace JamKit.Doomlike
             GameRoot.Save.SettingsChanged -= OnSettingsChanged;
             if (DebugMenu.SkipHandler == _skipHandler) DebugMenu.SkipHandler = null;
             if (SmokeRunner.GameplayDriver == _smokeDriver) SmokeRunner.GameplayDriver = null;
+            TeardownPresenter();
             if (_giveAllButton != null) _giveAllButton.RemoveFromHierarchy();
             _hud?.Remove();
         }
@@ -243,8 +245,8 @@ namespace JamKit.Doomlike
         {
             var input = GameRoot.Input;
             move = input.MoveVector;
-            walk = input.GameplayAllowed && input.Sprint.IsPressed(); // the Shift / LB action
-            fireHeld = input.GameplayAllowed && input.Fire.IsPressed();
+            walk = input.Held(input.Sprint); // the Shift / LB action
+            fireHeld = input.Held(input.Fire);
             firePressed = input.Pressed(input.Fire);
             use = input.Pressed(input.Interact) || input.Pressed(input.Dash);
             if (_fireNeedsRelease)
@@ -255,9 +257,8 @@ namespace JamKit.Doomlike
             if (!player.Alive) return;
 
             Vector2 look = input.LookDelta(GameRoot.Settings);
-            var device = input.Look.activeControl != null ? input.Look.activeControl.device : null;
             var t = config.player;
-            if (device is Gamepad)
+            if (input.LookFromGamepad)
             {
                 // The shell's look binding scales the stick by 8 (see DefaultControls).
                 float k = t.gamepadDegreesPerSecond * dt / 8f;
@@ -296,7 +297,7 @@ namespace JamKit.Doomlike
         void UpdatePointerLock()
         {
             bool want = GameRoot.Flow.Current == GameState.Playing && !GameRoot.IsLoadingScene && _phase == Phase.Playing
-                && !_choice.IsOpen && !_hud.TallyShown && !(GameRoot.Ui.DebugPanel != null && GameRoot.Ui.DebugPanel.IsOpen);
+                && !_choice.IsOpen && !_hud.TallyShown && !(GameRoot.Ui.DebugPanel != null && GameRoot.Ui.DebugPanel.IsOpen) && GameRoot.Ui.Top == null;
             if (!want)
             {
                 if (Cursor.lockState != CursorLockMode.None)

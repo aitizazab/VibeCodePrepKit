@@ -1,5 +1,6 @@
 using System;
 using JamKit.Flow;
+using JamKit.Presenting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
@@ -141,6 +142,7 @@ namespace JamKit.Shell
             _flow.RunStarted += OnRunStarted;
             SceneManager.sceneLoaded += OnSceneLoaded;
 
+            gameObject.AddComponent<PresenterRunner>();
             if (smoke) gameObject.AddComponent<SmokeRunner>();
             Ready?.Invoke(this);
         }
@@ -187,26 +189,13 @@ namespace JamKit.Shell
         void Update()
         {
             float unscaled = Time.unscaledDeltaTime;
+            _input.BeginFrame();
             _juice.Tick(unscaled, _flow.Current == GameState.Paused);
             _flow.Tick(unscaled);
-            float scale;
-            switch (_flow.Current)
-            {
-                case GameState.Playing:
-                    scale = _juice.HitStopState.CurrentTimeScale * DebugMenu.TimeScale;
-                    break;
-                case GameState.Paused:
-                case GameState.Dialogue:
-                case GameState.GameOver:
-                case GameState.Victory:
-                    scale = 0f;
-                    break;
-                default:
-                    scale = 1f;
-                    break;
-            }
-            if (_scenes.IsLoading) scale = 0f; // nothing moves behind the fade
-            Time.timeScale = scale;
+            // Playing: hit stop x debug speed x presenter slow motion / freeze; 0 when paused, in
+            // dialogue, on the end screens and behind a scene load (core GameTime.Scale).
+            Time.timeScale = GameTime.Scale(_flow.Current, _scenes.IsLoading, _juice.HitStopState.CurrentTimeScale,
+                DebugMenu.TimeScale, PresenterMode.TimeFactor);
             if (_flow.Current == GameState.Playing && !_scenes.IsLoading) _run.Tick(Time.deltaTime);
         }
 
@@ -392,6 +381,24 @@ namespace JamKit.Shell
             _save.Data.RecordRunStarted();
             string scene = string.IsNullOrEmpty(_runScene) ? _config.firstGameplayScene : _runScene;
             _scenes.Load(scene);
+        }
+
+        /// <summary>
+        /// Presenter mode's way in: a fresh run in <paramref name="scene"/> from any state (title, pause,
+        /// game over, victory, credits), skipping the difficulty picker and the How to Play cards. Retry
+        /// and Restart go back to that scene. False while a scene loads or if the scene isn't in Build Settings.
+        /// </summary>
+        public bool StartRunAt(string scene)
+        {
+            if (_scenes.IsLoading || !SceneService.Exists(scene)) return false;
+            if (_dialogue.IsActive) _dialogue.Stop();
+            if (_flow.Current == GameState.Credits || _flow.Current == GameState.Boot) GoToTitleState();
+            bool ok = _flow.Current == GameState.Paused || _flow.Current == GameState.Playing ? _flow.Restart() : _flow.StartRun();
+            if (!ok) return false;
+            _save.Data.RecordRunStarted();
+            _runScene = scene;
+            _scenes.Load(scene);
+            return true;
         }
 
         public void Pause() => _flow.Pause();

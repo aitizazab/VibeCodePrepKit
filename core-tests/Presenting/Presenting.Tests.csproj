@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared + Presenting (presenter mode: chapters, time, invincibility, attract scripts, photo names). Flow and Combat for GameState and HitStop. -->
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\Presenting\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Flow\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Combat\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Presenting\**\*.cs" />
+  </ItemGroup>
+</Project>

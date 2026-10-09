@@ -53,28 +53,125 @@ namespace JamKit.Shell
             Asset.Enable();
         }
 
-        /// <summary>True while the player is in control: Playing and no scene load running.</summary>
-        public bool GameplayAllowed => _flow.Current == GameState.Playing && !GameRoot.IsLoadingScene;
+        SyntheticInput _synthetic;
+
+        /// <summary>Attract mode's hands on the pad: while set, Move, Look, <see cref="Pressed"/> and
+        /// <see cref="Held"/> read it instead of the real devices (null = real input).</summary>
+        public SyntheticInput Synthetic
+        {
+            get => _synthetic;
+            set => _synthetic = value;
+        }
+
+        public bool IsSynthetic => _synthetic != null;
+
+        /// <summary>True while the player is in control: Playing, no scene load running, and presenter
+        /// mode isn't holding the game (its panel open, a freeze frame).</summary>
+        public bool GameplayAllowed => _flow.Current == GameState.Playing && !GameRoot.IsLoadingScene && !PresenterMode.BlocksGameplay;
 
         /// <summary>Move as a vector (zero when gameplay isn't allowed).</summary>
-        public Vector2 MoveVector => GameplayAllowed ? Vector2.ClampMagnitude(Move.ReadValue<Vector2>(), 1f) : Vector2.zero;
+        public Vector2 MoveVector
+        {
+            get
+            {
+                if (!GameplayAllowed) return Vector2.zero;
+                return Vector2.ClampMagnitude(_synthetic != null ? _synthetic.move : Move.ReadValue<Vector2>(), 1f);
+            }
+        }
 
-        /// <summary>Look with the player's sensitivity and invert-Y applied (zero when gameplay isn't allowed).</summary>
+        /// <summary>Look with the player's sensitivity and invert-Y applied (zero when gameplay isn't allowed).
+        /// Synthetic look comes in gamepad units (the stick x 8, see DefaultControls) with no sensitivity.</summary>
         public Vector2 LookDelta(Settings s)
         {
             if (!GameplayAllowed) return Vector2.zero;
+            if (_synthetic != null) return Vector2.ClampMagnitude(_synthetic.look, 1f) * 8f;
             Vector2 d = Look.ReadValue<Vector2>() * (s != null ? s.mouseSensitivity : 1f);
             if (s != null && s.invertY) d.y = -d.y;
             return d;
         }
 
+        /// <summary>True when the look input is stick-like (scale it by time, not per pixel): a gamepad,
+        /// or attract mode's synthetic stick.</summary>
+        public bool LookFromGamepad => _synthetic != null || (Look.activeControl != null && Look.activeControl.device is Gamepad);
+
         /// <summary>Pressed this frame, and gameplay is allowed.</summary>
-        public bool Pressed(InputAction action) => GameplayAllowed && action.WasPressedThisFrame();
+        public bool Pressed(InputAction action)
+        {
+            if (!GameplayAllowed) return false;
+            return _synthetic != null ? _synthetic.WasTapped(action) : action.WasPressedThisFrame();
+        }
+
+        /// <summary>Held down, and gameplay is allowed (use this rather than action.IsPressed() so attract
+        /// mode can drive it).</summary>
+        public bool Held(InputAction action)
+        {
+            if (!GameplayAllowed) return false;
+            return _synthetic != null ? _synthetic.IsHeld(action) : action.IsPressed();
+        }
+
+        /// <summary>GameRoot calls this first thing each frame: synthetic taps become visible for one frame.</summary>
+        public void BeginFrame() => _synthetic?.BeginFrame();
 
         public void Dispose()
         {
             Asset.Disable();
             Object.Destroy(Asset);
+        }
+    }
+
+    /// <summary>
+    /// Input that attract mode (or a test) sets from code: a stick for Move, a stick for Look, and
+    /// buttons held or tapped. <see cref="Tap"/> makes <see cref="InputService.Pressed"/> true for
+    /// exactly one frame (the next one GameRoot starts); <see cref="Hold"/> also taps on the way down.
+    /// No allocation per frame.
+    /// </summary>
+    public sealed class SyntheticInput
+    {
+        /// <summary>Move stick, -1..1 each axis.</summary>
+        public Vector2 move;
+        /// <summary>Look stick, -1..1 each axis (x right, y up).</summary>
+        public Vector2 look;
+
+        readonly System.Collections.Generic.List<InputAction> _held = new System.Collections.Generic.List<InputAction>(8);
+        readonly System.Collections.Generic.List<InputAction> _queued = new System.Collections.Generic.List<InputAction>(8);
+        readonly System.Collections.Generic.List<InputAction> _active = new System.Collections.Generic.List<InputAction>(8);
+
+        public void Hold(InputAction action, bool down)
+        {
+            if (action == null) return;
+            bool was = _held.Contains(action);
+            if (down && !was)
+            {
+                _held.Add(action);
+                Tap(action);
+            }
+            else if (!down && was) _held.Remove(action);
+        }
+
+        public void Tap(InputAction action)
+        {
+            if (action != null && !_queued.Contains(action)) _queued.Add(action);
+        }
+
+        public bool IsHeld(InputAction action) => _held.Contains(action) || _active.Contains(action);
+
+        public bool WasTapped(InputAction action) => _active.Contains(action);
+
+        public void BeginFrame()
+        {
+            _active.Clear();
+            for (int i = 0; i < _queued.Count; i++) _active.Add(_queued[i]);
+            _queued.Clear();
+        }
+
+        /// <summary>Hands off the pad: sticks centred, nothing held.</summary>
+        public void Clear()
+        {
+            move = Vector2.zero;
+            look = Vector2.zero;
+            _held.Clear();
+            _queued.Clear();
+            _active.Clear();
         }
     }
 

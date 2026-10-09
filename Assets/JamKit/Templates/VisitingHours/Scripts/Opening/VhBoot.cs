@@ -53,6 +53,22 @@ namespace JamKit.VisitingHours
             _runner.boot = _boot;
             GameRoot.Ui.Title.Shown -= OnTitleShown;
             GameRoot.Ui.Title.Shown += OnTitleShown;
+            VhPresenter.RegisterOpening(PresenterMode.Chapters);
+        }
+
+        /// <summary>Presenter mode's "Opening" chapter: plays the opening now on the title, or goes back
+        /// to the title first (from a run, an end screen, the credits) and plays it there.</summary>
+        public static void PresenterOpening()
+        {
+            if (_runner == null || !GameRoot.Exists) return;
+            if (GameRoot.Flow.Current == GameState.Title && !GameRoot.IsLoadingScene)
+            {
+                PlayOpeningNow();
+                return;
+            }
+            _runner.openingOnTitle = true;
+            if (GameRoot.Flow.Current == GameState.Credits) GameRoot.Instance.CloseCredits();
+            else GameRoot.Instance.QuitToTitle();
         }
 
         /// <summary>True when Play starts the slice.</summary>
@@ -88,6 +104,8 @@ namespace JamKit.VisitingHours
     {
         public VisitingHoursBoot boot;
         public VhOpening opening;
+        /// <summary>Presenter mode asked for the opening: play it as soon as the title is up.</summary>
+        public bool openingOnTitle;
         VisualElement _titleScreen, _news, _tickerBar;
         Label _ticker;
         AudioSource _voice;
@@ -164,6 +182,11 @@ namespace JamKit.VisitingHours
         {
             if (!GameRoot.Exists) return;
             float udt = Time.unscaledDeltaTime;
+            if (openingOnTitle && GameRoot.Flow.Current == GameState.Title && !GameRoot.IsLoadingScene)
+            {
+                openingOnTitle = false;
+                VhBoot.PlayOpeningNow();
+            }
             if (opening != null)
             {
                 if (GameRoot.Flow.Current != GameState.Title) opening.Finish(false);

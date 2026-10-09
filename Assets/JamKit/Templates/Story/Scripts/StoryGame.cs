@@ -106,6 +106,7 @@ namespace JamKit.Narrative
             StoryScreens.Ensure(config);
             AddPauseButtons(true);
             SetupDebug();
+            SetupPresenter();
             _started = true;
 
             string load = _pendingLoad;
@@ -114,6 +115,7 @@ namespace JamKit.Narrative
             else NewGame();
         }
 
+        bool _ctrlSkip;
         float _savedCharsPerSecond = 45f;
         string _savedTypeSound = "blip";
 
@@ -189,6 +191,7 @@ namespace JamKit.Narrative
             GameRoot.Audio.StopAmbience(0.5f);
             AddPauseButtons(false);
             TeardownDebug();
+            TeardownPresenter();
             _stage?.Remove();
         }
 
@@ -265,7 +268,18 @@ namespace JamKit.Narrative
             _text.SetQuickActive("auto", GameRoot.Dialogue.AutoMode);
             _text.SetQuickActive("skip", GameRoot.Dialogue.SkipMode);
             if (_endingShown) TickEndingCard(dt);
-            if (!paused && GameRoot.Ui.Top == null) HandleInput();
+            // Hold-to-skip ends when Ctrl is let go, even if a menu opened meanwhile; Ctrl+Shift is the
+            // start of the presenter chord, not a skip.
+            if (_ctrlSkip)
+            {
+                var keys = Keyboard.current;
+                if (keys == null || !keys.ctrlKey.isPressed || PresenterMode.ChordKeysDown)
+                {
+                    _ctrlSkip = false;
+                    GameRoot.Dialogue.SkipMode = false;
+                }
+            }
+            if (!paused && GameRoot.Ui.Top == null && !PresenterMode.ChordKeysDown) HandleInput();
         }
 
         void HandleInput()
@@ -311,8 +325,7 @@ namespace JamKit.Narrative
             if (kb != null && kb.f5Key.wasPressedThisFrame) QuickSave();
             if (kb != null && kb.f9Key.wasPressedThisFrame) QuickLoad();
             // Hold Ctrl to skip (read text only, unless Settings says otherwise).
-            if (kb != null && kb.leftCtrlKey.wasPressedThisFrame) d.SkipMode = true;
-            if (kb != null && kb.leftCtrlKey.wasReleasedThisFrame) d.SkipMode = false;
+            if (kb != null && kb.leftCtrlKey.wasPressedThisFrame) { d.SkipMode = true; _ctrlSkip = true; }
         }
 
         public void ToggleAuto() => GameRoot.Dialogue.AutoMode = !GameRoot.Dialogue.AutoMode;

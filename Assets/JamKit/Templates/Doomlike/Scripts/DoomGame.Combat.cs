@@ -205,7 +205,7 @@ namespace JamKit.Doomlike
         {
             if (!player.Alive || amount <= 0f || _phase != Phase.Playing) return;
             PlayerHitsTaken++;
-            if (DebugMenu.GodMode) return;
+            if (DebugMenu.PlayerInvincible) return;
             float armor = _stats.Get(DoomStats.Armor);
             var r = player.Health.Damage(new DamageInfo(amount * (1f - armor), kind));
             if (r.applied <= 0f) return;

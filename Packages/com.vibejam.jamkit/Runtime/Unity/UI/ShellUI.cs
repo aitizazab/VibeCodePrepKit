@@ -14,7 +14,7 @@ namespace JamKit.Shell
     {
         UIDocument _doc;
         VisualElement _root;
-        VisualElement _hudLayer, _dialogueLayer, _screenLayer, _floatLayer, _flash, _fade, _debugLayer;
+        VisualElement _hudLayer, _dialogueLayer, _screenLayer, _floatLayer, _flash, _fade, _debugLayer, _presenterLayer;
 
         public TitleScreen Title;
         public SettingsScreen Settings;
@@ -28,6 +28,10 @@ namespace JamKit.Shell
         public HudView Hud;
         public DialogueView Dialogue;
         public DebugMenu DebugPanel;
+        /// <summary>Presenter mode's panel (Ctrl+Shift+P, or hold L3+R3 on a pad): an overlay like Settings.</summary>
+        public PresenterScreen Presenter;
+
+        readonly UiHider _hider = new UiHider();
 
         ShellScreen _base;
         readonly List<ShellScreen> _overlays = new List<ShellScreen>();
@@ -89,6 +93,7 @@ namespace JamKit.Shell
             _fade.AddToClassList("jk-fade");
             _fade.style.display = DisplayStyle.None;
             _debugLayer = Layer("debug-layer");
+            _presenterLayer = Layer("presenter-layer");
 
             Title = Add(new TitleScreen(), assets != null ? assets.title : null);
             Pause = Add(new PauseScreen(), assets != null ? assets.pause : null);
@@ -102,7 +107,39 @@ namespace JamKit.Shell
             Hud = new HudView(assets != null ? assets.hud : null, _hudLayer);
             Dialogue = new DialogueView(assets != null ? assets.dialogue : null, _dialogueLayer);
             DebugPanel = new DebugMenu(assets != null ? assets.debugMenu : null, _debugLayer);
+            Presenter = Add(new PresenterScreen(), null);
+            PresenterIndicator = new Label { name = "presenter-indicator", pickingMode = PickingMode.Ignore };
+            PresenterIndicator.AddToClassList("jk-presenter-indicator");
+            PresenterIndicator.style.display = DisplayStyle.None;
+            _presenterLayer.Add(PresenterIndicator);
         }
+
+        /// <summary>Presenter mode's small status line (only when its Indicator toggle is on).</summary>
+        public Label PresenterIndicator;
+
+        // ---------- Presenter: hide the UI ----------
+
+        /// <summary>True while presenter mode hides the HUD, dialogue box, floating text and debug overlay
+        /// (the picture stays: anything a template marks with UiHider.KeepClass, the flash and fade; menus
+        /// such as Pause still show when opened).</summary>
+        public bool UiHidden => _hider.Active;
+
+        public void SetUiHidden(bool hidden)
+        {
+            if (hidden == _hider.Active) return;
+            if (hidden)
+            {
+                _hiderRoots.Clear();
+                _hiderRoots.Add(_hudLayer);
+                _hiderRoots.Add(_dialogueLayer);
+                _hiderRoots.Add(_floatLayer);
+                _hiderRoots.Add(_debugLayer);
+                _hider.Hide(_hiderRoots);
+            }
+            else _hider.Restore();
+        }
+
+        readonly List<VisualElement> _hiderRoots = new List<VisualElement>(5);
 
         VisualElement Layer(string name)
         {
@@ -190,6 +227,9 @@ namespace JamKit.Shell
             }
         }
 
+        /// <summary>Closes every overlay (Settings, How to Play, a template's screens, the presenter panel).</summary>
+        public void CloseOverlays() => CloseAllOverlays();
+
         void CloseAllOverlays()
         {
             for (int i = _overlays.Count - 1; i >= 0; i--) _overlays[i].Hide();
@@ -212,6 +252,13 @@ namespace JamKit.Shell
             {
                 bool back = input.Cancel.WasPressedThisFrame();
                 bool pause = input.Pause.WasPressedThisFrame();
+                // Ctrl+Shift+P is the presenter chord, not a pause; Escape during attract mode stops it.
+                if (pause && PresenterMode.ChordKeysDown) pause = false;
+                if ((back || pause) && PresenterMode.AttractRunning && !IsOverlayOpen(Presenter))
+                {
+                    PresenterMode.StopAttract();
+                    back = pause = false;
+                }
                 if (back || pause) HandleBack(back, pause);
                 // A mouse click on empty space can drop focus; any keyboard or pad press brings it back.
                 var top = Top;
@@ -227,6 +274,7 @@ namespace JamKit.Shell
             Hud.Tick(dt, GameRoot.Flow.InRun && !game.SceneService.IsLoading);
             TickFlash(dt);
             TickFloaters(dt);
+            _hider.Tick(dt);
         }
 
         static bool IsInside(VisualElement e, VisualElement ancestor)
@@ -291,6 +339,13 @@ namespace JamKit.Shell
         }
 
         public bool IsFlashing => _flashLeft > 0f;
+
+        /// <summary>Ends a running flash at once (presenter jumps start clean).</summary>
+        public void ClearFlash()
+        {
+            _flashLeft = 0f;
+            _flash.style.display = DisplayStyle.None;
+        }
 
         void TickFlash(float dt)
         {

@@ -47,6 +47,7 @@ namespace JamKit.VisitingHours
             Root = new VisualElement { name = "vh-battle", pickingMode = PickingMode.Ignore };
             Root.AddToClassList("vh-layer");
             Root.AddToClassList("vh-battle");
+            Root.AddToClassList(UiHider.KeepClass); // the argument is the game: presenter mode's Hide UI keeps it
             if (style != null) Root.styleSheets.Add(style);
             parent.Add(Root);
 

@@ -37,7 +37,7 @@ namespace JamKit.VisitingHours
             var s = GameRoot.Settings;
             _battle.SpeedScale = s.enemyBulletSpeedScale;
             _battle.DensityScale = s.enemyDensityScale;
-            _battle.Invulnerable = DebugMenu.GodMode;
+            _battle.Invulnerable = DebugMenu.PlayerInvincible;
             _mode = Mode.Battle;
             _afterBattleStarted = false;
             _hud.SetPrompt("");
@@ -62,7 +62,7 @@ namespace JamKit.VisitingHours
                 }
                 return;
             }
-            _battle.Invulnerable = DebugMenu.GodMode || _pilot != null && _battleInvulnerable;
+            _battle.Invulnerable = DebugMenu.PlayerInvincible || _pilot != null && _battleInvulnerable;
             // Substeps keep a fast-forwarded battle exact (the emitters are frame-rate independent anyway).
             float total = dt * _battleSpeed;
             int steps = Mathf.Clamp(Mathf.CeilToInt(total / (1f / 60f)), 1, 60);

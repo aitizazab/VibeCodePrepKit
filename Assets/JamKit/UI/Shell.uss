@@ -618,3 +618,100 @@
     background-color: rgba(0, 0, 0, 0.25);
     border-radius: 8px;
 }
+
+/* ---------- Presenter mode (Ctrl+Shift+P / hold L3+R3) ---------- */
+
+.jk-presenter {
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.jk-presenter-panel {
+    margin-right: 32px;
+    width: 1040px;
+    max-height: 96%;
+    background-color: rgba(8, 10, 14, 0.94);
+    border-color: rgb(255, 196, 64);
+    border-width: 2px;
+    border-radius: 10px;
+    padding: 18px 22px;
+}
+
+.jk-presenter-kicker {
+    font-size: 18px;
+    color: rgb(255, 196, 64);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+.jk-presenter-title {
+    font-size: 30px;
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+
+.jk-presenter-columns {
+    flex-direction: row;
+    flex-shrink: 1;
+}
+
+.jk-presenter-column {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin: 0 6px;
+}
+
+.jk-presenter-scroll {
+    max-height: 560px;
+}
+
+.jk-presenter-heading {
+    font-size: 18px;
+    color: rgb(170, 175, 185);
+    margin-top: 10px;
+    margin-bottom: 2px;
+}
+
+.jk-presenter-button {
+    font-size: 24px;
+    background-image: none;
+    background-color: rgb(34, 38, 46);
+    color: rgb(235, 235, 235);
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: 6px;
+    margin: 3px 0;
+    padding: 8px 12px;
+    -unity-text-align: middle-left;
+}
+
+.jk-presenter-button:hover {
+    background-color: rgb(52, 58, 70);
+}
+
+.jk-presenter-button:focus {
+    border-color: rgb(255, 196, 64);
+    background-color: rgb(52, 58, 70);
+}
+
+.jk-presenter-chapter {
+    font-size: 26px;
+}
+
+.jk-presenter-note {
+    font-size: 17px;
+    color: rgb(150, 155, 165);
+    margin-top: 8px;
+    white-space: normal;
+}
+
+.jk-presenter-indicator {
+    position: absolute;
+    right: 14px;
+    top: 10px;
+    font-size: 16px;
+    color: rgb(255, 196, 64);
+    background-color: rgba(0, 0, 0, 0.55);
+    padding: 2px 8px;
+    border-radius: 4px;
+}

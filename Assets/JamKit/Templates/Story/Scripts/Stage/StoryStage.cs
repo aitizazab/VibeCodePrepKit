@@ -92,6 +92,12 @@ namespace JamKit.Narrative
             _ui = El("st-ui", Frame);
             _flash = El("st-flash", Frame);
             _flash.style.opacity = 0f;
+            // Presenter mode's Hide HUD/UI keeps the picture and its effects, and hides the text box,
+            // cards and pop-ups.
+            _camera.AddToClassList(UiHider.KeepClass);
+            _fade.AddToClassList(UiHider.KeepClass);
+            _glitch.AddToClassList(UiHider.KeepClass);
+            _flash.AddToClassList(UiHider.KeepClass);
 
             _chapter = El("st-chapter", Frame);
             _chapterLabel = new Label { name = "chapter-title" };

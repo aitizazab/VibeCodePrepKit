@@ -63,7 +63,7 @@ namespace JamKit.Shell
         /// <summary>Deals damage. Returns what happened (blocked by i-frames, killed...).</summary>
         public DamageResult Hit(float amount, DamageKind kind = DamageKind.Generic, int sourceId = 0)
         {
-            if (isPlayer && DebugMenu.GodMode) return new DamageResult(0f, 0f, false, true);
+            if (JamKit.Presenting.Invincibility.Blocks(isPlayer, DebugMenu.GodMode, PresenterMode.InvincibleNow)) return new DamageResult(0f, 0f, false, true);
             return Health.Damage(new DamageInfo(amount, kind, sourceId));
         }
 

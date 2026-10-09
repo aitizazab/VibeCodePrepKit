@@ -123,6 +123,7 @@ namespace JamKit.VisitingHours
             DebugMenu.SkipHandler = _skipHandler;
             _smokeDriver = SmokeDrive;
             SmokeRunner.GameplayDriver = _smokeDriver;
+            SetupPresenter();
             GameRoot.Run.Set("Slice", "Visiting Hours");
 
             StartCoroutine(BeginDay());
@@ -144,6 +145,7 @@ namespace JamKit.VisitingHours
             GameRoot.Dialogue.StoryCreated -= _bindInk;
             if (DebugMenu.SkipHandler == _skipHandler) DebugMenu.SkipHandler = null;
             if (SmokeRunner.GameplayDriver == _smokeDriver) SmokeRunner.GameplayDriver = null;
+            TeardownPresenter();
             if (_journal != null)
             {
                 _journal.Closed -= _onJournalClosed;
@@ -192,7 +194,7 @@ namespace JamKit.VisitingHours
             bool journalOpen = _journal.IsOpen;
 
             bool playing = GameRoot.Flow.Current == GameState.Playing && !GameRoot.IsLoadingScene;
-            UpdatePointerLock(playing && _mode == Mode.Explore && !journalOpen);
+            UpdatePointerLock(playing && _mode == Mode.Explore && !journalOpen && GameRoot.Ui.Top == null);
             FaceBillboards();
 
             if (_mode == Mode.Battle)
@@ -256,12 +258,11 @@ namespace JamKit.VisitingHours
         {
             var input = GameRoot.Input;
             move = input.MoveVector;
-            hurry = input.GameplayAllowed && input.Sprint.IsPressed();
+            hurry = input.Held(input.Sprint);
             use = input.Pressed(input.Interact);
             Vector2 look = input.LookDelta(GameRoot.Settings);
-            var device = input.Look.activeControl != null ? input.Look.activeControl.device : null;
             var t = config.player;
-            if (device is Gamepad)
+            if (input.LookFromGamepad)
             {
                 // The shell's look binding scales the stick by 8 (see DefaultControls).
                 float k = t.gamepadDegreesPerSecond * dt / 8f;
@@ -304,14 +305,15 @@ namespace JamKit.VisitingHours
         /// ("Click to look around"); a desktop build takes it at once. Batch mode never locks.</summary>
         void UpdatePointerLock(bool want)
         {
-            if (!want || Application.isBatchMode)
+            bool scripted = Application.isBatchMode || GameRoot.Input.IsSynthetic; // tests, smoke, attract mode
+            if (!want || scripted)
             {
                 if (Cursor.lockState != CursorLockMode.None)
                 {
                     Cursor.lockState = CursorLockMode.None;
                     Cursor.visible = true;
                 }
-                _focused = Application.isBatchMode && want;
+                _focused = scripted && want;
                 return;
             }
             bool locked = Cursor.lockState == CursorLockMode.Locked;

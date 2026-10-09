@@ -254,6 +254,7 @@ namespace JamKit.BulletHell
             DebugMenu.SkipHandler = _skipHandler;
             _smokeDriver = SmokeDrive;
             SmokeRunner.GameplayDriver = _smokeDriver;
+            SetupPresenter();
             CreateCompanion();
 
             BeginRun();
@@ -268,6 +269,7 @@ namespace JamKit.BulletHell
             GameRoot.Dialogue.StoryCreated -= _bindInk;
             if (DebugMenu.SkipHandler == _skipHandler) DebugMenu.SkipHandler = null;
             if (SmokeRunner.GameplayDriver == _smokeDriver) SmokeRunner.GameplayDriver = null;
+            TeardownPresenter();
             _hud?.Remove();
         }
 
@@ -482,7 +484,7 @@ namespace JamKit.BulletHell
             var ppn = new System.Numerics.Vector2(pp.x, pp.y);
             int grazed = field.Enemy.Graze(ppn, player.GrazeRadius, hitR);
             if (grazed > 0) OnGraze(grazed, pp, dt);
-            if (player.IsInvulnerable || DebugMenu.GodMode || _bombTimer > 0f) return;
+            if (player.IsInvulnerable || DebugMenu.PlayerInvincible || _bombTimer > 0f) return;
             // Ghost Step: during a phase (the start of a sprint), bullets pass through (bodies still hurt).
             bool ghost = _loadout.Effect(ShmupEffects.GhostStep) > 0 && _ghostPhase.Phasing;
             bool hit = !ghost && field.Enemy.FirstOverlap(ppn, hitR) >= 0;

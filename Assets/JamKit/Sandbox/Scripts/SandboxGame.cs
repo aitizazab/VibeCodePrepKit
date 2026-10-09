@@ -1,7 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
 using Ink.UnityIntegration;
 using JamKit.Combat;
 using JamKit.Flow;
+using JamKit.Presenting;
 using JamKit.Shell;
 using UnityEngine;
 
@@ -15,6 +17,30 @@ namespace JamKit.Sandbox
     /// </summary>
     public sealed class SandboxGame : MonoBehaviour
     {
+        // Presenter mode (docs/PRESENTING.md): the chapters a presenter can jump to, and the attract
+        // script that plays the game by itself. Declared at load so the panel lists them on the title.
+        public const string Scene = "Sandbox";
+        public const string ChapterStart = "Start";
+        public const string ChapterSign = "The sign";
+        public static readonly string[] Chapters = { ChapterStart, ChapterSign };
+        public static readonly string[] Segments = { "coins" };
+
+        public static AttractScript Attract() => new AttractScript(Scene).Jump(ChapterStart, 1f).Drive("coins", 15f).Jump(ChapterSign, 0.5f).Wait(4f);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        static void DeclarePresenter()
+        {
+            PresenterMode.Declare(Scene, Chapters);
+            PresenterMode.SetAttractScript(Attract());
+        }
+
+        /// <summary>The live jumps (<paramref name="game"/> may be null in edit-mode tests).</summary>
+        public static void RegisterChapters(ChapterRegistry chapters, SandboxGame game, object owner)
+        {
+            chapters.Register(Scene, ChapterStart, () => game.JumpToStart(), owner);
+            chapters.Register(Scene, ChapterSign, () => game.JumpToSign(), owner);
+        }
+
         public InkFile story;
         public string introKnot = "intro";
         public string signKnot = "sign";
@@ -48,12 +74,69 @@ namespace JamKit.Sandbox
             GameRoot.Hud.Show();
             RefreshHud();
             GameRoot.Dialogue.Ended += OnDialogueEnded;
+            _start = player.transform.position;
+            RegisterChapters(PresenterMode.Chapters, this, this);
+            PresenterMode.RegisterDriver(this, Scene, AttractDrive);
             if (story != null) GameRoot.Dialogue.Play(story, introKnot);
         }
 
         void OnDestroy()
         {
+            PresenterMode.Unregister(this);
             if (GameRoot.Exists) GameRoot.Dialogue.Ended -= OnDialogueEnded;
+        }
+
+        Vector3 _start;
+
+        /// <summary>Chapter "Start": every coin back, full health, at the start, no dialogue.</summary>
+        public void JumpToStart()
+        {
+            if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.Stop();
+            foreach (var c in _coins) c.gameObject.SetActive(true);
+            _collected = 0;
+            var health = player.Damageable.Health;
+            health.Heal(health.Max);
+            player.transform.position = _start;
+            _nearSign = false;
+            RefreshHud();
+            GameRoot.Hud.Message("Collect the 3 coins. Don't touch the red block!", 3.5f);
+        }
+
+        /// <summary>Chapter "The sign": standing at the sign, reading it.</summary>
+        public void JumpToSign()
+        {
+            if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.Stop();
+            if (sign != null) player.transform.position = sign.position + Vector3.down * 0.8f;
+            if (story != null) GameRoot.Dialogue.Play(story, signKnot);
+        }
+
+        /// <summary>Attract mode: walks from coin to coin with a hand-like stick.</summary>
+        IEnumerator AttractDrive(string segment, float seconds, SyntheticInput input)
+        {
+            float end = Time.realtimeSinceStartup + seconds;
+            var stick = System.Numerics.Vector2.Zero;
+            while (Time.realtimeSinceStartup < end && GameRoot.Flow.InRun)
+            {
+                SandboxCoin next = null;
+                float best = float.MaxValue;
+                Vector3 p = player.transform.position;
+                foreach (var c in _coins)
+                {
+                    if (!c.gameObject.activeSelf) continue;
+                    float d = (c.transform.position - p).sqrMagnitude;
+                    if (d < best) { best = d; next = c; }
+                }
+                Vector2 want = Vector2.zero;
+                if (next != null)
+                {
+                    Vector3 to = next.transform.position - p;
+                    want = new Vector2(to.x, to.y).normalized * Mathf.Clamp01(to.magnitude);
+                }
+                stick = NaturalStick.Step(stick, new System.Numerics.Vector2(want.x, want.y), 4f, Time.unscaledDeltaTime);
+                input.move = new Vector2(stick.X, stick.Y);
+                yield return null;
+            }
+            input.Clear();
         }
 
         void OnDialogueEnded(string knot)
