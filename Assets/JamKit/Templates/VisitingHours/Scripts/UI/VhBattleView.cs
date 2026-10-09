@@ -150,7 +150,8 @@ namespace JamKit.VisitingHours
         {
             if (string.IsNullOrEmpty(expression) || expression == _shownExpression || _battle == null) return;
             _shownExpression = expression;
-            var portrait = GameRoot.Exists ? GameRoot.Config.FindPortrait(_battle.Def.speaker) : null;
+            var portrait = _config != null ? _config.FindPortrait(_battle.Def.speaker) : null;
+            if (portrait == null && GameRoot.Exists) portrait = GameRoot.Config.FindPortrait(_battle.Def.speaker);
             var sprite = portrait != null ? portrait.FindExpression(expression) : null;
             if (sprite == null && portrait != null) sprite = portrait.FindExpression("");
             _portrait.style.backgroundImage = sprite != null ? new StyleBackground(sprite) : new StyleBackground(StyleKeyword.None);

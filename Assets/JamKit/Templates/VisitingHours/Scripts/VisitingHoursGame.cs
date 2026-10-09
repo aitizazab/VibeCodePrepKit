@@ -100,6 +100,7 @@ namespace JamKit.VisitingHours
             player.Setup(config.player);
             player.NewRun(100f);
             _state = new SliceState(config.MakeBook());
+            RegisterPortraits();
 
             GameRoot.Hud.Show();
             GameRoot.Hud.ShowHealth(false);
@@ -134,6 +135,7 @@ namespace JamKit.VisitingHours
             }
             Shader.SetGlobalVector(FogParamsId, Vector4.zero);
             if (!GameRoot.Exists) return;
+            UnregisterPortraits();
             GameRoot.Dialogue.EventRaised -= _onInkEvent;
             GameRoot.Dialogue.Ended -= _onDialogueEnded;
             GameRoot.Dialogue.StoryCreated -= _bindInk;
@@ -142,6 +144,31 @@ namespace JamKit.VisitingHours
             if (_journal != null) _journal.Close();
             _hud?.Remove();
             _battleView?.Root.RemoveFromHierarchy();
+        }
+
+        readonly List<Portrait> _registered = new List<Portrait>();
+
+        /// <summary>The dialogue finds characters in GameRoot.Config.portraits: add Walt and Mags for
+        /// as long as the slice runs (whatever template is active), and take them out again after.</summary>
+        void RegisterPortraits()
+        {
+            var active = GameRoot.Config;
+            if (active == null || config.portraits == null) return;
+            if (active.portraits == null) active.portraits = new List<Portrait>();
+            foreach (var p in config.portraits)
+            {
+                if (p == null || active.FindPortrait(p.characterId) != null) continue;
+                active.portraits.Add(p);
+                _registered.Add(p);
+            }
+        }
+
+        void UnregisterPortraits()
+        {
+            var active = GameRoot.Config;
+            if (active != null && active.portraits != null)
+                foreach (var p in _registered) active.portraits.Remove(p);
+            _registered.Clear();
         }
 
         // ---------- Frame ----------

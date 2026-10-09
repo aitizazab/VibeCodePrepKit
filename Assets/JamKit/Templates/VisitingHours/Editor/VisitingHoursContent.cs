@@ -12,7 +12,7 @@ namespace JamKit.VisitingHours.EditorTools
     /// <summary>
     /// The slice's data assets: the config (from the core's SliceContent the first time; afterwards
     /// only what's missing, so the creator's edits stay), the title's boot asset, Walt's and Mags's
-    /// portraits (added to the active GameConfig's portraits if missing), the materials, and the art
+    /// portraits (kept in the config, not the active GameConfig), the materials, and the art
     /// and voice references (a stand-in is replaced as soon as the real file exists).
     /// </summary>
     public static class VisitingHoursContent
@@ -24,7 +24,7 @@ namespace JamKit.VisitingHours.EditorTools
         public const string AudioDir = VisitingHoursBuilder.Root + "/Audio";
         public const string InkPath = VisitingHoursBuilder.Root + "/Dialogue/VisitingHours.ink";
 
-        public static VisitingHoursConfig EnsureAll(VisitingHoursArt.Set art, GameConfig active, bool reset)
+        public static VisitingHoursConfig EnsureAll(VisitingHoursArt.Set art, bool reset)
         {
             foreach (var d in new[] { VisitingHoursBuilder.Root + "/Data", PortraitsDir, MaterialsDir, VisitingHoursBuilder.Root + "/Resources/JamKit" })
                 VisitingHoursBuilder.EnsureFolder(d);
@@ -44,7 +44,8 @@ namespace JamKit.VisitingHours.EditorTools
             ArtRefs(config, art);
             EditorUtility.SetDirty(config);
 
-            Portraits(art, active, reset);
+            config.portraits = Portraits(art, reset);
+            EditorUtility.SetDirty(config);
             Boot(art, reset);
             return config;
         }
@@ -160,15 +161,13 @@ namespace JamKit.VisitingHours.EditorTools
             c.ResetArtCache();
         }
 
-        static void Portraits(VisitingHoursArt.Set art, GameConfig active, bool reset)
+        /// <summary>Walt's and Mags's portraits, kept in the slice's own config (the game registers them
+        /// with the dialogue at start), so the active GameConfig is never touched.</summary>
+        static List<Portrait> Portraits(VisitingHoursArt.Set art, bool reset)
         {
             var walt = Portrait("Walt", art, reset, ("neutral", "portrait_walt_neutral"), ("sad", "portrait_walt_sad"), ("firm", "portrait_walt_firm"));
             var mags = Portrait("Mags", art, reset, ("neutral", "portrait_mags"));
-            if (active == null) return;
-            if (active.portraits == null) active.portraits = new List<Portrait>();
-            foreach (var p in new[] { walt, mags })
-                if (!active.portraits.Contains(p) && active.FindPortrait(p.characterId) == null) active.portraits.Add(p);
-            EditorUtility.SetDirty(active);
+            return new List<Portrait> { walt, mags };
         }
 
         /// <summary>A portrait whose expressions are the whole waist-up paintings (the base is a blank,

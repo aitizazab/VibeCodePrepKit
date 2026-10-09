@@ -57,11 +57,13 @@ namespace JamKit.VisitingHours.Tests
         }
 
         [Test]
-        public void WaltAndMagsHavePortraitsInTheActiveConfig()
+        public void WaltAndMagsHavePortraitsInTheSlicesOwnConfig()
         {
-            var active = Resources.Load<GameConfig>(GameConfig.ResourcePath);
-            var walt = active.FindPortrait("Walt");
-            var mags = active.FindPortrait("Mags");
+            // The slice carries its own portraits (registered with the dialogue when it starts),
+            // so it works whatever the active GameConfig holds.
+            var c = Config();
+            var walt = c.FindPortrait("Walt");
+            var mags = c.FindPortrait("Mags");
             Assert.That(walt, Is.Not.Null);
             Assert.That(mags, Is.Not.Null);
             foreach (var e in new[] { "neutral", "sad", "firm" }) Assert.That(walt.FindExpression(e), Is.Not.Null, "Walt " + e);

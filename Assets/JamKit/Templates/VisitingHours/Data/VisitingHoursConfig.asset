@@ -1,0 +1,602 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e49adf964781779439f610a829ea0aa2, type: 3}
+  m_Name: VisitingHoursConfig
+  m_EditorClassIdentifier: JamKit.VisitingHours::JamKit.VisitingHours.VisitingHoursConfig
+  story: {fileID: 6231892579173505729, guid: bdb3a72ee3301a04083966d264c841c0, type: 3}
+  entries:
+  - id: fact_chart
+    kind: 0
+    title: His chart
+    text: 'Charting: GCS 6. No sedation. Scans normal. He just won''t wake up.'
+    scribble: 
+    sayLine: Your scans are normal, Eli. There's no reason you can't wake up.
+    icon: prop_chart
+  - id: fact_effects
+    kind: 0
+    title: His effects bag
+    text: "His things, in a bag with his name on it. A keyring with a tag: \"W.A.
+      workshop\". A folded memorial card: Walter Abernathy, 1941\u20132015."
+    scribble: 
+    sayLine: These are his keys. Your workshop, Walt.
+    icon: prop_effects_bag
+  - id: fact_police_report
+    kind: 0
+    title: The police report
+    text: 'An envelope at the station, for the family. Route 9, Sunday 23 August,
+      6:41 AM: the car crossed the median. Driver: Elias Voss, critical. Lena Voss
+      and Theo Voss, dead at the scene.
+
+      Phone log: 5:52, call to Nadia Voss,
+      not answered. 5:58, call to Lena Voss, 2 minutes.'
+    scribble: I should have
+    sayLine: There's a police report, Walt.
+    icon: prop_police_envelope
+  - id: fact_photo
+    kind: 0
+    title: The photo
+    text: 'On his bedside table: Eli, Lena and Theo on the beach, laughing so hard
+      Theo''s a blur.'
+    scribble: 
+    sayLine: He has a family. Had.
+    icon: prop_family_photo
+  - id: mem_walt_alive
+    kind: 1
+    title: Walt at the grill
+    text: Mr. Abernathy at the barbecue, waving at me with the tongs. Flat cap, apron,
+      the moustache. Exactly like when we were kids.
+    scribble: 
+    sayLine: You're at the grill, waving. Like always.
+    icon: portrait_walt_neutral
+  - id: mem_newspaper
+    kind: 1
+    title: The newspaper
+    text: The Courier, still in its plastic on a porch. Sunday, 23 August. The morning
+      of the crash.
+    scribble: 
+    sayLine: The paper on the porch says Sunday.
+    icon: prop_newspaper
+  - id: mem_shop_sign
+    kind: 1
+    title: The shop sign
+    text: '"Abernathy Cycles, since 1971." Walt''s garage. Eli spent every summer
+      in there with grease up to his elbows.'
+    scribble: 
+    sayLine: Abernathy Cycles. Since 1971.
+    icon: flat_bike_garage
+  - id: mem_saturday
+    kind: 1
+    title: Saturday
+    text: The radio says it's Saturday. Mrs. Lindqvist says it's Saturday. Everyone
+      here is very sure it's Saturday.
+    scribble: 
+    sayLine: Everyone keeps telling me it's Saturday.
+    icon: billboard_neighbor_roses
+  - id: ded_walt_dead
+    kind: 2
+    title: Walt can't be here
+    text: Walt died in 2015. He can't be here.
+    scribble: 
+    sayLine: Walt. You died in 2015. Eli gave the eulogy.
+    icon: prop_memorial_card
+  - id: ded_day_before
+    kind: 2
+    title: The day before
+    text: He's living the day before the crash, over and over.
+    scribble: 
+    sayLine: Not this. You can't fix this by doing it again.
+    icon: prop_newspaper
+  - id: truth_walt
+    kind: 3
+    title: Why Walt
+    text: He brings Walt back because Walt is the one who told him you can fix anything.
+    scribble: 
+    sayLine: 
+    icon: prop_wrench
+  - id: pers_wrench
+    kind: 4
+    title: Walt's wrench
+    text: He pressed it into my hand, warm from the sun. "For the next thing that
+      needs fixing."
+    scribble: 
+    sayLine: 
+    icon: prop_wrench
+  pairs:
+  - a: fact_effects
+    b: mem_walt_alive
+    result: ded_walt_dead
+    question: "The card in Eli's bag says Walter Abernathy, 1941\u20132015. And Walt
+      is at the grill, waving."
+  - a: mem_newspaper
+    b: mem_saturday
+    result: ded_day_before
+    question: The paper on the porch is from the morning of the crash. Everyone says
+      it's Saturday.
+  gentleLines:
+  - Those don't go together. Not yet.
+  - I'm reaching. Leave it.
+  - No. That's not it.
+  walt:
+    id: walt
+    speaker: Walt
+    composure: 5
+    halfWidth: 4
+    halfHeight: 2.5
+    pressLine: 0
+    playerSpeed: 3.2
+    playerRadius: 0.09
+    hitInvulnerable: 1
+    practiceText: Watch the pattern first.
+    practiceDuration: 5.5
+    practice:
+    - pattern:
+        shape: 1
+        count: 5
+        spreadDegrees: 50
+        lineWidth: 4
+        baseAngleDegrees: -90
+        rotatePerShotDegrees: 0
+        shots: 3
+        shotInterval: 1.4
+        speed: 1.5
+        speedStep: 0
+        acceleration: 0
+        angularVelocityDegrees: 0
+        aimAtTarget: 0
+        jitterDegrees: 0
+        startDelay: 0
+        lifetime: 6
+        mirror: 0
+        styleIndex: 0
+        spawnRadius: 0
+      originX: 0
+      originY: 2.7
+      sweepX: 0
+      sweepHz: 0.3
+    statements:
+    - text: '"Go home, Nadia."'
+      expression: neutral
+      duration: 9
+      volleys:
+      - pattern:
+          shape: 5
+          count: 4
+          spreadDegrees: 60
+          lineWidth: 8
+          baseAngleDegrees: -90
+          rotatePerShotDegrees: 0
+          shots: 22
+          shotInterval: 0.42
+          speed: 2
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 5
+          startDelay: 0
+          lifetime: 6
+          mirror: 0
+          styleIndex: 0
+          spawnRadius: 0
+        originX: 0
+        originY: 2.7
+        sweepX: 1
+        sweepHz: 0.23
+      - pattern:
+          shape: 5
+          count: 4
+          spreadDegrees: 60
+          lineWidth: 8
+          baseAngleDegrees: -90
+          rotatePerShotDegrees: 0
+          shots: 21
+          shotInterval: 0.42
+          speed: 2
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 5
+          startDelay: 0.21
+          lifetime: 6
+          mirror: 0
+          styleIndex: 0
+          spawnRadius: 0
+        originX: 1
+        originY: 2.7
+        sweepX: 1
+        sweepHz: 0.31
+      key: 
+      optional: 0
+      offers:
+      - fact_photo
+      - fact_chart
+      crackLine: 
+      crackExpression: sad
+      wrongLine: 
+    - text: '"He''s fine here. Look at him."'
+      expression: neutral
+      duration: 9.5
+      volleys:
+      - pattern:
+          shape: 0
+          count: 14
+          spreadDegrees: 60
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 12.86
+          shots: 6
+          shotInterval: 1.35
+          speed: 1.25
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 8
+          mirror: 0
+          styleIndex: 1
+          spawnRadius: 0.3
+        originX: 0
+        originY: 1.6
+        sweepX: 0
+        sweepHz: 0.3
+      - pattern:
+          shape: 0
+          count: 10
+          spreadDegrees: 60
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 0
+          shots: 4
+          shotInterval: 2
+          speed: 0.9
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0.7
+          lifetime: 8
+          mirror: 0
+          styleIndex: 1
+          spawnRadius: 0.3
+        originX: 0
+        originY: 2.1
+        sweepX: 2.5
+        sweepHz: 0.12
+      key: 
+      optional: 0
+      offers:
+      - fact_chart
+      - fact_photo
+      crackLine: 
+      crackExpression: sad
+      wrongLine: 
+    - text: '"I''ve always been on this street."'
+      expression: firm
+      duration: 11
+      volleys:
+      - pattern:
+          shape: 5
+          count: 17
+          spreadDegrees: 60
+          lineWidth: 5
+          baseAngleDegrees: -90
+          rotatePerShotDegrees: 0
+          shots: 5
+          shotInterval: 2.6
+          speed: 1.5
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 7
+          mirror: 0
+          styleIndex: 2
+          spawnRadius: 0
+        originX: -1.5
+        originY: 2.7
+        sweepX: 0
+        sweepHz: 0.3
+      - pattern:
+          shape: 5
+          count: 17
+          spreadDegrees: 60
+          lineWidth: 5
+          baseAngleDegrees: -90
+          rotatePerShotDegrees: 0
+          shots: 4
+          shotInterval: 2.6
+          speed: 1.5
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 1.3
+          lifetime: 7
+          mirror: 0
+          styleIndex: 2
+          spawnRadius: 0
+        originX: 1.5
+        originY: 2.7
+        sweepX: 0
+        sweepHz: 0.3
+      key: ded_walt_dead
+      optional: 0
+      offers:
+      - ded_walt_dead
+      - mem_shop_sign
+      - fact_photo
+      crackLine: ...I know, love. He knows too. He just doesn't want to.
+      crackExpression: sad
+      wrongLine: 
+    - text: '"You can fix anything, if you''re patient enough."'
+      expression: neutral
+      duration: 10
+      volleys:
+      - pattern:
+          shape: 2
+          count: 3
+          spreadDegrees: 60
+          lineWidth: 4
+          baseAngleDegrees: 0
+          rotatePerShotDegrees: 11
+          shots: 68
+          shotInterval: 0.14
+          speed: 1.5
+          speedStep: 0
+          acceleration: 0
+          angularVelocityDegrees: 0
+          aimAtTarget: 0
+          jitterDegrees: 0
+          startDelay: 0
+          lifetime: 7
+          mirror: 0
+          styleIndex: 3
+          spawnRadius: 0.25
+        originX: 0
+        originY: 1
+        sweepX: 0
+        sweepHz: 0.3
+      key: ded_day_before
+      optional: 1
+      offers:
+      - ded_day_before
+      - ded_walt_dead
+      - mem_newspaper
+      crackLine: ...No. Some things you can't. He never learned that one from me.
+      crackExpression: sad
+      wrongLine: 
+    interlude: 1.4
+    crackInterlude: 3.2
+    pressSpeedScale: 1.3
+    pressDensityScale: 1.5
+    softerScale: 0.7
+    harsherScale: 1.25
+    objectRadius: 0.32
+    objectSpeed: 0.75
+    objectFirstDelay: 1.6
+    objectInterval: 2.4
+    maxObjects: 2
+    defaultWrongLine: That's not what this is about.
+    convincedEntry: truth_walt
+    heardOutEntry: pers_wrench
+    styleRadii:
+    - 0.08
+    - 0.1
+    - 0.085
+    - 0.08
+  showZoneWords: 1
+  examinables:
+  - id: chart
+    area: 0
+    label: the chart
+    knot: examine_chart
+    records: fact_chart
+  - id: effects
+    area: 0
+    label: his effects bag
+    knot: examine_effects
+    records: fact_effects
+  - id: police_report
+    area: 0
+    label: the envelope
+    knot: examine_police_report
+    records: fact_police_report
+  - id: photo
+    area: 0
+    label: the photo
+    knot: examine_photo
+    records: fact_photo
+  - id: elias
+    area: 0
+    label: Elias
+    knot: examine_elias
+    records: 
+  - id: station
+    area: 0
+    label: the nurses' station
+    knot: examine_station
+    records: 
+  - id: stairwell
+    area: 0
+    label: the stairwell door
+    knot: stairwell
+    records: 
+  - id: newspaper
+    area: 2
+    label: the newspaper
+    knot: examine_newspaper
+    records: mem_newspaper
+  - id: shop_sign
+    area: 2
+    label: the garage
+    knot: examine_shop_sign
+    records: mem_shop_sign
+  - id: roses
+    area: 2
+    label: the woman watering roses
+    knot: examine_roses
+    records: mem_saturday
+  - id: grill
+    area: 2
+    label: the man at the grill
+    knot: examine_grill
+    records: mem_saturday
+  - id: dog
+    area: 2
+    label: the dog
+    knot: examine_dog
+    records: 
+  - id: walt
+    area: 2
+    label: Walt
+    knot: walt_intro
+    records: 
+  waltNoticeRange: 15
+  player:
+    maxHealth: 100
+    motion:
+      runSpeed: 3.9
+      walkSpeed: 2.2
+      acceleration: 14
+      friction: 16
+      turnGrip: 1.3
+    gravity: 30
+    radius: 0.38
+    height: 1.7
+    eyeHeight: 1.5
+    mouseDegreesPerPixel: 0.08
+    gamepadDegreesPerSecond: 120
+    maxPitch: 70
+    bobAmount: 0.028
+    footstepStride: 1.6
+    hazardDamagePerSecond: 0
+    useRange: 2.6
+    verticalAutoAimDegrees: 0
+  useRange: 2.6
+  hospitalTint: {r: 0.86, g: 0.9, b: 0.96, a: 1}
+  hospitalFog: {r: 0.16, g: 0.18, b: 0.2, a: 1}
+  hospitalFogParams: {x: 10, y: 40, z: 0.35}
+  boothTint: {r: 0.62, g: 0.66, b: 0.78, a: 1}
+  dreamTint: {r: 1.08, g: 1, b: 0.9, a: 1}
+  dreamFog: {r: 1, g: 0.82, b: 0.6, a: 1}
+  dreamFogParams: {x: 14, y: 70, z: 0.5}
+  dreamVignette: 0.55
+  paintedMaterial: {fileID: 2100000, guid: e54847cea0f125146a34df76f13cb81f, type: 2}
+  worldMaterial: {fileID: 2100000, guid: 3ceb7374d44a28440a5df3ff3d018183, type: 2}
+  skyMaterial: {fileID: 2100000, guid: 4961da1566a9b1c458e7cb156a959256, type: 2}
+  art:
+  - name: portrait_walt_neutral
+    texture: {fileID: 2800000, guid: 0d1859f60ba3114459c4e0d28d8286fc, type: 3}
+    fallback: 0
+  - name: portrait_walt_sad
+    texture: {fileID: 2800000, guid: 8fce28194545c0e458007865cccbc619, type: 3}
+    fallback: 0
+  - name: portrait_walt_firm
+    texture: {fileID: 2800000, guid: 1ac404a4804f77843bab446552eb2a94, type: 3}
+    fallback: 0
+  - name: portrait_mags
+    texture: {fileID: 2800000, guid: 5a939e81d02ff0a4ba1a1065735b629d, type: 3}
+    fallback: 0
+  - name: billboard_walt
+    texture: {fileID: 2800000, guid: c079a8ca802c0c048ab7a8a747c0a304, type: 3}
+    fallback: 0
+  - name: billboard_neighbor_roses
+    texture: {fileID: 2800000, guid: faded3c758873734099de4c8c7d57c6c, type: 3}
+    fallback: 0
+  - name: billboard_neighbor_grill
+    texture: {fileID: 2800000, guid: aadf1b7e8e6593643bcff514a313a820, type: 3}
+    fallback: 0
+  - name: billboard_dog
+    texture: {fileID: 2800000, guid: 95ebf0a9408b0ee45bc6bd63354fda3d, type: 3}
+    fallback: 0
+  - name: billboard_elias_bed
+    texture: {fileID: 2800000, guid: 8e15cbbd8d77c484f8fe895b269330c7, type: 3}
+    fallback: 0
+  - name: prop_family_photo
+    texture: {fileID: 2800000, guid: 1702ea2a29233594ea3b53269bb40ddf, type: 3}
+    fallback: 0
+  - name: prop_chart
+    texture: {fileID: 2800000, guid: 2a9e30911461c874094dc007883498ca, type: 3}
+    fallback: 0
+  - name: prop_effects_bag
+    texture: {fileID: 2800000, guid: 485b96c882b8b6647b527c06360cd5a2, type: 3}
+    fallback: 0
+  - name: prop_keyring
+    texture: {fileID: 2800000, guid: 8c8818454f746264aab227a5f5958ef6, type: 3}
+    fallback: 0
+  - name: prop_memorial_card
+    texture: {fileID: 2800000, guid: 0222862c3dcd8c24eb1e8853711a917d, type: 3}
+    fallback: 0
+  - name: prop_police_envelope
+    texture: {fileID: 2800000, guid: 9bfb45d3936fcff4a8a8e3c3b26033a3, type: 3}
+    fallback: 0
+  - name: prop_newspaper
+    texture: {fileID: 2800000, guid: 8c6a66ee16267974eaea69a35d768192, type: 3}
+    fallback: 0
+  - name: prop_wrench
+    texture: {fileID: 2800000, guid: 985d6df22ecb4ff4fa74782fed7a8bc8, type: 3}
+    fallback: 0
+  - name: flat_house_1
+    texture: {fileID: 2800000, guid: 25ffe5ac4f7c7bc4da67b1c96460075c, type: 3}
+    fallback: 0
+  - name: flat_house_2
+    texture: {fileID: 2800000, guid: 3277aecf6a15a674ab753b41a405d31c, type: 3}
+    fallback: 0
+  - name: flat_house_3
+    texture: {fileID: 2800000, guid: d3bffda833d669341916d837a71d8487, type: 3}
+    fallback: 0
+  - name: flat_bike_garage
+    texture: {fileID: 2800000, guid: 051daa108f0d7084f8ff413e80a9f4ae, type: 3}
+    fallback: 0
+  - name: tex_grass
+    texture: {fileID: 2800000, guid: 8389392930bcc774daadf60f638cb316, type: 3}
+    fallback: 0
+  - name: tex_road
+    texture: {fileID: 2800000, guid: 816281b55a11cc64ba53e16070f44e60, type: 3}
+    fallback: 0
+  - name: tex_sidewalk
+    texture: {fileID: 2800000, guid: a274b4e1f1bc66a45bf41a70b5f805b0, type: 3}
+    fallback: 0
+  - name: tex_hospital_floor
+    texture: {fileID: 2800000, guid: 8ac0f688620711442a036d6bc03881a0, type: 3}
+    fallback: 0
+  - name: tex_hospital_wall
+    texture: {fileID: 2800000, guid: 6d9eacb3d74cf7a45a12470102f6137d, type: 3}
+    fallback: 0
+  - name: sky_dream
+    texture: {fileID: 2800000, guid: 394b5a092f5bc7348bfba0a8a35e1e79, type: 3}
+    fallback: 0
+  - name: sky_night
+    texture: {fileID: 2800000, guid: 1b0cffbe5972bd84e8f05972afdbd91d, type: 3}
+    fallback: 0
+  - name: bg_ceiling_dark
+    texture: {fileID: 2800000, guid: 50edab2cd83fc834182e3fc66f25708b, type: 3}
+    fallback: 0
+  - name: ui_phone
+    texture: {fileID: 2800000, guid: 4fac7cff50e00e9489c671c86939be43, type: 3}
+    fallback: 0
+  - name: bg_title_news
+    texture: {fileID: 2800000, guid: d6b764e99079b6a4b815c3c97282cb90, type: 3}
+    fallback: 0
+  - name: fx_static_wasp
+    texture: {fileID: 2800000, guid: 7c3d8824f4ab50a4e926f1203b8601da, type: 3}
+    fallback: 0
+  - name: journal_page
+    texture: {fileID: 2800000, guid: bc5ca00b34f3c564ea016e6f77eaef6c, type: 3}
+    fallback: 0

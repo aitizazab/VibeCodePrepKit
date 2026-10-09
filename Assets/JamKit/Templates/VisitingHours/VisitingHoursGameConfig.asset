@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 945c355521880f545884efe20ab4723b, type: 3}
+  m_Name: VisitingHoursGameConfig
+  m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.GameConfig
+  gameTitle: Visiting Hours
+  tagline: 
+  bootScene: Boot
+  titleScene: Title
+  firstGameplayScene: VisitingHours
+  titleMusic: music_vh_sad_pad
+  gameMusic: 
+  audio: {fileID: 0}
+  portraits: []
+  credits: {fileID: 0}
+  howToPlay:
+  - title: Walk and look
+    body: 'WASD or the left stick to walk, the mouse or the right stick to look.
+      Shift (LB) to hurry.
+
+      E (X) looks at something properly, or talks to
+      someone.'
+    image: {fileID: 0}
+  - title: The journal
+    body: 'J, Tab or (View) opens Nadia''s notebook. Click an entry to read and pick
+      it; pick two and Combine: if they fit, they make something new.'
+    image: {fileID: 0}
+  - title: Arguments
+    body: 'Move the small light with WASD or the stick and keep it out of the way.
+      Things you''ve worked out drift into the box: touch one to say it.'
+    image: {fileID: 0}
+  showHowToPlayOnFirstRun: 0
+  allowDebugMenuInRelease: 0
+  showPixelLookSetting: 0
+  showTextSettings: 1
+  showActionSettings: 1
+  showBestTime: 0
+  chooseDifficultyOnPlay: 0
+  showControlLegend: 0

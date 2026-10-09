@@ -122,6 +122,7 @@ namespace JamKit.VisitingHours.Tests
             yield return FinishDialogue();
             yield return WaitFor(() => game.Area == SliceArea.Street && game.CurrentMode == VisitingHoursGame.Mode.Explore, "the dream");
             Assert.That(game.BuiltArea.walt, Is.Not.Null, "Walt is on the street");
+            Assert.That(GameRoot.Config.FindPortrait("Mags"), Is.Not.Null, "the slice registered its portraits");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -167,7 +168,9 @@ namespace JamKit.VisitingHours.Tests
             game.StartBattle();
             Assert.That(game.CurrentMode, Is.EqualTo(VisitingHoursGame.Mode.Battle));
             yield return WaitFor(() => game.Battle.Phase == BattlePhase.Done, "the argument to end", 40f);
-            for (int i = 0; i < 400 && game.CurrentMode != VisitingHoursGame.Mode.End; i++)
+            // The outcome's lines, the street dimming, Mags pulling her out: mash through them (by time, not frames).
+            float end = Time.realtimeSinceStartup + 20f;
+            while (game.CurrentMode != VisitingHoursGame.Mode.End && Time.realtimeSinceStartup < end)
             {
                 if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.AutoStep();
                 yield return null;

@@ -42,7 +42,7 @@ namespace JamKit.VisitingHours.EditorTools
             foreach (var d in new[] { Root + "/Data", Root + "/Scenes", Root + "/Generated", Root + "/Audio" }) EnsureFolder(d);
             SceneBuilder.CompileInk();
             var art = VisitingHoursArt.MakeAll();
-            var config = VisitingHoursContent.EnsureAll(art, ctx != null ? ctx.config : null, resetContent);
+            var config = VisitingHoursContent.EnsureAll(art, resetContent);
             AssetDatabase.SaveAssets();
             MakePreset(ctx);
             string path = BuildScene();
@@ -82,8 +82,7 @@ namespace JamKit.VisitingHours.EditorTools
                     "The config (journal entries, pairs, Walt's argument, examinables, walking), the portraits and the opening go back to the slice's defaults. Your changes to them are lost. (The ink, the art and the voices are not touched.)",
                     "Reset", "Cancel")) return;
             var art = VisitingHoursArt.MakeAll();
-            var active = AssetDatabase.LoadAssetAtPath<GameConfig>(TemplateSwitch.ActiveConfigPath);
-            LogProblems(VisitingHoursContent.EnsureAll(art, active, true));
+            LogProblems(VisitingHoursContent.EnsureAll(art, true));
             AssetDatabase.SaveAssets();
         }
 

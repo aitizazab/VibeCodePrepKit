@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Ink.UnityIntegration;
 using JamKit.Doomlike;
+using JamKit.Shell;
 using UnityEngine;
 
 namespace JamKit.VisitingHours
@@ -40,6 +41,10 @@ namespace JamKit.VisitingHours
         public BattleDef walt = new BattleDef();
         [Tooltip("Show the faint words \"press\" and \"listen\" in the box's halves. Off tests whether the zones read on their own.")]
         public bool showZoneWords = true;
+
+        [Header("Characters")]
+        [Tooltip("Walt's and Mags's portraits. The slice registers them with the dialogue when it starts, so it never depends on the active GameConfig's list.")]
+        public List<Portrait> portraits = new List<Portrait>();
 
         [Header("Places")]
         public List<ExamineDef> examinables = new List<ExamineDef>();
@@ -84,6 +89,14 @@ namespace JamKit.VisitingHours
                     if (a != null && !string.IsNullOrEmpty(a.name) && a.texture != null) _art[a.name] = a.texture;
             }
             return _art.TryGetValue(name, out var t) ? t : null;
+        }
+
+        public Portrait FindPortrait(string id)
+        {
+            if (portraits == null || string.IsNullOrEmpty(id)) return null;
+            foreach (var p in portraits)
+                if (p != null && string.Equals(p.characterId, id, StringComparison.OrdinalIgnoreCase)) return p;
+            return null;
         }
 
         public ExamineDef FindExaminable(string id)

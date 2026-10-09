@@ -52,12 +52,18 @@ namespace JamKit.VisitingHours.EditorTools
             {
                 string real = ArtDir + "/" + name + ".png";
                 string path;
-                if (File.Exists(real)) path = real;
+                string stand = GeneratedDir + "/fallback_" + name + ".png";
+                if (File.Exists(real))
+                {
+                    path = real;
+                    // The real painting is here: its stand-in goes.
+                    if (File.Exists(stand)) AssetDatabase.DeleteAsset(stand);
+                }
                 else
                 {
                     missing.Add(name + ".png");
                     set.fallbacks.Add(name);
-                    path = GeneratedDir + "/fallback_" + name + ".png";
+                    path = stand;
                     WritePng(path, Draw(name, kind, out int w, out int h), w, h);
                 }
                 Import(path, kind);

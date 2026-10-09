@@ -48,6 +48,13 @@ namespace JamKit.VisitingHours
                 if (b.composure < 1) problems.Add("Walt's argument gives Nadia no composure");
             }
 
+            foreach (var who in new[] { b != null ? b.speaker : "Walt", "Mags" })
+            {
+                var p = c.FindPortrait(who);
+                if (p == null) problems.Add("no portrait for " + who + " in the config's Portraits (run JamKit > Rebuild Shell Scenes)");
+                else if (p.FindExpression("") == null) problems.Add(who + "'s portrait has no default expression picture");
+            }
+
             var ids = new HashSet<string>();
             foreach (var e in c.examinables)
             {
