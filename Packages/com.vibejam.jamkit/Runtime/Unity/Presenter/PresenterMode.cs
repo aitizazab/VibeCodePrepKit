@@ -600,8 +600,8 @@ namespace JamKit.Shell
                         var r = PresenterMode.Jump(script.scene, step.name);
                         if (r == JumpResult.Pending)
                         {
-                            float end = UnityEngine.Time.realtimeSinceStartup + 20f;
-                            while (PresenterMode.Chapters.HasPending && UnityEngine.Time.realtimeSinceStartup < end) yield return null;
+                            float end = UnityEngine.Time.unscaledTime + 20f;
+                            while (PresenterMode.Chapters.HasPending && UnityEngine.Time.unscaledTime < end) yield return null;
                             if (PresenterMode.Chapters.HasPending)
                             {
                                 PresenterMode.Chapters.CancelPending();
@@ -626,8 +626,8 @@ namespace JamKit.Shell
                         }
                         _segmentDone = false;
                         _segment = StartCoroutine(Segment(driver(step.name, step.seconds, _synthetic)));
-                        float end = UnityEngine.Time.realtimeSinceStartup + step.seconds + 4f;
-                        while (!_segmentDone && UnityEngine.Time.realtimeSinceStartup < end) yield return null;
+                        float end = UnityEngine.Time.unscaledTime + step.seconds + 4f;
+                        while (!_segmentDone && UnityEngine.Time.unscaledTime < end) yield return null;
                         if (!_segmentDone && _segment != null) StopCoroutine(_segment);
                         _segment = null;
                         break;
@@ -648,8 +648,8 @@ namespace JamKit.Shell
 
         static IEnumerator Real(float seconds)
         {
-            float end = UnityEngine.Time.realtimeSinceStartup + Mathf.Max(0f, seconds);
-            while (UnityEngine.Time.realtimeSinceStartup < end) yield return null;
+            float end = UnityEngine.Time.unscaledTime + Mathf.Max(0f, seconds);
+            while (UnityEngine.Time.unscaledTime < end) yield return null;
         }
 
         /// <summary>While attract mode plays: dialogue reads itself at the auto-mode pace, and a choice

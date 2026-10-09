@@ -59,9 +59,9 @@ namespace JamKit.Narrative
 
         IEnumerator AttractDrive(string segment, float seconds, SyntheticInput input)
         {
-            float end = Time.realtimeSinceStartup + seconds;
+            float end = Time.unscaledTime + seconds;
             var d = GameRoot.Dialogue;
-            while (Time.realtimeSinceStartup < end)
+            while (Time.unscaledTime < end)
             {
                 // The shell's attract loop keeps auto mode on and takes choices after a moment.
                 if (segment == "hotspots" && d.IsParked && _investigation != null && !d.IsActive)
@@ -80,17 +80,17 @@ namespace JamKit.Narrative
             var d = GameRoot.Dialogue;
             foreach (var step in scene.walkthrough)
             {
-                if (_investigation != scene || Time.realtimeSinceStartup >= end) yield break;
+                if (_investigation != scene || Time.unscaledTime >= end) yield break;
                 string spot = step, item = null;
                 int gt = step.IndexOf('>');
                 if (gt >= 0) { item = step.Substring(0, gt).Trim(); spot = step.Substring(gt + 1).Trim(); }
-                while (d.IsActive && Time.realtimeSinceStartup < end) yield return null;
+                while (d.IsActive && Time.unscaledTime < end) yield return null;
                 if (!d.IsParked) yield break;
                 int index = scene.hotspots.FindIndex(h => h.id == spot);
                 if (index >= 0) _hotspots.Select(index);
                 if (!string.IsNullOrEmpty(item)) _inventory.SetHeld(item);
-                float look = Time.realtimeSinceStartup + 1.3f;
-                while (Time.realtimeSinceStartup < look) yield return null;
+                float look = Time.unscaledTime + 1.3f;
+                while (Time.unscaledTime < look) yield return null;
                 UseHotspot(spot, item);
                 yield return null;
             }

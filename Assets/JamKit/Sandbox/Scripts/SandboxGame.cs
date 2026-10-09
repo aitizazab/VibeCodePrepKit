@@ -113,9 +113,9 @@ namespace JamKit.Sandbox
         /// <summary>Attract mode: walks from coin to coin with a hand-like stick.</summary>
         IEnumerator AttractDrive(string segment, float seconds, SyntheticInput input)
         {
-            float end = Time.realtimeSinceStartup + seconds;
+            float end = Time.unscaledTime + seconds;
             var stick = System.Numerics.Vector2.Zero;
-            while (Time.realtimeSinceStartup < end && GameRoot.Flow.InRun)
+            while (Time.unscaledTime < end && GameRoot.Flow.InRun)
             {
                 SandboxCoin next = null;
                 float best = float.MaxValue;

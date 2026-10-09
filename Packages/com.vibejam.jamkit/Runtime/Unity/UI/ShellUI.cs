@@ -227,8 +227,16 @@ namespace JamKit.Shell
             }
         }
 
-        /// <summary>Closes every overlay (Settings, How to Play, a template's screens, the presenter panel).</summary>
-        public void CloseOverlays() => CloseAllOverlays();
+        /// <summary>Closes every overlay (Settings, How to Play, a template's screens, the presenter panel)
+        /// and shows the flow's screen under them again (the title, the pause menu), if any.</summary>
+        public void CloseOverlays()
+        {
+            if (_overlays.Count == 0) return;
+            CloseAllOverlays();
+            if (_base == null) return;
+            _base.Root.style.display = DisplayStyle.Flex;
+            _base.RestoreFocus();
+        }
 
         void CloseAllOverlays()
         {

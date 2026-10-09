@@ -87,7 +87,7 @@ namespace JamKit.Doomlike
 
         IEnumerator AttractDrive(string segment, float seconds, SyntheticInput input)
         {
-            float end = Time.realtimeSinceStartup + seconds;
+            float end = Time.unscaledTime + seconds;
             player.GiveAllKeys(); // locked doors don't stop the tour
             if (segment == "fight") _arsenal.GiveAll();
             if (_attractPath == null) _attractPath = new NavMeshPath();
@@ -97,7 +97,7 @@ namespace JamKit.Doomlike
             int corner = 1;
             Vector3 lastPos = player.transform.position;
             float stuck = 0f;
-            while (Time.realtimeSinceStartup < end)
+            while (Time.unscaledTime < end)
             {
                 if (_phase != Phase.Playing || _level == null) { input.Clear(); yield return null; continue; }
                 float dt = Time.unscaledDeltaTime;

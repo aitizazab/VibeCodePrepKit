@@ -1,0 +1,30 @@
+{
+    "name": "JamKit.Recording.Editor",
+    "rootNamespace": "JamKit.EditorTools.Recording",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "Unity.Recorder",
+        "Unity.Recorder.Base",
+        "Unity.Recorder.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "JAMKIT_RECORDER"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.recorder",
+            "expression": "5.0.0",
+            "define": "JAMKIT_RECORDER"
+        }
+    ],
+    "noEngineReferences": false
+}

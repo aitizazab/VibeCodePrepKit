@@ -13,7 +13,7 @@ namespace JamKit.EditorTools
     /// </summary>
     public static class PackageSetup
     {
-        static readonly string[] Wanted = { "com.unity.cinemachine", "com.unity.probuilder", "com.unity.test-framework" };
+        static readonly string[] Wanted = { "com.unity.cinemachine", "com.unity.probuilder", "com.unity.test-framework", "com.unity.recorder" };
 
         static readonly List<SearchRequest> Pending = new List<SearchRequest>();
 

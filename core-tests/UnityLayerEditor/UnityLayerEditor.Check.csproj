@@ -17,4 +17,13 @@
     <UnityNUnit Include="$(MSBuildThisFileDirectory)..\..\Library\PackageCache\com.unity.ext.nunit@*\net40\unity-custom\nunit.framework.dll" />
     <Reference Include="nunit.framework"><HintPath>@(UnityNUnit)</HintPath><Private>false</Private></Reference>
   </ItemGroup>
+  <!-- JamKit > Record (Editor/Recording) compiles only once Unity has resolved com.unity.recorder and
+       built its assemblies; until then the code is #if'd out, as in Unity without the package. -->
+  <PropertyGroup Condition="Exists('$(ScriptAssemblies)Unity.Recorder.Editor.dll')">
+    <DefineConstants>$(DefineConstants);JAMKIT_RECORDER</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(ScriptAssemblies)Unity.Recorder.Editor.dll')">
+    <RecorderDll Include="$(ScriptAssemblies)Unity.Recorder*.dll" />
+    <Reference Include="@(RecorderDll)" Private="false" />
+  </ItemGroup>
 </Project>

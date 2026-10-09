@@ -86,12 +86,12 @@ namespace JamKit.BulletHell
 
         IEnumerator AttractDrive(string segment, float seconds, SyntheticInput input)
         {
-            float end = Time.realtimeSinceStartup + seconds;
+            float end = Time.unscaledTime + seconds;
             switch (segment)
             {
                 case "draft":
                 case "encounter":
-                    while (Time.realtimeSinceStartup < end)
+                    while (Time.unscaledTime < end)
                     {
                         if (_choice.IsOpen && GameRoot.Flow.Current == GameState.Playing)
                         {
@@ -118,7 +118,7 @@ namespace JamKit.BulletHell
             var gameInput = GameRoot.Input;
             float t = Random.value * 10f;
             var stick = System.Numerics.Vector2.Zero;
-            while (Time.realtimeSinceStartup < end)
+            while (Time.unscaledTime < end)
             {
                 if (_phase == RoomPhase.Finished || !GameRoot.Flow.InRun) yield break;
                 if (_choice.IsOpen && GameRoot.Flow.Current == GameState.Playing)
@@ -171,8 +171,8 @@ namespace JamKit.BulletHell
         /// a card (the first it can take), and walks out of shops and encounters it has seen.</summary>
         IEnumerator AttractChoose(float look)
         {
-            float until = Time.realtimeSinceStartup + look;
-            while (Time.realtimeSinceStartup < until) yield return null;
+            float until = Time.unscaledTime + look;
+            while (Time.unscaledTime < until) yield return null;
             if (!_choice.IsOpen) yield break;
             var kind = _choice.Current;
             if (kind == ChoicePanel.Kind.Shop) { FinishChoice(); yield break; }
@@ -184,16 +184,16 @@ namespace JamKit.BulletHell
             // An encounter's pick list: look again, then take one.
             if (_choice.IsOpen && _choice.Current == ChoicePanel.Kind.Pick)
             {
-                until = Time.realtimeSinceStartup + 1.4f;
-                while (Time.realtimeSinceStartup < until) yield return null;
+                until = Time.unscaledTime + 1.4f;
+                while (Time.unscaledTime < until) yield return null;
                 int pick = _choice.FirstEnabledCard();
                 if (pick >= 0) _choice.Choose(pick);
             }
             // Out of an encounter after taking what it offered.
             if (_choice.IsOpen && IsEncounterPanel(_choice.Current) && kind != ChoicePanel.Kind.Draft)
             {
-                until = Time.realtimeSinceStartup + 1.2f;
-                while (Time.realtimeSinceStartup < until) yield return null;
+                until = Time.unscaledTime + 1.2f;
+                while (Time.unscaledTime < until) yield return null;
                 if (_choice.IsOpen && IsEncounterPanel(_choice.Current)) FinishChoice();
             }
         }

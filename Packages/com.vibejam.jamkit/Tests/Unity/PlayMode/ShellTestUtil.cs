@@ -37,6 +37,9 @@ namespace JamKit.Tests.Play
             yield return WaitFor(() => !GameRoot.IsLoadingScene, "any running load to finish");
             DebugMenu.GodMode = false;
             DebugMenu.TimeScale = 1f;
+            // Presenter mode off (toggles, attract, a pending chapter) whatever the last test left.
+            PresenterMode.Close();
+            PresenterMode.PhotoFolder = null;
             // Fresh save for every test (settings, flags, records, first-run cards).
             GameRoot.Save.UseSlot(Slot, true);
             UseSandboxConfig();

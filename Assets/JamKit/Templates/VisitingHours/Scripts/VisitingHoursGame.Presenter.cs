@@ -95,7 +95,7 @@ namespace JamKit.VisitingHours
 
         IEnumerator AttractDrive(string segment, float seconds, SyntheticInput input)
         {
-            float end = Time.realtimeSinceStartup + seconds;
+            float end = Time.unscaledTime + seconds;
             if (segment == "argument")
             {
                 yield return AttractArgument(end);
@@ -105,11 +105,11 @@ namespace JamKit.VisitingHours
             if (route != null)
                 foreach (var id in route)
                 {
-                    if (Time.realtimeSinceStartup >= end) break;
+                    if (Time.unscaledTime >= end) break;
                     yield return AttractWalkTo(id, id != "walt", end, input);
                 }
             // Time left: a slow look around.
-            while (Time.realtimeSinceStartup < end)
+            while (Time.unscaledTime < end)
             {
                 input.move = Vector2.zero;
                 input.look = Ready ? new Vector2(0.12f, 0f) : Vector2.zero;
@@ -127,10 +127,10 @@ namespace JamKit.VisitingHours
             if (spot == null) yield break;
             var gameInput = GameRoot.Input;
             Vector3 goal = Approach(id, spot.position);
-            float started = Time.realtimeSinceStartup, stuck = 0f;
+            float started = Time.unscaledTime, stuck = 0f;
             Vector3 last = player.transform.position;
             var stick = System.Numerics.Vector2.Zero;
-            while (Time.realtimeSinceStartup < end)
+            while (Time.unscaledTime < end)
             {
                 if (!Ready)
                 {
@@ -167,18 +167,18 @@ namespace JamKit.VisitingHours
                         input.Tap(gameInput.Interact);
                         yield return null;
                         yield return null;
-                        while (GameRoot.Dialogue.IsActive && Time.realtimeSinceStartup < end) yield return null;
+                        while (GameRoot.Dialogue.IsActive && Time.unscaledTime < end) yield return null;
                         break;
                     }
                 }
                 stuck = !arrived && (pos - last).sqrMagnitude < 0.0001f ? stuck + dt : 0f;
                 last = pos;
-                if (stuck > 2.5f || Time.realtimeSinceStartup - started > 14f)
+                if (stuck > 2.5f || Time.unscaledTime - started > 14f)
                 {
                     StandAt(id); // a cut, as an editor would make one
                     goal = player.transform.position;
                     stuck = 0f;
-                    started = Time.realtimeSinceStartup;
+                    started = Time.unscaledTime;
                 }
                 yield return null;
             }
@@ -188,12 +188,12 @@ namespace JamKit.VisitingHours
 
         IEnumerator AttractArgument(float end)
         {
-            while (_mode != Mode.Battle && Time.realtimeSinceStartup < end) yield return null;
+            while (_mode != Mode.Battle && Time.unscaledTime < end) yield return null;
             Pilot = new[] { PilotAction.Listen, PilotAction.Listen, PilotAction.Touch, PilotAction.Touch };
             PilotInvulnerable = true;
             BattleSpeed = 1f;
-            while (Time.realtimeSinceStartup < end && _battle != null && _battle.Phase != BattlePhase.Done) yield return null;
-            while (Time.realtimeSinceStartup < end) yield return null;
+            while (Time.unscaledTime < end && _battle != null && _battle.Phase != BattlePhase.Done) yield return null;
+            while (Time.unscaledTime < end) yield return null;
             Pilot = null;
         }
     }
