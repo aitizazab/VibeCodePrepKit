@@ -1,0 +1,13 @@
+Aspect ratio: 16:9 landscape.
+
+Scene object art. Painterly grounded realism for a serious narrative video game: soft gouache and oil paint textures with visible but controlled brushwork, clean readable silhouettes, muted natural palette, naturalistic proportions. Not anime, not cartoon, not a photograph, not a 3D render.
+
+A man in his mid-thirties lying asleep in a hospital bed, in a coma: lean face, short dark brown hair, a short neat dark beard, pale skin, eyes closed, peaceful, a clear nasal oxygen cannula, a pale blue patterned hospital gown, a pulse-oximeter clip on one finger, an IV line taped to the back of one hand. White sheets and a pale blue cotton blanket folded at his chest, the head of the bed raised slightly. A grey metal-and-plastic adjustable hospital bed with side rails and wheels.
+
+Framing: the whole bed seen in three-quarter view from the foot of the bed, at standing eye height, the bed's full outline inside the frame with a margin on every side. No monitors, no other furniture, no IV pole, no people.
+
+Lighting: cool, flat fluorescent light at night, desaturated blue-grey palette, quiet and cold, soft shadows.
+
+Background: completely plain flat light grey (#d0d0d0), no gradient, no scenery, no floor, no cast shadow on the background, so the subject can be cut out cleanly. The whole subject is inside the frame with a margin on every side.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

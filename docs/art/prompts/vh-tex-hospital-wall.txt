@@ -1,0 +1,11 @@
+Aspect ratio: 16:9 landscape.
+
+A seamless tileable texture for a game, Painterly grounded realism for a serious narrative video game: soft gouache and oil paint textures with visible but controlled brushwork, clean readable silhouettes, muted natural palette, naturalistic proportions. Not anime, not cartoon, not a photograph, not a 3D render.
+
+A painted institutional hospital wall: flat pale sage-green paint over smooth plaster, very subtle roller texture and faint scuffs, no lines, no fixtures, painted in soft gouache strokes.
+
+View: perfectly top-down orthographic, evenly lit across the whole frame, no vignette, no perspective, no horizon, no objects, no cast shadows, the surface fills the entire frame edge to edge, uniform detail density so it tiles without visible repeats.
+
+Colour: cool, flat fluorescent light, desaturated blue-grey.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

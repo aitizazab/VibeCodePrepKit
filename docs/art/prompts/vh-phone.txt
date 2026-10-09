@@ -1,0 +1,13 @@
+Aspect ratio: 16:9 landscape.
+
+A UI asset for a game. Painterly grounded realism for a serious narrative video game: soft gouache and oil paint textures with visible but controlled brushwork, clean readable silhouettes, muted natural palette, naturalistic proportions. Not anime, not cartoon, not a photograph, not a 3D render.
+
+A modern smartphone seen perfectly front-on and upright, a plain black frame with thin bezels and a slightly scuffed dark grey protective case, a small camera hole at the top of the screen. The screen is switched on but completely blank: a plain flat, very dark grey-blue glow with nothing on it, no icons, no clock, no notifications.
+
+Framing: the whole phone, centred, filling about 85% of the frame height, plenty of empty space either side.
+
+Lighting: cool, flat fluorescent light at night, desaturated blue-grey palette, quiet and cold, soft shadows.
+
+Background: completely plain flat light grey (#d0d0d0), no gradient, no scenery, no floor, no cast shadow on the background, so the subject can be cut out cleanly. The whole subject is inside the frame with a margin on every side.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

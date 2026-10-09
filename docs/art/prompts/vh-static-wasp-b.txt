@@ -1,0 +1,9 @@
+Aspect ratio: 16:9 landscape.
+
+A creature design for a game, painterly, with soft gouache texture. A small wasp-shaped creature whose whole body is made of analogue television static: not an insect with fur and veins, but a flat wasp silhouette (head, thorax, striped abdomen, stinger, two pairs of wings) filled entirely with flickering black-and-white TV snow, crossed by thin horizontal scanlines and a few bright horizontal glitch tears, its edges dissolving into loose grains of static. Two small pale glowing points for eyes. Seen from the front, wings spread, hovering, symmetrical. Eerie but small and fragile.
+
+Framing: the creature centred, filling about 60% of the frame height.
+
+Background: completely plain flat chroma-key green (#00b140), no gradient, no shadow, so it can be keyed out cleanly.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

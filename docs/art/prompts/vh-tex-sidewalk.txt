@@ -1,0 +1,11 @@
+Aspect ratio: 16:9 landscape.
+
+A seamless tileable texture for a game, Painterly grounded realism for a serious narrative video game: soft gouache and oil paint textures with visible but controlled brushwork, clean readable silhouettes, muted natural palette, naturalistic proportions. Not anime, not cartoon, not a photograph, not a 3D render.
+
+Plain poured concrete pavement surface: light warm grey, fine sandy texture, subtle stains and speckles, no slab joints, no lines, no cracks, painted in soft gouache strokes.
+
+View: perfectly top-down orthographic, evenly lit across the whole frame, no vignette, no perspective, no horizon, no objects, no cast shadows, the surface fills the entire frame edge to edge, uniform detail density so it tiles without visible repeats.
+
+Colour: warm golden late-afternoon light, slightly too saturated.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

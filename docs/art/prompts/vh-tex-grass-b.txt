@@ -1,0 +1,5 @@
+Aspect ratio: 16:9 landscape.
+
+A seamless tileable texture for a game: a perfect suburban lawn photographed straight down from directly above, camera pointing at the ground, so only the tips of dense, short, freshly mown grass blades are seen, evenly spread over the whole frame. Painterly: soft gouache and oil strokes, clean and stylised but grounded. Colour: a rich, slightly too saturated fresh green with warm golden late-afternoon highlights, like a dream of a perfect lawn; very subtle tonal variation. Perfectly top-down orthographic, evenly lit edge to edge, no perspective, no horizon, no vignette, no flowers, no objects, no shadows, uniform detail so it tiles without visible repeats.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

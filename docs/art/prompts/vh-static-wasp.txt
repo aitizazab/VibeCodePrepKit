@@ -1,0 +1,11 @@
+Aspect ratio: 16:9 landscape.
+
+A creature design for a game. Painterly grounded realism for a serious narrative video game: soft gouache and oil paint textures with visible but controlled brushwork, clean readable silhouettes, muted natural palette, naturalistic proportions. Not anime, not cartoon, not a photograph, not a 3D render.
+
+A small wasp-like creature made entirely of black-and-white television static: its body, wings and stinger formed from crackling grey noise grain and thin horizontal scanlines, the edges flickering and breaking up into loose pixels of static, two faint pale glowing points for eyes. Eerie but small and fragile. Seen from the front-side, wings spread, hovering.
+
+Framing: the creature centred, filling about 60% of the frame height.
+
+Background: completely plain flat chroma-key green (#00b140), no gradient, no shadow, so it can be keyed out cleanly.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

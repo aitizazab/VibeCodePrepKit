@@ -1,0 +1,292 @@
+{
+ "_review": {
+  "subtitle": "All 33 files, generated 2026-10-09 with Flow (Nano Banana Pro, 0 credits): 96 takes from 35 prompts. Green = my pick, blue = alternate, red = rejected (why underneath). One style throughout: painterly grounded realism, golden and a little too saturated in the dream, cold and flat in reality.",
+  "questions": [
+   "Is this the finish you want for the whole game? Classic painted illustration, close to realism (look at Walt and Mags). Or should it be rougher and more stylised?",
+   "Walt's street billboard waves at you (the 'Walt at the barbecue, waving' memory). Should he wave, or stand at rest and only wave when you find him?",
+   "Do the houses read as a slightly-too-perfect dream stage set? Or should the flats look more like theatre scenery (plywood edges, braces on the back)?",
+   "The opening ceiling came out brighter than 'dark' (it's seen from the pillow, with the blanket in view). Is darkening it in the game enough, or should it be repainted?",
+   "The static wasp (second round) is a wasp shape filled with TV snow, with glitch tears. Is that the dream's immune system, or should it be less insect-like?"
+  ],
+  "notes": [
+   "Every character stays on-model: Walt's sad and firm portraits and his billboard were made from the neutral portrait, and the family photo from the Elias-in-bed art, so the man on the beach is him.",
+   "Weak spots, honestly: Walt's sad portrait keeps the neutral one's hands (thumb in the apron strap), so only the face changes. The rose neighbour's glove doesn't clearly grip the watering can. The chart, the memorial card and the newspaper have illegible letter-like marks (no readable text; the UI gives the words).",
+   "Textures: grass and road were painted by Flow already repeating, so I cut whole periods (seamless). Sidewalk, hospital floor and wall were made seamless in the script. You may see the road's darker wheel-track stripe repeat once per tile, and two faint pale patches on the hospital floor.",
+   "The cut-outs (characters, props, houses, phone) go through background removal in a separate step, then 'The processed files' sheet at the top shows them over a checkerboard."
+  ]
+ },
+ "portrait_walt_neutral": {
+  "src": "vh-walt-neutral-take4.jpg",
+  "mode": "portrait",
+  "section": "characters",
+  "note": "The reference for all his other art: kind, thumb hooked in the apron strap, clean hands.",
+  "rejects": {
+   "take2": "No moustache: off-model."
+  }
+ },
+ "portrait_walt_sad": {
+  "src": "vh-walt-sad-take1.jpg",
+  "mode": "portrait",
+  "section": "characters",
+  "note": "All four takes are near-identical edits of the neutral portrait (same hands); this one is the softest.",
+  "rejects": {}
+ },
+ "portrait_walt_firm": {
+  "src": "vh-walt-firm-take1.jpg",
+  "mode": "portrait",
+  "section": "characters",
+  "note": "Arms folded, level stare; hands checked.",
+  "rejects": {}
+ },
+ "portrait_mags": {
+  "src": "vh-mags-take2.jpg",
+  "mode": "portrait",
+  "section": "characters",
+  "note": "Tired, amused, the reading glasses hanging on their cord; clean hands on the mug.",
+  "rejects": {}
+ },
+ "billboard_walt": {
+  "src": "vh-walt-billboard-take1.jpg",
+  "mode": "billboard",
+  "section": "characters",
+  "note": "Small wave; on-model with the portraits.",
+  "rejects": {}
+ },
+ "billboard_neighbor_roses": {
+  "src": "vh-neighbor-roses-take2.jpg",
+  "mode": "billboard",
+  "section": "characters",
+  "note": "Straight to camera. Minor: the watering can's handle isn't clearly gripped by the glove.",
+  "rejects": {}
+ },
+ "billboard_neighbor_grill": {
+  "src": "vh-neighbor-grill-take3.jpg",
+  "mode": "billboard",
+  "section": "characters",
+  "note": "Wave and tongs read well; the grill is part of the billboard.",
+  "rejects": {
+   "take2": "Blotchy red sunburn patches on the cheeks."
+  }
+ },
+ "billboard_dog": {
+  "src": "vh-dog-take2.jpg",
+  "mode": "billboard",
+  "section": "characters",
+  "note": "The only fully front-facing sit (billboards face you).",
+  "rejects": {}
+ },
+ "billboard_elias_bed": {
+  "src": "vh-elias-bed-take3.jpg",
+  "mode": "billboard",
+  "section": "characters",
+  "note": "Whole bed in frame, three-quarter from the foot; cannula, oximeter and IV read clearly.",
+  "rejects": {
+   "take4": "The bed runs off the bottom of the frame."
+  }
+ },
+ "prop_family_photo": {
+  "src": "vh-family-photo-take2.jpg",
+  "mode": "prop",
+  "section": "props",
+  "note": "Made with the Elias bed art attached, so the man in the photo is him: beard, hair. The boy rides his shoulders.",
+  "rejects": {}
+ },
+ "prop_chart": {
+  "src": "vh-chart-take1.jpg",
+  "mode": "prop",
+  "section": "props",
+  "note": "Clean clipboard; the print is illegible marks only.",
+  "rejects": {}
+ },
+ "prop_effects_bag": {
+  "src": "vh-effects-bag-take1.jpg",
+  "mode": "prop",
+  "section": "props",
+  "note": "Jacket, wallet, cracked phone and keys visible through the plastic; blank label.",
+  "rejects": {}
+ },
+ "prop_keyring": {
+  "src": "vh-keyring-take2.jpg",
+  "mode": "prop",
+  "section": "props",
+  "note": "The leather tag carries a small bicycle emblem: a quiet hint at the workshop.",
+  "rejects": {}
+ },
+ "prop_memorial_card": {
+  "src": "vh-memorial-card-take1.jpg",
+  "mode": "prop",
+  "section": "props",
+  "note": "Cream card, green border, white flowers; the lettering is illegible marks (the UI gives the name).",
+  "rejects": {}
+ },
+ "prop_police_envelope": {
+  "src": "vh-police-envelope-take1.jpg",
+  "mode": "prop",
+  "section": "props",
+  "note": "Crisper than take 2, papers peeking out.",
+  "rejects": {
+   "take2": "Muddy blue-grey smear across the envelope."
+  }
+ },
+ "prop_newspaper": {
+  "src": "vh-newspaper-take2.jpg",
+  "mode": "prop",
+  "section": "props",
+  "note": "Front page up, rubber band, sunny photo block; illegible columns.",
+  "rejects": {}
+ },
+ "prop_wrench": {
+  "src": "vh-wrench-take2.jpg",
+  "mode": "prop",
+  "section": "props",
+  "note": "Worn steel, red paint traces on the handle.",
+  "rejects": {
+   "take1": "Malformed: two sets of jaws fused on one wrench."
+  }
+ },
+ "flat_house_1": {
+  "src": "vh-flat-house-1-take2.jpg",
+  "mode": "flat",
+  "section": "environment",
+  "note": "The most straight-on, stage-flat elevation.",
+  "rejects": {
+   "take3": "Drawn in perspective, not a front-on flat."
+  }
+ },
+ "flat_house_2": {
+  "src": "vh-flat-house-2-take2.jpg",
+  "mode": "flat",
+  "section": "environment",
+  "note": "Straight-on; porch swing behind the left railing (the future Rest spot).",
+  "rejects": {}
+ },
+ "flat_house_3": {
+  "src": "vh-flat-house-3-take2.jpg",
+  "mode": "flat",
+  "section": "environment",
+  "note": "Straight-on, warm brick, geranium boxes.",
+  "rejects": {}
+ },
+ "flat_bike_garage": {
+  "src": "vh-flat-bike-garage-take2.jpg",
+  "mode": "flat",
+  "section": "environment",
+  "note": "Doors open on a lit workshop; the sign board is blank so the game can letter it.",
+  "rejects": {}
+ },
+ "tex_grass": {
+  "src": "vh-tex-grass-b-take2.jpg",
+  "mode": "tile",
+  "section": "environment",
+  "note": "Second round (prompt: straight down from above, richer green). Flow painted it already tiling; two periods cut, seams checked.",
+  "rejects": {
+   "vh-tex-grass-take1.jpg": "First round: seen at an angle, not top-down.",
+   "vh-tex-grass-take2.jpg": "First round: dull olive, not the dream's too-perfect green."
+  },
+  "period": [
+   1376,
+   768
+  ],
+  "also": [
+   "vh-tex-grass-take1.jpg",
+   "vh-tex-grass-take2.jpg"
+  ]
+ },
+ "tex_road": {
+  "src": "vh-tex-road-take1.jpg",
+  "mode": "tile",
+  "section": "environment",
+  "note": "Flow painted this one already tiling (one 1376x768 period); I cut two periods and checked the seams.",
+  "rejects": {},
+  "period": [
+   1376,
+   768
+  ]
+ },
+ "tex_sidewalk": {
+  "src": "vh-tex-sidewalk-take2.jpg",
+  "mode": "tile",
+  "section": "environment",
+  "note": "Warm concrete, no joints; made seamless in the script.",
+  "rejects": {
+   "take1": "The same blotchy stain repeats in a visible grid."
+  }
+ },
+ "tex_hospital_floor": {
+  "src": "vh-tex-hospital-floor-take2.jpg",
+  "mode": "tile",
+  "section": "environment",
+  "note": "Speckled sheet vinyl, no tile lines.",
+  "rejects": {
+   "take1": "Two big pale swirls that would repeat obviously."
+  }
+ },
+ "tex_hospital_wall": {
+  "src": "vh-tex-hospital-wall-take1.jpg",
+  "mode": "tile",
+  "section": "environment",
+  "note": "Pale sage paint, faint scuffs.",
+  "rejects": {}
+ },
+ "sky_dream": {
+  "src": "vh-sky-dream-take2.jpg",
+  "mode": "sky",
+  "section": "environment",
+  "note": "Even enough left to right to wrap around the street.",
+  "rejects": {}
+ },
+ "sky_night": {
+  "src": "vh-sky-night-take1.jpg",
+  "mode": "sky",
+  "section": "environment",
+  "note": "Faint stars, sodium glow along the bottom.",
+  "rejects": {}
+ },
+ "bg_ceiling_dark": {
+  "src": "vh-ceiling-dark-take2.jpg",
+  "mode": "full",
+  "section": "environment",
+  "note": "First person from the pillow: the blanket in view, the streetlight stripe across the ceiling. Brighter than 'dark'; the game can dim it.",
+  "rejects": {}
+ },
+ "bg_title_news": {
+  "src": "vh-title-news-take3.jpg",
+  "mode": "full",
+  "section": "environment",
+  "note": "The TV is the only cold light; a night crash scene with no on-screen text.",
+  "rejects": {
+   "take1": "The road on the TV is in daylight, not the early-morning dark.",
+   "take2": "A small graphic box in the TV's top-left corner (looks like a news overlay)."
+  }
+ },
+ "ui_phone": {
+  "src": "vh-phone-take1.jpg",
+  "mode": "prop",
+  "section": "ui",
+  "note": "Plain front-on phone; the screen is a dark blank for the UI to draw on.",
+  "rejects": {}
+ },
+ "fx_static_wasp": {
+  "src": "vh-static-wasp-b-take2.jpg",
+  "mode": "key",
+  "section": "ui",
+  "note": "Second round: the wings and body are filled with TV snow, with glitch tears. Keyed from green.",
+  "rejects": {
+   "vh-static-wasp-take1.jpg": "First round: a realistic wasp drawing; the static is only at the edges.",
+   "vh-static-wasp-take2.jpg": "First round: a realistic wasp drawing; the static is only at the edges.",
+   "vh-static-wasp-take3.jpg": "First round: a realistic wasp drawing; the static is only at the edges."
+  },
+  "also": [
+   "vh-static-wasp-take1.jpg",
+   "vh-static-wasp-take2.jpg",
+   "vh-static-wasp-take3.jpg"
+  ]
+ },
+ "journal_page": {
+  "src": "vh-journal-page-take1.jpg",
+  "mode": "full",
+  "section": "ui",
+  "note": "Fills the frame edge to edge, blank ruled spread.",
+  "rejects": {}
+ }
+}
