@@ -707,3 +707,37 @@ Heinzy, 20:25, with a "Source Thoughts" chapter); [The tech that nearly ruined T
 - Every value in section 4 is a starting point, not a measured or proven value.
 - Section 8: I found no written source for Titanfall 2's first-person wallrun and slide body animation, or its movement audio beyond the slide Foley. Most feel parameters are my own starting points; the reception notes are player anecdotes, except the FOV-restriction study.
 - The 8.6 videos are chosen from titles, chapters and descriptions only. Whether they state numbers is a guess until they are transcribed.
+
+## 9. Measured numbers from the community (transcribed 2026-10-10)
+Sources, transcribed locally with Whisper:
+- zweek, *Jumping off walls is really complicated, actually* (https://www.youtube.com/watch?v=Vk_RaEgux2Q). He
+  measured the game with scripts that call the game's own `getVelocity` and `getOrigin` functions.
+- bryonato and zweek, *The ULTIMATE Movement Guide for Titanfall 2* (https://www.youtube.com/watch?v=C_cXYyA4LaU).
+
+Units are Source units, converted at 1 u = 1 inch = 0.0254 m. The two sources cross-check: zweek's 340 u/s wallrun
+goal works out to 31 km/h against bryonato's "around 28 to 30 km/h", and his +123 u/s best wall kick works out to
+11 km/h against bryonato's "around 10 to 11 km/h". That agreement supports the conversion.
+
+| Mechanic | Measured | Metric |
+|---|---|---|
+| Simulation rate | 60 ticks/s | |
+| Wallrun duration | 1.75 s maximum; **forward input is required** | |
+| Wallrun speed | Wall friction or acceleration moves you towards a **goal of 340 u/s**, from above or below | 8.64 m/s (31 km/h) |
+| Wallrun input rules | Forward: approach the goal speed and hold it. Away from the wall: the wallrun ends at once. Into the wall or neutral: friction to 0. Backwards: faster friction, then you accelerate the other way | |
+| Wall-jump impulse, along the normal | **205 u/s, always** | 5.21 m/s |
+| Wall-jump impulse, forward along the wall | up to **75 u/s**, sine of the input angle; the input is projected flat onto the wall | 1.91 m/s |
+| Wall-jump impulse, inward | up to **172 u/s** × (wishdir · −normal), only when the input points into the wall, otherwise 0 | 4.37 m/s |
+| Best wall-kick speed gain | +218 u/s from a standstill; **+123 u/s at 340 u/s**; tends to +75 u/s as speed grows (the normal part becomes perpendicular to velocity) | +3.1 m/s at wallrun speed |
+| Wall-kick timing | must happen **within 5 ticks** (83 ms) of contact; earlier jumps lose less to wall friction | |
+| Crouch kick | an extra **70 u/s** along the wall normal (about +3 km/h; up to about +13 km/h in total) | 1.78 m/s |
+| Re-grabbing the same wall | only at a **lower** contact point than the jump, or on a wall curving **25° or more** | |
+| Slide boost | needs speed above a threshold (not stated); boosts up to a cap that **decays the longer you slide**; **~2 s cooldown** before the next boost | |
+| Slide hops | jump on every landing with crouch held; each landing loses more speed the longer you've slid | |
+| Wall contact feel | "lean-in": the camera tilts and **the view model reaches a hand out to touch the wall**. Players time wall kicks by that hand | |
+| Inputs | jump and crouch must be held for at least 1 tick to register | |
+
+How to use these in our controller:
+- Use **8.6 m/s as the wallrun goal speed** and **1.75 s as the maximum duration**.
+- The wall jump is **5.2 m/s along the normal, plus up to 1.9 m/s along the wall, plus up to 4.4 m/s inward**.
+- Give the wall kick a 5-tick (83 ms) speed-preserving window.
+- Treat these as Titanfall's values and scale to taste: our dream is a chase, not a speedrun.
