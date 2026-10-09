@@ -1,16 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using JamKit.Presenting;
-using JamKit.Sandbox;
 using NUnit.Framework;
 using UnityEngine;
 
 namespace JamKit.Tests.Editor
 {
     /// <summary>Presenter mode and footage capture, checked without playing: the Recorder package is
-    /// pinned and JamKit > Record compiled against it, the sandbox's chapters and attract script line
-    /// up, and the presenter panel's styles exist.</summary>
+    /// pinned and JamKit > Record compiled against it, Recordings/ is ignored, and the presenter
+    /// panel's styles exist. (The sandbox's chapters are checked in PresenterPlayTests.)</summary>
     public class PresenterEditorTests
     {
         static string ProjectRoot => Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
@@ -40,20 +37,6 @@ namespace JamKit.Tests.Editor
         {
             string ignore = File.ReadAllText(Path.Combine(ProjectRoot, ".gitignore"));
             Assert.That(ignore, Does.Contain("/[Rr]ecordings/"));
-        }
-
-        [Test]
-        public void TheSandboxChaptersAndAttractScriptLineUp()
-        {
-            var r = new ChapterRegistry();
-            SandboxGame.RegisterChapters(r, null, new object());
-            var idx = new List<int>();
-            r.InGroup(SandboxGame.Scene, idx);
-            var names = new List<string>();
-            foreach (int i in idx) names.Add(r.NameAt(i));
-            Assert.That(names, Is.EqualTo(SandboxGame.Chapters));
-            var problems = SandboxGame.Attract().Validate(names, SandboxGame.Segments);
-            Assert.That(problems, Is.Empty, string.Join("\n", problems));
         }
 
         [Test]

@@ -36,7 +36,6 @@ namespace JamKit.VisitingHours
             _journal.Attach(this, config, _state.journal);
             _rushingShown = 0;
             _waltWaved = false;
-            GameRoot.Run.Set("Walt", "");
             GameRoot.Audio.StopMusic(0.5f);
         }
 

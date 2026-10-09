@@ -5,7 +5,6 @@
         "JamKit.Core",
         "JamKit.Unity",
         "JamKit.Editor",
-        "JamKit.Sandbox",
         "Ink",
         "Ink-Libraries",
         "Unity.InputSystem",

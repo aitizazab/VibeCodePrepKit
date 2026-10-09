@@ -32,6 +32,20 @@ namespace JamKit.Tests.Play
 
         static SandboxGame Game => Object.FindAnyObjectByType<SandboxGame>();
 
+        [Test]
+        public void TheSandboxChaptersAndAttractScriptLineUp()
+        {
+            var r = new ChapterRegistry();
+            SandboxGame.RegisterChapters(r, null, new object());
+            var idx = new System.Collections.Generic.List<int>();
+            r.InGroup(SandboxGame.Scene, idx);
+            var names = new System.Collections.Generic.List<string>();
+            foreach (int i in idx) names.Add(r.NameAt(i));
+            Assert.That(names, Is.EqualTo(SandboxGame.Chapters), "every declared chapter is registered, in order");
+            var problems = SandboxGame.Attract().Validate(names, SandboxGame.Segments);
+            Assert.That(problems, Is.Empty, string.Join("\n", problems));
+        }
+
         [UnityTest]
         public IEnumerator ThePanelListsChaptersStopsTimeAndJumps()
         {
@@ -168,7 +182,7 @@ namespace JamKit.Tests.Play
                 Assert.That(File.Exists(seen), Is.True, seen);
                 Assert.That(new FileInfo(seen).Length, Is.GreaterThan(0));
                 Assert.That(Path.GetFileName(seen), Does.EndWith(".png"));
-                Assert.That(Path.GetDirectoryName(seen), Is.EqualTo(folder));
+                Assert.That(Path.GetFullPath(Path.GetDirectoryName(seen)), Is.EqualTo(Path.GetFullPath(folder)));
                 Assert.That(PresenterMode.UiHidden, Is.False, "the UI comes back after the shot");
                 Assert.That(PresenterMode.LastPhotoPath, Is.EqualTo(seen));
             }
