@@ -1,0 +1,11 @@
+Aspect ratio: 16:9 landscape.
+
+Character art for a narrative video game. Japanese-anime-style character design with clean cel shading: sharp, clean, even dark line art; strictly flat colour fills with exactly one hard-edged cel shadow tone per colour and a few crisp highlights; no painterly texture, no gradients, no grime rendering (stains drawn as simple flat shapes); anime facial features (clean simplified nose and mouth, expressive eyes) on adult proportions, like the standing character sprites of a Japanese visual-novel mystery game. Not chibi, not realistic, not 3D.
+
+Image 1 shows this same style (and is the reference for the drawing style only): match its line, shading, palette and proportions exactly. Do not draw the man from Image 1; draw only the woman described.
+
+A Black woman in her mid-fifties, a sleep-lab technician: close-cropped natural grey hair, reading glasses hanging on a beaded cord around her neck, tired but amused eyes and a dry half-smile, a long soft oatmeal-grey cardigan over pale teal scrubs, comfortable white sneakers. Standing facing the viewer, holding a plain white coffee mug in both hands.
+
+Background: completely plain flat light grey (#d0d0d0), no scenery, no floor, no cast shadow. Full body from head to shoes, centred, with a small margin above and below and plenty of empty space either side.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

@@ -1,0 +1,167 @@
+{
+ "subtitle": "",
+ "questions": [],
+ "notes": [],
+ "sections": [
+  {
+   "title": "A. Flat cut-paper cartoon",
+   "cols": 4,
+   "items": [
+    {
+     "label": "A: Walt (billboard pose)",
+     "pick": "style-A-walt-take1.jpg",
+     "alt": "style-A-walt-take3.jpg"
+    },
+    {
+     "label": "A: Nadia",
+     "pick": "style-A-nadia-take2.jpg",
+     "alt": "style-A-nadia-take3.jpg"
+    },
+    {
+     "label": "A: Mags",
+     "pick": "style-A-mags-take1.jpg",
+     "alt": "style-A-mags-take2.jpg"
+    },
+    {
+     "label": "A: The dream street, first person",
+     "pick": "style-A-street-take1.jpg",
+     "alt": "style-A-street-take2.jpg"
+    },
+    {
+     "label": "A: The hospital corridor at night",
+     "pick": "style-A-corridor-take1.jpg",
+     "alt": "style-A-corridor-take2.jpg"
+    }
+   ]
+  },
+  {
+   "title": "B. Soft storybook cartoon",
+   "cols": 4,
+   "items": [
+    {
+     "label": "B: Walt (billboard pose)",
+     "pick": "style-B-walt-take1.jpg",
+     "alt": "style-B-walt-take3.jpg"
+    },
+    {
+     "label": "B: Nadia",
+     "pick": "style-B-nadia-take1.jpg",
+     "alt": "style-B-nadia-take2.jpg"
+    },
+    {
+     "label": "B: Mags",
+     "pick": "style-B-mags-take1.jpg",
+     "alt": "style-B-mags-take2.jpg"
+    },
+    {
+     "label": "B: The dream street, first person",
+     "pick": "style-B-street-take1.jpg",
+     "alt": "style-B-street-take2.jpg"
+    },
+    {
+     "label": "B: The hospital corridor at night",
+     "pick": "style-B-corridor-take2.jpg",
+     "alt": "style-B-corridor-take1.jpg"
+    }
+   ]
+  },
+  {
+   "title": "C. Clean cel-shaded, anime-adjacent",
+   "cols": 4,
+   "items": [
+    {
+     "label": "C: Walt (billboard pose)",
+     "pick": "style-C-walt-take1.jpg",
+     "alt": ""
+    },
+    {
+     "label": "C: Nadia",
+     "pick": "style-C-nadia-take1.jpg",
+     "alt": ""
+    },
+    {
+     "label": "C: Mags",
+     "pick": "style-C-mags-take1.jpg",
+     "alt": ""
+    },
+    {
+     "label": "C: The dream street, first person",
+     "pick": "style-C-street-take1.jpg",
+     "alt": ""
+    },
+    {
+     "label": "C: The hospital corridor at night",
+     "pick": "style-C-corridor-take1.jpg",
+     "alt": ""
+    }
+   ]
+  },
+  {
+   "title": "D. Crayon and pastel sketchbook",
+   "cols": 4,
+   "items": [
+    {
+     "label": "D: Walt (billboard pose)",
+     "pick": "style-D-walt-take3.jpg",
+     "alt": "style-D-walt-take2.jpg"
+    },
+    {
+     "label": "D: Nadia",
+     "pick": "style-D-nadia-take1.jpg",
+     "alt": "style-D-nadia-take2.jpg"
+    },
+    {
+     "label": "D: Mags",
+     "pick": "style-D-mags-take2.jpg",
+     "alt": "style-D-mags-take1.jpg"
+    },
+    {
+     "label": "D: The dream street, first person",
+     "pick": "style-D-street-take1.jpg",
+     "alt": "style-D-street-take2.jpg"
+    },
+    {
+     "label": "D: The hospital corridor at night",
+     "pick": "style-D-corridor-take1.jpg",
+     "alt": "style-D-corridor-take2.jpg"
+    }
+   ]
+  },
+  {
+   "title": "E. The split: grounded waking world, cutesy dream",
+   "cols": 4,
+   "items": [
+    {
+     "label": "E: Walt, waking-world register",
+     "pick": "style-E-walt-real-take1.jpg",
+     "alt": ""
+    },
+    {
+     "label": "E: Walt, dream register",
+     "pick": "style-E-walt-dream-take1.jpg",
+     "alt": ""
+    },
+    {
+     "label": "E: Nadia, waking-world register",
+     "pick": "style-E-nadia-real-take1.jpg",
+     "alt": ""
+    },
+    {
+     "label": "E: Nadia, dream register",
+     "pick": "style-E-nadia-dream-take1.jpg",
+     "alt": ""
+    },
+    {
+     "label": "E: The dream street (dream register)",
+     "pick": "style-E-street-take1.jpg",
+     "alt": ""
+    },
+    {
+     "label": "E: The hospital corridor (waking register)",
+     "pick": "style-E-corridor-take1.jpg",
+     "alt": ""
+    }
+   ]
+  }
+ ]
+}

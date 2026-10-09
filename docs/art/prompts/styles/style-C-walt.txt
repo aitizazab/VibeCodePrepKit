@@ -1,0 +1,9 @@
+Aspect ratio: 16:9 landscape.
+
+Character art for a narrative video game. Japanese-anime-style character design with clean cel shading: sharp, clean, even dark line art; strictly flat colour fills with exactly one hard-edged cel shadow tone per colour and a few crisp highlights; no painterly texture, no gradients, no grime rendering (stains drawn as simple flat shapes); anime facial features (clean simplified nose and mouth, expressive eyes) on adult proportions, like the standing character sprites of a Japanese visual-novel mystery game. Not chibi, not realistic, not 3D.
+
+An old man in his mid-seventies, tall and thin with a slight stoop, a kind lined face, a neat white moustache, a brown tweed flat cap, a faded blue work shirt with the sleeves rolled to the elbows, a tan canvas work apron with old grease stains, dark grey work trousers and worn brown boots. He is the patient old bicycle mechanic who once taught a boy to fix bikes: standing facing the viewer, calmly wiping his hands on a red shop rag, a slight patient smile.
+
+Background: completely plain flat light grey (#d0d0d0), no scenery, no floor, no cast shadow. Full body from head to shoes, centred, with a small margin above and below and plenty of empty space either side.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.
