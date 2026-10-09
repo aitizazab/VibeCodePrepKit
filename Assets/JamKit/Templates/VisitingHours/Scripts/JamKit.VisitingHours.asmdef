@@ -1,0 +1,21 @@
+{
+    "name": "JamKit.VisitingHours",
+    "rootNamespace": "JamKit.VisitingHours",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "JamKit.Doomlike",
+        "Unity.InputSystem",
+        "Ink",
+        "Ink-Libraries"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

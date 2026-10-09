@@ -1,0 +1,697 @@
+/* Visiting Hours: the slice's HUD, journal, argument box, cards, opening and title look.
+   Sizes are at the shell's 1920x1080 reference. Paintings are never pixelated here. */
+
+.vh-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* ---------- HUD ---------- */
+
+.vh-vignette {
+    -unity-background-scale-mode: stretch-to-fill;
+    transition-property: opacity;
+    transition-duration: 1.2s;
+}
+
+.vh-dim {
+    background-color: rgb(0, 0, 0);
+}
+
+.vh-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    margin-left: -3px;
+    margin-top: -3px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.55);
+}
+
+.vh-dot--target {
+    width: 12px;
+    height: 12px;
+    margin-left: -6px;
+    margin-top: -6px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    background-color: rgba(255, 226, 170, 0.9);
+}
+
+.vh-prompt {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 58%;
+    font-size: 30px;
+    -unity-text-align: middle-center;
+    color: rgb(255, 246, 230);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.2s;
+}
+
+.vh-journal-hint {
+    position: absolute;
+    left: 36px;
+    bottom: 30px;
+    font-size: 24px;
+    color: rgba(255, 250, 240, 0.7);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.vh-journal-hint--open {
+    color: rgb(255, 214, 150);
+}
+
+.vh-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 40px;
+    font-size: 24px;
+    -unity-text-align: middle-center;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.85);
+    transition-property: opacity;
+    transition-duration: 1.5s;
+}
+
+.vh-toast {
+    position: absolute;
+    right: 40px;
+    top: 120px;
+    padding: 14px 22px;
+    font-size: 24px;
+    color: rgb(52, 42, 30);
+    background-color: rgba(238, 228, 206, 0.94);
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    rotate: -1deg;
+    transition-property: opacity;
+    transition-duration: 0.6s;
+}
+
+.vh-card {
+    background-color: rgb(0, 0, 0);
+    align-items: center;
+    justify-content: center;
+}
+
+.vh-card__title {
+    font-size: 64px;
+    color: rgb(238, 234, 226);
+    -unity-text-align: middle-center;
+    letter-spacing: 4px;
+}
+
+.vh-card__sub {
+    margin-top: 12px;
+    font-size: 30px;
+    color: rgba(238, 234, 226, 0.6);
+    -unity-font-style: italic;
+    -unity-text-align: middle-center;
+}
+
+.vh-end {
+    background-color: rgba(0, 0, 0, 0.6);
+    align-items: center;
+    justify-content: center;
+}
+
+.vh-end__panel {
+    width: 900px;
+    padding: 48px 56px;
+    background-color: rgba(18, 18, 22, 0.95);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.2);
+    border-right-color: rgba(255, 255, 255, 0.2);
+    border-top-color: rgba(255, 255, 255, 0.2);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.vh-end__title {
+    font-size: 48px;
+    color: rgb(240, 236, 228);
+    margin-bottom: 18px;
+}
+
+.vh-end__body {
+    font-size: 28px;
+    color: rgba(240, 236, 228, 0.85);
+    white-space: normal;
+    margin-bottom: 30px;
+}
+
+.vh-end__buttons {
+    flex-direction: row;
+    justify-content: flex-end;
+}
+
+/* ---------- The journal ---------- */
+
+.vh-journal {
+    background-color: rgba(0, 0, 0, 0.55);
+    align-items: center;
+    justify-content: center;
+}
+
+.vh-journal__book {
+    width: 1560px;
+    height: 900px;
+    padding: 40px 52px;
+    background-color: rgb(236, 226, 204);
+    -unity-background-scale-mode: stretch-to-fill;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+.vh-journal__header {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.vh-journal__title {
+    font-size: 40px;
+    color: rgb(56, 44, 32);
+    -unity-font-style: italic;
+    flex-grow: 1;
+}
+
+.vh-journal__tabs {
+    flex-direction: row;
+}
+
+.vh-journal__tab,
+.vh-journal__close,
+.vh-journal__combine {
+    font-size: 24px;
+    padding: 8px 18px;
+    margin-left: 8px;
+    color: rgb(56, 44, 32);
+    background-color: rgba(120, 96, 64, 0.12);
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 2px;
+    border-bottom-color: rgba(56, 44, 32, 0.25);
+}
+
+.vh-journal__tab:hover,
+.vh-journal__tab:focus,
+.vh-journal__close:hover,
+.vh-journal__close:focus,
+.vh-journal__combine:hover,
+.vh-journal__combine:focus {
+    background-color: rgba(120, 96, 64, 0.28);
+}
+
+.vh-journal__tab--on {
+    border-bottom-color: rgb(150, 60, 40);
+    -unity-font-style: bold;
+}
+
+.vh-journal__body {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+.vh-journal__list {
+    width: 420px;
+    margin-right: 28px;
+}
+
+.vh-journal__entry {
+    flex-direction: row;
+    align-items: center;
+    height: 84px;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    background-color: rgba(255, 255, 255, 0.25);
+    border-left-width: 4px;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+    border-left-color: rgba(0, 0, 0, 0);
+}
+
+.vh-journal__entry:hover,
+.vh-journal__entry:focus {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+.vh-journal__entry--picked {
+    border-left-color: rgb(150, 60, 40);
+    background-color: rgba(255, 236, 200, 0.7);
+}
+
+.vh-journal__entry--new .vh-journal__entry-title {
+    -unity-font-style: bold;
+}
+
+.vh-journal__entry--open .vh-journal__entry-title {
+    color: rgb(140, 66, 40);
+}
+
+.vh-journal__entry-icon {
+    width: 70px;
+    height: 70px;
+    margin-right: 12px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.vh-journal__entry-title {
+    font-size: 24px;
+    color: rgb(56, 44, 32);
+    white-space: normal;
+    flex-shrink: 1;
+}
+
+.vh-journal__detail {
+    flex-grow: 1;
+    margin-right: 28px;
+}
+
+.vh-journal__detail-icon {
+    height: 260px;
+    margin-bottom: 14px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.vh-journal__detail-title {
+    font-size: 34px;
+    color: rgb(56, 44, 32);
+    -unity-font-style: bold;
+    margin-bottom: 10px;
+}
+
+.vh-journal__detail-text {
+    font-size: 27px;
+    color: rgb(62, 50, 38);
+    white-space: normal;
+}
+
+/* Nadia's scribbled-out note: struck through and faint, legible if you look closely (hover). */
+.vh-journal__scribble {
+    margin-top: 18px;
+    font-size: 27px;
+    color: rgb(40, 34, 60);
+    -unity-font-style: italic;
+    opacity: 0.32;
+    rotate: -2deg;
+    transition-property: opacity;
+    transition-duration: 0.6s;
+}
+
+.vh-journal__scribble:hover {
+    opacity: 0.85;
+}
+
+.vh-journal__side {
+    width: 440px;
+}
+
+.vh-journal__side-title {
+    font-size: 26px;
+    color: rgb(56, 44, 32);
+    -unity-font-style: bold;
+    margin-top: 6px;
+    margin-bottom: 8px;
+}
+
+.vh-journal__question {
+    font-size: 22px;
+    color: rgb(130, 62, 38);
+    white-space: normal;
+    margin-bottom: 10px;
+    -unity-font-style: italic;
+}
+
+.vh-journal__questions {
+    margin-bottom: 18px;
+}
+
+.vh-journal__pick {
+    font-size: 22px;
+    color: rgb(56, 44, 32);
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.vh-journal__combine {
+    margin-left: 0;
+    margin-top: 6px;
+}
+
+.vh-journal__result {
+    margin-top: 12px;
+    font-size: 23px;
+    color: rgb(62, 50, 38);
+    white-space: normal;
+    -unity-font-style: italic;
+}
+
+.vh-journal__tutorial {
+    margin-top: 10px;
+    font-size: 22px;
+    color: rgb(150, 60, 40);
+    white-space: normal;
+}
+
+/* ---------- The argument ---------- */
+
+.vh-battle {
+    background-color: rgba(10, 8, 6, 0.72);
+    align-items: center;
+}
+
+.vh-battle__portrait {
+    width: 560px;
+    height: 330px;
+    margin-top: 20px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.vh-battle__statement {
+    font-size: 34px;
+    color: rgb(255, 246, 230);
+    -unity-text-align: middle-center;
+    margin-top: 6px;
+    margin-bottom: 14px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+    opacity: 0.6;
+    transition-property: opacity;
+    transition-duration: 0.5s;
+}
+
+.vh-battle__statement--in {
+    opacity: 1;
+}
+
+.vh-battle__box {
+    position: relative;
+    overflow: hidden;
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgb(240, 236, 228);
+    border-right-color: rgb(240, 236, 228);
+    border-top-color: rgb(240, 236, 228);
+    border-bottom-color: rgb(240, 236, 228);
+    background-color: rgb(8, 8, 10);
+}
+
+.vh-battle__zone {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    align-items: center;
+    justify-content: center;
+    transition-property: background-color;
+    transition-duration: 0.35s;
+}
+
+.vh-battle__zone--press {
+    background-color: rgba(120, 40, 30, 0.12);
+}
+
+.vh-battle__zone--press.vh-battle__zone--on {
+    background-color: rgba(150, 52, 36, 0.3);
+}
+
+.vh-battle__zone--listen {
+    background-color: rgba(70, 110, 150, 0.1);
+}
+
+.vh-battle__zone--listen.vh-battle__zone--on {
+    background-color: rgba(110, 160, 210, 0.22);
+}
+
+.vh-battle__zone-word {
+    font-size: 30px;
+    color: rgb(255, 255, 255);
+    letter-spacing: 12px;
+    -unity-font-style: italic;
+}
+
+.vh-battle__bullets {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.vh-battle__light {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 26px;
+    height: 26px;
+    border-top-left-radius: 13px;
+    border-top-right-radius: 13px;
+    border-bottom-left-radius: 13px;
+    border-bottom-right-radius: 13px;
+    background-color: rgb(255, 244, 214);
+    border-left-width: 4px;
+    border-right-width: 4px;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+    border-left-color: rgba(255, 220, 160, 0.45);
+    border-right-color: rgba(255, 220, 160, 0.45);
+    border-top-color: rgba(255, 220, 160, 0.45);
+    border-bottom-color: rgba(255, 220, 160, 0.45);
+}
+
+.vh-battle__light--press {
+    background-color: rgb(255, 206, 180);
+}
+
+.vh-battle__object {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 90px;
+    height: 90px;
+    align-items: center;
+}
+
+.vh-battle__object-icon {
+    width: 70px;
+    height: 70px;
+    -unity-background-scale-mode: scale-to-fit;
+    background-color: rgba(255, 244, 214, 0.12);
+    border-top-left-radius: 35px;
+    border-top-right-radius: 35px;
+    border-bottom-left-radius: 35px;
+    border-bottom-right-radius: 35px;
+}
+
+.vh-battle__object-label {
+    font-size: 16px;
+    color: rgb(255, 240, 210);
+    -unity-text-align: upper-center;
+    white-space: nowrap;
+}
+
+.vh-battle__pips {
+    flex-direction: row;
+    margin-top: 14px;
+}
+
+.vh-battle__pip {
+    width: 16px;
+    height: 16px;
+    margin-left: 6px;
+    margin-right: 6px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    background-color: rgb(255, 238, 200);
+}
+
+.vh-battle__pip--lost {
+    background-color: rgba(255, 238, 200, 0.15);
+}
+
+.vh-battle__say {
+    margin-top: 16px;
+    font-size: 28px;
+    color: rgb(200, 220, 255);
+    -unity-text-align: middle-center;
+    transition-property: opacity;
+    transition-duration: 0.5s;
+}
+
+.vh-battle__reply {
+    margin-top: 6px;
+    font-size: 30px;
+    color: rgb(255, 240, 220);
+    -unity-text-align: middle-center;
+    transition-property: opacity;
+    transition-duration: 0.5s;
+}
+
+.vh-battle__hint {
+    position: absolute;
+    bottom: 26px;
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* ---------- The opening ---------- */
+
+.vh-opening {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgb(0, 0, 0);
+    overflow: hidden;
+}
+
+.vh-opening__ceiling {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.vh-opening__lid {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background-color: rgb(0, 0, 0);
+}
+
+.vh-opening__lid--top {
+    top: 0;
+}
+
+.vh-opening__lid--bottom {
+    bottom: 0;
+}
+
+.vh-opening__phone {
+    position: absolute;
+    left: 50%;
+    bottom: 140px;
+    width: 300px;
+    height: 600px;
+    margin-left: -150px;
+    -unity-background-scale-mode: scale-to-fit;
+    align-items: center;
+    justify-content: center;
+}
+
+.vh-opening__phone-text {
+    width: 230px;
+    font-size: 26px;
+    color: rgb(232, 236, 240);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.vh-opening__subtitle {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: 56px;
+    font-size: 32px;
+    color: rgb(242, 240, 236);
+    -unity-text-align: middle-center;
+    white-space: normal;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95);
+}
+
+.vh-opening__subtitle--nadia {
+    color: rgb(214, 226, 255);
+}
+
+.vh-opening__black {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgb(0, 0, 0);
+}
+
+.vh-opening__skip {
+    position: absolute;
+    right: 30px;
+    top: 24px;
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* ---------- The title: a TV news report behind the menu ---------- */
+
+.vh-title {
+    background-color: rgb(0, 0, 0);
+}
+
+.vh-title__news {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.vh-title__shade {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.vh-title__ticker-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 58px;
+    overflow: hidden;
+    background-color: rgba(150, 20, 20, 0.88);
+    justify-content: center;
+}
+
+.vh-title__ticker {
+    position: absolute;
+    left: 0;
+    top: 10px;
+    font-size: 30px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    white-space: nowrap;
+}

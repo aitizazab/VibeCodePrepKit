@@ -29,6 +29,9 @@ namespace JamKit.Shell
             "amb_rain", "amb_hum", "amb_wind",
             "door_knock", "page", "drawer", "unlock", "glitch", "heartbeat", "chime", "train_horn",
             "train_pass", "thunder", "footsteps", "click", "voice_low", "voice_high",
+            // Used by the Visiting Hours slice. music_vh_sad_pad is a PLACEHOLDER (the creator composes the score).
+            "vh_phone_ring", "vh_monitor", "amb_vh_hospital", "amb_vh_suburb", "music_vh_sad_pad",
+            "vh_crack", "vh_wrong", "vh_hit", "vh_journal",
         };
 
         public static bool Knows(string id) => System.Array.IndexOf(Ids, id) >= 0;
@@ -107,9 +110,86 @@ namespace JamKit.Shell
                 case "click": return ToneSynth.Sequence(Rate, 103, N(Waveform.Noise, 5000f, 2000f, 0.02f, 0.3f));
                 case "voice_low": return ToneSynth.Sequence(Rate, 1, N(Waveform.Triangle, 190f, 170f, 0.045f, 0.16f));
                 case "voice_high": return ToneSynth.Sequence(Rate, 1, N(Waveform.Triangle, 520f, 470f, 0.04f, 0.13f));
+                case "vh_phone_ring": return PhoneRing();
+                case "vh_monitor": return Monitor();
+                case "amb_vh_hospital": return Bed(4f, N(Waveform.Sine, 60f, 60f, 4f, 0.07f), N(Waveform.Sine, 120f, 120f, 4f, 0.025f), N(Waveform.Noise, 260f, 260f, 4f, 0.01f), N(Waveform.Sine, 7400f, 7400f, 4f, 0.002f));
+                case "amb_vh_suburb": return Suburb();
+                case "music_vh_sad_pad": return SadPad();
+                case "vh_crack": return ToneSynth.Sequence(Rate, 107, N(Waveform.Noise, 7000f, 1500f, 0.09f, 0.35f), N(Waveform.Sine, 880f, 1320f, 0.5f, 0.22f));
+                case "vh_wrong": return ToneSynth.Sequence(Rate, 1, N(Waveform.Triangle, 220f, 196f, 0.28f, 0.25f));
+                case "vh_hit": return ToneSynth.Sequence(Rate, 109, N(Waveform.Sine, 330f, 140f, 0.22f, 0.45f), N(Waveform.Noise, 1200f, 300f, 0.1f, 0.15f));
+                case "vh_journal": return ToneSynth.Sequence(Rate, 113, N(Waveform.Noise, 5200f, 2600f, 0.16f, 0.14f), N(Waveform.Sine, 990f, 990f, 0.12f, 0.08f));
                 case "music_boss": return Loop(new[] { -12, -9, -5, -9, -12, -9, -4, -9, -14, -10, -7, -10, -14, -10, -5, -2 }, 0.14f, 0.12f);
                 default: return null;
             }
+        }
+
+        /// <summary>A phone's double ring (two short bursts of two tones), then quiet: loops every 3 s.</summary>
+        static float[] PhoneRing()
+        {
+            var buffer = new float[ToneSynth.SampleCount(3f, Rate)];
+            for (int burst = 0; burst < 2; burst++)
+            {
+                int at = ToneSynth.SampleCount(burst * 0.55f, Rate);
+                var a = N(Waveform.Sine, 440f, 440f, 0.42f, 0.22f);
+                var b = N(Waveform.Sine, 480f, 480f, 0.42f, 0.22f);
+                a.attack = b.attack = 0.02f;
+                ToneSynth.Mix(buffer, at, a, Rate);
+                ToneSynth.Mix(buffer, at, b, Rate);
+            }
+            return buffer;
+        }
+
+        /// <summary>A heart monitor: one soft beep a second (loops).</summary>
+        static float[] Monitor()
+        {
+            var buffer = new float[ToneSynth.SampleCount(1f, Rate)];
+            ToneSynth.Mix(buffer, 0, N(Waveform.Sine, 1046f, 1046f, 0.13f, 0.2f), Rate);
+            return buffer;
+        }
+
+        /// <summary>A summer afternoon: breeze, a sprinkler's hiss and a few birds (loops, 6 s).</summary>
+        static float[] Suburb()
+        {
+            var buffer = Bed(6f, N(Waveform.Noise, 520f, 520f, 6f, 0.03f), N(Waveform.Noise, 9000f, 9000f, 6f, 0.008f));
+            float[] chirps = { 0.7f, 0.82f, 0.94f, 3.1f, 3.22f, 4.6f, 4.7f, 4.8f, 4.9f };
+            for (int i = 0; i < chirps.Length; i++)
+            {
+                float hz = 2900f + (i % 3) * 420f;
+                ToneSynth.Mix(buffer, ToneSynth.SampleCount(chirps[i], Rate), N(Waveform.Sine, hz, hz * 1.25f, 0.07f, 0.05f), Rate);
+            }
+            return buffer;
+        }
+
+        /// <summary>PLACEHOLDER score: a slow, sad pad (A minor, F, C, G, four seconds each) that loops
+        /// without a seam. The creator composes the real music; replace it in the Audio Registry.</summary>
+        static float[] SadPad()
+        {
+            int[][] chords =
+            {
+                new[] { -24, -12, -9, -5 },  // A minor
+                new[] { -28, -16, -12, -9 }, // F
+                new[] { -21, -17, -14, -9 }, // C
+                new[] { -26, -14, -10, -7 }, // G
+            };
+            const float chord = 4f;
+            int loop = ToneSynth.SampleCount(chord * chords.Length, Rate);
+            var buffer = new float[loop + ToneSynth.SampleCount(chord, Rate)];
+            for (int c = 0; c < chords.Length; c++)
+            {
+                int at = ToneSynth.SampleCount(c * chord, Rate);
+                for (int k = 0; k < chords[c].Length; k++)
+                {
+                    float hz = ToneSynth.NoteHz(chords[c][k]);
+                    var n = N(k == 0 ? Waveform.Sine : Waveform.Triangle, hz, hz, chord * 1.4f, k == 0 ? 0.09f : 0.035f);
+                    n.attack = chord * 0.5f;
+                    ToneSynth.Mix(buffer, at, n, Rate);
+                }
+            }
+            // Fold the tail that rings past the loop back onto its start: a seamless loop.
+            var looped = new float[loop];
+            for (int i = 0; i < buffer.Length; i++) looped[i % loop] += buffer[i];
+            return looped;
         }
 
         static float[] Arpeggio(int[] semitones, float noteSeconds, float lastSeconds, Waveform wave = Waveform.Square)

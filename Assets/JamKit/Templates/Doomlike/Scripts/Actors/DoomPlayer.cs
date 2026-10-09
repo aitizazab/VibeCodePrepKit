@@ -118,11 +118,19 @@ namespace JamKit.Doomlike
 
         public void Tick(float dt, Vector2 moveInput, bool walk, DoomGame game)
         {
+            if (TickMove(dt, moveInput, walk)) game.PlaySound("step", 0.35f);
+        }
+
+        /// <summary>The body's frame without a DoomGame (other first-person templates reuse the
+        /// controller): moves, bobs and looks. Returns true on the frame a footstep lands.</summary>
+        public bool TickMove(float dt, Vector2 moveInput, bool walk)
+        {
             if (!Alive)
             {
                 TickDeath(dt);
-                return;
+                return false;
             }
+            bool stepped = false;
             if (UseScriptedMove) moveInput = ScriptedMove;
             var motion = _t.motion ?? new PlayerMotionDef();
             float max = (walk ? motion.walkSpeed : motion.runSpeed) * _speedScale;
@@ -154,12 +162,13 @@ namespace JamKit.Doomlike
             if (_stepDistance >= _t.footstepStride && controller.isGrounded)
             {
                 _stepDistance = 0f;
-                game.PlaySound("step", 0.35f);
+                stepped = true;
             }
 
             _kick = Mathf.MoveTowards(_kick, 0f, dt * (6f + _kick * 8f));
             _health.Tick(dt);
             ApplyRotation(dt);
+            return stepped;
         }
 
         void ApplyRotation(float dt)

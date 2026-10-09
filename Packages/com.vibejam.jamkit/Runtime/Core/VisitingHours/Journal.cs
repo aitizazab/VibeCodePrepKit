@@ -154,6 +154,15 @@ namespace JamKit.VisitingHours
             return true;
         }
 
+        /// <summary>Takes an entry out again (replaying an argument). False when it wasn't there.</summary>
+        public bool Forget(string id)
+        {
+            if (string.IsNullOrEmpty(id) || !_known.Remove(id)) return false;
+            _order.Remove(id);
+            _revision++;
+            return true;
+        }
+
         public void Clear()
         {
             _known.Clear();
