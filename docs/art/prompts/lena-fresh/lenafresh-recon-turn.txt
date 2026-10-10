@@ -1,0 +1,13 @@
+Aspect ratio: 16:9 landscape.
+
+Style: grounded adult stylised illustration for the waking world of a narrative game: a muted, desaturated, slightly cold palette, simplified but realistic proportions, clean shapes with soft flat shading, restrained thin line work, quiet and serious, like a literary graphic novel. Contemporary clothing, no cybernetics, no neon, no gadgets. Not cute, not a realistic painting, not 3D.
+
+Image 1 is Lena: keep her exactly: her face, her eyes, her freckles, her hair (colour, length, waves, parting), the pencil resting on her right ear with the hair tucked behind it, and the drawing style. Image 2 shows another version of her: take ONLY the clothes from Image 2, not the face or hair.
+
+Her clothes come from Image 2 and replace hers completely: a knee-length muted dusty heather-plum soft wool coat worn open, with two deep patch pockets that are flat and EMPTY, its sleeves fully down to the wrists; under it a warm oatmeal-cream fine-knit mock-neck sweater, sleeves also fully down; high-waisted wide-leg warm stone-taupe trousers to the ankle; flat dark oxblood-brown leather loafers. A thin gold wedding band; a slim watch with a small dark face on her left wrist. No necklace, no pendant, no brooch, no cross or cross-like shape anywhere. Her sleeves are never pushed up or rolled. No burgundy trousers, no lace-up boots.
+
+A character turnaround model sheet for 3D modelling: the same character drawn three times side by side at exactly the same scale and height on one shared ground line: a FRONT view, a SIDE view (true profile showing her right side, with the tucked hair and the pencil on her ear) and a BACK view. Each is full body from the top of the head to the shoes, standing in a neutral A-pose (arms held straight and slightly away from the body at about thirty degrees, palms facing the thighs, sleeves down to the wrists, feet a little apart), a calm composed face with a faint half-smile, eyes level and forward. Her hands are empty for the model sheet; her coat pockets are flat and empty. In the front view the pencil lies across the top of her right ear at the same angle as in the side view. Orthographic: no perspective distortion, no foreshortening, every view the same height. Flat, even, shadowless lighting so the colours and shapes read clearly. Clean silhouettes with space between the three views.
+
+Background: completely plain flat light grey (#d8d8d8), no scenery, no floor, no cast shadows.
+
+No text, no labels, no captions, no numbers, no letters, no logos, no watermark, no signature anywhere in the image.

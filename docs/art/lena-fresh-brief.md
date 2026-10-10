@@ -72,3 +72,14 @@ on her shoes. No telescope, no star prints, no moon jewellery.
 1. Waking turnaround: front, side, back, A-pose (style reference: Mags's turnaround, whose sleeves are down; Elias's has rolled sleeves the model could copy). The coat is plum, not oatmeal, so she doesn't echo Mags's long oatmeal cardigan.
 2. Dream billboard (references: the chosen turnaround + Theo's billboard for the style).
 3. Dream expressions: warm, knowing, defensive (reference: the chosen billboard).
+
+## Round 4 (2026-10-10): the creator's notes applied
+- Eyes **green**, gaze **level**: no upward or sideways glance (that read playful). The mystery is
+  in a calm, half-lidded, unreadable half-smile.
+- **One notebook**: the pockets are flat and empty, and the notebook is held loosely in one hand at
+  her hip (never clasped to the chest, which read religious). Turnarounds are empty-handed (A-pose).
+- Waking and dream share the same honey-ash hair, the plum coat, cream sweater, stone trousers and
+  oxblood loafers.
+- Prompts: `lenafresh2-*` (this design, fixed); `lenafresh-recon2-turn`, `-recon3-bb`,
+  `-recon3-expr` (the other design's Lena in these clothes; give the model only her sheet and
+  describe the clothes in words: given both Lenas as pictures, it copied this design's face).
