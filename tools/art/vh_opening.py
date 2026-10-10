@@ -220,3 +220,27 @@ put("lena5-expr", "Image 1 is Lena's dream billboard: keep the same character an
     "look, mouth set). The hair, the pencil, the clothes and the colours identical in every portrait.", PAPER)
 for k in ("lena5-turn", "lena5-bb", "lena5-expr"):
     with open(os.path.join(OUT, k + ".txt"), "w", encoding="utf8", newline="\n") as f: f.write(P[k])
+
+# -- Lena, round 4 step 4: the other agent's fixed Lena (face, green eyes, honey-ash hair, level gaze) in my 4-a clothes, described
+#    in words. Only her own sheet is attached (attaching both Lenas made the model copy one face wholesale).
+CLOTHES6 = ("Clothes (CHANGE to these, described here, not the ones in Image 1): a fitted cream fine-knit high-neck sweater with "
+            "the SLEEVES DOWN TO THE WRISTS; slim, straight-leg deep wine-red wool trousers, well cut; practical slim dark-brown "
+            "leather lace-up ankle boots; a thin gold watch worn with its face on the INSIDE of her left wrist. NO coat, no jacket, "
+            "NO necklace, NO pendant, no chain, nothing on her chest or neck.")
+KEEP6 = ("Keep EXACTLY her face from Image 1: the round face, the green eyes, the level, calm, non-playful gaze, the honey-ash "
+         "loose waves, her freckles if any, and a neatly sharpened slim pencil resting on top of her right ear with the hair "
+         "tucked behind that ear.")
+put("lena6-turn", "Image 1 is Lena's model sheet.", KEEP6, CLOTHES6, REAL, SLEEVES4, NOCROSS, TURN, BG)
+put("lena6-bb", "Image 1 is Lena's dream billboard (the dream style and her face).", KEEP6, CLOTHES6, DREAM, SLEEVES4, NOCROSS,
+    "Her ear is SMALL and sits close against her head, partly under the hair, never sticking out; the pencil still visible on it. "
+    "ONE single figure in the image, centred, no faded duplicates or ghost figures. Introduction pose: composed and at ease, ONE "
+    "slim dark-leather notebook held loosely in one hand down at her side (not held to her chest), the other hand relaxed, a "
+    "small closed-lipped half-smile, a level gaze. Cute, calm, not sinister.", BILL, PAPER)
+put("lena6-expr", "Image 1 is Lena's dream billboard: keep the same character, clothes and style exactly (no coat, no "
+    "necklace).", DREAM, NOCROSS,
+    "Her ear is small and close to her head, the pencil on it. An expression sheet: exactly three head-and-shoulders portraits of "
+    "her in one row, nothing else in the image, at exactly the same scale and framing, evenly spaced. From left to right: warm (a "
+    "soft open smile), knowing (a small closed half-smile, eyes calm and level, giving nothing away), defensive (chin up, a cool, "
+    "guarded look, mouth set). The hair, the pencil, the clothes and the colours identical in every portrait.", PAPER)
+for k in ("lena6-turn", "lena6-bb", "lena6-expr"):
+    with open(os.path.join(OUT, k + ".txt"), "w", encoding="utf8", newline="\n") as f: f.write(P[k])

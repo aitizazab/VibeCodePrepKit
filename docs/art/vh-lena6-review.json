@@ -1,0 +1,85 @@
+{
+ "name": "visiting-hours-lena-final",
+ "title": "Visiting Hours: choosing Lena (the cast lineups)",
+ "subtitle": "Each row is the cast with one Lena candidate, every figure scaled to the same standing height (Theo too, so styles compare, not sizes), each on its own original background so paper colours show. The four Lenas: 4-a (my fixed design), B fixed and B reconciled (the other agent), and step 4 (B's face in 4-a's clothes, made today on Nano Banana Pro). Below: the step-4 sheets beside their source.",
+ "questions": [
+  "Which Lena: 4-a, B fixed, B reconciled, or step 4?",
+  "Waking world: 4-a and B reconciled are prettier and more cartoon than the cast (bigger lashed eyes, glossier, warmer orange-blonde hair). B fixed and step 4 match the cast's muted rendering and line weight. Do you see it the same way?",
+  "Dream world: every Lena strays from the cast. The cast are chibi (the head is about a third of the height), with thick dark crayon outlines and dot eyes. All four Lenas have adult proportions (the head is about a sixth), thinner lines, and almond eyes with irises. Should Lena's billboard be redrawn in the cast's proportions, or is her being 'off' in the dream deliberate?",
+  "Paper colour: B fixed and step 4's dream paper is cooler and greyer than the cast's warm cream. Match it?"
+ ],
+ "notes": [
+  "Step 4 checks (defects first): no necklace or cross-like shapes; sleeves to the wrists; one notebook, held at her side; a level gaze; green eyes; the pencil on her right ear. Rejected billboard takes: 2 (a playful grin and short cuffs) and 3 (adult proportions, a cuff riding up). Rejected expressions take 2 (the warm face has dark eyes, not green).",
+  "The other agent's lesson held: attaching only B's own sheet kept her face; the clothes came from the words.",
+  "Found while building the lineup: B fixed's chosen billboard (lenafresh2-bb-take1) has faded ghost figures at its sides. The lineup crops them out, but the file itself has them.",
+  "My honest read: in the waking world, step 4 sits best with the cast (the same muted graphic-novel rendering as Nadia and Elias, and clearly not Nadia). In the dream, no Lena fits yet: whichever face is chosen, her billboard should be redrawn with a cast billboard (e.g. Nadia's) attached as the style reference, for the chibi proportions, thick outlines and dot eyes."
+ ],
+ "sections": [
+  {
+   "title": "The cast with each Lena: waking world (3D turnaround front views)",
+   "cols": 1,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\VibeJamKit\\docs\\art\\vh-cast-lineup-waking.jpg",
+     "label": "One row per Lena candidate",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The cast with each Lena: dream billboards",
+   "cols": 1,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\VibeJamKit\\docs\\art\\vh-cast-lineup-dream.jpg",
+     "label": "One row per Lena candidate",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Step 4: B's face in 4-a's clothes (green), beside B's fixed source (blue)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena6-turn-take1.jpg",
+     "label": "Step 4: waking turnaround",
+     "verdict": "pick",
+     "note": "Green eyes, a level gaze; cream high-neck sweater, wine-red trousers, lace-up boots, the watch worn face-in, no necklace."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lenafresh2-turn-take3.jpg",
+     "label": "Step 4: waking turnaround (alternate)",
+     "verdict": "alt",
+     "note": "B fixed (the source)"
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena6-bb-take1.jpg",
+     "label": "Step 4: dream billboard",
+     "verdict": "pick",
+     "note": "One notebook loosely at her side; the pencil on her ear."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lenafresh2-bb-take1.jpg",
+     "label": "Step 4: dream billboard (alternate)",
+     "verdict": "alt",
+     "note": "B fixed (the source)"
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena6-expr-take1.jpg",
+     "label": "Step 4: dream expressions (warm, knowing, defensive)",
+     "verdict": "pick",
+     "note": "Green eyes in all three."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lenafresh2-expr-take3.jpg",
+     "label": "Step 4: dream expressions (warm, knowing, defensive) (alternate)",
+     "verdict": "alt",
+     "note": "B fixed (the source)"
+    }
+   ]
+  }
+ ]
+}
