@@ -579,3 +579,36 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   greyer to match Elias? The pencil on the left ear (it shows in the side view) or the right? Is avoiding your eyes in
   the dream the right amount of "wrong"?
 - It was waiting for Flow; the round-3 agent has finished, so it is generating now.
+
+### Opt-in sprint and the sprint kick: verified (14:20)
+- **Sprint is off by default.** Keyboard: hold Left Shift. Controller: hold LB, or click **L3** to toggle it (it stays
+  on until you stop or pull back, crouch, slide or respawn; it survives jumps). Sprint is forward-only.
+- **The sprint kick:** sprinting on the ground below 60% of sprint speed sets you to 75% of sprint at once, and normal
+  acceleration finishes in about 0.05 s. It never goes above sprint speed, has a 2 s cooldown, and readies the slide
+  boost, so a quick slide after a stumble gets its +3 m/s. Feel: a 4° field-of-view punch, a placeholder push-off
+  sound, and the arms pump. The agent found plain acceleration already reached sprint in about 0.15 s; the dead feeling
+  came from the slide boost's 2 s cooldown, which is why the kick re-arms it.
+- **Air strafing is untouched** and pinned by a test. `MOVEMENT.md` now has "Why air strafing gains speed"; the numbers
+  check out (0.8 m/s cap along the stick, about 0.95 m/s step, about 9.5 → 11 m/s in 1 s and 15.4 m/s in 4 s when
+  turning at 120°/s; the 22 m/s cap applies in the air and on the ground).
+- **Unity, in the clean checkout:** Scenes OK, EditMode 565/565, PlayMode 89/89, Windows build OK, smoke PASS in 9.2 s.
+  The autopilots now press sprint, with unchanged times (escape 45.0 s, lab 47.3 s).
+- **The build:** `VibeJamKit-play\Builds\Play\MovementLab\VibeJamKit.exe` (the R3 build is still open in its own folder).
+
+### Review pages: back to opening as a plain tab (14:18)
+- The quiet opener was worse: its background tab went unseen (and the agents' pages never opened at all, because their
+  shell ended before the opener finished), and a separate window was worse still. At the creator's request, review
+  pages open as a normal new Firefox tab again, as before.
+
+### Lena, the fresh design: done (14:15)
+- **Review page:** `FableAnimationTests\art\review\2026-10-10\visiting-hours-lena-fresh.html`, with her front view beside
+  Nadia's. Nano Banana Pro, 9 takes, 0 credits.
+- **Look:** a dusty plum knee-length coat over a cream sweater (swapped from oatmeal, which echoed Mags), stone wide-leg
+  trousers, oxblood loafers, an ochre pencil on her right ear with her hair tucked behind it. Sleeves down. A round,
+  rosy, rested face with the nose shaded in. Her passion is the night sky (a pencil log, a notebook in her pocket, a
+  watch worn face-in, dust on her soles). In the dream she holds the notebook to her chest and looks up and away.
+- **Weak spots:** in the turnaround the pencil stands upright in front view but lies diagonally in side view; the shoe
+  dust and the face-in watch barely read; the expressions drift older (big lashed eyes, a sharp hooked nose); the
+  billboard repeats the notebook in her pocket and shows the watch face out.
+- **Its questions:** night sky, or pressed plants or maps? Plum and cream, or cooler and greyer to sit with Elias? The
+  right ear fine? Is looking away in the dream the right amount of wrong? Should her waking face carry more mystery?
