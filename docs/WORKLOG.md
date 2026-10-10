@@ -1014,3 +1014,13 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
     - The lighting needs an overhaul (the creator stressed this: it's the first screen everyone sees).
     - Sent to the opening and lighting agents.
   - **DESIGN-DECISIONS.md** was opened in the creator's editor for their answers. After they hand it back: a full prose explanation of the scenario and the people that asks every obvious question, says what isn't written, and states each extrapolation or interpretation made.
+- **After the restart (an internet drop), all five agents were resumed.**
+  - STORY-PROSE.md (c6fbdd1): the story bible as prose, with the creator's cuts marked in brackets.
+  - **Lighting, first pass (48abbf6):**
+    - Night: a sodium streetlight through the blinds, moonlight, the phone's glow on her hand, and a teal-and-warm grade with bloom, a vignette, grain and depth of field.
+    - Title: a low sun with a window-pane pattern.
+    - WebGL: a pattern traced from the blinds instead of spot-light shadows.
+    - Captured to `VibeJamKit-play/out/vh-lighting/20261011-033742/`; the agent is iterating. SSAO in the waking shader is approved.
+  - **Sounds (bfcde34):** seven CC0 Freesound recordings: the breath (a man's, pitched up; a woman's take is an alternate), ring, buzz, roll-over, sheets, set-down and tap. `ProceduralAudio` prefers `Resources/JamKitSounds/<id>`. Audition: `out/vh-opening-audio/00-opening-sounds.wav`. Credits are in ThirdParty/LICENSES.md.
+  - Movement 8454370 landed (air control and hop cost); its report is pending.
+  - Full verify of Visiting Hours, Scenes through Smoke, is under way.
