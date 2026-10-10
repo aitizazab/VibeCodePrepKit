@@ -612,3 +612,12 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   billboard repeats the notebook in her pocket and shows the watch face out.
 - **Its questions:** night sky, or pressed plants or maps? Plum and cream, or cooler and greyer to sit with Elias? The
   right ear fine? Is looking away in the dream the right amount of wrong? Should her waking face carry more mystery?
+
+### Started (14:25): movement sound pass and a controls screen
+- **Sound:** every movement sound gets a real pass: footsteps by speed, the sprint kick, jump and double jump, the
+  wallrun loop and lean-in, the wall kick, the slide scrape, landings by fall speed, the mantle, and a wind layer
+  that rises with speed. CC0 sources where possible (credited); procedural sound stays as the fallback.
+- **Controls:** a Controls screen in Settings for every template: rebind keyboard and controller (Xbox and PlayStation
+  names), conflicts, resets, saved between sessions; possibly a hold-or-toggle choice for crouch and sprint.
+- **Waiting on the creator:** the design-doc audit, the Lena pick (round 3 or fresh), a first look at the opening and
+  the escape, which escape version to keep, the voicemail re-record, and music (composed together).
