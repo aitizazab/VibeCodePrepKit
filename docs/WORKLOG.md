@@ -956,3 +956,8 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - **No controller strafe aid yet.** The creator first tests how hard strafing is on PC; if it's far too easy there, make
     the PC input harder rather than the controller easier. The bar: a casual player shouldn't surf like a CS player.
 - **Reference:** the developer times (Gauntlet 41 s, dream tool 44 s) come from the non-strafing autopilot.
+- **The real times:** the creator did the dream tool chapter in about 30 s without strafing and 28.17 s best with it
+  ("not that big a deal"). Their Gauntlet best is 31.42 s (29.42 s + 2 s for one missed plate). The autopilot's 41 s and
+  44 s are a test driver's pace. Their records are in `tools/movementlab/creator-records-2026-10-10.json`. Sent to the
+  Gauntlet agent: the boards show the creator's times; Mags's time is recalibrated; the creator's Gauntlet ghost ships
+  as a developer ghost; the dream tool's empty ghost recording gets fixed.
