@@ -21,6 +21,10 @@ Everything downloaded for Visiting Hours is listed here with its source and lice
 | `Kenney/FurnitureKit/books.fbx` | the books on it |
 | `Kenney/FurnitureKit/pottedPlant.fbx` | the plant |
 
+## Kenney: Impact Sounds, RPG Audio, Sci-Fi Sounds (the dream escape's movement sounds)
+- **Licence:** CC0 1.0. They ship with JamKit's movement, so they are recorded with it:
+  `Packages/com.vibejam.jamkit/Runtime/Audio/ThirdParty/LICENSES.md` (sources, files, licence texts).
+
 ## Made for the project (not third-party downloads)
 - **Nadia's 3D model** (`Models/Nadia/`): generated with Tripo Studio from the project's own style-E character
   sheet, on the creator's account (see `Models/Nadia/README.md`).

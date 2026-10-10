@@ -13,6 +13,7 @@ Titanfall 2's measured wall numbers; section 8: feel). This page is the user's g
 |---|---|
 | The rules (pure C#, no Unity, tested with dotnet) | `Packages/com.vibejam.jamkit/Runtime/Core/Movement/` (`MoveSim`, `MoveDriver`, `MoveDef`, `MoveMath`) |
 | The Unity side, for any template | `Packages/com.vibejam.jamkit/Runtime/Unity/Movement/` (`MovementController`, `MovementCamera`, `MovementBody`, `MovementAudio`, `SpeedLines`, `MovementComfortScreen`, `MovementTuning`, `MovementSurface`) |
+| Sound | `MovementAudio` (the mix), `Runtime/Core/Movement/MoveSounds.cs` (generated loops and fallbacks, the mix rules `MoveSoundMix`), recorded variants in `Runtime/Audio/Movement/Resources/JamKitMovementAudio/` (built by `tools/audio/make-movement-sfx.py`; sources and licences in `Runtime/Audio/ThirdParty/LICENSES.md`) |
 | The Movement Lab (feel-test course, chase) | `Assets/JamKit/Templates/MovementLab/` (course data in core: `LabCourse`, `CourseAutopilot`, `PathLine`/`Pursuer`) |
 | Tests | `core-tests/Movement` (dotnet), `Assets/JamKit/Templates/MovementLab/Tests` (Unity EditMode and PlayMode) |
 
@@ -44,7 +45,7 @@ running into a wall or ledge, out of a mantle, from a standstill) pushes you off
 along the stick, and ground acceleration does the rest: sprint speed in about 0.05 s. It never takes you past
 sprint (high speed still only comes from slides, wallruns, wall kicks and air strafing), it has a 2 s
 cooldown, and it readies the slide boost, so a slide straight after it gets its +3 m/s. You feel it as a
-short FOV punch (4°), a hard footstep under a little whoosh, and the arms pumping back.
+short FOV punch (4°), a push-off sound (a hard, low footstep and a body thud under a little whoosh), and the arms pumping back.
 Why it readies the boost: plain ground acceleration already gets you back to sprint in about 0.15 s, so
 what really made a stumble feel dead was the slide boost's 2 s cooldown (no +3 m/s on the next slide). The
 kick's cooldown equals the boost's, so it never boosts more often than sliding alone would.
@@ -206,8 +207,47 @@ Metres, seconds, m/s, degrees.
 | `MovementCamera` (on the rig) | speedFov 8° from 9.5 to 22 m/s, slideFov 3°, fovRate 6; sprintKickFov 4° over sprintKickTime 0.35 s; wallRoll 9° away from the wall, wallCatchKick 4° (the lean-in on contact), slideRoll 2°, roll spring 14 rad/s damping 0.65; landDip 0.12 m from 4 to 18 m/s impact (spring 20); bobAmount 0.035 m; mantleNod 3° |
 | `MovementBody` (on the camera) | PLACEHOLDER arms and slide legs: colours, proportions; sprint pump with the stride, jump lift, double-jump sweep, **wall-side hand reaching out and planting on the wall on contact**, slide balance pose with legs out, mantle plant |
 | `SpeedLines` (on the camera) | 56 edge streaks from 12 to 20 m/s, alpha up to 0.35, never in the centre of the screen |
-| `MovementAudio` (on the body) | wind loop (volume smoothstep 6..18 m/s, pitch up with speed), slide scrape, wallrun scrape, footsteps on the stride (about 4.9/s at sprint, 1.5x on a wall), catch, jump, double jump (distinct), wall jump, boost, mantle, landing thud by impact (none when landing into a slide). Ids `mv_*` in the Audio Registry replace the placeholders. |
+| `MovementAudio` (on the body) | windVolume 0.5, windHighVolume 0.4, slideVolume 0.45, wallVolume 0.3, stepVolume 0.32, effectsVolume 0.8, pitchVariance 0.05, volumeVariance 0.12. What each sound is and when it plays: **Sound** below. |
 | `MovementController` | mouseDegreesPerPixel 0.09, gamepadDegreesPerSecond 190 (x1.6 boost after 0.25 s fully over), maxPitch 85, managePointerLock, onlyMarkedWalls, worldMask, skinWidth 0.04, stepOffset 0.35 standing, **crouchStepOffset 0** (the CharacterController's step-up pass lifts the capsule by the step offset before it sweeps forward: with 0.35 while sliding, a slide stopped dead at the face of a 1.15 m bar) |
+
+## Sound
+
+`MovementAudio` plays every movement sound in 2D (no doppler) at the shell's effects volume, silent in batch mode.
+One-shots go through 10 voices of its own; each play picks a **round-robin variant** (random, never the one just
+played), a random pitch of ±5 % and up to 12 % less volume, so nothing repeats exactly. Every clip peaks at -3 dBFS
+or lower (loops -6 dBFS) and the loudest moments of a run mix to about -9 dBFS: nothing clips.
+
+Where each clip comes from, best first: a clip under the same id in the game's **Audio Registry** (replaces the
+set); else the **recorded variants** `JamKitMovementAudio/<id>_0, _1, ...` (Resources, in the package, so every build
+has them); else the **generated** variants (`MoveSounds`). Delete a file and the generated sound plays.
+
+| Sound (id) | When | What it is now | Source |
+|---|---|---|---|
+| Footsteps (`mv_step`, 5 variants) | each stride (about 3.3 steps/s at walk, 4.9 at sprint; 1.5x on a wall) | concrete footsteps; louder and 8 % lower from walk to sprint; on a wall 10 % brighter and harder | Kenney Impact Sounds (CC0) |
+| Sprint weight (`mv_step_heavy`, 5) | under each step, growing from none at walk to about half at sprint | a low body thump (low-passed soft impact) | Kenney Impact Sounds |
+| Sprint kick (`mv_kick`, 4) | the push-off from a stumble | a hard, low footstep and body thud, a cloth flick, under a quiet boost whoosh | Kenney Impact + RPG Audio |
+| Jump (`mv_jump`, 4) | ground and slide jumps | a shoe scuff under a cloth swish | Kenney RPG Audio |
+| Double jump (`mv_djump`, 4) | the air jump | a jump-kit **puff**: a short burst of thruster hiss over a low whump, clearly unlike the jump | Kenney Sci-Fi Sounds + a whump made in code |
+| Wall kick (`mv_walljump`, 4) | every wall jump; a wall kick (within 83 ms of contact) plays louder and 6 % higher | a sharp **snap** (a hard shoe on the wall) and a little whoosh | Kenney Impact + RPG Audio |
+| Wallrun catch (`mv_catch`, 4) | a wall takes you | the hand planting on the wall, then the swish of **leaning in** | Kenney Impact + RPG Audio |
+| Wallrun rub (`mv_wallrun`, loop) | while wallrunning | a quiet shoe rub with grit, louder toward wallrun speed | made in code |
+| Slide drop (`mv_slidein`, 4) | a slide starts (also landing into a slide) | a body thud, a gritty scuff, cloth; louder at speed | Kenney Impact + RPG Audio |
+| Slide scrape (`mv_slide`, loop) | while sliding | a gravel scrape (noise, grit and a low rumble); **fades with speed**, silent by 4 m/s, pitch 0.85 to 1.2 | made in code |
+| Slide boost (`mv_boost`, 4) | the +3 m/s boost | a rising whoosh | made in code |
+| Mantle (`mv_mantle`, 4) | a mantle starts | hands gripping, the pull up (cloth), a foot landing on top. No grunt (no CC0 voice yet) | Kenney RPG Audio |
+| Landings (`mv_land_soft` 4, `mv_land` 5, `mv_land_hard` 5) | landing (not into a slide) | by fall speed: under 3.5 m/s a footstep; under 8.5 (a plain jump) **soft**, two quick feet; under 12.5 (jump + double jump) **normal**, a thud; above, **hard**, a heavy thud with a body crumple. Volume 0.5 to 1 with the fall | Kenney Impact + RPG Audio |
+| Wind (`mv_wind`, loop) | always, by speed | a low wind body with slow gusts; comes in from 5 m/s, full at 16 | made in code |
+| Air rush (`mv_wind_high`, loop) | always, by speed | a bright rush with a faint whistle on top of the wind; comes in from 11 m/s, full at 21: **the "going fast" layer** | made in code |
+
+Both wind layers rise in pitch with speed (0.9 to 1.15), are 12 % louder in the air, lean 30 % to the side away
+from a wallrun wall, rise quickly and fall slowly (2/s up, 0.9/s down) so a stumble doesn't drop them. The two
+layers crossfading stand in for a low-pass opening with speed (which WebGL can't do). The rules are
+`MoveSoundMix` in the core (dotnet-tested); the recorded sets are rebuilt by
+`uv run --with numpy python tools/audio/make-movement-sfx.py <packs dir>`.
+
+**Still placeholders:** the loops and the boost are synthesised, not recorded; there is one surface (concrete)
+for footsteps; no mantle grunt or breathing; no music stems by speed; the dream-static, collapse, checkpoint and
+caught sounds (`mv_static`, `mv_collapse`, `mv_checkpoint`, `mv_caught`) are untouched generated placeholders.
 
 ## Comfort settings
 
@@ -283,6 +323,8 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 | Where | What |
 |---|---|
 | `core-tests/Movement` (`dotnet test core-tests/Movement/Movement.Tests.csproj`) | Source formulas (air strafe at most cap² per tick, tick-rate dependence), opt-in sprint (walk by default, Shift held or the L3 toggle reach sprint, forward only, the toggle ends on stop, pull-back, crouch and respawn and survives a jump), the sprint kick (sprint within 0.4 s from a near-stop, never past sprint, only below 60 %, 2 s cooldown, readies the slide boost), the air-strafe speed curve pinned, ground (never past sprint by input, overspeed lingers, landing grace), jumps (heights, lockout, coyote 0.11 works and 0.13 doesn't, buffer), slide (boost, cooldown, cap decay, slope, slide jump keeps speed, slide hop, fits under a bar), mantle (heights, rescue), wallrun with Titanfall 2's numbers (8.64 from above and below, 1.75 s, away ends it, neutral brakes, the wall-jump impulses, crouch kick, wall kick, same-wall rule, 25° rule, wall coyote, head-on isn't a wallrun), the momentum chain, identical paths at 30/60/144/240 fps, the driver's latching and interpolation, the course (autopilot finishes, every checkpoint to the next, chain at 30 and 144 fps, research sizes), pursuer and route |
+| `core-tests/Movement` (`MoveSoundTests`) | the generated sounds: at least 3 distinct variants per one-shot, peaks under -1 dBFS, no click at either end, seamless loops (the wrap is a typical step, no level jump across it), the double jump brighter than the jump; the mix rules: footsteps heavier with speed, landing tiers, wind rising with speed, the slide fading, round-robin never repeating |
+| Unity EditMode (`MovementAudioEditorTests`) | every movement event has clips and a generated fallback, at least 3 variants per one-shot, the recorded CC0 sets are there and mono, the loops are seamless, nothing peaks above -1 dBFS |
 | Unity EditMode (`MovementLabEditorTests`) | chapters and attract script, sprint opt-in in the tuning and the Shift, LB, L3 and R3 bindings, scene/tuning/preset/materials, Build Settings, every player part, sound ids and the Crouch binding |
 | Unity PlayMode (`MovementLabPlayTests`) | the scripted chain keeps its speed on the real CharacterController, the autopilot finishes the course, standing still in the chase gets you caught and put back, falling respawns, chapters jump cleanly, comfort settings reach the camera and the pause screen |
 
@@ -295,4 +337,4 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 - No music stems by speed tier.
 - The arms are drawn by the main camera (scaled against the FOV kick), not an overlay camera: they can
   clip into a wall you press your face against.
-- The body, the dream-static and every sound are placeholders for the art and audio passes.
+- The body and the dream-static are placeholders for the art pass; the sound's remaining placeholders are listed under **Sound**.

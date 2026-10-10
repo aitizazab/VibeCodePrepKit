@@ -13,6 +13,7 @@ Your names here
 
 MUSIC AND SOUND
 Placeholder sounds generated in code by JamKit
+Movement sounds: Kenney, Impact Sounds, RPG Audio and Sci-Fi Sounds (CC0), kenney.nl
 (replace this line with your sound credits)
 
 

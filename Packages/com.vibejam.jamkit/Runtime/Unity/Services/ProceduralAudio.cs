@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using JamKit.Audio;
+using JamKit.Movement;
 using UnityEngine;
 
 namespace JamKit.Shell
@@ -35,10 +36,13 @@ namespace JamKit.Shell
             // The Visiting Hours opening (PLACEHOLDERS): the phone's buzz (loops with vh_phone_ring), sheets,
             // the phone set down, a screen tap, Nadia's slow breathing (loops).
             "vh_vibrate", "vh_rustle", "vh_rustle_big", "vh_clunk", "vh_tap", "vh_breath",
-            // First-person movement (Runtime/Unity/Movement, the Movement Lab). PLACEHOLDERS. Loops:
-            // mv_wind, mv_slide, mv_wallrun, mv_static; the rest are one-shots.
-            "mv_wind", "mv_slide", "mv_wallrun", "mv_static",
-            "mv_step", "mv_jump", "mv_djump", "mv_walljump", "mv_catch", "mv_land", "mv_boost", "mv_mantle",
+            // First-person movement (Runtime/Unity/Movement, the Movement Lab), made by the core's MoveSounds
+            // (MovementAudio prefers the recorded CC0 variants in Runtime/Audio/Movement). Loops: mv_wind,
+            // mv_wind_high, mv_slide, mv_wallrun, mv_static (the dream-static, still a placeholder); the rest are
+            // one-shots, with MoveSounds.Variants round-robin variants each (GetVariant).
+            "mv_wind", "mv_wind_high", "mv_slide", "mv_wallrun", "mv_static",
+            "mv_step", "mv_step_heavy", "mv_jump", "mv_djump", "mv_walljump", "mv_catch",
+            "mv_land_soft", "mv_land", "mv_land_hard", "mv_boost", "mv_mantle", "mv_kick", "mv_slidein",
             "mv_collapse", "mv_checkpoint", "mv_caught",
         };
 
@@ -47,12 +51,33 @@ namespace JamKit.Shell
         public static AudioClip Get(string id)
         {
             if (string.IsNullOrEmpty(id)) return null;
+            if (MoveSounds.Knows(id)) return GetVariant(id, 0);
             if (Cache.TryGetValue(id, out var clip) && clip != null) return clip;
             float[] data = Make(id);
             if (data == null) return null;
             clip = AudioClip.Create("gen_" + id, data.Length, 1, Rate, false);
             clip.SetData(data, 0);
             Cache[id] = clip;
+            return clip;
+        }
+
+        /// <summary>How many generated variants an id has (the movement one-shots have several; others 1, unknown 0).</summary>
+        public static int VariantCount(string id) => MoveSounds.Knows(id) ? MoveSounds.VariantCount(id) : Knows(id) ? 1 : 0;
+
+        /// <summary>One generated variant of an id (round-robin for the movement one-shots; other ids ignore the index).</summary>
+        public static AudioClip GetVariant(string id, int variant)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            if (!MoveSounds.Knows(id)) return Get(id);
+            int count = MoveSounds.VariantCount(id);
+            int v = ((variant % count) + count) % count;
+            string key = v == 0 ? id : id + "#" + v;
+            if (Cache.TryGetValue(key, out var clip) && clip != null) return clip;
+            float[] data = MoveSounds.Make(id, v);
+            if (data == null) return null;
+            clip = AudioClip.Create("gen_" + key, data.Length, 1, MoveSounds.Rate, false);
+            clip.SetData(data, 0);
+            Cache[key] = clip;
             return clip;
         }
 
@@ -135,19 +160,9 @@ namespace JamKit.Shell
                 case "vh_wrong": return ToneSynth.Sequence(Rate, 1, N(Waveform.Triangle, 220f, 196f, 0.28f, 0.25f));
                 case "vh_hit": return ToneSynth.Sequence(Rate, 109, N(Waveform.Sine, 330f, 140f, 0.22f, 0.45f), N(Waveform.Noise, 1200f, 300f, 0.1f, 0.15f));
                 case "vh_journal": return ToneSynth.Sequence(Rate, 113, N(Waveform.Noise, 5200f, 2600f, 0.16f, 0.14f), N(Waveform.Sine, 990f, 990f, 0.12f, 0.08f));
-                // Movement: the wind is filtered noise (MovementAudio sets its volume and pitch from the speed).
-                case "mv_wind": return Bed(4f, N(Waveform.Noise, 380f, 380f, 4f, 0.09f), N(Waveform.Noise, 1300f, 1300f, 4f, 0.035f), N(Waveform.Noise, 150f, 150f, 4f, 0.06f));
-                case "mv_slide": return Bed(2f, N(Waveform.Noise, 2600f, 2600f, 2f, 0.07f), N(Waveform.Noise, 700f, 700f, 2f, 0.08f), N(Waveform.Noise, 6000f, 6000f, 2f, 0.025f));
-                case "mv_wallrun": return Bed(2f, N(Waveform.Noise, 1700f, 1700f, 2f, 0.05f), N(Waveform.Noise, 450f, 450f, 2f, 0.05f));
+                // Movement: mv_wind, mv_slide, mv_step ... are made by MoveSounds (see Get). These four belong to
+                // the Movement Lab's and the dream escape's own events and stay as they were.
                 case "mv_static": return Bed(3f, N(Waveform.Noise, 9000f, 9000f, 3f, 0.08f), N(Waveform.Noise, 2200f, 2200f, 3f, 0.05f), N(Waveform.Noise, 90f, 90f, 3f, 0.08f));
-                case "mv_step": return ToneSynth.Sequence(Rate, 131, N(Waveform.Noise, 900f, 160f, 0.055f, 0.32f), N(Waveform.Sine, 110f, 70f, 0.05f, 0.18f));
-                case "mv_jump": return ToneSynth.Sequence(Rate, 137, N(Waveform.Noise, 900f, 4200f, 0.16f, 0.22f));
-                case "mv_djump": return ToneSynth.Sequence(Rate, 139, N(Waveform.Noise, 2600f, 8000f, 0.12f, 0.24f), N(Waveform.Sine, 520f, 1040f, 0.14f, 0.12f));
-                case "mv_walljump": return ToneSynth.Sequence(Rate, 149, N(Waveform.Square, 150f, 95f, 0.05f, 0.16f), N(Waveform.Noise, 1200f, 5200f, 0.15f, 0.24f));
-                case "mv_catch": return ToneSynth.Sequence(Rate, 151, N(Waveform.Noise, 3200f, 1200f, 0.07f, 0.3f), N(Waveform.Sine, 180f, 120f, 0.06f, 0.14f));
-                case "mv_land": return ToneSynth.Sequence(Rate, 157, N(Waveform.Sine, 120f, 42f, 0.2f, 0.55f), N(Waveform.Noise, 700f, 90f, 0.14f, 0.3f));
-                case "mv_boost": return ToneSynth.Sequence(Rate, 163, N(Waveform.Noise, 2400f, 9500f, 0.22f, 0.2f));
-                case "mv_mantle": return ToneSynth.Sequence(Rate, 167, N(Waveform.Noise, 600f, 1600f, 0.12f, 0.22f), N(Waveform.Noise, 900f, 200f, 0.06f, 0.25f));
                 case "mv_collapse": return ToneSynth.Sequence(Rate, 173, N(Waveform.Noise, 260f, 35f, 1.8f, 0.6f), N(Waveform.Noise, 1400f, 100f, 0.6f, 0.25f));
                 case "mv_checkpoint": return Arpeggio(new[] { 0, 7, 12 }, 0.07f, 0.35f, Waveform.Sine);
                 case "mv_caught": return ToneSynth.Sequence(Rate, 179, N(Waveform.Noise, 9000f, 600f, 0.5f, 0.45f), N(Waveform.Sine, 220f, 55f, 0.6f, 0.3f));
