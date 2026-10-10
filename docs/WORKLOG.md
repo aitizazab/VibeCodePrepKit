@@ -76,7 +76,7 @@ request (2026-10-10), the **morning report** is built from this log and must be 
 ### Overnight results
 (added as each piece of work reports)
 
-#### Movement Lab: verified, playable build ready (about 07:00)
+#### Movement Lab: verified, playable build ready (06:15)
 - **Run in** the clean checkout `VibeJamKit-play` at commit 613473c.
 - **Scenes:** OK.
 - **PlayMode:** 78 of 79 pass.
@@ -103,7 +103,7 @@ request (2026-10-10), the **morning report** is built from this log and must be 
     chimney, chase.
   - **Placeholders:** the arms are capsule-shaped, and all sounds are generated.
 
-#### Movement Lab round 2: all green (about 07:45)
+#### Movement Lab round 2: all green (06:23)
 - **The slow respawn wasn't a game bug.** The respawn does launch you at sprint speed, but the test measured
   after the fade with no input held, by which time friction had stopped the player. The test now holds
   forward like a player and records the launch speed.
@@ -115,7 +115,7 @@ request (2026-10-10), the **morning report** is built from this log and must be 
 - **The Movement Lab's generated scene, materials, tuning data and config are now committed** to the main repo
   (they had only existed in the clean checkout).
 
-#### Design docs: four proposals written (about 08:00)
+#### Design docs: four proposals written (06:26)
 Committed as dd72559. Design only: every invented detail is marked as a proposal, each doc opens with a table of
 decisions for the creator, and every quoted line is a placeholder for the creator to rewrite. No code or
 `script/` files were touched.
@@ -237,7 +237,7 @@ entirely, for the creator to decide.
 3 AM and driving them himself. That goes beyond the voicemail's "I'll see if I can get a cab back home, or maybe
 call Lena", so it's a proposal, not the creator's fact.
 
-#### The opening and title, rebuilt in 3D in style E (about 08:30)
+#### The opening and title, rebuilt in 3D in style E (06:35)
 Commits 33fe207 and e73bc96. **Nobody has looked at it yet:** camera framing, light strengths, the furniture's
 orientation and Nadia's pose all need a first look.
 
@@ -301,7 +301,7 @@ on WebGL, where quitting isn't possible), badge = Settings, notepad = Credits. H
 - **Known gaps:** no visual check yet; Nadia's reach may fall a couple of cm short, with no finger grip; her
   normal map isn't used.
 
-#### The first dream escape built (about 08:45)
+#### The first dream escape built (06:39)
 Commits 3f0087c, eca0720 and 30cbd24; full write-up in `docs/DREAM-ESCAPE.md`. **Nobody has looked at it yet.**
 It runs on the Movement Lab's own movement (no copy of the movement code): the controller, the camera feel, the
 arms with the lean-in hand (in Nadia's colours), speed lines, movement sounds, the F3 speed readout and the
@@ -360,7 +360,7 @@ PlayMode tests.
 - `NIGHTS-GAMEPLAY.md` proposes a different version of this escape ("the street rolls up behind her"). The agent
   built the brief it was given; which one you want is your call.
 
-#### Art: Lena redone, and the opening's art (about 09:00)
+#### Art: Lena redone, and the opening's art (06:57)
 Commits 69bb4dc and dffb428. **The review page is open in Firefox:**
 `FableAnimationTests\art\review\2026-10-10\visiting-hours-opening.html`. At the top is a sheet of the processed
 game files (textures tiled 2×2), then Lena, the concept frames, the images and the textures. Each subject shows
@@ -410,7 +410,7 @@ outage, with seven downloads re-run). Nano Banana Pro is still at its usage limi
 2.1. The automation Chrome is closed. The raw takes are in `FableAnimationTests/art/incoming/` (`lena2-*`,
 `op-*`, `tex-*`).
 
-#### Unity verification: the opening passes; the escape has one failure (about 10:10)
+#### Unity verification: the opening passes; the escape has one failure (07:11)
 Run in the clean checkout `VibeJamKit-play`.
 - **The opening alone** (at e73bc96): Scenes OK, EditMode 544/544, PlayMode 83/83.
 - **With the escape added** (at 30cbd24): Scenes OK (all nine scenes, no shader errors), EditMode 552/552,
@@ -432,3 +432,31 @@ final run, the light). So the real Unity character controller hits the 1.15 m ga
 through. **Sent back to the escape agent** with the trace and the likely causes: the crouched capsule plus its
 skin against the gap height, the slide ending just before the door, or the door's collider. The fix comes with a
 test that the gap clears the crouched controller.
+
+#### The garage slide fixed; three playable builds (07:25)
+**The cause wasn't the garage.** The door gap had 7 cm to spare over the sliding player. But the shared movement
+code kept the character controller's step-up height (0.35 m) while crouched or sliding, and Unity lifts the
+player by that much before moving them forward, so a sliding player was raised into the door's bottom edge.
+The same dead stop was hiding at the Movement Lab's chase bar; its test passed only because it allows a respawn.
+- **The fix** (e57c5aa, `MovementController.cs`): no step-up while crouched or sliding (0.35 m standing). The
+  skin width and step-up height are now settings rather than fixed numbers.
+- **Guards:** the route check now requires every slide gap to clear the sliding player plus skin plus 5 cm, using
+  the real scene's settings; a new core test; and the PlayMode run now fails if the player drops below 7 m/s
+  under the garage door.
+- **Unity, in the clean checkout:** Scenes OK, EditMode 553/553, **PlayMode 89/89**. The slide keeps
+  **11.2 m/s** under the garage door; the autopilot escapes in **45.7 s with no catches**.
+- **Smoke runs:** the dream escape PASS in 13.3 s (it plays the final run and escapes, no respawns); the Movement
+  Lab PASS in 9.1 s. The project is switched back to Visiting Hours.
+- **The mantle "0.0 m/s" in the traces is how the trace samples,** not a bug: speed reads 0 while the mantle
+  animates, and you leave it with 80% of your run speed.
+
+**Your playable builds** (all in `C:\Users\User\Desktop\yougotgamesonyophone\VibeJamKit-play\Builds\Play\`):
+- `DreamEscape\VibeJamKit.exe`: **new**, the first dream escape (WASD, mouse, Space to jump and double jump,
+  Left Ctrl or C to crouch and slide, F3 for the speed readout, Esc for comfort settings).
+- `MovementLab\VibeJamKit.exe`: **refreshed** with the slide fix.
+- `VisitingHours\VibeJamKit.exe`: the new 3D opening and title (from 07:10; the fix doesn't touch it).
+
+**Overnight hiccup:** at about 07:21 Windows ran low on memory and Claude Code stopped two background jobs: the
+build run and the keep-awake helper. Nothing was lost: free memory was back to 5.8 GB, and the builds were redone
+one at a time. Unity's compiler server (left idle by the tests, 344 MB) was stopped too. (Note: the times in the
+headings above were corrected from the commit times; the earlier guesses ran up to three hours late.)
