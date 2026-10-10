@@ -1,0 +1,260 @@
+{
+ "name": "visiting-hours-characters",
+ "title": "Visiting Hours: character sheets (style E)",
+ "subtitle": "Every character in style E, made 2026-10-10 with Flow (0 credits). The waking world as clean turnarounds (front, side, back, A-pose) for 3D models, plus expression sheets. The dream as cutesy billboards, which exist only there. Each character's turnaround was made first and attached to make their other sheets. Green = my pick, blue = the alternate.",
+ "questions": [
+  "Does each character read as who they are: Nadia guarded and tired, Elias sharp and abrasive, Lena warm, Theo curious, Mags dry, Walt patient?",
+  "Is the waking vs dream contrast right: grounded graphic-novel adults awake, round crayon dolls in the dream? Should the dream versions feel more wrong?",
+  "Are the turnarounds clean enough to model from (Tripo or by hand), or do you want each view on its own image, a T-pose, or a three-quarter view added?",
+  "Elias in the dream keeps his coat and tie with a big easy smile. Should he be dressed down in the dream instead, as who he wishes he were?",
+  "Theo and Lena have waking turnarounds only for photos and memories. Is that enough, or will they appear in the waking world as 3D people?"
+ ],
+ "notes": [
+  "Model: Nano Banana Pro is still at its usage limit, so all 17 sheets are Nano Banana 2.1.",
+  "Nadia's waking design follows CHARACTERS.md: an olive city jacket over the navy scrubs and a blank ID badge on a lanyard. Her face carries over from the style-E exploration.",
+  "Weak spots: Mags's chosen turnaround is the only one in a true A-pose, so she has no mug in it (the mug is a separate prop for the model; the alternate holds it). Nadia's expressions are subtle: tired, guarded and holding back tears are close to each other. Elias's dream beard came out very big. In the turnarounds the side view faces right, not left as asked (it doesn't matter for modelling).",
+  "No cut-outs for these sheets; the backgrounds are plain for that later."
+ ],
+ "sections": [
+  {
+   "title": "Nadia",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-nadia-turn-take3.jpg",
+     "label": "Nadia: waking turnaround (3D)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-nadia-turn-take4.jpg",
+     "label": "Nadia: waking turnaround (3D) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-nadia-expr-take1.jpg",
+     "label": "Nadia: waking expressions (neutral, tired, guarded, holding back tears, small smile)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-nadia-expr-take2.jpg",
+     "label": "Nadia: waking expressions (neutral, tired, guarded, holding back tears, small smile) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-nadia-bb-take1.jpg",
+     "label": "Nadia: dream billboard",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-nadia-bb-take2.jpg",
+     "label": "Nadia: dream billboard (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Elias",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-elias-turn-take1.jpg",
+     "label": "Elias: waking turnaround (3D)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-elias-turn-take3.jpg",
+     "label": "Elias: waking turnaround (3D) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-elias-expr-take2.jpg",
+     "label": "Elias: waking expressions (focused, abrasive smirk, exhausted, rare warmth)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-elias-expr-take1.jpg",
+     "label": "Elias: waking expressions (focused, abrasive smirk, exhausted, rare warmth) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-elias-bb-take2.jpg",
+     "label": "Elias: dream billboard (relaxed, softer)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-elias-bb-take1.jpg",
+     "label": "Elias: dream billboard (relaxed, softer) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-elias-bed-take1.jpg",
+     "label": "Elias: in the hospital bed (waking 3D reference)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-elias-bed-take2.jpg",
+     "label": "Elias: in the hospital bed (waking 3D reference) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Lena",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-lena-turn-take2.jpg",
+     "label": "Lena: waking turnaround (for photos and memories)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-lena-turn-take1.jpg",
+     "label": "Lena: waking turnaround (for photos and memories) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-lena-bb-take1.jpg",
+     "label": "Lena: dream billboard",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-lena-bb-take2.jpg",
+     "label": "Lena: dream billboard (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-lena-expr-take2.jpg",
+     "label": "Lena: dream expressions (warm, knowing, defensive)",
+     "verdict": "pick",
+     "note": "Clearer expressions, and the bun matches her billboard."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-lena-expr-take1.jpg",
+     "label": "Lena: dream expressions (warm, knowing, defensive) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Theo",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-theo-turn-take2.jpg",
+     "label": "Theo: waking turnaround (for photos and memories)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-theo-turn-take1.jpg",
+     "label": "Theo: waking turnaround (for photos and memories) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-theo-bb-take1.jpg",
+     "label": "Theo: dream billboard",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-theo-bb-take2.jpg",
+     "label": "Theo: dream billboard (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-theo-expr-take1.jpg",
+     "label": "Theo: dream expressions (curious, worried, grinning)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-theo-expr-take2.jpg",
+     "label": "Theo: dream expressions (curious, worried, grinning) (alternate)",
+     "verdict": "alt",
+     "note": "The heads are at different scales."
+    }
+   ]
+  },
+  {
+   "title": "Mags",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-mags-turn-take2.jpg",
+     "label": "Mags: waking turnaround (3D)",
+     "verdict": "pick",
+     "note": "The only take in a true A-pose (so no mug)."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-mags-turn-take1.jpg",
+     "label": "Mags: waking turnaround (3D) (alternate)",
+     "verdict": "alt",
+     "note": "Holds the mug, but her arms are down."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-mags-expr-take1.jpg",
+     "label": "Mags: waking expressions (amused, evasive, stern)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-mags-expr-take2.jpg",
+     "label": "Mags: waking expressions (amused, evasive, stern) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Walt (dream only)",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-walt-bb-take1.jpg",
+     "label": "Walt: dream billboard",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-walt-bb-take2.jpg",
+     "label": "Walt: dream billboard (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-walt-expr-take2.jpg",
+     "label": "Walt: dream expressions (gentle, sad, firm)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\sheet-walt-expr-take1.jpg",
+     "label": "Walt: dream expressions (gentle, sad, firm) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  }
+ ]
+}

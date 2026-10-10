@@ -1,0 +1,175 @@
+{
+ "name": "visiting-hours-characters",
+ "title": "Visiting Hours: character sheets (style E)",
+ "subtitle": "Every character in style E, made 2026-10-10 with Flow (0 credits). The waking world as clean turnarounds (front, side, back, A-pose) for 3D models, plus expression sheets. The dream as cutesy billboards, which exist only there. Each character's turnaround was made first and attached to make their other sheets. Green = my pick, blue = the alternate.",
+ "questions": [
+  "Does each character read as who they are: Nadia guarded and tired, Elias sharp and abrasive, Lena warm, Theo curious, Mags dry, Walt patient?",
+  "Is the waking vs dream contrast right: grounded graphic-novel adults awake, round crayon dolls in the dream? Should the dream versions feel more wrong?",
+  "Are the turnarounds clean enough to model from (Tripo or by hand), or do you want each view on its own image, a T-pose, or a three-quarter view added?",
+  "Elias in the dream keeps his coat and tie with a big easy smile. Should he be dressed down in the dream instead, as who he wishes he were?",
+  "Theo and Lena have waking turnarounds only for photos and memories. Is that enough, or will they appear in the waking world as 3D people?"
+ ],
+ "notes": [
+  "Model: Nano Banana Pro is still at its usage limit, so all 17 sheets are Nano Banana 2.1.",
+  "Nadia's waking design follows CHARACTERS.md: an olive city jacket over the navy scrubs and a blank ID badge on a lanyard. Her face carries over from the style-E exploration.",
+  "Weak spots: Mags's chosen turnaround is the only one in a true A-pose, so she has no mug in it (the mug is a separate prop for the model; the alternate holds it). Nadia's expressions are subtle: tired, guarded and holding back tears are close to each other. Elias's dream beard came out very big. In the turnarounds the side view faces right, not left as asked (it doesn't matter for modelling).",
+  "No cut-outs for these sheets; the backgrounds are plain for that later."
+ ],
+ "sections": [
+  {
+   "title": "Nadia",
+   "cols": 4,
+   "items": [
+    {
+     "label": "Nadia: waking turnaround (3D)",
+     "pick": "sheet-nadia-turn-take3.jpg",
+     "alt": "sheet-nadia-turn-take4.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Nadia: waking expressions (neutral, tired, guarded, holding back tears, small smile)",
+     "pick": "sheet-nadia-expr-take1.jpg",
+     "alt": "sheet-nadia-expr-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Nadia: dream billboard",
+     "pick": "sheet-nadia-bb-take1.jpg",
+     "alt": "sheet-nadia-bb-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    }
+   ]
+  },
+  {
+   "title": "Elias",
+   "cols": 4,
+   "items": [
+    {
+     "label": "Elias: waking turnaround (3D)",
+     "pick": "sheet-elias-turn-take1.jpg",
+     "alt": "sheet-elias-turn-take3.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Elias: waking expressions (focused, abrasive smirk, exhausted, rare warmth)",
+     "pick": "sheet-elias-expr-take2.jpg",
+     "alt": "sheet-elias-expr-take1.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Elias: dream billboard (relaxed, softer)",
+     "pick": "sheet-elias-bb-take2.jpg",
+     "alt": "sheet-elias-bb-take1.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Elias: in the hospital bed (waking 3D reference)",
+     "pick": "sheet-elias-bed-take1.jpg",
+     "alt": "sheet-elias-bed-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    }
+   ]
+  },
+  {
+   "title": "Lena",
+   "cols": 4,
+   "items": [
+    {
+     "label": "Lena: waking turnaround (for photos and memories)",
+     "pick": "sheet-lena-turn-take2.jpg",
+     "alt": "sheet-lena-turn-take1.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Lena: dream billboard",
+     "pick": "sheet-lena-bb-take1.jpg",
+     "alt": "sheet-lena-bb-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Lena: dream expressions (warm, knowing, defensive)",
+     "pick": "sheet-lena-expr-take2.jpg",
+     "alt": "sheet-lena-expr-take1.jpg",
+     "note": "Clearer expressions, and the bun matches her billboard.",
+     "alt_note": ""
+    }
+   ]
+  },
+  {
+   "title": "Theo",
+   "cols": 4,
+   "items": [
+    {
+     "label": "Theo: waking turnaround (for photos and memories)",
+     "pick": "sheet-theo-turn-take2.jpg",
+     "alt": "sheet-theo-turn-take1.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Theo: dream billboard",
+     "pick": "sheet-theo-bb-take1.jpg",
+     "alt": "sheet-theo-bb-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Theo: dream expressions (curious, worried, grinning)",
+     "pick": "sheet-theo-expr-take1.jpg",
+     "alt": "sheet-theo-expr-take2.jpg",
+     "note": "",
+     "alt_note": "The heads are at different scales."
+    }
+   ]
+  },
+  {
+   "title": "Mags",
+   "cols": 4,
+   "items": [
+    {
+     "label": "Mags: waking turnaround (3D)",
+     "pick": "sheet-mags-turn-take2.jpg",
+     "alt": "sheet-mags-turn-take1.jpg",
+     "note": "The only take in a true A-pose (so no mug).",
+     "alt_note": "Holds the mug, but her arms are down."
+    },
+    {
+     "label": "Mags: waking expressions (amused, evasive, stern)",
+     "pick": "sheet-mags-expr-take1.jpg",
+     "alt": "sheet-mags-expr-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    }
+   ]
+  },
+  {
+   "title": "Walt (dream only)",
+   "cols": 4,
+   "items": [
+    {
+     "label": "Walt: dream billboard",
+     "pick": "sheet-walt-bb-take1.jpg",
+     "alt": "sheet-walt-bb-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Walt: dream expressions (gentle, sad, firm)",
+     "pick": "sheet-walt-expr-take2.jpg",
+     "alt": "sheet-walt-expr-take1.jpg",
+     "note": "",
+     "alt_note": ""
+    }
+   ]
+  }
+ ]
+}

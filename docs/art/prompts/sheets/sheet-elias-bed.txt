@@ -1,0 +1,11 @@
+Aspect ratio: 16:9 landscape.
+
+Style: grounded adult stylised illustration for the waking world of a narrative game: a muted, desaturated, slightly cold palette, simplified but realistic proportions, clean shapes with soft flat shading, restrained thin line work, quiet and serious, like a literary graphic novel. Near-future city clothing, practical and a little worn; no cybernetics, no neon, no gadgets. Not cute, not a realistic painting, not 3D.
+
+Image 1 is this man's model sheet: the patient is this same man (face, hair, beard).
+
+The same man lying in a hospital bed in a coma, three-quarter view from the foot of the bed at standing eye height: a bandage wrapped around his head, a healing cut on one cheekbone, eyes closed, a clear nasal oxygen cannula, a pale blue hospital gown, an IV line taped to one hand, a pulse-oximeter clip on a finger, white sheets and a pale grey blanket. A grey adjustable hospital bed with rails and wheels; beside it a bedside monitor on a stand showing only simple glowing wave lines (no numbers) and an IV pole with a bag. Night, a cold lamp. The whole bed and monitor inside the frame with a margin; a reference for building the scene in 3D.
+
+Background: completely plain flat light grey (#d8d8d8), no scenery, no floor, no cast shadows.
+
+No text, no labels, no captions, no numbers, no letters, no logos, no watermark, no signature anywhere in the image.

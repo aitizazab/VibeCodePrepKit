@@ -1,0 +1,13 @@
+Aspect ratio: 16:9 landscape.
+
+Style: grounded adult stylised illustration for the waking world of a narrative game: a muted, desaturated, slightly cold palette, simplified but realistic proportions, clean shapes with soft flat shading, restrained thin line work, quiet and serious, like a literary graphic novel. Near-future city clothing, practical and a little worn; no cybernetics, no neon, no gadgets. Not cute, not a realistic painting, not 3D.
+
+Image 1 shows this same woman: keep her face, hair and build, and add the jacket and lanyard described here. Match Image 1's drawing style exactly.
+
+The character: Nadia, a woman of twenty-nine, a night-shift nurse. Dark brown hair tied back badly in a messy low bun with loose strands, tired shadowed eyes, a guarded face. Navy blue hospital scrubs with a grey long-sleeved thermal top underneath, a worn dark olive city jacket over the scrubs (open, sleeves pushed up a little), a hospital ID badge on a dark lanyard around her neck (the badge plain and blank), white work sneakers.
+
+A character turnaround model sheet for 3D modelling: the same character drawn three times side by side at exactly the same scale and height on one shared ground line: a FRONT view, a SIDE view (true profile facing left) and a BACK view. Each is full body from the top of the head to the shoes, standing in a neutral A-pose (arms held straight and slightly away from the body at about thirty degrees, palms facing the thighs, feet a little apart), neutral expression, eyes forward. Orthographic: no perspective distortion, no foreshortening, every view the same height. Flat, even, shadowless lighting so the colours and shapes read clearly. Clean silhouettes with space between the three views.
+
+Background: completely plain flat light grey (#d8d8d8), no scenery, no floor, no cast shadows.
+
+No text, no labels, no captions, no numbers, no letters, no logos, no watermark, no signature anywhere in the image.

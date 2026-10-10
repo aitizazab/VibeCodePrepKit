@@ -1,0 +1,13 @@
+Aspect ratio: 16:9 landscape.
+
+Style: grounded adult stylised illustration for the waking world of a narrative game: a muted, desaturated, slightly cold palette, simplified but realistic proportions, clean shapes with soft flat shading, restrained thin line work, quiet and serious, like a literary graphic novel. Near-future city clothing, practical and a little worn; no cybernetics, no neon, no gadgets. Not cute, not a realistic painting, not 3D.
+
+Image 1 is this character's model sheet: keep the same face, hair, build, clothes and colours exactly.
+
+The character: Mags, a Black woman in her mid-fifties, a sleep-lab technician. Close-cropped natural grey hair, reading glasses with thin dark frames hanging on a beaded cord around her neck, tired but amused eyes, a dry half-smile. A long, soft, slightly pilled oatmeal-grey cardigan over pale teal scrubs, comfortable white sneakers, a plain white coffee mug always in one hand.
+
+An expression sheet: three head-and-shoulders portraits of the same character in one row, at exactly the same scale, the same framing and the same slight three-quarter angle, evenly spaced. From left to right: amused (a dry half-smile over the mug), evasive (glancing away, lips pressed), stern (glasses on, a flat hard look over them). Clean, readable faces; the hair, clothes and colours identical in every portrait.
+
+Background: completely plain flat light grey (#d8d8d8), no scenery, no floor, no cast shadows.
+
+No text, no labels, no captions, no numbers, no letters, no logos, no watermark, no signature anywhere in the image.

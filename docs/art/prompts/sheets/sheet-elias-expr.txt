@@ -1,0 +1,13 @@
+Aspect ratio: 16:9 landscape.
+
+Style: grounded adult stylised illustration for the waking world of a narrative game: a muted, desaturated, slightly cold palette, simplified but realistic proportions, clean shapes with soft flat shading, restrained thin line work, quiet and serious, like a literary graphic novel. Near-future city clothing, practical and a little worn; no cybernetics, no neon, no gadgets. Not cute, not a realistic painting, not 3D.
+
+Image 1 is this character's model sheet: keep the same face, hair, build, clothes and colours exactly.
+
+The character: Elias, a man of thirty-four, an emergency-room doctor from money. Sharp, lean and well-kept: short neat dark brown hair, a short well-groomed dark beard, intelligent impatient eyes. Expensive but practical clothes worn without care: a good charcoal wool overcoat, open, with a small coffee stain on one lapel; a white shirt with the sleeves rolled to the forearms and the collar open; a plain dark tie loosened; slim dark grey trousers; good dark brown leather shoes, scuffed. A steel wristwatch.
+
+An expression sheet: four head-and-shoulders portraits of the same character in one row, at exactly the same scale, the same framing and the same slight three-quarter angle, evenly spaced. From left to right: focused (narrowed eyes, reading something), an abrasive smirk, exhausted (heavy eyes, slack face after a long shift), a rare warmth (an unguarded gentle smile). Clean, readable faces; the hair, clothes and colours identical in every portrait.
+
+Background: completely plain flat light grey (#d8d8d8), no scenery, no floor, no cast shadows.
+
+No text, no labels, no captions, no numbers, no letters, no logos, no watermark, no signature anywhere in the image.
