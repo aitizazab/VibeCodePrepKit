@@ -43,7 +43,7 @@ namespace JamKit.VisitingHours
         // ---- The table ----
         public static readonly Color MorningSky = new Color(0.24f, 0.26f, 0.32f), MorningGround = new Color(0.17f, 0.145f, 0.12f);
         /// <summary>The sun: warm, about 35 degrees up, from the camera's left and a little behind it.</summary>
-        public static readonly Color SunColor = new Color(1f, 0.87f, 0.70f);
+        public static readonly Color SunColor = new Color(1f, 0.90f, 0.76f);
         public const float SunIntensity = 2.5f;
         public static readonly Vector3 SunDirection = new Vector3(0.70f, -0.58f, 0.42f);
         /// <summary>Where the window patch is centred (table space): among the mug, the badge and the tablet, so the pieces sit in
@@ -57,7 +57,7 @@ namespace JamKit.VisitingHours
         public const float WindowCookieSize = 1.2f;
         /// <summary>A warm glow of morning on the wallpaper behind the table (a soft spot, no shadows).</summary>
         public static readonly Color WallGlowColor = new Color(1f, 0.80f, 0.58f);
-        public const float WallGlowIntensity = 0.22f;
+        public const float WallGlowIntensity = 0.7f;
 
         public static void Apply(VhStage s)
         {
@@ -265,7 +265,7 @@ namespace JamKit.VisitingHours
                 wallGo.transform.localRotation = Quaternion.LookRotation(new Vector3(0.35f, -0.15f, 1f), Vector3.up);
                 var w = wallGo.AddComponent<Light>();
                 w.type = LightType.Spot;
-                w.spotAngle = 95f;
+                w.spotAngle = 110f;
                 w.innerSpotAngle = 20f;
                 w.range = 3.5f;
                 w.color = WallGlowColor;
@@ -291,7 +291,7 @@ namespace JamKit.VisitingHours
                         float wu = Mathf.InverseLerp(0.15f, 0.85f, u), wv = Mathf.InverseLerp(0.1f, 0.9f, v);
                         float edge = Mathf.Min(Mathf.Min(wu, 1f - wu), Mathf.Min(wv, 1f - wv));
                         float mu = Mathf.Abs(wu - 0.5f), mv = Mathf.Abs(wv - 0.5f);
-                        float mullion = Mathf.Min(Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.026f, 0.046f, mu)), Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.02f, 0.038f, mv)));
+                        float mullion = Mathf.Min(Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.016f, 0.034f, mu)), Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.013f, 0.029f, mv)));
                         value = mullion * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(edge / 0.035f));
                     }
                     byte c = (byte)Mathf.RoundToInt(Mathf.Clamp01(value) * 255f);
