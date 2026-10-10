@@ -465,7 +465,7 @@ namespace JamKit.DreamEscape
             for (int i = 0; i < 5; i++)
             {
                 float z0 = 293f + i * 12f;
-                var flat = Add("Paper house " + (i + 1), LabPieceKind.Sign, DreamLook.Flat, new Vector3(-12.4f, VoidBottom, z0), new Vector3(-12f, r + flatTops[i], z0 + 10.5f), false);
+                var flat = Add("Paper house " + (i + 1), LabPieceKind.Sign, DreamLook.Flat, new Vector3(-12.4f, r - 8f, z0), new Vector3(-12f, r + flatTops[i], z0 + 10.5f), false);
                 flat.collapse = 1;
             }
             Billboard("The dog (roof)", DreamCast.Dog, 4.6f, r4, 338f, 0.75f);

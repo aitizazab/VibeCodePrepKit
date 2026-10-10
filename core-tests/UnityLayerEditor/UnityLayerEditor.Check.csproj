@@ -10,6 +10,8 @@
     <Compile Include="$(ProjectAssets)Sandbox\Editor\**\*.cs" />
     <Compile Include="$(ProjectAssets)Templates\*\Editor\**\*.cs" />
     <Compile Include="$(ProjectAssets)Templates\*\Tests\**\*.cs" />
+    <Compile Include="$(ProjectAssets)Templates\VisitingHours\Dream\Editor\**\*.cs" />
+    <Compile Include="$(ProjectAssets)Templates\VisitingHours\Dream\Tests\**\*.cs" />
     <EditorDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEditor*.dll" />
     <Reference Include="@(EditorDll)" Private="false" />
     <TestDll Include="$(ScriptAssemblies)UnityEngine.TestRunner.dll;$(ScriptAssemblies)UnityEditor.TestRunner.dll;$(ScriptAssemblies)InkEditor.dll" />

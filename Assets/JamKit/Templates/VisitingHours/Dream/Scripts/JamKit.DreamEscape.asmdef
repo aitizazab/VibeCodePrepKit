@@ -1,0 +1,19 @@
+{
+    "name": "JamKit.DreamEscape",
+    "rootNamespace": "JamKit.DreamEscape",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "JamKit.MovementLab",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
