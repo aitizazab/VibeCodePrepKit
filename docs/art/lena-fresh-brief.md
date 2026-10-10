@@ -16,8 +16,8 @@ hands, weight even on both feet. Against Nadia (boxy short jacket, hunched, hair
 is long, loose-haired, straight-backed and calm.
 
 ## Palette (no olive, no navy)
-- warm oatmeal / cream (the long cardigan-coat)
-- dusty heather-plum (the fine high-neck sweater): her one colour
+- dusty heather-plum (the long cardigan-coat): her one colour
+- warm oatmeal / cream (the fine high-neck sweater)
 - warm stone / taupe (the trousers)
 - dark oxblood-brown (the loafers)
 - honey-ash blonde hair; one muted ochre accent: the pencil
@@ -25,9 +25,9 @@ is long, loose-haired, straight-backed and calm.
 All desaturated to sit in the waking world's grey light.
 
 ## Clothes
-- A knee-length oatmeal fine-knit cardigan-coat, worn open, no belt, deep patch pockets, **sleeves
+- A knee-length dusty heather-plum soft wool cardigan-coat, worn open, no belt, deep patch pockets, **sleeves
   down to the wrists**.
-- Under it a dusty heather-plum fine-knit mock-neck sweater, **sleeves down** too.
+- Under it a warm oatmeal-cream fine-knit mock-neck sweater, **sleeves down** too.
 - High-waisted wide-leg stone trousers; flat oxblood leather loafers.
 - A thin gold wedding band; a slim watch with a dark face, **worn face-in** on the inside of her
   left wrist (the habit of someone who checks the time in the dark).
@@ -44,10 +44,10 @@ All desaturated to sit in the waking world's grey light.
 - A closed mouth with the faintest resting half-smile: pleasant, not telling you anything.
 
 ## Hair and the pencil
-Honey-ash blonde, long loose waves, a soft side parting. On her **left** side the hair is tucked
+Honey-ash blonde, long loose waves, a soft side parting. On her **right** side the hair is tucked
 neatly behind the ear, and a short, well-sharpened ochre pencil rests on top of that ear. The tuck
-is deliberate and tidy: curious and ordered. (Left, so the side view, a profile facing left, shows
-it.) In the dream, that ear is tiny and flat against the head.
+is deliberate and tidy: curious and ordered. (The first prompt asked for the left ear, but the model drew
+the side view facing right and put the pencil on her right ear in every view, so the right ear it is. The dream prompts say right.) In the dream, that ear is tiny and flat against the head.
 
 ## Her passion: the night sky
 She keeps an **observing log**: she drives out past the city lights on clear nights, alone, and notes
@@ -69,6 +69,6 @@ on her shoes. No telescope, no star prints, no moon jewellery.
   but too still.
 
 ## The sheets
-1. Waking turnaround: front, side, back, A-pose (style reference: Elias's turnaround).
+1. Waking turnaround: front, side, back, A-pose (style reference: Mags's turnaround, whose sleeves are down; Elias's has rolled sleeves the model could copy). The coat is plum, not oatmeal, so she doesn't echo Mags's long oatmeal cardigan.
 2. Dream billboard (references: the chosen turnaround + Theo's billboard for the style).
 3. Dream expressions: warm, knowing, defensive (reference: the chosen billboard).
