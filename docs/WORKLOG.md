@@ -497,7 +497,7 @@ headings above were corrected from the commit times; the earlier guesses ran up 
 - **Later:** a proper rebinding screen in settings, for controller and keyboard.
 
 ### Lena round 2 (13:40)
-- **Review page (open in Firefox):** `FableAnimationTestsrteview‚6-10-10isiting-hours-lena-round2.html`. It opens
+- **Review page (open in Firefox):** `FableAnimationTests\art\review\2026-10-10\visiting-hours-lena-round2.html`. It opens
   with Nadia's front view beside Lena's, then a pick and an alternate for each sheet. Nano Banana Pro is back; 10 takes,
   0 credits.
 - **Face:** soft and round (full cheeks, rounded chin, button nose, soft brows, wide-set green-grey eyes, freckles), a
@@ -523,8 +523,10 @@ headings above were corrected from the commit times; the earlier guesses ran up 
   - **Sprint is opt-in:** hold Shift; on a controller L3 toggles it (Titanfall style; LB holds).
   - **A recovery boost:** sprinting from a near-stop (a bad landing, hitting something) kicks you back to sprint speed
     in about 0.3â€“0.4 s, with a cooldown, and never above sprint speed.
-- **The art page took focus mid-game.** From now on, review pages are built but not opened while the creator is
-  playing; the path is given instead.
+- **The art page took focus mid-game.** The creator still wants pages opened as soon as they're ready, just without
+  taking focus. `review-page.mjs` now opens them through `art-tools/open-quiet.ps1` (a new Firefox tab, then focus goes
+  back to whatever was in front; tested with the game in front), and Firefox is set to load such tabs in the
+  background.
 
 **Lena** (notes on round 2):
 - **Right:** the fuller, rested, rounder face, and that she now looks different from Nadia.
