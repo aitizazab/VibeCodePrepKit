@@ -1,6 +1,6 @@
 // Grey-box surfaces for the Movement Lab: a flat colour with a world-space grid (1 m lines, a
 // brighter line every 5 m) so speed reads at a glance, a fixed soft light from the face's normal, and
-// URP fog for depth. Opaque and unlit (no shadows needed in a feel-test space).
+// URP fog for depth. Opaque and unlit; it receives the sun's shadow (only the player's body casts one).
 Shader "JamKit/MovementLab/Grid"
 {
     Properties
@@ -22,9 +22,13 @@ Shader "JamKit/MovementLab/Grid"
             #pragma vertex Vert
             #pragma fragment Frag
             #pragma multi_compile_fog
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma target 3.0
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _Color;
@@ -77,6 +81,9 @@ Shader "JamKit/MovementLab/Grid"
                 float3 L = normalize(float3(0.35, 0.85, 0.4));
                 half light = 0.62 + 0.38 * saturate(dot(n, L)) + 0.08 * n.y;
                 col *= lerp(light, 1.0, _Glow);
+                // The player's shadow (the sun's shadow map; 1 where lit).
+                half shadow = MainLightRealtimeShadow(TransformWorldToShadowCoord(i.positionWS));
+                col *= lerp(0.62h, 1.0h, lerp(shadow, 1.0h, _Glow));
                 col = MixFog(col, i.fog);
                 return half4(col, 1);
             }

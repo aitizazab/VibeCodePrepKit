@@ -14,6 +14,8 @@ namespace JamKit.Movement
         public const int CurrentDefaults = 1;
 
         public MoveDef def = new MoveDef();
+        [Tooltip("The first-person body's feel (MovementBody): the pump, the tiers, the sway, the landing lag, the contact cues. Every number commented in BodyFeelDef.")]
+        public BodyFeelDef body = new BodyFeelDef();
         [Tooltip("Which round of changed defaults this asset has taken (the builders upgrade it once; edit freely after).")]
         public int defaultsVersion;
 

@@ -28,6 +28,11 @@ namespace JamKit.MovementLab.EditorTools
         public const string PresetPath = Root + "/MovementLabGameConfig.asset";
         public const string TuningPath = Root + "/Data/MovementLabTuning.asset";
         const string Mats = Root + "/Materials";
+        /// <summary>Nadia, the first-person body (Visiting Hours' character; the capsules stay when she isn't in the project).</summary>
+        public const string NadiaDir = "Assets/JamKit/Templates/VisitingHours/Models/Nadia";
+        public const string NadiaPath = NadiaDir + "/Nadia.fbx";
+        public const string NadiaMaterialPath = Mats + "/Nadia_Body.mat";
+        const string WakingShader = "JamKit/VisitingHours/Waking";
 
         static readonly Color Sky = new Color(0.68f, 0.75f, 0.86f);
 
@@ -218,7 +223,9 @@ namespace JamKit.MovementLab.EditorTools
             sun.type = LightType.Directional;
             sun.color = new Color(1f, 0.96f, 0.9f);
             sun.intensity = 1.1f;
-            sun.shadows = LightShadows.None;
+            // Soft shadows: only the player's body casts one (the grid receives it), so her shadow grounds her.
+            sun.shadows = LightShadows.Soft;
+            sun.shadowStrength = 0.6f;
             sun.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
 
             // The body (yaw) > head (pitch, eye height, interpolation) > rig (bob, roll, dip) > camera.
@@ -259,6 +266,11 @@ namespace JamKit.MovementLab.EditorTools
             arms.skinMaterial = m.skin;
             arms.legMaterial = m.legs;
             arms.shoeMaterial = m.shoes;
+            arms.feelCamera = feel;
+            // Nadia's model as the body (style-E waking material, lit for the grey-box lab).
+            var nadiaMat = MovementBodySetup.EnsureMaterial(NadiaMaterialPath, WakingShader, MovementBodySetup.FindColorTexture(NadiaDir),
+                new Color(0.36f, 0.38f, 0.42f), new Color(0.24f, 0.24f, 0.26f), 0f);
+            MovementBodySetup.Wire(arms, playerGo.transform, NadiaPath, nadiaMat, "Nadia (body)");
             var lines = cam.gameObject.AddComponent<SpeedLines>();
             lines.body = body;
             lines.material = m.speedLines;

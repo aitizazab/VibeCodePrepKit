@@ -59,7 +59,7 @@ namespace JamKit.Movement
         bool _groundSinceWall = true;
 
         // Mantle
-        Vector3 _mantleStart, _mantleUp, _mantleEnd;
+        Vector3 _mantleStart, _mantleUp, _mantleEnd, _mantleLip, _mantleNormal;
         float _mantleT, _mantleDur, _mantleExit, _mantleStuck;
         // Horizontal speed of the last moments before collisions clipped it: running into a ledge face clips
         // the forward speed a step before the mantle starts, and the mantle should keep the run's momentum.
@@ -102,6 +102,9 @@ namespace JamKit.Movement
         /// <summary>The slide boost cap right now (lower after a lot of sliding).</summary>
         public float SlideBoostCap => Math.Max(def.sprintSpeed, def.slideBoostMaxSpeed - def.slideCapDecay * _slideFatigue);
         public float MantleProgress => _mode == MoveMode.Mantle && _mantleDur > 0f ? _mantleT / _mantleDur : 0f;
+        /// <summary>The middle of the ledge's lip being mantled (where the hands plant), and the wall's normal (towards the player).</summary>
+        public Vector3 MantleLip => _mantleLip;
+        public Vector3 MantleNormal => _mantleNormal;
         /// <summary>Where the eye should be above the feet (the camera blends to it).</summary>
         public float EyeHeightTarget => Crouched ? def.slideEyeHeight : def.eyeHeight;
         /// <summary>The events of the last step.</summary>
@@ -587,6 +590,8 @@ namespace JamKit.Movement
             _mantleStart = _pos;
             _mantleUp = new Vector3(_pos.X, top.point.Y + 0.05f, _pos.Z);
             _mantleEnd = end;
+            _mantleLip = new Vector3(face.point.X, top.point.Y, face.point.Z);
+            _mantleNormal = n;
             _mantleT = 0f;
             _mantleStuck = 0f;
             _mantleDur = def.mantleBaseTime + def.mantlePerMetre * rise;

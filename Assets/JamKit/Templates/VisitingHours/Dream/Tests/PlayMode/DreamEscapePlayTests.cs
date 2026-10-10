@@ -1,3 +1,4 @@
+using JamKit.Tests.Play;
 using System.Collections;
 using JamKit.Presenting;
 using JamKit.Shell;
@@ -174,6 +175,21 @@ namespace JamKit.DreamEscape.Tests
             TestContext.Out.WriteLine($"Walt faces {walt.Yaw:0} degrees, the player is at {want:0} ({off:0} off)");
             Assert.That(off, Is.LessThan(25f), "Walt turned to watch Nadia");
             Game.player.InputEnabled = true;
+        }
+    
+        [UnityTest]
+        public IEnumerator NadiasBodyCarriesTheMovesInTheDream()
+        {
+            yield return StartEscape();
+            DebugMenu.TimeScale = 2f;
+            Game.JumpToChapter(DreamEscapeCourse.ChapterStart);
+            yield return Frames(2);
+            var report = new BodyTestUtil.Report();
+            Game.SetAutopilot(true);
+            yield return BodyTestUtil.Watch(Game.player, () => Game.Finishes > 0, 70f, report);
+            Game.SetAutopilot(false);
+            DebugMenu.TimeScale = 1f;
+            BodyTestUtil.AssertFollowed(report, true, true);
         }
     }
 }

@@ -1,3 +1,4 @@
+using JamKit.EditorTools;
 using System.Collections.Generic;
 using System.IO;
 using JamKit.Movement;
@@ -152,6 +153,84 @@ namespace JamKit.MovementLab.Tests
                 Assert.That(crouch.bindings.Count, Is.GreaterThanOrEqualTo(3), "Ctrl, C and the pad's B");
             }
             finally { Object.DestroyImmediate(controls); }
+        }
+    
+        // ---------- Nadia's body ----------
+
+        [Test]
+        public void NadiaIsTheFirstPersonBody()
+        {
+            var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(MovementLabBuilder.ScenePath, UnityEditor.SceneManagement.OpenSceneMode.Additive);
+            try
+            {
+                MovementController body = null;
+                Light sun = null;
+                foreach (var go in scene.GetRootGameObjects())
+                {
+                    if (body == null) body = go.GetComponentInChildren<MovementController>(true);
+                    foreach (var l in go.GetComponentsInChildren<Light>(true)) if (l.type == LightType.Directional) sun = l;
+                }
+                Assert.That(body, Is.Not.Null);
+                var mb = body.GetComponentInChildren<MovementBody>(true);
+                Assert.That(mb, Is.Not.Null);
+                Assert.That(mb.feelCamera, Is.Not.Null, "the body takes the landing after the camera");
+                var rig = mb.rig as MixamoBodyRig;
+                Assert.That(rig, Is.Not.Null, "the builder wires Nadia's model as the body");
+                Assert.That(rig.transform.IsChildOf(body.transform), Is.True, "under the player");
+                Assert.That(rig.GetComponentsInChildren<Collider>(true), Is.Empty, "no colliders: the movement is unchanged");
+                foreach (var r in rig.GetComponentsInChildren<Renderer>(true))
+                {
+                    Assert.That(r.gameObject.layer, Is.EqualTo(2), "Ignore Raycast: the wall and ledge casts skip her");
+                    foreach (var m in r.sharedMaterials)
+                    {
+                        Assert.That(m, Is.Not.Null);
+                        Assert.That(m.shader.name, Is.EqualTo("JamKit/VisitingHours/Waking"), "the style-E waking material");
+                        Assert.That(m.GetTexture("_BaseMap"), Is.Not.Null, "her colour texture");
+                    }
+                }
+                Assert.That(sun, Is.Not.Null);
+                Assert.That(sun.shadows, Is.Not.EqualTo(LightShadows.None), "her shadow grounds her");
+                var copy = Object.Instantiate(rig.gameObject);
+                try
+                {
+                    var bound = copy.GetComponent<MixamoBodyRig>();
+                    Assert.That(bound.Bind(), Is.True, "Mixamo bones found (arms, legs, head)");
+                    Assert.That(bound.HandPosition(0), Is.Not.EqualTo(bound.HandPosition(1)));
+                }
+                finally { Object.DestroyImmediate(copy); }
+            }
+            finally
+            {
+                UnityEditor.SceneManagement.EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Test]
+        public void NadiaImportsAtHerHeight()
+        {
+            var imp = AssetImporter.GetAtPath(MovementLabBuilder.NadiaPath) as ModelImporter;
+            Assert.That(imp, Is.Not.Null, MovementLabBuilder.NadiaPath);
+            Assert.That(imp.globalScale, Is.EqualTo(1.69f).Within(0.01f), "Tripo exports her 0.98 m tall: x1.69 is about 1.65 m");
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(MovementLabBuilder.NadiaPath);
+            float h = 0f;
+            foreach (var r in model.GetComponentsInChildren<Renderer>(true)) h = Mathf.Max(h, r.bounds.size.y);
+            TestContext.WriteLine("Nadia's height as imported: " + h.ToString("0.00") + " m");
+        }
+
+        [Test]
+        public void WithoutAModelThePlaceholderStays()
+        {
+            var go = new GameObject("body test");
+            try
+            {
+                var mb = go.AddComponent<MovementBody>();
+                var mat = new Material(Shader.Find("Hidden/InternalErrorShader"));
+                Assert.That(MovementBodySetup.Wire(mb, go.transform, "Assets/Nowhere/NoModel.fbx", mat), Is.Null);
+                Assert.That(mb.rig, Is.Null);
+                Assert.That(mb.UsingRig, Is.False, "the capsules draw");
+                Object.DestroyImmediate(mat);
+            }
+            finally { Object.DestroyImmediate(go); }
         }
     }
 }

@@ -2,7 +2,8 @@
 // A flat pastel colour lit in three soft steps by a low golden-hour sun, a cool lilac shade, a crayon grain,
 // and a wobbly doodle outline drawn along the edges of each box (from the object-space position of Unity's
 // cube or quad, so a scaled box keeps 5 cm lines). Below the street the colour sinks into the lilac void.
-// Unlit (no URP lights or shadows needed): opaque, URP fog. _Shape 1 is the gable prism (ridge and gable lines).
+// Unlit (its own sun), opaque, URP fog; it receives the sun's shadow map, so Nadia (the only thing that casts one)
+// leaves a lilac shadow on the street. _Shape 1 is the gable prism (ridge and gable lines).
 Shader "JamKit/Dream/Pastel"
 {
     Properties
@@ -29,9 +30,13 @@ Shader "JamKit/Dream/Pastel"
             #pragma vertex Vert
             #pragma fragment Frag
             #pragma multi_compile_fog
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma target 3.0
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _Color;
@@ -116,6 +121,9 @@ Shader "JamKit/Dream/Pastel"
                 half3 shade = baseCol * _ShadeColor.rgb;
                 half3 col = lerp(shade, baseCol * half3(1.04, 1.0, 0.94), lq);
                 col += half3(0.05, 0.035, 0.0) * saturate(n.y);                  // warm sky on top faces
+                // Nadia's shadow: towards the lilac shade where the sun's shadow map says she blocks it.
+                half shadow = MainLightRealtimeShadow(TransformWorldToShadowCoord(i.positionWS));
+                col = lerp(shade * 0.92, col, lerp(shadow, 1.0h, _Emission));
 
                 float grain = Noise(i.positionWS * float3(5.1, 9.3, 5.7) + float3(i.positionWS.y * 3.0, 0, 0));
                 float streak = Noise(float3((i.positionWS.x + i.positionWS.z) * 2.3, i.positionWS.y * 14.0, 0.5));

@@ -1,21 +1,31 @@
+using JamKit.Shell;
 using UnityEngine;
 using UnityEngine.Rendering;
+using NVec3 = System.Numerics.Vector3;
 
 namespace JamKit.Movement
 {
     /// <summary>
-    /// PLACEHOLDER first-person body, to be replaced by the art style's arms and legs: smooth capsule
-    /// arms with round hands, and legs that show while sliding, in a soft palette. Animated by code
-    /// from the movement state (docs/RESEARCH-MOVEMENT.md 8.1): the arms pump with the stride while
-    /// running, lift on a jump and sweep back on a double jump, the hand on the wall's side reaches
-    /// out and plants on the wall the moment a wallrun starts (the cue players time wall kicks by),
-    /// both hands drop and spread on a slide with the legs out in front, and plant forward on a
-    /// mantle. Put it on the camera; it builds its pieces at start (no colliders, no shadows).
+    /// The first-person body and its feel (docs/MOVEMENT.md "The body", RESEARCH-MOVEMENT 8.1 and 8.4).
+    /// Each frame the core <see cref="BodyFeel"/> turns the movement (mode, speed, events, the stride
+    /// phase the footsteps use, look turns, the camera's dip) into a pose: where the hands go (the pump in
+    /// step with the footfalls, the jump lift, the double jump's sweep, the sprint kick's shove, the wall
+    /// hand planted where the wallrun is granted and dragged along, the wall kick's push, the slide's
+    /// balance pose and feet in view, the hands on a ledge), the legs, the torso's lean, the landing a
+    /// moment after the camera. A real body draws it through <see cref="rig"/> (a
+    /// <see cref="MovementBodyRig"/>, e.g. <see cref="MixamoBodyRig"/> on a template's character); without
+    /// one, PLACEHOLDER capsule arms (and legs while sliding) do. Numbers: the tuning asset's body section.
+    /// Never moves the camera: the camera is the source and the body follows it. F4 (editor and
+    /// development builds) shows the body from an orbit camera. Put it on the camera.
     /// </summary>
     [DefaultExecutionOrder(60)]
     public sealed class MovementBody : MonoBehaviour
     {
         public MovementController body;
+        [Tooltip("A real body (a MovementBodyRig on the character model). Empty or not ready: the placeholder capsules.")]
+        public MovementBodyRig rig;
+        [Tooltip("The camera feel (for the landing dip the body follows a moment later). Found in the parents when empty.")]
+        public MovementCamera feelCamera;
         [Tooltip("Materials for the placeholder (made at runtime from the colours below when empty).")]
         public Material sleeveMaterial, skinMaterial, legMaterial, shoeMaterial;
         public Color sleeveColor = new Color(0.62f, 0.58f, 0.84f);
@@ -24,27 +34,40 @@ namespace JamKit.Movement
         public Color shoeColor = new Color(0.95f, 0.92f, 0.84f);
         public bool showArms = true;
         public bool showLegsWhenSliding = true;
+        [Tooltip("F4 shows the body from an orbit camera (editor and development builds).")]
+        public bool debugOrbit = true;
 
-        [Header("Proportions (metres, camera space)")]
-        public float shoulderWidth = 0.24f;
-        public float shoulderDrop = 0.30f;
+        [Header("Placeholder proportions (metres, camera space)")]
         public float upperArm = 0.27f;
         public float forearm = 0.27f;
         public float armThickness = 0.085f;
 
         static Mesh _capsule, _sphere;
+        static readonly BodyFeelDef DefaultFeel = new BodyFeelDef();
 
         Transform _root, _legRoot;
         readonly Transform[] _upper = new Transform[2], _fore = new Transform[2], _hand = new Transform[2];
         readonly Transform[] _thigh = new Transform[2], _shin = new Transform[2], _shoe = new Transform[2];
-        readonly Vector3[] _handPos = new Vector3[2], _handVel = new Vector3[2];
-        float _jumpLift, _sweep, _legs, _plant;
-        bool _built;
+        bool _built, _haveLook;
+        float _lastYaw, _lastPitch;
         Camera _cam;
+        BodyFeel _feel;
+        MovementDebugOrbit _orbit;
+        bool _handOnWall;
 
         /// <summary>The hand on the wall's side is on the wall (tests and the HUD read it).</summary>
         public bool HandOnWall => _handOnWall;
-        bool _handOnWall;
+        /// <summary>This frame's pose (null before the first frame).</summary>
+        public BodyFeelPose Pose => _feel != null ? _feel.pose : null;
+        public BodyFeel Feel => _feel;
+        /// <summary>True while the real body draws (the capsules are hidden).</summary>
+        public bool UsingRig => rig != null && rig.isActiveAndEnabled && rig.Ready;
+        /// <summary>Where the pose puts a hand (world; 0 left, 1 right).</summary>
+        public Vector3 HandTarget(int side) => _feel != null ? transform.TransformPoint(U(_feel.pose.hand[side])) : transform.position;
+        public bool ThirdPerson => _orbit != null && _orbit.Active;
+
+        static Vector3 U(NVec3 v) => new Vector3(v.X, v.Y, v.Z);
+        static NVec3 N(Vector3 v) => new NVec3(v.x, v.y, v.z);
 
         void Start() => Build();
 
@@ -52,6 +75,8 @@ namespace JamKit.Movement
         {
             if (_built) return;
             _built = true;
+            _feel = new BodyFeel(DefaultFeel);
+            if (feelCamera == null) feelCamera = GetComponentInParent<MovementCamera>();
             if (_capsule == null || _sphere == null)
             {
                 var c = GameObject.CreatePrimitive(PrimitiveType.Capsule);
@@ -66,17 +91,16 @@ namespace JamKit.Movement
             if (legMaterial == null) legMaterial = MakeMaterial(legColor);
             if (shoeMaterial == null) shoeMaterial = MakeMaterial(shoeColor);
 
-            _root = new GameObject("PLACEHOLDER Arms (replace with the art style's)").transform;
+            _root = new GameObject("PLACEHOLDER Arms (when no body rig is wired)").transform;
             _root.SetParent(transform, false);
             for (int i = 0; i < 2; i++)
             {
                 _upper[i] = Piece(_root, "Upper arm", _capsule, sleeveMaterial);
                 _fore[i] = Piece(_root, "Forearm", _capsule, sleeveMaterial);
                 _hand[i] = Piece(_root, "Hand", _sphere, skinMaterial);
-                _handPos[i] = Rest(i == 0 ? -1f : 1f);
             }
             var bodyT = body != null ? body.transform : transform.root;
-            _legRoot = new GameObject("PLACEHOLDER Legs (replace with the art style's)").transform;
+            _legRoot = new GameObject("PLACEHOLDER Legs (when no body rig is wired)").transform;
             _legRoot.SetParent(bodyT, false);
             for (int i = 0; i < 2; i++)
             {
@@ -85,6 +109,12 @@ namespace JamKit.Movement
                 _shoe[i] = Piece(_legRoot, "Shoe", _sphere, shoeMaterial);
             }
             _legRoot.gameObject.SetActive(false);
+            if (debugOrbit && (Application.isEditor || Debug.isDebugBuild))
+            {
+                _orbit = gameObject.AddComponent<MovementDebugOrbit>();
+                _orbit.body = body;
+                _orbit.firstPerson = GetComponent<Camera>();
+            }
         }
 
         static Material MakeMaterial(Color c)
@@ -113,132 +143,161 @@ namespace JamKit.Movement
             return go.transform;
         }
 
-        Vector3 Shoulder(float side) => new Vector3(side * shoulderWidth, -shoulderDrop, 0.02f);
-        Vector3 Rest(float side) => new Vector3(side * 0.21f, -0.36f, 0.36f);
-
         void LateUpdate()
         {
             if (!_built || body == null || body.Sim == null) return;
+            var def = body.tuning != null && body.tuning.body != null ? body.tuning.body : DefaultFeel;
+            _feel.def = def;
+            float dt = Time.deltaTime;
+            var sim = body.Sim;
+            var mode = sim.Mode;
+            var s = GameRoot.Exists ? GameRoot.Settings : null;
+
+            // Look turns this frame (the arms trail them).
+            float dy = 0f, dp = 0f;
+            if (_haveLook)
+            {
+                dy = Mathf.DeltaAngle(_lastYaw, body.Yaw);
+                dp = Mathf.DeltaAngle(_lastPitch, body.Pitch);
+            }
+            _haveLook = true;
+            _lastYaw = body.Yaw;
+            _lastPitch = body.Pitch;
+
+            var input = new BodyFeelInput
+            {
+                dt = dt,
+                mode = mode,
+                speed = sim.HorizontalSpeed,
+                sprintSpeed = body.Def.sprintSpeed,
+                velocityBody = N(body.transform.InverseTransformDirection(body.Velocity)),
+                lookYaw = dy,
+                lookPitch = dp,
+                events = body.FrameEvents,
+                stridePhase = body.StridePhase,
+                wallSide = sim.WallSide,
+                motion = s != null ? s.motionEffects : 1f,
+                cameraDip = feelCamera != null ? feelCamera.Dip : 0f,
+            };
+
+            // The wall hand's spot: the wall point beside the shoulder, a little ahead along the run.
+            if (sim.WallSide != 0)
+            {
+                Vector3 n = new Vector3(sim.WallNormal.X, 0f, sim.WallNormal.Z).normalized;
+                if (Physics.Raycast(transform.position, -n, out var hit, 1.5f, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                {
+                    Vector3 t = new Vector3(sim.WallTangent.X, 0f, sim.WallTangent.Z);
+                    if (Vector3.Dot(t, body.Velocity) < 0f) t = -t;
+                    t = t.sqrMagnitude > 1e-6f ? t.normalized : body.transform.forward;
+                    Vector3 spot = hit.point + n * 0.03f + t * def.wallHandAhead;
+                    Vector3 local = transform.InverseTransformPoint(spot);
+                    local.y = def.wallHandHeight;
+                    input.hasWallTarget = true;
+                    input.wallHandTarget = N(local);
+                }
+            }
+            // The ledge's lip: both hands on it, either side of the middle.
+            if (mode == MoveMode.Mantle)
+            {
+                Vector3 lip = new Vector3(sim.MantleLip.X, sim.MantleLip.Y, sim.MantleLip.Z);
+                Vector3 n = new Vector3(sim.MantleNormal.X, 0f, sim.MantleNormal.Z);
+                if (n.sqrMagnitude > 1e-6f)
+                {
+                    n.Normalize();
+                    Vector3 along = Vector3.Cross(Vector3.up, n);
+                    Vector3 a = transform.InverseTransformPoint(lip - n * 0.06f + along * def.mantleHandSpread + Vector3.up * 0.02f);
+                    Vector3 b = transform.InverseTransformPoint(lip - n * 0.06f - along * def.mantleHandSpread + Vector3.up * 0.02f);
+                    input.hasLedge = true;
+                    input.ledgeLeft = N(a.x < b.x ? a : b);
+                    input.ledgeRight = N(a.x < b.x ? b : a);
+                }
+            }
+
+            var pose = _feel.Tick(input);
+            int wallIdx = sim.WallSide > 0 ? 1 : 0;
+            _handOnWall = mode == MoveMode.Wallrun && sim.WallSide != 0 && pose.contact[wallIdx];
+
+            if (UsingRig)
+            {
+                if (_root.gameObject.activeSelf) _root.gameObject.SetActive(false);
+                if (_legRoot.gameObject.activeSelf) _legRoot.gameObject.SetActive(false);
+                var head = body.head != null ? body.head : transform;
+                rig.Apply(pose, new MovementBodyFrame
+                {
+                    camera = transform,
+                    bodyRotation = Quaternion.Euler(0f, body.Yaw, 0f),
+                    feet = body.RenderPosition,
+                    eyes = head.position,
+                    pitch = body.Pitch,
+                    thirdPerson = ThirdPerson,
+                });
+                return;
+            }
+            PosePlaceholder(pose);
+        }
+
+        // ---------- The placeholder ----------
+
+        void PosePlaceholder(BodyFeelPose pose)
+        {
             _root.gameObject.SetActive(showArms);
             // Keep the arms the same size on screen when the speed FOV widens (no overlay camera needed).
             if (_cam == null) _cam = GetComponent<Camera>();
             if (_cam != null)
             {
-                float baseFov = JamKit.Shell.GameRoot.Exists ? JamKit.Shell.GameRoot.Settings.fieldOfView : 68f;
+                float baseFov = GameRoot.Exists ? GameRoot.Settings.fieldOfView : 68f;
                 float k = Mathf.Tan(_cam.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Tan(baseFov * 0.5f * Mathf.Deg2Rad);
                 _root.localScale = Vector3.one * Mathf.Clamp(k, 0.8f, 1.4f);
             }
-            float dt = Time.deltaTime;
-            var sim = body.Sim;
-            var mode = sim.Mode;
-            var ev = body.FrameEvents;
-            float speed = sim.HorizontalSpeed;
-            float run = Mathf.Clamp01(speed / Mathf.Max(1f, body.Def.sprintSpeed));
-            float ph = body.StridePhase * Mathf.PI;
-
-            if (ev.jumped || ev.wallJumped) _jumpLift = 1f;
-            if (ev.doubleJumped) _sweep = 1f;
-            _jumpLift = Mathf.MoveTowards(_jumpLift, 0f, dt * 3f);
-            _sweep = Mathf.MoveTowards(_sweep, 0f, dt / 0.15f * 0.5f);
-            _plant = Mathf.MoveTowards(_plant, mode == MoveMode.Mantle ? 1f : 0f, dt * 8f);
-
-            // The wall: how far it is to the side, for the hand to land on it (not in it).
-            int wallSide = sim.WallSide;
-            float wallReach = 0.55f;
-            _handOnWall = false;
-            if (wallSide != 0)
-            {
-                Vector3 n = new Vector3(sim.WallNormal.X, 0f, sim.WallNormal.Z);
-                if (Physics.Raycast(transform.position, -n, out var hit, 1.5f, ~(1 << 2), QueryTriggerInteraction.Ignore))
-                    wallReach = Mathf.Clamp(hit.distance - 0.05f, 0.3f, 0.8f);
-            }
-
+            var def = _feel.def;
             for (int i = 0; i < 2; i++)
             {
                 float side = i == 0 ? -1f : 1f;
-                Vector3 target = Rest(side);
-                float stiffness = 18f;
-                switch (mode)
+                Vector3 s = new Vector3(side * def.shoulderWidth, -def.shoulderDrop, 0.02f);
+                Vector3 h = U(pose.hand[i]);
+                Vector3 to = h - s;
+                float a = upperArm, b = forearm;
+                float d = Mathf.Clamp(to.magnitude, 0.05f, a + b - 0.001f);
+                Vector3 dir = to.normalized;
+                h = s + dir * d;
+                Vector3 pole = U(pose.elbowPole[i]);
+                pole = (pole - dir * Vector3.Dot(pole, dir)).normalized;
+                float along = (a * a - b * b + d * d) / (2f * d);
+                float up = Mathf.Sqrt(Mathf.Max(0f, a * a - along * along));
+                Vector3 e = s + dir * along + pole * up;
+                Bone(_upper[i], s, e, armThickness);
+                Bone(_fore[i], e, h, armThickness * 0.88f);
+                var hand = _hand[i];
+                hand.localPosition = h + (h - e).normalized * 0.05f;
+                if (pose.contact[i])
                 {
-                    case MoveMode.Grounded:
-                    case MoveMode.Sprint:
-                    {
-                        float swing = Mathf.Sin(ph) * side;
-                        target += new Vector3(-side * 0.02f * run, 0.035f * Mathf.Max(0f, swing) * run, 0.11f * swing * run);
-                        break;
-                    }
-                    case MoveMode.Air:
-                        target = new Vector3(side * 0.29f, -0.27f, 0.33f);
-                        break;
-                    case MoveMode.Wallrun:
-                        if ((int)side == wallSide)
-                        {
-                            // Reach out and plant the palm on the wall, at shoulder height, a little ahead.
-                            target = new Vector3(side * wallReach, -0.06f, 0.34f);
-                            stiffness = 40f;
-                            _handOnWall = true;
-                        }
-                        else
-                        {
-                            float swing = Mathf.Sin(ph) * side;
-                            target = new Vector3(side * 0.25f, -0.33f, 0.34f + 0.1f * swing);
-                        }
-                        break;
-                    case MoveMode.Slide:
-                        target = new Vector3(side * 0.36f, -0.38f, 0.26f);
-                        break;
-                    case MoveMode.Mantle:
-                        target = new Vector3(side * 0.24f, -0.22f + 0.1f * (1f - _plant), 0.48f);
-                        stiffness = 30f;
-                        break;
+                    hand.localRotation = Quaternion.LookRotation(Vector3.forward, new Vector3(-side, 0.3f, 0f));
+                    hand.localScale = new Vector3(0.11f, 0.035f, 0.13f); // a flat palm against the wall
                 }
-                target += new Vector3(0f, 0.05f * _jumpLift, 0f);
-                target = Vector3.Lerp(target, new Vector3(side * 0.33f, -0.44f, 0.12f), _sweep);
-                // Arms feel a touch heavy on landing: they take the dip a moment later.
-                if (ev.landed && !ev.slideStarted) _handVel[i] += Vector3.down * Mathf.Clamp01((ev.landImpact - 4f) / 14f) * 1.2f;
-                // The sprint kick: both arms pump back hard and spring forward again (a push-off).
-                if (ev.sprintKick) _handVel[i] += new Vector3(0f, -0.3f, -1.8f);
-
-                // A critically damped spring toward the target.
-                if (dt > 0f)
+                else
                 {
-                    float w = stiffness;
-                    _handVel[i] += (w * w * (target - _handPos[i]) - 2f * w * _handVel[i]) * dt;
-                    _handPos[i] += _handVel[i] * dt;
+                    hand.localRotation = Quaternion.LookRotation(h - e, Vector3.up);
+                    hand.localScale = new Vector3(0.085f, 0.07f, 0.11f);
                 }
-                PoseArm(i, side, _handPos[i], mode == MoveMode.Wallrun && (int)side == wallSide);
             }
 
-            PoseLegs(mode, dt);
-        }
-
-        void PoseArm(int i, float side, Vector3 handTarget, bool palmOut)
-        {
-            Vector3 s = Shoulder(side);
-            Vector3 to = handTarget - s;
-            float a = upperArm, b = forearm;
-            float d = Mathf.Clamp(to.magnitude, 0.05f, a + b - 0.001f);
-            Vector3 dir = to.normalized;
-            Vector3 h = s + dir * d;
-            // Elbow out and down.
-            Vector3 pole = new Vector3(side, -1f, -0.4f).normalized;
-            pole = (pole - dir * Vector3.Dot(pole, dir)).normalized;
-            float along = (a * a - b * b + d * d) / (2f * d);
-            float up = Mathf.Sqrt(Mathf.Max(0f, a * a - along * along));
-            Vector3 e = s + dir * along + pole * up;
-            Bone(_upper[i], s, e, armThickness);
-            Bone(_fore[i], e, h, armThickness * 0.88f);
-            var hand = _hand[i];
-            hand.localPosition = h + (h - e).normalized * 0.05f;
-            if (palmOut)
+            // Legs: only for the slide (and the double jump's tuck), the feet rising into the bottom of the screen.
+            bool shown = showLegsWhenSliding && pose.legs > 0.01f;
+            if (_legRoot.gameObject.activeSelf != shown) _legRoot.gameObject.SetActive(shown);
+            if (!shown) return;
+            var bt = body.transform;
+            _legRoot.localPosition = bt.InverseTransformVector(body.RenderPosition - bt.position);
+            for (int i = 0; i < 2; i++)
             {
-                hand.localRotation = Quaternion.LookRotation(Vector3.forward, new Vector3(-side, 0.3f, 0f));
-                hand.localScale = new Vector3(0.11f, 0.035f, 0.13f); // a flat palm against the wall
-            }
-            else
-            {
-                hand.localRotation = Quaternion.LookRotation(h - e, Vector3.up);
-                hand.localScale = new Vector3(0.085f, 0.07f, 0.11f);
+                float side = i == 0 ? -1f : 1f;
+                Vector3 hip = new Vector3(side * 0.13f, 0.42f, -0.05f);
+                Vector3 knee = U(_feel.SlideKnee(i));
+                Vector3 foot = U(pose.foot[i]);
+                Bone(_thigh[i], hip, knee, 0.15f);
+                Bone(_shin[i], knee, foot, 0.12f);
+                _shoe[i].localPosition = foot + new Vector3(0f, 0.02f, 0.06f);
+                _shoe[i].localRotation = Quaternion.Euler(-25f, 0f, 0f);
+                _shoe[i].localScale = new Vector3(0.12f, 0.1f, 0.24f);
             }
         }
 
@@ -250,31 +309,66 @@ namespace JamKit.Movement
             t.localRotation = len > 1e-4f ? Quaternion.FromToRotation(Vector3.up, d / len) : Quaternion.identity;
             t.localScale = new Vector3(thickness, Mathf.Max(thickness * 0.5f, len * 0.5f + thickness * 0.25f), thickness);
         }
+    }
 
-        void PoseLegs(MoveMode mode, float dt)
+    /// <summary>
+    /// F4 (editor and development builds): shows the first-person body from outside, on a camera orbiting
+    /// the player (Q / E turn it, the mouse wheel moves it in and out), so its poses can be judged. The
+    /// first-person camera keeps running underneath (the feel is unchanged).
+    /// </summary>
+    public sealed class MovementDebugOrbit : MonoBehaviour
+    {
+        public MovementController body;
+        public Camera firstPerson;
+        public float distance = 2.6f, height = 1.1f, yaw = 150f;
+
+        Camera _cam;
+        bool _active;
+
+        public bool Active => _active;
+
+        public void SetActive(bool on)
         {
-            bool want = showLegsWhenSliding && mode == MoveMode.Slide;
-            _legs = Mathf.MoveTowards(_legs, want ? 1f : 0f, dt * 7f);
-            bool shown = _legs > 0.01f;
-            if (_legRoot.gameObject.activeSelf != shown) _legRoot.gameObject.SetActive(shown);
-            if (!shown) return;
-            // Follow the interpolated body (the body transform itself is at the last fixed step).
-            var bt = body.transform;
-            _legRoot.localPosition = bt.InverseTransformVector(body.RenderPosition - bt.position);
-            // In the body's frame (yaw only): hips under the camera, legs out in front, feet rising into view.
-            float k = _legs;
-            for (int i = 0; i < 2; i++)
+            _active = on;
+            if (on && _cam == null)
             {
-                float side = i == 0 ? -1f : 1f;
-                Vector3 hip = new Vector3(side * 0.13f, 0.42f, -0.05f);
-                Vector3 knee = new Vector3(side * 0.16f, Mathf.Lerp(0.2f, 0.48f, k), Mathf.Lerp(0.1f, 0.5f, k) + (i == 0 ? 0.08f : 0f));
-                Vector3 foot = new Vector3(side * 0.19f, Mathf.Lerp(0.1f, 0.3f, k), Mathf.Lerp(0.2f, 0.95f, k) + (i == 0 ? 0.06f : -0.05f));
-                Bone(_thigh[i], hip, knee, 0.15f);
-                Bone(_shin[i], knee, foot, 0.12f);
-                _shoe[i].localPosition = foot + new Vector3(0f, 0.02f, 0.06f);
-                _shoe[i].localRotation = Quaternion.Euler(-25f, 0f, 0f);
-                _shoe[i].localScale = new Vector3(0.12f, 0.1f, 0.24f);
+                var go = new GameObject("Debug orbit camera (F4)");
+                _cam = go.AddComponent<Camera>();
+                if (firstPerson != null)
+                {
+                    _cam.CopyFrom(firstPerson);
+                    _cam.depth = firstPerson.depth + 1f;
+                }
+                _cam.fieldOfView = 55f;
+                _cam.nearClipPlane = 0.05f;
             }
+            if (_cam != null) _cam.enabled = on;
+        }
+
+        void Update()
+        {
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb == null) return;
+            if (kb.f4Key.wasPressedThisFrame) SetActive(!_active);
+            if (!_active) return;
+            float dt = Time.unscaledDeltaTime;
+            if (kb.qKey.isPressed) yaw -= 90f * dt;
+            if (kb.eKey.isPressed) yaw += 90f * dt;
+            var mouse = UnityEngine.InputSystem.Mouse.current;
+            if (mouse != null) distance = Mathf.Clamp(distance - mouse.scroll.ReadValue().y * 0.002f, 1f, 8f);
+        }
+
+        void LateUpdate()
+        {
+            if (!_active || _cam == null || body == null) return;
+            Vector3 centre = body.RenderPosition + Vector3.up * height;
+            Quaternion r = Quaternion.Euler(12f, body.Yaw + yaw, 0f);
+            _cam.transform.SetPositionAndRotation(centre - r * Vector3.forward * distance, r);
+        }
+
+        void OnDestroy()
+        {
+            if (_cam != null) Destroy(_cam.gameObject);
         }
     }
 }

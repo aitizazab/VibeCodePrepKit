@@ -40,6 +40,15 @@ two stick clicks pair up the Titanfall way: L3 sprints, R3 crouches and slides.
 The shell's `Dash` action is the jump; `Crouch` (Ctrl, C, pad B), `CrouchToggle` (R3) and `SprintToggle`
 (L3) are added at runtime to older input assets that lack them.
 
+**Rebinding** (Pause or Title > Settings > **Controls**, docs/SHELL.md): every row above that's a button
+can be moved to another key or pad button, keyboard and pad separately: Jump / Dash, Crouch / Slide
+(hold), Crouch / Slide (toggle), Sprint (hold), Sprint (toggle), plus Move and Look's sticks. The two
+toggles have an empty keyboard cell, so a keyboard player can add a crouch or sprint toggle key. Two
+lines under the table choose what the stick clicks do: **Crouch / Slide on R3: Toggle / Hold** and
+**Sprint on L3: Toggle / Hold**. Toggle is the default above; Hold gives R3 to the hold crouch (crouch
+and slide while R3 is pressed in, like B) and L3 to the hold sprint. Rebinds and the two choices are
+saved and load before the first scene.
+
 **The sprint kick.** Sprinting on the ground from well under sprint speed (below 60 %: after a bad landing,
 running into a wall or ledge, out of a mantle, from a standstill) pushes you off at once to 75 % of sprint
 along the stick, and ground acceleration does the rest: sprint speed in about 0.05 s. It never takes you past
@@ -205,10 +214,70 @@ Metres, seconds, m/s, degrees.
 | Component | Fields (defaults) |
 |---|---|
 | `MovementCamera` (on the rig) | speedFov 8° from 9.5 to 22 m/s, slideFov 3°, fovRate 6; sprintKickFov 4° over sprintKickTime 0.35 s; wallRoll 9° away from the wall, wallCatchKick 4° (the lean-in on contact), slideRoll 2°, roll spring 14 rad/s damping 0.65; landDip 0.12 m from 4 to 18 m/s impact (spring 20); bobAmount 0.035 m; mantleNod 3° |
-| `MovementBody` (on the camera) | PLACEHOLDER arms and slide legs: colours, proportions; sprint pump with the stride, jump lift, double-jump sweep, **wall-side hand reaching out and planting on the wall on contact**, slide balance pose with legs out, mantle plant |
+| `MovementBody` (on the camera) | The first-person body and its feel (**The body** below): `rig` (a MovementBodyRig; the lab and the escape wire Nadia's model), `feelCamera`; the placeholder capsules' colours and proportions when no rig is wired. Every feel number is in the tuning asset's **Body** section (`BodyFeelDef`). |
 | `SpeedLines` (on the camera) | 56 edge streaks from 12 to 20 m/s, alpha up to 0.35, never in the centre of the screen |
 | `MovementAudio` (on the body) | windVolume 0.5, windHighVolume 0.4, slideVolume 0.45, wallVolume 0.3, stepVolume 0.32, effectsVolume 0.8, pitchVariance 0.05, volumeVariance 0.12. What each sound is and when it plays: **Sound** below. |
 | `MovementController` | mouseDegreesPerPixel 0.09, gamepadDegreesPerSecond 190 (x1.6 boost after 0.25 s fully over), maxPitch 85, managePointerLock, onlyMarkedWalls, worldMask, skinWidth 0.04, stepOffset 0.35 standing, **crouchStepOffset 0** (the CharacterController's step-up pass lifts the capsule by the step offset before it sweeps forward: with 0.35 while sliding, a slide stopped dead at the face of a 1.15 m bar) |
+
+## The body
+
+**Who:** in the Movement Lab and the dream escape the first-person body is **Nadia's real model** (Visiting Hours'
+`Models/Nadia/Nadia.fbx`, Tripo, Mixamo bones), in the style-E waking material with her colour texture. In the dream
+she's the one real 3D thing in a billboard world: a stranger inside the dream. She wears what's on the model (the
+olive jacket over navy scrubs, the lanyard and badge). **A casual-clothes variant may come later** (a second model or
+texture; the builders take a path). Without the model the PLACEHOLDER capsule arms (and slide legs) draw instead, so
+other templates, tests and headless runs work the same.
+
+**How it's built (three parts):**
+- **The feel**, `Runtime/Core/Movement/BodyFeel.cs`. This is plain C#, tested in `core-tests/Movement`. It turns the
+  movement into a pose each frame: where the hands go (camera space), where the feet go (body space), and the torso's
+  lean, the landing dip, the sway, the breath and the lanyard swing. Every number is in **`BodyFeelDef`**, commented,
+  in the tuning asset's **Body** section (`MovementTuning.body`), editable in Play mode.
+- **The seam**, `MovementBodyRig`. `MovementBody` (on the camera) fills the feel's input and hands the pose to its
+  `rig`. When no rig is wired, or the rig isn't ready, it poses the capsules.
+- **The rig**, `MixamoBodyRig`, for any Mixamo-boned model. Each frame it:
+  - puts the model back in its bind pose;
+  - stands her at the body's feet, facing its yaw, and leans her torso;
+  - puts her eyes on the controller's head, plus the body's dip;
+  - aims her head where the camera looks;
+  - reaches her arms and legs to the targets with two-bone IK (the elbows and knees towards their hints, the
+    collarbone helping a far hand by up to 20°).
+
+  In first person the visible copy is cut away within 0.24 m of the camera (the head, the hair and the neck: the
+  waking shader's `_CameraCutout`, set per frame). A shadow-only copy shares the bones and casts the whole body's
+  shadow, head included. She has no colliders and sits on Ignore Raycast, so the movement is exactly as before. The
+  builders wire her with `MovementBodySetup.Wire` (package editor code; the paths come from the template).
+
+**What she does (the creator judges these):**
+
+| Move | What you see |
+|---|---|
+| **Running** | The arms pump in step with the footsteps (about 4 cm forward and back, 1.5 cm up; each arm at its furthest at each footfall). The legs run on the **same stride phase as the footstep sounds** (each foot plants exactly when its step plays). Zero pump in the air. |
+| **Speed tiers** (under 8, 8-13, over 13 m/s) | At "fast" she leans in 3° and the pump tightens to 75%; at "flying" she leans 8°, the pump is 45% and the arms sweep back. |
+| **Turning** | She leans into turns (up to 5° from the sideways acceleration); the arms trail the view (up to 4°, more on a flick). |
+| **Jump / double jump** | The arms lift 4 cm. The double jump sweeps them down and back for 0.15 s and tucks the legs. |
+| **Landing** | The camera dips first; the body takes the same dip 0.03 s later (a little more on hard landings). |
+| **Sprint kick** | Plant and shove: the trailing arm drives back and down, the leading one forward, the torso leans in 6° and recovers. |
+| **Wallrun** | The wall hand lands on the wall at the wall point beside her plus 0.35 m along the run, **within 0.03 s of the catch** (the timing cue), then drags along the wall. The other arm swings. |
+| **Wall kick** | The wall hand shoves off the wall on the kick frame. |
+| **Slide** | She reclines 30°; the hands drop and spread for balance (the left one trails near the ground above 12 m/s); the leading foot rises into the bottom of the screen. |
+| **Mantle** | Both hands plant on the ledge's lip, the arms stretched, then shove her up as she rises. |
+| **Still** | A slow breath (the arms and the chest). |
+
+**Comfort.** Everything above scales with the **Motion effects** setting, except the contact cues (the wall hand, the
+ledge hands, the slide pose and legs), which stay at 0. The camera is never moved by the body.
+
+**The orbit camera: F4** (editor and development builds) shows her from outside, orbiting the player. Q / E turn
+it and the mouse wheel moves it in or out. Her head shows in this view.
+
+**For the sound side:** the legs use `MovementController.StridePhase`, and each foot plants as it crosses a whole
+number, which is the frame `MovementController.Stepped` is true and the footstep plays. Foot 0 (left) plants on
+even numbers, foot 1 (right) on odd ones; `MovementBody.Pose.footPlanted` says which foot is down. No change to the
+audio is needed.
+
+**Not done:** the lanyard swing spring exists (`Pose.lanyardPitch/Roll`, the rig's `lanyardBone`), but Nadia's lanyard
+and badge are part of her one skinned mesh with no bone of their own, so nothing swings yet. Her hair has no bones
+either, and it's cut away in first person.
 
 ## Sound
 
@@ -335,6 +404,6 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 - No post-processing comfort effects (vignette at speed, optional motion blur): the lab camera has
   post-processing off. Add one "speed" Volume if wanted (RESEARCH-MOVEMENT 8.5).
 - No music stems by speed tier.
-- The arms are drawn by the main camera (scaled against the FOV kick), not an overlay camera: they can
-  clip into a wall you press your face against.
-- The body and the dream-static are placeholders for the art pass; the sound's remaining placeholders are listed under **Sound**.
+- The body is drawn by the main camera, not an overlay camera: a hand can clip into a wall you press your face
+  against. Her lanyard and hair don't swing (no bones of their own on the model).
+- The body is Nadia's model in the lab and the escape (the capsules are the fallback); the dream-static is a placeholder for the art pass; the sound's remaining placeholders are listed under **Sound**.

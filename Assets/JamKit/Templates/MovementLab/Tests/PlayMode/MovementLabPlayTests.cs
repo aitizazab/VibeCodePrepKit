@@ -1,3 +1,4 @@
+using JamKit.Tests.Play;
 using System.Collections;
 using JamKit.Movement;
 using JamKit.Presenting;
@@ -184,6 +185,19 @@ namespace JamKit.MovementLab.Tests
             yield return Frames(2);
             GameRoot.Instance.Resume();
             yield return Frames(2);
+        }
+    
+        [UnityTest]
+        public IEnumerator NadiasBodyCarriesTheMoves()
+        {
+            yield return StartLab();
+            Game.JumpToChapter(LabCourse.ChapterChain);
+            yield return Frames(2);
+            var report = new BodyTestUtil.Report();
+            Game.SetAutopilot(true);
+            yield return BodyTestUtil.Watch(Game.player, () => Game.S >= 236f && Game.player.Sim.Grounded, 12f, report);
+            Game.SetAutopilot(false);
+            BodyTestUtil.AssertFollowed(report, true, true);
         }
     }
 }

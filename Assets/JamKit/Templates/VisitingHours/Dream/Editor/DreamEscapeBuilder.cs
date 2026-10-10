@@ -33,6 +33,11 @@ namespace JamKit.DreamEscape.EditorTools
         public const string TuningPath = Root + "/Data/DreamEscapeTuning.asset";
         public const string MaterialsDir = Root + "/Materials";
         public const string GablePath = Root + "/Generated/DreamGable.asset";
+        /// <summary>Nadia, the first-person body: the real 3D intruder in a billboard dream (the capsules stay without her).</summary>
+        public const string NadiaDir = "Assets/JamKit/Templates/VisitingHours/Models/Nadia";
+        public const string NadiaPath = NadiaDir + "/Nadia.fbx";
+        public const string NadiaMaterialPath = MaterialsDir + "/Nadia_Body.mat";
+        const string WakingShader = "JamKit/VisitingHours/Waking";
 
         // The golden hour.
         public static readonly Color Horizon = new Color(1f, 0.83f, 0.7f);
@@ -235,7 +240,9 @@ namespace JamKit.DreamEscape.EditorTools
             sun.type = LightType.Directional;
             sun.color = new Color(1f, 0.88f, 0.72f);
             sun.intensity = 1.05f;
-            sun.shadows = LightShadows.None;
+            // Soft shadows: only Nadia casts one (the dream's own surfaces receive it as a lilac shade).
+            sun.shadows = LightShadows.Soft;
+            sun.shadowStrength = 0.55f;
             sun.transform.rotation = Quaternion.LookRotation(-new Vector3(SunDir.x, SunDir.y, SunDir.z).normalized);
 
             var body = BuildPlayer(cam, course.checkpoints[0]);
@@ -334,6 +341,17 @@ namespace JamKit.DreamEscape.EditorTools
             arms.skinMaterial = Lit("Nadia_Skin", new Color(0.97f, 0.8f, 0.69f));
             arms.legMaterial = Lit("Nadia_Scrubs", new Color(0.4f, 0.46f, 0.68f));
             arms.shoeMaterial = Lit("Nadia_Shoes", new Color(0.97f, 0.95f, 0.92f));
+            arms.feelCamera = feel;
+            // Her real model in the waking world's material: lit by the dream's golden sun, a lilac sky and a pastel bounce.
+            var nadiaMat = MovementBodySetup.EnsureMaterial(NadiaMaterialPath, WakingShader, MovementBodySetup.FindColorTexture(NadiaDir),
+                new Color(0.40f, 0.37f, 0.46f), new Color(0.30f, 0.26f, 0.34f), 0f);
+            if (nadiaMat != null)
+            {
+                if (nadiaMat.HasProperty("_RimColor")) nadiaMat.SetColor("_RimColor", new Color(1f, 0.84f, 0.62f));
+                if (nadiaMat.HasProperty("_RimStrength")) nadiaMat.SetFloat("_RimStrength", 0.3f);
+                if (nadiaMat.HasProperty("_ShadeColor")) nadiaMat.SetColor("_ShadeColor", new Color(0.74f, 0.68f, 0.9f));
+            }
+            MovementBodySetup.Wire(arms, body.transform, NadiaPath, nadiaMat, "Nadia (body)");
             var lines = cam.gameObject.AddComponent<SpeedLines>();
             lines.body = body;
             lines.material = Mat("SpeedLines", "JamKit/Movement/SpeedLines");

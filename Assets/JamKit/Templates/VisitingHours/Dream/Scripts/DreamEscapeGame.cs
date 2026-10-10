@@ -103,6 +103,11 @@ namespace JamKit.DreamEscape
 
         void Start()
         {
+            // Nadia's body uses the waking-world material, which also adds the title's waking ambient (shader
+            // globals) when it was set earlier this launch: the dream lights her with its own (her material's) only.
+            Shader.SetGlobalColor("_VHWakeSky", Color.black);
+            Shader.SetGlobalColor("_VHWakeGround", Color.black);
+            Shader.SetGlobalFloat("_VHWakeSH", 0f);
             if (!GameRoot.Exists || player == null)
             {
                 Debug.LogError("DreamEscapeGame: missing the player. Rebuild with JamKit > Rebuild Shell Scenes.");

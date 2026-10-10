@@ -20,6 +20,12 @@ Shader "JamKit/VisitingHours/Waking"
         _RimPower ("Rim power", Range(0.5, 8)) = 3.5
         _RimStrength ("Rim strength", Range(0, 1)) = 0.18
         _AmbientScale ("Ambient", Range(0, 2)) = 1
+        [Header(Own ambient (scenes that do not set the globals))]
+        _SkyAmbient ("Sky ambient", Color) = (0, 0, 0, 1)
+        _GroundAmbient ("Ground ambient", Color) = (0, 0, 0, 1)
+        _SHAmbient ("Unity ambient", Range(0, 1)) = 0
+        [Header(First person)]
+        _CameraCutout ("Cut away around (xyz, radius w; set per frame)", Vector) = (0, 0, 0, 0)
         [Header(Emission)]
         _EmissionMap ("Emission map", 2D) = "white" {}
         [HDR] _EmissionColor ("Emission", Color) = (0, 0, 0, 1)
@@ -55,6 +61,10 @@ Shader "JamKit/VisitingHours/Waking"
             half _RimPower;
             half _RimStrength;
             half _AmbientScale;
+            half4 _SkyAmbient;
+            half4 _GroundAmbient;
+            half _SHAmbient;
+            float4 _CameraCutout;
             float4 _EmissionMap_ST;
             half4 _EmissionColor;
             half4 _HighlightColor;
@@ -73,6 +83,14 @@ Shader "JamKit/VisitingHours/Waking"
             uint2 p = (uint2)pixel & 3u;
             float threshold = (kBayer4[p.y * 4u + p.x] + 0.5) / 16.0;
             clip(_Fade - threshold);
+        }
+
+        // A first-person body's own head and hair: cut away within _CameraCutout.w of the camera (its shadow keeps them).
+        void CutoutClip(float3 positionWS)
+        {
+            if (_CameraCutout.w <= 0.0) return;
+            float3 d = positionWS - _CameraCutout.xyz;
+            clip(dot(d, d) - _CameraCutout.w * _CameraCutout.w);
         }
         ENDHLSL
 
@@ -146,6 +164,7 @@ Shader "JamKit/VisitingHours/Waking"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
                 DitherClip(input.positionCS.xy);
+                CutoutClip(input.positionWS);
 
                 half4 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
                 half3 albedo = tex.rgb * _BaseColor.rgb * lerp(half3(1, 1, 1), input.color.rgb, _VertexColorWeight);
@@ -154,7 +173,7 @@ Shader "JamKit/VisitingHours/Waking"
 
                 // Ambient: the scene's sky and ground colours, plus a little of Unity's own ambient.
                 half up = saturate(n.y * 0.5h + 0.5h);
-                half3 ambient = lerp(_VHWakeGround.rgb, _VHWakeSky.rgb, up) + SampleSH(n) * _VHWakeSH;
+                half3 ambient = lerp(_VHWakeGround.rgb + _GroundAmbient.rgb, _VHWakeSky.rgb + _SkyAmbient.rgb, up) + SampleSH(n) * (_VHWakeSH + _SHAmbient);
                 ambient *= _AmbientScale;
 
                 half3 direct = 0;
@@ -218,6 +237,7 @@ Shader "JamKit/VisitingHours/Waking"
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -226,6 +246,7 @@ Shader "JamKit/VisitingHours/Waking"
                 Varyings o = (Varyings)0;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, o);
+                o.positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 float4 cs = TransformObjectToHClip(input.positionOS.xyz);
                 float3 nWS = TransformObjectToWorldNormal(input.normalOS);
                 float2 nCS = mul((float3x3)GetWorldToHClipMatrix(), nWS).xy;
@@ -239,6 +260,7 @@ Shader "JamKit/VisitingHours/Waking"
             half4 OutlineFrag(Varyings input) : SV_Target
             {
                 DitherClip(input.positionCS.xy);
+                CutoutClip(input.positionWS);
                 return half4(_OutlineColor.rgb, 1);
             }
             ENDHLSL
@@ -292,6 +314,7 @@ Shader "JamKit/VisitingHours/Waking"
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -300,6 +323,7 @@ Shader "JamKit/VisitingHours/Waking"
                 Varyings o = (Varyings)0;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, o);
+                o.positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 o.positionCS = TransformObjectToHClip(input.positionOS.xyz);
                 return o;
             }
@@ -307,6 +331,7 @@ Shader "JamKit/VisitingHours/Waking"
             half DepthFrag(Varyings input) : SV_Target
             {
                 DitherClip(input.positionCS.xy);
+                CutoutClip(input.positionWS);
                 return input.positionCS.z;
             }
             ENDHLSL
