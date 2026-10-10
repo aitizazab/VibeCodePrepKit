@@ -74,14 +74,16 @@ namespace JamKit.Tests.VisitingHours
             float news = At(cues, OpeningCueKind.Voice, "news");
             Assert.That(music, Is.GreaterThan(vmEnd + 1.5f), "black, held, before the music");
             Assert.That(news, Is.GreaterThan(music), "the music blooms, then the news");
-            Assert.That(At(cues, OpeningCueKind.Show, "tablet"), Is.EqualTo(news).Within(0.01f), "the table and the tablet first, as the report starts");
+            Assert.That(cues.FindLast(c => c.kind == OpeningCueKind.Fade && c.text == "in").at, Is.EqualTo(news).Within(0.01f), "out of the black as the report starts");
+            // Then the pieces, one after another: coffee, badge, notepad, tablet, table, room.
             float prev = news;
-            foreach (var piece in new[] { "mug", "notepad", "badge" })
+            foreach (var piece in new[] { "mug", "badge", "notepad", "tablet", "table", "room" })
             {
                 float t = At(cues, OpeningCueKind.Show, piece);
-                Assert.That(t, Is.GreaterThan(prev), piece + " fades in after the one before");
+                Assert.That(t, Is.GreaterThan(prev + (piece == "mug" ? 0f : 1f)), piece + " arrives after the one before");
                 prev = t;
             }
+            Assert.That(prev, Is.LessThan(news + SliceContent.NewsTrack().recordedLength - 3f), "the room is up before the report ends");
             Assert.That(At(cues, OpeningCueKind.Interactive), Is.EqualTo(news + SliceContent.NewsTrack().recordedLength).Within(0.01f), "interactive at the end of the report");
             Assert.That(voice + vm.Find("hey").at - vm.trimStart - At(cues, OpeningCueKind.Arm, "tap"), Is.InRange(0.3f, 2f), "Elias starts soon after her thumb");
         }

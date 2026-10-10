@@ -259,7 +259,7 @@ namespace JamKit.VisitingHours
             var pillow = s.meshes.RoundedBox(new Vector3(0.64f, 0.12f, 0.42f), 0.055f, 6, 0.035f);
             VhMeshKit.Show(b, "Pillow (hers)", pillow, pillowMat, new Vector3(-0.22f, 0.6f, 1.36f), Quaternion.Euler(0f, 4f, 0f));
             VhMeshKit.Show(b, "Pillow", pillow, pillowMat, new Vector3(0.64f, 0.6f, 1.38f), Quaternion.Euler(0f, -3f, 0f));
-            BuildBlanket(s, b, st.Mat(VhWakingStyle.Blanket, knit, -1f));
+            var blanketMat = st.Mat(VhWakingStyle.Blanket, knit, -1f);
 
             // The nightstand, the phone on it, the lamp (off), a framed photo.
             var nightstand = PlaceModel(s, "nightstand", b, new Vector3(-0.9f, 0f, 1.36f), 180f, 0.52f);
@@ -271,17 +271,20 @@ namespace JamKit.VisitingHours
                 Box(s, b, "Nightstand drawer", new Vector3(0.38f, 0.16f, 0.01f), new Vector3(-0.9f, 0.36f, 1.155f), st.Mat(VhWakingStyle.WoodDark));
                 top = 0.52f;
             }
-            if (PlaceModel(s, "lamp", b, new Vector3(-1.02f, top, 1.5f), 0f, 0.42f) == null)
+            // What's on it, placed on its real top (the model's bounds): the phone on the bed's side within her reach,
+            // the lamp at the back by the wall, the framed photo at the front corner turned towards her pillow.
+            Bounds nb = nightstand != null ? WorldBounds(nightstand) : new Bounds(new Vector3(-0.9f, 0.26f, 1.36f), new Vector3(0.46f, 0.52f, 0.4f));
+            float inset = 0.06f;
+            Vector3 lampAt = new Vector3(nb.min.x + inset + 0.07f, top, nb.max.z - inset - 0.07f);
+            if (PlaceModel(s, "lamp", b, lampAt, 0f, 0.42f) == null)
             {
-                VhMeshKit.Show(b, "Lamp base", s.meshes.Cylinder(0.06f, 0.05f, 0.03f, 16), st.Mat(VhWakingStyle.Metal), new Vector3(-1.02f, top, 1.5f), Quaternion.identity);
-                VhMeshKit.Show(b, "Lamp stem", s.meshes.Cylinder(0.012f, 0.012f, 0.24f, 8), st.Mat(VhWakingStyle.Metal), new Vector3(-1.02f, top + 0.03f, 1.5f), Quaternion.identity);
-                VhMeshKit.Show(b, "Lamp shade", s.meshes.Cylinder(0.11f, 0.075f, 0.15f, 20), st.Mat(VhWakingStyle.Lampshade), new Vector3(-1.02f, top + 0.24f, 1.5f), Quaternion.identity);
+                VhMeshKit.Show(b, "Lamp base", s.meshes.Cylinder(0.06f, 0.05f, 0.03f, 16), st.Mat(VhWakingStyle.Metal), lampAt, Quaternion.identity);
+                VhMeshKit.Show(b, "Lamp stem", s.meshes.Cylinder(0.012f, 0.012f, 0.24f, 8), st.Mat(VhWakingStyle.Metal), lampAt + new Vector3(0f, 0.03f, 0f), Quaternion.identity);
+                VhMeshKit.Show(b, "Lamp shade", s.meshes.Cylinder(0.11f, 0.075f, 0.15f, 20), st.Mat(VhWakingStyle.Lampshade), lampAt + new Vector3(0f, 0.24f, 0f), Quaternion.identity);
             }
-            BuildPhone(s, b, new Vector3(-0.74f, top, 1.27f));
-            var frame = Pivot(b, "Framed photo", new Vector3(-1.03f, top, 1.15f), Quaternion.Euler(0f, 0f, 9f));
-            Box(s, frame, "Frame", new Vector3(0.016f, 0.17f, 0.135f), new Vector3(0f, 0.085f, 0f), st.Mat(VhWakingStyle.WoodDark));
-            var photo = Art(s, "photo_frame", () => s.boot != null && s.boot.Art("phone_wallpaper") != null ? s.boot.Art("phone_wallpaper") : s.textures.FramedPhoto());
-            VhMeshKit.Show(frame, "Photo", s.meshes.Quad(0.11f, 0.145f), Crop(st.Mat(Color.white, photo, 0f), photo, 0.11f / 0.145f), new Vector3(0.0085f, 0.085f, 0f), Quaternion.Euler(0f, -90f, 0f), false);
+            Vector3 phoneAt = new Vector3(Mathf.Min(-0.74f, nb.max.x - inset - 0.04f), top, Mathf.Clamp(1.27f, nb.min.z + inset + 0.08f, nb.max.z - inset - 0.08f));
+            BuildPhone(s, b, phoneAt);
+            BuildFrame(s, b, new Vector3(nb.min.x + inset + 0.05f, top, nb.min.z + inset + 0.06f));
 
             // Her things: scrubs over the chair, a rug, a low bookcase with books, a plant.
             var chair = PlaceModel(s, "chair", b, new Vector3(1.3f, 0f, -0.95f), -125f, 0.85f);
@@ -313,6 +316,8 @@ namespace JamKit.VisitingHours
             }
 
             BuildNadia(s, b);
+            // The blanket last: over her real body when the model is there (so nothing of her pokes through it).
+            BuildBlanket(s, b, blanketMat);
         }
 
         static float SMax(float a, float b, float k)
@@ -327,17 +332,15 @@ namespace JamKit.VisitingHours
             float dx = (x - cx) / rx, dz = (z - cz) / rz;
             float d2 = dx * dx + dz * dz;
             if (d2 >= 1f) return 0f;
-            return 0.55f + (topY - 0.55f) * Mathf.Sqrt(1f - d2);
+            // From well below the blanket's own height (0.565), so where a bump begins there's no step: the blanket only
+            // rises where the bump is above it (the old base of 0.55 left a 6 mm ridge round every bump: the "artifact").
+            return 0.45f + (topY - 0.45f) * Mathf.Sqrt(1f - d2);
         }
 
         /// <summary>The blanket's height at a bedroom point: over the mattress, hanging down its sides and foot, and over Nadia curled on her side.</summary>
         public static float BlanketHeight(float wx, float wz)
         {
-            float outX = Mathf.Max(0f, Mathf.Max(-0.585f - wx, wx - 0.985f));
-            float outZ = Mathf.Max(0f, -0.41f - wz);
-            float drop = Mathf.Sqrt(outX * outX + outZ * outZ);
-            float h = Mathf.Max(0.565f - drop * 3.2f, 0.3f);
-            h += (Mathf.Sin(wx * 9f + wz * 3f) * 0.006f + Mathf.Sin(wz * 13f + 1f) * 0.004f) * Mathf.Clamp01(1f - drop * 6f);
+            float h = BedDrape(wx, wz);
             float body = 0f;
             // A woman lying on her side: the upper shoulder and hip stand about 0.35 m above the mattress.
             body = Mathf.Max(body, Bump(wx, wz, -0.36f, 0.86f, 0.21f, 0.24f, 0.92f));
@@ -351,7 +354,13 @@ namespace JamKit.VisitingHours
         static void BuildBlanket(VhStage s, Transform b, Material mat)
         {
             Vector3 center = new Vector3(0.2f, 0f, 0.26f);
-            var mesh = s.meshes.Heightfield(1.76f, 1.72f, 70, 70, (x, z) => BlanketHeight(x + center.x, z + center.z), 1.6f);
+            const float W = 1.76f, D = 1.72f;
+            const int N = 70;
+            var body = BakeBody(s, b, center, W, D, N);
+            Func<float, float, float> height = body == null
+                ? (x, z) => BlanketHeight(x + center.x, z + center.z)
+                : (Func<float, float, float>)((x, z) => DrapeOver(body, x, z, W, D, N, center));
+            var mesh = s.meshes.Heightfield(W, D, N, N, height, 1.6f);
             // Breathing: her shoulder and ribs rise a little under the blanket.
             VhMeshKit.AddBlendShape(mesh, "breath", v =>
             {
@@ -370,17 +379,121 @@ namespace JamKit.VisitingHours
             s.blanket = smr;
         }
 
+        /// <summary>The blanket over her real body: the bed's own drape, raised over the highest point of her model (in both
+        /// poses she takes, first person and asleep) plus a little thickness, smoothed so it reads as cloth.</summary>
+        static float DrapeOver(float[] body, float x, float z, float w, float d, int n, Vector3 center)
+        {
+            float bed = BedDrape(x + center.x, z + center.z);
+            float fx = (x + w * 0.5f) / w * n, fz = (z + d * 0.5f) / d * n;
+            int ix = Mathf.Clamp(Mathf.FloorToInt(fx), 0, n - 1), iz = Mathf.Clamp(Mathf.FloorToInt(fz), 0, n - 1);
+            float tx = Mathf.Clamp01(fx - ix), tz = Mathf.Clamp01(fz - iz);
+            int row = n + 1;
+            float h = Mathf.Lerp(Mathf.Lerp(body[iz * row + ix], body[iz * row + ix + 1], tx), Mathf.Lerp(body[(iz + 1) * row + ix], body[(iz + 1) * row + ix + 1], tx), tz);
+            return SMax(bed, h, 0.04f);
+        }
+
+        /// <summary>The bed under the blanket: over the mattress, hanging down its sides and foot, a few soft folds.</summary>
+        static float BedDrape(float wx, float wz)
+        {
+            float outX = Mathf.Max(0f, Mathf.Max(-0.585f - wx, wx - 0.985f));
+            float outZ = Mathf.Max(0f, -0.41f - wz);
+            float drop = Mathf.Sqrt(outX * outX + outZ * outZ);
+            float h = Mathf.Max(0.565f - drop * 3.2f, 0.3f);
+            return h + (Mathf.Sin(wx * 9f + wz * 3f) * 0.006f + Mathf.Sin(wz * 13f + 1f) * 0.004f) * Mathf.Clamp01(1f - drop * 6f);
+        }
+
+        /// <summary>
+        /// The highest point of Nadia's model over each point of the blanket's grid (both her poses: first person and asleep),
+        /// her head and neck left out (they stay above the blanket's edge), widened and blurred a little, plus 3 cm of
+        /// blanket. Null without the model (the stand-in's analytic shape is used).
+        /// </summary>
+        static float[] BakeBody(VhStage s, Transform b, Vector3 center, float w, float d, int n)
+        {
+            var model = s.nadia as VhModelNadia;
+            if (model == null || model.model == null) return null;
+            int row = n + 1;
+            var h = new float[row * row];
+            for (int i = 0; i < h.Length; i++) h[i] = 0f;
+            var baked = new Mesh();
+            var verts = new List<Vector3>();
+            // Grid in the bedroom's own space (the heightfield's: centred on the blanket's centre).
+            float x0 = center.x - w * 0.5f, z0 = center.z - d * 0.5f;
+            const float headEdge = 1.08f;
+            foreach (var mode in new[] { VhNadiaRig.Mode.Asleep, VhNadiaRig.Mode.FirstPerson })
+            {
+                model.SetMode(mode);
+                model.SetHand(Vector3.zero, Quaternion.identity, 0f);
+                foreach (var smr in model.model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                    smr.BakeMesh(baked, true);
+                    baked.GetVertices(verts);
+                    var m = Matrix4x4.TRS(smr.transform.position, smr.transform.rotation, Vector3.one);
+                    for (int i = 0; i < verts.Count; i++)
+                    {
+                        Vector3 p = b.InverseTransformPoint(m.MultiplyPoint3x4(verts[i]));
+                        if (p.z > headEdge) continue;
+                        int ix = Mathf.RoundToInt((p.x - x0) / w * n), iz = Mathf.RoundToInt((p.z - z0) / d * n);
+                        if (ix < 0 || iz < 0 || ix > n || iz > n) continue;
+                        float y = p.y;
+                        if (y > h[iz * row + ix]) h[iz * row + ix] = y;
+                    }
+                }
+            }
+            model.SetMode(VhNadiaRig.Mode.FirstPerson);
+            VhUtil.Kill(baked);
+            // Widen (the cloth spans over her), then soften twice, then add the blanket's thickness.
+            var tmp = new float[h.Length];
+            for (int pass = 0; pass < 2; pass++)
+            {
+                for (int z = 0; z <= n; z++)
+                    for (int x = 0; x <= n; x++)
+                    {
+                        float m = 0f;
+                        for (int dz = -2; dz <= 2; dz++)
+                            for (int dx = -2; dx <= 2; dx++)
+                            {
+                                int xx = x + dx, zz = z + dz;
+                                if (xx < 0 || zz < 0 || xx > n || zz > n) continue;
+                                float v = h[zz * row + xx];
+                                if (pass == 0) { if (v > m) m = v; }
+                                else m += v / 25f;
+                            }
+                        tmp[z * row + x] = m;
+                    }
+                Array.Copy(tmp, h, h.Length);
+            }
+            for (int i = 0; i < h.Length; i++) h[i] = h[i] > 0.05f ? h[i] + 0.03f : 0f;
+            return h;
+        }
+
+        /// <summary>The phone's size (width, thickness, length).</summary>
+        public static readonly Vector3 PhoneSize = new Vector3(0.071f, 0.0082f, 0.147f);
+
         static void BuildPhone(VhStage s, Transform b, Vector3 rest)
         {
             var phone = new GameObject("Phone").transform;
             phone.SetParent(b, false);
             Vector3 topDir = new Vector3(-1f, 0f, 0.12f).normalized;
-            s.phoneRestPos = b.TransformPoint(rest);
+            const float bump = 0.0014f; // she lies on her camera bump
+            s.phoneRestPos = b.TransformPoint(rest + new Vector3(0f, bump, 0f));
             s.phoneRestRot = Quaternion.LookRotation(topDir, Vector3.up);
             phone.SetPositionAndRotation(s.phoneRestPos, s.phoneRestRot);
-            VhMeshKit.Show(phone, "Body", s.meshes.RoundedBox(new Vector3(0.072f, 0.009f, 0.148f), 0.0055f, 4), s.style.Mat(VhWakingStyle.PhoneBody), new Vector3(0f, 0.0045f, 0f), Quaternion.identity);
-            s.phoneScreenMat = ScreenMat(s, "VH phone screen");
-            s.phoneScreen = VhMeshKit.Show(phone, "Screen", s.meshes.Quad(0.066f, 0.141f), s.phoneScreenMat, new Vector3(0f, 0.0093f, 0f), Quaternion.Euler(90f, 0f, 0f), false);
+            s.phoneSize = PhoneSize;
+            BuildDevice(s, phone, PhoneSize.x, PhoneSize.z, PhoneSize.y, 0.0095f, 0.0028f, 0.0036f, out var screenMat, out var screen);
+            s.phoneScreenMat = screenMat;
+            s.phoneScreen = screen;
+            // The back: a camera bump with two lenses and a flash, and the buttons on its edges.
+            var st = s.style;
+            var frameMat = st.Mat(new Color(0.24f, 0.25f, 0.28f), null, 0.5f);
+            VhMeshKit.Show(phone, "Camera bump", s.meshes.RoundedSlab(0.026f, 0.03f, bump, 0.0065f, 0.0005f, 4), frameMat,
+                new Vector3(-PhoneSize.x * 0.5f + 0.018f, 0f, PhoneSize.z * 0.5f - 0.02f), Quaternion.Euler(180f, 0f, 0f));
+            var lens = st.Mat(new Color(0.05f, 0.06f, 0.08f), null, 0f);
+            foreach (var z in new[] { 0.0085f, -0.0045f })
+                VhMeshKit.Show(phone, "Lens", s.meshes.Disc(0.0042f, 16), lens, new Vector3(-PhoneSize.x * 0.5f + 0.0145f, -bump - 0.0002f, PhoneSize.z * 0.5f - 0.02f + z), Quaternion.Euler(180f, 0f, 0f), false);
+            VhMeshKit.Show(phone, "Flash", s.meshes.Disc(0.0018f, 10), st.Mat(new Color(0.85f, 0.82f, 0.7f), null, 0f), new Vector3(-PhoneSize.x * 0.5f + 0.0235f, -bump - 0.0002f, PhoneSize.z * 0.5f - 0.02f), Quaternion.Euler(180f, 0f, 0f), false);
+            Box(s, phone, "Power button", new Vector3(0.0012f, 0.0034f, 0.016f), new Vector3(PhoneSize.x * 0.5f + 0.0003f, PhoneSize.y * 0.5f, 0.028f), frameMat, 1f, null, false);
+            Box(s, phone, "Volume up", new Vector3(0.0012f, 0.0034f, 0.011f), new Vector3(-PhoneSize.x * 0.5f - 0.0003f, PhoneSize.y * 0.5f, 0.036f), frameMat, 1f, null, false);
+            Box(s, phone, "Volume down", new Vector3(0.0012f, 0.0034f, 0.011f), new Vector3(-PhoneSize.x * 0.5f - 0.0003f, PhoneSize.y * 0.5f, 0.021f), frameMat, 1f, null, false);
             var glowGo = new GameObject("Screen glow (light)");
             glowGo.transform.SetParent(phone, false);
             glowGo.transform.localPosition = new Vector3(0f, 0.07f, 0f);
@@ -392,6 +505,52 @@ namespace JamKit.VisitingHours
             glow.shadows = LightShadows.None;
             s.phoneGlow = glow;
             s.phone = phone;
+        }
+
+        /// <summary>
+        /// A phone or a tablet, lying on its back at the parent's origin (+Y the screen, +Z its top): a rounded aluminium-dark
+        /// frame with softened edges, a black glass front, and the screen set into the glass inside a thin bezel (rounded
+        /// corners, its own emissive material: the UI's texture or a picture).
+        /// </summary>
+        static void BuildDevice(VhStage s, Transform parent, float width, float length, float thickness, float corner, float bezel, float bezelChin,
+            out Material screenMat, out MeshRenderer screen, float y0 = 0f)
+        {
+            var st = s.style;
+            VhMeshKit.Show(parent, "Body", s.meshes.RoundedSlab(width, length, thickness, corner, thickness * 0.3f, 6), st.Mat(new Color(0.20f, 0.21f, 0.24f)), new Vector3(0f, y0, 0f), Quaternion.identity);
+            VhMeshKit.Show(parent, "Glass", s.meshes.RoundedRect(width - 0.0016f, length - 0.0016f, Mathf.Max(0.001f, corner - 0.0008f), 6), st.Mat(new Color(0.025f, 0.028f, 0.034f), null, 0f),
+                new Vector3(0f, y0 + thickness + 0.0002f, 0f), Quaternion.identity, false);
+            screenMat = ScreenMat(s, "VH " + parent.name + " screen");
+            float sw = width - 2f * bezel, sl = length - bezel - bezelChin;
+            screen = VhMeshKit.Show(parent, "Screen", s.meshes.RoundedRect(sw, sl, Mathf.Max(0.001f, corner - bezel), 6), screenMat,
+                new Vector3(0f, y0 + thickness + 0.0005f, (bezelChin - bezel) * 0.5f), Quaternion.identity, false);
+        }
+
+        /// <summary>A framed photo standing on the nightstand: the frame leaning back on its strut, turned towards her pillow.</summary>
+        static void BuildFrame(VhStage s, Transform b, Vector3 foot)
+        {
+            var st = s.style;
+            Vector3 toPillow = b.TransformPoint(Eyes) - b.TransformPoint(foot);
+            toPillow.y = 0f;
+            Quaternion facing = Quaternion.LookRotation(Vector3.Cross(Vector3.up, toPillow.normalized), Vector3.up); // local +X towards her
+            const float lean = 12f, h = 0.17f, wdt = 0.135f, depth = 0.016f;
+            var frame = Pivot(b, "Framed photo", foot, facing * Quaternion.Euler(0f, 0f, lean));
+            var wood = st.Mat(VhWakingStyle.WoodDark);
+            // The frame stands on its bottom edge: lift it by the lean so the front lower edge sits on the wood.
+            float lift = depth * 0.5f * Mathf.Sin(lean * Mathf.Deg2Rad);
+            Box(s, frame, "Frame", new Vector3(depth, h, wdt), new Vector3(0f, h * 0.5f + lift, 0f), wood);
+            var photo = Art(s, "photo_frame", () => s.boot != null && s.boot.Art("phone_wallpaper") != null ? s.boot.Art("phone_wallpaper") : s.textures.FramedPhoto());
+            VhMeshKit.Show(frame, "Photo", s.meshes.Quad(0.11f, 0.145f), Crop(st.Mat(Color.white, photo, 0f), photo, 0.11f / 0.145f),
+                new Vector3(depth * 0.5f + 0.0006f, h * 0.5f + lift, 0f), Quaternion.Euler(0f, -90f, 0f), false);
+            // The strut from the back of the frame down to the wood behind it.
+            Vector3 a = frame.TransformPoint(new Vector3(-depth * 0.5f, h * 0.55f, 0f));
+            Vector3 back = -(frame.rotation * Vector3.right);
+            back.y = 0f;
+            back.Normalize();
+            Vector3 c = new Vector3(a.x, b.TransformPoint(foot).y, a.z) + back * 0.055f;
+            var strut = new GameObject("Strut").transform;
+            strut.SetParent(frame, true);
+            strut.SetPositionAndRotation((a + c) * 0.5f, Quaternion.LookRotation(c - a, back));
+            VhMeshKit.Show(strut, "Strut", s.meshes.Box(new Vector3(0.028f, 0.004f, Vector3.Distance(a, c)), 1f), wood, Vector3.zero, Quaternion.identity);
         }
 
         static void BuildNadia(VhStage s, Transform b)
@@ -520,39 +679,44 @@ namespace JamKit.VisitingHours
             var woodTex = Art(s, "tex_table_wood", () => tx.Wood(VhWakingStyle.WoodPale, 7));
             var plaster = Art(s, "tex_bedroom_wall", () => tx.Plaster());
 
-            // The table, the floor under it and the wall behind (they come up with the table).
+            // The room (the floor and the wall behind) and the table: two pieces, the last two to come up.
+            var room = Piece(s, t, "room", VhTitleAction.None, Vector3.zero, Quaternion.identity);
+            Box(s, room.transform, "Floor", new Vector3(8f, 0.02f, 8f), new Vector3(0f, -0.01f, 0f), st.Mat(VhWakingStyle.Floor * 0.8f), 1f, null, false);
+            Box(s, room.transform, "Wall", new Vector3(8f, 3f, 0.1f), new Vector3(0f, 1.5f, 1.9f), st.Mat(VhWakingStyle.Wall * 0.85f, plaster), 0.6f, null, false);
+            FinishPiece(room, false);
             var tablePiece = Piece(s, t, "table", VhTitleAction.None, Vector3.zero, Quaternion.identity);
             VhMeshKit.Show(tablePiece.transform, "Table top", s.meshes.RoundedBox(new Vector3(1.5f, 0.045f, 1.1f), 0.015f, 3), st.Mat(VhWakingStyle.WoodPale, woodTex), new Vector3(0f, 0.7275f, 0.15f), Quaternion.identity);
-            Box(s, tablePiece.transform, "Floor", new Vector3(8f, 0.02f, 8f), new Vector3(0f, -0.01f, 0f), st.Mat(VhWakingStyle.Floor * 0.8f), 1f, null, false);
-            Box(s, tablePiece.transform, "Wall", new Vector3(8f, 3f, 0.1f), new Vector3(0f, 1.5f, 1.9f), st.Mat(VhWakingStyle.Wall * 0.85f, plaster), 0.6f, null, false);
             FinishPiece(tablePiece, false);
 
-            // Where the camera sits for the title (the tablet faces it).
-            Vector3 camPos = t.TransformPoint(new Vector3(0f, 1.27f, -0.5f));
+            // Where the camera sits for the title (the tablet faces it): seated at the table's near edge, looking down at it.
+            Vector3 camPos = t.TransformPoint(TableCamera);
 
-            // The tablet (Play), propped on its folio, screen to the camera.
-            Vector3 tabletFoot = new Vector3(-0.07f, 0.75f, 0.16f);
+            // The tablet (Play), big, propped on its folio, its screen to the camera: most of the frame.
+            Vector3 tabletFoot = new Vector3(0f, 0.75f, 0.08f);
             Vector3 footWorld = t.TransformPoint(tabletFoot);
-            Vector3 toCam = (camPos - (footWorld + Vector3.up * 0.08f)).normalized;
+            const float tabW = 0.46f, tabH = 0.30f;
+            Vector3 toCam = (camPos - (footWorld + Vector3.up * (tabH * 0.45f))).normalized;
             Vector3 screenUp = (Vector3.up - toCam * Vector3.Dot(Vector3.up, toCam)).normalized;
             var tablet = Piece(s, t, "tablet", VhTitleAction.Play, tabletFoot, Quaternion.LookRotation(screenUp, toCam));
             tablet.lift = 0.008f;
             tablet.tilt = 1.5f;
-            VhMeshKit.Show(tablet.transform, "Body", s.meshes.RoundedBox(new Vector3(0.27f, 0.009f, 0.185f), 0.008f, 4), st.Mat(VhWakingStyle.PhoneBody), new Vector3(0f, 0f, 0.0925f), Quaternion.identity);
-            s.tabletScreenMat = ScreenMat(s, "VH tablet screen");
-            VhMeshKit.Show(tablet.transform, "Screen", s.meshes.Quad(0.252f, 0.158f), s.tabletScreenMat, new Vector3(0f, 0.0047f, 0.0925f), Quaternion.Euler(90f, 0f, 0f), false);
+            var device = Pivot(tablet.transform, "Tablet", new Vector3(0f, 0f, tabH * 0.5f), Quaternion.identity);
+            BuildDevice(s, device, tabW, tabH, 0.008f, 0.018f, 0.01f, 0.015f, out var tabletScreen, out _, -0.004f);
+            s.tabletScreenMat = tabletScreen;
+            // A front camera in the top bezel.
+            VhMeshKit.Show(device, "Front camera", s.meshes.Disc(0.0018f, 10), st.Mat(new Color(0.08f, 0.09f, 0.11f), null, 0f), new Vector3(0f, 0.0047f, tabH * 0.5f - 0.005f), Quaternion.identity, false);
             // The folio's flap behind it, from halfway up its back down to the table.
-            Vector3 a = new Vector3(0f, -0.006f, 0.1f);
+            Vector3 a = new Vector3(0f, -0.006f, tabH * 0.55f);
             Vector3 aWorld = tablet.transform.TransformPoint(a);
             Vector3 back = Vector3.ProjectOnPlane(-toCam, Vector3.up).normalized;
-            Vector3 bWorld = new Vector3(aWorld.x, footWorld.y + 0.003f, aWorld.z) + back * 0.06f;
+            Vector3 bWorld = new Vector3(aWorld.x, footWorld.y + 0.003f, aWorld.z) + back * 0.1f;
             Vector3 flapMid = tablet.transform.InverseTransformPoint((aWorld + bWorld) * 0.5f);
             Quaternion flapRot = Quaternion.Inverse(tablet.transform.rotation) * Quaternion.LookRotation(bWorld - aWorld, toCam);
-            Box(s, tablet.transform, "Folio flap", new Vector3(0.24f, 0.005f, Vector3.Distance(aWorld, bWorld)), flapMid, st.Mat(new Color(0.24f, 0.26f, 0.30f)), 1f, flapRot);
+            Box(s, tablet.transform, "Folio flap", new Vector3(tabW * 0.9f, 0.005f, Vector3.Distance(aWorld, bWorld)), flapMid, st.Mat(new Color(0.24f, 0.26f, 0.30f)), 1f, flapRot);
             FinishPiece(tablet, true);
 
             // The mug (Quit): half drunk, "Quit" in the milk.
-            var mug = Piece(s, t, "mug", VhTitleAction.Quit, new Vector3(0.27f, 0.75f, 0.0f), Quaternion.Euler(0f, -25f, 0f));
+            var mug = Piece(s, t, "mug", VhTitleAction.Quit, new Vector3(0.29f, 0.75f, -0.08f), Quaternion.Euler(0f, -25f, 0f));
             var mugMat = st.Mat(VhWakingStyle.Mug);
             VhMeshKit.Show(mug.transform, "Mug", s.meshes.Cylinder(0.041f, 0.044f, 0.096f, 32, false, true), mugMat, Vector3.zero, Quaternion.identity);
             VhMeshKit.Show(mug.transform, "Inside", s.meshes.Cylinder(0.038f, 0.0405f, 0.09f, 32, false, false, true), st.Mat(VhWakingStyle.Mug * 0.92f, null, 0f), new Vector3(0f, 0.006f, 0f), Quaternion.identity, false);
@@ -576,14 +740,16 @@ namespace JamKit.VisitingHours
             FinishPiece(mug, true);
             if (!VhTitleTable.QuitAvailable) mug.action = VhTitleAction.None;
 
-            // The notepad (Credits) with the pen on it.
-            var pad = Piece(s, t, "notepad", VhTitleAction.Credits, new Vector3(-0.28f, 0.75f, -0.14f), Quaternion.Euler(0f, 8f, 0f));
+            // The notepad (Credits: written at the top of its page) with the pen on it, at the front left.
+            var pad = Piece(s, t, "notepad", VhTitleAction.Credits, new Vector3(-0.25f, 0.75f, -0.10f), Quaternion.Euler(0f, 15f, 0f));
             VhMeshKit.Show(pad.transform, "Pad", s.meshes.RoundedBox(new Vector3(0.15f, 0.014f, 0.21f), 0.003f, 3), st.Mat(VhWakingStyle.Paper), new Vector3(0f, 0.007f, 0f), Quaternion.identity);
-            var page = Art(s, "notepad_page", () => tx.NotepadPage());
+            var pageArt = s.boot != null ? s.boot.Art("notepad_page") : null;
+            if (pageArt == null && !s.missingArt.Contains("notepad_page")) s.missingArt.Add("notepad_page");
+            var page = tx.NotepadCredits(pageArt);
             VhMeshKit.Show(pad.transform, "Page", s.meshes.Quad(0.144f, 0.2f), Crop(st.Mat(Color.white, page, 0f), page, 0.144f / 0.2f), new Vector3(0f, 0.0143f, -0.003f), Quaternion.Euler(90f, 0f, 0f), false);
             VhMeshKit.Show(pad.transform, "Binding", s.meshes.RoundedBox(new Vector3(0.152f, 0.012f, 0.02f), 0.004f, 3), st.Mat(new Color(0.22f, 0.24f, 0.28f)), new Vector3(0f, 0.013f, 0.1f), Quaternion.identity);
             FinishPiece(pad, true);
-            var pen = Piece(s, t, "pen", VhTitleAction.Credits, new Vector3(-0.26f, 0.769f, -0.17f), Quaternion.Euler(0f, 32f, 90f), "notepad");
+            var pen = Piece(s, t, "pen", VhTitleAction.Credits, new Vector3(-0.225f, 0.769f, -0.135f), Quaternion.Euler(0f, 39f, 90f), "notepad");
             var navy = st.Mat(new Color(0.18f, 0.21f, 0.32f));
             VhMeshKit.Show(pen.transform, "Barrel", s.meshes.Cylinder(0.0045f, 0.0045f, 0.12f, 12), navy, new Vector3(0f, -0.06f, 0f), Quaternion.identity);
             VhMeshKit.Show(pen.transform, "Tip", s.meshes.Cylinder(0.0045f, 0.0008f, 0.018f, 12), st.Mat(VhWakingStyle.Metal), new Vector3(0f, 0.06f, 0f), Quaternion.identity);
@@ -591,20 +757,22 @@ namespace JamKit.VisitingHours
             pen.lift = 0.012f;
             FinishPiece(pen, true);
 
-            // Nadia's ID badge on its lanyard (Settings).
-            var badge = Piece(s, t, "badge", VhTitleAction.Settings, new Vector3(0.2f, 0.75f, -0.25f), Quaternion.Euler(0f, -14f, 0f));
+            // Nadia's ID badge on its lanyard (Settings: a gear and the word on the card), at the front right by the mug.
+            var badge = Piece(s, t, "badge", VhTitleAction.Settings, new Vector3(0.13f, 0.75f, -0.14f), Quaternion.Euler(0f, -20f, 0f));
             VhMeshKit.Show(badge.transform, "Card", s.meshes.RoundedBox(new Vector3(0.056f, 0.002f, 0.088f), 0.0015f, 2), st.Mat(new Color(0.9f, 0.9f, 0.88f)), new Vector3(0f, 0.001f, 0f), Quaternion.identity);
             var photo = s.boot != null ? s.boot.Art("badge_photo") : null;
-            var face = Art(s, "badge_face", () => tx.BadgeFace(photo));
+            var faceArt = s.boot != null ? s.boot.Art("badge_face") : null;
+            if (faceArt == null && !s.missingArt.Contains("badge_face")) s.missingArt.Add("badge_face");
+            var face = tx.BadgeSettings(faceArt, photo);
             // The art shows the card standing in a 16:9 frame: crop to the card (about 90% of the height).
-            bool drawn = s.missingArt.Contains("badge_face");
+            bool drawn = faceArt == null || !faceArt.isReadable;
             VhMeshKit.Show(badge.transform, "Face", s.meshes.Quad(0.053f, 0.085f), Crop(st.Mat(Color.white, face, 0f), face, 0.053f / 0.085f, drawn ? 1f : 1.1f), new Vector3(0f, 0.00215f, 0f), Quaternion.Euler(90f, 0f, 0f), false);
             Box(s, badge.transform, "Clip", new Vector3(0.016f, 0.004f, 0.012f), new Vector3(0f, 0.003f, 0.05f), st.Mat(VhWakingStyle.Metal));
             var lanyard = new List<Vector3>
             {
-                new Vector3(0f, 0.003f, 0.056f), new Vector3(0.006f, 0.003f, 0.1f), new Vector3(0.04f, 0.003f, 0.145f),
-                new Vector3(0.095f, 0.003f, 0.155f), new Vector3(0.135f, 0.003f, 0.11f), new Vector3(0.13f, 0.003f, 0.04f),
-                new Vector3(0.095f, 0.003f, 0.0f), new Vector3(0.06f, 0.003f, -0.012f),
+                new Vector3(0f, 0.003f, 0.056f), new Vector3(-0.006f, 0.003f, 0.1f), new Vector3(-0.04f, 0.003f, 0.14f),
+                new Vector3(-0.09f, 0.003f, 0.145f), new Vector3(-0.125f, 0.003f, 0.1f), new Vector3(-0.12f, 0.003f, 0.035f),
+                new Vector3(-0.09f, 0.003f, 0.0f), new Vector3(-0.055f, 0.003f, -0.012f),
             };
             VhMeshKit.Show(badge.transform, "Lanyard", s.meshes.Tube(lanyard, 0.0032f, 6), st.Mat(VhWakingStyle.Lanyard, null, 0.6f), Vector3.zero, Quaternion.identity);
             FinishPiece(badge, true);
@@ -623,6 +791,10 @@ namespace JamKit.VisitingHours
 
         // ---------- Camera poses ----------
 
+        /// <summary>The title's camera (table space): seated at the near edge, looking down at the tablet, and its field of view.</summary>
+        static readonly Vector3 TableCamera = new Vector3(0f, 1.10f, -0.40f), TableLook = new Vector3(0f, 0.83f, 0.08f);
+        const float TableFov = 50f;
+
         static void Poses(VhStage s)
         {
             var b = s.bedroom;
@@ -632,7 +804,7 @@ namespace JamKit.VisitingHours
             s.AddPose("away", eyes + new Vector3(0.04f, -0.03f, -0.02f), b.TransformPoint(new Vector3(1.2f, 0.7f, 0.9f)), Vector3.up, 24f, 62f);
             s.AddPose("overhead", b.TransformPoint(new Vector3(-0.52f, 1.62f, 0.98f)), b.TransformPoint(new Vector3(-0.6f, 0.55f, 1.24f)), Vector3.forward, 0f, 50f);
             var t = s.tableRoot;
-            s.AddPose("table", t.TransformPoint(new Vector3(0f, 1.27f, -0.5f)), t.TransformPoint(new Vector3(0.02f, 0.77f, 0.03f)), Vector3.up, 0f, 42f);
+            s.AddPose("table", t.TransformPoint(TableCamera), t.TransformPoint(TableLook), Vector3.up, 0f, TableFov);
         }
 
         // ---------- Sound sources ----------

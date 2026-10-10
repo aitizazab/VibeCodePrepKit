@@ -44,8 +44,10 @@ a better one than *Visiting Hours*). No red bar, no overlaid buttons, no How to 
 | **Settings** | Another object on the table. Proposal: **Nadia's hospital ID badge on its lanyard** (her identity, her preferences) |
 | **Credits** | Proposal: **a notepad under the pen**, the credits "handwritten" on it |
 
-The fade-in order follows the report: the table and the tablet first (the report starts on it), then the mug,
-then the pen and notepad, then the badge.
+The fade-in order (the creator, 2026-10-11): **the coffee, then the badge, then the notepad, then the tablet, then
+the table, then the room**, each arriving one after another out of the black while the report plays. The tablet
+**takes up most of the frame**; the badge carries **a gear icon and the label "Settings"**; the notepad says
+**"Credits"** at the top of its page.
 
 **Interaction:**
 - Hovering highlights an object (a soft glow, a small lift).
@@ -105,12 +107,20 @@ table presses them), so Play, Settings, Credits and Quit behave exactly as befor
    shape under the blanket with her hair on the pillow, breathing slowly (the blanket rises with each breath).
    A slow push in; the screen dims.
 6. "G'night": the room's light goes, the phone's screen last, then black. Silence; the music blooms.
-7. The table: the table and the tablet first as the news report starts on it, then the mug, the notepad and pen,
-   the badge. The tablet's video drifts and crossfades its frames, the emergency lights pulse, the LIVE tag and its
+7. The table: out of the black as the news report starts, the pieces arrive one after another: the coffee
+   (+0.5 s), the badge (+6 s), the notepad and its pen (+11.5 s), the tablet (+17 s), the table under them (+23 s),
+   the room, its floor and wall (+29 s); the report runs 38.9 s. The tablet's video drifts and crossfades its frames, the emergency lights pulse, the LIVE tag and its
    own headline scrolls along the bottom of the video. When the report ends the video pauses and its play button
    comes up: the title takes input.
 
-**The title table:** the tablet is Play, the mug Quit (inert and never highlighted in the web build), the ID badge
+**The title table:** seen from a seat at its near edge (the camera at 1.10 m, 0.40 m in front of the tablet's
+foot, looking down at it, 50 degrees field of view). A big tablet (46 x 30 cm, a 16:10 screen in a thin bezel, a
+front camera) stands on its folio in the middle and fills most of the frame (about half its width, 60% of its
+height); the mug stands at the front right with the badge beside it (its lanyard looped towards the middle); the
+notepad lies at the front left with the pen across it. The badge's card has a gear and "Settings" on its lower
+band, the notepad's page "Credits" (underlined) with handwritten names under it: both are written onto the
+pictures in code (`VhTextures.BadgeSettings`, `NotepadCredits`; the builder imports `op-badge` and `op-notepad`
+readable for it). The tablet is Play, the mug Quit (inert and never highlighted in the web build), the ID badge
 Settings, the notepad and pen Credits. The mouse highlights what it's over (a warm glow and a small lift) and a click
 chooses it; the arrows, the d-pad or the stick move to the nearest thing in that direction (the first press
 highlights the tablet), Enter or (A) chooses. It pauses while Settings, the credits or the presenter panel are up.
@@ -140,17 +150,27 @@ palette. Any waking-world scene can use it the same way.
 **Models.** Kenney's Furniture Kit (CC0; `ThirdParty/LICENSES.md`): the nightstand, the lamp, the chair (her scrubs
 over it), the rug, a low bookcase with books, a plant. Made in code: the room, the window and its blinds, the
 streetlight and the buildings across the street, the bed, pillows and blanket, the framed photo, the phone, and the
-whole title table. **Nadia** is her Tripo model (`Models/Nadia/`, imported at scale 1.69 by `VhNadiaImport`):
-lying on her side, head hidden in first person, her right arm posed by two-bone IK to the phone; turned away for
-the overhead shot with her hair on the pillow. Without the model (or without Mixamo arm bones) a stand-in arm and
-hair are built instead: the seam is `VhNadiaRig` (`SetMode`, `SetHand`, `SetThumb`, `SetBreath`, `ShowArm`), so a
+whole title table. The phone is built as a device: a rounded dark-metal frame with softened edges, black glass,
+the screen set into the glass inside a thin bezel with rounded corners, a camera bump with two lenses and a flash,
+the power and volume buttons; the tablet the same way. Everything on the nightstand is placed on the model's real
+top: the lamp at the back by the wall, the phone on the bed's side within her reach, the framed photo at the front
+corner, leaning back on its strut, turned towards her pillow. **Nadia** is her Tripo model (`Models/Nadia/`,
+imported at scale 1.69 by `VhNadiaImport`): lying on her side, head hidden in first person, her right arm posed
+by two-bone IK to the phone, her fingers bent round its edges (`SetGrip`: from above while it lies on the
+nightstand, then cradled from behind once it's up, the heel of her hand at its lower edge, the fingers across its
+back, the thumb free over the screen to tap); turned away for the overhead shot with her hair on the pillow. The
+blanket is shaped over her real body: the builder poses her both ways, bakes her skinned mesh and drapes the
+blanket over the highest points (widened, smoothed, plus its thickness), so nothing of her pokes through and
+there's no ridge round her outline. Without the model (or without Mixamo arm bones) a stand-in arm and
+hair are built instead (the blanket then follows a drawn shape of her): the seam is `VhNadiaRig` (`SetMode`, `SetHand`, `SetGrip`,
+`SetThumb`, `SetBreath`, `ShowArm`), so a
 better body is one more subclass.
 
 **Pictures.** The builder looks in `Art/` (any subfolder; `-` and `_` alike, a `-takeN` suffix ignored) for:
 `op-coffee` (the coffee with "Quit"), `op-notepad`, `op-badge` (`op-badge-photo` goes into the drawn badge),
 `op-phone-wallpaper` (the lock screen, and the framed photo), `op-news-*` (the tablet's frames), `tex-wallpaper`,
 `tex-woodfloor`, `tex-tablewood`, `tex-knit` (the blanket), `tex-bedsheet`. Anything missing is drawn in code in
-the same palette (the coffee writes "Quit" in milk, the notepad "Credits") and logged as `JAMKIT_VH art missing`.
+the same palette (the coffee writes "Quit" in milk, the notepad "Credits", the badge "Settings") and logged as `JAMKIT_VH art missing`.
 16:9 pictures are cropped to their surface (a round coffee, a tall page, a card). Run *Rebuild Shell Scenes* after
 new art lands.
 

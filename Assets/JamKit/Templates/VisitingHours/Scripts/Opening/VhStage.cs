@@ -352,16 +352,47 @@ namespace JamKit.VisitingHours
                     break;
             }
             if (_arm != "tap") _thumb = Mathf.MoveTowards(_thumb, 0f, dt * 4f);
+            // How she holds it: from above while it lies on the nightstand, cradled from behind once it's up, and how
+            // closed her fingers are round its edges.
+            float held, curl;
+            switch (_arm)
+            {
+                case "reach": held = 0f; curl = 0.25f * e; break;
+                case "grab": held = 0f; curl = Mathf.Lerp(0.25f, 1f, e); break;
+                case "lift": held = e; curl = 1f; break;
+                case "tap": held = 1f; curl = 1f; break;
+                case "drop": held = 1f - e; curl = Mathf.Lerp(1f, 0.2f, e); break;
+                default: held = 0f; curl = 0.2f; break;
+            }
             if (nadia == null) return;
-            // The wrist sits just behind the phone (towards her shoulder), the palm over it.
-            Vector3 phonePos = phone.position;
-            Vector3 toShoulder = shoulder - phonePos;
-            Vector3 phoneUp = phone.rotation * Vector3.up;
-            Vector3 wrist = phonePos + Vector3.ProjectOnPlane(toShoulder, phoneUp).normalized * 0.075f + phoneUp * 0.03f;
-            Vector3 fingers = (phonePos - wrist).sqrMagnitude > 1e-6f ? (phonePos - wrist).normalized : Vector3.forward;
-            Quaternion palm = Quaternion.LookRotation(fingers, phoneUp);
+            GripPose(held, out var wrist, out var palm);
             nadia.SetHand(wrist, palm, _handWeight);
+            Vector3 centre = phone.position + phone.rotation * new Vector3(0f, phoneSize.y * 0.5f, 0f);
+            nadia.SetGrip(centre, phone.rotation, phoneSize, curl, _thumb);
             nadia.SetThumb(_thumb);
+        }
+
+        /// <summary>The phone's size (width, thickness, length), from the builder: the hand is seated round it.</summary>
+        public Vector3 phoneSize = new Vector3(0.071f, 0.0082f, 0.147f);
+
+        /// <summary>
+        /// Where her right wrist goes and how her hand is turned for a grip on the phone. <paramref name="held"/> 0: from above
+        /// as it lies on the nightstand (the palm over the screen, the fingers along it from its bottom edge); 1: up in her
+        /// hand (the palm behind it, the heel at its lower right edge, the fingers across its back to wrap the left edge, the
+        /// thumb free in front). The two share the bottom edge, so the change turns round it rather than through the phone.
+        /// </summary>
+        public void GripPose(float held, out Vector3 wrist, out Quaternion palm)
+        {
+            Vector3 up = phone.rotation * Vector3.up, top = phone.rotation * Vector3.forward, right = phone.rotation * Vector3.right;
+            float hw = phoneSize.x * 0.5f, th = phoneSize.y, hl = phoneSize.z * 0.5f;
+            Vector3 centre = phone.position + up * (th * 0.5f);
+            Vector3 aboveWrist = centre - top * (hl + 0.03f) + up * (th * 0.5f + 0.024f);
+            Quaternion above = Quaternion.LookRotation(top, up);
+            Vector3 behindWrist = centre - top * (hl * 0.55f) + right * (hw + 0.006f) - up * (th * 0.5f + 0.02f);
+            Quaternion behind = Quaternion.LookRotation((top * 0.55f - right * 0.85f).normalized, -up);
+            float k = VhUtil.Ease(held);
+            wrist = Vector3.Lerp(aboveWrist, behindWrist, k) + up * (Mathf.Sin(k * Mathf.PI) * 0.03f);
+            palm = Quaternion.Slerp(above, behind, k);
         }
 
         static Vector3 Arc(Vector3 a, Vector3 b, float t, float height) => Vector3.Lerp(a, b, t) + Vector3.up * (Mathf.Sin(t * Mathf.PI) * height);

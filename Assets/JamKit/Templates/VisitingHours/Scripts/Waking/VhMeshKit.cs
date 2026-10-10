@@ -162,6 +162,105 @@ namespace JamKit.VisitingHours
             return Finish("vh_cylinder", v, n, uv, t);
         }
 
+        /// <summary>A rounded rectangle's outline in XZ (counter-clockwise seen from above), its corners of radius <paramref name="r"/>.</summary>
+        static void Outline(List<Vector2> into, float width, float length, float r, int segs)
+        {
+            into.Clear();
+            float hw = width * 0.5f, hl = length * 0.5f;
+            r = Mathf.Clamp(r, 0.0002f, Mathf.Min(hw, hl) - 0.0001f);
+            Vector2[] centres = { new Vector2(hw - r, hl - r), new Vector2(-hw + r, hl - r), new Vector2(-hw + r, -hl + r), new Vector2(hw - r, -hl + r) };
+            for (int c = 0; c < 4; c++)
+                for (int i = 0; i <= segs; i++)
+                {
+                    float a = (c * 90f + 90f * i / segs) * Mathf.Deg2Rad;
+                    into.Add(centres[c] + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r);
+                }
+        }
+
+        /// <summary>
+        /// A device body: a rounded rectangle in plan (<paramref name="width"/> along X, <paramref name="length"/> along Z, corner
+        /// radius <paramref name="corner"/>) extruded <paramref name="thickness"/> up from y 0, its edges softened by a bevel
+        /// (<paramref name="bevel"/>). The top face's UVs cover 0..1 (the top of the device along +Z).
+        /// </summary>
+        public Mesh RoundedSlab(float width, float length, float thickness, float corner, float bevel, int segs = 6)
+        {
+            var v = new List<Vector3>();
+            var n = new List<Vector3>();
+            var uv = new List<Vector2>();
+            var t = new List<int>();
+            bevel = Mathf.Clamp(bevel, 0.0001f, thickness * 0.45f);
+            var full = new List<Vector2>();
+            var inset = new List<Vector2>();
+            Outline(full, width, length, corner, segs);
+            Outline(inset, width - 2f * bevel, length - 2f * bevel, Mathf.Max(0.0003f, corner - bevel), segs);
+            int count = full.Count;
+            // Rings bottom to top: the inset bottom edge, the full outline (twice: the straight side), the inset top edge.
+            float[] ys = { 0f, bevel, thickness - bevel, thickness };
+            for (int ring = 0; ring < 4; ring++)
+            {
+                var pts = ring == 0 || ring == 3 ? inset : full;
+                for (int i = 0; i < count; i++)
+                {
+                    Vector2 a = full[(i + count - 1) % count], b = full[(i + 1) % count];
+                    Vector2 tan = (b - a).normalized;
+                    Vector3 outward = new Vector3(tan.y, 0f, -tan.x);
+                    Vector3 nn = ring == 0 ? (outward + Vector3.down).normalized : ring == 3 ? (outward + Vector3.up).normalized : outward;
+                    v.Add(new Vector3(pts[i].x, ys[ring], pts[i].y));
+                    n.Add(nn);
+                    uv.Add(new Vector2((float)i / count, ys[ring] / Mathf.Max(1e-4f, thickness)));
+                }
+            }
+            for (int ring = 0; ring < 3; ring++)
+                for (int i = 0; i < count; i++)
+                {
+                    int a0 = ring * count + i, a1 = ring * count + (i + 1) % count;
+                    int b0 = a0 + count, b1 = a1 + count;
+                    t.Add(a0); t.Add(b0); t.Add(b1);
+                    t.Add(a0); t.Add(b1); t.Add(a1);
+                }
+            // Caps.
+            void Cap(float y, bool up)
+            {
+                int c = v.Count;
+                v.Add(new Vector3(0f, y, 0f)); n.Add(up ? Vector3.up : Vector3.down); uv.Add(new Vector2(0.5f, 0.5f));
+                for (int i = 0; i < count; i++)
+                {
+                    v.Add(new Vector3(inset[i].x, y, inset[i].y));
+                    n.Add(up ? Vector3.up : Vector3.down);
+                    uv.Add(new Vector2(inset[i].x / width + 0.5f, inset[i].y / length + 0.5f));
+                }
+                for (int i = 0; i < count; i++)
+                {
+                    int p0 = c + 1 + i, p1 = c + 1 + (i + 1) % count;
+                    if (up) { t.Add(c); t.Add(p1); t.Add(p0); }
+                    else { t.Add(c); t.Add(p0); t.Add(p1); }
+                }
+            }
+            Cap(thickness, true);
+            Cap(0f, false);
+            return Finish("vh_rounded_slab", v, n, uv, t);
+        }
+
+        /// <summary>A flat rounded rectangle facing +Y at y 0 (a screen, a glass front), UVs 0..1 across it (+Z is up the picture).</summary>
+        public Mesh RoundedRect(float width, float length, float corner, int segs = 6)
+        {
+            var v = new List<Vector3>();
+            var n = new List<Vector3>();
+            var uv = new List<Vector2>();
+            var t = new List<int>();
+            var o = new List<Vector2>();
+            Outline(o, width, length, corner, segs);
+            v.Add(Vector3.zero); n.Add(Vector3.up); uv.Add(new Vector2(0.5f, 0.5f));
+            foreach (var p in o)
+            {
+                v.Add(new Vector3(p.x, 0f, p.y));
+                n.Add(Vector3.up);
+                uv.Add(new Vector2(p.x / width + 0.5f, p.y / length + 0.5f));
+            }
+            for (int i = 0; i < o.Count; i++) { t.Add(0); t.Add(1 + (i + 1) % o.Count); t.Add(1 + i); }
+            return Finish("vh_rounded_rect", v, n, uv, t);
+        }
+
         /// <summary>A flat disc facing +Y (the coffee's surface), UVs 0..1 across it.</summary>
         public Mesh Disc(float radius, int segments = 32) => Cylinder(radius, radius, 0f, segments, true, false);
 

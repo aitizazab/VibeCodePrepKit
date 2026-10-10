@@ -16,8 +16,9 @@ namespace JamKit.VisitingHours.EditorTools
     /// </summary>
     public static class VisitingHoursOpeningContent
     {
-        /// <summary>Bump to reset the cues and markers on the next Rebuild (when the defaults change shape).</summary>
-        public const int DataVersion = 2;
+        /// <summary>Bump to reset the defaults on the next Rebuild (when they change shape): the cues from any older
+        /// version, the voice tracks (and their markers) only from before version 2 (3 re-timed the title's pieces only).</summary>
+        public const int DataVersion = 3;
 
         public const string Root = VisitingHoursBuilder.Root;
         public const string KenneyDir = Root + "/ThirdParty/Kenney/FurnitureKit";
@@ -71,14 +72,14 @@ namespace JamKit.VisitingHours.EditorTools
             return k;
         }
 
-        /// <summary>Pictures the runtime reads pixels from (to write "Quit" into a plain swirl, a photo into the badge).</summary>
-        static readonly string[] ReadableSlots = { "coffee_swirl", "badge_photo" };
+        /// <summary>Pictures the runtime reads pixels from (to write "Quit" into a plain swirl, a photo into the badge, "Settings" onto it, "Credits" onto the notepad).</summary>
+        static readonly string[] ReadableSlots = { "coffee_swirl", "badge_photo", "notepad_page", "badge_face" };
 
         public static void Fill(VisitingHoursBoot b, bool reset)
         {
             bool fresh = b.dataVersion < DataVersion;
             if (reset || fresh || b.cues == null || b.cues.Count == 0) b.cues = SliceContent.OpeningCues();
-            if (reset || fresh || b.tracks == null || b.tracks.Count == 0)
+            if (reset || b.dataVersion < 2 || b.tracks == null || b.tracks.Count == 0)
                 b.tracks = new List<VoiceTrack> { SliceContent.VoicemailTrack(), SliceContent.NewsTrack() };
             b.dataVersion = DataVersion;
             b.headline = SliceContent.Headline(ReadHeadline());

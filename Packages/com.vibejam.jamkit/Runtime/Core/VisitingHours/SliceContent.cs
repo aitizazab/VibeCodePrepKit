@@ -272,16 +272,18 @@ namespace JamKit.VisitingHours
             On("voicemail:end", 0.6f, OpeningCueKind.Breathing, "off");
             // Black, held. Then the music blooms.
             On("voicemail:end", 3.0f, OpeningCueKind.Music, "", 5f, note: "the placeholder sad pad (the title music)");
-            // The news report, from the tablet's speaker (once); the table's pieces fade in one at a time.
+            // The news report, from the tablet's speaker (once). Out of the black the title's pieces arrive one after
+            // another: the coffee, the badge, the notepad (and its pen), the tablet, the table under them, the room.
             On("voicemail:end", 6.0f, OpeningCueKind.Camera, "table", 0f);
             On("voicemail:end", 6.0f, OpeningCueKind.Voice, "news");
-            On("news:start", 0f, OpeningCueKind.Show, "table", 2.0f);
-            On("news:start", 0f, OpeningCueKind.Show, "tablet", 2.0f);
             On("news:start", 0f, OpeningCueKind.Fade, "in", 2.0f);
-            On("news:start", 7f, OpeningCueKind.Show, "mug", 1.8f);
-            On("news:start", 14f, OpeningCueKind.Show, "notepad", 1.8f);
-            On("news:start", 14.6f, OpeningCueKind.Show, "pen", 1.8f);
-            On("news:start", 21f, OpeningCueKind.Show, "badge", 1.8f);
+            On("news:start", 0.5f, OpeningCueKind.Show, "mug", 1.8f);
+            On("news:start", 6f, OpeningCueKind.Show, "badge", 1.8f);
+            On("news:start", 11.5f, OpeningCueKind.Show, "notepad", 1.8f);
+            On("news:start", 12.1f, OpeningCueKind.Show, "pen", 1.8f);
+            On("news:start", 17f, OpeningCueKind.Show, "tablet", 2.0f);
+            On("news:start", 23f, OpeningCueKind.Show, "table", 2.2f);
+            On("news:start", 29f, OpeningCueKind.Show, "room", 2.5f);
             // The end of the report: the tablet's play button is Play.
             On("news:end", 0f, OpeningCueKind.Interactive);
             On("news:end", 0.2f, OpeningCueKind.End);
@@ -323,8 +325,8 @@ namespace JamKit.VisitingHours
             markers = new List<VoiceMarker>(),
         };
 
-        /// <summary>The pieces of the title table, in the order they fade in.</summary>
-        public static readonly string[] TablePieces = { "table", "tablet", "mug", "notepad", "pen", "badge" };
+        /// <summary>The pieces of the title table, in the order they fade in (the room last: the floor and the wall).</summary>
+        public static readonly string[] TablePieces = { "mug", "badge", "notepad", "pen", "tablet", "table", "room" };
 
         /// <summary>The camera poses the opening uses.</summary>
         public static readonly string[] CameraPoses = { "pillow", "nightstand", "away", "overhead", "table" };

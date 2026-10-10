@@ -20,6 +20,16 @@ namespace JamKit.VisitingHours.Tests
             return b;
         }
 
+        /// <summary>The world bounds of everything drawn under <paramref name="t"/>.</summary>
+        static Bounds RendererBounds(Transform t)
+        {
+            var rs = t.GetComponentsInChildren<Renderer>(true);
+            Assert.That(rs.Length, Is.GreaterThan(0), t.name + " has something drawn");
+            var b = rs[0].bounds;
+            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+            return b;
+        }
+
         [Test]
         public void TheBootAssetIsWired()
         {
@@ -108,6 +118,19 @@ namespace JamKit.VisitingHours.Tests
                 Assert.That(stage.table.Find("notepad").action, Is.EqualTo(VhTitleAction.Credits));
                 Assert.That(stage.table.Find("pen").Group, Is.EqualTo("notepad"), "the pen goes with the notepad");
                 Assert.That(stage.table.Find("table").action, Is.EqualTo(VhTitleAction.None));
+                Assert.That(stage.table.Find("room").action, Is.EqualTo(VhTitleAction.None));
+                // The framed photo and the phone stand on the nightstand: on its top, inside its edges.
+                var stand = stage.bedroom.Find("nightstand") ?? stage.bedroom.Find("Nightstand");
+                Assert.That(stand, Is.Not.Null);
+                var sb = RendererBounds(stand);
+                foreach (var name in new[] { "Framed photo", "Phone" })
+                {
+                    var thing = stage.bedroom.Find(name);
+                    Assert.That(thing, Is.Not.Null, name);
+                    var tb = RendererBounds(thing);
+                    Assert.That(tb.min.y, Is.EqualTo(sb.max.y).Within(0.006f), name + " sits on the nightstand's top");
+                    Assert.That(tb.min.x >= sb.min.x && tb.max.x <= sb.max.x && tb.min.z >= sb.min.z && tb.max.z <= sb.max.z, Is.True, name + " is all on the nightstand");
+                }
                 foreach (var id in new[] { "tablet", "mug", "badge", "notepad", "pen" })
                 {
                     var p = stage.table.Find(id);

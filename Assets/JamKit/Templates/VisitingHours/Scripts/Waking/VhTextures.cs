@@ -374,7 +374,115 @@ namespace JamKit.VisitingHours
             }
         }
 
-        /// <summary>A tiny hand-drawn stroke alphabet (only the letters the title needs: "Quit", "Credits").</summary>
+        /// <summary>A gear (eight teeth, a hole) filled into a pixel buffer, anti-aliased: the "Settings" icon.</summary>
+        public static void Gear(Color[] px, int w, int h, float cx, float cy, float radius, Color c)
+        {
+            float inner = radius * 0.78f, hole = radius * 0.34f;
+            int x0 = Mathf.Max(0, Mathf.FloorToInt(cx - radius - 2)), x1 = Mathf.Min(w - 1, Mathf.CeilToInt(cx + radius + 2));
+            int y0 = Mathf.Max(0, Mathf.FloorToInt(cy - radius - 2)), y1 = Mathf.Min(h - 1, Mathf.CeilToInt(cy + radius + 2));
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++)
+                {
+                    float dx = x + 0.5f - cx, dy = y + 0.5f - cy;
+                    float r = Mathf.Sqrt(dx * dx + dy * dy);
+                    // Teeth: a rounded square wave round the rim (eight of them).
+                    float a = Mathf.Atan2(dy, dx) * 8f / (Mathf.PI * 2f);
+                    float f = Mathf.Abs(a - Mathf.Round(a));
+                    float tooth = Mathf.Clamp01((0.3f - f) * 8f);
+                    float outer = Mathf.Lerp(inner, radius, tooth);
+                    float cover = Mathf.Clamp01(outer + 0.5f - r) * Mathf.Clamp01(r - hole + 0.5f);
+                    if (cover <= 0f) continue;
+                    int i = y * w + x;
+                    px[i] = Color.Lerp(px[i], c, cover);
+                }
+        }
+
+        /// <summary>
+        /// Nadia's badge with the Settings label: the badge art (or the drawn badge) with a gear and "Settings" written
+        /// on the card's lower band (the art's empty grey bar; on the drawn card, a bar painted over the name lines).
+        /// </summary>
+        public Texture2D BadgeSettings(Texture2D art, Texture2D photo)
+        {
+            bool fromArt = art != null && art.isReadable;
+            int W, H;
+            Color[] px;
+            float barV;
+            if (fromArt)
+            {
+                W = 384;
+                H = Mathf.Max(1, Mathf.RoundToInt(W * (float)art.height / art.width));
+                px = new Color[W * H];
+                for (int y = 0; y < H; y++)
+                    for (int x = 0; x < W; x++) px[y * W + x] = art.GetPixelBilinear((x + 0.5f) / W, (y + 0.5f) / H);
+                barV = 0.364f; // the badge art's wide grey bar under the photo
+            }
+            else
+            {
+                var drawn = BadgeFace(photo);
+                W = drawn.width;
+                H = drawn.height;
+                px = drawn.GetPixels();
+                barV = 0.25f;
+                Color bar = new Color(0.84f, 0.87f, 0.87f);
+                for (int y = Mathf.RoundToInt((barV - 0.05f) * H); y < Mathf.RoundToInt((barV + 0.05f) * H); y++)
+                    for (int x = Mathf.RoundToInt(0.12f * W); x < Mathf.RoundToInt(0.88f * W); x++) px[y * W + x] = bar;
+            }
+            Color ink = new Color(0.17f, 0.30f, 0.34f);
+            Gear(px, W, H, 0.21f * W, barV * H, 0.05f * W, ink);
+            var brush = new Brush(px, W, H);
+            StrokeText.Draw(brush, "Settings", new Vector2(0.575f, barV - 0.006f), 0.12f, 0f, W, W / 130f, ink, 0.95f, (float)H / W);
+            return Make("badge_settings", W, H, px, false);
+        }
+
+        /// <summary>
+        /// The notepad page with the credits on it: the page art (or the drawn page, which already has them) with
+        /// "Credits" written on its top lines, underlined, and a few lines of handwritten names under it.
+        /// </summary>
+        public Texture2D NotepadCredits(Texture2D art)
+        {
+            if (art == null || !art.isReadable) return NotepadPage();
+            const int W = 512;
+            int H = Mathf.Max(1, Mathf.RoundToInt(W * (float)art.height / art.width));
+            var px = new Color[W * H];
+            for (int y = 0; y < H; y++)
+                for (int x = 0; x < W; x++) px[y * W + x] = art.GetPixelBilinear((x + 0.5f) / W, (y + 0.5f) / H);
+            float aspect = (float)H / W;
+            Color ink = new Color(0.18f, 0.22f, 0.36f);
+            var brush = new Brush(px, W, H);
+            // The art's ruled lines: the first 0.115 from the top, then every 0.0557 (the notepad shows the middle 72%).
+            const float first = 0.115f, step = 0.0557f;
+            float headBase = 1f - (first + step);
+            StrokeText.Draw(brush, "Credits", new Vector2(0.5f, headBase + 0.042f / aspect), 0.1f, -2f, W, 3.4f, ink, 0.95f, aspect);
+            var path = new List<Vector2>();
+            path.Clear();
+            for (float t = 0f; t <= 1f; t += 0.05f) path.Add(new Vector2(0.31f + t * 0.38f, headBase - 0.012f + Mathf.Sin(t * 5f) * 0.002f));
+            brush.Stroke(path, W, 1.8f, ink, 0.85f, aspect);
+            // Names: handwriting loops along the next lines, short and long.
+            for (int row = 0; row < 8; row++)
+            {
+                float baseY = 1f - (first + step * (row + 3)) + 0.004f;
+                float x = 0.2f;
+                float end = (row % 3 == 2 ? 0.55f : 0.78f) - Hash(row, 3, 5) * 0.1f;
+                int word = 0;
+                while (x < end)
+                {
+                    path.Clear();
+                    float wordLen = 0.06f + Hash(row, word, 7) * 0.09f;
+                    for (float t = 0f; t <= 1f; t += 0.02f)
+                    {
+                        float xx = x + t * wordLen;
+                        float loop = Mathf.Sin(t * wordLen * W * 0.45f) * 6f + Mathf.Sin(t * wordLen * W * 0.13f + word) * 3f;
+                        path.Add(new Vector2(xx + Mathf.Cos(t * wordLen * W * 0.45f) * 2.5f / W, baseY + (loop + 7f) / H));
+                    }
+                    brush.Stroke(path, W, 1.5f, ink, 0.8f, aspect);
+                    x += wordLen + 0.025f;
+                    word++;
+                }
+            }
+            return Make("notepad_credits", W, H, px, false);
+        }
+
+        /// <summary>A tiny hand-drawn stroke alphabet (only the letters the title needs: "Quit", "Credits", "Settings").</summary>
         public static class StrokeText
         {
             static readonly List<Vector2> Pts = new List<Vector2>();
@@ -429,6 +537,17 @@ namespace JamKit.VisitingHours
                     case 's':
                         Begin(); Arc(0.24f, 0.41f, 0.17f, 0.13f, 20f, 270f, 10); Arc(0.24f, 0.14f, 0.18f, 0.14f, 90f, -160f, 10); End();
                         return 0.5f;
+                    case 'S':
+                        Begin(); Arc(0.36f, 0.72f, 0.26f, 0.23f, 25f, 270f, 16); Arc(0.36f, 0.25f, 0.29f, 0.25f, 90f, -165f, 16); End();
+                        return 0.74f;
+                    case 'n':
+                        Begin(); Pts.Add(new Vector2(0.08f, 0.55f)); Pts.Add(new Vector2(0.08f, 0.0f)); End();
+                        Begin(); Pts.Add(new Vector2(0.08f, 0.3f)); Arc(0.28f, 0.32f, 0.2f, 0.22f, 175f, 0f, 10); Pts.Add(new Vector2(0.48f, 0.0f)); End();
+                        return 0.62f;
+                    case 'g':
+                        Begin(); Arc(0.26f, 0.3f, 0.2f, 0.25f, 90f, 450f, 24); End();
+                        Begin(); Pts.Add(new Vector2(0.46f, 0.55f)); Pts.Add(new Vector2(0.46f, -0.1f)); Arc(0.27f, -0.1f, 0.19f, 0.18f, 0f, -165f, 10); End();
+                        return 0.6f;
                     default:
                         return 0.4f;
                 }
