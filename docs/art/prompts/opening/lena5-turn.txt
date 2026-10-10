@@ -1,0 +1,17 @@
+Aspect ratio: 16:9 landscape.
+
+Image 1 is Lena's previous model sheet: keep her face, freckles, honey-blonde waves, the pencil on her right ear, the cream sweater, the drawing style and sheet layout. CHANGE: remove the key necklace completely, and replace the skirt with the trousers and boots described here.
+
+Style: the waking world of a narrative game: grounded but stylised, muted and slightly cold palette, simplified clean shapes with soft flat shading and restrained thin line work, quiet and calm, like a literary graphic novel. NOT gritty, NOT photographic, no grime, no film grain, no heavy texture. Near-future city, no cybernetics, no neon gadgets.
+
+The character: Lena, a woman in her early thirties who married into money and has leisure: composed, rested, quietly curious, a little unreadable. Her face: soft, full and round, rested (no tiredness), a rounded chin, freckles across her nose and cheeks, large wide-set green-grey eyes with a calm, level, knowing look, a closed-lipped half-smile that doesn't explain itself. Her NOSE is small and softly modelled INTO the face with the same skin tones and gentle shading as her cheeks, no separate outline: it belongs to the face, never a shape pasted on top. Long, loose, wavy honey-blonde hair worn down past her shoulders, the right side neatly tucked behind her right ear, and resting on top of that ear a neatly sharpened slim dark-green pencil, placed precisely and deliberately, the habit of someone who notes things down and keeps things in order. Clothes: quality, considered and a little private, never flashy, no workwear: a fitted cream fine-knit high-neck sweater with the SLEEVES DOWN TO THE WRISTS; slim, straight-leg deep wine-red wool trousers, well cut; practical slim dark-brown leather lace-up ankle boots made for walking the city at night; a thin gold watch worn with its face on the INSIDE of her left wrist. NO necklace, NO pendant, NO chain, nothing at all on her chest or neck. Posture: upright, relaxed, self-contained.
+
+Her sleeves are full length and down to her wrists in every view: never rolled or pushed up. No apron, no clay, no paint, nothing that looks like work clothes.
+
+Nothing on her chest, no jewellery except the watch, and no crossed straps, crossed lines or cross-like shapes anywhere in the image.
+
+A character turnaround model sheet for 3D modelling: the same character drawn three times side by side at exactly the same scale and height on one shared ground line: a FRONT view, a SIDE view (true profile) and a BACK view. Each is full body from the top of the head to the shoes, standing in a neutral A-pose (arms straight and slightly away from the body, palms facing the thighs, feet a little apart), neutral expression. Orthographic, no perspective distortion, flat even shadowless lighting, clean silhouettes with space between the views.
+
+Background: completely plain flat light grey (#d8d8d8), no scenery, no floor, no cast shadows.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

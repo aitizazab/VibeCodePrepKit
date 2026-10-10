@@ -190,3 +190,33 @@ put("lena4-expr", "Image 1 is Lena's dream billboard: keep the same character an
     "pencil, the clothes and the colours identical in every portrait.", PAPER)
 for k in ("lena4-turn", "lena4-bb", "lena4-expr"):
     with open(os.path.join(OUT, k + ".txt"), "w", encoding="utf8", newline="\n") as f: f.write(P[k])
+
+# -- Lena, round 4 step 1 (the creator's notes on round 3, 2026-10-10): no key necklace (it read as a cross), the notebook never
+#    held to her chest, practical clothes for going out at night instead of the skirt.
+LENA5 = LENA4.replace("a long, softly pleated deep wine-red midi skirt; slim dark-brown leather ankle boots; a thin gold watch worn "
+                      "with its face on the INSIDE of her left wrist; a small old brass key on a fine chain around her neck.",
+                      "slim, straight-leg deep wine-red wool trousers, well cut; practical slim dark-brown leather lace-up ankle "
+                      "boots made for walking the city at night; a thin gold watch worn with its face on the INSIDE of her left "
+                      "wrist. NO necklace, NO pendant, NO chain, nothing at all on her chest or neck.")
+assert LENA5 != LENA4
+NOCROSS = ("Nothing on her chest, no jewellery except the watch, and no crossed straps, crossed lines or cross-like shapes anywhere "
+           "in the image.")
+put("lena5-turn", "Image 1 is Lena's previous model sheet: keep her face, freckles, honey-blonde waves, the pencil on her right "
+    "ear, the cream sweater, the drawing style and sheet layout. CHANGE: remove the key necklace completely, and replace the skirt "
+    "with the trousers and boots described here.", REAL, LENA5, SLEEVES4, NOCROSS, TURN, BG)
+put("lena5-bb", "Image 1 is Lena's new waking-world model sheet: keep the same person (face, hair tucked behind the right ear with "
+    "the pencil on that ear, the cream sweater, wine-red trousers, boots, colours). Image 2 shows the dream style (an older dream "
+    "billboard of her, in old clothes): redraw her completely in that style, in her NEW clothes. Do not copy Image 2's skirt, "
+    "necklace or pose.", DREAM, LENA5, SLEEVES4, NOCROSS,
+    "Her ear is SMALL and sits close against her head, partly under the hair, never sticking out; the pencil still visible on it. "
+    "Introduction pose: composed and at ease, one slim dark-leather notebook held loosely in ONE hand down at her side (not held "
+    "to her chest), the other hand relaxed, weight on one leg, a small closed-lipped half-smile that keeps something back. Cute, "
+    "calm, not sinister.", BILL, PAPER)
+put("lena5-expr", "Image 1 is Lena's dream billboard: keep the same character and style exactly (round face, blonde waves tucked "
+    "behind a small close ear with the pencil on it, the cream high-neck sweater, no necklace).", DREAM, LENA5, NOCROSS,
+    "Her ear is small and close to her head. An expression sheet: exactly three head-and-shoulders portraits of her in one row, "
+    "nothing else in the image, at exactly the same scale and framing, evenly spaced. From left to right: warm (a soft open "
+    "smile), knowing (a small closed half-smile, eyes calm and level, giving nothing away), defensive (chin up, a cool, guarded "
+    "look, mouth set). The hair, the pencil, the clothes and the colours identical in every portrait.", PAPER)
+for k in ("lena5-turn", "lena5-bb", "lena5-expr"):
+    with open(os.path.join(OUT, k + ".txt"), "w", encoding="utf8", newline="\n") as f: f.write(P[k])

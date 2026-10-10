@@ -1,0 +1,72 @@
+{
+ "name": "visiting-hours-lena-round4-a",
+ "title": "Visiting Hours: Lena, round 4, step 1 (my design, fixed)",
+ "subtitle": "Round 3 fixed from your notes (2026-10-10), Nano Banana Pro, 0 credits: the key necklace is gone (nothing on her chest at all, only the watch worn face-in), the notebook is held loosely in one hand at her side, and the skirt is now slim wine-red wool trousers with practical lace-up boots for walking the city at night. Everything else is kept. Each tile: round 4 (green) with round 3 beside it (blue).",
+ "questions": [
+  "Does anything still read as religious? (No pendant, no chain; the notebook hangs at her side.)",
+  "Do the trousers and boots fit someone who goes out at night, while staying quality and not workwear?",
+  "Is this the design to reconcile with the other agent's (the next step of the relay)?"
+ ],
+ "notes": [
+  "Judged defects first, and checked for cross-like shapes: no necklace or pendant in any pick; no crossed straps; the pencil sits alone on her ear.",
+  "Waking turnaround: rejected take 4 (it printed FRONT / SIDE / BACK labels on the sheet) and take 2 (a narrower face that drifts from round 3).",
+  "Dream billboard: rejected take 1 (the sweater sleeves bunch up to the elbows, bare forearms: the siblings' quirk). Take 3 is the alternate.",
+  "Dream expressions: all three takes were clean; the pick matches the billboard's eyes."
+ ],
+ "sections": [
+  {
+   "title": "Nadia, Lena round 3 and Lena round 4 step 1, front views",
+   "cols": 1,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\VibeJamKit\\docs\\art\\vh-lena-round4a-fronts.jpg",
+     "label": "Left to right: Nadia, Lena round 3, Lena round 4 (step 1)",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Lena, round 4 step 1 (with round 3 beside each)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena5-turn-take1.jpg",
+     "label": "Round 4: waking turnaround",
+     "verdict": "pick",
+     "note": "No necklace; trousers and lace-up boots; the face kept from round 3."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena4-turn-take1.jpg",
+     "label": "Round 4: waking turnaround (alternate)",
+     "verdict": "alt",
+     "note": "Round 3"
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena5-bb-take2.jpg",
+     "label": "Round 4: dream billboard",
+     "verdict": "pick",
+     "note": "The notebook in one hand at her side; sleeves to the wrists; a small ear."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena4-bb-take2.jpg",
+     "label": "Round 4: dream billboard (alternate)",
+     "verdict": "alt",
+     "note": "Round 3"
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena5-expr-take2.jpg",
+     "label": "Round 4: dream expressions (warm, knowing, defensive)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena4-expr-take1.jpg",
+     "label": "Round 4: dream expressions (warm, knowing, defensive) (alternate)",
+     "verdict": "alt",
+     "note": "Round 3"
+    }
+   ]
+  }
+ ]
+}
