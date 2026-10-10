@@ -44,6 +44,19 @@ in this city.
   slightly too perfect.
 - **The creator's note (2026-10-10):** in the first sheets, Lena with her bun looked too much like Nadia. She gets
   **blonde hair or a clearly different hairstyle** (not a bun), so the two never read as the same woman.
+- **The rules for Lena's look (the creator, 2026-10-10, round 2).** Lena and Nadia aren't related, so nothing about
+  them may echo each other:
+  - **A clearly different face from Nadia's.** Nadia is narrow and angular with hollow cheeks. Lena is soft and
+    round: full cheeks, a rounded chin, a short button nose, soft rounded brows, large wide-set green-grey eyes, a wide
+    mouth, freckles. Never make Lena's face with Nadia's sheet attached.
+  - **Her own clothes and silhouette.** A ceramicist: a long-sleeved dusty-rose midi dress, a clay-smeared ecru apron,
+    brown ankle boots. Nothing that echoes Nadia's jacket and scrubs or Elias's coat and shirt.
+  - **Sleeves down, always.** Pushed-up sleeves are the siblings' shared quirk (Nadia and Elias); Lena never has it.
+  - **The pencil rests on top of her ear**, tucked behind it, with her hair tucked behind that ear so it reads as
+    deliberate (not lost in her hair).
+  - **Keep:** honey-blonde, long loose waves, freckles. In the dream she stays cute and not overwhelmingly wrong: being
+    a billboard in the dream instead of 3D is eerie enough.
+  - Sheets: `docs/art/vh-lena3-picks.json` (the round-2 picks).
 
 ## Theo
 - **Role:** Elias and Lena's son, ten, killed in the crash. In the dream, he's the one who asks the question that
