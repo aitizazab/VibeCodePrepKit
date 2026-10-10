@@ -888,3 +888,20 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   base / drive / peak / (tension), with a README.
 - **Note for the creator:** a stumble longer than 0.6 s drops the tier, so the drive and peak layers leave on the next
   bar and come back when flying again. That can be made more forgiving (a longer fade-out, or a music-only hold).
+
+### Speed visuals built (17:10; not yet in Unity)
+- **V1, the boom:** once per real crossing into flying: about +6° FOV settling over 0.4 s, a soft ring rippling from the
+  screen centre, and a one-frame colour split. Respawns and chapter jumps don't boom.
+- **V2, streaks:** pale motes with dark outlines in the lab; pastel confetti and petals outlined in plum in the dream.
+  None at running, about 45 a second at fast, about 140 at flying; kept off your line and out of the centre.
+- **V3:** the speed lines have a dark core and a light rim, so they show on any background (alpha 0.3).
+- **V5:** puffs on foot plants from fast (off the wall during a wallrun), and glowing footprints at flying (cyan in the
+  lab, gold in the dream, fading over 1.6 s).
+- **V6:** an edge blur at flying only.
+- **V7 (escape):** +25% saturation and a slight brightening, flowers opening 5–16 m ahead, the static drawn up to 3 m
+  further back. Visual only; the pursuer is unchanged.
+- **Comfort:** a new "Reduce effects" toggle (blur and colour split off, streaks and lines at 40%). Motion effects scales
+  everything. No shake or roll.
+- **Risks:** the first render-graph pass in the project, three shaders never compiled in Unity, and unchecked streak
+  stretch and footprint orientation. The audio is being switched to the same tier thresholds.
+- **Waiting:** one Unity batch for everything, when the creator frees the CPU.
