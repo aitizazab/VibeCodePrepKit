@@ -28,7 +28,7 @@ namespace JamKit.VisitingHours
         public float windowSpillIntensity = 0.15f;
         [Tooltip("The phone's screen on her hand and the blanket (a spot out of the screen; follows the screen's brightness).")]
         public Light phoneFace;
-        public float phoneFaceIntensity = 0.018f;
+        public float phoneFaceIntensity = 0.013f;
         [Tooltip("The tablet's screen on the table and the mug; red and blue from the report's emergency lights while it plays.")]
         public Light tabletGlow;
         public float tabletGlowIntensity = 0.008f;
