@@ -983,3 +983,12 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **The design docs** are about 1,600 lines. An agent is writing `docs/DESIGN-DECISIONS.md`: a short checklist of only the decisions the creator must confirm, a verdict on filler, and what to skip. The four docs are open in the editor and are not touched.
 - **Music:** the creator thinks the movement base sounds like a 2012–2019 song. Candidate: Alan Walker's "Faded" (2015), the same i–VI–III–VII under soft pads and a plucked figure.
 - **Visiting Hours** build launched for the creator's notes on the opening.
+- **Visiting Hours too quiet** (the creator):
+  - The shared save had master volume at 10%. The creator was told to raise it in Settings.
+  - 0f1c837: the recordings are now at dialogue loudness (voicemail and Nadia -16 LUFS, news -18, from -22, -25 and -44). The generated Visiting Hours sounds are scaled to set peaks, and the default master volume is 100%.
+  - A rebuild to `Builds/Play/VisitingHours-next` is under way.
+- **DESIGN-DECISIONS.md (1bbc45b):**
+  - About 100 lines: 30 items to confirm and 21 open.
+  - Verdict: about a fifth of the four docs is repetition, and over half only matters once the checklist is settled.
+  - Theo's blessing, Lena's truth and the Long Night are all open.
+  - It flags contradictions: two corporations or a corporation and a gang; whether Nadia heard the call; Lena's ceramics against no clay; a threshold against a granular choice for his decision; 41 against 42 Saturdays; 2:47 against 2:50.
