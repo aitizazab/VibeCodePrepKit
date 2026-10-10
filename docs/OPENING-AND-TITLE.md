@@ -180,3 +180,66 @@ give an id a clip in the Audio Registry to replace it. The music is still the pl
 
 **Skipping and testing.** Hold Escape (or B) to skip to the title. Tests skip the opening (batch mode) and play it
 fast on purpose; the smoke run plays it at 30x and waits for the table before pressing Play (`SmokeRunner.TitleGate`).
+
+## Lighting (built 2026-10-11)
+The creator asked for a severe overhaul: "it's not at all cinematic", and the title is the first thing every player sees.
+
+**Where:**
+- `Scripts/Opening/VhLighting.cs` builds the rig and the grade once both sets exist. `VhStageBuilder` calls it; the staging isn't touched.
+- `Scripts/Opening/VhLightingRig.cs` handles the moment-to-moment changes.
+- Every number is a commented constant at the top of `VhLighting`.
+
+### The bedroom at night
+- **The key light** is the warm sodium streetlight coming up through the blinds. It lays amber stripes across the ceiling and the wallpaper above the bed.
+  - The stripes come from a **light cookie traced from the real window and slats**, on every platform. The spot light's own soft shadows (PC) thicken the 4 mm slats until the gaps close, and WebGL has no spot-light shadows at all.
+- **The moon is the main light:** cold blue through the window. It casts the room's shadows, including the blinds' stripes across the bed.
+- **A faint cool spill** comes in through the window. The general fill is low and cool, so the room is dark but readable.
+- **The phone is the only light near her:**
+  - face up, a soft cool pool on the nightstand;
+  - in her hand, a second light from the screen onto her fingers and the blanket.
+
+  Both sit 12–14 cm off the glass at small intensities: URP's lights fall off with the square of the distance, so a light a few centimetres from a surface blows it out.
+- **The streetlamp and the lit windows** across the street glow and bloom.
+- **The night grade:**
+  - ACES tonemapping;
+  - teal shadows and warm highlights;
+  - blacks just above black;
+  - bloom, a vignette and light film grain;
+  - the background falls out of focus behind the phone in the phone shots;
+  - at "G'night" the exposure falls with the room's light.
+
+### The title table in the morning
+- **The sun** is warm, about 35° up, from the camera's left. Its **window-pane cookie** lays a sun patch about 0.85 m across on the table, with the cross of the window bars falling between the pieces. Everything outside the patch is in cool shade, and the shadows are long and soft.
+- **A cool sky fill** comes from the room side.
+- **A soft warm glow** of morning falls on the wallpaper.
+- **The tablet's screen** throws a faint glow on the table. While the report plays, it alternates gently between red and blue with the emergency lights.
+- **The morning grade:** ACES, warm and quiet, slightly lifted blacks, soft bloom, a gentle vignette, the wallpaper out of focus behind the tablet.
+
+### Shadows, SSAO and WebGL
+- **Sharp shadows:** while the sets are up, the pipeline's shadow distance is 7 m instead of 50, so the shadow map covers just the rooms. It's given back when they go.
+- **Contact shading on PC:** the waking shader (`VisitingHoursWaking.shader`) now reads URP's SSAO, and has a DepthNormals pass to feed it.
+- **WebGL** (the Mobile quality level) gets the same picture: cookies, Gaussian depth of field, bloom, tonemapping, SMAA. It has no SSAO and harder main-light shadows.
+- **Safety:** the camera stops NaNs, and bloom is clamped at 20, so one blown pixel can't flood the frame.
+
+### Iterating
+- `tools/vh-lighting-capture.ps1` (or *JamKit > Visiting Hours > Capture the Lighting* in the editor) renders seven moments at 1920x1080 to `out/vh-lighting/<time>/`, on PC and on WebGL quality:
+  1. the dark room
+  2. the phone lit on the nightstand
+  3. the phone held close
+  4. the drop, seen from overhead
+  5. towards "G'night"
+  6. the title while the report plays
+  7. the title at rest
+- Unity runs in batch mode with graphics. Rebuild the scenes first, so the boot asset carries the art and Nadia's model; otherwise the stand-ins show.
+- It took five rounds:
+  1. blown-out lights near surfaces and a red frame;
+  2. the distances fixed;
+  3. the stripes fixed on PC, and the title's sun made to read as sun;
+  4. thinner window bars and a warm wall;
+  5. a touch less sun and more fill for the real, darker wood.
+
+### What the creator should look at
+1. The streetlight's stripes as the opening fades up.
+2. The phone's light on her hand.
+3. Whether the title's sun patch reads as morning and is the mood you want. The alternative is lighting from behind the tablet, which is moodier, with the shadows falling towards you.
+4. Whether "Quit" in the coffee reads in the sun.

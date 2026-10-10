@@ -44,14 +44,14 @@ namespace JamKit.VisitingHours
         public static readonly Color MorningSky = new Color(0.24f, 0.26f, 0.32f), MorningGround = new Color(0.17f, 0.145f, 0.12f);
         /// <summary>The sun: warm, about 35 degrees up, from the camera's left and a little behind it.</summary>
         public static readonly Color SunColor = new Color(1f, 0.90f, 0.76f);
-        public const float SunIntensity = 2.5f;
+        public const float SunIntensity = 2.2f;
         public static readonly Vector3 SunDirection = new Vector3(0.70f, -0.58f, 0.42f);
         /// <summary>Where the window patch is centred (table space): among the mug, the badge and the tablet, so the pieces sit in
         /// the sun and the cross of the mullions lands on the table between them.</summary>
         public static readonly Vector3 SunPatchCentre = new Vector3(0.08f, 0.75f, -0.02f);
         /// <summary>The sky fill from the room side: cool, soft, no shadows.</summary>
         public static readonly Color FillColor = new Color(0.55f, 0.64f, 0.86f);
-        public const float FillIntensity = 0.18f;
+        public const float FillIntensity = 0.26f;
         /// <summary>How much of the world the sun's window cookie covers (m): the window patch is about 0.85 m across (and
         /// 1.7 m long on the table, stretched by the sun's angle), so its edges and the cross of its mullions land on the table.</summary>
         public const float WindowCookieSize = 1.2f;
