@@ -313,8 +313,16 @@ namespace JamKit.VisitingHours
             Vector3 p = i >= 0 ? posePositions[i] : cam.transform.position;
             Quaternion r = i >= 0 ? poseRotations[i] : cam.transform.rotation;
             Vector3 fwd = r * Vector3.forward, up = r * Vector3.up, right = r * Vector3.right;
-            pos = p + fwd * 0.22f - right * 0.07f;
+            pos = p + fwd * 0.20f - right * 0.10f - up * 0.03f;
             rot = Quaternion.LookRotation(up, -fwd) * Quaternion.Euler(-12f, 0f, 0f);
+            // Within her reach: her wrist sits about 12 cm under the phone's middle, and the grip may slide it a few
+            // centimetres more; keep that point inside 80% of her arm's length (bring the phone towards her shoulder).
+            if (nadia != null && nadia.ArmReach(out var shoulderNow, out var arm))
+            {
+                Vector3 wristNear = pos - (rot * Vector3.forward) * 0.12f;
+                float d = Vector3.Distance(wristNear, shoulderNow), keep = arm * 0.8f;
+                if (d > keep) pos += (shoulderNow - wristNear).normalized * (d - keep);
+            }
         }
 
         void TickArm(float dt)

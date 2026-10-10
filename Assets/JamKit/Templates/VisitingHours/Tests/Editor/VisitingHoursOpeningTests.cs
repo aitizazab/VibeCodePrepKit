@@ -226,7 +226,9 @@ namespace JamKit.VisitingHours.Tests
                 log.Append(" | vertices within 8 cm of the hand ").Append(near).Append(" closest ").Append(closest.ToString("F3")).Append(" mesh bounds ").Append(all.ToString("F3"));
                 Debug.Log(log.ToString());
                 TestContext.WriteLine(log.ToString());
-                Assert.That(Vector3.Distance(hand, wrist), Is.LessThan(0.03f), "the hand is at the grip");
+                // The grip moves her wrist off and along the phone from the stage's grip point (SeatedWrist): she reaches it.
+                Assert.That(Vector3.Distance(hand, model.SeatedWrist), Is.LessThan(0.015f), "the hand reaches the grip");
+                Assert.That(Vector3.Distance(hand, wrist), Is.LessThan(0.15f), "the hand is near the stage's grip point");
                 Assert.That(view.z > cam.nearClipPlane && view.x > 0f && view.x < 1f && view.y > 0f && view.y < 1f, Is.True, "the hand is in view");
                 Assert.That(near, Is.GreaterThan(50), "her skinned hand is round the hand bone");
                 // Nothing of her hand inside the phone: the knuckles, the finger joints and their tips are all outside it.

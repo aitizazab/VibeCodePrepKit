@@ -36,6 +36,15 @@ namespace JamKit.VisitingHours
         /// </summary>
         public virtual void SetGrip(Vector3 phoneCentre, Quaternion phoneRotation, Vector3 phoneSize, float curl, float thumbPress) { }
 
+        /// <summary>Her right shoulder (world) and her arm's full length, so what she holds can be kept within reach.
+        /// False when the body doesn't know them.</summary>
+        public virtual bool ArmReach(out Vector3 shoulder, out float length)
+        {
+            shoulder = Vector3.zero;
+            length = 0f;
+            return false;
+        }
+
         /// <summary>
         /// Two-bone IK in world space: puts the elbow on the side of <paramref name="pole"/> so the wrist
         /// reaches <paramref name="target"/> (or as close as the arm's length allows).
@@ -312,7 +321,19 @@ namespace JamKit.VisitingHours
 
         /// <summary>The most each finger joint bends (degrees) when the hand is closed and nothing stops it.</summary>
         static readonly float[] CurlDegrees = { 12f, 18f, 12f }; // small: her model's mitten-like fingers crumple when bent far
-        const float FingerRadius = 0.008f, PalmClearance = 0.015f, CurlStep = 5f;
+        const float FingerRadius = 0.008f, PalmClearance = 0.015f, CurlStep = 5f, EdgeMargin = 0.02f;
+
+        /// <summary>Where the last grip seated her wrist (world): the grip's wrist, moved off and along the phone.</summary>
+        public Vector3 SeatedWrist => _lastWrist;
+
+        /// <summary>Held, a finger's end must stay behind the phone's back face (by a finger's thickness) while it's over
+        /// the phone or within <see cref="EdgeMargin"/> of its outline: past the edge it shows from the side, never in front.</summary>
+        bool FingerInFront(Vector3 e, float side)
+        {
+            Vector3 q = _phoneInv * (e - _phoneCentre);
+            if (Mathf.Abs(q.x) > _phoneHalf.x + EdgeMargin || Mathf.Abs(q.z) > _phoneHalf.z + EdgeMargin) return false;
+            return side * q.y < _phoneHalf.y + FingerRadius;
+        }
 
         Vector3 _phoneCentre, _phoneHalf;
         Quaternion _phoneInv = Quaternion.identity;
@@ -348,14 +369,15 @@ namespace JamKit.VisitingHours
                 if (Mathf.Abs(q.x) > _phoneHalf.x + 0.01f || Mathf.Abs(q.z) > _phoneHalf.z + 0.01f) continue;
                 need = Mathf.Max(need, _phoneHalf.y + PalmClearance - side * q.y);
             }
-            // The fingers too: every joint and tip over the phone's outline clear of its face by a finger's thickness.
+            // The fingers too: every joint and tip over the phone's outline, or just past it (a finger is thick: its skin
+            // would overlap the screen), clear of its face by a finger's thickness.
             for (int f = 0; f < 4; f++)
                 for (int j = 1; j <= 3; j++)
                 {
                     var t = j < 3 ? _fingers[f * 3 + j] : _fingerTips[f];
                     if (t == null) continue;
                     Vector3 q = _phoneInv * (t.position - _phoneCentre);
-                    if (Mathf.Abs(q.x) > _phoneHalf.x + 0.006f || Mathf.Abs(q.z) > _phoneHalf.z + 0.006f) continue;
+                    if (Mathf.Abs(q.x) > _phoneHalf.x + EdgeMargin || Mathf.Abs(q.z) > _phoneHalf.z + EdgeMargin) continue;
                     need = Mathf.Max(need, _phoneHalf.y + FingerRadius + 0.002f - side * q.y);
                 }
             return need;
@@ -416,7 +438,7 @@ namespace JamKit.VisitingHours
                     float max = CurlDegrees[j] * k, best = 0f;
                     // Held: if the finger already points round to the screen's side, straighten it back a little.
                     if (side < 0f)
-                        for (float a = -CurlStep; a >= -25f && side * Vector3.Dot(end.position - phoneCentre, up) < 0f; a -= CurlStep)
+                        for (float a = -CurlStep; a >= -25f && FingerInFront(end.position, side); a -= CurlStep)
                         {
                             bone.rotation = Quaternion.AngleAxis(sign * a, across) * start;
                             best = a;
@@ -428,9 +450,9 @@ namespace JamKit.VisitingHours
                         bone.rotation = Quaternion.AngleAxis(sign * a, across) * start;
                         Vector3 e = end.position, m = (bone.position + e) * 0.5f;
                         if (PhoneDistance(e) < FingerRadius || PhoneDistance(m) < FingerRadius) break;
-                        // Not round the edge: the fingertips stay on the hand's side of the phone's middle (past its edge
-                        // they show from the side, never over the screen's face).
-                        if (side * Vector3.Dot(e - phoneCentre, up) < 0f) break;
+                        // Not round the edge: held, the fingertips stay behind the phone (past its edge they show from
+                        // the side, never over the screen's face).
+                        if (side < 0f && FingerInFront(e, side)) break;
                         best = a;
                     }
                     bone.rotation = Quaternion.AngleAxis(sign * best, across) * start;
@@ -498,6 +520,13 @@ namespace JamKit.VisitingHours
         }
 
         public override void SetThumb(float press01) { }
+
+        public override bool ArmReach(out Vector3 shoulder, out float length)
+        {
+            shoulder = rArm != null ? rArm.position : Vector3.zero;
+            length = _upper + _lower;
+            return rArm != null && length > 0.1f;
+        }
 
         public override void SetBreath(float amount01)
         {
