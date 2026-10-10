@@ -17,9 +17,10 @@ namespace JamKit.VisitingHours
     /// the table and the wall behind (a cookie on the sun), long soft shadows, a cool sky fill from the room side, the
     /// tablet's screen on the table (red and blue from the report's emergency lights while it plays). Graded warm and quiet,
     /// slightly lifted blacks, soft bloom, a gentle vignette, the wall behind out of focus.</para>
-    /// <para><b>WebGL</b> runs the Mobile quality level: no additional-light shadows and hard main-light shadows. The streetlight
-    /// then draws the window and the blinds with a cookie traced from the real window and slats instead of shadows; everything
-    /// else (cookies, Gaussian depth of field, bloom, tonemapping, SMAA) works there.</para>
+    /// <para><b>The streetlight's stripes</b> come from a cookie traced from the real window and slats, on every platform: the
+    /// spot's own soft shadows (PC) thicken the 4 mm slats until they close the gaps (round 2's PC captures had no stripes), and
+    /// WebGL (the Mobile quality level) has no spot-light shadows at all. Everything used (cookies, Gaussian depth of field,
+    /// bloom, tonemapping, SMAA) works on WebGL; SSAO is PC only.</para>
     /// Per-moment changes run in <see cref="VhLightingRig"/>.
     /// </summary>
     public static class VhLighting
@@ -40,43 +41,38 @@ namespace JamKit.VisitingHours
         public const float PhoneGlowIntensity = 0.012f, PhoneGlowRange = 1.5f, PhoneGlowHeight = 0.12f;
 
         // ---- The table ----
-        public static readonly Color MorningSky = new Color(0.30f, 0.33f, 0.40f), MorningGround = new Color(0.21f, 0.18f, 0.15f);
-        /// <summary>The sun: warm, low (about 27 degrees up), from the camera's left and a little behind it.</summary>
+        public static readonly Color MorningSky = new Color(0.24f, 0.26f, 0.32f), MorningGround = new Color(0.17f, 0.145f, 0.12f);
+        /// <summary>The sun: warm, about 35 degrees up, from the camera's left and a little behind it.</summary>
         public static readonly Color SunColor = new Color(1f, 0.87f, 0.70f);
-        public const float SunIntensity = 1.9f;
-        public static readonly Vector3 SunDirection = new Vector3(0.78f, -0.47f, 0.42f);
+        public const float SunIntensity = 2.5f;
+        public static readonly Vector3 SunDirection = new Vector3(0.70f, -0.58f, 0.42f);
+        /// <summary>Where the window patch is centred (table space): among the mug, the badge and the tablet, so the pieces sit in
+        /// the sun and the cross of the mullions lands on the table between them.</summary>
+        public static readonly Vector3 SunPatchCentre = new Vector3(0.08f, 0.75f, -0.02f);
         /// <summary>The sky fill from the room side: cool, soft, no shadows.</summary>
         public static readonly Color FillColor = new Color(0.55f, 0.64f, 0.86f);
-        public const float FillIntensity = 0.28f;
-        /// <summary>How much of the world the sun's window cookie covers (m): the window patch is about 1 m across, so
-        /// its edges and the cross of its mullions land on the table.</summary>
-        public const float WindowCookieSize = 1.4f;
-
-        /// <summary>Captures: draw the WebGL path (the streetlight's cookie instead of its shadows) on any platform.</summary>
-        public static bool ForceCookies;
+        public const float FillIntensity = 0.18f;
+        /// <summary>How much of the world the sun's window cookie covers (m): the window patch is about 0.85 m across (and
+        /// 1.7 m long on the table, stretched by the sun's angle), so its edges and the cross of its mullions land on the table.</summary>
+        public const float WindowCookieSize = 1.2f;
+        /// <summary>A warm glow of morning on the wallpaper behind the table (a soft spot, no shadows).</summary>
+        public static readonly Color WallGlowColor = new Color(1f, 0.80f, 0.58f);
+        public const float WallGlowIntensity = 0.22f;
 
         public static void Apply(VhStage s)
         {
             if (s == null) return;
             var rig = s.gameObject.AddComponent<VhLightingRig>();
             rig.stage = s;
-            bool spotShadows = !ForceCookies && SupportsAdditionalShadows();
-
-            LightBedroom(s, rig, spotShadows);
+            LightBedroom(s, rig);
             LightTable(s, rig);
             Grade(s, rig);
             rig.Init();
         }
 
-        static bool SupportsAdditionalShadows()
-        {
-            var a = QualitySettings.renderPipeline as UniversalRenderPipelineAsset ?? GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
-            return a != null && a.supportsAdditionalLightShadows;
-        }
-
         // ---------- The bedroom ----------
 
-        static void LightBedroom(VhStage s, VhLightingRig rig, bool spotShadows)
+        static void LightBedroom(VhStage s, VhLightingRig rig)
         {
             s.bedSky = NightSky;
             s.bedGround = NightGround;
@@ -92,14 +88,10 @@ namespace JamKit.VisitingHours
                 l.range = 10f;
                 l.spotAngle = 70f;
                 l.innerSpotAngle = 40f;
-                l.shadows = spotShadows ? LightShadows.Soft : LightShadows.None;
-                l.shadowStrength = 0.95f;
-                l.shadowResolution = LightShadowResolution.VeryHigh;
-                l.shadowNearPlane = 0.2f;
-                Shadows(l, 0.02f, 0.15f, SoftShadowQuality.High);
-                if (!spotShadows && b != null)
+                // The window and the blinds come from the traced cookie (see the class notes), not from shadows.
+                l.shadows = LightShadows.None;
+                if (b != null)
                 {
-                    // No shadows from spot lights here (WebGL): the window and the blinds come from a cookie instead.
                     var cookie = BlindsCookie(l, b);
                     rig.owned.Add(cookie);
                     l.cookie = cookie;
@@ -229,8 +221,8 @@ namespace JamKit.VisitingHours
                 var k = s.tableKey;
                 k.color = SunColor;
                 k.intensity = SunIntensity;
-                // At the table top's middle: the window cookie is centred on the light's position.
-                k.transform.position = t.TransformPoint(new Vector3(-0.1f, 0.75f, 0.35f));
+                // The window cookie is centred on the light's position.
+                k.transform.position = t.TransformPoint(SunPatchCentre);
                 k.transform.rotation = Quaternion.LookRotation(SunDirection.normalized, Vector3.up);
                 k.shadows = LightShadows.Soft;
                 k.shadowStrength = 0.85f;
@@ -266,6 +258,19 @@ namespace JamKit.VisitingHours
                 g.intensity = rig.tabletGlowIntensity;
                 g.shadows = LightShadows.None;
                 rig.tabletGlow = g;
+
+                var wallGo = new GameObject("Morning on the wall (light)");
+                wallGo.transform.SetParent(t, false);
+                wallGo.transform.localPosition = new Vector3(-0.7f, 1.7f, 0.7f);
+                wallGo.transform.localRotation = Quaternion.LookRotation(new Vector3(0.35f, -0.15f, 1f), Vector3.up);
+                var w = wallGo.AddComponent<Light>();
+                w.type = LightType.Spot;
+                w.spotAngle = 95f;
+                w.innerSpotAngle = 20f;
+                w.range = 3.5f;
+                w.color = WallGlowColor;
+                w.intensity = WallGlowIntensity;
+                w.shadows = LightShadows.None;
             }
         }
 
@@ -286,7 +291,7 @@ namespace JamKit.VisitingHours
                         float wu = Mathf.InverseLerp(0.15f, 0.85f, u), wv = Mathf.InverseLerp(0.1f, 0.9f, v);
                         float edge = Mathf.Min(Mathf.Min(wu, 1f - wu), Mathf.Min(wv, 1f - wv));
                         float mu = Mathf.Abs(wu - 0.5f), mv = Mathf.Abs(wv - 0.5f);
-                        float mullion = Mathf.Min(Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.018f, 0.04f, mu)), Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.014f, 0.032f, mv)));
+                        float mullion = Mathf.Min(Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.026f, 0.046f, mu)), Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.02f, 0.038f, mv)));
                         value = mullion * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(edge / 0.035f));
                     }
                     byte c = (byte)Mathf.RoundToInt(Mathf.Clamp01(value) * 255f);
@@ -365,8 +370,8 @@ namespace JamKit.VisitingHours
             var morning = Profile(rig, "VH morning grade");
             morning.Add<Tonemapping>().mode.Override(TonemappingMode.ACES);
             var mc = morning.Add<ColorAdjustments>();
-            mc.postExposure.Override(0.35f);
-            mc.contrast.Override(8f);
+            mc.postExposure.Override(0.25f);
+            mc.contrast.Override(14f);
             mc.saturation.Override(-14f);
             var mw = morning.Add<WhiteBalance>();
             mw.temperature.Override(10f);
