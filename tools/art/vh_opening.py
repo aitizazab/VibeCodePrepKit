@@ -131,3 +131,29 @@ for name, what in [("tex-wallpaper", "Faded apartment wallpaper: a small, calm r
 for k, v in P.items():
     with open(os.path.join(OUT, k + ".txt"), "w", encoding="utf8", newline="\n") as f: f.write(v)
 print(len(P), "prompts")
+
+# -- Lena, round 2 (the creator's notes, 2026-10-10): a face and clothes clearly unlike Nadia's, sleeves DOWN, the pencil on her ear --
+LENA3 = ("The character: Lena, a woman in her early thirties, a ceramicist, warm and quick to laugh. Her FACE must be clearly "
+         "different from a narrow, angular, hollow-cheeked face: Lena has a soft, ROUND, broad face with full cheeks and a rounded "
+         "chin, a short slightly upturned button nose, soft rounded light-brown eyebrows, large WIDE-SET light green-grey eyes, a "
+         "wide full-lipped mouth that smiles easily, and freckles across her nose and cheeks. Long, loose, wavy honey-blonde hair "
+         "worn down past her shoulders, the hair on one side TUCKED BEHIND HER EAR, and a pencil resting ON TOP OF THAT EAR, "
+         "deliberately tucked behind it and clearly visible (not lost in the hair). Clothes, a ceramicist's look: a long-sleeved "
+         "dusty-rose (muted mauve-pink) cotton midi dress with the SLEEVES DOWN TO THE WRISTS, buttoned cuffs, NOT rolled or "
+         "pushed up; over it a natural ecru canvas work apron tied at the waist, smeared with pale grey clay; brown leather ankle "
+         "boots. Dried clay on her fingers. No jacket, no shirt over a t-shirt, no jeans.")
+SLEEVES = "Her sleeves are full length and down to her wrists in every view: never rolled up, never pushed up."
+put("lena3-turn", "Image 1 is the reference for the drawing style and the model-sheet layout only (line, shading, palette, "
+    "A-pose, three views): match them, but do NOT copy the person, face or clothes from Image 1.", REAL, LENA3, SLEEVES, TURN, BG)
+put("lena3-bb", "Image 1 is Lena's waking-world model sheet: keep the same person (round face, blonde waves tucked behind one "
+    "ear with the pencil on that ear, dusty-rose long-sleeved dress, clay-smeared apron, colours). Image 2 shows the dream style: "
+    "redraw her completely in that style. Do not draw the person from Image 2.", DREAM, LENA3, SLEEVES,
+    "Introduction pose: warm and welcoming, both hands clasped in front of her apron (clay on her fingers), a bright knowing "
+    "smile, standing as if at a doorway. Cute and gentle.", BILL, PAPER)
+put("lena3-expr", "Image 1 is Lena's dream billboard: keep the same character and style exactly (round face, blonde waves, the "
+    "pencil on her ear, the dusty-rose dress and apron).", DREAM, LENA3,
+    "An expression sheet: three head-and-shoulders portraits of her in one row, at exactly the same scale and framing, evenly "
+    "spaced. From left to right: warm (a bright open smile), knowing (a small sad smile, eyes half-lidded), defensive (chin up, "
+    "brows down, mouth tight). The hair, the pencil, the clothes and the colours identical in every portrait.", PAPER)
+for k in ("lena3-turn", "lena3-bb", "lena3-expr"):
+    with open(os.path.join(OUT, k + ".txt"), "w", encoding="utf8", newline="\n") as f: f.write(P[k])

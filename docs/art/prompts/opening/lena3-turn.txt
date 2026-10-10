@@ -1,0 +1,15 @@
+Aspect ratio: 16:9 landscape.
+
+Image 1 is the reference for the drawing style and the model-sheet layout only (line, shading, palette, A-pose, three views): match them, but do NOT copy the person, face or clothes from Image 1.
+
+Style: the waking world of a narrative game: grounded but stylised, muted and slightly cold palette, simplified clean shapes with soft flat shading and restrained thin line work, quiet and calm, like a literary graphic novel. NOT gritty, NOT photographic, no grime, no film grain, no heavy texture. Near-future city, no cybernetics, no neon gadgets.
+
+The character: Lena, a woman in her early thirties, a ceramicist, warm and quick to laugh. Her FACE must be clearly different from a narrow, angular, hollow-cheeked face: Lena has a soft, ROUND, broad face with full cheeks and a rounded chin, a short slightly upturned button nose, soft rounded light-brown eyebrows, large WIDE-SET light green-grey eyes, a wide full-lipped mouth that smiles easily, and freckles across her nose and cheeks. Long, loose, wavy honey-blonde hair worn down past her shoulders, the hair on one side TUCKED BEHIND HER EAR, and a pencil resting ON TOP OF THAT EAR, deliberately tucked behind it and clearly visible (not lost in the hair). Clothes, a ceramicist's look: a long-sleeved dusty-rose (muted mauve-pink) cotton midi dress with the SLEEVES DOWN TO THE WRISTS, buttoned cuffs, NOT rolled or pushed up; over it a natural ecru canvas work apron tied at the waist, smeared with pale grey clay; brown leather ankle boots. Dried clay on her fingers. No jacket, no shirt over a t-shirt, no jeans.
+
+Her sleeves are full length and down to her wrists in every view: never rolled up, never pushed up.
+
+A character turnaround model sheet for 3D modelling: the same character drawn three times side by side at exactly the same scale and height on one shared ground line: a FRONT view, a SIDE view (true profile) and a BACK view. Each is full body from the top of the head to the shoes, standing in a neutral A-pose (arms straight and slightly away from the body, palms facing the thighs, feet a little apart), neutral expression. Orthographic, no perspective distortion, flat even shadowless lighting, clean silhouettes with space between the views.
+
+Background: completely plain flat light grey (#d8d8d8), no scenery, no floor, no cast shadows.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

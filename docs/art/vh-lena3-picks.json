@@ -1,0 +1,59 @@
+{
+ "name": "visiting-hours-lena-round2",
+ "title": "Visiting Hours: Lena, round 2",
+ "subtitle": "Lena redone from your notes (2026-10-10), on Nano Banana Pro (it's back), 0 credits: a round, soft face unlike Nadia's narrow angular one; a ceramicist's dusty-rose long-sleeved dress under a clay-smeared apron; SLEEVES DOWN in every view; the pencil resting on top of her ear with her hair tucked behind it. Green = my pick, blue = the alternate.",
+ "questions": [
+  "Side by side with Nadia (top): do they now read as two unrelated women at a glance?",
+  "Is the ceramicist look right (dress, apron, boots, clay on her hands), or should she lean more 'artist' than 'potter'?",
+  "Does the pencil on her ear read as deliberate now? (Clearest in the side view and the dream art; in the front view her hair covers the ear.)",
+  "Are the dream billboard and faces cute enough, and not too wrong?"
+ ],
+ "notes": [
+  "Judged against your five points: every take has the sleeves down to the wrists (none rejected for that). The round face, wide-set green eyes and button nose are the named contrasts to Nadia's narrow face; I did not attach Nadia's sheet when making Lena.",
+  "The waking turnaround used Mags's sheet as the style and layout reference only (a clearly different woman), so nothing of Nadia's or the old Lena's face carried over.",
+  "Weak spot: in the waking front view the pencil sits behind the ear but the hair hides the ear itself, so it reads less clearly than in the side view.",
+  "For the dream expressions I picked the take whose dot eyes match the billboard; the alternate has bigger irises (cuter, but off-model with the billboard)."
+ ],
+ "sections": [
+  {
+   "title": "Nadia (left) and Lena (right), front views side by side",
+   "cols": 1,
+   "items": [
+    {
+     "label": "Nadia's turnaround front view beside Lena's new one",
+     "pick": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\VibeJamKit\\docs\\art\\vh-lena-vs-nadia.jpg",
+     "alt": "",
+     "note": "",
+     "alt_note": ""
+    }
+   ]
+  },
+  {
+   "title": "Lena, round 2",
+   "cols": 3,
+   "items": [
+    {
+     "label": "Lena: waking turnaround (front, side, back)",
+     "pick": "lena3-turn-take2.jpg",
+     "alt": "lena3-turn-take3.jpg",
+     "note": "The warmest face; the pencil sits on top of her ear in the side view.",
+     "alt_note": ""
+    },
+    {
+     "label": "Lena: dream billboard",
+     "pick": "lena3-bb-take3.jpg",
+     "alt": "lena3-bb-take1.jpg",
+     "note": "Round face like her waking self; the pencil rests on her ear.",
+     "alt_note": "The clearest pencil-on-ear, but a narrower face."
+    },
+    {
+     "label": "Lena: dream expressions (warm, knowing, defensive)",
+     "pick": "lena3-expr-take3.jpg",
+     "alt": "lena3-expr-take2.jpg",
+     "note": "Dot eyes, matching the billboard.",
+     "alt_note": ""
+    }
+   ]
+  }
+ ]
+}
