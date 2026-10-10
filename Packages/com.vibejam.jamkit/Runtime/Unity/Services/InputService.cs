@@ -16,7 +16,7 @@ namespace JamKit.Shell
         public readonly InputActionMap Gameplay;
         public readonly InputActionMap Ui;
 
-        public readonly InputAction Move, Look, Fire, AltFire, Focus, Sprint, Dash, Crouch, Interact, Pause;
+        public readonly InputAction Move, Look, Fire, AltFire, Focus, Sprint, Dash, Crouch, CrouchToggle, Interact, Pause;
         public readonly InputAction Navigate, Submit, Cancel, Point, Click, ScrollWheel;
 
         readonly GameFlow _flow;
@@ -50,6 +50,14 @@ namespace JamKit.Shell
                 Crouch.AddBinding("<Keyboard>/leftCtrl");
                 Crouch.AddBinding("<Keyboard>/c");
                 Crouch.AddBinding("<Gamepad>/buttonEast");
+            }
+            // Crouch / slide as a toggle (R3, like Titanfall's stick-click layouts): press to crouch or slide, press
+            // again or jump to stand. Holding a stick click while steering with it is awkward, so it toggles.
+            CrouchToggle = Gameplay.FindAction("CrouchToggle", false);
+            if (CrouchToggle == null)
+            {
+                CrouchToggle = Gameplay.AddAction("CrouchToggle", InputActionType.Button);
+                CrouchToggle.AddBinding("<Gamepad>/rightStickPress");
             }
             Interact = Gameplay.FindAction("Interact", true);
             Pause = Gameplay.FindAction("Pause", true);
@@ -213,6 +221,7 @@ namespace JamKit.Shell
             Button(g, "Sprint", "<Keyboard>/leftShift", "<Gamepad>/leftShoulder");
             Button(g, "Dash", "<Keyboard>/space", "<Gamepad>/buttonSouth", "<Gamepad>/rightShoulder");
             Button(g, "Crouch", "<Keyboard>/leftCtrl", "<Keyboard>/c", "<Gamepad>/buttonEast");
+            Button(g, "CrouchToggle", "<Gamepad>/rightStickPress");
             Button(g, "Interact", "<Keyboard>/e", "<Gamepad>/buttonWest");
             Button(g, "Pause", "<Keyboard>/escape", "<Keyboard>/p", "<Gamepad>/start");
 

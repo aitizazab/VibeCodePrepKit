@@ -58,6 +58,7 @@ namespace JamKit.Movement
         float _yaw, _pitch;
         float _eye;
         float _turnHeld;
+        bool _crouchToggled; // R3: press to crouch or slide, press again or jump to stand
         Vector3[] _collect;
         int _collectCount;
         bool _collecting;
@@ -122,6 +123,7 @@ namespace JamKit.Movement
         public void Teleport(Vector3 feet, float yaw, Vector3 velocity, float pitch = 0f)
         {
             if (_sim == null) Setup();
+            _crouchToggled = false;
             controller.enabled = false;
             transform.position = feet;
             controller.enabled = true;
@@ -198,8 +200,11 @@ namespace JamKit.Movement
             input.yaw = _yaw;
             input.jumpHeld = io.Held(io.Dash);
             input.jumpPressed = io.Pressed(io.Dash);
-            input.crouchHeld = io.Held(io.Crouch);
-            input.crouchPressed = io.Pressed(io.Crouch);
+            bool togglePressed = io.Pressed(io.CrouchToggle);
+            if (togglePressed) _crouchToggled = !_crouchToggled;
+            if (input.jumpPressed) _crouchToggled = false;
+            input.crouchHeld = io.Held(io.Crouch) || _crouchToggled;
+            input.crouchPressed = io.Pressed(io.Crouch) || (togglePressed && _crouchToggled);
             input.sprintHeld = io.Held(io.Sprint);
             return input;
         }

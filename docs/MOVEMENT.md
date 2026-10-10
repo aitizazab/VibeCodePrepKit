@@ -26,7 +26,7 @@ Run the lab on its own: **JamKit > Use Template > Movement Lab**, then Play (swi
 | Move | WASD, arrows | left stick (70 % pushed counts as full) |
 | Look | mouse | right stick (response curve, faster after holding it fully over) |
 | Jump, double jump, wall jump | Space | A / Cross (also RB) |
-| Slide / crouch | Left Ctrl or C (hold) | B / Circle (hold) |
+| Slide / crouch | Left Ctrl or C (hold) | B / Circle (hold), or R3 (toggle: press again or jump to stand) |
 | Sprint | automatic when moving forward (Left Shift if auto-sprint is off) | automatic (LB) |
 | Wallrun | automatic: jump at a wall *along* it and hold forward | same |
 | Mantle | automatic: run or jump at a ledge 0.4 to 1.9 m above your feet | same |
