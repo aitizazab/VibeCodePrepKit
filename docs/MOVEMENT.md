@@ -155,6 +155,7 @@ Metres, seconds, m/s, degrees.
 | doubleJumpLockout | 0.1 | Not this soon after a jump (a buffered press fires when it ends). |
 | doubleJumpRedirect | 0.5 | How far the double jump turns your flight toward the stick (speed kept). |
 | doubleJumpMinSpeed | 4 | A standing double jump still pushes you this fast toward the stick. |
+| doubleJumpForwardBoost | 1 | The double jump also pushes you this much along the stick (or the view, stick neutral and moving forward), never past sprint: getting started without a wall nearby (the creator, 2026-10-10). |
 | coyoteTime | 0.12 | Jump still works this long after walking off a ledge. |
 | jumpBuffer | 0.12 | A press this early still fires on landing, on a wall or at the end of a mantle. |
 | airAccel / airCap | 12 / 0.8 | Source air strafing (cap 0.8 m/s = 30 Quake units). |
@@ -181,10 +182,13 @@ Metres, seconds, m/s, degrees.
 | wallMinSpeed / wallMinHeight | 5 / 0.6 | You need this speed and this much air under you. |
 | wallMaxNormalY | 0.25 | Walls must be near vertical. |
 | wallMinAlongDot | 0.34 | Moving along the wall (within 70°), not into it (head-on is a mantle). |
-| wallMinTowardDot / wallForwardDot | -0.1 / 0.3 | The stick may not push away, and must point forward along the wall. |
-| wallProbeHeight / wallProbeRadius / wallProbeReach | 1.0 / 0.25 / 0.5 | The forgiving wall search: from chest height, up to 0.5 m beyond your body. |
+| wallMinTowardDot / wallForwardDot | -0.2 / 0.3 | To start a wallrun the stick may not push away, and must point forward along the wall (Titanfall 2: forward input to start). |
+| wallHoldForwardDot | 0.1 | Once on the wall, any stick with a forward part along it, or held at an angle while the view looks along it, counts as forward. Only clear backward input (or no stick) brakes. |
+| wallCatchBuffer | 0.1 | A catch refused only for the stick's direction is retried this long, reaching 0.4 m further, as the stick comes round. |
+| wallProbeHeight / wallProbeRadius / wallProbeReach | 1.0 / 0.25 / **0.6** | The forgiving wall search (0.5 until 2026-10-10): from chest height, up to 0.6 m beyond your body. |
 | **wallRunSpeed** | **8.64** | The goal speed (340 u/s): slower runs accelerate to it, faster ones are pulled down to it by wall friction. |
-| wallRunAccel / wallRunFriction | 6 / 2 | Acceleration up to the goal; above it, the excess fades at 2/s. |
+| wallRunAccel / wallRunFriction | 6 / **1.2** | Acceleration up to the goal; above it, after the grace, the excess fades at 1.2/s (was 2: Research 9 measures the 340 u/s goal, not a rate, and 2 bled speed fast). |
+| **wallSpeedGrace** | **0.5** | The first half second on a wall keeps all your speed (no friction); a kick in it keeps the entry speed. A 14 m/s entry is 14.0 at 0.45 s, about 11 at 1.2 s. |
 | wallNeutralFriction | 4 | No forward input (or into the wall): braking to a stop (backwards: twice). |
 | **wallRunDuration** | **1.75** | The longest run. |
 | wallGravityStart / wallGravityEnd | 0.1 / 0.8 | Nearly weightless at first, sinking later (upward speed from a jump is kept at full gravity). |
@@ -192,7 +196,7 @@ Metres, seconds, m/s, degrees.
 | wallStick | 0.5 | A small push keeps contact. |
 | wallLostGrace | 0.1 | Seams and short gaps in a wall don't end the run. |
 | wallExitSpeed | 4 | The run ends below this along the wall. |
-| wallAwayDot | 0.5 | The stick pointing away from the wall ends the run at once. |
+| wallAwayDot / wallAwayTime | 0.8 / 0.06 | The stick pointing more than about 53° away from the wall for 0.06 s ends the run (Titanfall 2 lets go at once; 0.5 / at once until 2026-10-10: a stick sweeping round dropped controller players). |
 | **wallJumpOut** | **5.21** | Every wall jump pushes this much along the wall normal (205 u/s). |
 | **wallJumpAlong** | **1.91** | Plus up to this along the wall, by how much the stick points along it (75 u/s). |
 | **wallJumpInward** | **4.37** | Minus up to this along the normal when the stick points into the wall (172 u/s x dot). |
@@ -392,8 +396,8 @@ Both are the shell's **Restart** and **Ghost** actions, so they can be rebound i
 ("Restart run", "Show ghost": rows that only show while the Gauntlet is loaded), and the hints and the
 end screen name whatever keys they're on.
 7. The board by the start pad lists the target times:
-   - **the developer's time, 43.0 s** (the course autopilot's clean run);
-   - **Mags's time, 60.0 s**;
+   - **the developer's time, 41.0 s** (the course autopilot's clean run);
+   - **Mags's time, 57.5 s**;
    - **your best**.
 8. At the finish, the end screen shows your time and every split.
 
@@ -418,7 +422,7 @@ never count.
 
 | # | Section | Fast line | Safe line |
 |---|---|---|---|
-| 7 | Combo: walls, slide, mantle | wallrun → kick → wallrun → kick, land sliding down a ramp, mantle a 1.35 m ledge | stones on the far right, then the same slide and mantle |
+| 7 | Combo: walls, slide, mantle | right wall → kick → left wall → kick, land sliding down a ramp, mantle a 1.35 m ledge (right wall first: the chimney throws you out fast and to the right; the top deck before it is 34 m to line up) | stones on the far lefht, then the same slide and mantle |
 | 8 | Combo: slide-hops, or the skip | slide-hop down three steps (4 m gaps) without leaving the slide, mantle twice back up | run the steps |
 | 9 | Finale | the 21 m wall on the left, kick and double jump down onto the finish | stones on the right |
 
@@ -429,7 +433,7 @@ or air strafing.
 **Touch markers.** There are nine, one per section, all where the two lines meet.
 
 **Times** (the autopilot in the dotnet sim, 60 fps, pinned by a test):
-- **43.0 s** clean. The splits are 3.2, 7.0, 11.3, 16.1, 20.7, 24.7, 31.1, 37.9 and 43.0 s.
+- **41.0 s** clean (43.0 before the wall grace, 2026-10-10). The splits are 3.2, 7.0, 11.3, 16.1, 20.2, 24.1, 29.5, 36.3 and 41.0 s.
 - The autopilot doesn't take the skip or the fastest kicks, so a strong player should beat it.
 - A first run takes 60–90 s.
 
@@ -482,6 +486,7 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 
 - Falling below the course ("dream drop") or being caught: a 0.4 s fade and you're back at the last
   checkpoint, running at sprint; collapses after it are put back.
+- **Wall catch diagnostic:** when a runnable wall within reach (or up to 0.8 m beyond it) in the air isn't caught, the movement records why (`MoveSim.LastCatchMiss`): just out of reach, too slow (under 5 m/s), too low (under 0.6 m), crouch held, too head-on (more than 70° off the wall; 75° was tried and caught the end faces of walls), no stick, the stick pointing away, the stick not forward, or the same wall higher than you left it. F3 shows the last one ("Wall not caught: ..."); a development build logs `JAMKIT_WALLCATCH` (once a second at most) with the trace.
 - Debug HUD (F3 / d-pad down; View now restarts the Gauntlet): speed m/s and km/h, state, wall side, slide boost and double jump, an 8 s
   speed graph with lines at walk 5, wallrun 8.64, sprint 9.5 and the 13 m/s boost cap, section and time,
   and the chase gap bar.
@@ -501,6 +506,7 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 | `core-tests/Movement` (`MoveSoundTests`) | the generated sounds: at least 3 distinct variants per one-shot, peaks under -1 dBFS, no click at either end, seamless loops (the wrap is a typical step, no level jump across it), the double jump brighter than the jump; the mix rules: footsteps heavier with speed, landing tiers, wind rising with speed, the slide fading, round-robin never repeating |
 | Unity EditMode (`MovementAudioEditorTests`) | every movement event has clips and a generated fallback, at least 3 variants per one-shot, the recorded CC0 sets are there and mono, the loops are seamless, nothing peaks above -1 dBFS |
 | Unity EditMode (`MovementLabEditorTests`) | chapters and attract script, sprint opt-in in the tuning and the Shift, LB, L3 and R3 bindings, scene/tuning/preset/materials, Build Settings, every player part, sound ids and the Crouch binding |
+| `core-tests/Movement` (`WallFeelTests`) | the creator's controller notes: the first 0.5 s on a wall keeps all the speed, then 1.2/s; a kick in the grace keeps the entry speed; a stick at 50° into or away from the wall, at 80°, or the view 50° off keeps the run and its speed; only clear backward input or no stick brakes; a 30 ms flick away doesn't drop you, holding away does; the catch says why it refused (too slow, stick away, no stick, head-on, out of reach, the same wall) and clears on a catch; a catch refused for the stick is retried 0.1 s with more reach; the double jump adds +1 m/s up to sprint, nothing above it, along the view with the stick neutral; the Gauntlet's slide ramp adds over 2 m/s (measured +3.4) |
 | `core-tests/Movement` (`GauntletTests`) | the Gauntlet: the autopilot runs it clean (no falls, every marker) at 20, 60, 144 and 300 fps and with jittery frames, in the developer's time; every section reaches the next; reach and the slide-gap clearance (an old 0.35 m crouched step offset is caught); every move is used, mantles at three heights, a marker in every section; the safe lines are hoppable and stay off the fast lane; the old course is kept unchanged before it; the clock starts at the gate, splits, penalises a missed marker 2 s, resets on restart, keeps the best; the ghost records at a fixed rate and replays |
 | Unity EditMode (`GauntletEditorTests`) | the run loop, ghost and one plate per marker are wired; the gate and finish stand there; a gold stripe on every runnable wall; the materials compile; the route fits the lab's real tuning and controller; the best record round-trips through the save |
 | Unity PlayMode (`GauntletPlayTests`) | the lab opens on the start pad, ready; the autopilot runs the Gauntlet touching every marker and recording a ghost (not counted as your best) and gets the end screen; the restart puts the clock, markers and player back; skipping sections adds the missed markers' penalty; the chapters land on their sections |

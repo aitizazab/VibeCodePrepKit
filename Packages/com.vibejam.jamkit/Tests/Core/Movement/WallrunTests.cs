@@ -49,7 +49,7 @@ namespace JamKit.Tests.Movement
         {
             Assert.That(new MoveDef().wallRunSpeed, Is.EqualTo(8.64f).Within(0.01f), "340 u/s");
             var fast = OnWall(WallWorld(), 13f);
-            Run(fast, Forward(), 1.2f);
+            Run(fast, Forward(), 1.6f); // 0.5 s of grace, then the friction
             Assert.That(Along(fast), Is.LessThan(10f).And.GreaterThan(8.64f), "wall friction pulls a fast run down toward 8.64");
             var slow = OnWall(WallWorld(), 6f);
             Run(slow, Forward(), 1.2f);
@@ -67,13 +67,15 @@ namespace JamKit.Tests.Movement
         }
 
         [Test]
-        public void PushingAwayFromTheWallLetsGoAtOnceAndNoInputBrakesToAFall()
+        public void PushingAwayFromTheWallLetsGoAndNoInputBrakesToAFall()
         {
             var sim = OnWall(WallWorld(), 10f);
             Run(sim, Forward(), 0.2f);
             var away = new MoveInput { move = new Vector2(-1f, 0.2f), yaw = 0f };
             sim.Step(away, H);
-            Assert.That(sim.Mode, Is.EqualTo(MoveMode.Air), "the stick away from the wall ends the run on that step");
+            Assert.That(sim.Mode, Is.EqualTo(MoveMode.Wallrun), "a flick away doesn't drop you on the first step");
+            Run(sim, away, 0.1f, s => s.Mode != MoveMode.Wallrun);
+            Assert.That(sim.Mode, Is.EqualTo(MoveMode.Air), "the stick held away from the wall ends the run within wallAwayTime");
 
             var idle = OnWall(WallWorld(), 10f);
             float t = Run(idle, new MoveInput(), 2f, s => s.Mode != MoveMode.Wallrun);
@@ -129,7 +131,7 @@ namespace JamKit.Tests.Movement
             Assert.That(quick.HorizontalSpeed, Is.GreaterThan(13f + 1f), "a kick at once gains speed");
 
             var late = OnWall(WallWorld(), 13f);
-            Run(late, Forward(), 0.8f);
+            Run(late, Forward(), 1.1f); // past the 0.5 s speed grace
             late.Step(Forward().With(jump: true), H);
             Assert.That(late.Events.wallKick, Is.False);
             Assert.That(late.HorizontalSpeed, Is.LessThan(quick.HorizontalSpeed - 1.5f), "staying on the wall lost speed to wall friction");

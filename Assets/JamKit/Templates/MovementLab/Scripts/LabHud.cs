@@ -148,11 +148,13 @@ namespace JamKit.MovementLab
                 _kmh.text = (speed * 3.6f).ToString("0", inv) + " km/h   top of graph 22 m/s";
                 string state = sim.Mode.ToString();
                 if (sim.Mode == MoveMode.Wallrun) state += sim.WallSide > 0 ? "  (wall right)" : "  (wall left)";
-                if (sim.Mode == MoveMode.Sprint) state = "Sprint (auto)";
+                if (sim.Mode == MoveMode.Sprint) state = sim.SprintToggled ? "Sprint (toggled)" : "Sprint";
                 _state.text = state;
                 float cd = sim.SlideBoostCooldown;
                 _extra.text = (cd > 0f ? "Slide boost in " + cd.ToString("0.0", inv) + " s" : "Slide boost ready")
-                    + "   Double jump " + (sim.DoubleJumpAvailable ? "ready" : "used");
+                    + "   Double jump " + (sim.DoubleJumpAvailable ? "ready" : "used")
+                    + (sim.LastCatchMiss != WallCatchMiss.None && sim.SinceCatchMiss < 6f
+                        ? "\nWall not caught: " + CatchWords(sim.LastCatchMiss) + " (" + sim.SinceCatchMiss.ToString("0.0", inv) + " s ago)" : "");
                 _section.text = section + "   " + runTime.ToString("0.0", inv) + " s" + (best > 0f ? "   best " + best.ToString("0.0", inv) + " s" : "");
             }
             if (chasing && Mathf.Abs(gap - _gapShown) > 0.25f)
@@ -161,6 +163,24 @@ namespace JamKit.MovementLab
                 _chaseText.text = "The static is " + Mathf.Max(0f, gap).ToString("0", inv) + " m behind";
                 _chaseFill.style.width = Length.Percent(Mathf.Clamp01(gap / 24f) * 100f);
                 _chaseFill.style.backgroundColor = Color.Lerp(new Color(0.6f, 0.85f, 0.95f), new Color(1f, 0.4f, 0.5f), threat);
+            }
+        }
+
+        /// <summary>The wall-catch diagnostic in words (why the last runnable wall nearby in the air wasn't caught).</summary>
+        public static string CatchWords(WallCatchMiss why)
+        {
+            switch (why)
+            {
+                case WallCatchMiss.OutOfReach: return "just out of reach";
+                case WallCatchMiss.TooSlow: return "too slow (under 5 m/s)";
+                case WallCatchMiss.TooLow: return "too low (under 0.6 m above the ground)";
+                case WallCatchMiss.Crouching: return "crouch held";
+                case WallCatchMiss.HeadOn: return "too head-on (more than 70 degrees off the wall)";
+                case WallCatchMiss.NoStick: return "no stick (hold forward to start a wallrun)";
+                case WallCatchMiss.StickAway: return "the stick pointed away from the wall";
+                case WallCatchMiss.StickNotForward: return "the stick wasn't forward along the wall";
+                case WallCatchMiss.SameWall: return "the same wall, higher than you left it";
+                default: return "";
             }
         }
 

@@ -4,7 +4,7 @@ Nadia runs from the dream's immune system (**the static**: a wall of pastel TV s
 the dream version of Walt's street, on the Titanfall-style movement module (`docs/MOVEMENT.md`). Art style
 E: the dream is **real 3D**, a too-perfect golden hour in a cutesy pastel doodle look with dread
 underneath; the neighbours and the dog are **flat cut-outs** (billboards exist only in the dream) that turn
-to watch you pass. About 45 s for the autopilot, 60-90 s for a player on a first run.
+to watch you pass. About 44 s for the autopilot (43.9 s since the wall speed grace of 2026-10-10; the beat times below are from before it, 45.1 s), 60-90 s for a player on a first run.
 
 It plays **standalone** until the story wires it in: **JamKit > Use Template > Dream Escape**, then Play
 (switch back with **Use Template > Visiting Hours**). Batch:

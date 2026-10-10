@@ -57,6 +57,10 @@ namespace JamKit.Movement
         Vector3 _lastWallN;
         float _lastWallOffset, _lastWallLeaveY;
         bool _groundSinceWall = true;
+        float _wallAway, _catchBuffer = -1f;
+        WallCatchMiss _catchMiss;
+        float _catchMissTime;
+        int _catchMisses;
 
         // Mantle
         Vector3 _mantleStart, _mantleUp, _mantleEnd, _mantleLip, _mantleNormal;
@@ -90,6 +94,11 @@ namespace JamKit.Movement
         /// <summary>+1 wall on the right, -1 left, 0 not on a wall.</summary>
         public int WallSide => _mode == MoveMode.Wallrun ? _wallSide : 0;
         public float WallTime => _mode == MoveMode.Wallrun ? _wallTime : 0f;
+        /// <summary>Why the last runnable wall nearby in the air wasn't caught (None after a catch): the catch diagnostic.</summary>
+        public WallCatchMiss LastCatchMiss => _catchMiss;
+        public float SinceCatchMiss => _time - _catchMissTime;
+        /// <summary>Counts refused catches (to notice a new one).</summary>
+        public int CatchMisses => _catchMisses;
         public Vector3 WallNormal => _wallN;
         public Vector3 WallTangent => _wallT;
         public float SlideTime => _mode == MoveMode.Slide ? _slideTime : 0f;
@@ -137,6 +146,9 @@ namespace JamKit.Movement
             _groundSinceWall = true;
             _slideFatigue = 0f;
             _sprintToggled = false;
+            _wallAway = 0f;
+            _catchBuffer = -1f;
+            _catchMiss = WallCatchMiss.None;
             _lastKick = -999f;
             _events = default;
             if (_world.CastDown(feet, def.radius * 0.9f, def.groundEpsilon + 0.05f, out var g) && g.normal.Y > 0.2f)
@@ -356,7 +368,7 @@ namespace JamKit.Movement
             {
                 if (_wallCoyote && _sinceWall <= def.wallCoyote) { WallJump(input, wishDir, stick, true); }
                 else if (!_jumpedSinceGround && _sinceGrounded <= def.coyoteTime) { _vel.Y = def.JumpSpeed; LeaveGround(true); _jumpBuffer = 0f; _events.jumped = true; }
-                else if (_doubleJump && _sinceJump >= def.doubleJumpLockout) DoubleJump(wishDir, stick);
+                else if (_doubleJump && _sinceJump >= def.doubleJumpLockout) DoubleJump(wishDir, stick, fwd);
             }
 
             Vector3 vH = Flat(_vel);
@@ -372,10 +384,11 @@ namespace JamKit.Movement
             if (_crouched && !input.crouchHeld) SetCrouched(false);
 
             if (TryMantle(wishDir, stick, fwd)) return;
+            _catchBuffer = Math.Max(-1f, _catchBuffer - h);
             TryAttachWall(input, wishDir, stick);
         }
 
-        void DoubleJump(Vector3 wishDir, float stick)
+        void DoubleJump(Vector3 wishDir, float stick, Vector3 fwd)
         {
             _vel.Y = Math.Max(_vel.Y, def.DoubleJumpSpeed);
             Vector3 vH = Flat(_vel);
@@ -385,7 +398,17 @@ namespace JamKit.Movement
                 Vector3 dir = s > 1e-3f ? vH / s : wishDir;
                 Vector3 nd = NormalizeOr(dir + (wishDir - dir) * def.doubleJumpRedirect, dir);
                 float ns = Math.Max(s, def.doubleJumpMinSpeed * stick);
+                // A little forward push along the new direction, up to sprint speed (getting started without a wall).
+                if (ns < def.sprintSpeed) ns = Math.Min(def.sprintSpeed, ns + def.doubleJumpForwardBoost * stick);
                 vH = nd * ns;
+                _vel = new Vector3(vH.X, _vel.Y, vH.Z);
+            }
+            else if (s > 1e-3f && Vector3.Dot(vH, fwd) > 0f && s < def.sprintSpeed)
+            {
+                // Stick neutral but moving forward: the push goes along the view, still never past sprint.
+                vH += fwd * def.doubleJumpForwardBoost;
+                float ns = vH.Length();
+                if (ns > def.sprintSpeed) vH *= Math.Max(s, def.sprintSpeed) / ns;
                 _vel = new Vector3(vH.X, _vel.Y, vH.Z);
             }
             _doubleJump = false;
@@ -396,49 +419,85 @@ namespace JamKit.Movement
 
         // ---------- Wallrun ----------
 
-        bool WallOk(in SurfaceHit hit, Vector3 dirH, Vector3 wishDir, float stick, out Vector3 t)
+        /// <summary>How far past the catch reach a runnable wall is still noticed, so a near miss gets a reason.</summary>
+        const float DiagnoseReach = 0.8f;
+
+        /// <summary>Why this runnable wall can't be caught right now (None: it can).</summary>
+        WallCatchMiss WallRefusal(in SurfaceHit hit, Vector3 dirH, float speed, float reach, bool low, in MoveInput input, Vector3 wishDir, float stick, out Vector3 t)
         {
-            t = Vector3.Zero;
-            if (Math.Abs(hit.normal.Y) > def.wallMaxNormalY || !hit.runnable) return false;
             Vector3 n = Vector3.Normalize(Flat(hit.normal));
             t = Vector3.Normalize(Vector3.Cross(Up, n));
             if (Vector3.Dot(t, dirH) < 0f) t = -t;
-            if (Vector3.Dot(dirH, t) < def.wallMinAlongDot) return false;
-            if (stick <= 0f) return false;
-            if (Vector3.Dot(wishDir, -n) < def.wallMinTowardDot) return false;
-            if (Vector3.Dot(wishDir, t) < def.wallForwardDot) return false;
-            return true;
+            if (hit.distance > reach) return WallCatchMiss.OutOfReach;
+            if (speed < def.wallMinSpeed) return WallCatchMiss.TooSlow;
+            if (input.crouchHeld) return WallCatchMiss.Crouching;
+            if (low) return WallCatchMiss.TooLow;
+            if (Vector3.Dot(dirH, t) < def.wallMinAlongDot) return WallCatchMiss.HeadOn;
+            if (stick <= 0f) return WallCatchMiss.NoStick;
+            if (Vector3.Dot(wishDir, -n) < def.wallMinTowardDot) return WallCatchMiss.StickAway;
+            if (Vector3.Dot(wishDir, t) < def.wallForwardDot) return WallCatchMiss.StickNotForward;
+            return WallCatchMiss.None;
+        }
+
+        void NoteCatchMiss(WallCatchMiss why)
+        {
+            if (why != _catchMiss || _time - _catchMissTime > 0.25f) _catchMisses++;
+            _catchMiss = why;
+            _catchMissTime = _time;
         }
 
         void TryAttachWall(in MoveInput input, Vector3 wishDir, float stick)
         {
             Vector3 vH = Flat(_vel);
             float s = vH.Length();
-            if (s < def.wallMinSpeed || input.crouchHeld) return;
-            if (_world.CastDown(_pos, def.radius * 0.9f, def.wallMinHeight, out _)) return;
+            if (s < 0.5f) return; // no direction to look along
             Vector3 d = vH / s;
             Vector3 r = RightOf(d);
             Vector3 origin = _pos + Up * def.wallProbeHeight;
-            float reach = def.radius + def.wallProbeReach;
+            // While a catch refused for the stick's direction is buffered, reach a little further for it.
+            float reach = def.radius + def.wallProbeReach + (_catchBuffer > 0f ? 0.4f : 0f);
+            bool low = _world.CastDown(_pos, def.radius * 0.9f, def.wallMinHeight, out _);
             bool found = false;
             SurfaceHit best = default;
             Vector3 bestT = Vector3.Zero;
+            var miss = WallCatchMiss.None;
+            float missDist = float.MaxValue;
             for (int i = 0; i < 4; i++)
             {
                 Vector3 dir = i == 0 ? r : i == 1 ? -r : i == 2 ? Vector3.Normalize(d + r) : Vector3.Normalize(d - r);
-                if (!_world.CastWall(origin, dir, def.wallProbeRadius, reach, out var hit)) continue;
-                if (!WallOk(hit, d, wishDir, stick, out var t)) continue;
+                if (!_world.CastWall(origin, dir, def.wallProbeRadius, reach + DiagnoseReach, out var hit)) continue;
+                if (Math.Abs(hit.normal.Y) > def.wallMaxNormalY || !hit.runnable) continue;
+                var why = WallRefusal(hit, d, s, reach, low, input, wishDir, stick, out var t);
+                if (why != WallCatchMiss.None)
+                {
+                    if (hit.distance < missDist) { miss = why; missDist = hit.distance; }
+                    continue;
+                }
                 if (found && hit.distance >= best.distance) continue;
                 best = hit;
                 bestT = t;
                 found = true;
             }
-            if (!found) return;
+            if (!found)
+            {
+                if (miss == WallCatchMiss.None) return;
+                NoteCatchMiss(miss);
+                // Refused only for the stick's direction: keep trying a moment longer as the stick comes round.
+                bool stickOnly = miss == WallCatchMiss.NoStick || miss == WallCatchMiss.StickAway || miss == WallCatchMiss.StickNotForward;
+                if (stickOnly && _catchBuffer < -0.4f) _catchBuffer = def.wallCatchBuffer; // armed at most once per half second
+                return;
+            }
             Vector3 n = Vector3.Normalize(Flat(best.normal));
             if (_hasLastWall && !_groundSinceWall
                 && IsSameWall(def, _lastWallN, _lastWallOffset, n, Vector3.Dot(n, best.point))
                 && _pos.Y > _lastWallLeaveY - def.sameWallDrop)
+            {
+                NoteCatchMiss(WallCatchMiss.SameWall);
                 return; // same wall: only lower than where you left it
+            }
+            _catchMiss = WallCatchMiss.None;
+            _catchBuffer = -1f;
+            _wallAway = 0f;
 
             _mode = MoveMode.Wallrun;
             _wallN = n;
@@ -472,8 +531,14 @@ namespace JamKit.Movement
             _wallTime += h;
             if (_jumpBuffer > 0f) { WallJump(input, wishDir, stick, false); return; }
             if (input.crouchPressed) { LeaveWall(); return; }
-            // Titanfall 2: pushing the stick away from the wall lets go at once.
-            if (stick > 0f && Vector3.Dot(wishDir, _wallN) > def.wallAwayDot) { LeaveWall(); return; }
+            // Titanfall 2: pushing the stick away from the wall lets go (here after a few hundredths of a second, so
+            // a controller stick sweeping round doesn't drop you).
+            if (stick > 0f && Vector3.Dot(wishDir, _wallN) > def.wallAwayDot)
+            {
+                _wallAway += h;
+                if (_wallAway >= def.wallAwayTime) { LeaveWall(); return; }
+            }
+            else _wallAway = 0f;
 
             Vector3 origin = _pos + Up * def.wallProbeHeight;
             if (_world.CastWall(origin, -_wallN, def.wallProbeRadius, def.radius + def.wallProbeReach + 0.2f, out var hit)
@@ -491,16 +556,22 @@ namespace JamKit.Movement
             else _wallLost += h;
 
             float along = Vector3.Dot(_vel, _wallT);
-            float forwardInput = stick > 0f ? Vector3.Dot(wishDir, _wallT) * stick : 0f;
-            if (forwardInput >= def.wallForwardDot * 0.5f)
+            // Forward: any stick with a forward part along the wall, or held at an angle while the view looks along
+            // it (a controller stick rarely points exactly along the wall). Only clear backward input brakes hard.
+            float stickAlong = stick > 0f ? Vector3.Dot(wishDir, _wallT) : 0f;
+            bool backward = stick > 0f && stickAlong < -0.3f;
+            bool forwardHeld = stick > 0f && !backward
+                && (stickAlong >= def.wallHoldForwardDot || Vector3.Dot(fwd, _wallT) >= def.wallHoldForwardDot);
+            if (forwardHeld)
             {
                 if (along < def.wallRunSpeed) along = Math.Min(def.wallRunSpeed, along + def.wallRunAccel * h);
-                else along = def.wallRunSpeed + (along - def.wallRunSpeed) * (float)Math.Exp(-def.wallRunFriction * h);
+                else if (_wallTime > def.wallSpeedGrace) // the grace: the first moments on a wall keep all your speed
+                    along = def.wallRunSpeed + (along - def.wallRunSpeed) * (float)Math.Exp(-def.wallRunFriction * h);
             }
             else
             {
-                // Neutral or into the wall: friction toward 0; backwards: twice as hard.
-                float k = forwardInput < -def.wallForwardDot * 0.5f ? 2f : 1f;
+                // No stick: friction toward 0 (Titanfall 2); clear backward input: twice as hard.
+                float k = backward ? 2f : 1f;
                 float drop = Math.Max(Math.Abs(along), def.stopSpeed) * def.wallNeutralFriction * k * h;
                 along = Math.Max(0f, along - drop);
             }

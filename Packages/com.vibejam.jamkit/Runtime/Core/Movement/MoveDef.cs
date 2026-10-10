@@ -89,6 +89,9 @@ namespace JamKit.Movement
         public float doubleJumpRedirect = 0.5f;
         /// <summary>A double jump from a near standstill pushes you at least this fast toward the stick.</summary>
         public float doubleJumpMinSpeed = 4f;
+        /// <summary>The double jump also pushes you this much along the stick (or the view, stick neutral and moving forward),
+        /// never past sprint speed, nothing above it: getting started without a wall nearby (the creator, 2026-10-10).</summary>
+        public float doubleJumpForwardBoost = 1f;
         /// <summary>Jump still works this long after walking off a ledge.</summary>
         public float coyoteTime = 0.12f;
         /// <summary>A jump pressed this long before landing (or reaching a wall) still fires.</summary>
@@ -138,7 +141,9 @@ namespace JamKit.Movement
         public float wallMinHeight = 0.6f;
         /// <summary>Walls must be near vertical: |normal.y| at most this.</summary>
         public float wallMaxNormalY = 0.25f;
-        /// <summary>Moving along the wall, not into it: dot(direction, wall tangent) at least this (70 degrees).</summary>
+        /// <summary>Moving along the wall, not into it: dot(direction, wall tangent) at least this (70 degrees). 75 was tried
+        /// (2026-10-10) and caught the END faces of walls when you came in at a slant (the Gauntlet's combo wall, at
+        /// 22 m/s: a "wallrun" at 4.7 m/s into the void), so the catch was loosened by reach, stick and a buffer instead.</summary>
         public float wallMinAlongDot = 0.34f;
         /// <summary>The stick may not push away from the wall more than this (dot(wish, -normal)); -0.2 forgives
         /// a view turned about 12 degrees away.</summary>
@@ -146,18 +151,23 @@ namespace JamKit.Movement
         /// <summary>Wall probes: from this height above the feet, sphere radius, reach beyond the body radius.</summary>
         public float wallProbeHeight = 1.0f;
         public float wallProbeRadius = 0.25f;
-        public float wallProbeReach = 0.5f;
+        public float wallProbeReach = 0.6f;
         /// <summary>Wallrun goal speed. Titanfall 2 measured 340 u/s = 8.64 m/s (docs/RESEARCH-MOVEMENT.md 9):
         /// slower entries accelerate up to it, faster ones are slowed toward it by wall friction, so a quick
         /// wall kick keeps the most speed.</summary>
         public float wallRunSpeed = 8.64f;
         /// <summary>Acceleration up to the goal while holding forward (m/s per second).</summary>
         public float wallRunAccel = 6f;
-        /// <summary>Wall friction above the goal: the excess fades at this rate per second (exponential).</summary>
-        public float wallRunFriction = 2f;
-        /// <summary>Holding no direction (or into the wall) brakes toward 0 at this Source friction; backwards twice as hard.</summary>
+        /// <summary>Wall friction above the goal: the excess fades at this rate per second (exponential), after
+        /// <see cref="wallSpeedGrace"/>. Research 9 measures only the goal (340 u/s) and that early kicks lose less, not a rate:
+        /// 2 felt like the wall bled speed fast (the creator, 2026-10-10), so 1.2: a 14 m/s entry is about 11.0 at 1.2 s and 9.8 at 1.75 s.</summary>
+        public float wallRunFriction = 1.2f;
+        /// <summary>For this long after catching a wall, speed above the goal doesn't fade at all (a kick in this window keeps the entry speed).</summary>
+        public float wallSpeedGrace = 0.5f;
+        /// <summary>No stick at all brakes toward 0 at this Source friction (Titanfall 2), clear backward input twice as hard.
+        /// Any stick held with a forward part along the wall, or the view along it, counts as forward (controller sticks held at an angle).</summary>
         public float wallNeutralFriction = 4f;
-        /// <summary>Forward input along the wall at least this (dot(wish, tangent)) counts as holding forward.</summary>
+        /// <summary>To start a wallrun the stick must point at least this far along the wall (dot(wish, tangent)): forward input to start (Titanfall 2).</summary>
         public float wallForwardDot = 0.3f;
         /// <summary>Longest wallrun, seconds (Titanfall 2: 1.75 s).</summary>
         public float wallRunDuration = 1.75f;
@@ -173,8 +183,14 @@ namespace JamKit.Movement
         public float wallLostGrace = 0.1f;
         /// <summary>The run ends when the speed along the wall drops below this.</summary>
         public float wallExitSpeed = 4f;
-        /// <summary>The stick pointing away from the wall (dot(wish, normal) over this) ends the run at once (Titanfall 2).</summary>
-        public float wallAwayDot = 0.5f;
+        /// <summary>The stick pointing away from the wall (dot(wish, normal) over this, about 53 degrees off the wall) for
+        /// <see cref="wallAwayTime"/> ends the run (Titanfall 2 lets go at once; was 0.5 / 30 degrees, loosened for controllers).</summary>
+        public float wallAwayDot = 0.8f;
+        public float wallAwayTime = 0.06f;
+        /// <summary>Running along the wall: a stick with at least this forward part along it (or the view along it) holds the run.</summary>
+        public float wallHoldForwardDot = 0.1f;
+        /// <summary>A catch refused only because of the stick's direction is retried for this long (with a little more reach) as the stick comes round.</summary>
+        public float wallCatchBuffer = 0.1f;
         /// <summary>Wall jump, Titanfall 2 measured: always this much along the wall normal (205 u/s)...</summary>
         public float wallJumpOut = 5.21f;
         /// <summary>...plus up to this along the wall, scaled by how much the stick points along it (75 u/s)...</summary>

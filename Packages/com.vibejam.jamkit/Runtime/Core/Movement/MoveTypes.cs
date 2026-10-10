@@ -5,6 +5,10 @@ namespace JamKit.Movement
     /// <summary>What the body is doing. Sprint is running on the ground at sprint speed (auto-sprint).</summary>
     public enum MoveMode { Grounded, Sprint, Slide, Air, Wallrun, Mantle }
 
+    /// <summary>Why the last runnable wall within reach (or just beyond it) in the air wasn't caught: the catch diagnostic
+    /// the lab's F3 overlay shows. None after a catch.</summary>
+    public enum WallCatchMiss { None, OutOfReach, TooSlow, TooLow, Crouching, HeadOn, NoStick, StickAway, StickNotForward, SameWall }
+
     /// <summary>
     /// One simulation step's input. Axes are Unity's: x right, y up, z forward; <see cref="yaw"/> in
     /// degrees like a Unity transform (0 looks along +Z, 90 along +X). "Pressed" flags are true on the

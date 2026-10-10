@@ -82,6 +82,8 @@ namespace JamKit.MovementLab
         readonly List<string> _trace = new List<string>(64);
         MoveMode _lastMode = MoveMode.Air;
         float _lastTime;
+        int _catchMissesSeen;
+        float _catchLogged = -10f;
 
         void Start()
         {
@@ -149,6 +151,18 @@ namespace JamKit.MovementLab
                 AddTrace(player.Mode.ToString() + (player.Mode == MoveMode.Wallrun ? (player.Sim.WallSide > 0 ? " (wall right)" : " (wall left)") : ""));
             }
             if (GameRoot.Flow.Current == GameState.Playing && !_respawning) Tick(dt, p);
+            // The wall-catch diagnostic: in a development build, say why a wall nearby wasn't caught (at most once a second).
+            var sim = player.Sim;
+            if (sim != null && sim.CatchMisses != _catchMissesSeen)
+            {
+                _catchMissesSeen = sim.CatchMisses;
+                if (Debug.isDebugBuild && Time.unscaledTime - _catchLogged > 1f && sim.LastCatchMiss != WallCatchMiss.None)
+                {
+                    _catchLogged = Time.unscaledTime;
+                    AddTrace("wall not caught: " + LabHud.CatchWords(sim.LastCatchMiss));
+                    Debug.Log("JAMKIT_WALLCATCH not caught: " + LabHud.CatchWords(sim.LastCatchMiss) + Newline + TraceTail(1));
+                }
+            }
             bool toggle = (Keyboard.current != null && Keyboard.current.f3Key.wasPressedThisFrame)
                 || (Gamepad.current != null && Gamepad.current.dpad.down.wasPressedThisFrame); // View restarts the Gauntlet (GauntletRun)
             if (toggle && GameRoot.Input.GameplayAllowed) _hud.Toggle();

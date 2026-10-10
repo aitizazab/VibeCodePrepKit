@@ -56,9 +56,9 @@ namespace JamKit.Movement
         public const float MissPenalty = 2f;
         /// <summary>The developer's time: the course autopilot's run from the gate to the finish in the dotnet sim at
         /// 60 fps (pinned by a test: change it when the course changes).</summary>
-        public const float DeveloperTime = 43.0f;
+        public const float DeveloperTime = 41.0f;
         /// <summary>Mags's time: a good human run, 1.4x the developer's (Titanfall 2's goal times run 33.65 to 56.65 s).</summary>
-        public const float MagsTime = 60.0f;
+        public const float MagsTime = 57.5f;
 
         public readonly LabCourse course;
         public readonly List<GauntletMarker> markers = new List<GauntletMarker>();
@@ -143,7 +143,7 @@ namespace JamKit.Movement
         void Beat(CourseBeatKind kind, string name, float s, float size, float height = 0f) =>
             beats.Add(new CourseBeat { kind = kind, name = name, s = Z(s), size = size, height = height });
 
-        void Marker(string name, float z, float floorTop, float x0 = -2.5f, float x1 = 2.5f, float height = 2.5f)
+        void Marker(string name, float z, float floorTop, float x0 = -2.5f, float x1 = 2.5f, float height = 3.5f)
         {
             markers.Add(new GauntletMarker { name = name, min = new Vector3(x0, floorTop, Z(z) - 1f), max = new Vector3(x1, floorTop + height, Z(z) + 1f), section = sections.Count - 1 });
         }
@@ -252,59 +252,62 @@ namespace JamKit.Movement
             Beat(CourseBeatKind.Mantle, "Mantle stair, 1.0 m", ch, 0f, 1f);
             Beat(CourseBeatKind.Mantle, "Mantle stair, 1.35 m", ch + 6f, 0f, 1.35f);
             Beat(CourseBeatKind.Mantle, "Mantle stair, 1.65 m", ch + 12f, 0f, 1.65f);
-            Block("G Top deck", ch + 28f, 274f, top);
-            Marker("On top", 258f, top);
+            Block("G Top deck", ch + 28f, 284f, top);
+            Marker("On top", 258f, top, -3.5f, 3.5f);
 
-            // ----- 7. Combo: wallrun, kick, wallrun, slide, mantle (safe: stones on the far right, then the same slide).
-            const float e3 = 274f;
-            Section("Combo: walls, slide, mantle", 262f, top, "Hop the stones on the far right, then slide down and mantle", "Left wall, kick to the right wall, kick, land sliding down the ramp, mantle the ledge", ChapterCombo);
-            Lane(e3 - 16f, 0f); Lane(e3 - 8f, -1.95f);
-            Wall("G Combo wall (left)", -2.5f, e3 + 1f, e3 + 13f, top + 6f);
-            Wall("G Combo wall (right)", 2.5f, e3 + 7f, e3 + 25f, top + 6f);
+            // The top deck runs 10 m longer than the chimney needs: you can leave the chimney at the 22 m/s cap, and need room to line up.
+            const float o = 10f;
+            // ----- 7. Combo: wallrun, kick, wallrun, slide, mantle (safe: stones on the far left, then the same slide).
+            const float e3 = (274f + o);
+            Section("Combo: walls, slide, mantle", (262f + o), top, "Hop the stones on the far left, then slide down and mantle", "Right wall, kick to the left wall, kick, land sliding down the ramp, mantle the ledge", ChapterCombo);
+            // Mirrored from section 5 (right wall first): the chimney throws you out fast and to the right, so the first wall is where you land.
+            Lane(e3 - 16f, 0f); Lane(e3 - 8f, 1.95f);
+            Wall("G Combo wall (right)", 2.5f, e3 + 1f, e3 + 13f, top + 6f);
+            Wall("G Combo wall (left)", -2.5f, e3 + 7f, e3 + 25f, top + 6f);
             Cue(LabCueKind.Jump, e3 - 0.8f);
             Cue(LabCueKind.WallJump, e3 + 1.6f);
             Cue(LabCueKind.WallJump, e3 + 20.5f);
             Cue(LabCueKind.DoubleJumpAtApex, e3 + 21f);
-            Lane(e3 + 6f, -1.95f); Lane(e3 + 10f, 2.1f); Lane(e3 + 22f, 2.1f); Lane(e3 + 28f, 0f);
+            Lane(e3 + 6f, 1.95f); Lane(e3 + 10f, -2.1f); Lane(e3 + 22f, -2.1f); Lane(e3 + 28f, 0f);
             Beat(CourseBeatKind.WallToWall, "The combo walls", e3 - 0.8f, 5f);
-            Stone("G Combo stone 1", 277f, 280.5f, top, 6f, W + 1.5f);
-            Stone("G Combo stone 2", 284f, 287.5f, top, 6f, W + 1.5f);
-            Stone("G Combo stone 3", 291f, 294.5f, top, 6f, W + 1.5f);
+            Stone("G Combo stone 1", (277f + o), (280.5f + o), top, -W - 1.5f, -6f);
+            Stone("G Combo stone 2", (284f + o), (287.5f + o), top, -W - 1.5f, -6f);
+            Stone("G Combo stone 3", (291f + o), (294.5f + o), top, -W - 1.5f, -6f);
             float r0 = top - 1f, r1 = top - 4f;
-            Ramp("G Combo slide ramp", 300f, 316f, r0, r1, -W, W + 1.5f);
-            Cue(LabCueKind.Crouch, 299.5f, 318f);
-            Beat(CourseBeatKind.SlideRamp, "The combo slide ramp", 300f, 16f, r0 - r1);
-            Floor("G Combo ramp foot", 316f, 330f, r1);
+            Ramp("G Combo slide ramp", (300f + o), (316f + o), r0, r1, -W - 1.5f, W);
+            Cue(LabCueKind.Crouch, (299.5f + o), (318f + o));
+            Beat(CourseBeatKind.SlideRamp, "The combo slide ramp", (300f + o), 16f, r0 - r1);
+            Floor("G Combo ramp foot", (316f + o), (330f + o), r1);
             float ledge = r1 + 1.35f;
-            Block("G Combo ledge (1.35 m)", 330f, 352f, ledge);
-            Beat(CourseBeatKind.Mantle, "The combo ledge", 330f, 0f, 1.35f);
-            Marker("On the ledge", 336f, ledge);
+            Block("G Combo ledge (1.35 m)", (330f + o), (352f + o), ledge);
+            Beat(CourseBeatKind.Mantle, "The combo ledge", (330f + o), 0f, 1.35f);
+            Marker("On the ledge", (336f + o), ledge);
 
             // ----- 8. Combo: slide-hops down three steps, two mantles back up; above them, the skip for momentum.
-            Section("Combo: slide-hops (or the skip)", 338f, ledge, "Slide down the steps (or run them), mantle back up", "Slide-hop the steps without leaving the slide; experts take the skip on the right: a 12.5 m gap that only a slide boost, slide-hops or air strafing clear");
+            Section("Combo: slide-hops (or the skip)", (338f + o), ledge, "Slide down the steps (or run them), mantle back up", "Slide-hop the steps without leaving the slide; experts take the skip on the right: a 12.5 m gap that only a slide boost, slide-hops or air strafing clear");
             float h0 = ledge - 3f, h1 = h0 - 0.5f, h2 = h1 - 0.5f;
-            Ramp("G Hop ramp", 352f, 368f, ledge, h0, -W, 3f);
-            Floor("G Hop step 1", 368f, 372f, h0, -W, 3f);
-            Floor("G Hop step 2", 376f, 384f, h1, -W, 3f);
-            Floor("G Hop step 3", 388f, 398f, h2, -W, 3f);
-            Cue(LabCueKind.Crouch, 350f, 396f);
-            Cue(LabCueKind.Jump, 371.2f);
-            Cue(LabCueKind.Jump, 383.2f);
-            Beat(CourseBeatKind.SlideRamp, "The hop ramp", 352f, 16f, 3f);
-            Beat(CourseBeatKind.Skip, "The skip", 352f, 12.5f);
-            Beat(CourseBeatKind.SlideHop, "Slide-hop 1", 371.2f, 4f);
-            Beat(CourseBeatKind.SlideHop, "Slide-hop 2", 383.2f, 4f);
+            Ramp("G Hop ramp", (352f + o), (368f + o), ledge, h0, -W, 3f);
+            Floor("G Hop step 1", (368f + o), (372f + o), h0, -W, 3f);
+            Floor("G Hop step 2", (376f + o), (384f + o), h1, -W, 3f);
+            Floor("G Hop step 3", (388f + o), (398f + o), h2, -W, 3f);
+            Cue(LabCueKind.Crouch, (350f + o), (396f + o));
+            Cue(LabCueKind.Jump, (371.2f + o));
+            Cue(LabCueKind.Jump, (383.2f + o));
+            Beat(CourseBeatKind.SlideRamp, "The hop ramp", (352f + o), 16f, 3f);
+            Beat(CourseBeatKind.Skip, "The skip", (352f + o), 12.5f);
+            Beat(CourseBeatKind.SlideHop, "Slide-hop 1", (371.2f + o), 4f);
+            Beat(CourseBeatKind.SlideHop, "Slide-hop 2", (383.2f + o), 4f);
             float m1 = h2 + 1.35f, merge = m1 + 1.35f;
-            Block("G Hop mantle 1 (1.35 m)", 398f, 404f, m1);
-            Beat(CourseBeatKind.Mantle, "Back up, 1.35 m", 398f, 0f, 1.35f);
-            Block("G Merge deck", 404f, 433f, merge);
-            Beat(CourseBeatKind.Mantle, "Back up again, 1.35 m", 404f, 0f, 1.35f);
-            Block("G Skip deck (experts)", 364.5f, 404f, ledge, 4f, W + 1f);
-            Marker("Back on the deck", 412f, merge, -3f, W);
+            Block("G Hop mantle 1 (1.35 m)", (398f + o), (404f + o), m1);
+            Beat(CourseBeatKind.Mantle, "Back up, 1.35 m", (398f + o), 0f, 1.35f);
+            Block("G Merge deck", (404f + o), (433f + o), merge);
+            Beat(CourseBeatKind.Mantle, "Back up again, 1.35 m", (404f + o), 0f, 1.35f);
+            Block("G Skip deck (experts)", (364.5f + o), (404f + o), ledge, 4f, W + 1f);
+            Marker("Back on the deck", (412f + o), merge, -3f, W);
 
             // ----- 9. The finale: the long wall on the left, kick and double jump down onto the finish (safe: stones on the right).
-            const float wl = 434f;
-            Section("Finale", 416f, merge, "Hop the stones on the right", "Run the long wall, kick off and double jump down to the finish", ChapterFinish);
+            const float wl = (434f + o);
+            Section("Finale", (416f + o), merge, "Hop the stones on the right", "Run the long wall, kick off and double jump down to the finish", ChapterFinish);
             Lane(wl - 23f, 0f); Lane(wl - 11f, -3.6f);
             Wall("G Long wall", -4.5f, wl, wl + 21f, merge + 6.5f);
             Cue(LabCueKind.Jump, wl - 2.4f);
@@ -312,14 +315,14 @@ namespace JamKit.Movement
             Cue(LabCueKind.DoubleJumpAtApex, wl + 12.5f);
             Lane(wl + 14f, -3.6f); Lane(wl + 20f, 0f);
             Beat(CourseBeatKind.Wallrun, "The long wall", wl - 2.4f, 21f, 6.5f);
-            Stone("G Finale stone 1", 437f, 440.5f, merge, 5f, W + 1f);
-            Stone("G Finale stone 2", 444f, 447.5f, merge, 5f, W + 1f);
-            Stone("G Finale stone 3", 451f, 454.5f, merge, 5f, W + 1f);
+            Stone("G Finale stone 1", (437f + o), (440.5f + o), merge, 5f, W + 1f);
+            Stone("G Finale stone 2", (444f + o), (447.5f + o), merge, 5f, W + 1f);
+            Stone("G Finale stone 3", (451f + o), (454.5f + o), merge, 5f, W + 1f);
             float fin = merge - 1f;
             finishFloorY = fin;
-            Block("G Finish platform", 456.5f, 490f, fin, -W - 1f, W + 1f);
-            Marker("Down from the wall", 459f, fin, -4f, 4f);
-            finishS = Z(463f);
+            Block("G Finish platform", (456.5f + o), (490f + o), fin, -W - 1f, W + 1f);
+            Marker("Down from the wall", (459f + o), fin, -4f, 4f);
+            finishS = Z((463f + o));
             sections[sections.Count - 1].endS = finishS;
             c.sections.Add(new KeyValuePair<float, string>(finishS, "Gauntlet: finished"));
             lowestFloor = h2;
