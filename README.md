@@ -15,6 +15,7 @@ presenter mode), four genre templates (**2D bullet-hell roguelite**, **DOOM-like
 | [VISITING-HOURS.md](docs/VISITING-HOURS.md) | **The practice game's current state**: premise, art, audio, movement, status, open questions |
 | [CHARACTERS.md](docs/CHARACTERS.md) | Visiting Hours' characters and their looks |
 | [OPENING-AND-TITLE.md](docs/OPENING-AND-TITLE.md) | Visiting Hours' opening shot list and diegetic title screen |
+| [STORY-BIBLE.md](docs/STORY-BIBLE.md), [CHARACTER-BIBLE.md](docs/CHARACTER-BIBLE.md), [NIGHTS-GAMEPLAY.md](docs/NIGHTS-GAMEPLAY.md), [ARGUMENT-BATTLES.md](docs/ARGUMENT-BATTLES.md) | Visiting Hours proposals (2026-10-11, awaiting the creator): the five nights and endings, the cast, what the player does each night (with the demo route), the rebuilt argument battles |
 | [STORY-VISITING-HOURS.md](docs/STORY-VISITING-HOURS.md), [SLICE-VISITING-HOURS.md](docs/SLICE-VISITING-HOURS.md), [SLICE-NOTES.md](docs/SLICE-NOTES.md) | Visiting Hours' story design, the slice spec, notes on the first slice (partly superseded; see their headers) |
 | [RESEARCH-MOVEMENT.md](docs/RESEARCH-MOVEMENT.md) | Titanfall-style movement: mechanics, measured numbers, formulas, Unity approach, feel, chase design |
 | [SHELL.md](docs/SHELL.md) | How to build a game on the shell |
