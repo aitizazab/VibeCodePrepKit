@@ -572,7 +572,13 @@ namespace JamKit.VisitingHours
                 for (int i = 0; i < mats.Length; i++) mats[i] = mat;
                 r.sharedMaterials = mats;
                 r.shadowCastingMode = ShadowCastingMode.On;
-                if (r is SkinnedMeshRenderer smr) smr.updateWhenOffscreen = true;
+                if (r is SkinnedMeshRenderer smr)
+                {
+                    smr.updateWhenOffscreen = true;
+                    // Outside play mode (the lighting captures, the EditMode tests) nothing skins her between posing and
+                    // rendering: re-skin on every render so a still shows the pose (her arm on the phone), not a stale one.
+                    if (!Application.isPlaying) smr.forceMatrixRecalculationPerRender = true;
+                }
             }
             var rig = go.AddComponent<VhModelNadia>();
             if (!rig.Bind(go.transform))

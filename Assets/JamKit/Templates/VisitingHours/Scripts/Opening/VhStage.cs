@@ -304,15 +304,16 @@ namespace JamKit.VisitingHours
             cam.fieldOfView = Mathf.Lerp(_fromFov, _toFov, e);
         }
 
-        /// <summary>Where the phone is held: in front of her eyes at their height, a little to the right, screen towards her
-        /// (from the nightstand pose). High enough that her hand under it and her wrist stay in view above the blanket.</summary>
+        /// <summary>Where the phone is held: close in front of her eyes at their height, a little towards her feet (her right
+        /// shoulder is low and towards her feet: the arm stays bent, the hand reaches it), screen towards her (from the
+        /// nightstand pose). Her hand under it and her wrist stay in view.</summary>
         void HoldPose(out Vector3 pos, out Quaternion rot)
         {
             int i = PoseIndex("nightstand");
             Vector3 p = i >= 0 ? posePositions[i] : cam.transform.position;
             Quaternion r = i >= 0 ? poseRotations[i] : cam.transform.rotation;
             Vector3 fwd = r * Vector3.forward, up = r * Vector3.up, right = r * Vector3.right;
-            pos = p + fwd * 0.27f + up * 0.005f + right * 0.02f;
+            pos = p + fwd * 0.21f - right * 0.06f;
             rot = Quaternion.LookRotation(up, -fwd) * Quaternion.Euler(-12f, 0f, 0f);
         }
 
