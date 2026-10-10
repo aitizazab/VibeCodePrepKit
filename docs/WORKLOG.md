@@ -992,3 +992,11 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - Verdict: about a fifth of the four docs is repetition, and over half only matters once the checklist is settled.
   - Theo's blessing, Lena's truth and the Long Night are all open.
   - It flags contradictions: two corporations or a corporation and a gang; whether Nadia heard the call; Lena's ceramics against no clay; a threshold against a granular choice for his decision; 41 against 42 Saturdays; 2:47 against 2:50.
+- **Why keyboard-and-mouse air strafing is easy** (the movement agent, investigation only):
+  1. **Air control is a second, uncapped strafe engine** (`MoveSim.cs:378`). It adds 10 m/s² along the view whenever your speed along the view is under 5. That is the W-only trick: turning the mouse steadily keeps the view 60–90° ahead.
+  2. **The 0.8 strafe cap applies per tick at 120 Hz**, about 1.8× a 66-tick Source server.
+  3. **Nothing in the air takes speed away.** A 90° view snap turns you at 275–600°/s with no loss. The double-jump redirect is free.
+  4. **Landing:** a 0.15 s grace plus the 0.12 s jump buffer make about 0.27 s with no friction, against one frame in Source.
+  5. **The stick:** the same maths, but a 190–304°/s turn limit.
+  - Ideal strafing from 13 to 22 m/s takes 3.25 s of air today; 4.1 s with air control off; 7.5 s with it off and the cap at 0.59.
+  - Seven options went to the creator (agent's guess: redirect-only air control plus a soft limit on strafe gains at about 13–14 m/s).
