@@ -16,10 +16,10 @@ namespace JamKit.Tests.Play
     {
         public sealed class Report
         {
-            public int catches, catchesChecked, slideFrames;
+            public int catches, catchesChecked, slideFrames, reachedEarly;
             public float worstWallHand, worstSlideFoot, worstHead, cutout;
             public override string ToString() =>
-                $"catches {catches} (checked {catchesChecked}, worst hand {worstWallHand:0.000} m), slide frames {slideFrames} (worst ankle {worstSlideFoot:0.000} m), head {worstHead:0.000} m from the eye (cut-away {cutout:0.00} m)";
+                $"catches {catches} (reaching out before contact on {reachedEarly}, checked {catchesChecked}, worst hand {worstWallHand:0.000} m), slide frames {slideFrames} (worst ankle {worstSlideFoot:0.000} m), head {worstHead:0.000} m from the eye (cut-away {cutout:0.00} m)";
         }
 
         public static MixamoBodyRig RigOf(MovementController player)
@@ -48,6 +48,9 @@ namespace JamKit.Tests.Play
                 if (ev.wallrunStarted)
                 {
                     r.catches++;
+                    // The pose read here is the frame before contact: the lean-in should already be under way.
+                    int side = ev.wallSide > 0 ? 1 : 0;
+                    if (mb.Pose != null && mb.Pose.reach[side] > 0.3f) r.reachedEarly++;
                     catchFrame = Time.frameCount;
                     wallIdx = ev.wallSide > 0 ? 1 : 0;
                 }
@@ -79,7 +82,8 @@ namespace JamKit.Tests.Play
             if (expectWallruns)
             {
                 Assert.That(r.catchesChecked, Is.GreaterThan(0), "a wallrun catch was watched");
-                Assert.That(r.worstWallHand, Is.LessThan(handTolerance), "the wall hand lands on its spot by the second frame");
+                Assert.That(r.worstWallHand, Is.LessThan(handTolerance), "the wall hand is on its spot (planted on the contact frame)");
+                Assert.That(r.reachedEarly, Is.GreaterThan(0), "the wall hand reached out before contact (the lean-in) on at least one catch");
             }
             if (expectSlides)
             {

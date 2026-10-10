@@ -6,13 +6,13 @@ using NVec3 = System.Numerics.Vector3;
 namespace JamKit.Movement
 {
     /// <summary>
-    /// The first-person body and its feel (docs/MOVEMENT.md "The body", RESEARCH-MOVEMENT 8.1 and 8.4).
+    /// The first-person body and its feel (docs/MOVEMENT.md "The body"; evidence in RESEARCH-MOVEMENT 8.7).
     /// Each frame the core <see cref="BodyFeel"/> turns the movement (mode, speed, events, the stride
-    /// phase the footsteps use, look turns, the camera's dip) into a pose: where the hands go (the pump in
-    /// step with the footfalls, the jump lift, the double jump's sweep, the sprint kick's shove, the wall
-    /// hand planted where the wallrun is granted and dragged along, the wall kick's push, the slide's
-    /// balance pose and feet in view, the hands on a ledge), the legs, the torso's lean, the landing a
-    /// moment after the camera. A real body draws it through <see cref="rig"/> (a
+    /// phase the footsteps use, look turns, the camera's dip) into a pose: the pump in step with the
+    /// footfalls, the wall hand reaching out before a wallrun (a look-ahead probe on her path) and planted
+    /// on the contact frame, the one-handed wall pose, the wall kick's push, the slide's tilt (already in the
+    /// air with crouch held), the hands on a ledge's lip, the look sway and strafe roll, vertical inertia,
+    /// the double jump's held pose, the landing a frame after the camera, the legs. A real body draws it through <see cref="rig"/> (a
     /// <see cref="MovementBodyRig"/>, e.g. <see cref="MixamoBodyRig"/> on a template's character); without
     /// one, PLACEHOLDER capsule arms (and legs while sliding) do. Numbers: the tuning asset's body section.
     /// Never moves the camera: the camera is the source and the body follows it. F4 (editor and
@@ -175,6 +175,8 @@ namespace JamKit.Movement
                 lookPitch = dp,
                 events = body.FrameEvents,
                 stridePhase = body.StridePhase,
+                crouchHeld = sim.CrouchHeld,
+                ledgeHeight = sim.MantleRise,
                 wallSide = sim.WallSide,
                 motion = s != null ? s.motionEffects : 1f,
                 cameraDip = feelCamera != null ? feelCamera.Dip : 0f,
@@ -196,6 +198,8 @@ namespace JamKit.Movement
                     input.wallHandTarget = N(local);
                 }
             }
+            // The lean-in: a runnable wall coming up beside her within wallLookAhead seconds.
+            if (mode != MoveMode.Wallrun && mode != MoveMode.Mantle && mode != MoveMode.Slide) ProbeWall(def, ref input);
             // The ledge's lip: both hands on it, either side of the middle.
             if (mode == MoveMode.Mantle)
             {
@@ -234,6 +238,57 @@ namespace JamKit.Movement
                 return;
             }
             PosePlaceholder(pose);
+        }
+
+        /// <summary>
+        /// Looks wallLookAhead seconds along her path (velocity, plus gravity in the air) for a wall she'll run on: one
+        /// beside her (not head on), runnable. Gives the feel how close it is and where the hand will plant there,
+        /// relative to where her eyes will be, so the hand reaches out before contact (TF2's lean-in).
+        /// </summary>
+        void ProbeWall(BodyFeelDef def, ref BodyFeelInput input)
+        {
+            var sim = body.Sim;
+            Vector3 v = body.Velocity;
+            Vector3 flat = new Vector3(v.x, 0f, v.z);
+            if (flat.magnitude < 3f || def.wallLookAhead <= 0f) return;
+            bool air = sim.Mode == MoveMode.Air;
+            float g = body.Def.gravity;
+            float r = body.Def.radius * 0.95f;
+            Vector3 origin = body.RenderPosition + Vector3.up * 1.0f;
+            Vector3 eye = transform.position;
+            const int steps = 5;
+            Vector3 prev = origin;
+            float tPrev = 0f;
+            for (int n = 1; n <= steps; n++)
+            {
+                float t = def.wallLookAhead * n / steps;
+                Vector3 p = origin + v * t + (air ? Vector3.down * (0.5f * g * t * t) : Vector3.zero);
+                Vector3 seg = p - prev;
+                float len = seg.magnitude;
+                if (len > 1e-4f && Physics.SphereCast(prev, r, seg / len, out var hit, len, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                {
+                    Vector3 nrm = new Vector3(hit.normal.x, 0f, hit.normal.z);
+                    if (Mathf.Abs(hit.normal.y) > 0.3f || nrm.sqrMagnitude < 0.25f) return;
+                    nrm.Normalize();
+                    if (Vector3.Dot(flat.normalized, -nrm) > 0.85f) return; // head on: a mantle or a stop, not a wallrun
+                    var surface = hit.collider != null ? hit.collider.GetComponentInParent<MovementSurface>() : null;
+                    bool runnable = body.onlyMarkedWalls ? surface != null && surface.runnable : surface == null || surface.runnable;
+                    if (!runnable) return;
+                    float tHit = tPrev + (t - tPrev) * (hit.distance / len);
+                    Vector3 travel = v * tHit + (air ? Vector3.down * (0.5f * g * tHit * tHit) : Vector3.zero);
+                    Vector3 along = Vector3.ProjectOnPlane(flat, nrm).normalized;
+                    Vector3 spot = hit.point + nrm * 0.03f + along * def.wallHandAhead;
+                    Vector3 local = Quaternion.Inverse(transform.rotation) * (spot - (eye + travel));
+                    local.y = def.wallHandHeight;
+                    input.approaching = true;
+                    input.approachSide = Vector3.Dot(-nrm, body.transform.right) > 0f ? 1 : -1;
+                    input.approachCloseness = Mathf.Clamp01(1f - tHit / def.wallLookAhead);
+                    input.approachTarget = N(local);
+                    return;
+                }
+                prev = p;
+                tPrev = t;
+            }
         }
 
         // ---------- The placeholder ----------

@@ -60,6 +60,7 @@ namespace JamKit.Movement
 
         // Mantle
         Vector3 _mantleStart, _mantleUp, _mantleEnd, _mantleLip, _mantleNormal;
+        bool _crouchHeld;
         float _mantleT, _mantleDur, _mantleExit, _mantleStuck;
         // Horizontal speed of the last moments before collisions clipped it: running into a ledge face clips
         // the forward speed a step before the mantle starts, and the mantle should keep the run's momentum.
@@ -105,6 +106,10 @@ namespace JamKit.Movement
         /// <summary>The middle of the ledge's lip being mantled (where the hands plant), and the wall's normal (towards the player).</summary>
         public Vector3 MantleLip => _mantleLip;
         public Vector3 MantleNormal => _mantleNormal;
+        /// <summary>Crouch was held on the last step (the body tilts the arms in the air: a slide is coming).</summary>
+        public bool CrouchHeld => _crouchHeld;
+        /// <summary>How high the ledge being mantled is above the feet where the mantle started (m).</summary>
+        public float MantleRise => _mantleLip.Y - _mantleStart.Y;
         /// <summary>Where the eye should be above the feet (the camera blends to it).</summary>
         public float EyeHeightTarget => Crouched ? def.slideEyeHeight : def.eyeHeight;
         /// <summary>The events of the last step.</summary>
@@ -153,6 +158,7 @@ namespace JamKit.Movement
             _events = default;
             _time += h;
             _yaw = input.yaw;
+            _crouchHeld = input.crouchHeld;
 
             Vector3 fwd = Forward(_yaw);
             Vector3 right = RightOf(fwd);

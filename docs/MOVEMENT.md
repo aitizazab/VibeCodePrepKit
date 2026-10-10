@@ -213,7 +213,7 @@ Metres, seconds, m/s, degrees.
 ### Feel components (inspector fields)
 | Component | Fields (defaults) |
 |---|---|
-| `MovementCamera` (on the rig) | speedFov 8° from 9.5 to 22 m/s, slideFov 3°, fovRate 6; sprintKickFov 4° over sprintKickTime 0.35 s; wallRoll 9° away from the wall, wallCatchKick 4° (the lean-in on contact), slideRoll 2°, roll spring 14 rad/s damping 0.65; landDip 0.12 m from 4 to 18 m/s impact (spring 20); bobAmount 0.035 m; mantleNod 3° |
+| `MovementCamera` (on the rig) | speedFov 8° from 9.5 to 22 m/s, **slideFovScale 1.1 over 0.25 s in and out** (TF2; slideFov extra degrees 0), fovRate 6; sprintKickFov 4° over sprintKickTime 0.35 s; wallRoll 9° away from the wall, wallCatchKick 4° (the lean-in on contact), slideRoll 2°, roll spring 14 rad/s damping 0.65; landDip 0.12 m from 4 to 18 m/s impact (spring 20), **slideEntryDip 0.05 m** (TF2: the sudden dip into a slide); bobAmount 0.035 m; mantleNod 3° |
 | `MovementBody` (on the camera) | The first-person body and its feel (**The body** below): `rig` (a MovementBodyRig; the lab and the escape wire Nadia's model), `feelCamera`; the placeholder capsules' colours and proportions when no rig is wired. Every feel number is in the tuning asset's **Body** section (`BodyFeelDef`). |
 | `SpeedLines` (on the camera) | 56 edge streaks from 12 to 20 m/s, alpha up to 0.35, never in the centre of the screen |
 | `MovementAudio` (on the body) | windVolume 0.5, windHighVolume 0.4, slideVolume 0.45, wallVolume 0.3, stepVolume 0.32, effectsVolume 0.8, pitchVariance 0.05, volumeVariance 0.12. What each sound is and when it plays: **Sound** below. |
@@ -248,24 +248,32 @@ other templates, tests and headless runs work the same.
   shadow, head included. She has no colliders and sits on Ignore Raycast, so the movement is exactly as before. The
   builders wire her with `MovementBodySetup.Wire` (package editor code; the paths come from the template).
 
-**What she does (the creator judges these):**
+**What she does (the creator judges these).** Evidence for each move is in RESEARCH-MOVEMENT 8.7. **TF2** means
+Titanfall 2's game files or its runners; **ours** means no source, our own choice, kept subtle.
 
-| Move | What you see |
-|---|---|
-| **Running** | The arms pump in step with the footsteps (about 4 cm forward and back, 1.5 cm up; each arm at its furthest at each footfall). The legs run on the **same stride phase as the footstep sounds** (each foot plants exactly when its step plays). Zero pump in the air. |
-| **Speed tiers** (under 8, 8-13, over 13 m/s) | At "fast" she leans in 3° and the pump tightens to 75%; at "flying" she leans 8°, the pump is 45% and the arms sweep back. |
-| **Turning** | She leans into turns (up to 5° from the sideways acceleration); the arms trail the view (up to 4°, more on a flick). |
-| **Jump / double jump** | The arms lift 4 cm. The double jump sweeps them down and back for 0.15 s and tucks the legs. |
-| **Landing** | The camera dips first; the body takes the same dip 0.03 s later (a little more on hard landings). |
-| **Sprint kick** | Plant and shove: the trailing arm drives back and down, the leading one forward, the torso leans in 6° and recovers. |
-| **Wallrun** | The wall hand lands on the wall at the wall point beside her plus 0.35 m along the run, **within 0.03 s of the catch** (the timing cue), then drags along the wall. The other arm swings. |
-| **Wall kick** | The wall hand shoves off the wall on the kick frame. |
-| **Slide** | She reclines 30°; the hands drop and spread for balance (the left one trails near the ground above 12 m/s); the leading foot rises into the bottom of the screen. |
-| **Mantle** | Both hands plant on the ledge's lip, the arms stretched, then shove her up as she rises. |
-| **Still** | A slow breath (the arms and the chest). |
+| Move | What you see | Source |
+|---|---|---|
+| **Wallrun: the lean-in** | A probe looks 0.25 s ahead along her path (her velocity, plus gravity in the air). When a runnable wall is coming beside her, the wall-side hand **reaches out before contact**, eased by closeness. It **plants on the contact frame** at the wall point beside her plus 0.35 m along the run, then drags along the wall. If no catch happens, the reach comes back smoothly. The other arm blends to a one-handed pose over 0.2 s, and back over 0.35 s after the wall. | TF2: the lean-in is "super telegraphed", and runners time the 83 ms wall kick by the hand; one-handed 0.2 / 0.35 s. Momentum Mod: 0.25 s look-ahead |
+| **Wall kick** | The wall hand shoves off the wall on the kick frame. | ours |
+| **Running** | The arms pump in step with the footsteps, about 4 cm forward and back and 1.5 cm up; each arm is at its furthest at each footfall. The legs run on the **same stride phase as the footstep sounds**. The camera stays nearly still. Zero pump in the air. | TF2: the sprint cycle is two steps. Bob and roll cause sickness (Destiny, Overwatch, Dying Light, Apex). The amplitudes are ours |
+| **Look sway** | The arms lag turns (up to 3° yaw and 3° pitch), roll with them (up to 4°) and slide up to 1.3 cm. Rotation follows at 9 /s, translation at 6 /s. Strafing rolls the arms 4°. | TF2 R-201 and Apex fists; bare hands sit between the two |
+| **Jump** | **No lift.** The arms sink while rising and float while falling, up to 1.5 cm. | TF2 R-201 vertical sway |
+| **Double jump** | A "push off the air" pose, down and back, **held 0.27 s** then released over 0.12 s; the legs tuck. | Destiny: hold key poses 7-10 frames. Apex has its own double-jump overlay. The pose's shape is ours |
+| **Landing** | The camera dips first; the body takes the same dip **0.03 s later**, plus a view-punch spring scaled by the fall (TF2's: constant 65, damping 9). | Destiny: "the head leads by a frame"; TF2 `springs.txt` |
+| **Slide** | The arms **tilt 18° sideways** (no spread) and drop a little. The tilt shows **already in the air while crouch is held**: "a slide is coming". She reclines 30°. The camera dips sharply as the slide starts, and the view widens ×1.1 over 0.25 s in and 0.25 s out (`MovementCamera.slideFovScale`, `slideEntryDip`). The leading foot rises into the bottom of the screen; `slideLegs` turns the legs off. | TF2: "gun tilted = you're going to slide", the sudden dip, `slideFOVScale 1.1`. No source shows TF2's legs; Mirror's Edge shows them |
+| **Mantle** | The pose blends by ledge height (a low and a high pose). The hands are moved onto the ledge's lip by IK, at most 40 cm off the pose, over a reach time set by the approach speed (0.3 m ÷ speed, between 0.06 and 0.22 s). Mouse look is never locked. | TF2: 4 ledge heights; Dying Light: IK on the edge with about 40 cm of freedom, the reach scaled to the speed |
+| **Sprint kick** | Plant and shove: the trailing arm drives back and down, the leading one forward, the torso leans in 6° and recovers. | ours |
+| **Speed tiers** (under 8, 8-13, over 13 m/s) | **Ours, no source, subtle.** At "fast" she leans 1.5° and the pump is 85%. At "flying" she leans 3°, the pump is 70% and the arms draw back 4 cm. | none (TF2 only lowers the weapon in sprint) |
+| **Turning** | She leans into turns, up to 3° from the sideways acceleration. | ours |
+| **Still** | A slow breath (the arms and the chest). | ours |
 
-**Comfort.** Everything above scales with the **Motion effects** setting, except the contact cues (the wall hand, the
-ledge hands, the slide pose and legs), which stay at 0. The camera is never moved by the body.
+**Arm field of view.** Destiny, Overwatch and Titanfall draw their arms on a separate camera with a fixed FOV. Ours is
+a whole body on the main camera, so the hands keep their real size and the Comfort FOV (55-90°) changes how much of
+her you see. If the shoulders or hands look stretched at wide FOV, the fix is Dying Light's: scale the hand targets
+towards the camera by the FOV ratio (the placeholder capsules already do this).
+
+**Comfort.** Everything above scales with the **Motion effects** setting, except the contact cues, which stay at 0:
+the wall hand's reach and plant, the ledge hands, the slide tilt and legs. The camera is never moved by the body.
 
 **The orbit camera: F4** (editor and development builds) shows her from outside, orbiting the player. Q / E turn
 it and the mouse wheel moves it in or out. Her head shows in this view.

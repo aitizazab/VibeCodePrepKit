@@ -5,9 +5,9 @@ namespace JamKit.Movement
 {
     /// <summary>
     /// The camera's feel for <see cref="MovementController"/> (docs/MOVEMENT.md "Feel"): the field of
-    /// view widens with speed, the view leans away from a wall you run on (a quick lean-in with a
+    /// view widens with speed (and x1.1 while sliding), the view leans away from a wall you run on (a quick lean-in with a
     /// little overshoot on contact, the cue players time wall kicks by), rolls a touch while sliding,
-    /// dips on landing in proportion to the fall, nods on a mantle and bobs while running. Every
+    /// dips sharply as a slide starts and on landing in proportion to the fall, nods on a mantle and bobs while running. Every
     /// effect follows the player's comfort settings (Settings: fieldOfView, cameraRoll, headBob,
     /// motionEffects). Sits on the rig between the head and the camera; runs after the controller.
     /// </summary>
@@ -22,7 +22,10 @@ namespace JamKit.Movement
         [Header("Field of view")]
         [Tooltip("Extra vertical degrees at full speed (x Motion effects).")]
         public float speedFov = 8f;
-        public float slideFov = 3f;
+        [Tooltip("Extra degrees while sliding (0: the slide widens by slideFovScale instead).")]
+        public float slideFov = 0f;
+        [Tooltip("Sliding widens the view x this (Titanfall 2's slideFOVScale 1.1), in and out over these times (s), x Motion effects.")]
+        public float slideFovScale = 1.1f, slideFovIn = 0.25f, slideFovOut = 0.25f;
         public float fovFromSpeed = 9.5f;
         public float fovFullSpeed = 22f;
         public float fovRate = 6f;
@@ -42,6 +45,8 @@ namespace JamKit.Movement
 
         [Header("Landing and bob (x Head bob)")]
         public float landDip = 0.12f;
+        [Tooltip("The sudden dip as a slide starts (m, x Head bob): Titanfall 2's 'camera will do a sudden dip'.")]
+        public float slideEntryDip = 0.05f;
         public float landDipFrom = 4f;
         public float landDipFull = 18f;
         public float dipFrequency = 20f;
@@ -54,6 +59,7 @@ namespace JamKit.Movement
         float _bobAmp;
         float _nod;
         float _kickT = -1f;
+        float _slideK;
 
         /// <summary>The current lean in degrees (tests, HUD).</summary>
         public float Roll => _roll;
@@ -96,7 +102,11 @@ namespace JamKit.Movement
                 punch = _kickT < rise ? _kickT / rise : 1f - (_kickT - rise) / Mathf.Max(0.01f, sprintKickTime - rise);
                 if (punch <= 0f) { punch = 0f; _kickT = -1f; }
             }
-            if (cam != null) cam.fieldOfView = _fov + sprintKickFov * punch * motionK;
+            // The slide widens the view x1.1, in and out over 0.25 s.
+            bool sliding = mode == MoveMode.Slide;
+            _slideK = Mathf.MoveTowards(_slideK, sliding ? 1f : 0f, udt / Mathf.Max(0.01f, sliding ? slideFovIn : slideFovOut));
+            float slideScale = Mathf.Lerp(1f, slideFovScale, MoveMath.SmoothStep(0f, 1f, _slideK) * motionK);
+            if (cam != null) cam.fieldOfView = (_fov + sprintKickFov * punch * motionK) * slideScale;
 
             // Roll: away from the wall (wall on the right -> the top of the view tilts left), a spring so the
             // catch overshoots into a clear "lean-in".
@@ -119,6 +129,7 @@ namespace JamKit.Movement
             }
 
             // Landing dip: a critically damped spring kicked down in proportion to the fall speed.
+            if (ev.slideStarted) _dipVel -= slideEntryDip * dipFrequency * 2.718f * bobK;
             if (ev.landed && !ev.slideStarted)
             {
                 float amount = landDip * Mathf.Clamp01((ev.landImpact - landDipFrom) / (landDipFull - landDipFrom)) * bobK;
