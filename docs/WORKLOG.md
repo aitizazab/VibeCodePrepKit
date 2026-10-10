@@ -495,3 +495,18 @@ headings above were corrected from the commit times; the earlier guesses ran up 
 - **The build:** `VibeJamKit-play\Builds\Play\MovementLab-R3\VibeJamKit.exe`, in a separate folder because the old lab was
   still open.
 - **Later:** a proper rebinding screen in settings, for controller and keyboard.
+
+### Lena round 2 (13:40)
+- **Review page (open in Firefox):** `FableAnimationTestsrteview‚6-10-10isiting-hours-lena-round2.html`. It opens
+  with Nadia's front view beside Lena's, then a pick and an alternate for each sheet. Nano Banana Pro is back; 10 takes,
+  0 credits.
+- **Face:** soft and round (full cheeks, rounded chin, button nose, soft brows, wide-set green-grey eyes, freckles), a
+  named contrast to Nadia's narrow, angular, hollow-cheeked face. Nadia's sheet was never attached; Mags's turnaround set
+  the style and layout.
+- **Clothes:** a dusty-rose long-sleeved midi dress, a clay-smeared ecru apron, brown ankle boots. **Sleeves down** in
+  every view. **The pencil** rests on top of her ear with her hair tucked behind it (clearest in the side view; in the
+  waking front view her hair still covers the ear).
+- **Dream:** the billboard and three expressions (warm, knowing, defensive) keep her round face and the pencil; dot eyes.
+- **The rules for her look** are now in `CHARACTERS.md` under Lena.
+- **The page's questions:** do they read as two unrelated women at a glance? Is the ceramicist look right? Does the
+  pencil read as deliberate? Are the dream versions cute enough?
