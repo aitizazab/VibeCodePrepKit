@@ -304,14 +304,15 @@ namespace JamKit.VisitingHours
             cam.fieldOfView = Mathf.Lerp(_fromFov, _toFov, e);
         }
 
-        /// <summary>Where the phone is held: in front of her eyes, screen towards her (from the nightstand pose).</summary>
+        /// <summary>Where the phone is held: in front of her eyes at their height, a little to the right, screen towards her
+        /// (from the nightstand pose). High enough that her hand under it and her wrist stay in view above the blanket.</summary>
         void HoldPose(out Vector3 pos, out Quaternion rot)
         {
             int i = PoseIndex("nightstand");
             Vector3 p = i >= 0 ? posePositions[i] : cam.transform.position;
             Quaternion r = i >= 0 ? poseRotations[i] : cam.transform.rotation;
             Vector3 fwd = r * Vector3.forward, up = r * Vector3.up, right = r * Vector3.right;
-            pos = p + fwd * 0.26f - up * 0.065f + right * 0.025f;
+            pos = p + fwd * 0.27f + up * 0.005f + right * 0.02f;
             rot = Quaternion.LookRotation(up, -fwd) * Quaternion.Euler(-12f, 0f, 0f);
         }
 
@@ -378,8 +379,9 @@ namespace JamKit.VisitingHours
         /// <summary>
         /// Where her right wrist goes and how her hand is turned for a grip on the phone. <paramref name="held"/> 0: from above
         /// as it lies on the nightstand (the palm over the screen, the fingers along it from its bottom edge); 1: up in her
-        /// hand (the palm behind it, the heel at its lower right edge, the fingers across its back to wrap the left edge, the
-        /// thumb free in front). The two share the bottom edge, so the change turns round it rather than through the phone.
+        /// hand (cradled from below: the wrist just under its bottom edge towards the right, the palm against its lower back,
+        /// the fingers up and across it to wrap the left edge, the thumb free in front). The hand and wrist show below the
+        /// phone instead of hiding behind it. The two share the bottom edge, so the change turns round it, not through it.
         /// </summary>
         public void GripPose(float held, out Vector3 wrist, out Quaternion palm)
         {
@@ -388,8 +390,8 @@ namespace JamKit.VisitingHours
             Vector3 centre = phone.position + up * (th * 0.5f);
             Vector3 aboveWrist = centre - top * (hl + 0.03f) + up * (th * 0.5f + 0.024f);
             Quaternion above = Quaternion.LookRotation(top, up);
-            Vector3 behindWrist = centre - top * (hl * 0.55f) + right * (hw + 0.006f) - up * (th * 0.5f + 0.02f);
-            Quaternion behind = Quaternion.LookRotation((top * 0.55f - right * 0.85f).normalized, -up);
+            Vector3 behindWrist = centre - top * (hl + 0.025f) + right * (hw * 0.45f) - up * (th * 0.5f + 0.012f);
+            Quaternion behind = Quaternion.LookRotation((top * 0.75f - right * 0.66f).normalized, -up);
             float k = VhUtil.Ease(held);
             wrist = Vector3.Lerp(aboveWrist, behindWrist, k) + up * (Mathf.Sin(k * Mathf.PI) * 0.03f);
             palm = Quaternion.Slerp(above, behind, k);

@@ -296,6 +296,8 @@ namespace JamKit.VisitingHours
             return true;
         }
 
+        static readonly float[] CurlDegrees = { 45f, 55f, 35f };
+
         public override void SetGrip(Vector3 phoneCentre, Quaternion phoneRotation, Vector3 phoneSize, float curl, float thumbPress)
         {
             for (int i = 0; i < _fingers.Length; i++) if (_fingers[i] != null) _fingers[i].localRotation = _fingerBase[i];
@@ -303,14 +305,13 @@ namespace JamKit.VisitingHours
             if (_mode != Mode.FirstPerson || !_armShown || !HandFrame(out var fingers, out var palmNormal)) return;
             Vector3 across = Vector3.Cross(palmNormal, fingers).normalized;
             // Curl each finger joint towards the palm (round the phone's edge): about 45, 55 and 35 degrees when closed.
-            float[] joint = { 45f, 55f, 35f };
             float sign = Vector3.Dot(Vector3.Cross(across, fingers), palmNormal) >= 0f ? 1f : -1f;
             for (int f = 0; f < 4; f++)
                 for (int j = 0; j < 3; j++)
                 {
                     var bone = _fingers[f * 3 + j];
                     if (bone == null) continue;
-                    bone.rotation = Quaternion.AngleAxis(sign * joint[j] * Mathf.Clamp01(curl), across) * bone.rotation;
+                    bone.rotation = Quaternion.AngleAxis(sign * CurlDegrees[j] * Mathf.Clamp01(curl), across) * bone.rotation;
                 }
             // The thumb: free beside the phone, or pressing the screen just below its middle.
             if (_thumb[0] != null && _thumb[2] != null && thumbPress > 0f)

@@ -157,7 +157,7 @@ top: the lamp at the back by the wall, the phone on the bed's side within her re
 corner, leaning back on its strut, turned towards her pillow. **Nadia** is her Tripo model (`Models/Nadia/`,
 imported at scale 1.69 by `VhNadiaImport`): lying on her side, head hidden in first person, her right arm posed
 by two-bone IK to the phone, her fingers bent round its edges (`SetGrip`: from above while it lies on the
-nightstand, then cradled from behind once it's up, the heel of her hand at its lower edge, the fingers across its
+nightstand, then cradled from below once it's up at eye height, her wrist and hand in view under its lower edge, the fingers up its
 back, the thumb free over the screen to tap); turned away for the overhead shot with her hair on the pillow. The
 blanket is shaped over her real body: the builder poses her both ways, bakes her skinned mesh and drapes the
 blanket over the highest points (widened, smoothed, plus its thickness), so nothing of her pokes through and
