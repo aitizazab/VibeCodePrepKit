@@ -57,6 +57,9 @@ namespace JamKit.Movement
         // Mantle
         Vector3 _mantleStart, _mantleUp, _mantleEnd;
         float _mantleT, _mantleDur, _mantleExit, _mantleStuck;
+        // Horizontal speed of the last moments before collisions clipped it: running into a ledge face clips
+        // the forward speed a step before the mantle starts, and the mantle should keep the run's momentum.
+        float _recentSpeed;
 
         MoveEvents _events;
 
@@ -554,7 +557,7 @@ namespace JamKit.Movement
             _mantleT = 0f;
             _mantleStuck = 0f;
             _mantleDur = def.mantleBaseTime + def.mantlePerMetre * rise;
-            _mantleExit = Math.Max(HorizontalSpeed * def.mantleSpeedKeep, def.mantleExitSpeed);
+            _mantleExit = Math.Max(Math.Max(HorizontalSpeed, _recentSpeed) * def.mantleSpeedKeep, def.mantleExitSpeed);
             _vel = Vector3.Zero;
             _grounded = false;
             _doubleJump = true;
@@ -600,6 +603,7 @@ namespace JamKit.Movement
         {
             bool wasGround = _mode == MoveMode.Grounded || _mode == MoveMode.Sprint || _mode == MoveMode.Slide;
             float preVy = _vel.Y;
+            _recentSpeed = Math.Max(HorizontalSpeed, _recentSpeed * (float)Math.Exp(-h / 0.15f));
             _pos = _world.Move(_pos, _vel * h, def.radius, _height, _normals, out int hits);
             for (int i = 0; i < hits && i < _normals.Length; i++)
             {

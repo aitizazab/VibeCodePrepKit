@@ -64,6 +64,9 @@ namespace JamKit.MovementLab
         public bool AutopilotOn => player != null && player.Autopilot != null;
         /// <summary>True from the moment a fall or a catch is noticed until the player is back and the fade is gone.</summary>
         public bool Respawning => _respawning;
+        /// <summary>The player's speed the moment the last respawn put them back (sprint, except at the start).</summary>
+        public float LastRespawnSpeed => _lastRespawnSpeed;
+        float _lastRespawnSpeed;
         /// <summary>The last moments of the run, for diagnosing a fall: every change of movement state and every
         /// respawn, with the section, position, state and speed (a line per change, not per frame).</summary>
         public System.Collections.Generic.IReadOnlyList<string> Trace => _trace;
@@ -226,6 +229,7 @@ namespace JamKit.MovementLab
             for (float t = 0f; t < 0.18f; t += Time.unscaledDeltaTime) { GameRoot.Ui.SetFade(t / 0.18f); yield return null; }
             GameRoot.Ui.SetFade(1f);
             PlaceAt(_checkpoint, true);
+            _lastRespawnSpeed = player.Speed;
             GameRoot.Hud.Message(message, 1.6f);
             yield return null;
             for (float t = 0f; t < 0.22f; t += Time.unscaledDeltaTime) { GameRoot.Ui.SetFade(1f - t / 0.22f); yield return null; }

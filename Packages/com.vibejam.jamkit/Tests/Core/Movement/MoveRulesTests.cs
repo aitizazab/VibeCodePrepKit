@@ -337,6 +337,7 @@ namespace JamKit.Tests.Movement
             Assert.That(mantled, Is.True, "the mantle caught the ledge");
             Assert.That(sim.Position.Z, Is.GreaterThan(7.5f), "made it across");
             Assert.That(sim.Position.Y, Is.EqualTo(0f).Within(0.06f));
+            Assert.That(sim.HorizontalSpeed, Is.GreaterThan(9.5f * 0.8f - 0.3f), "the mantle keeps 80 % of the run's speed (not of the speed left after hitting the face)");
         }
     }
 }
