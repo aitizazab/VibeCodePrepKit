@@ -969,3 +969,5 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
     you're racing.
   - **The dream tool's ghost recording is fixed** (it cleared the ghost on a new best).
   - Unity check and a lab build under way.
+- **Verified:** Scenes OK, EditMode 696/696, PlayMode 108/108, smoke PASS (9.9 s). The lab was open, so the build went to
+  `Builds/Play/MovementLab-next/VibeJamKit.exe`.
