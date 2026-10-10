@@ -4,8 +4,8 @@
 
 ## The premise (the creator's, as of 2026-10-10)
 - **The world:** a near-future city sliding into dystopia, Cyberpunk without the cybernetics. Corporations run
-  the streets and still pretend to be decent. Two of them, **LeBaget** and a second fictional one (name to be
-  chosen; not a real company), fight a quiet war that spills into the streets.
+  the streets and still pretend to be decent. Two of them, **LeBaget** and **Larpaca** (both fictional; checked
+  that no real company has either name), fight a quiet war that spills into the streets.
 - **Elias Lasname** (the surname is a placeholder) is an ER doctor who **founded Saint Brigid's** for the local
   community. He comes from money; where it came from is never said. A good man with an abrasive personality.
 - **Nadia**, his younger sister, is a nurse at Saint Brigid's and **usually picks him up from work.**
@@ -14,7 +14,7 @@
 - **The night:** Elias stays late at work, **putting off facing her**. Around 3 AM he leaves a voicemail asking
   whether she's still picking him up, guesses she's asleep with a dead phone, apologises ("It's not true, and it
   was rude of me to even imply it"), and says he'll get a cab or call Lena. Driving home, **his car is caught in
-  the crossfire** between the two corporations (the cause is external, which leaves room for more later).
+  the crossfire** between LeBaget and Larpaca (the cause is external, which leaves room for more later).
 - **Lena**, his wife, is **missing**: her body was never found (for later). **Theo** (10) was killed.
 - **Elias is in a coma** at his own hospital. **Mags** runs a **secret, off-the-books** Dream Bridge; Nadia
   goes into his dream.
@@ -34,7 +34,8 @@
     - **forced:** Nadia breaks the dream;
     - **chosen:** she tells him the truth and he decides to wake.
   - **Evening:** she lets him stay.
-  - The design docs propose the details for the creator to approve.
+  - The design docs propose the details for the creator to approve: `STORY-BIBLE.md`, `CHARACTER-BIBLE.md`,
+    `NIGHTS-GAMEPLAY.md`, `ARGUMENT-BATTLES.md` (written overnight 2026-10-10; each opens with its decisions table).
 - **The argument battles get rebuilt from the ground up:**
   - **Unique art per battle**, stylised battle icons and **arenas**: no dodging rectangles in the green or red
     half of a plain box.
@@ -64,8 +65,8 @@ Both are confirmed, as are the timings. No title yet; no How to Play.
 - **Elias's voicemail:** the creator's own recording (an earlier take, cleaned and in the game). A re-record to
   match the final script is due.
 - **The news report:** Kokoro's **af_nicole** (the creator's pick) through a tablet-speaker effect, generated
-  from the script by `tools/audio/make-vh-news.py`. **Pending:** the script's "his condolences" becomes "her"
-  (the reporter is a woman). The creator makes that edit; then re-run.
+  from the script by `tools/audio/make-vh-news.py`, with "her condolences" and Larpaca (swapped in at
+  generation until the creator's script says Larpaca).
 - **Music:** the placeholder sad pad stays for now. The real score is composed with the creator.
 
 ## Movement (the dream)
@@ -78,16 +79,16 @@ course, then `MOVEMENT.md`.
 | Piece | State |
 |---|---|
 | The slice (opening, Day 1, booth, street, journal, Walt's argument) | Built and verified in Unity, in the superseded painterly art and old opening |
-| The movement module and Movement Lab | Being built |
-| Style-E character sheets | Being made |
+| The movement module and Movement Lab | Verified overnight: PlayMode 79/79, smoke pass, playable build |
+| The design docs (story, characters, nights, battles) | Proposals written, awaiting the creator's decisions |
+| Style-E character sheets | Made (review page 2026-10-10); Lena being redone (blonde, long loose waves) |
+| Nadia's 3D model (Tripo) | Done, 80 credits (550 left) |
 | The opening and title rebuild (style E, new script) | Next, after the sheets and the 3D models |
 | The dream street in 3D, an escape sequence | After the opening |
 | Music | With the creator, later |
 
 ## Open questions for the creator
-1. **The second corporation's name** (fictional, obviously corporate). Proposals: *Northline Consolidated*,
-   *Vantor & Pryce*, *Grayhaven Protective Services*, *Solenne Dynamics*, *Cordell-Ashby Group*,
-   *Obelisk Civic Solutions*. Search the pick once to be sure it isn't real.
-2. **Tripo credits** for the waking-world 3D models (about 80 per character; Nadia first).
+1. **The decisions tables** at the top of the four design docs.
+2. **Replace "WeWork" with "Larpaca"** in `script/opening-script.md` (applied in generation meanwhile).
 3. **A re-record** of the voicemail to the final script.
 4. **The title** (later).
