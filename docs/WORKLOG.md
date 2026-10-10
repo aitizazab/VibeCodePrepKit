@@ -684,3 +684,15 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   Dotnet 499/499. Unity checks are next, after the current PlayMode run.
 - **The creator on round 4-a (15:30):** unless the fresh agent's takes are significantly better, this is probably the
   Lena we use.
+
+### Started (15:40): a Gauntlet-style obstacle course for the lab
+- The creator: before the next lab build, a proper obstacle course like Titanfall 2's Gauntlet, so there's something
+  real to test the movement on. Given to the escape agent (it knows the course format, reach checks and autopilot):
+  - a short research pass on the Gauntlet;
+  - a timed loop: a teaching half, then a combo half, with safe and fast lines and expert skips;
+  - touch markers instead of targets;
+  - a start gate and finish, splits against your best, best time saved, a ghost of your best run, target times
+    (the developer's from the autopilot), an end screen;
+  - instant restart (R / the pad's View button).
+- The creator also has the dream-cast page open (`visiting-hours-dream-cast.html`: Nadia, Elias, Lena 4-a, Theo,
+  Walt).
