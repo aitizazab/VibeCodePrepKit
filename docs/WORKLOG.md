@@ -729,3 +729,17 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   cover the dream ear completely?
 - **Next:** round 3's agent makes the fresh fix in 4-a's clothes, then the cast lineups (waking and dream, every Lena
   candidate in her own row with the cast) on `visiting-hours-lena-final.html`.
+
+### The Gauntlet built (16:10; not yet in Unity)
+- **About 470 m, nine timed sections, each with a fast line and a safe line:** sprint and kick; slide; jumps (5.5 m,
+  then an 8.5 m double); wallrun over a pit; wall to wall; the climb (a chimney, or a mantle stair of 1.0, 1.35 and
+  1.65 m); two combo sections; the finale (a 21 m wall, kick and double jump to the finish).
+- **The expert skip:** a 12.5 m gap in section 8 that only a slide boost, slide-hops or air strafing clear.
+- **Touch markers:** nine gold plates, one per section; each one missed adds 2 s (as in Titanfall's targets).
+- **Times:** developer 43.0 s (the autopilot, clean at 20/144/300 fps; it doesn't take the skip), Mags 60.0 s.
+  Titanfall's own goal times are 56.65 and 33.65 s.
+- **The run loop:** clock from the gate to the finish, splits with green or red deltas, falls put you back at the
+  section start already running with the clock going, R / View restarts, a translucent ghost of your best (G / d-pad
+  left), saved bests, a target board and an end screen.
+- **The old course is kept** as free roam before the Gauntlet. The lab's debug HUD moved to F3 / d-pad down.
+- **Restart and ghost** are being made rebindable by the Controls agent.
