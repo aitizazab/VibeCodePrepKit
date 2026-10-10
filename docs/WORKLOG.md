@@ -463,9 +463,9 @@ headings above were corrected from the commit times; the earlier guesses ran up 
 
 ---
 
-## Day of 2026-10-11
+## Afternoon of 2026-10-10 (after the creator woke)
 
-### The creator's notes on the overnight art (morning)
+### The creator's notes on the overnight art (13:30)
 - **Lena reads as her own person, but still looks too much like Nadia,** and they aren't related:
   - she dresses the same as Nadia;
   - her facial structure leaves little room to tell them apart;
