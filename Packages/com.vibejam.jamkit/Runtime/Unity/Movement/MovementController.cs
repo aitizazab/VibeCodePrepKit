@@ -1,0 +1,355 @@
+using System;
+using JamKit.Shell;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using NVec3 = System.Numerics.Vector3;
+using NVec2 = System.Numerics.Vector2;
+
+namespace JamKit.Movement
+{
+    /// <summary>
+    /// Titanfall-style first-person movement on Unity's CharacterController (docs/MOVEMENT.md).
+    /// The rules live in the pure core (<see cref="MoveSim"/>, run at a fixed 120 Hz by
+    /// <see cref="MoveDriver"/>); this component is the world it moves in (CharacterController.Move
+    /// plus sphere casts, <see cref="IMoveWorld"/>), reads the shell's input, turns the view per frame,
+    /// and places the head at the interpolated position so the camera is smooth at any frame rate.
+    /// Hierarchy: this body (yaw) > <see cref="head"/> (pitch, eye height) > rig (MovementCamera's
+    /// bob, roll and dip) > camera. Controls: move WASD / left stick, look mouse / right stick, jump
+    /// Space / A, crouch-slide Left Ctrl or C / B; sprint is automatic. Wallrun and mantle are automatic.
+    /// </summary>
+    [RequireComponent(typeof(CharacterController))]
+    [DefaultExecutionOrder(-40)]
+    public sealed class MovementController : MonoBehaviour, IMoveWorld
+    {
+        public CharacterController controller;
+        [Tooltip("Pitches up and down; sits at the eye height. The camera rig hangs under it.")]
+        public Transform head;
+        public Camera cam;
+        [Tooltip("Shared numbers. Empty: the Def below is used.")]
+        public MovementTuning tuning;
+        public MoveDef def = new MoveDef();
+
+        [Header("Look")]
+        public float mouseDegreesPerPixel = 0.09f;
+        public float gamepadDegreesPerSecond = 190f;
+        [Tooltip("Holding the stick fully over for a moment turns up to this much faster.")]
+        public float gamepadTurnBoost = 1.6f;
+        public float maxPitch = 85f;
+        [Tooltip("Lock and hide the mouse while playing (not in batch mode, tests or attract mode).")]
+        public bool managePointerLock = true;
+
+        [Header("World")]
+        [Tooltip("Off: every wall is runnable unless a MovementSurface says no. On: only walls with a runnable MovementSurface.")]
+        public bool onlyMarkedWalls;
+        public LayerMask worldMask = ~(1 << 2);
+
+        MoveSim _sim;
+        MoveDriver _driver;
+        float _yaw, _pitch;
+        float _eye;
+        float _turnHeld;
+        Vector3[] _collect;
+        int _collectCount;
+        bool _collecting;
+        readonly NVec3[] _hitsN = new NVec3[8];
+        float _stride;
+        float _phase;
+        bool _stepped;
+        bool _focused;
+
+        /// <summary>Drives the body instead of the player (smoke run, tests, attract mode). Called once a frame.</summary>
+        public Func<MoveSim, MoveInput> Autopilot;
+        /// <summary>Off: the body ignores input (cutscenes, menus); it still falls and lands.</summary>
+        public bool InputEnabled = true;
+
+        public MoveSim Sim => _sim;
+        public MoveDriver Driver => _driver;
+        public MoveDef Def => tuning != null ? tuning.def : def;
+        public MoveMode Mode => _sim != null ? _sim.Mode : MoveMode.Air;
+        public Vector3 Velocity => _sim != null ? ToU(_sim.Velocity) : Vector3.zero;
+        public float Speed => _sim != null ? _sim.HorizontalSpeed : 0f;
+        public float Yaw => _yaw;
+        public float Pitch => _pitch;
+        /// <summary>The eye height now (blends between standing and sliding).</summary>
+        public float EyeHeight => _eye;
+        /// <summary>What happened in this frame's steps (jumps, landings, wallrun start/end...).</summary>
+        public MoveEvents FrameEvents => _driver != null ? _driver.FrameEvents : default;
+        /// <summary>Running cycle, in steps (each whole number is a footfall). Arms and head bob follow it.</summary>
+        public float StridePhase => _phase;
+        /// <summary>A foot landed this frame (on the ground or on a wall).</summary>
+        public bool Stepped => _stepped;
+        /// <summary>Where the camera sees the body this frame (interpolated between steps).</summary>
+        public Vector3 RenderPosition => _driver != null ? ToU(_driver.InterpolatedPosition) : transform.position;
+
+        static Vector3 ToU(NVec3 v) => new Vector3(v.X, v.Y, v.Z);
+        static NVec3 ToN(Vector3 v) => new NVec3(v.x, v.y, v.z);
+
+        void Awake()
+        {
+            if (controller == null) controller = GetComponent<CharacterController>();
+            gameObject.layer = 2; // Ignore Raycast: our own casts skip the body
+            Setup();
+        }
+
+        void Setup()
+        {
+            var d = Def;
+            controller.radius = d.radius;
+            controller.height = d.standHeight;
+            controller.center = new Vector3(0f, d.standHeight * 0.5f, 0f);
+            controller.stepOffset = 0.35f;
+            controller.slopeLimit = d.slopeLimit;
+            controller.skinWidth = 0.04f;
+            controller.minMoveDistance = 0f;
+            _sim = new MoveSim(this, d);
+            _driver = new MoveDriver(_sim);
+            _yaw = transform.eulerAngles.y;
+            _eye = d.eyeHeight;
+            _driver.Teleport(ToN(transform.position), _yaw, NVec3.Zero);
+            ApplyView();
+        }
+
+        /// <summary>Puts the body somewhere, facing <paramref name="yaw"/>, moving at <paramref name="velocity"/>.</summary>
+        public void Teleport(Vector3 feet, float yaw, Vector3 velocity, float pitch = 0f)
+        {
+            if (_sim == null) Setup();
+            controller.enabled = false;
+            transform.position = feet;
+            controller.enabled = true;
+            _yaw = yaw;
+            _pitch = pitch;
+            _sim.def = Def;
+            _driver.Teleport(ToN(feet), yaw, ToN(velocity));
+            _eye = Def.eyeHeight;
+            ApplyView();
+        }
+
+        public void SetLook(float yaw, float pitch)
+        {
+            _yaw = yaw;
+            _pitch = Mathf.Clamp(pitch, -maxPitch, maxPitch);
+            ApplyView();
+        }
+
+        void Update()
+        {
+            if (_sim == null) return;
+            _sim.def = Def; // live tuning
+            float dt = Time.deltaTime;
+            var input = ReadInput(dt);
+            _driver.Frame(dt, input);
+            UpdateStride(dt);
+            var d = Def;
+            float rate = Mathf.Abs(d.eyeHeight - d.slideEyeHeight) / Mathf.Max(0.01f, d.eyeBlendTime);
+            _eye = Mathf.MoveTowards(_eye, _sim.EyeHeightTarget, rate * dt);
+            ApplyView();
+        }
+
+        MoveInput ReadInput(float dt)
+        {
+            var input = new MoveInput { yaw = _yaw };
+            bool shell = GameRoot.Exists;
+            bool allowed = shell && GameRoot.Input.GameplayAllowed;
+            if (Autopilot != null)
+            {
+                if (!allowed) return input;
+                var a = Autopilot(_sim);
+                _yaw = Mathf.MoveTowardsAngle(_yaw, a.yaw, 720f * dt);
+                a.yaw = _yaw;
+                _pitch = Mathf.MoveTowards(_pitch, 4f, 60f * dt);
+                return a;
+            }
+            if (managePointerLock) UpdatePointerLock(allowed && InputEnabled);
+            if (!allowed || !InputEnabled) return input;
+
+            var io = GameRoot.Input;
+            Vector2 look = io.LookDelta(GameRoot.Settings);
+            if (io.LookFromGamepad)
+            {
+                // The shell scales the stick by 8 (DefaultControls): back to -1..1, a response curve, and a
+                // boost after holding it fully over so big turns don't take forever.
+                Vector2 st = look / 8f;
+                float full = Mathf.Abs(st.x) > 0.9f ? 1f : 0f;
+                _turnHeld = full > 0f ? Mathf.Min(_turnHeld + dt, 0.6f) : 0f;
+                float boost = 1f + (gamepadTurnBoost - 1f) * Mathf.Clamp01((_turnHeld - 0.25f) / 0.35f);
+                float cx = Mathf.Sign(st.x) * Mathf.Pow(Mathf.Abs(st.x), 1.6f);
+                float cy = Mathf.Sign(st.y) * Mathf.Pow(Mathf.Abs(st.y), 1.6f);
+                _yaw += cx * gamepadDegreesPerSecond * boost * dt;
+                _pitch -= cy * gamepadDegreesPerSecond * 0.7f * dt;
+            }
+            else if (_focused || !managePointerLock)
+            {
+                _yaw += look.x * mouseDegreesPerPixel;
+                _pitch -= look.y * mouseDegreesPerPixel;
+            }
+            _yaw = Mathf.Repeat(_yaw, 360f);
+            _pitch = Mathf.Clamp(_pitch, -maxPitch, maxPitch);
+
+            Vector2 mv = io.MoveVector;
+            input.move = new NVec2(mv.x, mv.y);
+            input.yaw = _yaw;
+            input.jumpHeld = io.Held(io.Dash);
+            input.jumpPressed = io.Pressed(io.Dash);
+            input.crouchHeld = io.Held(io.Crouch);
+            input.crouchPressed = io.Pressed(io.Crouch);
+            input.sprintHeld = io.Held(io.Sprint);
+            return input;
+        }
+
+        void UpdatePointerLock(bool want)
+        {
+            bool scripted = Application.isBatchMode || (GameRoot.Exists && GameRoot.Input.IsSynthetic);
+            if (!want || scripted)
+            {
+                if (Cursor.lockState != CursorLockMode.None)
+                {
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                }
+                _focused = scripted && want;
+                return;
+            }
+            if (Cursor.lockState == CursorLockMode.Locked) { _focused = true; return; }
+            var mouse = Mouse.current;
+            bool click = mouse != null && mouse.leftButton.wasPressedThisFrame;
+            if (Application.platform != RuntimePlatform.WebGLPlayer || click)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+                _focused = true;
+            }
+            else _focused = false;
+        }
+
+        void OnDisable()
+        {
+            if (managePointerLock && Cursor.lockState != CursorLockMode.None)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+        }
+
+        void UpdateStride(float dt)
+        {
+            _stepped = false;
+            var mode = _sim.Mode;
+            bool ground = mode == MoveMode.Grounded || mode == MoveMode.Sprint;
+            bool wall = mode == MoveMode.Wallrun;
+            if (!ground && !wall) return;
+            float speed = _sim.HorizontalSpeed;
+            if (speed < 0.5f) return;
+            // Longer strides when faster: about 4.7 steps a second at sprint, 1.5x the cadence on a wall.
+            float stride = 1.2f + 0.11f * speed;
+            if (wall) stride /= 1.5f;
+            float before = _phase;
+            _phase += speed * dt / stride;
+            if (Mathf.Floor(_phase) != Mathf.Floor(before)) _stepped = true;
+        }
+
+        void ApplyView()
+        {
+            transform.rotation = Quaternion.Euler(0f, _yaw, 0f);
+            if (head == null) return;
+            // Interpolated position: the body is at the last step; the head sits where the body is "now".
+            Vector3 offset = RenderPosition - transform.position;
+            head.localPosition = new Vector3(0f, _eye, 0f) + transform.InverseTransformVector(offset);
+            head.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
+        }
+
+        // ---------- IMoveWorld ----------
+
+        int Mask => worldMask.value & ~(1 << 2);
+
+        NVec3 IMoveWorld.Move(NVec3 feet, NVec3 delta, float radius, float height, NVec3[] normals, out int hitCount)
+        {
+            if (!Mathf.Approximately(controller.height, height) || !Mathf.Approximately(controller.radius, radius))
+            {
+                controller.radius = radius;
+                controller.height = height;
+                controller.center = new Vector3(0f, height * 0.5f, 0f);
+            }
+            Vector3 pos = ToU(feet);
+            if ((transform.position - pos).sqrMagnitude > 1e-8f)
+            {
+                controller.enabled = false;
+                transform.position = pos;
+                controller.enabled = true;
+            }
+            _collecting = true;
+            _collectCount = 0;
+            if (controller.enabled) controller.Move(ToU(delta));
+            _collecting = false;
+            hitCount = Mathf.Min(_collectCount, normals.Length);
+            for (int i = 0; i < hitCount; i++) normals[i] = _hitsN[i];
+            return ToN(transform.position);
+        }
+
+        void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            if (!_collecting) return;
+            var n = ToN(hit.normal);
+            for (int i = 0; i < _collectCount; i++)
+                if (NVec3.Dot(_hitsN[i], n) > 0.99f) return;
+            if (_collectCount < _hitsN.Length) _hitsN[_collectCount++] = n;
+        }
+
+        bool Runnable(Collider c)
+        {
+            if (c == null) return false;
+            if (c.TryGetComponent<MovementSurface>(out var s)) return s.runnable;
+            return !onlyMarkedWalls;
+        }
+
+        static SurfaceHit From(RaycastHit h, float distance, bool runnable) => new SurfaceHit
+        {
+            point = ToN(h.point),
+            normal = ToN(h.normal),
+            distance = distance,
+            id = h.colliderInstanceID,
+            runnable = runnable,
+        };
+
+        bool IMoveWorld.CastDown(NVec3 feet, float radius, float maxDistance, out SurfaceHit hit)
+        {
+            const float lift = 0.1f;
+            Vector3 origin = ToU(feet) + Vector3.up * (radius + lift);
+            if (Physics.SphereCast(origin, radius, Vector3.down, out var h, maxDistance + lift, Mask, QueryTriggerInteraction.Ignore))
+            {
+                hit = From(h, Mathf.Max(0f, h.distance - lift), Runnable(h.collider));
+                return true;
+            }
+            hit = default;
+            return false;
+        }
+
+        bool IMoveWorld.CastWall(NVec3 origin, NVec3 direction, float radius, float maxDistance, out SurfaceHit hit)
+        {
+            if (Physics.SphereCast(ToU(origin), radius, ToU(direction), out var h, maxDistance, Mask, QueryTriggerInteraction.Ignore))
+            {
+                hit = From(h, h.distance, Runnable(h.collider));
+                return true;
+            }
+            hit = default;
+            return false;
+        }
+
+        bool IMoveWorld.CastLedge(NVec3 origin, float maxDistance, out SurfaceHit hit)
+        {
+            if (Physics.Raycast(ToU(origin), Vector3.down, out var h, maxDistance, Mask, QueryTriggerInteraction.Ignore))
+            {
+                hit = From(h, h.distance, Runnable(h.collider));
+                return true;
+            }
+            hit = default;
+            return false;
+        }
+
+        bool IMoveWorld.CapsuleFits(NVec3 feet, float radius, float height)
+        {
+            Vector3 f = ToU(feet);
+            float r = radius * 0.98f;
+            return !Physics.CheckCapsule(f + Vector3.up * (r + 0.02f), f + Vector3.up * Mathf.Max(r + 0.03f, height - r), r, Mask, QueryTriggerInteraction.Ignore);
+        }
+    }
+}

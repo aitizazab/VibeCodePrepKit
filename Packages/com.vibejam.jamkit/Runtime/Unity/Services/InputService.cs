@@ -6,7 +6,7 @@ namespace JamKit.Shell
 {
     /// <summary>
     /// One action asset with two maps, both always enabled: Gameplay (Move, Look, Fire, AltFire,
-    /// Focus (no default keys), Sprint, Dash, Interact, Pause) and UI (Navigate, Submit, Cancel, Point, Click, ScrollWheel).
+    /// Focus (no default keys), Sprint, Dash, Crouch, Interact, Pause) and UI (Navigate, Submit, Cancel, Point, Click, ScrollWheel).
     /// Keyboard + mouse and gamepad. Gameplay code reads e.g. <c>GameRoot.Input.Move.ReadValue&lt;Vector2&gt;()</c>
     /// and should check <see cref="GameplayAllowed"/> (false while paused, in dialogue or in menus).
     /// </summary>
@@ -16,7 +16,7 @@ namespace JamKit.Shell
         public readonly InputActionMap Gameplay;
         public readonly InputActionMap Ui;
 
-        public readonly InputAction Move, Look, Fire, AltFire, Focus, Sprint, Dash, Interact, Pause;
+        public readonly InputAction Move, Look, Fire, AltFire, Focus, Sprint, Dash, Crouch, Interact, Pause;
         public readonly InputAction Navigate, Submit, Cancel, Point, Click, ScrollWheel;
 
         readonly GameFlow _flow;
@@ -42,6 +42,15 @@ namespace JamKit.Shell
                 Sprint.AddBinding("<Gamepad>/leftShoulder");
             }
             Dash = Gameplay.FindAction("Dash", true);
+            // Crouch / slide (Left Ctrl, C, B / Circle) for first-person movement; added when an older asset lacks it.
+            Crouch = Gameplay.FindAction("Crouch", false);
+            if (Crouch == null)
+            {
+                Crouch = Gameplay.AddAction("Crouch", InputActionType.Button);
+                Crouch.AddBinding("<Keyboard>/leftCtrl");
+                Crouch.AddBinding("<Keyboard>/c");
+                Crouch.AddBinding("<Gamepad>/buttonEast");
+            }
             Interact = Gameplay.FindAction("Interact", true);
             Pause = Gameplay.FindAction("Pause", true);
             Navigate = Ui.FindAction("Navigate", true);
@@ -203,6 +212,7 @@ namespace JamKit.Shell
             g.AddAction("Focus", InputActionType.Button); // no default keys (the bullet hell's optional Focus mode)
             Button(g, "Sprint", "<Keyboard>/leftShift", "<Gamepad>/leftShoulder");
             Button(g, "Dash", "<Keyboard>/space", "<Gamepad>/buttonSouth", "<Gamepad>/rightShoulder");
+            Button(g, "Crouch", "<Keyboard>/leftCtrl", "<Keyboard>/c", "<Gamepad>/buttonEast");
             Button(g, "Interact", "<Keyboard>/e", "<Gamepad>/buttonWest");
             Button(g, "Pause", "<Keyboard>/escape", "<Keyboard>/p", "<Gamepad>/start");
 

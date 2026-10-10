@@ -31,6 +31,19 @@ namespace JamKit.Flow
         /// <summary>Skip mode also skips lines never seen before (off: skipping stops at new text).</summary>
         public bool skipUnread;
 
+        // Comfort for first-person movement (docs/MOVEMENT.md, RESEARCH-MOVEMENT.md 7.1). Games without
+        // first-person movement ignore them; the movement module's Comfort screen edits them.
+        /// <summary>Vertical field of view, degrees (68 is about 100 horizontal at 16:9).</summary>
+        public float fieldOfView = 68f;
+        /// <summary>Wallrun and slide camera roll, 0 (off) .. 1.</summary>
+        public float cameraRoll = 1f;
+        /// <summary>Head bob and landing dip, 0 (off) .. 1.</summary>
+        public float headBob = 1f;
+        /// <summary>Speed effects (the FOV widening with speed and the speed lines), 0 (off) .. 1.</summary>
+        public float motionEffects = 1f;
+        /// <summary>Faint streaks at the screen edges at high speed.</summary>
+        public bool speedLines = true;
+
         public float enemyBulletSpeedScale = 1f;
         public float enemyDensityScale = 1f;
         public float damageTakenScale = 1f;
@@ -43,6 +56,7 @@ namespace JamKit.Flow
         public const int MaxExtraLives = 99;
         public const float MinTextSpeed = 0.25f, InstantTextSpeed = 4f;
         public const float MinAutoDelay = 0.2f, MaxAutoDelay = 6f;
+        public const float MinFieldOfView = 55f, MaxFieldOfView = 90f;
 
         /// <summary>Set the assists to the preset for <see cref="difficulty"/>.</summary>
         public void ApplyDifficulty()
@@ -94,6 +108,10 @@ namespace JamKit.Flow
             damageTakenScale = Fix(damageTakenScale, MinScale, MaxScale, d.damageTakenScale, ref changed);
             aimAssist = Fix(aimAssist, 0f, 1f, d.aimAssist, ref changed);
             textSpeed = Fix(textSpeed, MinTextSpeed, InstantTextSpeed, d.textSpeed, ref changed);
+            fieldOfView = Fix(fieldOfView, MinFieldOfView, MaxFieldOfView, d.fieldOfView, ref changed);
+            cameraRoll = Fix(cameraRoll, 0f, 1f, d.cameraRoll, ref changed);
+            headBob = Fix(headBob, 0f, 1f, d.headBob, ref changed);
+            motionEffects = Fix(motionEffects, 0f, 1f, d.motionEffects, ref changed);
             autoDelay = Fix(autoDelay, MinAutoDelay, MaxAutoDelay, d.autoDelay, ref changed);
             int lives = extraLives < 0 ? 0 : extraLives > MaxExtraLives ? MaxExtraLives : extraLives;
             if (lives != extraLives) { extraLives = lives; changed = true; }

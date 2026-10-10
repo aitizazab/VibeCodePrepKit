@@ -32,6 +32,11 @@ namespace JamKit.Shell
             // Used by the Visiting Hours slice. music_vh_sad_pad is a PLACEHOLDER (the creator composes the score).
             "vh_phone_ring", "vh_monitor", "amb_vh_hospital", "amb_vh_suburb", "music_vh_sad_pad",
             "vh_crack", "vh_wrong", "vh_hit", "vh_journal",
+            // First-person movement (Runtime/Unity/Movement, the Movement Lab). PLACEHOLDERS. Loops:
+            // mv_wind, mv_slide, mv_wallrun, mv_static; the rest are one-shots.
+            "mv_wind", "mv_slide", "mv_wallrun", "mv_static",
+            "mv_step", "mv_jump", "mv_djump", "mv_walljump", "mv_catch", "mv_land", "mv_boost", "mv_mantle",
+            "mv_collapse", "mv_checkpoint", "mv_caught",
         };
 
         public static bool Knows(string id) => System.Array.IndexOf(Ids, id) >= 0;
@@ -119,6 +124,22 @@ namespace JamKit.Shell
                 case "vh_wrong": return ToneSynth.Sequence(Rate, 1, N(Waveform.Triangle, 220f, 196f, 0.28f, 0.25f));
                 case "vh_hit": return ToneSynth.Sequence(Rate, 109, N(Waveform.Sine, 330f, 140f, 0.22f, 0.45f), N(Waveform.Noise, 1200f, 300f, 0.1f, 0.15f));
                 case "vh_journal": return ToneSynth.Sequence(Rate, 113, N(Waveform.Noise, 5200f, 2600f, 0.16f, 0.14f), N(Waveform.Sine, 990f, 990f, 0.12f, 0.08f));
+                // Movement: the wind is filtered noise (MovementAudio sets its volume and pitch from the speed).
+                case "mv_wind": return Bed(4f, N(Waveform.Noise, 380f, 380f, 4f, 0.09f), N(Waveform.Noise, 1300f, 1300f, 4f, 0.035f), N(Waveform.Noise, 150f, 150f, 4f, 0.06f));
+                case "mv_slide": return Bed(2f, N(Waveform.Noise, 2600f, 2600f, 2f, 0.07f), N(Waveform.Noise, 700f, 700f, 2f, 0.08f), N(Waveform.Noise, 6000f, 6000f, 2f, 0.025f));
+                case "mv_wallrun": return Bed(2f, N(Waveform.Noise, 1700f, 1700f, 2f, 0.05f), N(Waveform.Noise, 450f, 450f, 2f, 0.05f));
+                case "mv_static": return Bed(3f, N(Waveform.Noise, 9000f, 9000f, 3f, 0.08f), N(Waveform.Noise, 2200f, 2200f, 3f, 0.05f), N(Waveform.Noise, 90f, 90f, 3f, 0.08f));
+                case "mv_step": return ToneSynth.Sequence(Rate, 131, N(Waveform.Noise, 900f, 160f, 0.055f, 0.32f), N(Waveform.Sine, 110f, 70f, 0.05f, 0.18f));
+                case "mv_jump": return ToneSynth.Sequence(Rate, 137, N(Waveform.Noise, 900f, 4200f, 0.16f, 0.22f));
+                case "mv_djump": return ToneSynth.Sequence(Rate, 139, N(Waveform.Noise, 2600f, 8000f, 0.12f, 0.24f), N(Waveform.Sine, 520f, 1040f, 0.14f, 0.12f));
+                case "mv_walljump": return ToneSynth.Sequence(Rate, 149, N(Waveform.Square, 150f, 95f, 0.05f, 0.16f), N(Waveform.Noise, 1200f, 5200f, 0.15f, 0.24f));
+                case "mv_catch": return ToneSynth.Sequence(Rate, 151, N(Waveform.Noise, 3200f, 1200f, 0.07f, 0.3f), N(Waveform.Sine, 180f, 120f, 0.06f, 0.14f));
+                case "mv_land": return ToneSynth.Sequence(Rate, 157, N(Waveform.Sine, 120f, 42f, 0.2f, 0.55f), N(Waveform.Noise, 700f, 90f, 0.14f, 0.3f));
+                case "mv_boost": return ToneSynth.Sequence(Rate, 163, N(Waveform.Noise, 2400f, 9500f, 0.22f, 0.2f));
+                case "mv_mantle": return ToneSynth.Sequence(Rate, 167, N(Waveform.Noise, 600f, 1600f, 0.12f, 0.22f), N(Waveform.Noise, 900f, 200f, 0.06f, 0.25f));
+                case "mv_collapse": return ToneSynth.Sequence(Rate, 173, N(Waveform.Noise, 260f, 35f, 1.8f, 0.6f), N(Waveform.Noise, 1400f, 100f, 0.6f, 0.25f));
+                case "mv_checkpoint": return Arpeggio(new[] { 0, 7, 12 }, 0.07f, 0.35f, Waveform.Sine);
+                case "mv_caught": return ToneSynth.Sequence(Rate, 179, N(Waveform.Noise, 9000f, 600f, 0.5f, 0.45f), N(Waveform.Sine, 220f, 55f, 0.6f, 0.3f));
                 case "music_boss": return Loop(new[] { -12, -9, -5, -9, -12, -9, -4, -9, -14, -10, -7, -10, -14, -10, -5, -2 }, 0.14f, 0.12f);
                 default: return null;
             }

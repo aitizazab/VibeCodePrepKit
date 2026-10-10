@@ -1,0 +1,18 @@
+{
+    "name": "JamKit.MovementLab",
+    "rootNamespace": "JamKit.MovementLab",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
