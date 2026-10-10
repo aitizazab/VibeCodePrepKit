@@ -22,6 +22,25 @@
   `STORY-VISITING-HOURS.md`, with decisions in `SLICE-VISITING-HOURS.md`. The premise above supersedes
   their details: the call time, the cause of the crash, and Elias's background.
 
+## Structure and endings (the creator, 2026-10-10 night)
+- **Five nights, not all the same length.** Each player's time in a night can differ from another's,
+  depending on what they choose to do or skip.
+- **The open threads** (Lena missing, the corporate crossfire, Elias's money) are **hinted, not resolved**:
+  clues for the attentive player, perhaps one reframing reveal near the end, no full answers.
+- **Endings:**
+  - **The Long Night stays** (much of the premise was built for it).
+  - **Morning** absorbs "His Choice" **if that ending's outcome is shown in the game**, giving one ending with
+    two paths:
+    - **forced:** Nadia breaks the dream;
+    - **chosen:** she tells him the truth and he decides to wake.
+  - **Evening:** she lets him stay.
+  - The design docs propose the details for the creator to approve.
+- **The argument battles get rebuilt from the ground up:**
+  - **Unique art per battle**, stylised battle icons and **arenas**: no dodging rectangles in the green or red
+    half of a plain box.
+  - **The argument must make sense** as an argument (claims, evidence, rebuttals that follow logically), not a
+    loose association of concepts.
+
 ## Characters
 `CHARACTERS.md`: Nadia, Elias, Lena, Theo, Mags, Walt, with looks for each register.
 

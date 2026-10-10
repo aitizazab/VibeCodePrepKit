@@ -1,5 +1,8 @@
 # Visiting Hours: characters (design reference; the creator's premise of 2026-10-10)
 
+**The dream versions shouldn't feel overwhelmingly wrong** (the creator, 2026-10-10). Being billboards in the
+dream while the waking world is full 3D is already eerie enough. Keep them cute, with any unease subtle.
+
 Character sheets and models are drawn from this. Story facts come from the creator; appearance notes are
 proposals for the art. Art style **E**: the **waking world in full 3D models** (grounded, muted, stylised but
 adult), the **dream as billboards** (cutesy pastel doodle, with dread underneath).
@@ -39,6 +42,8 @@ in this city.
 - **In the dream:** a memory Elias rebuilds every night, who knows what she is and defends his dream.
 - **Look (a proposal):** early 30s; warm, quick to laugh, paint or clay on her hands (an artist?). In the dream,
   slightly too perfect.
+- **The creator's note (2026-10-10):** in the first sheets, Lena with her bun looked too much like Nadia. She gets
+  **blonde hair or a clearly different hairstyle** (not a bun), so the two never read as the same woman.
 
 ## Theo
 - **Role:** Elias and Lena's son, ten, killed in the crash. In the dream, he's the one who asks the question that
