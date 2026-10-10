@@ -786,3 +786,13 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **A clash found:** the d-pad is part of gameplay Move, so the ghost toggle (and the lab HUD on d-pad down) also
   moved the player. The fix: the d-pad comes off gameplay Move (the left stick steers; menus keep d-pad navigation),
   which frees the d-pad for the lab's toggles.
+
+### Speed feel brainstorm (16:20)
+- The creator: the speed sound and visuals need an overhaul. The music should get more excited the faster you go;
+  Rocket League's supersonic (the camera booms in, a trail behind the wheels) is the reference; our speed lines only
+  show on dark backgrounds.
+- The brainstorm is in `docs/SPEED-FEEL.md`: three speed tiers with a crossing moment into Flying; 6 audio ideas (music
+  stems by tier, the music opening up with speed, a crossing stinger, a supersonic layer, tunnel focus, breath); 8 visual
+  ideas (the boom, world-space streaks, contrast-proof lines, hand trails, footfall sparks, edge zoom blur, the dream
+  answering, a tier glyph). Recommended starter set: A1-A4 + V1, V2, V4 (+ V7 in the escape). Waiting on the creator's
+  pick.
