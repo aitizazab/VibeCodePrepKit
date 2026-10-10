@@ -682,3 +682,5 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - the speed tiers are subtle and labelled ours;
   - look sway uses Titanfall- and Apex-based numbers, and landings use Titanfall's view-punch spring.
   Dotnet 499/499. Unity checks are next, after the current PlayMode run.
+- **The creator on round 4-a (15:30):** unless the fresh agent's takes are significantly better, this is probably the
+  Lena we use.
