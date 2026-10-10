@@ -107,6 +107,15 @@ How some of them start:
 Route: the **Opening** (hold Escape to skip it), then **Day 1** (chart one thing), then **The street**,
 then **The argument** (invincible on, if you want no risk), then the end card it reaches.
 
+### Movement Lab (`MovementLab`)
+
+Chapters: **Course start, Wallrun section, Momentum chain, Chimney, Chase.** Each is a checkpoint of the
+course; you arrive running at sprint (the start from a standstill). The chase chapter starts the
+dream-static 12 m behind you.
+
+Route: **Momentum chain** (slide, slide jump, wallrun, wall kick, double jump: watch the speed graph, F3),
+then the **Chase**. Attract mode runs the course with the autopilot. Details: `docs/MOVEMENT.md`.
+
 ### Sandbox
 
 Chapters: **Start, The sign.** It's the worked example for adding chapters to your own game

@@ -52,7 +52,6 @@ namespace JamKit.Movement
         int _collectCount;
         bool _collecting;
         readonly NVec3[] _hitsN = new NVec3[8];
-        float _stride;
         float _phase;
         bool _stepped;
         bool _focused;
@@ -239,8 +238,8 @@ namespace JamKit.Movement
             if (!ground && !wall) return;
             float speed = _sim.HorizontalSpeed;
             if (speed < 0.5f) return;
-            // Longer strides when faster: about 4.7 steps a second at sprint, 1.5x the cadence on a wall.
-            float stride = 1.2f + 0.11f * speed;
+            // Longer strides when faster; 1.5x the cadence on a wall.
+            float stride = 1.0f + 0.1f * speed; // about 4.9 steps a second at sprint (RESEARCH-MOVEMENT 8.3)
             if (wall) stride /= 1.5f;
             float before = _phase;
             _phase += speed * dt / stride;
