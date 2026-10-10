@@ -796,3 +796,25 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   ideas (the boom, world-space streaks, contrast-proof lines, hand trails, footfall sparks, edge zoom blur, the dream
   answering, a tier glyph). Recommended starter set: A1-A4 + V1, V2, V4 (+ V7 in the escape). Waiting on the creator's
   pick.
+
+### Your controller notes are in, and the d-pad is off gameplay movement (16:40)
+- **What the sim showed:**
+  - **The bleed was the wall friction itself:** −3.4 m/s in 0.5 s. The "is the stick forward" rule wasn't the cause.
+  - **The funky catches fit an instant let-go:** pointing the stick (or the view) more than 30° away from the wall
+    dropped you at once.
+- **Changes:**
+  - **No bleed for the first 0.5 s on a wall,** then softer friction (1.2, was 2; the 2 was our own guess). A 14 m/s
+    entry is still 14.0 at 0.45 s and about 11.0 at 1.2 s.
+  - **Any stick with a forward part along the wall counts as forward.** Letting go needs the stick about 53° away for
+    0.06 s.
+  - **Easier catches:** the probe reaches 0.6 m, and a catch refused only for stick direction is retried for 0.1 s.
+  - **The 75° catch angle was tried and rejected:** it caught wall end-faces.
+  - **The F3 overlay shows why a wall wasn't caught,** and development builds log it.
+  - **The double jump gets +1 m/s forward,** never past sprint speed.
+  - **Slide ramps:** the Gauntlet's slide ramp already adds +3.4 m/s.
+- **New autopilot times:** Gauntlet 41.0 s (Mags 57.5 s), escape 43.9 s, old course 45.6 s. The Gauntlet's top deck
+  is 10 m longer, because the grace now throws you farther.
+- **The d-pad is off gameplay Move.** BulletHell and Visiting Hours' argument battles opt back in, since they're 2D. The
+  ghost and HUD toggles no longer move you.
+- **The earlier Unity run on the body was stopped** (it was retrying after a failure). A single run, retries off, now
+  covers everything on the newest code.
