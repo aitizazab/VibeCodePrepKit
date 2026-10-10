@@ -640,3 +640,25 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   and several of the moves I listed (sway, lean, lanyard, tiers) have no source. A research agent is now gathering
   evidence (developer talks, transcripts, frame breakdowns: Titanfall 2, Mirror's Edge, Ghostrunner, Doom, Apex) into
   a new section 8.7. The body agent builds the structure with every number tunable, and the evidence adjusts it.
+
+### The creator's Lena notes on both designs (15:10)
+- **Both are good;** reconcile them. The cross-overs run in a relay, because Flow takes one job at a time.
+- **Round 3 (the adapted design):** looks fine but somewhat religious. The key necklace could be mistaken for a cross,
+  and the dream billboard holds the notebook close to her chest. Boots vs skirt: she goes out at night, so the boots
+  make sense, but the skirt doesn't. Make the outfit practical for outdoor travel.
+- **The fresh design:** judged mainly on the dream version (its dream and waking versions differ a lot). The
+  practical wear is good. The eyes looking up and to the top-right read playful, not mysterious: drop that, and make
+  the eyes green. There are two notebooks (one in the coat pocket, one in hand): only one, with the pose to match.
+- **The relay:**
+  1. Round 3's agent fixes its design (no necklace, a different notebook hold, practical clothes instead of the skirt).
+  2. The fresh agent fixes its design (green eyes, no upward glance, one notebook).
+  3. The fresh agent makes a version from round 3's image, with the practical clothes and the notebook held in hand.
+  4. Round 3's agent makes a version from the fresh design's image.
+  5. All the candidates go in a lineup with the whole cast (Nadia, Elias, Theo, Mags, Walt), waking and dream, to
+     check the art style holds together.
+- **The feel research came back** (section 8.7 of RESEARCH-MOVEMENT: Titanfall 2's game files, Overwatch, Destiny and
+  Dying Light talks). It changes the body plan: the wall hand reaches about 0.25 s before contact; no lift on the
+  jump (arms sway against vertical speed, about 1.5 cm); hold the double-jump pose 0.25–0.3 s; tilt the arms
+  sideways in a slide; blend ledge climbs by height; the posture tiers are our own idea. Not yet sent to the body
+  agent.
+- **Paused by the creator:** the PlayMode run with the body, controls and sound together (Scenes OK, EditMode 602/602).
