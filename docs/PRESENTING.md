@@ -109,12 +109,26 @@ then **The argument** (invincible on, if you want no risk), then the end card it
 
 ### Movement Lab (`MovementLab`)
 
-Chapters: **Course start, Wallrun section, Momentum chain, Chimney, Chase.** Each is a checkpoint of the
-course; you arrive running at sprint (the start from a standstill). The chase chapter starts the
-dream-static 12 m behind you.
+The lab opens on **the Gauntlet**: a timed obstacle course with touch markers, splits and a ghost of your
+best run.
 
-Route: **Momentum chain** (slide, slide jump, wallrun, wall kick, double jump: watch the speed graph, F3),
-then the **Chase**. Attract mode runs the course with the autopilot. Details: `docs/MOVEMENT.md`.
+Chapters, in order:
+- **Gauntlet start** (on the start pad, from a standstill: a fresh run).
+- **Gauntlet: teaching half** (the wallrun).
+- **Gauntlet: combo half**.
+- **Gauntlet: finish** (the last wall).
+- The old course, kept as free roam: **Course start, Wallrun section, Momentum chain, Chimney, Chase.**
+
+Every chapter is a checkpoint, and you arrive running at sprint, except at the two starts. A Gauntlet
+chapter jump keeps the clock running, so the markers you skip cost 2 s each. Jump to **Gauntlet start**
+for a clean time.
+
+Route:
+1. **Gauntlet start**, and run it. R or View restarts at once.
+2. Then **Momentum chain** (watch the speed graph, F3).
+
+Attract mode runs the Gauntlet with the autopilot, then the chain. Details: `docs/MOVEMENT.md`,
+"The Gauntlet".
 
 ### Visiting Hours: the first escape (`DreamEscape`)
 

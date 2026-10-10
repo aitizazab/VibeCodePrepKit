@@ -95,8 +95,9 @@ namespace JamKit.Movement
             for (int i = 0; i < _splits.Length; i++) _splits[i] = 0f;
         }
 
-        /// <summary>Advances the run by <paramref name="dt"/> with the player's feet and distance along the route.</summary>
-        public GauntletEvents Tick(float dt, Vector3 feet, float s, float radius, float height)
+        /// <summary>Advances the run by <paramref name="dt"/> with the player's feet and distance along the route.
+        /// <paramref name="countsForBest"/> false (an autopilot run, attract mode) finishes without touching the record.</summary>
+        public GauntletEvents Tick(float dt, Vector3 feet, float s, float radius, float height, bool countsForBest = true)
         {
             var ev = GauntletEvents.None;
             if (_state == GauntletState.Ready)
@@ -143,6 +144,7 @@ namespace JamKit.Movement
                 _state = GauntletState.Finished;
                 _total = _time + Penalty;
                 ev.finished = true;
+                if (!countsForBest) return ev;
                 record.runs++;
                 if (record.best <= 0f || _total < record.best)
                 {

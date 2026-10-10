@@ -11,7 +11,9 @@ using UnityEngine.InputSystem;
 namespace JamKit.MovementLab
 {
     /// <summary>
-    /// The Movement Lab: a grey-box feel-test course for the Titanfall-style movement (docs/MOVEMENT.md).
+    /// The Movement Lab: a grey-box feel-test course for the Titanfall-style movement (docs/MOVEMENT.md). The course is
+    /// core <see cref="GauntletCourse"/>: the old course (free roam) and the Gauntlet after it, whose timed run loop is
+    /// <see cref="GauntletRun"/>; the lab opens on the Gauntlet's start pad.
     /// The course is core <see cref="LabCourse"/> data (built into the scene by MovementLabBuilder); this
     /// runs it: checkpoints (falling below the course or being caught respawns you at the last one in a
     /// quick fade, moving at sprint), the chase (a curtain of dream-static on the route that rubber-bands
@@ -33,6 +35,7 @@ namespace JamKit.MovementLab
         public static MovementLabGame Current => _current;
 
         LabCourse _course;
+        GauntletCourse _gauntlet;
         readonly List<LabPieceView> _pieces = new List<LabPieceView>();
         bool[] _collapsed;
         Pursuer _pursuer;
@@ -51,6 +54,10 @@ namespace JamKit.MovementLab
         System.Func<bool> _skip;
 
         public LabCourse Course => _course;
+        /// <summary>The Gauntlet (its course is <see cref="Course"/>: the old course, kept as free roam, then the Gauntlet).</summary>
+        public GauntletCourse Gauntlet => _gauntlet;
+        /// <summary>Called whenever the player is put at a checkpoint (start, respawn, chapter jump, restart): (index, running).</summary>
+        public System.Action<int, bool> OnPlaced;
         public float S => _s;
         public int Checkpoint => _checkpoint;
         public bool Chasing => _chasing;
@@ -85,7 +92,8 @@ namespace JamKit.MovementLab
                 return;
             }
             _current = this;
-            _course = LabCourse.Build();
+            _gauntlet = GauntletCourse.Build();
+            _course = _gauntlet.course;
             _pursuer = new Pursuer
             {
                 targetGap = _course.pursuer.targetGap, k = _course.pursuer.k,
@@ -112,8 +120,8 @@ namespace JamKit.MovementLab
             DebugMenu.SkipHandler = _skip;
             GameRoot.Run.Set("Lab", "Movement Lab");
 
-            PlaceAt(0, false);
-            GameRoot.Hud.Message("Shift (L3 on a pad) sprints. Space jumps (twice), Ctrl or C slides, run along walls.", 4f);
+            PlaceAt(_gauntlet.startCheckpoint, false, false);
+            GameRoot.Hud.Message("The Gauntlet: cross the gate to start the clock. Shift (L3) sprints, Space jumps twice, Ctrl or C slides; R (View) restarts.", 5f);
         }
 
         void OnDestroy()
@@ -142,7 +150,7 @@ namespace JamKit.MovementLab
             }
             if (GameRoot.Flow.Current == GameState.Playing && !_respawning) Tick(dt, p);
             bool toggle = (Keyboard.current != null && Keyboard.current.f3Key.wasPressedThisFrame)
-                || (Gamepad.current != null && Gamepad.current.selectButton.wasPressedThisFrame);
+                || (Gamepad.current != null && Gamepad.current.dpad.down.wasPressedThisFrame); // View restarts the Gauntlet (GauntletRun)
             if (toggle && GameRoot.Input.GameplayAllowed) _hud.Toggle();
             _hud.Tick(player, _course.SectionAt(_s), _runTime, _best, _chasing, Gap, _chasing ? _pursuer.Threat(_s) : 0f, dt);
         }
@@ -150,13 +158,16 @@ namespace JamKit.MovementLab
         void Tick(float dt, Vector3 p)
         {
             _topSpeed = Mathf.Max(_topSpeed, player.Speed);
-            if (!_timing && _s > _course.checkpoints[0].s + 2f && !_finishing) { _timing = true; _runTime = 0f; }
+            // The old course's own timer (free roam); the Gauntlet has its clock (GauntletRun).
+            if (!_timing && _s > _course.checkpoints[0].s + 2f && _s < _course.finishS && !_finishing) { _timing = true; _runTime = 0f; }
+            if (_timing && _s > _course.finishS + 30f) _timing = false;
             if (_timing) _runTime += dt;
 
             for (int i = _checkpoint + 1; i < _course.checkpoints.Count; i++)
             {
                 if (_s < _course.checkpoints[i].s) break;
                 _checkpoint = i;
+                if (_gauntlet.InGauntlet(_course.checkpoints[i].s)) continue; // the Gauntlet shows splits instead
                 GameRoot.Audio.Play("mv_checkpoint", 0.6f);
                 GameRoot.Hud.Message("Checkpoint: " + _course.checkpoints[i].name, 1.5f);
             }
@@ -196,7 +207,7 @@ namespace JamKit.MovementLab
                 return;
             }
 
-            if (!_finishing && _s >= _course.finishS && player.Sim.Grounded)
+            if (!_finishing && _s >= _course.finishS && _s < _course.finishS + 30f && player.Sim.Grounded)
                 StartCoroutine(Finish());
         }
 
@@ -228,7 +239,7 @@ namespace JamKit.MovementLab
             Debug.Log("JAMKIT_MOVEMENT respawn " + _respawns + ": " + message + Newline + TraceTail(8));
             for (float t = 0f; t < 0.18f; t += Time.unscaledDeltaTime) { GameRoot.Ui.SetFade(t / 0.18f); yield return null; }
             GameRoot.Ui.SetFade(1f);
-            PlaceAt(_checkpoint, true);
+            PlaceAt(_checkpoint, true, _checkpoint != 0);
             _lastRespawnSpeed = player.Speed;
             GameRoot.Hud.Message(message, 1.6f);
             yield return null;
@@ -252,12 +263,12 @@ namespace JamKit.MovementLab
             float until = Time.unscaledTime + 3.5f;
             while (Time.unscaledTime < until && _finishing) yield return null;
             if (!_finishing) yield break;
-            PlaceAt(0, false);
+            PlaceAt(0, false, false);
         }
 
         /// <summary>Puts the player at a checkpoint (moving at sprint, unless it's the start), puts back the
         /// collapses that come after it, and sets the chase to match.</summary>
-        void PlaceAt(int index, bool keepTimer)
+        void PlaceAt(int index, bool keepTimer, bool running)
         {
             index = Mathf.Clamp(index, 0, _course.checkpoints.Count - 1);
             var cp = _course.checkpoints[index];
@@ -265,7 +276,7 @@ namespace JamKit.MovementLab
             _finishing = false;
             Vector3 pos = new Vector3(cp.position.X, cp.position.Y, cp.position.Z);
             Vector3 fwd = Quaternion.Euler(0f, cp.yaw, 0f) * Vector3.forward;
-            player.Teleport(pos, cp.yaw, index == 0 ? Vector3.zero : fwd * player.Def.sprintSpeed);
+            player.Teleport(pos, cp.yaw, running ? fwd * player.Def.sprintSpeed : Vector3.zero);
             for (int i = 0; i < _collapsed.Length; i++)
             {
                 if (_course.collapses[i].triggerS <= cp.s + 0.01f) { if (!_collapsed[i]) Collapse(i, false); continue; }
@@ -280,6 +291,7 @@ namespace JamKit.MovementLab
             if (_chasing) pursuerView?.Place(_pursuer.S, pos.y + 2f, 0f);
             _pilot.Reset(cp.s);
             if (index == 0 && !keepTimer) { _timing = false; _runTime = 0f; _topSpeed = 0f; }
+            OnPlaced?.Invoke(index, running);
         }
 
         string TraceTail(int n)
@@ -298,7 +310,16 @@ namespace JamKit.MovementLab
             StopAllCoroutines();
             _respawning = false;
             GameRoot.Ui.SetFade(0f);
-            PlaceAt(i, false);
+            PlaceAt(i, false, i != 0 && i != _gauntlet.startCheckpoint);
+        }
+
+        /// <summary>Puts the player at a checkpoint at once (the Gauntlet's restart): clears any fade or respawn in progress.</summary>
+        public void PlaceAtCheckpoint(int index, bool running)
+        {
+            StopAllCoroutines();
+            _respawning = false;
+            GameRoot.Ui.SetFade(0f);
+            PlaceAt(index, false, running);
         }
 
         bool SkipToNextCheckpoint()
@@ -307,7 +328,7 @@ namespace JamKit.MovementLab
             StopAllCoroutines();
             _respawning = false;
             GameRoot.Ui.SetFade(0f);
-            PlaceAt(next, true);
+            PlaceAt(next, true, next != 0 && next != _gauntlet.startCheckpoint);
             return true;
         }
 

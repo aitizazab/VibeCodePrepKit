@@ -6,9 +6,10 @@ using UnityEngine;
 namespace JamKit.MovementLab
 {
     /// <summary>
-    /// The Movement Lab's presenter-mode chapters (docs/PRESENTING.md): the course start, the wallrun
+    /// The Movement Lab's presenter-mode chapters (docs/PRESENTING.md): the Gauntlet (start, teaching half, combo
+    /// half, finish), then the old course as free roam: the course start, the wallrun
     /// section, the momentum chain, the chimney and the chase, each a checkpoint of the course; and
-    /// an attract script in which the course autopilot runs the course, then the chase.
+    /// an attract script in which the course autopilot runs the Gauntlet, then the momentum chain.
     /// </summary>
     public static class MovementLabPresenter
     {
@@ -16,17 +17,17 @@ namespace JamKit.MovementLab
 
         public static readonly string[] Chapters =
         {
+            GauntletCourse.ChapterStart, GauntletCourse.ChapterTeaching, GauntletCourse.ChapterCombo, GauntletCourse.ChapterFinish,
             LabCourse.ChapterStart, LabCourse.ChapterWallruns, LabCourse.ChapterChain, LabCourse.ChapterChimney, LabCourse.ChapterChase,
         };
 
         /// <summary>The attract driver plays one segment: the autopilot running the course.</summary>
         public static readonly string[] Segments = { "course" };
 
-        /// <summary>About 75 s: the course from the start (run-up, slide, gaps, wallruns, the chain), then the chase.</summary>
+        /// <summary>About 70 s: the whole Gauntlet from the start pad (the autopilot's run is about 45 s), then the old course's momentum chain.</summary>
         public static AttractScript Attract() => new AttractScript(Scene)
-            .Jump(LabCourse.ChapterStart, 1f).Drive("course", 34f)
-            .Jump(LabCourse.ChapterChimney, 1f).Drive("course", 12f)
-            .Jump(LabCourse.ChapterChase, 1f).Drive("course", 22f);
+            .Jump(GauntletCourse.ChapterStart, 1f).Drive("course", 50f)
+            .Jump(LabCourse.ChapterChain, 1f).Drive("course", 12f);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         static void Declare()

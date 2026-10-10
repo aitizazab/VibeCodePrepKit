@@ -1,0 +1,144 @@
+using System.Collections;
+using JamKit.Movement;
+using JamKit.Presenting;
+using JamKit.Shell;
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
+using static JamKit.Tests.Play.ShellTestUtil;
+
+namespace JamKit.MovementLab.Tests
+{
+    /// <summary>The Gauntlet in the Movement Lab on Unity's CharacterController: the autopilot runs it from the start
+    /// pad through the finish, touching every marker and recording a ghost (its run doesn't count for your best);
+    /// the restart puts the clock and markers back; a skipped section's markers add their penalty; the chapters land
+    /// where they should. Times go to the test output.</summary>
+    public class GauntletPlayTests
+    {
+        [UnitySetUp]
+        public IEnumerator SetUp() => BootToTitle();
+
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            DebugMenu.TimeScale = 1f;
+            if (Game != null) Game.SetAutopilot(false);
+            PresenterMode.Close();
+            yield return null;
+        }
+
+        static MovementLabGame Game => MovementLabGame.Current;
+        static GauntletRun Run => GauntletRun.Current;
+
+        static IEnumerator StartLab()
+        {
+            Assert.That(GameRoot.Instance.SceneService.Load(MovementLabPresenter.Scene), Is.True, "MovementLab is in Build Settings");
+            yield return WaitFor(() => GameRoot.Flow.InRun && !GameRoot.IsLoadingScene && SceneManager.GetActiveScene().name == MovementLabPresenter.Scene
+                && Game != null && Game.Gauntlet != null && Run != null && Run.Clock != null, "the Movement Lab and its Gauntlet");
+            yield return WaitFor(() => GameRoot.Ui.FadeAlpha == 0f, "the scene's fade-in", 5f);
+            yield return Frames(3);
+        }
+
+        [UnityTest]
+        public IEnumerator TheLabOpensOnTheStartPadReady()
+        {
+            yield return StartLab();
+            var g = Game.Gauntlet;
+            Assert.That(Game.Checkpoint, Is.EqualTo(g.startCheckpoint));
+            Assert.That(Run.Clock.State, Is.EqualTo(GauntletState.Ready));
+            Assert.That(Game.player.transform.position.z, Is.LessThan(g.gateS), "before the gate");
+        }
+
+        [UnityTest]
+        public IEnumerator TheAutopilotRunsTheGauntletTouchingEveryMarker()
+        {
+            yield return StartLab();
+            DebugMenu.TimeScale = 2f;
+            Run.Restart();
+            yield return Frames(2);
+            float bestBefore = Run.Clock.record.best;
+            int respawns = Game.Respawns;
+            Game.SetAutopilot(true);
+            float until = Time.realtimeSinceStartup + 60f;
+            while (Run.Clock.State != GauntletState.Finished && Time.realtimeSinceStartup < until) yield return null;
+            Game.SetAutopilot(false);
+            var clock = Run.Clock;
+            TestContext.Out.WriteLine(Game.TraceText);
+            TestContext.Out.WriteLine($"Gauntlet {clock.Time:0.00} s (developer's time {GauntletCourse.DeveloperTime:0.0}), markers {clock.MarkersHit}/{clock.MarkerCount}, respawns {Game.Respawns - respawns}, ghost {Run.LiveGhost.Count} samples over {Run.LiveGhost.Duration:0.00} s");
+            for (int i = 0; i < Game.Gauntlet.sections.Count; i++) TestContext.Out.WriteLine($"  {Game.Gauntlet.sections[i].name}: {clock.Split(i):0.00}");
+            Assert.That(clock.State, Is.EqualTo(GauntletState.Finished), "the autopilot crossed the finish line within 60 s (trace in the output)");
+            Assert.That(clock.Missed, Is.EqualTo(0), "every marker touched");
+            Assert.That(Game.Respawns - respawns, Is.LessThanOrEqualTo(1), "at most one slip on the real CharacterController");
+            Assert.That(clock.Time, Is.InRange(GauntletCourse.DeveloperTime - 5f, GauntletCourse.DeveloperTime + 12f), "near the developer's time");
+            Assert.That(Run.LiveGhost.Count, Is.GreaterThan(100), "a ghost was recorded");
+            Assert.That(Run.LiveGhost.Duration, Is.EqualTo(clock.Time).Within(1.5f), "the ghost covers the run");
+            Assert.That(Run.Autopiloted, Is.True);
+            Assert.That(Run.Clock.record.best, Is.EqualTo(bestBefore), "the autopilot's run doesn't count for your best");
+            yield return Frames(3);
+            Assert.That(Run.EndScreenShown, Is.True, "the end screen");
+        }
+
+        [UnityTest]
+        public IEnumerator RestartPutsTheClockAndMarkersBack()
+        {
+            yield return StartLab();
+            Run.Restart();
+            yield return Frames(2);
+            Game.SetAutopilot(true);
+            yield return WaitFor(() => Run.Clock.State == GauntletState.Running && Run.Clock.MarkersHit >= 1 && Run.Clock.Time > 3f, "the run to start and touch a marker", 20f);
+            Assert.That(Run.markerViews[0].Current, Is.EqualTo(GauntletMarkerView.Look.Touched));
+            Game.SetAutopilot(false);
+            Run.Restart();
+            yield return Frames(3);
+            var g = Game.Gauntlet;
+            Assert.That(Run.Clock.State, Is.EqualTo(GauntletState.Ready));
+            Assert.That(Run.Clock.Time, Is.EqualTo(0f));
+            Assert.That(Run.Clock.MarkersHit, Is.EqualTo(0));
+            foreach (var v in Run.markerViews) Assert.That(v.Current, Is.EqualTo(GauntletMarkerView.Look.Waiting));
+            Assert.That(Game.Checkpoint, Is.EqualTo(g.startCheckpoint));
+            var start = g.course.checkpoints[g.startCheckpoint].position;
+            Assert.That(Game.player.transform.position.z, Is.EqualTo(start.Z).Within(1f), "back on the start pad");
+            Assert.That(Game.player.Speed, Is.LessThan(1f), "standing");
+            Assert.That(Run.GhostVisible, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator SkippingSectionsAddsTheMissedMarkersPenalty()
+        {
+            yield return StartLab();
+            DebugMenu.TimeScale = 2f;
+            Run.Restart();
+            yield return Frames(2);
+            Game.SetAutopilot(true);
+            yield return WaitFor(() => Run.Clock.State == GauntletState.Running && Run.Clock.Time > 0.5f, "the run to start", 15f);
+            // Jump ahead to the last section with the clock running: every marker in between is missed.
+            Game.JumpToChapter(GauntletCourse.ChapterFinish);
+            Game.SetAutopilot(true);
+            float until = Time.realtimeSinceStartup + 30f;
+            while (Run.Clock.State != GauntletState.Finished && Time.realtimeSinceStartup < until) yield return null;
+            Game.SetAutopilot(false);
+            var clock = Run.Clock;
+            TestContext.Out.WriteLine($"time {clock.Time:0.00}, missed {clock.Missed}, total {clock.Total:0.00}");
+            Assert.That(clock.State, Is.EqualTo(GauntletState.Finished));
+            Assert.That(clock.Missed, Is.GreaterThanOrEqualTo(Game.Gauntlet.markers.Count - 2), "the skipped sections' markers");
+            Assert.That(clock.Total, Is.EqualTo(clock.Time + clock.Missed * GauntletCourse.MissPenalty).Within(0.01f), "2 s a missed marker");
+        }
+
+        [UnityTest]
+        public IEnumerator TheGauntletChaptersLandOnTheirSections()
+        {
+            yield return StartLab();
+            var g = Game.Gauntlet;
+            foreach (var name in new[] { GauntletCourse.ChapterStart, GauntletCourse.ChapterTeaching, GauntletCourse.ChapterCombo, GauntletCourse.ChapterFinish })
+            {
+                Assert.That(PresenterMode.Jump(MovementLabPresenter.Scene, name), Is.EqualTo(JumpResult.Jumped), name);
+                yield return Frames(3);
+                int cp = g.course.CheckpointIndex(name);
+                Assert.That(Game.Checkpoint, Is.EqualTo(cp), name);
+                Assert.That(Mathf.Abs(Game.player.transform.position.z - g.course.checkpoints[cp].position.Z), Is.LessThan(2f), name);
+                Assert.That(Game.Chasing, Is.False, name);
+            }
+        }
+    }
+}

@@ -140,6 +140,8 @@ namespace JamKit.MovementLab.EditorTools
         {
             public Material floor, ramp, wall, ledge, bar, fold, marker, finish, staticCurtain, speedLines;
             public Material sleeve, skin, legs, shoes;
+            /// <summary>The Gauntlet: the gold "go" colour (runnable-wall stripes, ledge lips), the touch markers, the ghost.</summary>
+            public Material gold, touch, ghost;
         }
 
         static Materials MakeMaterials()
@@ -155,6 +157,9 @@ namespace JamKit.MovementLab.EditorTools
                 marker = Grid("Grid_Checkpoint", new Color(0.6f, 0.86f, 1f), new Color(0.85f, 0.95f, 1f), 1f),
                 finish = Grid("Grid_Finish", new Color(1f, 0.86f, 0.5f), new Color(1f, 0.95f, 0.8f), 1f),
             };
+            m.gold = Grid("Grid_Gold", new Color(1f, 0.78f, 0.32f), new Color(1f, 0.95f, 0.72f), 1f);
+            m.touch = Grid("Grid_Touch", new Color(1f, 0.78f, 0.3f), new Color(1f, 0.95f, 0.75f), 1f);
+            m.ghost = Mat("Gauntlet_Ghost", "JamKit/MovementLab/Ghost", null);
             m.staticCurtain = Mat("DreamStatic", "JamKit/MovementLab/DreamStatic", null);
             m.speedLines = Mat("SpeedLines", "JamKit/Movement/SpeedLines", null);
             // The placeholder body: soft, slightly glossy URP Lit.
@@ -208,7 +213,8 @@ namespace JamKit.MovementLab.EditorTools
         static string BuildScene(Materials m)
         {
             var scene = SceneBuilder.NewScene(Sky, out var cam);
-            var course = LabCourse.Build();
+            var gauntlet = GauntletCourse.Build();
+            var course = gauntlet.course; // the old course (free roam), then the Gauntlet
 
             RenderSettings.ambientMode = AmbientMode.Trilight;
             RenderSettings.ambientSkyColor = new Color(0.78f, 0.82f, 0.92f);
@@ -230,7 +236,7 @@ namespace JamKit.MovementLab.EditorTools
 
             // The body (yaw) > head (pitch, eye height, interpolation) > rig (bob, roll, dip) > camera.
             var playerGo = new GameObject("Player");
-            var first = course.checkpoints[0];
+            var first = course.checkpoints[gauntlet.startCheckpoint]; // the lab opens on the Gauntlet's start pad
             playerGo.transform.position = new Vector3(first.position.X, first.position.Y, first.position.Z);
             playerGo.AddComponent<CharacterController>();
             var body = playerGo.AddComponent<MovementController>();
@@ -280,7 +286,8 @@ namespace JamKit.MovementLab.EditorTools
             // The course.
             var root = new GameObject("Course").transform;
             for (int i = 0; i < course.pieces.Count; i++) BuildPiece(course.pieces[i], i, root, m);
-            foreach (var cp in course.checkpoints) Marker(root, "Checkpoint " + cp.name, cp.position.Z, cp.position.Y, m.marker, 0.25f);
+            foreach (var cp in course.checkpoints)
+                Marker(root, "Checkpoint " + cp.name, cp.position.Z, cp.position.Y, m.marker, 0.25f, gauntlet.InGauntlet(cp.s) ? 8.6f : LabCourse.Half + 0.2f);
             Marker(root, "Finish", course.finishS, course.pieces.Find(p => p.name == "Finish").Max.Y, m.finish, 0.6f);
 
             // The pursuer: a curtain of dream-static across the route.
@@ -304,6 +311,7 @@ namespace JamKit.MovementLab.EditorTools
             game.player = body;
             game.pursuerView = view;
             game.courseRoot = root;
+            BuildGauntlet(gauntlet, root, m, game);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             return ScenePath;
@@ -352,7 +360,7 @@ namespace JamKit.MovementLab.EditorTools
             GameObjectUtility.SetStaticEditorFlags(go, 0);
         }
 
-        static void Marker(Transform root, string name, float z, float floorTop, Material mat, float thickness)
+        static void Marker(Transform root, string name, float z, float floorTop, Material mat, float thickness, float halfWidth = LabCourse.Half + 0.2f)
         {
             for (int side = -1; side <= 1; side += 2)
             {
@@ -360,12 +368,127 @@ namespace JamKit.MovementLab.EditorTools
                 post.name = name + (side < 0 ? " (left)" : " (right)");
                 Object.DestroyImmediate(post.GetComponent<Collider>());
                 post.transform.SetParent(root, false);
-                post.transform.position = new Vector3(side * (LabCourse.Half + 0.2f), floorTop + 1.6f, z);
+                post.transform.position = new Vector3(side * halfWidth, floorTop + 1.6f, z);
                 post.transform.localScale = new Vector3(thickness, 3.2f, thickness);
                 var r = post.GetComponent<MeshRenderer>();
                 r.sharedMaterial = mat;
                 r.shadowCastingMode = ShadowCastingMode.Off;
             }
+        }
+
+        // ---------- The Gauntlet ----------
+
+        static GameObject Deco(string name, Transform parent, Vector3 center, Vector3 size, Material mat)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            Object.DestroyImmediate(go.GetComponent<Collider>());
+            go.transform.SetParent(parent, false);
+            go.transform.position = center;
+            go.transform.localScale = size;
+            var r = go.GetComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = ShadowCastingMode.Off;
+            return go;
+        }
+
+        /// <summary>The top of the highest floor-like piece under (x, z) at or below <paramref name="maxY"/> (walls aside).</summary>
+        static bool FloorTopAt(LabCourse c, float x, float z, float maxY, out float top)
+        {
+            top = float.MinValue;
+            bool found = false;
+            foreach (var p in c.pieces)
+            {
+                if (!p.solid || p.kind == LabPieceKind.Wall || p.kind == LabPieceKind.Bar) continue;
+                if (x < p.Min.X || x > p.Max.X || z < p.Min.Z || z > p.Max.Z) continue;
+                float t = p.kind == LabPieceKind.Ramp
+                    ? p.rampTopStart + (p.rampTopEnd - p.rampTopStart) * Mathf.Clamp01((z - p.Min.Z) / Mathf.Max(1e-4f, p.size.Z))
+                    : p.Max.Y;
+                if (t > maxY || t <= top) continue;
+                top = t;
+                found = true;
+            }
+            return found;
+        }
+
+        /// <summary>The Gauntlet's dressing and run loop: gold stripes on its runnable walls and gold lips on its
+        /// ledges (the escape's "go" colour), the touch markers, the start gate and the finish arch, the ghost, and
+        /// the <see cref="GauntletRun"/> component.</summary>
+        static void BuildGauntlet(GauntletCourse g, Transform root, Materials m, MovementLabGame game)
+        {
+            var c = g.course;
+            var parent = new GameObject("Gauntlet").transform;
+            parent.SetParent(root, false);
+
+            // Readability: a gold stripe along each runnable wall's face toward the route, a gold lip on each ledge.
+            for (int i = g.firstPiece; i < c.pieces.Count; i++)
+            {
+                var p = c.pieces[i];
+                Vector3 min = new Vector3(p.Min.X, p.Min.Y, p.Min.Z), max = new Vector3(p.Max.X, p.Max.Y, p.Max.Z);
+                if (p.runnable)
+                {
+                    float laneX = c.LaneAt(p.center.Z);
+                    float face = laneX < p.center.X ? min.x - 0.03f : max.x + 0.03f;
+                    float floor = FloorTopAt(c, c.LaneAt(min.z - 1.5f), min.z - 1.5f, max.y, out float t) ? t : max.y - 6f;
+                    Deco(p.name + " stripe", parent, new Vector3(face, floor + 1.45f, p.center.Z), new Vector3(0.06f, 0.42f, p.size.Z - 0.4f), m.gold);
+                    Deco(p.name + " stripe (thin)", parent, new Vector3(face, floor + 2.05f, p.center.Z), new Vector3(0.06f, 0.1f, p.size.Z - 0.4f), m.gold);
+                }
+                else if (p.kind == LabPieceKind.Ledge)
+                    Deco(p.name + " lip", parent, new Vector3(p.center.X, max.y + 0.03f, min.z + 0.1f), new Vector3(p.size.X - 0.3f, 0.06f, 0.2f), m.gold);
+            }
+
+            // The touch markers: glowing plates on the floor.
+            var views = new GauntletMarkerView[g.markers.Count];
+            for (int i = 0; i < g.markers.Count; i++)
+            {
+                var mk = g.markers[i];
+                var plate = Deco("Marker " + (i + 1) + ": " + mk.name, parent,
+                    new Vector3((mk.min.X + mk.max.X) * 0.5f, mk.min.Y + 0.04f, mk.S), new Vector3(Mathf.Min(mk.max.X - mk.min.X, 5f), 0.06f, 1.6f), m.touch);
+                var v = plate.AddComponent<GauntletMarkerView>();
+                v.index = i;
+                v.plate = plate.GetComponent<MeshRenderer>();
+                views[i] = v;
+            }
+
+            // The start gate (the clock starts as you cross it) and the finish arch.
+            Arch(parent, "Start gate", g.gateS, g.startFloorY, m.marker, m.gold);
+            Arch(parent, "Finish line", g.finishS, g.finishFloorY, m.finish, m.finish);
+
+            // The ghost of your best run: a translucent figure (not Nadia's rig), its feet at the recorded position.
+            var ghost = new GameObject("Ghost (your best run)");
+            ghost.transform.SetParent(parent, false);
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            Object.DestroyImmediate(body.GetComponent<Collider>());
+            body.transform.SetParent(ghost.transform, false);
+            body.transform.localPosition = new Vector3(0f, 0.85f, 0f);
+            body.transform.localScale = new Vector3(0.7f, 0.85f, 0.7f);
+            var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            head.name = "Head";
+            Object.DestroyImmediate(head.GetComponent<Collider>());
+            head.transform.SetParent(ghost.transform, false);
+            head.transform.localPosition = new Vector3(0f, 1.62f, 0.05f);
+            head.transform.localScale = Vector3.one * 0.32f;
+            foreach (var r in ghost.GetComponentsInChildren<MeshRenderer>())
+            {
+                r.sharedMaterial = m.ghost;
+                r.shadowCastingMode = ShadowCastingMode.Off;
+                r.receiveShadows = false;
+            }
+            ghost.SetActive(false);
+
+            var run = game.gameObject.AddComponent<GauntletRun>();
+            run.game = game;
+            run.ghost = ghost.transform;
+            run.markerViews = views;
+        }
+
+        static void Arch(Transform parent, string name, float z, float floorTop, Material posts, Material line)
+        {
+            for (int side = -1; side <= 1; side += 2)
+                Deco(name + (side < 0 ? " (left post)" : " (right post)"), parent, new Vector3(side * 9.2f, floorTop + 2.5f, z), new Vector3(0.5f, 5f, 0.5f), posts);
+            Deco(name + " (beam)", parent, new Vector3(0f, floorTop + 5.2f, z), new Vector3(18.9f, 0.5f, 0.5f), posts);
+            Deco(name + " (line)", parent, new Vector3(0f, floorTop + 0.03f, z), new Vector3(16f, 0.05f, 0.35f), line);
         }
     }
 }

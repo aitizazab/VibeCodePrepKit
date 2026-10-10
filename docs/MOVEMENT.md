@@ -31,7 +31,8 @@ Run the lab on its own: **JamKit > Use Template > Movement Lab**, then Play (swi
 | Sprint (forward only) | Left Shift (hold) | LB (hold), or **L3 click** (toggle, Titanfall-style: you sprint until you stop moving forward, crouch, slide or respawn; clicking again keeps it on) |
 | Wallrun | automatic: jump at a wall *along* it and hold forward | same |
 | Mantle | automatic: run or jump at a ledge 0.4 to 1.9 m above your feet | same |
-| Lab debug HUD | F3 | View / Select |
+| Lab debug HUD | F3 | d-pad down |
+| Gauntlet: restart, ghost | R, G | View (Select), d-pad left |
 | Pause, Comfort and camera | Escape | Start |
 
 **You walk unless you sprint** (the creator, 2026-10-10: `autoSprint` is off by default). On a pad the
@@ -373,9 +374,100 @@ use this" (the lab: teal runnable walls, amber ledges, blue slide ramps, pink sl
 of run-up before a lateral move (above sprint you turn at most ~220°/s and air steering barely moves you);
 checkpoints every 10-20 s of chase; collapses fire by position, behind the player.
 
-## The Movement Lab
+## The Gauntlet (the Movement Lab's obstacle course)
 
-A grey-box course along +Z (about 500 m, ~48 s for the autopilot): **Run-up and slide** (40 m, a slide
+The lab opens on the start pad of **the Gauntlet**, a timed obstacle course after Titanfall 2's Pilot's
+Gauntlet. Cross the gate and the clock starts; cross the finish line and it stops.
+
+**How to play it**
+1. Run through the gate. Hold Shift (LB) to sprint, or click L3.
+2. Pass over every glowing gold plate (the touch markers). Each one you miss adds **2 s** at the finish.
+3. Each section's end shows a split: green if you're ahead of your best, red if you're behind.
+4. Fall, and you come back at the start of the section, already running. The clock keeps going.
+5. **R** or the pad's **View** button restarts at once from the start pad.
+6. The translucent figure is **the ghost of your best run**. **G** or the pad's **d-pad left** shows or hides it.
+7. The board by the start pad lists the target times:
+   - **the developer's time, 43.0 s** (the course autopilot's clean run);
+   - **Mags's time, 60.0 s**;
+   - **your best**.
+8. At the finish, the end screen shows your time and every split.
+
+Your best time, splits and ghost are kept in the save (`GauntletClock.SaveKey`). Autopilot and attract runs
+never count.
+
+**The route.** About 470 m along +Z. Every section has a safe line beside the fast line the autopilot runs
+(RESEARCH-MOVEMENT 8.4 rule 4).
+
+*The teaching half:*
+
+| # | Section | Fast line | Safe line |
+|---|---|---|---|
+| 1 | Sprint and kick | hop the 1.0 m vault without breaking stride | mantle it and sprint: the **sprint kick** puts you straight back to speed |
+| 2 | Slide | slide under the 1.15 m bar and down a 16 m, 3 m ramp | crouch-walk under, run down |
+| 3 | Jumps | a 5.5 m single gap, then an 8.5 m double | two short hops by a stepping stone |
+| 4 | Wallrun | the 14 m striped wall on the right over a pit, kick off it | three stepping stones on the left |
+| 5 | Wall to wall | left wall → kick → right wall → kick and double jump (walls 5 m apart) | four stones on the far left |
+| 6 | The climb | the **chimney**: kick up between walls 3.5 m apart, 4 m | the **mantle stair**: 1.0, 1.35 and 1.65 m |
+
+*The combo half:*
+
+| # | Section | Fast line | Safe line |
+|---|---|---|---|
+| 7 | Combo: walls, slide, mantle | wallrun → kick → wallrun → kick, land sliding down a ramp, mantle a 1.35 m ledge | stones on the far right, then the same slide and mantle |
+| 8 | Combo: slide-hops, or the skip | slide-hop down three steps (4 m gaps) without leaving the slide, mantle twice back up | run the steps |
+| 9 | Finale | the 21 m wall on the left, kick and double jump down onto the finish | stones on the right |
+
+**The skip (section 8).** Experts can take a 12.5 m gap on the right onto a raised deck. A double jump at sprint
+speed only reaches 9.9 m; only momentum clears 12.5 m: a slide boost (the 13 m/s cap reaches 13.5 m), slide-hops
+or air strafing.
+
+**Touch markers.** There are nine, one per section, all where the two lines meet.
+
+**Times** (the autopilot in the dotnet sim, 60 fps, pinned by a test):
+- **43.0 s** clean. The splits are 3.2, 7.0, 11.3, 16.1, 20.7, 24.7, 31.1, 37.9 and 43.0 s.
+- The autopilot doesn't take the skip or the fastest kicks, so a strong player should beat it.
+- A first run takes 60–90 s.
+
+**Readability.** The escape's single "go" colour, gold, appears only on things you use: a stripe along every
+runnable wall (sized from the floor before it), a lip on every ledge's front edge, and the plates. The start
+gate and the finish arch frame the course, and nothing decorative stands in the lanes.
+
+**Building on it.** `GauntletCourse.Make()` (core) appends the Gauntlet after the old course at z 600, in the
+same format: pieces, lane, autopilot cues, checkpoints (section starts), sections, markers, and beats. The
+beats are checked by `CourseReach`, the reach and clearance rules shared with the dream escape.
+- When you change the course, re-run `GauntletTests`: the frame-rate sweep, the section-to-section runs,
+  reach, and the safe lines.
+- Then set `GauntletCourse.DeveloperTime` to the time the first test prints.
+
+### Gauntlet notes (the research, brief)
+
+Confirmed by sources:
+- **Penalties and goal times.** The Gauntlet adds **2 s for each target left alive** (15 of them). The goal times
+  are **56.65 s** and **33.65 s**, and 33.65 s puts you in the leaderboard's top 3 (an achievement)
+  ([TrueAchievements](https://www.trueachievements.com/game/Titanfall-2/walkthrough/11),
+  [Gameranx](https://gameranx.com/features/id/80008/article/titanfall-2-complete-achievements-trophies-guide-100-walkthrough/)).
+- **The ghost.** Beating "Pilot Anderson's Gauntlet ghost recorder time" is an achievement of its own, so the
+  game has a ghost to race ([StrategyWiki](https://strategywiki.org/wiki/Titanfall_2/The_Pilot%27s_Gauntlet)).
+- **Advice.** Guides tell you to stay above 35 km/h by staying in the air and wallrunning
+  ([TrueAchievements](https://www.trueachievements.com/game/Titanfall-2/walkthrough/11)).
+- **Speedrun records.**
+  - 14 s (Rbrite, 2018: [Guinness](https://www.guinnessworldrecords.com/world-records/514353-fastest-completion-of-titanfall-2-gauntlet)).
+  - 12.0 s with a grenade boost (2019).
+  - 11.1 s (Cash Mayo, May 2021: [PC Gamer](https://www.pcgamer.com/au/titanfall-2-speedrunner-reclaims-the-gauntlet-record-by-a-hair)).
+  - The speed-tech rivalry inspired Apex Legends' Octane ([PC Gamer](https://www.pcgamer.com/au/apex-legends-new-hero-octane-is-a-tribute-to-a-real-life-titanfall-speedrunner)).
+- **What we took from it:** the time penalty per missed target (2 s); targets that are required points of the
+  route (our touch markers); a board of goal times; a ghost to race; and the instant restart.
+
+From memory, unverified (the StrategyWiki and TrueAchievements pages refused automated fetching, and I
+transcribed no videos):
+- The course is a loop that brings you back to the start line, with a leaderboard screen beside it.
+- The timer runs from the line to the line.
+- It opens with wallruns over pits, then rooms of holographic targets, a slide and mantles.
+
+## Free roam: the old course
+
+A grey-box course along +Z, z 0 to 530, before the Gauntlet (about 500 m, ~48 s for the autopilot). Its
+chapters below reach it. **Run-up and slide** (40 m, a slide
 ramp, a bar to slide under), **Gaps** (5.5 m single, 8.5 m double), **Wallruns** (8 m over solid floor,
 14 m over a pit, 21 m over a pit, then a kick and a double jump), **Momentum chain** (slide → slide jump
 → wallrun → wall kick → double jump), **Chimney** (wall-kick between walls 3.5 m apart to climb 4 m),
@@ -385,11 +477,12 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 
 - Falling below the course ("dream drop") or being caught: a 0.4 s fade and you're back at the last
   checkpoint, running at sprint; collapses after it are put back.
-- Debug HUD (F3 / View): speed m/s and km/h, state, wall side, slide boost and double jump, an 8 s
+- Debug HUD (F3 / d-pad down; View now restarts the Gauntlet): speed m/s and km/h, state, wall side, slide boost and double jump, an 8 s
   speed graph with lines at walk 5, wallrun 8.64, sprint 9.5 and the 13 m/s boost cap, section and time,
   and the chase gap bar.
-- Presenter chapters: **Course start, Wallrun section, Momentum chain, Chimney, Chase**. Attract mode
-  runs the course with the autopilot. The debug menu's Next jumps to the next checkpoint.
+- Presenter chapters: **Gauntlet start, Gauntlet: teaching half, Gauntlet: combo half, Gauntlet: finish**, then the
+  free roam's **Course start, Wallrun section, Momentum chain, Chimney, Chase**. Attract mode
+  runs the Gauntlet, then the momentum chain, with the autopilot. The debug menu's Next jumps to the next checkpoint.
 - Smoke run: the template's driver plays the momentum chain with the autopilot and fails the run if it
   falls or doesn't get well past sprint.
 - The course is data (`LabCourse.Build`), so the dotnet tests run the same autopilot through the same
@@ -403,11 +496,15 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 | `core-tests/Movement` (`MoveSoundTests`) | the generated sounds: at least 3 distinct variants per one-shot, peaks under -1 dBFS, no click at either end, seamless loops (the wrap is a typical step, no level jump across it), the double jump brighter than the jump; the mix rules: footsteps heavier with speed, landing tiers, wind rising with speed, the slide fading, round-robin never repeating |
 | Unity EditMode (`MovementAudioEditorTests`) | every movement event has clips and a generated fallback, at least 3 variants per one-shot, the recorded CC0 sets are there and mono, the loops are seamless, nothing peaks above -1 dBFS |
 | Unity EditMode (`MovementLabEditorTests`) | chapters and attract script, sprint opt-in in the tuning and the Shift, LB, L3 and R3 bindings, scene/tuning/preset/materials, Build Settings, every player part, sound ids and the Crouch binding |
+| `core-tests/Movement` (`GauntletTests`) | the Gauntlet: the autopilot runs it clean (no falls, every marker) at 20, 60, 144 and 300 fps and with jittery frames, in the developer's time; every section reaches the next; reach and the slide-gap clearance (an old 0.35 m crouched step offset is caught); every move is used, mantles at three heights, a marker in every section; the safe lines are hoppable and stay off the fast lane; the old course is kept unchanged before it; the clock starts at the gate, splits, penalises a missed marker 2 s, resets on restart, keeps the best; the ghost records at a fixed rate and replays |
+| Unity EditMode (`GauntletEditorTests`) | the run loop, ghost and one plate per marker are wired; the gate and finish stand there; a gold stripe on every runnable wall; the materials compile; the route fits the lab's real tuning and controller; the best record round-trips through the save |
+| Unity PlayMode (`GauntletPlayTests`) | the lab opens on the start pad, ready; the autopilot runs the Gauntlet touching every marker and recording a ghost (not counted as your best) and gets the end screen; the restart puts the clock, markers and player back; skipping sections adds the missed markers' penalty; the chapters land on their sections |
 | Unity PlayMode (`MovementLabPlayTests`) | the scripted chain keeps its speed on the real CharacterController, the autopilot finishes the course, standing still in the chase gets you caught and put back, falling respawns, chapters jump cleanly, comfort settings reach the camera and the pause screen |
 
 ## Known gaps
 
-- Air strafing works but no route depends on it (it's weak on a stick, by design).
+- Air strafing works; only the Gauntlet's optional skip rewards it (it's weak on a stick, by design).
+- The Gauntlet: the restart and ghost buttons are read straight from the keyboard and pad in `GauntletRun` (a stopgap until the shell's `InputService` has a Restart action, so they can't be rebound yet); no online leaderboard; the developer's time is the autopilot's, not a human's.
 - No strafe "lurch", no moving platforms, no ziplines or grapple.
 - No post-processing comfort effects (vignette at speed, optional motion blur): the lab camera has
   post-processing off. Add one "speed" Volume if wanted (RESEARCH-MOVEMENT 8.5).

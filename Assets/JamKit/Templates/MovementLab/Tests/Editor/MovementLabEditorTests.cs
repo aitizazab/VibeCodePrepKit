@@ -33,7 +33,7 @@ namespace JamKit.MovementLab.Tests
             Assert.That(names, Is.EqualTo(MovementLabPresenter.Chapters));
             foreach (var required in new[] { LabCourse.ChapterStart, LabCourse.ChapterWallruns, LabCourse.ChapterChase })
                 Assert.That(names, Does.Contain(required));
-            var course = LabCourse.Build();
+            var course = GauntletCourse.Build().course; // the old course (free roam), then the Gauntlet
             foreach (var n in names) Assert.That(course.CheckpointIndex(n), Is.GreaterThanOrEqualTo(0), n + " has a checkpoint");
         }
 
@@ -101,7 +101,7 @@ namespace JamKit.MovementLab.Tests
                 Assert.That(body.GetComponent<MovementAudio>(), Is.Not.Null);
                 Assert.That(game, Is.Not.Null);
                 Assert.That(game.pursuerView, Is.Not.Null);
-                Assert.That(pieces, Is.EqualTo(LabCourse.Build().pieces.Count), "one view per course piece");
+                Assert.That(pieces, Is.EqualTo(GauntletCourse.Build().course.pieces.Count), "one view per course piece");
             }
             finally
             {
