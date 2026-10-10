@@ -1,6 +1,7 @@
 using System.Collections;
 using JamKit.Shell;
 using NUnit.Framework;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.TestTools;
@@ -13,12 +14,23 @@ namespace JamKit.Tests.Play
     public class ControlsPlayTests
     {
         Keyboard _keyboard;
+        InputSettings _savedSettings, _testSettings;
 
         [UnitySetUp]
         public IEnumerator SetUp()
         {
             yield return BootToTitle();
+            // A batch-mode test run has no focused Game View, and by default (PointersAndKeyboardsRespectGameViewFocus)
+            // the editor then sends keyboard events to the editor's state, not the game's: the rebind (an onEvent
+            // listener) would see the key but the actions never would. Route all input to the game for these tests,
+            // as a focused window (or a built player) does; a copy of the settings, put back in TearDown.
+            _savedSettings = InputSystem.settings;
+            _testSettings = Object.Instantiate(_savedSettings);
+            _testSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            _testSettings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputSystem.settings = _testSettings;
             _keyboard = InputSystem.AddDevice<Keyboard>("ControlsTestKeyboard");
+            yield return null;
         }
 
         [TearDown]
@@ -26,6 +38,9 @@ namespace JamKit.Tests.Play
         {
             if (_keyboard != null) InputSystem.RemoveDevice(_keyboard);
             _keyboard = null;
+            if (_savedSettings != null) InputSystem.settings = _savedSettings;
+            if (_testSettings != null) Object.Destroy(_testSettings);
+            _savedSettings = _testSettings = null;
             if (!GameRoot.Exists) return;
             GameRoot.Ui.CloseOverlays();
             GameRoot.Input.Bindings.ResetAll();
