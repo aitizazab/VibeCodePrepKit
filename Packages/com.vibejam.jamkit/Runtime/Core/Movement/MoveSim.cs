@@ -36,6 +36,7 @@ namespace JamKit.Movement
         float _crouchBuffer;
         float _landGrace;
         float _sinceJump = 999f;
+        float _sinceHop = 999f;
         bool _doubleJump;
 
         // Slide
@@ -140,6 +141,7 @@ namespace JamKit.Movement
             _doubleJump = true;
             _jumpedSinceGround = true;
             _sinceGrounded = 999f;
+            _sinceHop = 999f;
             _sinceWall = 999f;
             _wallCoyote = false;
             _hasLastWall = false;
@@ -186,6 +188,7 @@ namespace JamKit.Movement
             else _crouchBuffer -= h;
             _landGrace -= h;
             _sinceJump += h;
+            _sinceHop += h;
             _sinceWall += h;
             if (!_grounded) _sinceGrounded += h;
             if (_mode != MoveMode.Slide) _slideFatigue = Math.Max(0f, _slideFatigue - h);
@@ -267,10 +270,11 @@ namespace JamKit.Movement
                     if (def.kickRearmsSlideBoost) _lastBoost = -999f;
                 }
             }
-            if (_landGrace > 0f && stick > 0f) { }
-            else if (stick > 0f && speed > def.sprintSpeed)
+            if (stick > 0f && speed > def.sprintSpeed)
             {
-                float target = def.sprintSpeed + (speed - def.sprintSpeed) * (float)Math.Exp(-def.overspeedDecay * h);
+                // During the landing grace the excess fades at landingGraceDecay x the rate (0: frozen, the old grace).
+                float rate = _landGrace > 0f ? def.overspeedDecay * def.landingGraceDecay : def.overspeedDecay;
+                float target = def.sprintSpeed + (speed - def.sprintSpeed) * (float)Math.Exp(-rate * h);
                 Vector3 dir = vH / speed;
                 if (Vector3.Dot(dir, wishDir) > 0f)
                     dir = RotateToward(dir, wishDir, def.groundTurnRate * (float)(Math.PI / 180.0) * h * stick);
@@ -334,6 +338,16 @@ namespace JamKit.Movement
 
         void GroundJump(bool fromSlide)
         {
+            // The bunny-hop cost: a share of the speed above sprint (smaller out of a slide, so slide hops beat plain hops).
+            float loss = fromSlide ? def.slideHopSpeedLoss : def.hopSpeedLoss;
+            float s = HorizontalSpeed;
+            if (loss > 0f && s > def.sprintSpeed)
+            {
+                float ns = def.sprintSpeed + (s - def.sprintSpeed) * (1f - Math.Min(loss, 1f));
+                _vel = new Vector3(_vel.X * ns / s, _vel.Y, _vel.Z * ns / s);
+                _events.hopSpeedLost = s - ns;
+            }
+            _sinceHop = 0f;
             _vel.Y = def.JumpSpeed * (fromSlide ? def.slideJumpScale : 1f);
             if (fromSlide) _events.slideEnded = true;
             LeaveGround(true);
@@ -374,8 +388,13 @@ namespace JamKit.Movement
             Vector3 vH = Flat(_vel);
             if (stick > 0f)
             {
-                vH = AirAccelerate(vH, wishDir, def.sprintSpeed, def.airAccel, def.airCap, h);
-                vH = Accelerate(vH, wishDir, def.airControlSpeed * stick, def.airControlAccel, h);
+                // Above airControlSpeed, speed gained in the air needs strafe input (W alone only turns the flight):
+                // the gain of each push is scaled by how far sideways the move input points (airStrafeSideShare).
+                float share = StrafeShare(input.move);
+                float s0 = FlatLength(vH);
+                vH = LimitGain(AirAccelerate(vH, wishDir, def.sprintSpeed, def.airAccel, def.airCap, h), Math.Max(s0, def.airControlSpeed), share);
+                float s1 = FlatLength(vH);
+                vH = LimitGain(Accelerate(vH, wishDir, def.airControlSpeed * stick, def.airControlAccel, h), Math.Max(s1, def.airControlSpeed), share * def.airControlStrafeGain);
             }
             float vy = Math.Max(_vel.Y - def.gravity * h, -def.terminalFall);
             _vel = CapFlat(new Vector3(vH.X, vy, vH.Z), def.maxHorizontalSpeed);
@@ -388,6 +407,27 @@ namespace JamKit.Movement
             TryAttachWall(input, wishDir, stick);
         }
 
+        /// <summary>0..1: how much of the air speed gain the move input earns. Full once it points
+        /// <see cref="MoveDef.airStrafeSideShare"/> sideways (A/D, a stick pushed sideways or diagonally), none for forward alone.</summary>
+        float StrafeShare(Vector2 move)
+        {
+            if (!(def.airStrafeSideShare > 0f)) return 1f;
+            float m = move.Length();
+            if (m < 1e-3f) return 0f;
+            return Math.Min(1f, Math.Abs(move.X) / m / def.airStrafeSideShare);
+        }
+
+        /// <summary>Keeps <paramref name="v"/>'s direction but lets its speed rise above <paramref name="free"/> only by
+        /// <paramref name="share"/> of what it gained (share 1: unchanged; 0: a pure turn above <paramref name="free"/>).</summary>
+        static Vector3 LimitGain(Vector3 v, float free, float share)
+        {
+            if (share >= 1f) return v;
+            float s = FlatLength(v);
+            if (s <= free) return v;
+            float allowed = free + (s - free) * Math.Max(0f, share);
+            return v * (allowed / s);
+        }
+
         void DoubleJump(Vector3 wishDir, float stick, Vector3 fwd)
         {
             _vel.Y = Math.Max(_vel.Y, def.DoubleJumpSpeed);
@@ -398,6 +438,14 @@ namespace JamKit.Movement
                 Vector3 dir = s > 1e-3f ? vH / s : wishDir;
                 Vector3 nd = NormalizeOr(dir + (wishDir - dir) * def.doubleJumpRedirect, dir);
                 float ns = Math.Max(s, def.doubleJumpMinSpeed * stick);
+                // Hop and steer: a double jump right after a ground jump pays for its turn (a share of the speed above sprint).
+                if (_sinceHop <= def.doubleJumpHopWindow && def.doubleJumpHopTurnLoss > 0f && ns > def.sprintSpeed)
+                {
+                    float turned = (float)Math.Acos(Math.Max(-1f, Math.Min(1f, Vector3.Dot(dir, nd)))) / (float)(Math.PI / 2.0);
+                    float lost = (ns - def.sprintSpeed) * Math.Min(1f, def.doubleJumpHopTurnLoss * Math.Min(turned, 1f));
+                    ns -= lost;
+                    _events.hopSpeedLost += lost;
+                }
                 // A little forward push along the new direction, up to sprint speed (getting started without a wall).
                 if (ns < def.sprintSpeed) ns = Math.Min(def.sprintSpeed, ns + def.doubleJumpForwardBoost * stick);
                 vH = nd * ns;

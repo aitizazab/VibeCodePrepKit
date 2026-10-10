@@ -185,7 +185,7 @@ namespace JamKit.Tests.Movement
             var fwd = new MoveInput { move = new Vector2(0f, 1f), sprintHeld = true };
             Assert.That(After(5f, fwd), Is.EqualTo(6f).Within(0.1f), "+1 m/s from a slow start");
             Assert.That(After(9f, fwd), Is.EqualTo(def.sprintSpeed).Within(0.1f), "up to sprint, not past it");
-            Assert.That(After(12f, fwd), Is.EqualTo(12f).Within(0.1f), "nothing above sprint");
+            Assert.That(After(12f, fwd), Is.EqualTo(12f - def.hopSpeedLoss * (12f - def.sprintSpeed)).Within(0.05f), "nothing above sprint (the ground jump's hop cost is all that changes)");
             Assert.That(After(5f, new MoveInput()), Is.EqualTo(6f).Within(0.1f), "stick neutral, moving forward: along the view");
         }
 

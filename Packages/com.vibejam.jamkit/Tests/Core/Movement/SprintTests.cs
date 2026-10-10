@@ -167,16 +167,19 @@ namespace JamKit.Tests.Movement
             Assert.That(sim.Events.slideBoosted, Is.True, "a slide right after the kick boosts");
         }
 
-        /// <summary>Air strafing stays exactly as the creator found it: bunny hopping with the stick sideways while
-        /// turning 120 degrees a second gives the same speeds as before the sprint changes (recorded 2026-10-10),
-        /// with sprint held or not.</summary>
+        /// <summary>Air strafing with strafe input stays exactly as the creator found it: bunny hopping with the stick
+        /// sideways while turning 120 degrees a second gives the same speeds as before the sprint changes (recorded
+        /// 2026-10-10), with sprint held or not, once the 2026-10-11 hop costs are switched off. The W-only rule
+        /// (airStrafeSideShare) doesn't touch it: a stick pushed sideways earns the full gain.</summary>
         [TestCase(false)]
         [TestCase(true)]
         public void AirStrafeGainIsUnchanged(bool sprintHeld)
         {
             var w = new BoxWorld();
             w.Floor(-500f, 500f, -500f, 500f, 0f);
-            var sim = Standing(w, Vector3.Zero, velocity: new Vector3(0f, 0f, 9.5f));
+            var def = new MoveDef { hopSpeedLoss = 0f, slideHopSpeedLoss = 0f, doubleJumpHopTurnLoss = 0f, landingGraceDecay = 0f };
+            Assert.That(def.airStrafeSideShare, Is.GreaterThan(0f), "the W-only rule stays on");
+            var sim = Standing(w, Vector3.Zero, def, 0f, new Vector3(0f, 0f, 9.5f));
             float yaw = 0f;
             var expected = new[] { (60, 10.6274f), (120, 11.1801f), (240, 12.9537f), (480, 15.3884f) };
             int next = 0;

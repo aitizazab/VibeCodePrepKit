@@ -74,6 +74,10 @@ namespace JamKit.Movement
         public float groundTurnRate = 220f;
         /// <summary>No ground friction for this long after landing (a wide bunny-hop / chain window).</summary>
         public float landingGrace = 0.15f;
+        /// <summary>How much of <see cref="overspeedDecay"/> still applies during the landing grace (0: the grace freezes your
+        /// speed, as before 2026-10-11; 1: speed above sprint fades from the landing tick, so a late hop costs what the
+        /// time on the ground cost). Only a jump on the landing tick (a buffered press) skips it.</summary>
+        public float landingGraceDecay = 1f;
         /// <summary>A stick pushed this far counts as fully pushed (gamepad players reach sprint).</summary>
         public float stickFullAt = 0.7f;
 
@@ -96,6 +100,17 @@ namespace JamKit.Movement
         public float coyoteTime = 0.12f;
         /// <summary>A jump pressed this long before landing (or reaching a wall) still fires.</summary>
         public float jumpBuffer = 0.12f;
+        /// <summary>Bunny-hop cost: a ground jump keeps all speed up to sprint and loses this share of the speed above it
+        /// (0.08: about 1 m/s at 22 m/s, 0.5 at 15; what a 0.4 s slide burns at speed). Jumps at sprint or below are free.
+        /// 0 = the old free hop.</summary>
+        public float hopSpeedLoss = 0.08f;
+        /// <summary>The same for a jump out of a slide (a slide hop): smaller, so the slide is the better speed tool.</summary>
+        public float slideHopSpeedLoss = 0.03f;
+        /// <summary>A double jump this soon after a ground jump (the hop-and-steer) pays for its turn...</summary>
+        public float doubleJumpHopWindow = 0.35f;
+        /// <summary>...this share of the speed above sprint for a 90 degree turn of the flight, in proportion (a 45 degree
+        /// redirect, stick square to the flight, costs half). Later double jumps and wall jumps turn for free. 0 = free.</summary>
+        public float doubleJumpHopTurnLoss = 0.1f;
 
         // ---------- Air ----------
         /// <summary>Source air accelerate (air strafing).</summary>
@@ -105,6 +120,15 @@ namespace JamKit.Movement
         /// <summary>Gentle extra air steering up to this speed, so standing jumps can be aimed.</summary>
         public float airControlSpeed = 5f;
         public float airControlAccel = 2f;
+        /// <summary>Above <see cref="airControlSpeed"/>, speed gained in the air (the air strafe and the air control) needs
+        /// strafe input: the move input must point at least this far sideways (the sideways share of the move vector; 0.5
+        /// = 30 degrees off forward) for the full gain, less in proportion. Forward alone (W, or the stick straight up)
+        /// still turns your flight toward the view but adds no speed: no more W-only strafing (the creator, 2026-10-11).
+        /// 0 = pure Source, any input gains.</summary>
+        public float airStrafeSideShare = 0.5f;
+        /// <summary>Whether the air control may add speed above <see cref="airControlSpeed"/> with strafe input (1, keeps
+        /// controller and A/D strafing as strong as before) or only redirects (0: strafing gains 25-40% less, on a stick too).</summary>
+        public float airControlStrafeGain = 1f;
         /// <summary>Horizontal speed never goes above this (about 2.3x sprint).</summary>
         public float maxHorizontalSpeed = 22f;
         public float terminalFall = 40f;

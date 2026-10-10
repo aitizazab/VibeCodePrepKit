@@ -76,6 +76,8 @@ namespace JamKit.Movement
         public bool leftGround;
         /// <summary>A sprint kick: the push-off back to running speed.</summary>
         public bool sprintKick;
+        /// <summary>Speed (m/s) a jump cost: the bunny-hop cost, and a hop-and-steer double jump's turn.</summary>
+        public float hopSpeedLost;
 
         public bool Any => jumped || doubleJumped || wallJumped || landed || slideStarted || slideEnded || wallrunStarted || wallrunEnded || mantleStarted || leftGround || sprintKick;
 
@@ -93,6 +95,7 @@ namespace JamKit.Movement
             slideStarted |= e.slideStarted;
             slideBoosted |= e.slideBoosted;
             slideEnded |= e.slideEnded;
+            hopSpeedLost += e.hopSpeedLost;
             if (e.wallrunStarted) { wallrunStarted = true; wallSide = e.wallSide; }
             wallrunEnded |= e.wallrunEnded;
             mantleStarted |= e.mantleStarted;

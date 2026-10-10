@@ -121,14 +121,17 @@ namespace JamKit.Tests.Movement
         }
 
         [Test]
-        public void TheLandingGraceSkipsFrictionRightAfterLanding()
+        public void TheLandingGraceSkipsFrictionButSpeedAboveSprintStillFades()
         {
             var sim = Standing(Flat(), new Vector3(0f, 1f, 0f), velocity: new Vector3(0f, -2f, 14f));
             Run(sim, Forward(), 1f, s => s.Grounded);
             Assert.That(sim.Grounded, Is.True);
             float landed = sim.HorizontalSpeed;
-            Run(sim, Forward(), 0.12f);
-            Assert.That(sim.HorizontalSpeed, Is.EqualTo(landed).Within(1e-3f), "0.15 s of no friction after landing");
+            float t = Run(sim, Forward(), 0.12f);
+            float excess = landed - sim.def.sprintSpeed;
+            Assert.That(sim.HorizontalSpeed, Is.EqualTo(sim.def.sprintSpeed + excess * (float)Math.Exp(-sim.def.overspeedDecay * t)).Within(0.02f),
+                "the excess over sprint fades from the landing tick (no frozen grace: a late hop costs its time on the ground)");
+            Assert.That(sim.HorizontalSpeed, Is.GreaterThan(landed * (1f - sim.def.friction * t) + 1f), "but no friction");
         }
 
         // ---------- Jumps ----------
@@ -247,7 +250,8 @@ namespace JamKit.Tests.Movement
             float before = sim.HorizontalSpeed;
             sim.Step(Forward().With(jump: true, crouchHeld: true), H);
             Assert.That(sim.Events.jumped, Is.True);
-            Assert.That(sim.HorizontalSpeed, Is.EqualTo(before).Within(0.05f), "a slide jump keeps every bit of speed");
+            Assert.That(sim.HorizontalSpeed, Is.EqualTo(before - sim.def.slideHopSpeedLoss * Math.Max(0f, before - sim.def.sprintSpeed)).Within(0.05f),
+                "a slide jump keeps all its speed but 3% of what's above sprint");
             Assert.That(sim.Velocity.Y, Is.EqualTo(sim.def.JumpSpeed * 0.9f).Within(0.1f));
 
             var slow = Standing(Flat(), Vector3.Zero, velocity: new Vector3(0f, 0f, 10f));

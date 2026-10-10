@@ -68,23 +68,27 @@ kick's cooldown equals the boost's, so it never boosts more often than sliding a
 |---|---|---|
 | **Grounded** | Walking. Source acceleration and friction. | Landing, mantle end. |
 | **Sprint** | Grounded at sprint speed, moving forward with Sprint held or toggled. | Moving forward faster than walk with sprint on; a sprint kick pushes you into it from a stumble. |
-| **Slide** | Crouched, low friction, a speed boost on a 2 s cooldown, downhill slopes speed you up. | Crouch while running at 6.5 m/s or more, or land with crouch held (slide hop). Ends below 4 m/s or when you let go of crouch. Jumping out keeps **all** your horizontal speed. |
-| **Air** | Gravity, Source air strafing (small cap: slow, real gains only by turning), gentle low-speed steering. | Jump, walk off a ledge, leave a wall. |
+| **Slide** | Crouched, low friction, a speed boost on a 2 s cooldown, downhill slopes speed you up. | Crouch while running at 6.5 m/s or more, or land with crouch held (slide hop). Ends below 4 m/s or when you let go of crouch. Jumping out keeps your horizontal speed, but for 3% of what's above sprint (a slide hop beats a plain hop's 8%). |
+| **Air** | Gravity, Source air strafing (small cap: slow, real gains only by turning with strafe input; W alone only turns your flight above 5 m/s), gentle low-speed steering. | Jump, walk off a ledge, leave a wall. |
 | **Wallrun** | Along a near-vertical wall: you settle toward 8.64 m/s, weightless at first and sinking later, for at most 1.75 s. | Jump at a wall moving along it (not head-on), holding forward, 0.6 m or more above the ground. Ends by time, if the wall ends, if you push away, crouch, or stop holding forward. Jump = wall jump. |
 | **Mantle** | Pulled up onto a ledge in 0.2 + 0.07 s per metre. | Running or falling into a ledge 0.4 to 1.9 m above your feet while holding forward. You leave at 80 % of your speed (at least 5 m/s). |
 
-**Momentum rules** (what keeps your speed): a jump never touches horizontal speed; landing has 0.15 s
-with no friction (time to jump again or slide); speed over sprint fades slowly (1.5/s) instead of being
-braked, and you can still steer it; catching a wall keeps your full speed (turned along the wall); a
-wall jump *adds* speed (about +3.1 m/s at wallrun speed); the double jump turns you toward the stick
-without losing speed; collisions only remove the part of your velocity going into the surface.
+**Momentum rules** (what keeps your speed): a jump at sprint speed or below never touches horizontal speed;
+above sprint a ground jump keeps all but 8% of the excess (a slide hop 3%, see "Air strafing and bunny hops");
+landing has 0.15 s with no friction, but speed over sprint fades from the landing tick (1.5/s of the excess)
+instead of being braked, and you can still steer it; catching a wall keeps your full speed (turned along the
+wall); a wall jump *adds* speed (about +3.1 m/s at wallrun speed); the double jump turns you toward the stick
+without losing speed, except right after a ground jump (the hop-and-steer pays a little); collisions only
+remove the part of your velocity going into the surface.
 **The wall kick:** a jump in the first 83 ms on a wall keeps almost everything (staying on the wall
 lets wall friction pull a fast run down toward 8.64 m/s), so quick kicks are the fast line.
 
 ## Why air strafing gains speed
 
-The creator found this and wants it kept as it is (2026-10-10). A regression test
-(`SprintTests.AirStrafeGainIsUnchanged`) pins the speed curve.
+The creator found this and wanted it kept (2026-10-10). On 2026-10-11 they found keyboard and mouse far too
+easy (a first Gauntlet run in 24 s against 31.42 on a controller) and picked two changes, below in "Air
+strafing and bunny hops". Strafing with strafe input is unchanged: `SprintTests.AirStrafeGainIsUnchanged` still
+pins the old speed curve with the hop costs switched off.
 
 - **What the air step does** (`MoveMath.AirAccelerate`, Source's formula). Each 1/120 s tick, it looks only at
   how fast you already move *along the stick's direction* (the projection of your velocity on it). It tops that
@@ -96,8 +100,9 @@ The creator found this and wants it kept as it is (2026-10-10). A regression tes
   near 0. Every tick then adds up to about 0.8 m/s *sideways*. A sideways add never slows you; it lengthens
   your velocity by Pythagoras: √(v² + 0.8²).
   - At 10 m/s that is about +0.03 m/s per tick.
-  - The gentle low-speed air control (airControlSpeed 5, airControlAccel 2) adds up to another 0.08 m/s along
-    the stick each tick.
+  - The air control (airControlSpeed 5, airControlAccel 2) adds up to another 0.08 m/s along the stick each
+    tick. It is a second Source accelerate with a 5 m/s cap instead of 0.8, so it strafes too, and it did so
+    with W alone (see below).
 - **How fast you gain depends on how fast you turn.** Each add also turns your velocity (by about 4.6° per tick
   at 10 m/s). If the view turns more slowly than that, the projection creeps up toward 0.8 and the adds shrink.
   For example, turning 120°/s while bunny hopping takes you from 9.5 to about 11 m/s in 1 s and about 15.4 m/s
@@ -105,13 +110,82 @@ The creator found this and wants it kept as it is (2026-10-10). A regression tes
 - **The cap.** Horizontal speed is clamped to **maxHorizontalSpeed = 22 m/s** (about 2.3× sprint), in the air
   and on the ground.
 - **Keeping it through landings.**
-  - For **0.15 s after landing** (landingGrace), while the stick is pushed, there is no ground friction and no
-    overspeed fade. If you let go of the stick, friction starts at once.
+  - For **0.15 s after landing** (landingGrace), while the stick is pushed, there is no ground friction. Since
+    2026-10-11 the overspeed fade runs during it (it used to freeze your speed). If you let go of the stick,
+    friction starts at once.
   - A jump pressed up to **0.12 s before landing** (jumpBuffer) fires on the landing step itself, so a bunny
-    hop never touches friction.
-  - Jumping never changes horizontal speed.
-  - On the ground past the grace, speed above sprint fades by only 1.5 per second of the excess (overspeedDecay)
+    hop never touches friction. (A press in the air fires the double jump if you still have it: hoppers spend
+    it first.)
+  - A ground jump above sprint costs 8% of the excess (a slide hop 3%); at or below sprint it's free.
+  - On the ground, speed above sprint fades by only 1.5 per second of the excess (overspeedDecay)
     while you hold a direction, so a short run between hops costs little.
+
+## Air strafing and bunny hops (2026-10-11)
+
+**What the creator found** (keyboard and mouse, the Movement Lab): holding only W and moving the mouse gained
+speed; at the cap, chained jumps (with a slide now and then) held top speed; air turns cost nothing; the first
+keyboard Gauntlet took 24 s against 31.42 on a controller. Their words: the sticks are hard because "you have to
+continuously move the small joysticks at different speeds", and "KBM didn't even need to hold A or D". Bunny
+hopping was "easy as anything", steered by the double jump right after the jump, and cost no momentum at all,
+while a slide at speed always burns a bit.
+
+**Why** (the investigation, from the code):
+- The **air control** (`MoveSim.StepAir`, airControlSpeed 5 / airControlAccel 2) was a plain Source accelerate
+  with no air cap: a second air strafe with a 5 m/s cap, six times airCap. With W held and the view 63-76° off
+  your flight (a steady mouse turn), it added up to 10 m/s² along the view: +4.6 m/s per second at 9.5 m/s,
+  +2.4 at 19 m/s, with only a 30°/s turn at speed. The real air strafe also gains with W alone if the view sits
+  about 90° off the flight (it's A/D strafing with the camera turned).
+- The real air strafe's cap applies per tick, and the lab runs 120 ticks a second: about 1.8× a 66-tick Source
+  server's gain (RESEARCH-MOVEMENT 2.3).
+- Nothing in the air takes speed away; with the view 90° off, the flight turns 450°/s at 13 m/s *and* gains.
+- Hops were free: the jump buffer fires on the landing tick before friction, and the 0.15 s grace froze speed.
+- A pad looks at 190°/s (304 boosted, with a response curve); the mouse has no limit. The best W-only mouse
+  rate was about 550°/s, the best A/D rates 350-550°/s.
+
+**What changed** (the creator picked options 1 and 5 of the investigation):
+
+1. **Above 5 m/s, speed gained in the air needs strafe input** (`airStrafeSideShare` 0.5). The move input must
+   point at least 30° sideways (its sideways share 0.5: A or D, W+A, a stick pushed sideways or diagonally) for
+   the full gain, less in proportion, none for forward alone. Both air pushes (the air strafe and the air
+   control) keep their direction, so W alone still **turns your flight toward the view**; it just adds no speed.
+   Below 5 m/s nothing changed: standing and slow jumps aim as before.
+   - Option 1 was "air control redirect-only". Redirect-only on its own would have cut **controller** strafing
+     25-40% (a pad at 190°/s: +2.7 m/s in a second from 9.5 became +1.7), against the creator's "don't paralyze
+     controller air strafing". So the air control may still add speed *with strafe input*
+     (`airControlStrafeGain` 1); set it to 0 for the strict redirect-only version.
+   - Measured through the real sim (`AirAndHopTests.MouseAgainstPadBeforeAndAfter`, the best rate up to each
+     look limit):
+
+| Look | W only, 1 s from 9.5 m/s | A/D or stick sideways, 2 s from 13 | Straight course, 3 s from 13 (mean / end) |
+|---|---|---|---|
+| Mouse | 13.10 → **9.50** | 18.78 → 18.78 | 16.92 / 19.49, unchanged |
+| Pad, 304°/s | 12.18 → **9.50** | 18.59 → 18.59 | 16.58 / 20.10, unchanged |
+| Pad, 190°/s | 11.31 → **9.50** | 17.45 → 17.45 | 15.76 / 18.64, unchanged |
+
+   - Side effect: with W alone, spinning the view very fast (720°/s and up) now loses more than before (13 →
+     6.7 m/s in a second at 720°/s, was 10.1): the backward half of the spin still brakes, and nothing wins it
+     back. Holding W while looking behind you brakes, as it always did.
+2. **Bunny hops cost a little, mistakes cost more, slides do better.**
+   - **A clean hop** (a ground jump, buffered onto the landing tick) keeps all speed up to sprint and loses
+     **8% of the speed above it** (`hopSpeedLoss`): 0.28 m/s at 13, 0.52 at 16, 0.84 at 20, about 1.0 at 22. A
+     0.4 s slide at speed burns 1.0. Jumps at running speed are free, so ordinary platforming is untouched.
+   - **A slide hop** (crouch pressed before landing, jump out of the slide) loses **3%** (`slideHopSpeedLoss`),
+     plus a tick of slide drag, and gets the slide boost if it's ready: 12 → 12.90 (a plain hop: 11.80),
+     16 → 15.81 (15.48), 20 → 19.69 (19.16).
+   - **A late hop** pays its time on the ground: the grace no longer freezes speed (`landingGraceDecay` 1: the
+     1.5/s overspeed fade runs from the landing tick), then the 8%. At 18 m/s: clean 17.32, 0.08 s late 16.40,
+     0.25 s late 14.87 (a 0.08 s late hop used to keep all 18). Pressing too early fires the double jump
+     instead, so you land without a jump and pay the same way.
+   - **Hop and steer**: a double jump within **0.35 s** of a ground jump (`doubleJumpHopWindow`) pays for its
+     turn: **10% of the speed above sprint per 90° the flight turns** (`doubleJumpHopTurnLoss`). The usual
+     redirect, stick square to the flight, turns it 45°: 5%, 0.28 m/s at 16 m/s. Later double jumps and wall
+     jumps turn for free. Set it to 0 to remove it.
+   - Untouched: the jump buffer (0.12 s), coyote time, the wall jump and wall kick, the slide boost.
+   - The Gauntlet's autopilot is 0.7 s slower for it (41.7 s; it hops a few times above sprint).
+
+**What to judge (the creator):** controller strafing on the stick (sideways or diagonal) should feel the same
+as before; W alone should steer but never speed you up; a hop chain should bleed a little unless you slide-hop
+or strafe it back; a late hop should sting. All of it is in the tuning asset to adjust.
 
 ## Every tunable number
 
@@ -146,6 +220,7 @@ Metres, seconds, m/s, degrees.
 | overspeedDecay | 1.5 | Speed above sprint fades at this rate (per second, of the excess) while you hold a direction. |
 | groundTurnRate | 220 | Above sprint you still turn toward the stick this fast (deg/s) without losing speed. |
 | landingGrace | 0.15 | No friction right after landing. |
+| landingGraceDecay | 1 | How much of overspeedDecay runs during the grace (1: a late hop pays its time on the ground; 0: the old frozen grace). |
 | stickFullAt | 0.7 | Stick push that counts as full (gamepad parity). |
 
 ### Jumps and air
@@ -160,8 +235,12 @@ Metres, seconds, m/s, degrees.
 | doubleJumpForwardBoost | 1 | The double jump also pushes you this much along the stick (or the view, stick neutral and moving forward), never past sprint: getting started without a wall nearby (the creator, 2026-10-10). |
 | coyoteTime | 0.12 | Jump still works this long after walking off a ledge. |
 | jumpBuffer | 0.12 | A press this early still fires on landing, on a wall or at the end of a mantle. |
+| hopSpeedLoss / slideHopSpeedLoss | 0.08 / 0.03 | A ground jump (out of a slide) loses this share of the speed above sprint. 0 = free hops. |
+| doubleJumpHopWindow / doubleJumpHopTurnLoss | 0.35 / 0.1 | A double jump this soon after a ground jump loses this share of the speed above sprint per 90° it turns your flight. |
 | airAccel / airCap | 12 / 0.8 | Source air strafing (cap 0.8 m/s = 30 Quake units). |
-| airControlSpeed / airControlAccel | 5 / 2 | Gentle steering of slow jumps (does nothing at speed). |
+| airControlSpeed / airControlAccel | 5 / 2 | Steering of slow jumps; above 5 m/s it adds speed only with strafe input. |
+| airStrafeSideShare | 0.5 | Above 5 m/s, speed gained in the air needs the move input this far sideways for the full gain (W alone: none, a turn only). 0 = pure Source. |
+| airControlStrafeGain | 1 | 1: the air control adds speed with strafe input (controller strafing as before); 0: redirect only. |
 | maxHorizontalSpeed | 22 | Hard cap (about 2.3x sprint). |
 | terminalFall | 40 | Fastest fall. |
 
@@ -500,7 +579,7 @@ or air strafing.
 **Touch markers.** There are nine, one per section, all where the two lines meet.
 
 **Times** (the autopilot in the dotnet sim, 60 fps, pinned by a test):
-- **41.0 s** clean (43.0 before the wall grace, 2026-10-10). The splits are 3.2, 7.0, 11.3, 16.1, 20.2, 24.1, 29.5, 36.3 and 41.0 s.
+- **41.7 s** clean since the hop costs (2026-10-11; 41.0 before them, 43.0 before the wall grace, 2026-10-10). The splits before the hop costs were 3.2, 7.0, 11.3, 16.1, 20.2, 24.1, 29.5, 36.3 and 41.0 s.
 - The autopilot doesn't take the skip or the fastest kicks, so a strong player should beat it.
 - A first run takes 60–90 s.
 
@@ -689,7 +768,7 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 
 | Where | What |
 |---|---|
-| `core-tests/Movement` (`dotnet test core-tests/Movement/Movement.Tests.csproj`) | Source formulas (air strafe at most cap² per tick, tick-rate dependence), opt-in sprint (walk by default, Shift held or the L3 toggle reach sprint, forward only, the toggle ends on stop, pull-back, crouch and respawn and survives a jump), the sprint kick (sprint within 0.4 s from a near-stop, never past sprint, only below 60 %, 2 s cooldown, readies the slide boost), the air-strafe speed curve pinned, ground (never past sprint by input, overspeed lingers, landing grace), jumps (heights, lockout, coyote 0.11 works and 0.13 doesn't, buffer), slide (boost, cooldown, cap decay, slope, slide jump keeps speed, slide hop, fits under a bar), mantle (heights, rescue), wallrun with Titanfall 2's numbers (8.64 from above and below, 1.75 s, away ends it, neutral brakes, the wall-jump impulses, crouch kick, wall kick, same-wall rule, 25° rule, wall coyote, head-on isn't a wallrun), the momentum chain, identical paths at 30/60/144/240 fps, the driver's latching and interpolation, the course (autopilot finishes, every checkpoint to the next, chain at 30 and 144 fps, research sizes), pursuer and route |
+| `core-tests/Movement` (`dotnet test core-tests/Movement/Movement.Tests.csproj`) | Source formulas (air strafe at most cap² per tick, tick-rate dependence), opt-in sprint (walk by default, Shift held or the L3 toggle reach sprint, forward only, the toggle ends on stop, pull-back, crouch and respawn and survives a jump), the sprint kick (sprint within 0.4 s from a near-stop, never past sprint, only below 60 %, 2 s cooldown, readies the slide boost), the air-strafe speed curve pinned (hop costs off), the air and hop rules (`AirAndHopTests`: W alone gains nothing at any mouse rate but still turns, slow jumps aim as before, strafe input exactly as before at 120-540°/s, the mouse-against-pad table, hop costs against a slide's, late hops, slide hops beat plain hops, the hop-and-steer cost), ground (never past sprint by input, overspeed lingers, landing grace), jumps (heights, lockout, coyote 0.11 works and 0.13 doesn't, buffer), slide (boost, cooldown, cap decay, slope, slide jump keeps speed, slide hop, fits under a bar), mantle (heights, rescue), wallrun with Titanfall 2's numbers (8.64 from above and below, 1.75 s, away ends it, neutral brakes, the wall-jump impulses, crouch kick, wall kick, same-wall rule, 25° rule, wall coyote, head-on isn't a wallrun), the momentum chain, identical paths at 30/60/144/240 fps, the driver's latching and interpolation, the course (autopilot finishes, every checkpoint to the next, chain at 30 and 144 fps, research sizes), pursuer and route |
 | `core-tests/Movement` (`MoveSoundTests`) | the generated sounds: at least 3 distinct variants per one-shot, peaks under -1 dBFS, no click at either end, seamless loops (the wrap is a typical step, no level jump across it), the double jump brighter than the jump; the mix rules: footsteps heavier with speed, landing tiers, wind rising with speed, the slide fading, round-robin never repeating |
 | `core-tests/Movement` (`SpeedMusicTests`) | the speed music: stems picked by tier, switched only on bar lines (or beats when set), 1 s in and 2 s out, floors; the placeholder stems one length (the escape's), seamless and under -1 dBFS; the muffled copy darker, seamless and in phase; the opening by speed; the duck amount; the breath's exertion |
 | Unity EditMode (`MovementAudioEditorTests`) | every movement event has clips and a generated fallback, at least 3 variants per one-shot, the recorded CC0 sets are there and mono, the loops are seamless, nothing peaks above -1 dBFS; the lab scene drives the speed music (stem set `lab`); the stems and their muffled copies exist, in step. `DreamEscapeEditorTests`: the escape's chase music rides on the stems and the player drives them; the peak stem is the chase loops' length |
@@ -703,7 +782,9 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 
 ## Known gaps
 
-- Air strafing works; only the Gauntlet's optional skip rewards it (it's weak on a stick, by design).
+- Air strafing works; only the Gauntlet's optional skip rewards it (it's weak on a stick, by design). Since
+  2026-10-11 it needs strafe input above 5 m/s, and hops cost a little; the mouse still out-turns a pad when
+  strafing with A/D (the creator chose not to cap the mouse).
 - The Gauntlet: no online leaderboard; the developer's time and ghost are the creator's best as of 2026-10-10, copied by hand into `Data/DeveloperRecords.json`; the dream tool has no developer's ghost yet. (Restart and the ghost toggle are rebindable shell actions; without the shell, in a bare test scene, `GauntletRun` reads R / View and G / d-pad left from the devices.)
 - No strafe "lurch", no moving platforms, no ziplines or grapple.
 - No post-processing comfort effects (vignette at speed, optional motion blur): the lab camera has
