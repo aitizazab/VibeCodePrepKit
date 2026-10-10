@@ -918,3 +918,11 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - **Tested with stand-in games:** a running job froze and resumed; a second job waited for the first.
 - **Opened for review:** the four design docs (STORY-BIBLE, CHARACTER-BIBLE, NIGHTS-GAMEPLAY, ARGUMENT-BATTLES) and the
   speed music audition. The docs are open in the creator's editor, so no agent edits them until the creator is done.
+
+### The speed music breakdown (21:15)
+- The creator likes the placeholder track's feel and asked for a breakdown, plus whether the progression is stolen.
+  Written up in `docs/SPEED-MUSIC-BREAKDOWN.md`.
+- **The verdict:** Dm(add9)–Bbmaj7–F(add9)–C(add9) is i–VI–III–VII, one of the most common progressions (the same chords
+  as vi–IV–I–V; e.g. "Zombie", "Apologize", "Poker Face", "Despacito"). Progressions aren't protected, and no melody
+  was borrowed (the arpeggio and music box are generated from the chord tones), so no credit is needed and nothing is
+  blocked. **Keep it** (the creator's call). The jamais vu comes from the D minor / F major ambiguity and the add9s.
