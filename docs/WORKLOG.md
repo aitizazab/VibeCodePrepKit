@@ -872,3 +872,5 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   mid-glide flip exciting, and is the under-a-second flip at the top of the drop fair? Is the stacked shot too much?
   Is the aim assist generous enough? Is 5 s between shots right?
 - **Her arm doesn't lift when firing yet:** the hook was sent to the body agent.
+- **Her hand lifts when firing (46c07bc):** `MovementBody.Gesture` raises a hand toward a point for about 0.2 s; wall
+  and ledge contact always win; the dream tool calls it on each shot. Dotnet 564/564. Waiting for the Unity batch.
