@@ -236,3 +236,126 @@ entirely, for the creator to decide.
 **My note:** one thing to check against the creator's script: the bible has Elias calling Lena and Theo out at
 3 AM and driving them himself. That goes beyond the voicemail's "I'll see if I can get a cab back home, or maybe
 call Lena", so it's a proposal, not the creator's fact.
+
+#### The opening and title, rebuilt in 3D in style E (about 08:30)
+Commits 33fe207 and e73bc96. **Nobody has looked at it yet:** camera framing, light strengths, the furniture's
+orientation and Nadia's pose all need a first look.
+
+**The shots** (timed from the current voicemail take, about 82 s in all):
+1. **Black, about 3 s:** the phone rings and buzzes twice.
+2. **Fade up from her pillow:** a dark, muted room; the blinds throw slat shadows on the ceiling from a
+   streetlight below the window; cold moonlight. At 4.3 s she turns to the nightstand, where the phone glows
+   with "Elias" and pulsing rings.
+3. **The grab:** at 5.4 s her hand reaches out. She takes the phone exactly as the ringing stops (6.8 s): a
+   missed call, then a voicemail card. She brings it to about 26 cm from her eyes and her thumb taps play.
+   "Hey, Nads" starts about 1 s later, clean.
+4. **The drop:** at "Well, it's five in the morning..." (about 18.9 s) she sets the phone down with a clunk. The
+   voice crossfades to the phone's tinny speaker, she rolls away, and the view goes dark under the blanket.
+5. **Overhead:** cut to the phone from above, still playing, its glow on the wood; the bed's edge, and Nadia as
+   a shape under the blanket with her hair on the pillow, breathing (the blanket rises). A slow push in; the
+   screen dims.
+6. **"G'night":** the room's light fades, then the phone's screen goes out last, then black. Silence, then the
+   music blooms.
+7. **The table** (the news starts at about 43 s): the table and tablet fade in first, then the mug (+7 s), the
+   notepad and pen (+14 s), the badge (+21 s).
+   - The tablet's video crossfades its frames with a slow drift and pulsing red and blue lights, a LIVE tag and
+     a BREAKING bar. The headline scrolls along the bottom ("ROUTE 9: THREE CASUALTIES ... WIFE MISSING"), read
+     from your script with WeWork changed to Larpaca.
+   - When the report ends, the video pauses on its play button and the title takes input.
+
+**Using the title:** mouse hover (a glow and a small lift) and click; or arrow keys, d-pad or stick to the nearest
+object in that direction (the first press highlights the tablet), then Enter or A. Tablet = Play, mug = Quit (inert
+on WebGL, where quitting isn't possible), badge = Settings, notepad = Credits. Holding Escape skips the opening.
+
+**How it's built:**
+- **Both sets are built in code** in the title scene, 40 m apart: Nadia's bedroom and the title table, with five
+  camera positions. The furniture is Kenney's Furniture Kit (CC0, free to use; recorded in
+  `ThirdParty/LICENSES.md`), restyled; everything else is made in code.
+- **A reusable style-E look** for the whole waking world (`Shaders/VisitingHoursWaking.shader` plus
+  `Scripts/Waking/`): Unity's real lights and shadows, shading in soft steps (a lit side, a cool shade side and a
+  soft band between), a gentle rim light, a thin outline, a fade and a hover glow. One material per palette
+  colour; Kenney models are restyled by their material names (wood, carpet, metal...).
+- **Nadia:** her Tripo model. In first person she lies on her side (her head hidden from the camera) and her
+  right arm reaches by inverse kinematics; in the overhead shot she's turned away with her hair on the pillow.
+  If her model is missing, a stand-in arm and hair are built instead. She's imported at scale 1.69 with the
+  waking material and her colour texture.
+- **The voicemail** plays on two sources started together, one clean and one through a phone-speaker filter,
+  crossfaded at the drop. New placeholder sounds: vibrate, rustles, the clunk, a tap, breathing.
+- **The opening is a cue list anchored to markers in the recordings** (`voicemail:drop`, `voicemail:goodnight`,
+  `news:end`), so a new take is re-timed from its markers. The voicemail's 3.9 s of quiet lead-in is skipped.
+- **Re-timing for your re-record:** press Play, then *JamKit > Visiting Hours > Re-time the Voicemail*, and tap
+  Space at each prompted line; the taps become the markers (Undo works). Or edit the markers by hand in
+  `VisitingHoursBoot.asset` > Tracks > voicemail.
+- **The current take doesn't match your new script.** It says "Could I bother you for a...", "Well, it's
+  *five* in the morning", has no "It's not true..." line, and ends "...call Lena". The drop is at "Well, it's
+  five...", the nearest match to the script's "three in the morning" line. Subtitles exist (as spoken in the
+  take) but are off, since the shot list has none.
+- **Art still drawn in code** until the art agent's files arrive: the wall, floor, wood, table, blanket, the
+  coffee with "Quit" in milk, the notepad page with "Credits", the badge face, the photo frame, the phone
+  wallpaper and the news frames. The builder picks the real files up by name when they land in `Art/`.
+- **Also:** `Credits.txt` for Visiting Hours (Kenney, Tripo, Kokoro, ink); the smoke run plays the opening at 30x
+  and presses Play; presenter mode's "Opening" chapter works from anywhere; the attract recording holds the
+  opening for 18 s so it reaches the overhead cut.
+- **Tests:** core 467/467 (10 new opening tests), 7 new EditMode tests, 5 new PlayMode tests (the opening plays
+  to the interactive title; holding Escape skips; each object's action; keys and pad; presenter Opening).
+- **Known gaps:** no visual check yet; Nadia's reach may fall a couple of cm short, with no finger grip; her
+  normal map isn't used.
+
+#### The first dream escape built (about 08:45)
+Commits 3f0087c, eca0720 and 30cbd24; full write-up in `docs/DREAM-ESCAPE.md`. **Nobody has looked at it yet.**
+It runs on the Movement Lab's own movement (no copy of the movement code): the controller, the camera feel, the
+arms with the lean-in hand (in Nadia's colours), speed lines, movement sounds, the F3 speed readout and the
+comfort settings. Only walls with a gold stripe can be wallrun.
+
+**The look:** the dream street in real 3D. A pastel doodle shader (three soft light steps, crayon grain, wobbly
+outlines on box edges); a golden-hour sky over a lilac void; gable-roofed houses, picket fences, toy cars, Walt's
+bikes. The chaser is **the static**: a curved wall of pastel TV static, with 40 wasps and scouts at the edges of
+your view. The neighbours and the dog are cut-outs that turn to watch you.
+
+**The route** (446 m along the street; times are the autopilot's):
+1. **0 m, Walt's driveway (checkpoint).** Walt watches. The static wakes when you run, or after 2.5 s standing.
+2. **18, 30, 42 m:** hop three 0.85 m picket fences (a missed hop becomes a mantle). **Collapse 1** at 25 m: the
+   fences fold flat in a wave that overtakes you along the right pavement (1.7–4.8 s).
+3. **57–75 m, the missing lawn:** wallrun 14 m of house front and land a metre lower. A miss drops you 2.6 m into
+   the sunken lawn and you mantle out (6–8 s).
+4. **98–123 m:** the road has peeled into the void. Hop across three toy cars (roofs 1.05 m high, 3 m apart), then
+   back onto the street (10–13 s). The dog watches.
+5. **128 m, the barbecue (checkpoint):** a breather crossing the street past the grill neighbour.
+6. **160–178 m:** wallrun the 14 m garden wall over the void, landing a metre lower (17–19 s).
+7. **206 m:** Walt's garage, grown across the whole street with its door half open: slide through the 1.15 m gap
+   under hanging bikes (21 s, 12.6 m/s).
+8. **230–242 m:** mantle up the porch (1.0 m), its roof (1.6 m), then onto the roofs (1.6 m).
+9. **246 m, Rooftops (checkpoint):** houses stand as pillars in the void. A 5.5 m gap, then an 8.5 m double-jump gap.
+10. **303 m:** wallrun a paper house front while the fronts on the left peel off like paper (**collapse 2**); the
+    dog is already on the next roof.
+11. **344–370 m, the alley:** two walls 5 m apart: kick from the left wall to the right, then double jump to the
+    next roof.
+12. **374 m, Final run (checkpoint):** a 16 m roof slide (up to 15.8 m/s), the 21 m last wall, a wall jump and a
+    double jump down into a pillar of warm light at 446 m. The autopilot gets there in 45 s; a first-time player
+    should take roughly 60–90 s.
+
+**Failing and reading the route:**
+- Caught by the static or fallen into the void: a quick white-out, then you're back at the last checkpoint
+  already running, with the static 12 m behind. After two fails at one checkpoint, the static quietly gives you
+  4 m more room there.
+- The route is marked by warm gold pools on the ground; runnable walls have a gold stripe, ledges a gold lip, and
+  the gap under the garage door glows.
+- **Placeholder chase music** (D minor, 104 bpm: a pad, a pulse and a music box) follows the gap: the pulse grows
+  and the music box drifts out of tune when the static is close.
+
+**Using it:** *JamKit > Use Template > Dream Escape*. Presenter chapters: Escape start, Rooftops, Final run.
+
+**Tests:** 18 new core tests (the autopilot escapes with no fall or catch at 20 to 300 fps and on jittery frames;
+every checkpoint reaches the next; the route fits the measured jump reach, single 6.1 m and double 9.9 m, and
+uses every move; both collapses happen behind or beside you; standing still gets you caught), 8 EditMode and 6
+PlayMode tests.
+
+**Gaps:**
+- The cut-outs and the wasp mask are drawn in code. The real art goes in `Templates/VisitingHours/Art/Dream/`
+  as `dream_walt.png`, `dream_neighbour_roses.png`, `dream_neighbour_grill.png`, `dream_dog.png` and
+  `dream_wasp_mask.png`.
+- The music, the static's hiss and Nadia's arms are placeholders.
+- It isn't linked into the story yet: with nothing listening, the escape loops back to the driveway.
+- The route is a straight line down the street.
+- `NIGHTS-GAMEPLAY.md` proposes a different version of this escape ("the street rolls up behind her"). The agent
+  built the brief it was given; which one you want is your call.
