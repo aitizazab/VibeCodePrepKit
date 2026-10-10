@@ -696,3 +696,15 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - instant restart (R / the pad's View button).
 - The creator also has the dream-cast page open (`visiting-hours-dream-cast.html`: Nadia, Elias, Lena 4-a, Theo,
   Walt).
+
+### PlayMode on the body + controls + sound (15:45): 90/93
+- **At 5716655, before the body's research revision:** Scenes OK, EditMode 602/602, **PlayMode 90/93**. The autopilots
+  are unchanged (escape 45.7 s with no catches, lab 47.4 s). Her head stays inside the camera cut-away (0.125 m vs 0.24).
+- **The failures:**
+  - the dream escape's body test: the wall hand landed 14 cm from its spot (limit 6 cm), and on one retry the slide
+    legs missed;
+  - the lab's body test: only one wallrun catch in the chapter tested, and it wasn't checked; the slide ankle is about
+    20 cm off (limit 12);
+  - the Controls test: before any rebind, Left Ctrl didn't register as crouch on the test keyboard (the precondition).
+- Sent back to the body agent (to check against its research revision) and to the Controls agent. Everything gets
+  verified once together with the Gauntlet.
