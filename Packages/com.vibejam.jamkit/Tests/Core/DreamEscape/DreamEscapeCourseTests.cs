@@ -76,9 +76,9 @@ namespace JamKit.Tests.DreamEscape
             TestContext.Out.WriteLine($"single jump {single:0.00} m, double {dbl:0.00} m at sprint {def.sprintSpeed} m/s");
             Assert.That(single, Is.InRange(5.5f, 6.5f), "about 6 m (RESEARCH-MOVEMENT 4.3)");
             Assert.That(dbl, Is.InRange(9f, 11f), "about 10 m");
-            var kinds = new HashSet<DreamBeatKind>();
+            var kinds = new HashSet<CourseBeatKind>();
             foreach (var b in d.beats) kinds.Add(b.kind);
-            foreach (var k in new[] { DreamBeatKind.FenceHop, DreamBeatKind.CarHop, DreamBeatKind.Wallrun, DreamBeatKind.Slide, DreamBeatKind.Mantle, DreamBeatKind.Gap, DreamBeatKind.DoubleGap, DreamBeatKind.WallToWall, DreamBeatKind.SlideRamp })
+            foreach (var k in new[] { CourseBeatKind.FenceHop, CourseBeatKind.CarHop, CourseBeatKind.Wallrun, CourseBeatKind.Slide, CourseBeatKind.Mantle, CourseBeatKind.Gap, CourseBeatKind.DoubleGap, CourseBeatKind.WallToWall, CourseBeatKind.SlideRamp })
                 Assert.That(kinds, Does.Contain(k), "the escape uses " + k);
             for (int i = 1; i < d.beats.Count; i++)
                 Assert.That(d.beats[i].s, Is.GreaterThanOrEqualTo(d.beats[i - 1].s), d.beats[i].name + " comes after " + d.beats[i - 1].name);

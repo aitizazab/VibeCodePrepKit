@@ -28,21 +28,6 @@ namespace JamKit.DreamEscape
         public float height;
     }
 
-    public enum DreamBeatKind { RunUp, FenceHop, Wallrun, CarHop, Slide, Mantle, Gap, DoubleGap, WallToWall, SlideRamp }
-
-    /// <summary>One movement beat of the route with the size that has to fit the movement's reach
-    /// (checked by <see cref="DreamEscapeCourse.CheckReach"/>).</summary>
-    public sealed class DreamBeat
-    {
-        public DreamBeatKind kind;
-        public string name;
-        /// <summary>Where the beat starts along the route.</summary>
-        public float s;
-        /// <summary>The gap, wall length or spacing it asks the player to cover (m).</summary>
-        public float size;
-        /// <summary>The height it asks the player to clear or climb (m), or the clearance under a slide bar.</summary>
-        public float height;
-    }
 
     /// <summary>A collapse's wave: pieces in it go one after another, from <see cref="startOffset"/> metres
     /// relative to the trigger point, travelling forward at <see cref="speed"/> m/s.</summary>
@@ -86,7 +71,7 @@ namespace JamKit.DreamEscape
         public readonly List<DreamCollapseStyle> collapseStyles = new List<DreamCollapseStyle>();
         public readonly List<DreamWave> waves = new List<DreamWave>();
         public readonly List<DreamBillboard> billboards = new List<DreamBillboard>();
-        public readonly List<DreamBeat> beats = new List<DreamBeat>();
+        public readonly List<CourseBeat> beats = new List<CourseBeat>();
         /// <summary>The safe light at the end (the exit), at floor level.</summary>
         public Vector3 exitLight;
         /// <summary>Seconds a player may stand at the start before the static moves anyway.</summary>
@@ -151,83 +136,17 @@ namespace JamKit.DreamEscape
             look == DreamLook.House || look == DreamLook.Barbecue || look == DreamLook.PicnicTable || look == DreamLook.RoseBush
             || look == DreamLook.Tree || look == DreamLook.Mailbox || look == DreamLook.Flat || look == DreamLook.SideFence;
 
-        // ---------- Reach (docs/RESEARCH-MOVEMENT.md 4.3) ----------
+        // ---------- Reach (docs/RESEARCH-MOVEMENT.md 4.3; shared with the Movement Lab's Gauntlet) ----------
 
-        /// <summary>Flat-ground distance of a single jump at <paramref name="speed"/>.</summary>
-        public static float SingleJumpReach(MoveDef def, float speed)
-        {
-            float v0 = (float)Math.Sqrt(2f * def.gravity * def.jumpHeight);
-            return speed * 2f * v0 / def.gravity;
-        }
-
-        /// <summary>Flat-ground distance of a jump plus a double jump at its apex.</summary>
-        public static float DoubleJumpReach(MoveDef def, float speed)
-        {
-            float g = def.gravity;
-            float up1 = (float)Math.Sqrt(2f * def.jumpHeight / g);
-            float up2 = (float)Math.Sqrt(2f * def.doubleJumpHeight / g);
-            float down = (float)Math.Sqrt(2f * (def.jumpHeight + def.doubleJumpHeight) / g);
-            return speed * (up1 + up2 + down);
-        }
-
-        /// <summary>Clearance a slide gap needs over the crouched capsule (the controller's sweep must not graze it).</summary>
-        public const float SlideMargin = 0.05f;
-
-        /// <summary>The lowest gap a slide passes at full speed on Unity's CharacterController: the crouched capsule,
-        /// its skin, and the step offset the controller's step-up pass lifts it by before sweeping forward.</summary>
-        public static float SlideGapNeeded(MoveDef def, float skin, float crouchStepOffset) =>
-            def.slideHeight + skin + crouchStepOffset + SlideMargin;
+        public static float SingleJumpReach(MoveDef def, float speed) => CourseReach.SingleJumpReach(def, speed);
+        public static float DoubleJumpReach(MoveDef def, float speed) => CourseReach.DoubleJumpReach(def, speed);
+        public const float SlideMargin = CourseReach.SlideMargin;
+        public static float SlideGapNeeded(MoveDef def, float skin, float crouchStepOffset) => CourseReach.SlideGapNeeded(def, skin, crouchStepOffset);
 
         /// <summary>Every beat that doesn't fit the movement's measured reach with a margin, in words (empty = all good).
         /// <paramref name="skin"/> and <paramref name="crouchStepOffset"/> are the Unity controller's (MovementController
         /// skinWidth and crouchStepOffset).</summary>
-        public List<string> CheckReach(MoveDef def, float skin = 0.04f, float crouchStepOffset = 0f)
-        {
-            var problems = new List<string>();
-            float single = SingleJumpReach(def, def.sprintSpeed);
-            float dbl = DoubleJumpReach(def, def.sprintSpeed);
-            float wallMax = 21.5f; // a 1.75 s run at 12 m/s; longer needs a kick (the lab's longest wall)
-            foreach (var b in beats)
-            {
-                switch (b.kind)
-                {
-                    case DreamBeatKind.FenceHop:
-                        if (b.height > def.jumpHeight - 0.25f) problems.Add($"{b.name}: {b.height:0.00} m is too tall to hop (jump {def.jumpHeight:0.00} m)");
-                        if (b.height < def.mantleMinHeight) problems.Add($"{b.name}: {b.height:0.00} m is under the mantle height, so a missed hop isn't rescued");
-                        break;
-                    case DreamBeatKind.CarHop:
-                        if (b.height > def.jumpHeight - 0.15f) problems.Add($"{b.name}: roof {b.height:0.00} m above the jump's {def.jumpHeight:0.00} m");
-                        if (b.size > single - 1.5f) problems.Add($"{b.name}: {b.size:0.0} m between roofs is too far for a hop ({single:0.0} m)");
-                        break;
-                    case DreamBeatKind.Gap:
-                        if (b.size > single - 0.35f) problems.Add($"{b.name}: {b.size:0.0} m gap, a single jump reaches {single:0.0} m");
-                        if (b.size < 3f) problems.Add($"{b.name}: {b.size:0.0} m gap is too small to read as a gap");
-                        break;
-                    case DreamBeatKind.DoubleGap:
-                        if (b.size > dbl - 1f) problems.Add($"{b.name}: {b.size:0.0} m gap, a double jump reaches {dbl:0.0} m");
-                        if (b.size <= single) problems.Add($"{b.name}: {b.size:0.0} m doesn't need the double jump (single {single:0.0} m)");
-                        break;
-                    case DreamBeatKind.Wallrun:
-                        if (b.size < 8f || b.size > wallMax) problems.Add($"{b.name}: wall {b.size:0.0} m (8 to {wallMax:0.0})");
-                        if (b.height < 3f) problems.Add($"{b.name}: wall only {b.height:0.0} m above the floor (3 m at least)");
-                        break;
-                    case DreamBeatKind.WallToWall:
-                        if (b.size < 3.5f || b.size > 6.5f) problems.Add($"{b.name}: walls {b.size:0.0} m apart (3.5 to 6.5 chain)");
-                        break;
-                    case DreamBeatKind.Mantle:
-                        if (b.height < def.mantleMinHeight || b.height > def.mantleMaxHeight - 0.2f) problems.Add($"{b.name}: step {b.height:0.00} m outside the mantle's {def.mantleMinHeight:0.0}-{def.mantleMaxHeight - 0.2f:0.0} m");
-                        break;
-                    case DreamBeatKind.Slide:
-                    {
-                        float need = SlideGapNeeded(def, skin, crouchStepOffset);
-                        if (b.height < need) problems.Add($"{b.name}: {b.height:0.00} m under the door; a slide needs {need:0.00} (capsule {def.slideHeight:0.00} + skin {skin:0.00} + crouched step offset {crouchStepOffset:0.00} + {SlideMargin:0.00})");
-                        if (b.height > def.standHeight + skin - 0.05f) problems.Add($"{b.name}: {b.height:0.00} m under the door, you could walk under it");
-                    }
-                        break;
-                }
-            }
-            return problems;
-        }
+        public List<string> CheckReach(MoveDef def, float skin = 0.04f, float crouchStepOffset = 0f) => CourseReach.Check(beats, def, skin, crouchStepOffset);
 
         // ---------- Building ----------
 
@@ -277,8 +196,8 @@ namespace JamKit.DreamEscape
 
         void Lane(float s, float x) => course.lane.Add(new Vector2(s, x));
 
-        void Beat(DreamBeatKind kind, string name, float s, float size, float height = 0f) =>
-            beats.Add(new DreamBeat { kind = kind, name = name, s = s, size = size, height = height });
+        void Beat(CourseBeatKind kind, string name, float s, float size, float height = 0f) =>
+            beats.Add(new CourseBeat { kind = kind, name = name, s = s, size = size, height = height });
 
         void Billboard(string name, DreamCast who, float x, float y, float z, float height) =>
             billboards.Add(new DreamBillboard { name = name, who = who, position = new Vector3(x, y, z), height = height });
@@ -288,7 +207,7 @@ namespace JamKit.DreamEscape
         {
             var p = Add(name, LabPieceKind.Ledge, DreamLook.Fence, new Vector3(-FaceX, floor, z - 0.08f), new Vector3(FaceX, floor + FenceHeight, z + 0.08f), tint: 0);
             Cue(LabCueKind.Jump, z - 3f);
-            Beat(DreamBeatKind.FenceHop, name, z - 3f, 0.16f, FenceHeight);
+            Beat(CourseBeatKind.FenceHop, name, z - 3f, 0.16f, FenceHeight);
             return p;
         }
 
@@ -377,7 +296,7 @@ namespace JamKit.DreamEscape
             RunWall("Flat house front", DreamLook.Facade, -FaceX, 60f, 74f, yLawn, yA + 6.5f);
             Cue(LabCueKind.Jump, 56.2f);
             Cue(LabCueKind.WallJump, 69.5f);
-            Beat(DreamBeatKind.Wallrun, "The missing lawn's house front", 56.2f, 14f, 6.5f);
+            Beat(CourseBeatKind.Wallrun, "The missing lawn's house front", 56.2f, 14f, 6.5f);
             Lane(71f, -12.1f); Lane(77f, -9f);
             HouseRow(1, 59f, 74f, yLawn, "Right house B");
 
@@ -395,10 +314,10 @@ namespace JamKit.DreamEscape
             Cue(LabCueKind.Jump, 103.2f);
             Cue(LabCueKind.Jump, 110.6f);
             Cue(LabCueKind.Jump, 118f);
-            Beat(DreamBeatKind.CarHop, "Onto car 1", 96.4f, 2f, CarRoof);
-            Beat(DreamBeatKind.CarHop, "Car 1 to car 2", 103.2f, 3f, CarRoof);
-            Beat(DreamBeatKind.CarHop, "Car 2 to car 3", 110.6f, 3f, CarRoof);
-            Beat(DreamBeatKind.Gap, "Car 3 to the street", 118f, 3.8f);
+            Beat(CourseBeatKind.CarHop, "Onto car 1", 96.4f, 2f, CarRoof);
+            Beat(CourseBeatKind.CarHop, "Car 1 to car 2", 103.2f, 3f, CarRoof);
+            Beat(CourseBeatKind.CarHop, "Car 2 to car 3", 110.6f, 3f, CarRoof);
+            Beat(CourseBeatKind.Gap, "Car 3 to the street", 118f, 3.8f);
             HouseRow(-1, 100f, 121f, VoidBottom, "Left pillar");
             HouseRow(1, 100f, 121f, VoidBottom, "Right pillar");
             Billboard("The dog", DreamCast.Dog, -8.2f, yB, 95.6f, 0.75f);
@@ -420,7 +339,7 @@ namespace JamKit.DreamEscape
             RunWall("Garden wall", DreamLook.GardenWall, 8.5f, 163f, 177f, VoidBottom, yB + 4.4f);
             Cue(LabCueKind.Jump, 159.2f);
             Cue(LabCueKind.WallJump, 172.5f);
-            Beat(DreamBeatKind.Wallrun, "The garden wall", 159.2f, 14f, 4.4f);
+            Beat(CourseBeatKind.Wallrun, "The garden wall", 159.2f, 14f, 4.4f);
             Lane(174f, 7.6f); Lane(180f, 4f);
             HouseRow(-1, 162f, 177f, VoidBottom, "Left pillar B");
             House("Behind the garden wall", 1, 163f, 177f, VoidBottom, yB + 6f);
@@ -439,26 +358,26 @@ namespace JamKit.DreamEscape
             House("Beside the garage (left)", -1, 200f, 226f, yD, yD + 6.5f, 15.4f, 14.6f);
             House("Beside the garage (right)", 1, 200f, 226f, yD, yD + 6.5f, 15.4f, 14.6f);
             Cue(LabCueKind.Crouch, 200f, door + 2f);
-            Beat(DreamBeatKind.Slide, "Under the garage door", 200f, 16f, 1.15f);
+            Beat(CourseBeatKind.Slide, "Under the garage door", 200f, 16f, 1.15f);
 
             // ===== G. The porch: the street curls up. Mantle onto the porch, its roof, the roofs.
             Section(225f, "The porch");
             Add("Porch", LabPieceKind.Ledge, DreamLook.Porch, new Vector3(-7f, VoidBottom, 230f), new Vector3(7f, yD + 1f, 236f));
             Add("Porch roof", LabPieceKind.Ledge, DreamLook.PorchRoof, new Vector3(-7f, VoidBottom, 236f), new Vector3(7f, yD + 2.6f, 242f));
-            Beat(DreamBeatKind.Mantle, "Onto the porch", 230f, 0f, 1f);
-            Beat(DreamBeatKind.Mantle, "Onto the porch roof", 236f, 0f, 1.6f);
-            Beat(DreamBeatKind.Mantle, "Onto the roofs", 242f, 0f, 1.6f);
+            Beat(CourseBeatKind.Mantle, "Onto the porch", 230f, 0f, 1f);
+            Beat(CourseBeatKind.Mantle, "Onto the porch roof", 236f, 0f, 1.6f);
+            Beat(CourseBeatKind.Mantle, "Onto the roofs", 242f, 0f, 1.6f);
 
             // ===== H. Rooftops: the street has fallen away below; only the houses stand, as pillars.
             Section(240f, "Rooftops");
             Add("Roof 1", LabPieceKind.Ledge, DreamLook.Roof, new Vector3(-6f, VoidBottom, 242f), new Vector3(6f, r, 262f), tint: 5);
             Checkpoint("Rooftops", 246f, r, ChapterRooftops);
             Cue(LabCueKind.Jump, 261.2f);
-            Beat(DreamBeatKind.Gap, "Roof 1 to roof 2", 261.2f, 5.5f);
+            Beat(CourseBeatKind.Gap, "Roof 1 to roof 2", 261.2f, 5.5f);
             Add("Roof 2", LabPieceKind.Ledge, DreamLook.Roof, new Vector3(-6f, VoidBottom, 267.5f), new Vector3(6f, r, 282f), tint: 9);
             Cue(LabCueKind.Jump, 281.2f);
             Cue(LabCueKind.DoubleJumpAtApex, 282f);
-            Beat(DreamBeatKind.DoubleGap, "Roof 2 to roof 3", 281.2f, 8.5f);
+            Beat(CourseBeatKind.DoubleGap, "Roof 2 to roof 3", 281.2f, 8.5f);
             Add("Roof 3", LabPieceKind.Ledge, DreamLook.Roof, new Vector3(-6f, VoidBottom, 290.5f), new Vector3(6f, r, 306f), tint: 2);
             Billboard("Neighbour with roses (roof)", DreamCast.NeighbourRoses, -4.8f, r, 255f, 1.7f);
 
@@ -469,7 +388,7 @@ namespace JamKit.DreamEscape
             RunWall("Paper house front", DreamLook.Facade, 4.5f, 309f, 323f, VoidBottom, r + 6f);
             Cue(LabCueKind.Jump, 305.2f);
             Cue(LabCueKind.WallJump, 318.5f);
-            Beat(DreamBeatKind.Wallrun, "The paper house front", 305.2f, 14f, 6f);
+            Beat(CourseBeatKind.Wallrun, "The paper house front", 305.2f, 14f, 6f);
             Lane(320f, 3.6f); Lane(326f, 0f);
             Add("Roof 4", LabPieceKind.Ledge, DreamLook.Roof, new Vector3(-6f, VoidBottom, 324f), new Vector3(6f, r4, 344f), tint: 7);
             c.collapses.Add(new LabCollapse { name = "The house fronts peel away", triggerS = 303f });
@@ -494,8 +413,8 @@ namespace JamKit.DreamEscape
             Cue(LabCueKind.WallJump, e + 20.5f);
             Cue(LabCueKind.DoubleJumpAtApex, e + 21f);
             Lane(e + 6f, -1.95f); Lane(e + 10f, 2.1f); Lane(e + 22f, 2.1f); Lane(e + 28f, 0f);
-            Beat(DreamBeatKind.WallToWall, "The alley", e - 0.8f, 5f);
-            Beat(DreamBeatKind.Wallrun, "The alley's right wall", e + 1.6f, 18f, 6f);
+            Beat(CourseBeatKind.WallToWall, "The alley", e - 0.8f, 5f);
+            Beat(CourseBeatKind.Wallrun, "The alley's right wall", e + 1.6f, 18f, 6f);
 
             // ===== I. Final run: slide down a roof, then the last wall, and jump off it down into the light.
             Add("Roof 5", LabPieceKind.Ledge, DreamLook.Roof, new Vector3(-6f, VoidBottom, 369.2f), new Vector3(6f, r5, 388f), tint: 1);
@@ -505,14 +424,14 @@ namespace JamKit.DreamEscape
             slope.rampTopStart = r5;
             slope.rampTopEnd = low;
             Cue(LabCueKind.Crouch, 386f, 404f);
-            Beat(DreamBeatKind.SlideRamp, "Down the roof", 388f, 16f, r5 - low);
+            Beat(CourseBeatKind.SlideRamp, "Down the roof", 388f, 16f, r5 - low);
             Add("Garage roof (low)", LabPieceKind.Ledge, DreamLook.Roof, new Vector3(-6f, VoidBottom, 404f), new Vector3(6f, low, 418f), tint: 3);
             Lane(396f, 0f); Lane(408f, -3.6f);
             RunWall("The last wall", DreamLook.Facade, -4.5f, 419f, 440f, VoidBottom, low + 6.5f);
             Cue(LabCueKind.Jump, 416.6f);
             Cue(LabCueKind.WallJump, 431f);
             Cue(LabCueKind.DoubleJumpAtApex, 431.5f);
-            Beat(DreamBeatKind.Wallrun, "The last wall", 416.6f, 21f, 6.5f);
+            Beat(CourseBeatKind.Wallrun, "The last wall", 416.6f, 21f, 6.5f);
             Lane(433f, -3.6f); Lane(439f, 0f);
 
             Section(440f, "The light");
