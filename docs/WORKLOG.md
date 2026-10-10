@@ -75,3 +75,30 @@ request (2026-10-10), the **morning report** is built from this log and must be 
 
 ### Overnight results
 (added as each piece of work reports)
+
+#### Movement Lab: verified, playable build ready (about 07:00)
+- **Run in** the clean checkout `VibeJamKit-play` at commit 613473c.
+- **Scenes:** OK.
+- **PlayMode:** 78 of 79 pass.
+- **The real character controller now does what the simulation did.** The momentum chain keeps its speed:
+  sprint 9.8 → slide 12.7 → air 11.3 → wallrun 11.3 m/s. The autopilot finishes the whole course.
+- **Round-1 fixes that got there:**
+  - wall probes read the wall face's own normal (a rounded corner normal peeled runs off at 45°);
+  - the autopilot holds a wall's lane until its wall jump (at high frame rates it steered away just before
+    contact);
+  - the wall catch forgives a view about 12° off;
+  - the tests wait for a respawn to really finish.
+- **The one remaining failure:** after falling off the course, you respawn at **2.5 m/s instead of sprint
+  speed (over 5)**. Sent back to the movement agent, along with a note that a mantle drops you to 0 m/s
+  (Titanfall keeps some momentum).
+- **Smoke run:** PASS (9.2 s).
+- **Playable build: `C:\Users\User\Desktop\yougotgamesonyophone\VibeJamKit-play\Builds\Play\MovementLab\VibeJamKit.exe`**
+  - **The course (about 500 m):** a run-up, a slide ramp, a bar to slide under, 5.5 m and 8.5 m gaps, wallrun
+    walls of 8, 14 and 21 m, a momentum chain, a wall-jump chimney, mantle ledges of 1.0, 1.5 and 1.85 m, and a
+    chase (a wall of dream-static about 12 m behind, two collapses, checkpoints).
+  - **Controls:** WASD, mouse, Space (jump and double jump), Left Ctrl / C (crouch and slide; gamepad B),
+    Shift is not needed (sprint is automatic). **F3 toggles the speed readout** (m/s and km/h, state, an 8 s
+    speed graph, the chase gap). Esc pauses, with comfort settings (FOV, camera roll, head bob, speed effects,
+    speed lines). Ctrl+Shift+P is presenter mode, with chapters: course start, wallruns, momentum chain,
+    chimney, chase.
+  - **Placeholders:** the arms are capsule-shaped, and all sounds are generated.
