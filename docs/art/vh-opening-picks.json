@@ -1,0 +1,265 @@
+{
+ "name": "visiting-hours-opening",
+ "title": "Visiting Hours: Lena redone, and the opening and title art",
+ "subtitle": "Style E's waking register (muted, stylised, not gritty) for the opening bedroom and the title table, and Lena redone blonde with long loose waves. Made 2026-10-10 with Flow (Nano Banana 2.1, 0 credits). Green = my pick, blue = the alternate. The images the 3D scenes use directly are processed into Assets/JamKit/Templates/VisitingHours/Art/Opening/ (the sheet at the top).",
+ "questions": [
+  "Lena: does she read as her own person now, clearly not Nadia? And are her dream billboard and faces cute enough?",
+  "Is the bedroom the right mood for the 3D build: muted and stylised, not gritty? Is the view from the pillow and from above what you pictured?",
+  "The title table: is the arrangement right (tablet, mug, notepad and pen, badge), and is the light 'morning after' enough?",
+  "The milk really spells 'Quit' (in cursive). Is the lettering right, or do you want it rougher, like real latte art?",
+  "Is the news footage right (an overturned burnt car, police lights, tape, corporate towers)? It has four frames for a subtle loop."
+ ],
+ "notes": [
+  "Nano Banana Pro is still at its usage limit, so everything is Nano Banana 2.1. A Flow outage made seven early runs time out on download (the images were made but not saved); they were re-run.",
+  "Weak spots: the bedsheet fabric texture was refused by Flow's policy filter three times with three different wordings (no idea why), so tex_bedsheet is a procedural plain weave made in the script, clearly a stand-in. The table wood was not painted repeating, so its seams are blended and you may see soft doubled plank lines in two bands. The four news frames differ only in the lights (and the smoke); frame d's red flare is strong.",
+  "The coffee texture uses the take whose word is narrowest, so the whole word fits in the square (the cup's circle) with milk swirls around it.",
+  "The ID badge has a blank photo slot and blank text panels for the UI; Nadia's badge photo is separate (badge_photo).",
+  "The phone wallpaper is a warm memory of Nadia and Elias, cropped to 9:16 for the lock screen."
+ ],
+ "sections": [
+  {
+   "title": "Lena, redone: blonde, long loose waves",
+   "cols": 4,
+   "items": [
+    {
+     "label": "Lena: waking turnaround",
+     "pick": "lena2-turn-take3.jpg",
+     "alt": "lena2-turn-take2.jpg",
+     "note": "Pencil tucked behind her ear; outfit and freckles carried over.",
+     "alt_note": ""
+    },
+    {
+     "label": "Lena: dream billboard",
+     "pick": "lena2-bb-take1.jpg",
+     "alt": "lena2-bb-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Lena: dream expressions (warm, knowing, defensive)",
+     "pick": "lena2-expr-take2.jpg",
+     "alt": "lena2-expr-take1.jpg",
+     "note": "",
+     "alt_note": ""
+    }
+   ]
+  },
+  {
+   "title": "The opening and title: concept frames for the 3D build",
+   "cols": 3,
+   "items": [
+    {
+     "label": "The bedroom at 3 AM, from the pillow towards the nightstand",
+     "pick": "op-bedroom-pillow-take3.jpg",
+     "alt": "op-bedroom-pillow-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "The same room from directly above the nightstand",
+     "pick": "op-bedroom-overhead-take1.jpg",
+     "alt": "op-bedroom-overhead-take3.jpg",
+     "note": "Made from the pillow view, so it's the same room.",
+     "alt_note": ""
+    },
+    {
+     "label": "The title table, close up, the morning after",
+     "pick": "op-title-table-take3.jpg",
+     "alt": "op-title-table-take4.jpg",
+     "note": "",
+     "alt_note": ""
+    }
+   ]
+  },
+  {
+   "title": "Images and textures the 3D scenes use directly",
+   "cols": 4,
+   "items": [
+    {
+     "label": "The tablet's news video, frame 1",
+     "pick": "op-news-a-take3.jpg",
+     "alt": "op-news-a-take4.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "News frame 2 (the lights swap sides)",
+     "pick": "op-news-b-take1.jpg",
+     "alt": "op-news-b-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "News frame 3 (the lights dim, the smoke drifts)",
+     "pick": "op-news-c-take1.jpg",
+     "alt": "op-news-c-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "News frame 4 (a red flash)",
+     "pick": "op-news-d-take1.jpg",
+     "alt": "op-news-d-take2.jpg",
+     "note": "",
+     "alt_note": "Lens-flare spikes: too much."
+    },
+    {
+     "label": "The coffee surface: the milk spells 'Quit'",
+     "pick": "op-coffee-take5.jpg",
+     "alt": "op-coffee-take3.jpg",
+     "note": "All four takes spelled it cleanly; this one's word is narrow enough to fit the round cup.",
+     "alt_note": ""
+    },
+    {
+     "label": "A blank notepad page",
+     "pick": "op-notepad-take2.jpg",
+     "alt": "op-notepad-take3.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "The ID badge face (blank slots for the UI)",
+     "pick": "op-badge-take3.jpg",
+     "alt": "op-badge-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Nadia's badge photo",
+     "pick": "op-badge-photo-take1.jpg",
+     "alt": "op-badge-photo-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "The phone's lock-screen picture (Nadia and Elias, years ago)",
+     "pick": "op-phone-wallpaper-take2.jpg",
+     "alt": "op-phone-wallpaper-take1.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Wallpaper (texture)",
+     "pick": "tex-wallpaper-take3.jpg",
+     "alt": "tex-wallpaper-take4.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Wood floor (texture)",
+     "pick": "tex-woodfloor-take2.jpg",
+     "alt": "tex-woodfloor-take1.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Blanket knit (texture)",
+     "pick": "tex-knit-take1.jpg",
+     "alt": "tex-knit-take2.jpg",
+     "note": "",
+     "alt_note": ""
+    },
+    {
+     "label": "Table wood (texture)",
+     "pick": "tex-tablewood-take2.jpg",
+     "alt": "tex-tablewood-take1.jpg",
+     "note": "",
+     "alt_note": ""
+    }
+   ]
+  }
+ ],
+ "outputs": {
+  "news_frame_1": {
+   "src": "op-news-a-take3.jpg",
+   "mode": "full"
+  },
+  "news_frame_2": {
+   "src": "op-news-b-take1.jpg",
+   "mode": "full"
+  },
+  "news_frame_3": {
+   "src": "op-news-c-take1.jpg",
+   "mode": "full"
+  },
+  "news_frame_4": {
+   "src": "op-news-d-take1.jpg",
+   "mode": "full"
+  },
+  "coffee_quit": {
+   "src": "op-coffee-take5.jpg",
+   "mode": "square",
+   "crop": [
+    0.211,
+    0.0,
+    0.769,
+    1.0
+   ]
+  },
+  "notepad_page": {
+   "src": "op-notepad-take2.jpg",
+   "mode": "square"
+  },
+  "badge_face": {
+   "src": "op-badge-take3.jpg",
+   "mode": "crop",
+   "crop": [
+    0.33,
+    0.06,
+    0.67,
+    0.93
+   ]
+  },
+  "badge_photo": {
+   "src": "op-badge-photo-take1.jpg",
+   "mode": "crop",
+   "crop": [
+    0.3,
+    0.0,
+    0.7,
+    1.0
+   ]
+  },
+  "phone_wallpaper": {
+   "src": "op-phone-wallpaper-take2.jpg",
+   "mode": "tall",
+   "centre": 0.5
+  },
+  "tex_wallpaper": {
+   "src": "tex-wallpaper-take3.jpg",
+   "mode": "tile",
+   "period": [
+    688,
+    384
+   ]
+  },
+  "tex_woodfloor": {
+   "src": "tex-woodfloor-take2.jpg",
+   "mode": "tile",
+   "period": [
+    1376,
+    null
+   ]
+  },
+  "tex_knit": {
+   "src": "tex-knit-take1.jpg",
+   "mode": "tile",
+   "period": [
+    1376,
+    null
+   ]
+  },
+  "tex_tablewood": {
+   "src": "tex-tablewood-take2.jpg",
+   "mode": "tile"
+  },
+  "tex_bedsheet": {
+   "mode": "weave",
+   "colour": [
+    150,
+    162,
+    176
+   ]
+  }
+ }
+}

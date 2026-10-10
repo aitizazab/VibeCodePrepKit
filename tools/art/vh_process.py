@@ -81,6 +81,10 @@ def seamless_axis(a, axis, band):
 
 
 def tile(rgb, size=1024, period=None):
+    if period and period[1] is None:   # repeats left-right only: cut one period square, blend top-bottom
+        px = period[0]; a = np.asarray(rgb.crop((0, 0, px, min(px, rgb.height))), dtype=np.float32)
+        a = seamless_axis(a, 0, a.shape[0] // 5)
+        return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)).resize((size, size), Image.LANCZOS)
     if period:   # Flow sometimes paints an already-repeating texture: cut whole periods (near-square), no blending needed
         px, py = period; k = max(1, round(px / py))
         return rgb.crop((0, 0, px, py * k)).resize((size, size), Image.LANCZOS)

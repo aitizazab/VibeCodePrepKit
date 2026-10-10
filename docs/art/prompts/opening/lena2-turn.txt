@@ -1,0 +1,15 @@
+Aspect ratio: 16:9 landscape.
+
+Image 1 is Lena's previous model sheet: keep her face, freckles, build, clothes and colours.
+
+IMPORTANT: change her hair from the reference: she is now BLONDE (warm honey blonde) with long loose waves worn down, and the pencil is tucked behind her ear, not in her hair.
+
+Style: the waking world of a narrative game: grounded but stylised, muted and slightly cold palette, simplified clean shapes with soft flat shading and restrained thin line work, quiet and calm, like a literary graphic novel. NOT gritty, NOT photographic, no grime, no film grain, no heavy texture. Near-future city, no cybernetics, no neon gadgets.
+
+The character: Lena, a woman in her early thirties, an artist, warm and quick to laugh. LONG, LOOSE, WAVY BLONDE HAIR falling past her shoulders, worn down and loose (no bun, no ponytail, nothing tied up), a pencil tucked behind one ear, freckles, bright kind eyes. An oversized rust-coloured linen shirt with rolled sleeves over a cream t-shirt, dark jeans flecked with paint, worn canvas sneakers, dried paint and clay on her hands and forearms.
+
+A character turnaround model sheet for 3D modelling: the same character drawn three times side by side at exactly the same scale and height on one shared ground line: a FRONT view, a SIDE view (true profile) and a BACK view. Each is full body from the top of the head to the shoes, standing in a neutral A-pose (arms straight and slightly away from the body, palms facing the thighs, feet a little apart), neutral expression. Orthographic, no perspective distortion, flat even shadowless lighting, clean silhouettes with space between the views.
+
+Background: completely plain flat light grey (#d8d8d8), no scenery, no floor, no cast shadows.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image.

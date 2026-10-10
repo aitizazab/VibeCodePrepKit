@@ -1,0 +1,278 @@
+{
+ "name": "visiting-hours-opening",
+ "title": "Visiting Hours: Lena redone, and the opening and title art",
+ "subtitle": "Style E's waking register (muted, stylised, not gritty) for the opening bedroom and the title table, and Lena redone blonde with long loose waves. Made 2026-10-10 with Flow (Nano Banana 2.1, 0 credits). Green = my pick, blue = the alternate. The images the 3D scenes use directly are processed into Assets/JamKit/Templates/VisitingHours/Art/Opening/ (the sheet at the top).",
+ "questions": [
+  "Lena: does she read as her own person now, clearly not Nadia? And are her dream billboard and faces cute enough?",
+  "Is the bedroom the right mood for the 3D build: muted and stylised, not gritty? Is the view from the pillow and from above what you pictured?",
+  "The title table: is the arrangement right (tablet, mug, notepad and pen, badge), and is the light 'morning after' enough?",
+  "The milk really spells 'Quit' (in cursive). Is the lettering right, or do you want it rougher, like real latte art?",
+  "Is the news footage right (an overturned burnt car, police lights, tape, corporate towers)? It has four frames for a subtle loop."
+ ],
+ "notes": [
+  "Nano Banana Pro is still at its usage limit, so everything is Nano Banana 2.1. A Flow outage made seven early runs time out on download (the images were made but not saved); they were re-run.",
+  "Weak spots: the bedsheet fabric texture was refused by Flow's policy filter three times with three different wordings (no idea why), so tex_bedsheet is a procedural plain weave made in the script, clearly a stand-in. The table wood was not painted repeating, so its seams are blended and you may see soft doubled plank lines in two bands. The four news frames differ only in the lights (and the smoke); frame d's red flare is strong.",
+  "The coffee texture uses the take whose word is narrowest, so the whole word fits in the square (the cup's circle) with milk swirls around it.",
+  "The ID badge has a blank photo slot and blank text panels for the UI; Nadia's badge photo is separate (badge_photo).",
+  "The phone wallpaper is a warm memory of Nadia and Elias, cropped to 9:16 for the lock screen."
+ ],
+ "sections": [
+  {
+   "title": "The processed files (textures tiled 2x2)",
+   "cols": 1,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\VibeJamKit\\docs\\art\\vh-opening-sheet.jpg",
+     "label": "What the game uses",
+     "verdict": "pick"
+    }
+   ]
+  },
+  {
+   "title": "Lena, redone: blonde, long loose waves",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena2-turn-take3.jpg",
+     "label": "Lena: waking turnaround",
+     "verdict": "pick",
+     "note": "Pencil tucked behind her ear; outfit and freckles carried over."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena2-turn-take2.jpg",
+     "label": "Lena: waking turnaround (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena2-bb-take1.jpg",
+     "label": "Lena: dream billboard",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena2-bb-take2.jpg",
+     "label": "Lena: dream billboard (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena2-expr-take2.jpg",
+     "label": "Lena: dream expressions (warm, knowing, defensive)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena2-expr-take1.jpg",
+     "label": "Lena: dream expressions (warm, knowing, defensive) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The opening and title: concept frames for the 3D build",
+   "cols": 3,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-bedroom-pillow-take3.jpg",
+     "label": "The bedroom at 3 AM, from the pillow towards the nightstand",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-bedroom-pillow-take2.jpg",
+     "label": "The bedroom at 3 AM, from the pillow towards the nightstand (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-bedroom-overhead-take1.jpg",
+     "label": "The same room from directly above the nightstand",
+     "verdict": "pick",
+     "note": "Made from the pillow view, so it's the same room."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-bedroom-overhead-take3.jpg",
+     "label": "The same room from directly above the nightstand (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-title-table-take3.jpg",
+     "label": "The title table, close up, the morning after",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-title-table-take4.jpg",
+     "label": "The title table, close up, the morning after (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Images and textures the 3D scenes use directly",
+   "cols": 4,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-news-a-take3.jpg",
+     "label": "The tablet's news video, frame 1",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-news-a-take4.jpg",
+     "label": "The tablet's news video, frame 1 (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-news-b-take1.jpg",
+     "label": "News frame 2 (the lights swap sides)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-news-b-take2.jpg",
+     "label": "News frame 2 (the lights swap sides) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-news-c-take1.jpg",
+     "label": "News frame 3 (the lights dim, the smoke drifts)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-news-c-take2.jpg",
+     "label": "News frame 3 (the lights dim, the smoke drifts) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-news-d-take1.jpg",
+     "label": "News frame 4 (a red flash)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-news-d-take2.jpg",
+     "label": "News frame 4 (a red flash) (alternate)",
+     "verdict": "alt",
+     "note": "Lens-flare spikes: too much."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-coffee-take5.jpg",
+     "label": "The coffee surface: the milk spells 'Quit'",
+     "verdict": "pick",
+     "note": "All four takes spelled it cleanly; this one's word is narrow enough to fit the round cup."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-coffee-take3.jpg",
+     "label": "The coffee surface: the milk spells 'Quit' (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-notepad-take2.jpg",
+     "label": "A blank notepad page",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-notepad-take3.jpg",
+     "label": "A blank notepad page (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-badge-take3.jpg",
+     "label": "The ID badge face (blank slots for the UI)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-badge-take2.jpg",
+     "label": "The ID badge face (blank slots for the UI) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-badge-photo-take1.jpg",
+     "label": "Nadia's badge photo",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-badge-photo-take2.jpg",
+     "label": "Nadia's badge photo (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-phone-wallpaper-take2.jpg",
+     "label": "The phone's lock-screen picture (Nadia and Elias, years ago)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\op-phone-wallpaper-take1.jpg",
+     "label": "The phone's lock-screen picture (Nadia and Elias, years ago) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\tex-wallpaper-take3.jpg",
+     "label": "Wallpaper (texture)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\tex-wallpaper-take4.jpg",
+     "label": "Wallpaper (texture) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\tex-woodfloor-take2.jpg",
+     "label": "Wood floor (texture)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\tex-woodfloor-take1.jpg",
+     "label": "Wood floor (texture) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\tex-knit-take1.jpg",
+     "label": "Blanket knit (texture)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\tex-knit-take2.jpg",
+     "label": "Blanket knit (texture) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\tex-tablewood-take2.jpg",
+     "label": "Table wood (texture)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\tex-tablewood-take1.jpg",
+     "label": "Table wood (texture) (alternate)",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  }
+ ]
+}

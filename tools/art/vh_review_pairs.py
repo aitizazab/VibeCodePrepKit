@@ -7,6 +7,9 @@ INC = r"C:\Users\User\Desktop\yougotgamesonyophone\FableAnimationTests\art\incom
 KIND = sys.argv[1] if len(sys.argv) > 1 else "styles"
 P = json.load(open(os.path.join(VJ, "docs", "art", f"vh-{KIND}-picks.json"), encoding="utf8"))
 sections = []
+sheet = os.path.join(VJ, "docs", "art", f"vh-{KIND}-sheet.jpg")   # processed files, when this kind has them
+if os.path.exists(sheet):
+    sections.append({"title": "The processed files (textures tiled 2x2)", "cols": 1, "items": [{"file": sheet, "label": "What the game uses", "verdict": "pick"}]})
 for sec in P["sections"]:
     items = []
     for it in sec["items"]:
