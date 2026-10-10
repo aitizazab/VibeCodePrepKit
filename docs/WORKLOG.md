@@ -779,3 +779,10 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **Waking:** 4-a and the fresh reconciled version are prettier and more cartoon than the cast (lashes, glossy orange
   blonde). The fresh fix and step 4 match the cast's muted graphic-novel rendering; the agent thinks step 4 sits best.
 - The fresh fix's billboard file has faint ghost figures at its sides (cropped out of the lineup).
+
+### Restart and ghost rebindable (16:25)
+- `Restart` (R, View/Share) and `Ghost` (G, d-pad left) are real actions with fixed ids. Their Controls rows show only
+  in the lab, and the Gauntlet's hints name whatever keys are bound. A play test rebinds Restart to T mid-run.
+- **A clash found:** the d-pad is part of gameplay Move, so the ghost toggle (and the lab HUD on d-pad down) also
+  moved the player. The fix: the d-pad comes off gameplay Move (the left stick steers; menus keep d-pad navigation),
+  which frees the d-pad for the lab's toggles.
