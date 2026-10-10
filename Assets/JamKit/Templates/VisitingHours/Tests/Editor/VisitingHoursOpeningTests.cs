@@ -131,6 +131,11 @@ namespace JamKit.VisitingHours.Tests
                     Assert.That(tb.min.y, Is.EqualTo(sb.max.y).Within(0.006f), name + " sits on the nightstand's top");
                     Assert.That(tb.min.x >= sb.min.x && tb.max.x <= sb.max.x && tb.min.z >= sb.min.z && tb.max.z <= sb.max.z, Is.True, name + " is all on the nightstand");
                 }
+                // The photo faces her pillow (not its back).
+                var photo = stage.bedroom.Find("Framed photo/Photo");
+                Assert.That(photo, Is.Not.Null);
+                Vector3 eyes = stage.bedroom.TransformPoint(VhStageBuilder.Eyes);
+                Assert.That(Vector3.Dot(photo.rotation * Vector3.back, eyes - photo.position), Is.GreaterThan(0f), "the photo faces her");
                 foreach (var id in new[] { "tablet", "mug", "badge", "notepad", "pen" })
                 {
                     var p = stage.table.Find(id);
@@ -224,6 +229,16 @@ namespace JamKit.VisitingHours.Tests
                 Assert.That(Vector3.Distance(hand, wrist), Is.LessThan(0.03f), "the hand is at the grip");
                 Assert.That(view.z > cam.nearClipPlane && view.x > 0f && view.x < 1f && view.y > 0f && view.y < 1f, Is.True, "the hand is in view");
                 Assert.That(near, Is.GreaterThan(50), "her skinned hand is round the hand bone");
+                // Nothing of her hand inside the phone: the knuckles, the finger joints and their tips are all outside it.
+                Vector3 half = stage.phoneSize * 0.5f;
+                Vector3 centre = stage.phone.position + stage.phone.rotation * new Vector3(0f, half.y, 0f);
+                foreach (var t in model.model.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t.name.IndexOf("RightHand", System.StringComparison.Ordinal) < 0) continue;
+                    Vector3 q = Quaternion.Inverse(stage.phone.rotation) * (t.position - centre);
+                    bool inside = Mathf.Abs(q.x) < half.x && Mathf.Abs(q.y) < half.y && Mathf.Abs(q.z) < half.z;
+                    Assert.That(inside, Is.False, t.name + " is inside the phone");
+                }
             }
             finally
             {

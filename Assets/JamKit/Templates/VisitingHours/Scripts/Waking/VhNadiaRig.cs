@@ -145,6 +145,13 @@ namespace JamKit.VisitingHours
         readonly Transform[] _fingers = new Transform[12];
         readonly Quaternion[] _fingerBase = new Quaternion[12];
         readonly Transform[] _thumb = new Transform[3];
+        // The ends of the four fingers and of the thumb (the Mixamo '4' bones), to measure where they reach.
+        readonly Transform[] _fingerTips = new Transform[4];
+        Transform _thumbTip;
+        // The last SetHand, to re-seat the hand when it would sink into the phone.
+        Vector3 _lastWrist;
+        Quaternion _lastPalm = Quaternion.identity;
+        float _lastWeight;
         readonly Quaternion[] _thumbBones = new Quaternion[3];
         Vector3 _chestScale = Vector3.one;
         Mode _mode = Mode.FirstPerson;
@@ -171,8 +178,12 @@ namespace JamKit.VisitingHours
             if (chest != null) _chestScale = chest.localScale;
             string[] names = { "Index", "Middle", "Ring", "Pinky" };
             for (int f = 0; f < 4; f++)
+            {
                 for (int j = 0; j < 3; j++) _fingers[f * 3 + j] = Bone(root, "RightHand" + names[f] + (j + 1));
+                _fingerTips[f] = Bone(root, "RightHand" + names[f] + "4");
+            }
             for (int j = 0; j < 3; j++) _thumb[j] = Bone(root, "RightHandThumb" + (j + 1));
+            _thumbTip = Bone(root, "RightHandThumb4");
             return true;
         }
 
@@ -254,6 +265,9 @@ namespace JamKit.VisitingHours
 
         public override void SetHand(Vector3 wrist, Quaternion palm, float weight)
         {
+            _lastWrist = wrist;
+            _lastPalm = palm;
+            _lastWeight = weight;
             rArm.localRotation = _rArmBase;
             rFore.localRotation = _rForeBase;
             rHand.localRotation = _rHandBase;
@@ -296,32 +310,123 @@ namespace JamKit.VisitingHours
             return true;
         }
 
-        static readonly float[] CurlDegrees = { 45f, 55f, 35f };
+        /// <summary>The most each finger joint bends (degrees) when the hand is closed and nothing stops it.</summary>
+        static readonly float[] CurlDegrees = { 70f, 90f, 60f };
+        const float FingerRadius = 0.008f, PalmClearance = 0.015f, CurlStep = 5f;
 
+        Vector3 _phoneCentre, _phoneHalf;
+        Quaternion _phoneInv = Quaternion.identity;
+
+        /// <summary>How far <paramref name="p"/> is outside the phone (negative inside): a box's signed distance.</summary>
+        float PhoneDistance(Vector3 p)
+        {
+            Vector3 q = _phoneInv * (p - _phoneCentre);
+            q = new Vector3(Mathf.Abs(q.x) - _phoneHalf.x, Mathf.Abs(q.y) - _phoneHalf.y, Mathf.Abs(q.z) - _phoneHalf.z);
+            Vector3 outside = Vector3.Max(q, Vector3.zero);
+            return outside.magnitude + Mathf.Min(Mathf.Max(q.x, Mathf.Max(q.y, q.z)), 0f);
+        }
+
+        /// <summary>The nearest the palm comes to the phone: the wrist, the knuckles and between them.</summary>
+        float PalmDistance()
+        {
+            float d = PhoneDistance(rHand.position);
+            for (int f = 0; f < 4; f++)
+            {
+                var k = _fingers[f * 3];
+                if (k == null) continue;
+                d = Mathf.Min(d, PhoneDistance(k.position));
+                d = Mathf.Min(d, PhoneDistance((k.position + rHand.position) * 0.5f));
+            }
+            return d;
+        }
+
+        /// <summary>
+        /// Seats the hand on the phone without passing through it: the palm moves off the phone (to the side it is on)
+        /// until it clears it, then each finger joint bends towards the palm until that finger would touch the phone (or
+        /// as far as <paramref name="curl"/> allows), so the fingers close round its edges; the thumb's tip rests at the
+        /// screen's lower right edge, or presses the screen.
+        /// </summary>
         public override void SetGrip(Vector3 phoneCentre, Quaternion phoneRotation, Vector3 phoneSize, float curl, float thumbPress)
         {
             for (int i = 0; i < _fingers.Length; i++) if (_fingers[i] != null) _fingers[i].localRotation = _fingerBase[i];
             for (int i = 0; i < _thumb.Length; i++) if (_thumb[i] != null) _thumb[i].localRotation = _thumbBones[i];
-            if (_mode != Mode.FirstPerson || !_armShown || !HandFrame(out var fingers, out var palmNormal)) return;
+            if (_mode != Mode.FirstPerson || !_armShown || _lastWeight <= 0.001f) return;
+            _phoneCentre = phoneCentre;
+            _phoneHalf = phoneSize * 0.5f;
+            _phoneInv = Quaternion.Inverse(phoneRotation);
+            Vector3 up = phoneRotation * Vector3.up, top = phoneRotation * Vector3.forward, right = phoneRotation * Vector3.right;
+
+            // The palm off the phone, on the side it is on (behind it once held, over the screen while it lies there).
+            float side = Vector3.Dot(_lastWrist - phoneCentre, up) >= 0f ? 1f : -1f;
+            Vector3 wrist = _lastWrist;
+            for (int pass = 0; pass < 3; pass++)
+            {
+                float gap = PalmDistance();
+                if (gap >= PalmClearance) break;
+                wrist += up * (side * (PalmClearance - gap + 0.002f));
+                SetHand(wrist, _lastPalm, _lastWeight);
+            }
+
+            if (!HandFrame(out var fingers, out var palmNormal)) return;
             Vector3 across = Vector3.Cross(palmNormal, fingers).normalized;
-            // Curl each finger joint towards the palm (round the phone's edge): about 45, 55 and 35 degrees when closed.
             float sign = Vector3.Dot(Vector3.Cross(across, fingers), palmNormal) >= 0f ? 1f : -1f;
+            float k = Mathf.Clamp01(curl) * _lastWeight;
             for (int f = 0; f < 4; f++)
                 for (int j = 0; j < 3; j++)
                 {
                     var bone = _fingers[f * 3 + j];
-                    if (bone == null) continue;
-                    bone.rotation = Quaternion.AngleAxis(sign * CurlDegrees[j] * Mathf.Clamp01(curl), across) * bone.rotation;
+                    var end = j < 2 ? _fingers[f * 3 + j + 1] : _fingerTips[f];
+                    if (bone == null || end == null) continue;
+                    Quaternion start = bone.rotation;
+                    float max = CurlDegrees[j] * k, best = 0f;
+                    // Bend in small steps until the finger would touch the phone (it then rests against it).
+                    for (float a = CurlStep; a <= max + 0.01f; a += CurlStep)
+                    {
+                        bone.rotation = Quaternion.AngleAxis(sign * a, across) * start;
+                        Vector3 e = end.position, m = (bone.position + e) * 0.5f;
+                        if (PhoneDistance(e) < FingerRadius || PhoneDistance(m) < FingerRadius) break;
+                        best = a;
+                    }
+                    bone.rotation = Quaternion.AngleAxis(sign * best, across) * start;
                 }
-            // The thumb: free beside the phone, or pressing the screen just below its middle.
-            if (_thumb[0] != null && _thumb[2] != null && thumbPress > 0f)
+
+            // The thumb: its tip at the screen's lower right edge, or pressing the screen below its middle; turned less if
+            // the full turn would take it through the phone.
+            if (_thumb[0] == null || _thumbTip == null) return;
+            Vector3 rest = phoneCentre + up * (_phoneHalf.y + 0.006f) + right * (_phoneHalf.x + 0.002f) - top * (_phoneHalf.z * 0.3f);
+            Vector3 press = phoneCentre + up * (_phoneHalf.y + 0.003f) + right * (_phoneHalf.x * 0.15f) - top * (_phoneHalf.z * 0.15f);
+            Vector3 target = Vector3.Lerp(rest, press, Mathf.Clamp01(thumbPress));
+            float w = Mathf.Clamp01(curl) * _lastWeight;
+            for (int i = 0; i < 3; i++) _thumbStart[i] = _thumb[i] != null ? _thumb[i].localRotation : Quaternion.identity;
+            for (float k2 = 1f; k2 > -0.01f; k2 -= 0.25f)
             {
-                Vector3 up = phoneRotation * Vector3.up, top = phoneRotation * Vector3.forward;
-                Vector3 target = phoneCentre + up * (phoneSize.y * 0.5f + 0.004f) - top * (phoneSize.z * 0.15f);
-                Vector3 tip = _thumb[2].childCount > 0 ? _thumb[2].GetChild(0).position : _thumb[2].position;
-                Quaternion aim = Quaternion.FromToRotation(tip - _thumb[0].position, target - _thumb[0].position);
-                _thumb[0].rotation = Quaternion.Slerp(Quaternion.identity, aim, Mathf.Clamp01(thumbPress)) * _thumb[0].rotation;
+                for (int i = 0; i < 3; i++) if (_thumb[i] != null) _thumb[i].localRotation = _thumbStart[i];
+                for (int j = 0; j < 2; j++)
+                {
+                    var bone = _thumb[j];
+                    if (bone == null) continue;
+                    Quaternion aim = Quaternion.FromToRotation(_thumbTip.position - bone.position, target - bone.position);
+                    bone.rotation = Quaternion.Slerp(Quaternion.identity, aim, w * k2 * (j == 0 ? 1f : 0.6f)) * bone.rotation;
+                }
+                if (ThumbClear()) break;
             }
+        }
+
+        readonly Quaternion[] _thumbStart = new Quaternion[3];
+
+        /// <summary>True when no part of the thumb is inside the phone.</summary>
+        bool ThumbClear()
+        {
+            Vector3 prev = _thumb[0].position;
+            for (int i = 1; i <= 3; i++)
+            {
+                var t = i < 3 ? _thumb[i] : _thumbTip;
+                if (t == null) continue;
+                Vector3 p = t.position;
+                if (PhoneDistance(p) < 0.006f || PhoneDistance((p + prev) * 0.5f) < 0.006f) return false;
+                prev = p;
+            }
+            return true;
         }
 
         public override void SetThumb(float press01) { }

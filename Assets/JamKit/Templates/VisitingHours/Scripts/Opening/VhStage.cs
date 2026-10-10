@@ -313,7 +313,7 @@ namespace JamKit.VisitingHours
             Vector3 p = i >= 0 ? posePositions[i] : cam.transform.position;
             Quaternion r = i >= 0 ? poseRotations[i] : cam.transform.rotation;
             Vector3 fwd = r * Vector3.forward, up = r * Vector3.up, right = r * Vector3.right;
-            pos = p + fwd * 0.21f - right * 0.06f;
+            pos = p + fwd * 0.22f - right * 0.07f;
             rot = Quaternion.LookRotation(up, -fwd) * Quaternion.Euler(-12f, 0f, 0f);
         }
 

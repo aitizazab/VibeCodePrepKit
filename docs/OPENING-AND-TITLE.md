@@ -156,7 +156,7 @@ the power and volume buttons; the tablet the same way. Everything on the nightst
 top: the lamp at the back by the wall, the phone on the bed's side within her reach, the framed photo at the front
 corner, leaning back on its strut, turned towards her pillow. **Nadia** is her Tripo model (`Models/Nadia/`,
 imported at scale 1.69 by `VhNadiaImport`): lying on her side, head hidden in first person, her right arm posed
-by two-bone IK to the phone, her fingers bent round its edges (`SetGrip`: from above while it lies on the
+by two-bone IK to the phone, her palm kept off the phone and each finger closing until it touches it, so the fingers wrap its edges (`SetGrip`: from above while it lies on the
 nightstand, then cradled from below once it's up at eye height, her wrist and hand in view under its lower edge, the fingers up its
 back, the thumb free over the screen to tap); turned away for the overhead shot with her hair on the pillow. The
 blanket is shaped over her real body: the builder poses her both ways, bakes her skinned mesh and drapes the

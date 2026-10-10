@@ -531,7 +531,8 @@ namespace JamKit.VisitingHours
             var st = s.style;
             Vector3 toPillow = b.TransformPoint(Eyes) - b.TransformPoint(foot);
             toPillow.y = 0f;
-            Quaternion facing = Quaternion.LookRotation(Vector3.Cross(Vector3.up, toPillow.normalized), Vector3.up); // local +X towards her
+            // Local +X (the photo's side) towards her: LookRotation's right is up x forward, so forward = toPillow x up.
+            Quaternion facing = Quaternion.LookRotation(Vector3.Cross(toPillow.normalized, Vector3.up), Vector3.up);
             const float lean = 12f, h = 0.17f, wdt = 0.135f, depth = 0.016f;
             var frame = Pivot(b, "Framed photo", foot, facing * Quaternion.Euler(0f, 0f, lean));
             var wood = st.Mat(VhWakingStyle.WoodDark);
