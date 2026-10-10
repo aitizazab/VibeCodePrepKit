@@ -409,3 +409,26 @@ one up by name):
 outage, with seven downloads re-run). Nano Banana Pro is still at its usage limit, so everything is Nano Banana
 2.1. The automation Chrome is closed. The raw takes are in `FableAnimationTests/art/incoming/` (`lena2-*`,
 `op-*`, `tex-*`).
+
+#### Unity verification: the opening passes; the escape has one failure (about 10:10)
+Run in the clean checkout `VibeJamKit-play`.
+- **The opening alone** (at e73bc96): Scenes OK, EditMode 544/544, PlayMode 83/83.
+- **With the escape added** (at 30cbd24): Scenes OK (all nine scenes, no shader errors), EditMode 552/552,
+  **PlayMode 88/89**.
+- **With the art added** (at 488dc05): the scenes pick up every new image. Only the furniture wood and the
+  nightstand photo are still drawn in code. **Windows build OK; smoke run PASS in 12.4 s**: the opening plays at
+  30x speed, the title table takes input, and the game runs through the hospital, the journal and onto the
+  street.
+- **Your playable build with the new 3D opening and title:**
+  `C:\Users\User\Desktop\yougotgamesonyophone\VibeJamKit-play\Builds\Play\VisitingHours\VibeJamKit.exe`.
+  Holding Escape skips the opening.
+- **Unity's `.meta` files** for the opening (scripts, shader, tests, the Kenney furniture, Nadia's model, the art,
+  Credits.txt) are committed as b2b317f.
+
+**The escape's one failure:** the autopilot gets caught. On every attempt, its slide under Walt's garage door
+stops dead (12.6 m/s down to 0.2 m/s about 0.2 m before the door), so the static catches it there twice. On the
+third attempt the static has eased off by 4 m and it gets through, and the rest of the route runs clean (alley,
+final run, the light). So the real Unity character controller hits the 1.15 m gap that the simulation slides
+through. **Sent back to the escape agent** with the trace and the likely causes: the crouched capsule plus its
+skin against the gap height, the slide ending just before the door, or the door's collider. The fix comes with a
+test that the gap clears the crouched controller.
