@@ -846,3 +846,6 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   reach (it stretches toward the wall, then plants as she drifts in). Unity run under way (no graphics).
 - **The creator, for now:** don't open anything in Firefox; keep the GPU idle (no transcription, no smoke runs that
   launch the game).
+- **The creator needs the CPU (16:50):** the Unity test run was stopped. Leftover .NET build processes were lowered to
+  below-normal priority, and the three working agents (speed audio, speed visuals, dream tool) run dotnet at low
+  priority, one project at a time. No Unity until the creator says.
