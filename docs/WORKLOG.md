@@ -926,3 +926,15 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   as vi–IV–I–V; e.g. "Zombie", "Apologize", "Poker Face", "Despacito"). Progressions aren't protected, and no melody
   was borrowed (the arpeggio and music box are generated from the chord tones), so no credit is needed and nothing is
   blocked. **Keep it** (the creator's call). The jamais vu comes from the D minor / F major ambiguity and the add9s.
+
+### Everything passes in Unity (21:25)
+- **At 568b152, the Movement Lab active:** Scenes OK (all nine scenes; no shader errors), **EditMode 693/693, PlayMode
+  107/107**. This covers the Gauntlet, the dream tool, Nadia's body (research feel, gesture), the wallrun and
+  double-jump changes, the Controls screen, rebindable restart and ghost, the d-pad change, the speed audio and the
+  speed visuals.
+- **Body:** reaching out before contact on every catch (6/6 in the escape, 3/3 and 1/1 in the lab); the hand within
+  2.4 cm of its target; the gap to the wall up to 0.61 m on far catches (the stretched-arm catch for the creator to
+  judge); the foot shows in slides; the head stays inside the cut-away.
+- **Times:** the Gauntlet 43.13 s in Unity (the sim's developer time is 41.0; 9/9 markers, a ghost recorded), the escape
+  44.8 s, the old course 47.4 s.
+- **Building now:** the escape, the lab and Visiting Hours, each with a smoke run, into `Builds/Play`.
