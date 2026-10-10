@@ -765,3 +765,17 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   wall), a running puzzle (a two-colour flip, like Night 3's badge). A new agent is building it as its own chapter
   after the Gauntlet.
 - **All of this goes into the next lab build** with the Gauntlet, Nadia's body and the Controls screen.
+
+### Lena round 4, step 4, and the cast lineups (16:10)
+- **Page:** `art/review/2026-10-10/visiting-hours-lena-final.html`: the waking lineup, the dream lineup (each Lena
+  candidate in her own row with the cast, all at the same height), then step 4's sheets.
+- **Step 4** (the fresh design's face, green eyes, level gaze and honey-ash waves, in 4-a's cream high-neck sweater,
+  wine-red trousers and lace-up boots; the watch face-in, no necklace; one notebook at her side): `lena6-turn-take1`,
+  `lena6-bb-take1`, `lena6-expr-take1`.
+- **The lineup's finding: in the dream, none of the four Lenas match the cast.** The cast are chibi (a head about a third
+  of their height, thick dark crayon outlines, dot eyes); every Lena has adult proportions (a head about a sixth),
+  thinner lines and almond eyes. Two have a cooler, greyer paper than the cast's warm cream. Whichever face is picked,
+  her billboard needs redrawing with a cast billboard as the style reference.
+- **Waking:** 4-a and the fresh reconciled version are prettier and more cartoon than the cast (lashes, glossy orange
+  blonde). The fresh fix and step 4 match the cast's muted graphic-novel rendering; the agent thinks step 4 sits best.
+- The fresh fix's billboard file has faint ghost figures at its sides (cropped out of the lineup).
