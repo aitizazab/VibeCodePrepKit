@@ -49,7 +49,7 @@ namespace JamKit.VisitingHours
                     c.enabled = false;
                     break;
                 }
-            var camGo = new GameObject("Camera");
+            var camGo = new GameObject("Camera") { tag = "MainCamera" };
             camGo.transform.SetParent(root.transform, false);
             var cam = camGo.AddComponent<Camera>();
             cam.nearClipPlane = 0.02f;

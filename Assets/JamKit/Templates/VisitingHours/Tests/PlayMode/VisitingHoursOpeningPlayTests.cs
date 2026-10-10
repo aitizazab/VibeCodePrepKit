@@ -163,6 +163,8 @@ namespace JamKit.VisitingHours.Tests
             var table = Stage.table;
             var hands = new SyntheticInput();
             GameRoot.Input.Synthetic = hands;
+            yield return null;
+            table.Highlight(null);
             hands.Tap(GameRoot.Input.Submit);
             yield return Frames(3);
             Assert.That(table.CurrentGroup, Is.EqualTo("tablet"), "the first press only highlights (the tablet)");
