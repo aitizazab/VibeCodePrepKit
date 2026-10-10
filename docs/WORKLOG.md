@@ -484,3 +484,14 @@ headings above were corrected from the commit times; the earlier guesses ran up 
 2. Audit almost everything in the four design docs. First, defined: where Theo gives his blessing and why, what
    "Lena's truth" is, and the Long Night as written.
 3. Then watch the new opening and title, and play the dream escape.
+
+### R3 crouch toggle for the controller (13:37)
+- **The creator crouches and slides with R3.** There is no rebinding screen yet, so R3 is now a **toggle**: press it to
+  crouch or slide, press it again or jump to stand (a respawn clears it). B / Circle, Left Ctrl and C still work as
+  hold. Holding a stick click while steering with the same stick is awkward, which is why Titanfall's R3 layouts
+  toggle too. Commit 08cbc93.
+- **Checked:** the Unity-layer compile checks pass, the Windows build is OK, and the smoke run passes in 9.1 s. Only the
+  build and smoke run were redone, not the full PlayMode suite (the change is input handling only).
+- **The build:** `VibeJamKit-play\Builds\Play\MovementLab-R3\VibeJamKit.exe`, in a separate folder because the old lab was
+  still open.
+- **Later:** a proper rebinding screen in settings, for controller and keyboard.
