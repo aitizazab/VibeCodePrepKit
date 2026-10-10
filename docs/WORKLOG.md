@@ -1024,3 +1024,11 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - **Sounds (bfcde34):** seven CC0 Freesound recordings: the breath (a man's, pitched up; a woman's take is an alternate), ring, buzz, roll-over, sheets, set-down and tap. `ProceduralAudio` prefers `Resources/JamKitSounds/<id>`. Audition: `out/vh-opening-audio/00-opening-sounds.wav`. Credits are in ThirdParty/LICENSES.md.
   - Movement 8454370 landed (air control and hop cost); its report is pending.
   - Full verify of Visiting Hours, Scenes through Smoke, is under way.
+- **Lighting round 2 (ec8e362, local):**
+  - Round 1 had a solid-red PC dark room (one blown pixel spread by bloom), lights too close to surfaces that blew out, a flat mid-blue night, and a window pattern too big to read.
+  - Fixed: lights moved back, a darker night, NaN guards and a bloom cap, a smaller window pattern, and SSAO in the waking shader. The rig frees its cookies and profiles.
+  - Re-capture is queued behind the build run.
+- **Photos (56572f2, local; the agent's push was blocked by permissions, so it's waiting on the creator's OK):**
+  - `photo_frame.png`: the siblings laughing on a cluttered balcony at night, a headlock and a beer.
+  - `phone_wallpaper.png`: Elias in scrubs in the break room, mid-bite, deadpan.
+  - Takes are in `FableAnimationTests/art/review/2026-10-11/snap-*`, with drawn alternates in case real photos jar in the stylised room.
