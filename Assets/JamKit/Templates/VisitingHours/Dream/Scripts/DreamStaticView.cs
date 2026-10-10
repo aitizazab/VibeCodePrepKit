@@ -19,6 +19,9 @@ namespace JamKit.DreamEscape
         public AudioSource hiss, buzz;
         [Range(0f, 1f)] public float hissVolume = 0.65f;
         [Range(0f, 1f)] public float buzzVolume = 0.45f;
+        /// <summary>V7 (docs/SPEED-FEEL.md): the wall is DRAWN this many metres further back (set each frame by
+        /// DreamSpeedAnswer at flying). Visual only: the pursuer's distance and catch don't read it.</summary>
+        [System.NonSerialized] public float visualRecede;
 
         static readonly int ThreatId = Shader.PropertyToID("_Threat");
         MaterialPropertyBlock _block;
@@ -83,6 +86,7 @@ namespace JamKit.DreamEscape
         {
             float dt = Time.deltaTime;
             _cam = cam;
+            center.z -= Mathf.Max(0f, visualRecede); // the route runs along +Z: back is -Z
             _center = center;
             transform.position = center;
             _threat = Mathf.MoveTowards(_threat, threat, 2f * dt);

@@ -281,6 +281,8 @@ namespace JamKit.MovementLab.EditorTools
             var lines = cam.gameObject.AddComponent<SpeedLines>();
             lines.body = body;
             lines.material = m.speedLines;
+            // The speed visuals (docs/SPEED-FEEL.md): the boom, world-space motes, footfall puffs and footprints, the edge blur.
+            SpeedFeelSetup.Wire(cam, body, feel, lines, Mats, SpeedFeelSetup.Look.Lab());
             var sound = playerGo.AddComponent<MovementAudio>();
             sound.body = body;
             // The speed music: placeholder stems until real ones sit in Resources/JamKitMusicStems/lab/ (MOVEMENT.md).

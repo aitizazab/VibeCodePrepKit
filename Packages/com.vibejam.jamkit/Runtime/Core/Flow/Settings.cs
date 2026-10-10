@@ -39,10 +39,13 @@ namespace JamKit.Flow
         public float cameraRoll = 1f;
         /// <summary>Head bob and landing dip, 0 (off) .. 1.</summary>
         public float headBob = 1f;
-        /// <summary>Speed effects (the FOV widening with speed and the speed lines), 0 (off) .. 1.</summary>
+        /// <summary>Speed effects (the FOV widening with speed, the boom, streaks, speed lines, puffs, blur, the dream answering), 0 (off) .. 1.</summary>
         public float motionEffects = 1f;
         /// <summary>Faint streaks at the screen edges at high speed.</summary>
         public bool speedLines = true;
+        /// <summary>"Reduce effects": no edge zoom blur and no chromatic pulse at speed, and the speed streaks and lines
+        /// stay subtle (docs/SPEED-FEEL.md). Off by default; Motion effects still scales what's left.</summary>
+        public bool reduceEffects;
 
         public float enemyBulletSpeedScale = 1f;
         public float enemyDensityScale = 1f;

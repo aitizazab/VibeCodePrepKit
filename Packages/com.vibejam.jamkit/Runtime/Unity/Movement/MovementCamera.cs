@@ -7,7 +7,8 @@ namespace JamKit.Movement
     /// The camera's feel for <see cref="MovementController"/> (docs/MOVEMENT.md "Feel"): the field of
     /// view widens with speed (and x1.1 while sliding), the view leans away from a wall you run on (a quick lean-in with a
     /// little overshoot on contact, the cue players time wall kicks by), rolls a touch while sliding,
-    /// dips sharply as a slide starts and on landing in proportion to the fall, nods on a mantle and bobs while running. Every
+    /// dips sharply as a slide starts and on landing in proportion to the fall, nods on a mantle and bobs while running, and
+    /// punches out on the boom (crossing into flying, from <see cref="SpeedFeel"/>; never a roll or a shake). Every
     /// effect follows the player's comfort settings (Settings: fieldOfView, cameraRoll, headBob,
     /// motionEffects). Sits on the rig between the head and the camera; runs after the controller.
     /// </summary>
@@ -32,6 +33,8 @@ namespace JamKit.Movement
         [Tooltip("The sprint kick (the push-off back to running): a short FOV punch, degrees (x Motion effects), and how long it lasts.")]
         public float sprintKickFov = 4f;
         public float sprintKickTime = 0.35f;
+        [Tooltip("The boom (docs/SPEED-FEEL.md V1): crossing into flying punches the FOV ~+6 degrees, settling in ~0.4 s, on top of the speed FOV (numbers in the tuning's speedFeel, x Motion effects). Empty: no boom.")]
+        public SpeedFeel speedFeel;
 
         [Header("Roll")]
         [Tooltip("Lean while wallrunning, degrees (x Camera roll).")]
@@ -60,11 +63,14 @@ namespace JamKit.Movement
         float _nod;
         float _kickT = -1f;
         float _slideK;
+        float _boomFov;
 
         /// <summary>The current lean in degrees (tests, HUD).</summary>
         public float Roll => _roll;
         public float Fov => _fov;
         public float Dip => _dip;
+        /// <summary>The boom's FOV punch this frame, degrees (tests).</summary>
+        public float BoomFov => _boomFov;
 
         void Reset()
         {
@@ -106,7 +112,10 @@ namespace JamKit.Movement
             bool sliding = mode == MoveMode.Slide;
             _slideK = Mathf.MoveTowards(_slideK, sliding ? 1f : 0f, udt / Mathf.Max(0.01f, sliding ? slideFovIn : slideFovOut));
             float slideScale = Mathf.Lerp(1f, slideFovScale, MoveMath.SmoothStep(0f, 1f, _slideK) * motionK);
-            if (cam != null) cam.fieldOfView = (_fov + sprintKickFov * punch * motionK) * slideScale;
+            // The boom: SpeedFeel's punch, already x Motion effects.
+            float boom = speedFeel != null ? speedFeel.Levels.boomFov : 0f;
+            _boomFov = boom;
+            if (cam != null) cam.fieldOfView = (_fov + sprintKickFov * punch * motionK + boom) * slideScale;
 
             // Roll: away from the wall (wall on the right -> the top of the view tilts left), a spring so the
             // catch overshoots into a clear "lean-in".

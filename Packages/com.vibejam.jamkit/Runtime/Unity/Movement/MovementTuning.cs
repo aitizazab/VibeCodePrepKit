@@ -16,6 +16,10 @@ namespace JamKit.Movement
         public MoveDef def = new MoveDef();
         [Tooltip("The first-person body's feel (MovementBody): the pump, the tiers, the sway, the landing lag, the contact cues. Every number commented in BodyFeelDef.")]
         public BodyFeelDef body = new BodyFeelDef();
+        [Tooltip("The speed tiers everything that reacts to speed shares (running under 8 m/s, fast, flying from 13; SpeedTierDef).")]
+        public SpeedTierDef speedTiers = new SpeedTierDef();
+        [Tooltip("The speed visuals (docs/SPEED-FEEL.md): the boom, streaks, puffs and footprints, the edge blur, the dream answering. Every number commented in SpeedFeelDef.")]
+        public SpeedFeelDef speedFeel = new SpeedFeelDef();
         [Tooltip("Which round of changed defaults this asset has taken (the builders upgrade it once; edit freely after).")]
         public int defaultsVersion;
 

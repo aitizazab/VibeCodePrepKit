@@ -259,6 +259,7 @@ namespace JamKit.DreamEscape.EditorTools
             foreach (var b in dream.billboards) BuildBillboard(b, cast, placeholders, real);
 
             var staticView = BuildStatic(course, placeholders, real);
+            WireSpeedAnswer(cam, staticView);
             Debug.Log("JAMKIT_DREAM art: style-E files used: " + (real.Count > 0 ? string.Join(", ", real) : "none")
                 + "; placeholders drawn: " + (placeholders.Count > 0 ? string.Join(", ", placeholders) : "none")
                 + " (drop real files into " + DreamArt.ArtDir + " and rebuild)");
@@ -362,9 +363,42 @@ namespace JamKit.DreamEscape.EditorTools
             var lines = cam.gameObject.AddComponent<SpeedLines>();
             lines.body = body;
             lines.material = Mat("SpeedLines", "JamKit/Movement/SpeedLines");
+            // The speed visuals (docs/SPEED-FEEL.md): the boom, pastel confetti and petals, blooms at her feet, glowing
+            // footprints, the edge blur. The dream answering (V7) is added once the static exists (WireSpeedAnswer).
+            SpeedFeelSetup.Wire(cam, body, feel, lines, MaterialsDir, SpeedLook());
             var sound = playerGo.AddComponent<MovementAudio>();
             sound.body = body;
             return body;
+        }
+
+        /// <summary>The dream's speed particles: pastel confetti slips and petals drifting down, outlined in plum like the
+        /// doodles; pastel blooms at her feet; warm gold footprints.</summary>
+        static SpeedFeelSetup.Look SpeedLook() => new SpeedFeelSetup.Look
+        {
+            streakColors = new[] { Palette[1], Palette[2], Palette[3], Palette[4], Palette[5], Palette[6], Palette[9] },
+            streakRim = Plum,
+            streakShape = SpeedFeelSetup.Confetti,
+            streakShapes = 2, // confetti and petals
+            streakDrift = new Vector3(0.1f, -0.25f, 0f),
+            streakJitter = 0.25f,
+            puffColors = new[] { Palette[3], Palette[4], Palette[5], Palette[2] },
+            puffRim = Plum,
+            puffRimWidth = 0.18f,
+            puffShape = SpeedFeelSetup.Flower,
+            puffShapes = 1,
+            puffSoft = 0f,
+            footprint = new Color(1f, 0.82f, 0.5f, 0.9f),
+        };
+
+        /// <summary>V7, the dream answers speed (visual only): the grade, flowers opening beside the route, the static drawn back.</summary>
+        static void WireSpeedAnswer(Camera cam, DreamStaticView staticView)
+        {
+            var answer = cam.gameObject.AddComponent<DreamSpeedAnswer>();
+            answer.feel = cam.GetComponent<SpeedFeel>();
+            answer.screen = cam.GetComponent<SpeedScreenFx>();
+            answer.staticView = staticView;
+            answer.flowerMaterial = SpeedFeelSetup.Motes(MaterialsDir, "SpeedFeel_Flowers", SpeedFeelSetup.Flower, 1, Plum, 0.14f, 0f, true, false);
+            answer.flowerColors = new[] { Palette[3], Palette[5], Palette[1], Palette[6], Palette[0] };
         }
 
         static Material Lit(string name, Color color)

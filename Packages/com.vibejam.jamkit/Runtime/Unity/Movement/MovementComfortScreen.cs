@@ -9,8 +9,8 @@ namespace JamKit.Movement
 {
     /// <summary>
     /// "Comfort and camera": the first-person movement's comfort settings (docs/MOVEMENT.md): field of
-    /// view, camera roll, head bob and landing dip, motion effects (speed FOV and speed lines), speed
-    /// lines on or off. They're saved with the rest of the settings. A scene with movement calls
+    /// view, camera roll, head bob and landing dip, motion effects (every speed visual), speed
+    /// lines on or off, and "reduce effects" (no edge blur or chromatic pulse, subtle streaks). They're saved with the rest of the settings. A scene with movement calls
     /// <see cref="Ensure"/> in Start (adds this overlay and a "Comfort and camera" button on the pause
     /// screen) and <see cref="Remove"/> in OnDestroy. Built in code: no UXML.
     /// </summary>
@@ -43,7 +43,7 @@ namespace JamKit.Movement
         protected override bool BuildsOwnContent => true;
 
         Slider _fov, _roll, _bob, _motion;
-        Toggle _lines;
+        Toggle _lines, _reduce;
 
         static Settings S => GameRoot.Settings;
 
@@ -64,11 +64,16 @@ namespace JamKit.Movement
             _fov = AddSlider(panel, "comfort-fov", "Field of view", Settings.MinFieldOfView, Settings.MaxFieldOfView, 1f, v => S.fieldOfView = v);
             _roll = AddSlider(panel, "comfort-roll", "Camera roll (wallrun lean)", 0f, 100f, 10f, v => S.cameraRoll = v / 100f);
             _bob = AddSlider(panel, "comfort-bob", "Head bob and landing dip", 0f, 100f, 10f, v => S.headBob = v / 100f);
-            _motion = AddSlider(panel, "comfort-motion", "Speed effects (FOV kick, speed lines)", 0f, 100f, 10f, v => S.motionEffects = v / 100f);
+            _motion = AddSlider(panel, "comfort-motion", "Speed effects (FOV kick, streaks, speed lines)", 0f, 100f, 10f, v => S.motionEffects = v / 100f);
             _lines = new Toggle("Speed lines") { name = "comfort-lines" };
             _lines.AddToClassList("jk-option");
             _lines.RegisterValueChangedCallback(e => { S.speedLines = e.newValue; Changed(); });
             panel.Add(_lines);
+            // docs/SPEED-FEEL.md: no edge zoom blur, no chromatic pulse, subtle streaks and lines.
+            _reduce = new Toggle("Reduce effects (no blur or colour flash)") { name = "comfort-reduce" };
+            _reduce.AddToClassList("jk-option");
+            _reduce.RegisterValueChangedCallback(e => { S.reduceEffects = e.newValue; Changed(); });
+            panel.Add(_reduce);
             var note = new Label("Lower these if fast movement makes you queasy. A centre dot stays on screen.");
             note.AddToClassList("jk-option-info");
             panel.Add(note);
@@ -123,6 +128,7 @@ namespace JamKit.Movement
             Set(_bob, s.headBob * 100f);
             Set(_motion, s.motionEffects * 100f);
             _lines?.SetValueWithoutNotify(s.speedLines);
+            _reduce?.SetValueWithoutNotify(s.reduceEffects);
         }
 
         static void Set(Slider sl, float v)
