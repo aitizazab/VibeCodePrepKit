@@ -89,6 +89,6 @@ course, then `MOVEMENT.md`.
 
 ## Open questions for the creator
 1. **The decisions tables** at the top of the four design docs.
-2. **Replace "WeWork" with "Larpaca"** in `script/opening-script.md` (applied in generation meanwhile).
+2. ~~Replace "WeWork" with "Larpaca" in the script~~: done by the creator (2026-10-10).
 3. **A re-record** of the voicemail to the final script.
 4. **The title** (later).
