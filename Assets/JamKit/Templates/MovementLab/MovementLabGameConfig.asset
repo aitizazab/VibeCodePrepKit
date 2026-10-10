@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 945c355521880f545884efe20ab4723b, type: 3}
+  m_Name: MovementLabGameConfig
+  m_EditorClassIdentifier: JamKit.Unity::JamKit.Shell.GameConfig
+  gameTitle: Movement Lab
+  tagline: Slide, wallrun, double jump. Keep your speed.
+  bootScene: Boot
+  titleScene: Title
+  firstGameplayScene: MovementLab
+  titleMusic: music_title
+  gameMusic: 
+  audio: {fileID: 0}
+  portraits: []
+  credits: {fileID: 0}
+  howToPlay:
+  - title: Move
+    body: 'WASD or the left stick; you sprint on your own. Mouse or right stick to
+      look.
+
+      Space (A) jumps, and jumps again in the air. Ctrl or C (B) slides
+      when you''re running.'
+    image: {fileID: 0}
+  - title: Keep your speed
+    body: 'Jump at a wall along it and hold forward to run on it; jump off it quickly
+      to keep your speed. Ledges pull you up by themselves.
+
+      F3 (View) shows
+      your speed. Esc > Comfort and camera for the field of view and the effects.'
+    image: {fileID: 0}
+  showHowToPlayOnFirstRun: 1
+  allowDebugMenuInRelease: 0
+  showPixelLookSetting: 0
+  showTextSettings: 0
+  showActionSettings: 1
+  showBestTime: 1
+  chooseDifficultyOnPlay: 0
+  showControlLegend: 0

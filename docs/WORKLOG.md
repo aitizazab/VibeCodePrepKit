@@ -102,3 +102,15 @@ request (2026-10-10), the **morning report** is built from this log and must be 
     speed lines). Ctrl+Shift+P is presenter mode, with chapters: course start, wallruns, momentum chain,
     chimney, chase.
   - **Placeholders:** the arms are capsule-shaped, and all sounds are generated.
+
+#### Movement Lab round 2: all green (about 07:45)
+- **The slow respawn wasn't a game bug.** The respawn does launch you at sprint speed, but the test measured
+  after the fade with no input held, by which time friction had stopped the player. The test now holds
+  forward like a player and records the launch speed.
+- **Mantles keep 80% of your run's speed,** like Titanfall's. Before, hitting the ledge face clipped your speed
+  first, so you left at the 5 m/s minimum. A short jump at 9.5 m/s rescued by a mantle now leaves at 7.3 m/s
+  or more.
+- **Results:** PlayMode 79/79, Windows build OK, smoke run PASS (9.2 s). The playable build is refreshed (same
+  path: `VibeJamKit-play\Builds\Play\MovementLab\VibeJamKit.exe`).
+- **The Movement Lab's generated scene, materials, tuning data and config are now committed** to the main repo
+  (they had only existed in the clean checkout).
