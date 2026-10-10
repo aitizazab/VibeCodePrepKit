@@ -177,14 +177,15 @@ or kills the boss), and can drive a few seconds of itself in the smoke run throu
 
 ## Templates
 
-`JamKit > Use Template > Bullet Hell` (or `> DOOM-like`, `> Story`, `> Visiting Hours`, `> Movement Lab`, `> Sandbox`) points Play, the smoke
+`JamKit > Use Template > Bullet Hell` (or `> DOOM-like`, `> Story`, `> Visiting Hours`, `> Movement Lab`, `> Dream Escape`, `> Sandbox`) points Play, the smoke
 test and Build Settings at a template: it copies the template's preset (title, tagline, first scene,
 music, How to Play cards, which Settings options show: Pixel look, the text options, the action
 options, best time) into the active GameConfig. The bullet hell is documented in
 `docs/TEMPLATE-BULLETHELL.md`, the DOOM-like in `docs/TEMPLATE-DOOMLIKE.md`, the story (visual novel,
 point-and-click) in `docs/TEMPLATE-STORY.md`, the Visiting Hours slice (first person, a journal,
 argument battles) in `docs/SLICE-VISITING-HOURS.md` and `docs/SLICE-NOTES.md`, the Movement Lab (Titanfall-style
-movement for any first-person scene, with a feel-test course and a chase) in `docs/MOVEMENT.md`.
+movement for any first-person scene, with a feel-test course and a chase) in `docs/MOVEMENT.md`, and Visiting
+Hours' first escape (the dream street chase, standalone until the story wires it in) in `docs/DREAM-ESCAPE.md`.
 
 Templates can add to the shell's screens from code: `GameRoot.Ui.Title.AddButton(name, text, action,
 beforeName)` (also on Pause and the other screens; `SetButtonShown`), `GameRoot.Ui.Title.Shown` to

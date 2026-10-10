@@ -116,6 +116,18 @@ dream-static 12 m behind you.
 Route: **Momentum chain** (slide, slide jump, wallrun, wall kick, double jump: watch the speed graph, F3),
 then the **Chase**. Attract mode runs the course with the autopilot. Details: `docs/MOVEMENT.md`.
 
+### Visiting Hours: the first escape (`DreamEscape`)
+
+Standalone until the story wires it in: **JamKit > Use Template > Dream Escape**.
+Chapters: **Escape start, Rooftops, Final run.** Each is a checkpoint of the dream street. Escape start is
+Walt's driveway from a standstill: the static wakes when you run (or after 2.5 s). The other two arrive
+running at sprint with the static 12 m behind.
+
+Route: **Escape start** and play it through (about a minute: fences, a house-front wallrun, car roofs, the
+garden wall, the garage slide, the porch climb, the roofs); if time is short, **Rooftops**, then **Final
+run** (roof slide, the last wall, the jump into the light). Turn on **Invincible** to show it with no risk
+of a catch. Details: `docs/DREAM-ESCAPE.md`.
+
 ### Sandbox
 
 Chapters: **Start, The sign.** It's the worked example for adding chapters to your own game
@@ -183,6 +195,7 @@ at a limited rate, like a hand. The player is invincible while it runs.
 | DOOM-like | Walks Levels 1 and 2 towards the exit along the NavMesh, turning like a stick and shooting what it sees. Then the boss fight and the tally. |
 | Story | The prologue, the platform and an ending, read at the auto-mode pace (choices after a pause). The office is clicked through by its walkthrough, pointing at each thing first. |
 | Visiting Hours | The opening over the title. Nadia walks up to the Day 1 things, turns to them and charts them. Then the street at night, the argument played by its autopilot at real speed, and the Convinced end card. |
+| Dream escape | The course autopilot runs the whole escape from Walt's driveway to the light (about 50 s), then the final run again. |
 
 The scripts live in `<Template>Presenter.cs` (`Attract()`). Tests check that every jump in a script
 names a real chapter and every drive names a segment the game plays.

@@ -18,6 +18,7 @@ presenter mode), four genre templates (**2D bullet-hell roguelite**, **DOOM-like
 | [STORY-BIBLE.md](docs/STORY-BIBLE.md), [CHARACTER-BIBLE.md](docs/CHARACTER-BIBLE.md), [NIGHTS-GAMEPLAY.md](docs/NIGHTS-GAMEPLAY.md), [ARGUMENT-BATTLES.md](docs/ARGUMENT-BATTLES.md) | Visiting Hours proposals (2026-10-11, awaiting the creator): the five nights and endings, the cast, what the player does each night (with the demo route), the rebuilt argument battles |
 | [STORY-VISITING-HOURS.md](docs/STORY-VISITING-HOURS.md), [SLICE-VISITING-HOURS.md](docs/SLICE-VISITING-HOURS.md), [SLICE-NOTES.md](docs/SLICE-NOTES.md) | Visiting Hours' story design, the slice spec, notes on the first slice (partly superseded; see their headers) |
 | [RESEARCH-MOVEMENT.md](docs/RESEARCH-MOVEMENT.md) | Titanfall-style movement: mechanics, measured numbers, formulas, Unity approach, feel, chase design |
+| [DREAM-ESCAPE.md](docs/DREAM-ESCAPE.md) | Visiting Hours' first escape (the dream street chase): the route with distances, tuning, how to build the next escape |
 | [SHELL.md](docs/SHELL.md) | How to build a game on the shell |
 | [TEMPLATE-BULLETHELL.md](docs/TEMPLATE-BULLETHELL.md), [DESIGN-ROGUELITE.md](docs/DESIGN-ROGUELITE.md), [STORY-STRUCTURE-BULLETHELL.md](docs/STORY-STRUCTURE-BULLETHELL.md) | The bullet-hell template, its roguelite design rules, story structure for it |
 | [TEMPLATE-DOOMLIKE.md](docs/TEMPLATE-DOOMLIKE.md) | The DOOM-like template |
