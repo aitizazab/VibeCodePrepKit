@@ -578,23 +578,26 @@ points.
 | Game | What you see | Source |
 |---|---|---|
 | Mirror's Edge | Arms, legs and torso are visible; looking down you see yourself. A preview found that seeing her feet "came in handy during an early jump". DICE's fix for sickness was to "animate ones perceptions of movement and to not try and replicate the exact body movements". Its tuck-and-roll (a quick full camera pitch) was called "rather disorienting". | [Wurb blog](https://www.wurb.com/stack/?p=669), [Wikipedia](https://en.wikipedia.org/wiki/Mirror%27s_Edge), [Engadget (legs carried into BF3)](https://www.engadget.com/2012-08-13-how-mirrors-edge-gave-legs-and-more-to-battlefield-3.html) [Comm] |
-| Titanfall 2 | Arms and weapon. I found **no written source** for its wallrun or slide body animation (for example a hand on the wall). Check the IGN developer video (8.6 #6) or gameplay. | unverified |
+| Titanfall 2 | Arms and weapon only (no source shows legs). **There is a hand on the wall**: on approach the camera tilts and the view model "reaches a hand out to touch the wall" (the "lean-in"). Runners call it "super telegraphed": it shows "almost exactly when you're going to touch the wall", and they time wall kicks by it. In the game files a wallrun switches the weapon to a one-handed pose (0.2 s blend in, 0.35 s out). Slide: the gun tilts sideways (already in the air if crouch is held), the camera dips, and the FOV scales ×1.1 over 0.25 s. Details and sources in 8.7. | [bryonato 13:38, 16:38](https://www.youtube.com/watch?v=C_cXYyA4LaU), [Tvcx 0:32, 2:07](https://www.youtube.com/watch?v=uw-Do_JW3bI) [Comm]; game files (8.7) [Comm] |
 | Apex Legends | Extended TF2's knee slide so it keeps speed downhill and chains into jumps (SI feature, now offline). The movement Legend Axle's "Drift" adds speed and lateral control while sliding. | [EA](https://www.ea.com/news/apex-legends-s29-meet-axle) [Doc] |
 
-**What to build for the jam** [Op]: an **arms-only rig**, mostly procedural (springs plus a few
-poses), not a full body. Lower in priority order:
+**What to build for the jam** [Op, revised against the evidence in 8.7]: an **arms-only rig**, mostly
+procedural (springs plus a few poses), not a full body. Lower in priority order:
 1. **Sprint**: arms pump in sync with the footstep phase (reuse DoomPlayer's `_bob` phase).
-   Amplitude about 4 cm forward and back, 1.5 cm vertical; zero in the air.
-2. **Wallrun**: the wall-side hand reaches out to `wallHit.point + t̂·0.35 m` (Animation Rigging
-   Two-Bone IK, or just a lerped transform). The other arm swings normally. This is the cheapest
-   strong "I'm on the wall" cue.
-3. **Slide**: both hands drop and spread (balance pose). Optionally a simple shins/feet mesh rises
-   into the bottom 15% of the screen. This is the Mirror's Edge "see your feet" cue for distance
-   judgement.
-4. **Jump / double jump**: arms lift 3-5 cm on the jump. On the double jump they sweep down and back
-   (a "push off the air" pose), 0.15 s.
-5. **Landing**: the arms take the same dip spring as the camera (4.8), slightly later (an extra 0.03 s
-   delay) so they feel heavy.
+   Amplitude about 4 cm forward and back, 1.5 cm vertical; zero in the air. Keep the camera itself
+   almost still (bob is the most reported cause of nausea, 8.7). The amplitude is still my guess.
+2. **Wallrun**: the wall-side hand **starts reaching before contact** (predict the hit about 0.25 s
+   ahead), and plants on the wall on the contact frame, at about `wallHit.point + t̂·0.35 m`
+   (Two-Bone IK, or a lerped transform). That hand leaves its swing pose, as TF2's weapon goes
+   one-handed. The plant is a timing cue for the wall kick, so it must land on the contact tick.
+3. **Slide**: the arms **cant sideways** and the camera dips, with a ×1.1 FOV over 0.25 s (TF2).
+   Show the cant already in the air when crouch is held, as a "slide coming" cue. Shins and feet in the
+   bottom of the screen are optional (Mirror's Edge shows legs; TF2 shows none, as far as I found).
+4. **Jump / double jump**: no fixed lift. The arms trail vertical velocity: they sink up to about
+   1.5 cm while rising and float up while falling (TF2 sway). On the double jump, play one clear pose
+   and **hold it about 0.25-0.3 s** so it reads (Destiny holds key poses 7-10 frames).
+5. **Landing**: the arms take the same dip spring as the camera (4.8), about one frame later, scaled
+   by fall height, with no dip on small drops.
 
 ### 8.2 Camera and screen effects
 
@@ -675,7 +678,8 @@ vignette kept), *Speed lines* 0-100%, *Motion blur* off/low.
 ### 8.6 Videos likely to contain measured Titanfall 2 numbers (to transcribe)
 
 Found with a YouTube search via yt-dlp on 2026-10-10. Length and date come from the video metadata.
-"Why" is my guess, from each video's description and chapter list; **none has been transcribed yet**.
+"Why" is my guess, from each video's description and chapter list. Transcribed since: #1 and #2
+(section 9), #4 and #6 (8.7; #6 has nothing on numbers or body animation).
 
 | # | Video | Channel | Length | Date | Why it likely has numbers |
 |---|---|---|---|---|---|
@@ -691,6 +695,252 @@ Heinzy, 20:25, with a "Source Thoughts" chapter); [The tech that nearly ruined T
 (zweek, 23:44); [Iniquity's Movement Guide](https://www.youtube.com/watch?v=yvzXFQKwH8k) (6:17, 2016,
 1.4 M views, mostly technique).
 
+### 8.7 First-person body animation: evidence
+
+Researched 2026-10-10. Labels: **[Doc]** = a developer talk, a developer quoted in an interview, or
+engine source code; **[Comm]** = a player, a speedrunner, press, or **game files extracted by modders**
+(real data, but not checked against the retail build); **[Obs]** = my own observation of footage. There is
+**no [Obs] here**: I can't watch video, so every behaviour below comes from a spoken or written source.
+
+**Sources** (timestamps are into the video):
+- **Overwatch.** Matthew Boehm (Blizzard), *The First Person Animation of Overwatch*, GDC 2017
+  ([video](https://www.youtube.com/watch?v=7t0hLZd_8Z4)). Transcribed. [Doc]
+- **Destiny.** David Helsby (Bungie), *The Art of Destiny's First-Person Animation*, GDC 2015
+  ([video](https://www.youtube.com/watch?v=CXFLu8cityA)). Transcribed. [Doc]
+- **Dying Light.** Bartosz Kulon (Techland, lead player-mechanics programmer), *Parkour: How to Improve
+  Freedom of Movement in First-Person Games*, GDC 2018 ([video](https://www.youtube.com/watch?v=uikbLyi-cug)).
+  Transcribed. [Doc]
+- **Titanfall 2, Respawn.** IGN's *Art of the Level* with designer David Shaver (8.6 #6). Transcribed:
+  it says **nothing about body animation**.
+- **Titanfall 2, runners.** bryonato (8.6 #2) and Tvcx (8.6 #4), transcribed earlier. [Comm]
+- **Titanfall 2 game files.** Player settings `pilot_base.set` and `pilot_mp.set`, the R-201 weapon
+  script, and `springs.txt`, from [Syampuuh/Titanfall2](https://github.com/Syampuuh/Titanfall2/tree/main/scripts).
+  Decompiled view-model QC files (animation lists, blend times, state nodes) from
+  [MarkMuravev/titanfall2_source2](https://github.com/MarkMuravev/titanfall2_source2/tree/main/models/weapons).
+  The decompiled animation curves in that repo are broken (zeros, NaN), so **no amplitudes came from
+  them**, only names, fps and blend times. [Comm]
+- **Apex Legends game files.** Weapon scripts from [Mauler125/scripts_r5](https://github.com/Mauler125/scripts_r5/tree/main/weapons)
+  (the R5Reloaded modding project), including the empty-handed fists. [Comm]
+- **Mirror's Edge.**
+  - A DICE producer in a [2008 interview](https://www.indianvideogamer.com/features/the-most-comprehensive-mirrors-edge-interview/333) [Doc, via press].
+  - Senior animator Tobias Dahl in [AWN](https://www.awn.com/vfxworld/mirrors-edge-leap-faith) [Doc, via press].
+  - [Engadget 2008](https://www.engadget.com/2008/07/17/how-mirrors-edge-fights-simulation-sickness/) [Comm].
+  - The [Wurb review](https://www.wurb.com/stack/?p=669) [Comm].
+  - The DICE/EA GDC talk *Creating First Person Movement for Mirror's Edge* (Dahl and Lagre,
+    [GDC Vault](https://gdcvault.com/play/1012171/Creating-First-Person-Movement-for)) is members-only and
+    not on YouTube, so it was **not seen**.
+- **Mirror's Edge Catalyst.**
+  - Design director Erik Odeldahl at [EA](https://www.ea.com/en-au/amp/news/the-world-from-faiths-perspective) [Doc].
+  - Producer Jeremy Miller at [Uproxx](https://uproxx.com/?p=1614484) [Doc, via press].
+- **Source engine code.** `CalcViewModelLag` in the
+  [Source SDK 2013](https://github.com/ValveSoftware/source-sdk-2013) (`baseviewmodel_shared.cpp`).
+  Titanfall runs on a modified Source engine. [Doc]
+- **Momentum Mod.** Its open-source wallrun ([momentum-mod/game](https://github.com/momentum-mod/game),
+  `mom_gamemovement.cpp`) is a fan re-implementation in the Titanfall style, not Respawn's code. [Comm]
+
+#### Per move
+
+**Wallrun catch (approaching the wall, contact)**
+
+| Game | What the body does | Timing / numbers | Source |
+|---|---|---|---|
+| Titanfall 2 | "Nearly any time you approach a wall … your camera will tilt slightly and the player view model reaches a hand out to touch the wall." Runners call it the "lean-in". | **Starts before contact**: "a super telegraphed animation that lets you know almost exactly when you're going to touch the wall". Then "as soon as you hit the wall … your arm attaches to the wall like your hand … that's how you know when to jump off". Lead time not stated. | bryonato 13:38, 16:38; Tvcx 0:32 [Comm] |
+| Titanfall 2 | A wallrun puts the weapon into the **one-handed** state, freeing a hand: `activitymodifier wallrun` → node `onehanded`. | Switch to one-handed: fade in **0.2 s**, fade out **0.35 s**; animations at 30 fps. | `ptpov_car101.qc` [Comm, game files] |
+| Momentum Mod | Lean-in state "about to start wall running". | Traces **0.25 s** ahead (velocity plus gravity). Roll eases in by closeness `c(2−c)`, toward 14° × sin(yaw to the wall). | code [Comm] |
+| Dying Light | Not a wallrun, but the same "reach" idea: the climb's "begin" state reaches hands and legs to the ledge. In 2018 Techland's own wish list included hands that "touch walls" when running near obstacles. | | Kulon 09:28, 25:27 [Doc] |
+
+**During the wallrun**
+
+| Game | What the body does | Timing / numbers | Source |
+|---|---|---|---|
+| Titanfall 2 | Camera tilted. Near the 1.75 s limit "the camera [is] gradually tilting back to a straight up and down vertical position"; runners time end-boosts by that and by the wallrun sound. | 1.75 s limit (`wallrun_timeLimit 1.75`) | bryonato 23:26 [Comm]; `pilot_mp.set` [Comm, game files] |
+| Mirror's Edge | Body visible; when something can be grabbed, Faith "will reach towards it with a visible hand". | | Wurb [Comm] |
+
+**Wall kick (jump off the wall)**
+
+| Game | What the body does | Timing / numbers | Source |
+|---|---|---|---|
+| Titanfall 2 | No source describes the arms on the kick itself. The hand plant (above) is the cue players use to time it. | The kick must come within **5 ticks (83 ms)** of contact (section 9). | bryonato 16:12 [Comm] |
+| Mirror's Edge | A kick from a wallrun "inherits your speed and momentum from the wallrun". | | [critpoints](https://critpoints.net/2020/10/31/mirrors-edge-review/) [Comm] |
+
+**Slide**
+
+| Game | What the body does | Timing / numbers | Source |
+|---|---|---|---|
+| Titanfall 2 | "When your gun is tilted to the side it means you're going to slide." It shows **already in the air** when crouch is held. | | Tvcx 2:07 [Comm] |
+| Titanfall 2 | "The camera will do a sudden dip as you enter the slide animation." | | bryonato 38:10 [Comm] |
+| Titanfall 2 | FOV widens while sliding. The view model's sliding state is the `land_crouch` node. | `slideFOVScale 1.1`, lerp in **0.25 s**, out **0.25 s**. Crouch view height 38 u vs 60 u standing. | `pilot_mp.set`, `pilot_base.set`, `ptpov_car101.qc` [Comm, game files] |
+| Titanfall 2 | Legs: **no source** says they show, and the files list arms-only view models. | | unknown |
+| Mirror's Edge | Legs and torso visible. Crouch in mid-air "coil[s] up, lifting your legs". | | Wurb, critpoints [Comm] |
+
+**Jump and double jump**
+
+| Game | What the body does | Timing / numbers | Source |
+|---|---|---|---|
+| Titanfall 2 | Dedicated view-model transitions `switch_to_jump` and `switch_to_land`, with crouch and aim variants. Their motion is unknown (the decompiled curves are broken). | 30 fps | `ptpov_car101.qc` [Comm, game files] |
+| Titanfall 2 | The procedural sway trails **vertical velocity**: moving up sets the view model's z to −1 u, moving down to +1 u, clamped at about ±0.6 u. So the gun **sinks while rising and floats while falling**; it does not lift on the jump. | ≈ **1.5 cm** maximum | R-201 `sway_move_up/down_translate_z`, `sway_max_z` [Comm, game files] |
+| Titanfall 2 | Double jump: a jump-kit thrust (sound, rumble `rumbleOnDoubleJump`). No source describes the arms. | | unknown |
+| Apex Legends | The double jump has its own view-model overlay activity `ACT_VM_DOUBLEJUMP`. | | [r5sdk `shared_activity.h`](https://github.com/Mauler125/r5sdk) [Comm] |
+| Destiny | Jump and land **overlay animations** on top of the base pose, driven by the third-person body's data. Without them "it feels like you're just kind of a floating camera". | | Helsby 07:00, 13:00 [Doc] |
+
+**Mantle**
+
+| Game | What the body does | Timing / numbers | Source |
+|---|---|---|---|
+| Titanfall 2 | Hand-authored first-person mantles for **4 ledge heights** (below, level, above, high-above), each with a crouch version. A "mantle idle" blends between ledge-angle-left, straight and ledge-angle-right poses. There is a separate mantle jump-off. | Fade in/out **0.2 s**, 30 fps | `pov_pete_core.qc` [Comm, game files] |
+| Dying Light | A "begin" state where the player "is reaching his hands and legs to grab the ledge". Its length is **scaled to the speed before the climb** ("to avoid changing speed as much as possible"), and the view is blended toward the ledge's forward. The second hand is placed by **IK at the ledge edge** found in screen space. They loosened the animations to get "like 40 centimeters of freedom". | ±40 cm IK range | Kulon 09:28-09:55, 14:41-15:03 [Doc] |
+| Dying Light | A climb as a cinematic "looked okay, but played horrible". Fixes: a shorter sequence, the player can walk while the camera is still rising, and the head stays free to look around. | | Kulon 11:11-12:12 [Doc] |
+| Mirror's Edge Catalyst | The first game's "fairly long non-interruptable animations" gave too little control, so Catalyst moved to a branching system that can be cut into. | | Miller, Uproxx [Doc, via press] |
+
+**Landing**
+
+| Game | What the body does | Timing / numbers | Source |
+|---|---|---|---|
+| Titanfall 2 | The view kick is scaled by fall distance. The view punch is a spring. | `viewkickFallDistMin 10`, `Max 70`, `MaxScale 12` (units not stated). `punch_pilot`: spring constant 65, damping 9 → about **1.07 Hz**, half-life **0.15 s**, damping ratio ≈ 0.56 (formulas are in the file's own comments). Whether the landing uses this spring is my inference. | `pilot_base.set`, `springs.txt` [Comm, game files] |
+| Destiny | A land overlay animation (see Jump). | | Helsby 13:00 [Doc] |
+| Mirror's Edge | "If you're falling from a height and you expect the screen to move or bob and it does, that's good and the brain is happy." The roll after a big drop snaps the view back to the same heading. | | DICE producer, 2008 [Doc, via press] |
+
+**Sprint**
+
+| Game | What the body does | Timing / numbers | Source |
+|---|---|---|---|
+| Titanfall 2 | An authored sprint loop with the weapon lowered, and a small view roll. | Cycle `sprintcycle_time` **0.55 s** (two steps). Footsteps every **275 ms** sprinting, 400 ms running. `sprinttiltMaxRoll` **2°**. `sprintViewOffset −6`. Sprint start delay 0.2 s, start blend 0.8 s (0.2 s fast), end blend **0.15 s**. Walk bob: 0.4 s cycle, 0.19 u (0.5 cm) vertical, 0.1 u (0.25 cm) sideways. | `pilot_base.set`, R-201 script [Comm, game files] |
+| Titanfall 2 | A looping "wind" layer that moves only the camera and view root (`weights_wind_loop_layer`). It is probably a speed buffet; its trigger is not known. | 30 fps loop | `ptpov_car101.qc` [Comm, game files] |
+| Apex Legends (fists) | Empty-handed bob: 0.45 s cycle, 0.075 u (0.19 cm) vertical, 0.05 u sideways. | | `mp_weapon_melee_survival.txt` [Comm, game files] |
+| Overwatch | Run cycles are authored per hero, with additive "run leans" when running sideways or forward and back. Camera motion is animated from the root, plus "little extra" on a camera bone, "nothing too heavy". | | Boehm 06:36, 22:26 [Doc] |
+| Mirror's Edge | Head bob from the 2008 GDC build was **removed**. The view was moved to "your eyes and not your head". | | Engadget 2008 [Comm] |
+
+**Turning (look sway)**
+
+| Game | What the body does | Timing / numbers | Source |
+|---|---|---|---|
+| Titanfall 2 (R-201, hip fire) | The view model counter-rotates and rolls on look input. | Turn: yaw ∓2.5°, **roll ±4°**, pitch ±3° (looking up also rolls −0.8°). Clamps: pitch ±3°, yaw ±2.5°, roll ±4°; translation ±0.5 u (1.3 cm), z ±0.6 u (1.5 cm). Strafing: roll ∓4°, sideways ±1 u. Gains: translation 2.5, rotation 7 (probably a follow rate per second; not documented). | R-201 script [Comm, game files] |
+| Apex Legends (fists) | Snappier and larger. | Clamps: yaw ±3.5°, pitch ±3°, roll −2°/+3°. Gains: translation **10**, rotation **12**. The empty-hand "gloves" add `sway_turn_angle_factor −0.5` and `sway_gain 15`. | Apex weapon scripts [Comm, game files] |
+| Source engine | The view model lags the view direction. | Follows at **5 /s** (time constant 0.2 s). Offset = 5 u × the change in the forward vector, about 2.2 cm for a 10° lag. Catch-up speeds up past a difference of 1.5. | `CalcViewModelLag` [Doc] |
+| Overwatch | "Spring-based" additive aim and roll poses with spring values **tuned per hero for character** (tight for McCree, loose for Roadhog, "flows and snaps" for Zenyatta). There are also look-up/down overlays: look up and Winston's arm leaves the screen; look down and you see more of it. | | Boehm 19:55-22:12, 24:03 [Doc] |
+
+#### Cross-cutting craft (all moves)
+
+- **The arms' FOV is fixed and separate from the world FOV.**
+  - Overwatch separates them so players' FOV sliders don't stretch the poses (Boehm 17:09).
+  - Destiny: world 72°, arms **77°**, "locked from the beginning of the project until the end" (Helsby 42:04).
+  - TF2's files have `fov 70`, `viewmodelfov 70`.
+  - This confirms 8.5. [Doc]
+- **Immediate feedback.** "The minute that button gets pushed, you want to start seeing motion on the
+  screen" (Destiny pillar 1). Other pillars: preserve motion between actions, and "no speed bumps"
+  (Helsby 03:24-05:21). [Doc]
+- **Translation, not rotation, for camera accents.** Rotation moves the far world and the horizon a lot,
+  "especially camera roll". Translation is large up close and fades with distance (Helsby 28:53-30:00).
+  Overwatch adds translation "without rotating too far … you get that seasickness in … the roll"
+  (Boehm 24:35). [Doc]
+- **The head leads.** Destiny's camera leads the hit "maybe just by one frame, but it really makes a
+  difference" (Helsby 32:46). [Doc]
+- **Hold key poses so they read.** Hold a limb on screen "seven to ten frames", because "in first person,
+  really the only information that you have about your character … is the visual information"
+  (Helsby 17:56-18:52). [Doc]
+- **Keep the combat corridor and the edges clear.**
+  - Don't pose actions in the peripheral band (sides and top) or across the central strip
+    (Helsby 14:59-16:24).
+  - Overwatch's Winston gives "hints" of a limb "without flashing in your peripheral vision" (Boehm 23:47).
+  - TF2's wall hand breaks this on purpose, as a gameplay cue. [Doc]
+- **Depth.** Elements far from the camera look small and "weaker"; too close feels "claustrophobic"
+  (Helsby 57:24). [Doc]
+- **Snap and stretch on contact frames.** On Overwatch's fire and melee contact frames the arm is "really
+  stretch[ed] … and snap[ped] back". Camera Z translation gives impact, but watch the collision: McCree's
+  face went through walls in the alpha (Boehm 26:48, 31:57). [Doc]
+- **Clipping.** Dying Light's hands went into geometry; they "scaled down the hands … with camera
+  projection" (Kulon 14:04). URP's overlay camera does the same job. [Doc]
+- **Animate perception, not the body.** "The key to succeeding with first-person animation is to animate
+  what you perceive … what your eyes do, not your head and body" (Dahl, AWN). A head-mounted GoPro is
+  not how we see: our eyes stabilise the image (Helsby 25:01-26:14). [Doc]
+
+#### What players and developers report (good and bad)
+
+- **No body feels like a floating camera.**
+  - Destiny without first-person animation: "you're just kind of a floating camera" (Helsby 07:00) [Doc].
+  - Dying Light's Maciej Binkowski: without limbs "you'd just feel like your character was a floating
+    camera" ([MCV](https://www.mcvuk.com/development-news/the-vaulting-dead-implementing-first-person-parkour-in-dying-light/)) [Doc, via press].
+  - The Mirror's Edge producer found a "static floating camera" in another game "so jarring because I
+    didn't get the feel of the feet and the body" [Doc, via press].
+- **Seeing the limbs helps.**
+  - A preview called Faith's arms and legs "the tools that enable her to accomplish her goals" [Comm].
+  - A Catalyst player: "If you grab onto a ledge, you'll see her hands … I found it made the game vastly
+    more immersive" ([review](https://www.goodreads.com/author_blog_posts/14878645-review-mirror-s-edge-catalyst)) [Comm].
+  - Odeldahl: "In real life, we are so used to using our arms and legs without looking at them, but in a
+    game that just doesn't work" [Doc].
+- **Camera motion causes nausea.**
+  - Mirror's Edge: a shoulder-driven head plane "made me feel sick in about 15 seconds". Fixes: a reticle
+    steadied by a distant focal point, a wide FOV, and the rule that whatever the player expects must
+    happen [Doc, via press].
+  - Dying Light: a Polygon reporter left the booth sick. Testing found "frequent and often camera target
+    movement", and the "camera moving backward when player body was moving forward" (a small backward
+    bump in fast forward moves, removed). A centre dot and a longer distance from the screen also helped
+    (Kulon 19:01-21:54) [Doc].
+  - Apex Legends at launch: players reported nausea from head bobbing. Respawn asked whether it was worse
+    "Sprinting? When weapon is drawn? When weapon is holstered?" ([devtracker](https://devtrackers.gg/apex-legends/p/f7a09eaf-abandoning-the-game-due-to-head-bobbing-head-aches-nausea-persisting-for-hours)) [Comm + Doc].
+  - Destiny: "even if your camera motion is going to make only 10% of the population sick … you've just
+    lost 100,000 people" (Helsby 24:41) [Doc].
+- **Settings.** Xbox Accessibility Guideline 117: "Avoid or allow disabling camera shake, camera bobbing,
+  motion blur", and avoid repetitive on-screen motion "(weapon sway, camera bobbing)"
+  ([XAG 117](https://devdocs.xbox.com/gaming/accessibility/xbox-accessibility-guidelines/117)) [Doc].
+- **Control.** Losing control during an animation "feels really bad" (Kulon 11:24) [Doc]. Catalyst made
+  its moves interruptible [Doc, via press].
+
+#### Recommendations for our body rig (each tagged with its evidence)
+
+1. **Wall hand: anticipate, then plant on contact.** Predict wall contact about 0.25 s ahead (velocity
+   plus gravity). Start the reach and the camera roll then, eased by closeness. Plant the hand on the
+   contact frame; don't snap it there after contact.
+   - Evidence: TF2 lean-in "telegraphed" before contact, with the hand attached at contact (bryonato,
+     Tvcx); Momentum Mod 0.25 s look-ahead; Dying Light's "begin" reach.
+   - The plant is the player's **wall-kick timing cue** (83 ms window), so it must be exact.
+   - Blend the wall arm out of its run pose in about 0.2 s and back in about 0.35 s (TF2's one-handed
+     switch).
+2. **Slide: cant the arms, dip the camera, FOV ×1.1 over 0.25 s.** Show the cant as soon as crouch is
+   held in the air. Legs in view are optional. (TF2: Tvcx, bryonato, `slideFOVScale`; Mirror's Edge legs.)
+3. **Vertical inertia instead of a fixed jump lift.** Offset the arms against vertical velocity: down
+   while rising, up while falling, clamped at about 1.5 cm. Optionally add a short jump overlay on the
+   input frame (TF2 sway; Destiny overlays; Destiny pillar 1).
+4. **Hold the double-jump pose about 0.25-0.3 s**, not a 0.15 s sweep, so it reads (Destiny's 7-10
+   frames). The shape of the pose is still [Op]; Apex gives the double jump its own overlay.
+5. **Mantle: per-height poses plus hand IK on the lip.** Allow about ±40 cm of IK correction. Scale the
+   reach time to approach speed. Blend the view toward the ledge but keep mouse look free. Let the player
+   move before the climb ends. (TF2's 4 heights with 0.2 s fades; Dying Light; Catalyst.)
+6. **Look sway: rotation clamps of about ±3° yaw/pitch and ±4° roll, translation ≤ 1.5 cm.** Use a fast
+   rotation follow (about 7-12 /s) and a slower translation follow (2.5-10 /s). Roll the arms ±4° when
+   strafing. Use Overwatch's per-character tuning to make it feel like *her*. (TF2 and Apex scripts;
+   Source lag 5 /s; Overwatch.)
+7. **Camera accents by translation, not roll.** Wallrun roll stays ≤ 8° (4.8). Sprint roll ≤ 2° (TF2
+   `sprinttiltMaxRoll`). Never move the camera backward while the body moves forward. (Destiny; Overwatch;
+   Dying Light; Mirror's Edge.)
+8. **Landing: camera first, arms about one frame later, scaled by fall height.** For a spring, start near
+   TF2's view-punch spring (about 1.1 Hz, half-life 0.15 s, damping ratio 0.56). (TF2 files; Destiny's
+   "head leads by one frame".)
+9. **Arm FOV fixed** (Destiny 77° vs world 72°; Overwatch; TF2), drawn by the overlay camera so the hands
+   never clip (Dying Light).
+10. **Sprint: keep camera bob tiny.** Put the motion in the arms, out of the top and side bands. TF2's
+   sprint cycle is 0.55 s per two steps at 6.6 m/s, so tie our pump to our own step interval. (Apex
+   nausea reports; XAG 117; Destiny's peripheral bands; TF2 files.) The 4 cm and 1.5 cm amplitudes remain
+   [Op]: no game publishes its sprint-arm amplitude.
+
+#### Still unknown
+
+- How far ahead of contact TF2's wall hand starts, its exact pose, and which hand reaches when the wall
+  is on the weapon side.
+- What TF2's arms do on the wall kick, the double jump, and landing: the dedicated animations exist, but
+  their decompiled curves are unusable.
+- Whether TF2 shows legs at any time.
+- Units and use of TF2's `viewkickFallDist*`, `sprintViewOffset` and sway "gain" values.
+- Doom (2016) and Eternal, and Ghostrunner: **no developer material on first-person arm animation was
+  found**. Ghostrunner has only a player guide (FOV around 90, motion blur off; see 8.2).
+- The Mirror's Edge GDC talk and *Giving Purpose to First-Person Animation* (Ryan Duffin, GDC 2013) are
+  members-only on GDC Vault.
+- Cross-check, outside body animation: TF2's `pilot_mp.set` has `wallrun_timeLimit 1.75` and
+  `wallrunJumpOutwardSpeed 205`, matching section 9's measurements. It also has
+  `wallrunJumpInputDirSpeed 80` (measured: 75) and `wallrunMaxSpeedHorizontal 420` (measured goal: 340).
+  The first two confirm section 9. The last two differ, and I can't tell which of the file's numbers the
+  measured 340 u/s goal comes from.
+
 ## Uncertain or unverified
 
 - **No Titanfall 2 speeds, timings or caps were found published.** The numbers here are Titanfall 1
@@ -705,7 +955,12 @@ Heinzy, 20:25, with a "Source Thoughts" chapter); [The tech that nearly ruined T
   relying on it.
 - The repo quality notes in section 5 are from READMEs and metadata, not code review.
 - Every value in section 4 is a starting point, not a measured or proven value.
-- Section 8: I found no written source for Titanfall 2's first-person wallrun and slide body animation, or its movement audio beyond the slide Foley. Most feel parameters are my own starting points; the reception notes are player anecdotes, except the FOV-restriction study.
+- Section 8: Titanfall 2's wallrun hand and slide cues are now sourced, from runners' guides and the
+  game's files (8.7). No developer statement exists, and the decompiled animation curves are unusable,
+  so their amplitudes and timings are still unknown (see "Still unknown" in 8.7). Its movement audio
+  beyond the slide Foley is still unsourced. Most feel parameters in 8.2-8.4 are my own starting points;
+  the reception notes are player anecdotes, except the FOV-restriction study and the developer talks
+  in 8.7.
 - The 8.6 videos are chosen from titles, chapters and descriptions only. Whether they state numbers is a guess until they are transcribed.
 
 ## 9. Measured numbers from the community (transcribed 2026-10-10)
