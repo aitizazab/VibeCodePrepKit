@@ -49,6 +49,9 @@ namespace JamKit.Movement
         /// <summary>Speed above sprint (from a slide boost, a wall jump) fades at this rate per second
         /// while you keep moving, instead of friction: the momentum lingers.</summary>
         public float overspeedDecay = 1.5f;
+        /// <summary>Running faster than sprint, the velocity still turns toward the stick at this rate
+        /// (degrees per second) without losing speed. Pure Source can't steer at overspeed, which feels like ice.</summary>
+        public float groundTurnRate = 220f;
         /// <summary>No ground friction for this long after landing (a wide bunny-hop / chain window).</summary>
         public float landingGrace = 0.15f;
         /// <summary>A stick pushed this far counts as fully pushed (gamepad players reach sprint).</summary>
@@ -97,9 +100,9 @@ namespace JamKit.Movement
         /// <summary>Slide deceleration for the first <see cref="slideEarlyTime"/> seconds, then <see cref="slideDecel"/>.</summary>
         public float slideDecelEarly = 2.5f;
         public float slideEarlyTime = 0.6f;
-        public float slideDecel = 6f;
-        /// <summary>Downhill pull while sliding on a slope (1 = full gravity along the slope).</summary>
-        public float slideSlopeScale = 1f;
+        public float slideDecel = 4f;
+        /// <summary>Downhill pull while sliding on a slope (1 = gravity along the slope; 1.5 makes slide ramps clearly speed you up).</summary>
+        public float slideSlopeScale = 1.5f;
         /// <summary>The slide ends below this speed.</summary>
         public float slideExitSpeed = 4f;
         /// <summary>Steering while sliding, degrees per second.</summary>
@@ -122,7 +125,7 @@ namespace JamKit.Movement
         /// <summary>Wall probes: from this height above the feet, sphere radius, reach beyond the body radius.</summary>
         public float wallProbeHeight = 1.0f;
         public float wallProbeRadius = 0.25f;
-        public float wallProbeReach = 0.35f;
+        public float wallProbeReach = 0.5f;
         /// <summary>Wallrun goal speed. Titanfall 2 measured 340 u/s = 8.64 m/s (docs/RESEARCH-MOVEMENT.md 9):
         /// slower entries accelerate up to it, faster ones are slowed toward it by wall friction, so a quick
         /// wall kick keeps the most speed.</summary>

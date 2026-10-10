@@ -214,7 +214,10 @@ namespace JamKit.Movement
             else if (stick > 0f && speed > def.sprintSpeed)
             {
                 float target = def.sprintSpeed + (speed - def.sprintSpeed) * (float)Math.Exp(-def.overspeedDecay * h);
-                vH *= target / speed;
+                Vector3 dir = vH / speed;
+                if (Vector3.Dot(dir, wishDir) > 0f)
+                    dir = RotateToward(dir, wishDir, def.groundTurnRate * (float)(Math.PI / 180.0) * h * stick);
+                vH = dir * target;
             }
             else vH = Friction(vH, def.friction, def.stopSpeed, h);
             if (stick > 0f) vH = Accelerate(vH, wishDir, wishSpeed, def.groundAccel, h);
@@ -465,6 +468,7 @@ namespace JamKit.Movement
                 float g = Lerp(def.wallGravityStart, def.wallGravityEnd, SmoothStep(0.2f, T, _wallTime));
                 vy = Math.Max(vy - def.gravity * g * h, -Lerp(def.wallSinkStart, def.wallSinkEnd, Clamp01(_wallTime / T)));
             }
+            if (along > def.maxHorizontalSpeed) along = def.maxHorizontalSpeed;
             _vel = _wallT * along + Up * vy - _wallN * def.wallStick;
 
             if (TryMantle(wishDir, stick, fwd)) return;
