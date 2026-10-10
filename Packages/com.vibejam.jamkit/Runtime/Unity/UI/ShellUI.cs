@@ -23,6 +23,8 @@ namespace JamKit.Shell
         public ResultScreen Victory;
         public CreditsScreen Credits;
         public HowToPlayScreen HowToPlay;
+        /// <summary>Settings > Controls: rebind keys and pad buttons.</summary>
+        public ControlsScreen Controls;
         /// <summary>Play's Story / Normal / Hard picker (GameConfig.chooseDifficultyOnPlay).</summary>
         public DifficultyScreen DifficultyPicker;
         public HudView Hud;
@@ -103,6 +105,7 @@ namespace JamKit.Shell
             Settings = Add(new SettingsScreen(), assets != null ? assets.settings : null);
             HowToPlay = Add(new HowToPlayScreen(), assets != null ? assets.howToPlay : null);
             DifficultyPicker = Add(new DifficultyScreen(), null);
+            Controls = Add(new ControlsScreen(), null);
 
             Hud = new HudView(assets != null ? assets.hud : null, _hudLayer);
             Dialogue = new DialogueView(assets != null ? assets.dialogue : null, _dialogueLayer);
@@ -187,6 +190,9 @@ namespace JamKit.Shell
         }
 
         public void OpenSettings() => OpenOverlay(Settings);
+
+        /// <summary>Opens the Controls screen (rebinding) on top of the current one; Back returns.</summary>
+        public void OpenControls() => OpenOverlay(Controls);
 
         /// <summary>Opens Play's difficulty picker (choosing a card starts the run; Back closes it).</summary>
         public void OpenDifficultyPicker() => OpenOverlay(DifficultyPicker);

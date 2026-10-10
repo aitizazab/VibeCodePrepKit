@@ -140,14 +140,50 @@ cards: the blind tester reads them once.
 | Sprint (the bullet hell's sprint, the DOOM-like's walk) | Left Shift | LB |
 | Focus (no default keys; the bullet hell's optional Focus mode) | - | - |
 | Dash (also the first-person movement's jump) | Space | A, RB |
-| Crouch / slide (first-person movement) | Left Ctrl, C | B |
+| Crouch / slide, hold (first-person movement) | Left Ctrl, C | B |
+| Crouch / slide, toggle | - | R3 |
+| Sprint, toggle (first-person movement) | - | L3 |
 | Interact | E | X |
 | Pause | Escape, P | Start |
 | Menus | arrows, Enter, Escape, mouse | stick/d-pad, A, B |
 | Presenter mode (hidden) | Ctrl+Shift+P | hold L3+R3 for 1 s |
 
-The bindings are in `Assets/JamKit/Input/JamKitControls.inputactions` (edit freely).
-Mouse sensitivity and invert Y are applied by `GameRoot.Input.LookDelta(GameRoot.Settings)`.
+The default bindings are in `Assets/JamKit/Input/JamKitControls.inputactions` (edit freely); the
+player changes them in **Settings > Controls** (below). Mouse sensitivity and invert Y are applied by
+`GameRoot.Input.LookDelta(GameRoot.Settings)`.
+
+### Settings > Controls (rebinding)
+
+Every template's Settings has a **Controls** button (shown with the action settings, so not in the
+story template). It opens a table: a row per gameplay action (Move, Look, Jump / Dash, Crouch / Slide
+hold and toggle, Sprint hold and toggle, Interact, Fire, Alt Fire, Pause), a **Keyboard & Mouse** column
+and a **Controller** column, and a Reset per row.
+
+- **Rebind:** select a cell, then press the new key, mouse button or pad button. **Esc** cancels (and
+  **Start**, or **B / Circle** for a keyboard cell, on a pad). The keyboard column takes keys and mouse
+  buttons, the pad column pad buttons; mouse movement and stick directions are never taken for a button
+  (Move and Look's pad cells take a whole stick or the d-pad, so you can swap sticks). Move's keyboard
+  cell asks for Up, Down, Left, Right in turn. Look's mouse cell can't change. Start can't be bound
+  (it cancels; Reset brings it back on Pause).
+- **Conflicts:** a key another action already uses asks **Swap** (that action gets your old key),
+  **Keep both**, or **Undo**. Shared keys you kept show **(!)**.
+- **Reset** on a row puts that action back; **Reset all** puts everything back (stick clicks too).
+- **Stick clicks:** "Crouch / Slide on R3" and "Sprint on L3" switch between **Toggle** (the default:
+  R3 / L3 belong to the toggle actions) and **Hold** (they move to the hold actions: crouch while R3 is
+  pressed in). This moves the default binding, so the player's own rebinds stay.
+- Pad buttons are named for the connected pad: A / B / X / Y, LB, RT, Menu on Xbox and generic pads;
+  Cross / Circle / Square / Triangle, L1, R2, Options on a DualShock or DualSense. Each cell shows the
+  binding it rebinds, then the others in grey ("Left Ctrl  also C").
+- Fully navigable: arrows / d-pad move around the table (left and right across a row, left and right
+  on a stick-click line change it), Enter / A selects; focus starts on Move's keyboard cell.
+- **Saved at once** in the save file (`save.json` in persistentDataPath; PlayerPrefs on WebGL), entry
+  `jk_controls`: the Input System's `SaveBindingOverridesAsJson` plus the two Hold / Toggle choices.
+  `GameRoot` loads it right after creating the input (before the first scene, in builds too) and again
+  whenever the save is reloaded. Binding ids are fixed (the asset's own, and "map/action/index" ids for
+  the actions added at runtime and the code defaults), so saved rebinds survive restarts and rebuilds.
+- Code: `GameRoot.Input.Bindings` (`ControlBindings`: rows, `SetPath`, `FindConflict`, `ResetRow`,
+  `ResetAll`, `SetStickHolds`, `SaveTo` / `LoadFrom`), `GameRoot.Ui.Controls` (`ControlsScreen`).
+  A template without shooting can hide rows: `GameRoot.Ui.Controls.SetRowShown("fire", false)`.
 
 ## Debug keys
 

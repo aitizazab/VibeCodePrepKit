@@ -122,6 +122,7 @@ namespace JamKit.Shell
             if (smoke) _save.Delete();
             _save.Load();
             _input = new InputService(_assets != null ? _assets.input : null, _flow);
+            _input.Bindings.UseSave(_save); // the player's rebinds, before any scene reads input
 
             _listener = gameObject.AddComponent<AudioListener>();
             _audio = gameObject.AddComponent<AudioService>();

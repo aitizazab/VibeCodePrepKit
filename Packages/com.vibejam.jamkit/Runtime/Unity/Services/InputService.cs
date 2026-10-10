@@ -9,6 +9,7 @@ namespace JamKit.Shell
     /// Focus (no default keys), Sprint, Dash, Crouch, Interact, Pause) and UI (Navigate, Submit, Cancel, Point, Click, ScrollWheel).
     /// Keyboard + mouse and gamepad. Gameplay code reads e.g. <c>GameRoot.Input.Move.ReadValue&lt;Vector2&gt;()</c>
     /// and should check <see cref="GameplayAllowed"/> (false while paused, in dialogue or in menus).
+    /// The player's rebinds (Settings > Controls) live in <see cref="Bindings"/>.
     /// </summary>
     public sealed class InputService
     {
@@ -18,6 +19,10 @@ namespace JamKit.Shell
 
         public readonly InputAction Move, Look, Fire, AltFire, Focus, Sprint, SprintToggle, Dash, Crouch, CrouchToggle, Interact, Pause;
         public readonly InputAction Navigate, Submit, Cancel, Point, Click, ScrollWheel;
+
+        /// <summary>Rebinding: the Controls screen's rows, conflicts, resets, the stick clicks' Hold / Toggle
+        /// choice, and the saved overrides (GameRoot loads them at boot).</summary>
+        public readonly ControlBindings Bindings;
 
         readonly GameFlow _flow;
 
@@ -33,13 +38,15 @@ namespace JamKit.Shell
             Fire = Gameplay.FindAction("Fire", true);
             AltFire = Gameplay.FindAction("AltFire", true);
             Focus = Gameplay.FindAction("Focus", true);
+            // Actions added here (an older asset lacks them) get fixed binding ids, so saved rebinds of them
+            // find them again on the next launch.
             // Sprint (Left Shift / LB) took over Focus's keys; Focus has none by default (bind one to use it).
             Sprint = Gameplay.FindAction("Sprint", false);
             if (Sprint == null)
             {
                 Sprint = Gameplay.AddAction("Sprint", InputActionType.Button);
-                Sprint.AddBinding("<Keyboard>/leftShift");
-                Sprint.AddBinding("<Gamepad>/leftShoulder");
+                AddFixed(Sprint, "<Keyboard>/leftShift", 0);
+                AddFixed(Sprint, "<Gamepad>/leftShoulder", 1);
             }
             // Sprint as a toggle (L3, Titanfall's stick-click layout with R3 crouch): click to sprint until you stop
             // moving forward, crouch, slide or respawn (the movement core keeps the toggle).
@@ -47,7 +54,7 @@ namespace JamKit.Shell
             if (SprintToggle == null)
             {
                 SprintToggle = Gameplay.AddAction("SprintToggle", InputActionType.Button);
-                SprintToggle.AddBinding("<Gamepad>/leftStickPress");
+                AddFixed(SprintToggle, "<Gamepad>/leftStickPress", 0);
             }
             Dash = Gameplay.FindAction("Dash", true);
             // Crouch / slide (Left Ctrl, C, B / Circle) for first-person movement; added when an older asset lacks it.
@@ -55,17 +62,18 @@ namespace JamKit.Shell
             if (Crouch == null)
             {
                 Crouch = Gameplay.AddAction("Crouch", InputActionType.Button);
-                Crouch.AddBinding("<Keyboard>/leftCtrl");
-                Crouch.AddBinding("<Keyboard>/c");
-                Crouch.AddBinding("<Gamepad>/buttonEast");
+                AddFixed(Crouch, "<Keyboard>/leftCtrl", 0);
+                AddFixed(Crouch, "<Keyboard>/c", 1);
+                AddFixed(Crouch, "<Gamepad>/buttonEast", 2);
             }
             // Crouch / slide as a toggle (R3, like Titanfall's stick-click layouts): press to crouch or slide, press
-            // again or jump to stand. Holding a stick click while steering with it is awkward, so it toggles.
+            // again or jump to stand. Holding a stick click while steering with it is awkward, so it toggles
+            // (Settings > Controls can make R3 and L3 hold instead).
             CrouchToggle = Gameplay.FindAction("CrouchToggle", false);
             if (CrouchToggle == null)
             {
                 CrouchToggle = Gameplay.AddAction("CrouchToggle", InputActionType.Button);
-                CrouchToggle.AddBinding("<Gamepad>/rightStickPress");
+                AddFixed(CrouchToggle, "<Gamepad>/rightStickPress", 0);
             }
             Interact = Gameplay.FindAction("Interact", true);
             Pause = Gameplay.FindAction("Pause", true);
@@ -75,7 +83,18 @@ namespace JamKit.Shell
             Point = Ui.FindAction("Point", true);
             Click = Ui.FindAction("Click", true);
             ScrollWheel = Ui.FindAction("ScrollWheel", true);
+            // Before Enable: it adds the empty slots and the stick-click bindings.
+            Bindings = new ControlBindings(this);
             Asset.Enable();
+        }
+
+        static void AddFixed(InputAction action, string path, int n)
+        {
+            action.AddBinding(new InputBinding
+            {
+                path = path,
+                id = DefaultControls.StableId("jamkit/" + action.actionMap.name + "/" + action.name + "/" + n),
+            });
         }
 
         SyntheticInput _synthetic;
@@ -139,8 +158,10 @@ namespace JamKit.Shell
 
         public void Dispose()
         {
+            Bindings.UseSave(null);
             Asset.Disable();
-            Object.Destroy(Asset);
+            if (Application.isPlaying) Object.Destroy(Asset);
+            else Object.DestroyImmediate(Asset); // EditMode tests build one too
         }
     }
 
@@ -250,6 +271,7 @@ namespace JamKit.Shell
             click.AddBinding("<Touchscreen>/primaryTouch/press");
             var scroll = ui.AddAction("ScrollWheel", InputActionType.PassThrough, expectedControlLayout: "Vector2");
             scroll.AddBinding("<Mouse>/scroll");
+            FixIds(asset);
             return asset;
         }
 
@@ -257,6 +279,40 @@ namespace JamKit.Shell
         {
             var a = map.AddAction(name, InputActionType.Button);
             foreach (var p in paths) a.AddBinding(p);
+        }
+
+        /// <summary>Binding ids from "map/action/index", the same every time (and the same as InputService's
+        /// for the actions it adds to older assets), so saved rebinds (they're stored by binding id) still
+        /// apply when the asset is rebuilt from these defaults.</summary>
+        static void FixIds(InputActionAsset asset)
+        {
+            foreach (var map in asset.actionMaps)
+                foreach (var action in map.actions)
+                    for (int i = 0; i < action.bindings.Count; i++)
+                    {
+                        var b = action.bindings[i];
+                        b.id = StableId("jamkit/" + map.name + "/" + action.name + "/" + i);
+                        action.ChangeBinding(i).To(b);
+                    }
+        }
+
+        /// <summary>A Guid that only depends on <paramref name="key"/> (two 64-bit FNV-1a hashes).</summary>
+        internal static System.Guid StableId(string key)
+        {
+            ulong a = 14695981039346656037UL, b = 0x9E3779B97F4A7C15UL;
+            for (int i = 0; i < key.Length; i++)
+            {
+                a = (a ^ key[i]) * 1099511628211UL;
+                b = (b ^ key[i]) * 0x100000001B3UL;
+                b ^= b >> 29;
+            }
+            var bytes = new byte[16];
+            for (int i = 0; i < 8; i++)
+            {
+                bytes[i] = (byte)(a >> (8 * i));
+                bytes[8 + i] = (byte)(b >> (8 * i));
+            }
+            return new System.Guid(bytes);
         }
     }
 }

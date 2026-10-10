@@ -221,7 +221,7 @@ namespace JamKit.Shell
     {
         Slider _master, _music, _sfx, _sensitivity, _shake, _textSpeed, _autoDelay;
         Toggle _invertY, _fullscreen, _pixelLook, _skipUnread;
-        Button _difficulty;
+        Button _difficulty, _controls;
         Label _difficultyInfo;
 
         static bool FullscreenAvailable => Application.platform != RuntimePlatform.WebGLPlayer;
@@ -256,6 +256,16 @@ namespace JamKit.Shell
                 _difficulty.focusController?.IgnoreEvent(e);
             });
             _difficultyInfo = Root.Q<Label>("difficulty-info");
+            // Controls (rebinding): added in code, above Back, so every template's Settings has it.
+            var back = Root.Q<Button>("back");
+            if (back != null && back.parent != null && Root.Q<Button>("controls") == null)
+            {
+                var controls = new Button { name = "controls", text = "Controls  >" };
+                controls.AddToClassList("jk-option");
+                controls.AddToClassList("jk-stepper");
+                back.parent.Insert(back.parent.IndexOf(back), controls);
+            }
+            _controls = Root.Q<Button>("controls") != null ? Bind("controls", () => Ui.OpenControls()) : null;
             Bind("back", () => Ui.CloseOverlay());
         }
 
@@ -355,6 +365,7 @@ namespace JamKit.Shell
             SetShown(_invertY, action);
             SetShown(_difficulty, action);
             SetShown(_difficultyInfo, action);
+            SetShown(_controls, action);
             RefreshDifficulty();
         }
 
