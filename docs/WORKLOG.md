@@ -538,3 +538,44 @@ headings above were corrected from the commit times; the earlier guesses ran up 
 - **The dream version's ear sticks out** too wide for its size.
 - **Two agents, as the creator asked:** one adapts round 2 to these notes (round 3); a second designs Lena from scratch,
   without seeing any Lena art so far. They take turns with Flow (one automation Chrome).
+
+### Lena round 3, the adapted design (14:05)
+- **Review page** (opened quietly in a background Firefox tab):
+  `FableAnimationTests\art\review\2026-10-10\visiting-hours-lena-round3.html`. It starts with the front views of Nadia,
+  Lena round 2 and Lena round 3 side by side, then each sheet with round 2's pick beside it. Nano Banana Pro, 10 takes,
+  0 credits.
+- **The waking turnaround:**
+  - a full, rested face, a little less round than round 2, with a composed, closed half-smile;
+  - the nose is shaded into the face (the other takes outlined the nose tip, the "pasted on" look);
+  - a cream fine-knit high-neck sweater with the sleeves down, a wine-red pleated midi skirt and slim dark boots;
+  - a thin gold watch and an old brass key on a chain;
+  - a neat, sharpened dark-green pencil on her right ear, with her hair tucked behind it. No workwear.
+- **The dream billboard:** her ear is small and under her hair, with the pencil visible; she holds a closed dark
+  notebook and half-smiles.
+- **The dream expressions** (warm, knowing, defensive): only one clean take.
+- **Its proposed passion:** meticulous notebooks of the city's vanishing places, the old buildings the corporations buy
+  and tear down (walks, photographs, notes). It fits the ordered pencil, the money and the dystopia, and gives her
+  "somewhere else she goes". The mystery is in styling only: the watch worn face-in, the key, the closed notebook.
+- **Weak spots:** the dream nose is a crayon line (the dream style's convention for everyone); the billboard shows the
+  watch face out; there's no real alternate for the expressions.
+- **Lena's rules in `CHARACTERS.md`** now say: leisure, not labour; well dressed, not flashy; mysterious through
+  styling, never sinister; the nose shaded into the face; the pencil a deliberate habit; a small dream ear; her
+  passion an open proposal.
+
+### Lena, the fresh design: brief done, generating (14:06)
+Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fresh-brief.md`:
+- **Who she reads as:** about 35, rested and composed; pleasant, but part of her attention is always somewhere else.
+- **Silhouette:** one long, soft vertical line. Long honey-ash waves, a knee-length oatmeal cardigan-coat over a
+  heather-plum mock-neck, stone wide-leg trousers, oxblood loafers. She stands upright and still (against Nadia's
+  boxy, hunched shape).
+- **Face:** fuller and rested, grey-green slightly heavy-lidded eyes, a faint resting half-smile; the nose shaded
+  continuously with the cheeks.
+- **Its proposed passion, the night sky:** she logs what she sees in pencil and drives out past the city lights alone
+  on clear nights. It shows only subtly: the pencil, a dark notebook in her pocket, a watch worn face-in, a little pale
+  dust on her shoes.
+- **In the dream,** she holds the notebook to her chest and glances away, as if listening to something far off: the
+  one figure who doesn't quite look at you.
+- **Its questions:** does the night sky fit, or pressed plants, or her own maps? Oatmeal and plum, or cooler and
+  greyer to match Elias? The pencil on the left ear (it shows in the side view) or the right? Is avoiding your eyes in
+  the dream the right amount of "wrong"?
+- It was waiting for Flow; the round-3 agent has finished, so it is generating now.
