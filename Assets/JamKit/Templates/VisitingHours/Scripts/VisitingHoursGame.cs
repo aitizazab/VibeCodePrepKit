@@ -139,6 +139,7 @@ namespace JamKit.VisitingHours
             }
             Shader.SetGlobalVector(FogParamsId, Vector4.zero);
             if (!GameRoot.Exists) return;
+            GameRoot.Input.Bindings.SetMoveDpad(false);
             UnregisterPortraits();
             GameRoot.Dialogue.EventRaised -= _onInkEvent;
             GameRoot.Dialogue.Ended -= _onDialogueEnded;
@@ -196,6 +197,8 @@ namespace JamKit.VisitingHours
             bool playing = GameRoot.Flow.Current == GameState.Playing && !GameRoot.IsLoadingScene;
             UpdatePointerLock(playing && _mode == Mode.Explore && !journalOpen && GameRoot.Ui.Top == null);
             FaceBillboards();
+            // The argument battle's 2D dodging also steers with the d-pad; walking the ward doesn't (no-op unless it changes).
+            GameRoot.Input.Bindings.SetMoveDpad(_mode == Mode.Battle);
 
             if (_mode == Mode.Battle)
             {

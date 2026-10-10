@@ -390,7 +390,7 @@ Gauntlet. Cross the gate and the clock starts; cross the finish line and it stop
 4. Fall, and you come back at the start of the section, already running. The clock keeps going.
 5. **R** or the pad's **View** button restarts at once from the start pad.
 6. The translucent figure is **the ghost of your best run**. **G** or the pad's **d-pad left** shows or hides it
-   (d-pad left also moves you left: it's part of Move's d-pad; Settings > Controls marks the overlap).
+   (the d-pad doesn't move you: gameplay Move is the left stick only, docs/SHELL.md).
 
 Both are the shell's **Restart** and **Ghost** actions, so they can be rebound in Settings > Controls
 ("Restart run", "Show ghost": rows that only show while the Gauntlet is loaded), and the hints and the

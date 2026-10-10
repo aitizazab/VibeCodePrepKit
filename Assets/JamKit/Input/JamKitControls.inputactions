@@ -221,17 +221,6 @@
                 },
                 {
                     "name": "",
-                    "id": "a47cf3a0-62ca-45b8-9437-b6b603d23541",
-                    "path": "<Gamepad>/dpad",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Move",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "ae2d532c-dd22-4494-8c17-5c4c69f9fec2",
                     "path": "<Mouse>/delta",
                     "interactions": "",

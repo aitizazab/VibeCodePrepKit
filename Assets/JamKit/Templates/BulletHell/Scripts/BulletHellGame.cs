@@ -210,6 +210,8 @@ namespace JamKit.BulletHell
                 return;
             }
             _current = this;
+            // A 2D shmup steers with the d-pad as well as the stick (gameplay Move has no d-pad by default).
+            GameRoot.Input.Bindings.SetMoveDpad(true);
             var half = config.playfieldHalfSize;
             _bounds = PlayfieldBounds.Centered(half.x, half.y);
             field.Configure(config.bulletStyles, _bounds);
@@ -264,6 +266,7 @@ namespace JamKit.BulletHell
         {
             if (_current == this) _current = null;
             if (!GameRoot.Exists) return;
+            GameRoot.Input.Bindings.SetMoveDpad(false);
             GameRoot.Dialogue.EventRaised -= OnDialogueEvent;
             GameRoot.Dialogue.Ended -= OnDialogueEnded;
             GameRoot.Dialogue.StoryCreated -= _bindInk;

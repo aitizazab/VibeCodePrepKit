@@ -134,7 +134,7 @@ cards: the blind tester reads them once.
 
 | | Keyboard / mouse | Gamepad |
 |---|---|---|
-| Move | WASD, arrows | left stick, d-pad |
+| Move | WASD, arrows | left stick (the d-pad only where a 2D template opts in: the bullet hell, Visiting Hours' argument battle) |
 | Look | mouse | right stick |
 | Fire / Alt fire | left / right mouse, J / K | RT / LT |
 | Sprint (the bullet hell's sprint, the DOOM-like's walk) | Left Shift | LB |
@@ -146,8 +146,8 @@ cards: the blind tester reads them once.
 | Interact | E | X |
 | Pause | Escape, P | Start |
 | Restart run (the Movement Lab's Gauntlet) | R | View / Share |
-| Show ghost (the Gauntlet) | G | d-pad left (also part of Move's d-pad: pressing it also moves you left) |
-| Menus | arrows, Enter, Escape, mouse | stick/d-pad, A, B |
+| Show ghost (the Gauntlet) | G | d-pad left |
+| Menus | arrows, Enter, Escape, mouse | stick/d-pad, A, B (the d-pad is Navigate's, everywhere) |
 | Presenter mode (hidden) | Ctrl+Shift+P | hold L3+R3 for 1 s |
 
 The default bindings are in `Assets/JamKit/Input/JamKitControls.inputactions` (edit freely); the
@@ -165,14 +165,15 @@ column, and a Reset per row.
 - **Rebind:** select a cell, then press the new key, mouse button or pad button. **Esc** cancels (and
   **Start**, or **B / Circle** for a keyboard cell, on a pad). The keyboard column takes keys and mouse
   buttons, the pad column pad buttons; mouse movement and stick directions are never taken for a button
-  (Move and Look's pad cells take a whole stick or the d-pad, so you can swap sticks). Move's keyboard
+  (Move and Look's pad cells take a whole stick or the d-pad, so you can swap sticks; Move's cell shows
+  just the left stick by default). Move's keyboard
   cell asks for Up, Down, Left, Right in turn. Look's mouse cell can't change. Start can't be bound
   (it cancels; Reset brings it back on Pause).
 - **Conflicts:** a key another action already uses asks **Swap** (that action gets your old key),
-  **Keep both**, or **Undo**. A control inside another one counts too (d-pad left is part of Move's
-  whole d-pad): that asks only **Keep both** or **Undo**, since a button can't swap with a stick-like
-  binding. Shared keys you kept show **(!)**; so does Show ghost's default d-pad left against Move in the
-  lab. Hidden rows don't count (R is free in a template without the Gauntlet).
+  **Keep both**, or **Undo**. A control inside another one counts too (a button on d-pad left while Move
+  has the whole d-pad): that asks only **Keep both** or **Undo**, since a button can't swap with a
+  stick-like binding. Shared keys you kept show **(!)**. Hidden rows don't count (R is free in a template
+  without the Gauntlet). The defaults share nothing.
 - **Reset** on a row puts that action back; **Reset all** puts everything back (stick clicks too).
 - **Stick clicks:** "Crouch / Slide on R3" and "Sprint on L3" switch between **Toggle** (the default:
   R3 / L3 belong to the toggle actions) and **Hold** (they move to the hold actions: crouch while R3 is
@@ -193,6 +194,13 @@ column, and a Reset per row.
   and Show ghost start hidden and `GauntletRun` shows them while it exists. To name the current keys in a
   hint, use `GameRoot.Input.Bindings.KeysText("restart", ControlNames.DetectPadStyle())` ("R or View"),
   rebuilt when `Bindings.Version` changes.
+
+**The d-pad is not on gameplay Move** (since 2026-10-10): first-person games steer with the left stick, and
+the d-pad is free for actions (the Gauntlet's ghost on d-pad left, the Movement Lab's HUD on d-pad down).
+It stays on UI Navigate, so menus are unchanged. The asset, the code defaults and older assets (at load) all
+lose it. A 2D template that steers with it opts in with `GameRoot.Input.Bindings.SetMoveDpad(true)` and
+turns it off again when it ends: the bullet hell for its whole scene, Visiting Hours only during the
+argument battle. A saved rebind of the removed binding is dropped quietly at load.
 
 ## Debug keys
 

@@ -6,6 +6,7 @@ using JamKit.Tests.Play;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using static JamKit.Tests.Play.ShellTestUtil;
@@ -134,7 +135,7 @@ namespace JamKit.MovementLab.Tests
             var input = GameRoot.Input;
             var restartRow = input.Bindings.FindRow("restart");
             Assert.That(restartRow.Shown && input.Bindings.FindRow("ghost").Shown, Is.True, "the lab shows its Controls rows");
-            var kb = new TestKeyboard("GauntletTestKeyboard");
+            var kb = new TestInput("GauntletTestKeyboard");
             try
             {
                 yield return null;
@@ -164,6 +165,45 @@ namespace JamKit.MovementLab.Tests
             {
                 kb.Dispose();
                 input.Bindings.ResetAll();
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator DpadLeftTogglesTheGhostWithoutMovingYou()
+        {
+            yield return StartLab();
+            var input = GameRoot.Input;
+            Assert.That(input.Bindings.MoveDpad, Is.False, "the lab doesn't put the d-pad on Move");
+            var io = new TestInput("GauntletDpadKeyboard");
+            io.AddGamepad("GauntletDpadPad");
+            try
+            {
+                Run.Restart();
+                yield return Frames(5);
+                Assert.That(Run.Clock.State, Is.EqualTo(GauntletState.Ready));
+                var before = Game.player.transform.position;
+                bool ghostWas = Run.ghostOn;
+
+                // Hold d-pad left for half a second: one ghost toggle, no movement.
+                io.SetPad(GamepadButton.DpadLeft);
+                float until = Time.realtimeSinceStartup + 0.5f;
+                bool moved = false;
+                while (Time.realtimeSinceStartup < until)
+                {
+                    yield return null;
+                    if (input.Move.ReadValue<Vector2>().sqrMagnitude > 0.0001f) moved = true;
+                }
+                Assert.That(moved, Is.False, "Move read nothing from the d-pad");
+                Assert.That(Run.ghostOn, Is.Not.EqualTo(ghostWas), "d-pad left toggled the ghost (once: it's a press)");
+                var after = Game.player.transform.position;
+                Assert.That(new Vector2(after.x - before.x, after.z - before.z).magnitude, Is.LessThan(0.05f), "the player stayed put");
+                io.SetPad();
+                yield return Frames(2);
+                Assert.That(Run.ghostOn, Is.Not.EqualTo(ghostWas), "releasing doesn't toggle it back");
+            }
+            finally
+            {
+                io.Dispose();
             }
         }
 

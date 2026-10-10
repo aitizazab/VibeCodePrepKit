@@ -10,29 +10,37 @@ using static JamKit.Tests.Play.ShellTestUtil;
 namespace JamKit.Tests.Play
 {
     /// <summary>
-    /// A test keyboard whose keys reach the game's actions in a batch-mode test run. With no focused Game View
-    /// the editor's default (PointersAndKeyboardsRespectGameViewFocus) sends keyboard events to the editor's
-    /// state, not the game's: an InputSystem.onEvent listener (the rebind) sees the key but the actions never
-    /// do. This routes all input to the game, as a focused window or a built player does, with a copy of the
-    /// input settings that <see cref="Dispose"/> puts back (and removes the device).
+    /// A test keyboard (and, on request, a test pad) whose input reaches the game's actions in a batch-mode test
+    /// run. With no focused Game View the editor's default (PointersAndKeyboardsRespectGameViewFocus) sends
+    /// keyboard events to the editor's state, not the game's: an InputSystem.onEvent listener (the rebind) sees
+    /// the key but the actions never do. This routes all input to the game, as a focused window or a built
+    /// player does, with a copy of the input settings that <see cref="Dispose"/> puts back (and removes the devices).
     /// </summary>
-    public sealed class TestKeyboard : System.IDisposable
+    public sealed class TestInput : System.IDisposable
     {
         readonly InputSettings _saved, _test;
-        public readonly Keyboard Device;
+        public readonly Keyboard Keyboard;
+        Gamepad _pad;
 
-        public TestKeyboard(string name)
+        public TestInput(string keyboardName)
         {
             _saved = InputSystem.settings;
             _test = Object.Instantiate(_saved);
             _test.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             _test.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
             InputSystem.settings = _test;
-            Device = InputSystem.AddDevice<Keyboard>(name);
+            Keyboard = InputSystem.AddDevice<Keyboard>(keyboardName);
+        }
+
+        /// <summary>A test pad too (once; removed with the keyboard).</summary>
+        public Gamepad AddGamepad(string name)
+        {
+            if (_pad == null) _pad = InputSystem.AddDevice<Gamepad>(name);
+            return _pad;
         }
 
         /// <summary>Holds exactly these keys (none: all up) from the next input update.</summary>
-        public void Set(params Key[] keys) => InputSystem.QueueStateEvent(Device, new KeyboardState(keys));
+        public void Set(params Key[] keys) => InputSystem.QueueStateEvent(Keyboard, new KeyboardState(keys));
 
         /// <summary>Holds exactly these keys, then waits two frames so the actions have seen it.</summary>
         public IEnumerator Press(params Key[] keys)
@@ -42,9 +50,18 @@ namespace JamKit.Tests.Play
             yield return null;
         }
 
+        /// <summary>Holds exactly these pad buttons (none: all up, sticks centred) from the next input update.</summary>
+        public void SetPad(params GamepadButton[] buttons)
+        {
+            var state = new GamepadState();
+            foreach (var b in buttons) state = state.WithButton(b);
+            InputSystem.QueueStateEvent(_pad, state);
+        }
+
         public void Dispose()
         {
-            if (Device != null && Device.added) InputSystem.RemoveDevice(Device);
+            if (_pad != null && _pad.added) InputSystem.RemoveDevice(_pad);
+            if (Keyboard != null && Keyboard.added) InputSystem.RemoveDevice(Keyboard);
             if (InputSystem.settings == _test) InputSystem.settings = _saved;
             if (_test != null) Object.Destroy(_test);
         }
@@ -54,13 +71,13 @@ namespace JamKit.Tests.Play
     /// keyboard, then Crouch answers the new key and not the old one, the rebind is saved, Reset undoes it.</summary>
     public class ControlsPlayTests
     {
-        TestKeyboard _keyboard;
+        TestInput _keyboard;
 
         [UnitySetUp]
         public IEnumerator SetUp()
         {
             yield return BootToTitle();
-            _keyboard = new TestKeyboard("ControlsTestKeyboard");
+            _keyboard = new TestInput("ControlsTestKeyboard");
             yield return null;
         }
 

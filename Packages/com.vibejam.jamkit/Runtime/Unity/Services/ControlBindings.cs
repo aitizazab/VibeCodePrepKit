@@ -105,6 +105,9 @@ namespace JamKit.Shell
 
         public const string R3 = "<Gamepad>/rightStickPress";
         public const string L3 = "<Gamepad>/leftStickPress";
+        /// <summary>The whole d-pad as a stick. Not on gameplay Move by default (menus keep it on Navigate);
+        /// a 2D template that steers with it turns it on with <see cref="SetMoveDpad"/>.</summary>
+        public const string Dpad = "<Gamepad>/dpad";
 
         readonly InputActionAsset _asset;
         readonly List<ControlRow> _rows = new List<ControlRow>(12);
@@ -148,6 +151,9 @@ namespace JamKit.Shell
 
             SetUpStick(StickClick.Crouch, input.CrouchToggle, input.Crouch, R3);
             SetUpStick(StickClick.Sprint, input.SprintToggle, input.Sprint, L3);
+            // Move's d-pad, off ("" path) unless a template opts in: an extra binding with a fixed id.
+            _move = input.Move;
+            _moveDpadIndex = _move != null ? AddEmpty(_move, "Gamepad", "dpad-optin") : -1;
             foreach (var row in _rows) AddMissingSlots(row);
             foreach (var row in _rows) FindSlots(row);
         }
@@ -320,6 +326,27 @@ namespace JamKit.Shell
             action.ChangeBinding(index).WithPath(path);
         }
 
+        // ---------- Move on the d-pad (a template's opt-in) ----------
+
+        InputAction _move;
+        int _moveDpadIndex = -1;
+        bool _moveDpad;
+
+        /// <summary>True while a template has put the d-pad on gameplay Move (<see cref="SetMoveDpad"/>).</summary>
+        public bool MoveDpad => _moveDpad;
+
+        /// <summary>Puts the d-pad on gameplay Move (true) or takes it off (false, the default). For 2D templates
+        /// that steer with it (the bullet hell, Visiting Hours' argument battle): turn it on when the scene (or the
+        /// mode) starts, off when it ends. First-person games leave it off, so the d-pad is free for other actions
+        /// (the Gauntlet's ghost, the lab's HUD). Not saved: it's the template's choice, not the player's.</summary>
+        public void SetMoveDpad(bool on)
+        {
+            if (_moveDpad == on || _moveDpadIndex < 0) return;
+            _moveDpad = on;
+            SetBasePath(_move, _moveDpadIndex, on ? Dpad : "");
+            _version++;
+        }
+
         // ---------- Rebinding, conflicts, resets ----------
 
         /// <summary>Points binding <paramref name="index"/> of <paramref name="action"/> at <paramref name="path"/>
@@ -451,10 +478,53 @@ namespace JamKit.Shell
                 try { s = JsonUtility.FromJson<Saved>(json); }
                 catch (Exception e) { Debug.LogWarning("JamKit: the saved controls were damaged; using the defaults. " + e.Message); }
             }
-            _asset.LoadBindingOverridesFromJson(s != null ? s.overrides : null);
+            _asset.LoadBindingOverridesFromJson(s != null ? KnownOverrides(s.overrides) : null);
             _version++;
             SetStickHolds(StickClick.Crouch, s != null && s.crouchStickHolds);
             SetStickHolds(StickClick.Sprint, s != null && s.sprintStickHolds);
+        }
+
+        [Serializable]
+        sealed class OverrideEntry
+        {
+            public string action;
+            public string id;
+            public string path;
+            public string interactions;
+            public string processors;
+        }
+
+        [Serializable]
+        sealed class OverrideList
+        {
+            public List<OverrideEntry> bindings = new List<OverrideEntry>();
+        }
+
+        /// <summary>The saved overrides minus any whose binding no longer exists (Move's old d-pad binding, removed
+        /// on 2026-10-10), so loading them is silent instead of warning once per launch.</summary>
+        string KnownOverrides(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return json;
+            OverrideList list;
+            try { list = JsonUtility.FromJson<OverrideList>(json); }
+            catch (Exception) { return json; }
+            if (list == null || list.bindings == null) return json;
+            int before = list.bindings.Count;
+            list.bindings.RemoveAll(e => e == null || !HasBinding(e.id));
+            if (list.bindings.Count == before) return json;
+            return list.bindings.Count > 0 ? JsonUtility.ToJson(list) : "";
+        }
+
+        bool HasBinding(string id)
+        {
+            if (!Guid.TryParse(id, out var g)) return false;
+            foreach (var map in _asset.actionMaps)
+            {
+                var bs = map.bindings;
+                for (int i = 0; i < bs.Count; i++)
+                    if (bs[i].id == g) return true;
+            }
+            return false;
         }
 
         /// <summary>Loads the overrides from <paramref name="save"/> now and again whenever it's reloaded

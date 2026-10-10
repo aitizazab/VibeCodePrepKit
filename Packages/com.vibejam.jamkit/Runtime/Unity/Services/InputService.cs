@@ -38,6 +38,15 @@ namespace JamKit.Shell
             Gameplay = Asset.FindActionMap("Gameplay", true);
             Ui = Asset.FindActionMap("UI", true);
             Move = Gameplay.FindAction("Move", true);
+            // The d-pad is not a gameplay Move binding (the left stick steers; menus keep the d-pad on Navigate),
+            // so the Gauntlet's ghost and the lab's HUD can use it. Older assets lose it here; a 2D template that
+            // steers with it opts back in with Bindings.SetMoveDpad(true).
+            for (int i = Move.bindings.Count - 1; i >= 0; i--)
+            {
+                var b = Move.bindings[i];
+                if (!b.isComposite && !b.isPartOfComposite && string.Equals(b.path, ControlBindings.Dpad, System.StringComparison.OrdinalIgnoreCase))
+                    Move.ChangeBinding(i).Erase();
+            }
             Look = Gameplay.FindAction("Look", true);
             Fire = Gameplay.FindAction("Fire", true);
             AltFire = Gameplay.FindAction("AltFire", true);
@@ -256,8 +265,7 @@ namespace JamKit.Shell
             var move = g.AddAction("Move", InputActionType.Value, expectedControlLayout: "Vector2");
             move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/w").With("Down", "<Keyboard>/s").With("Left", "<Keyboard>/a").With("Right", "<Keyboard>/d");
             move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/upArrow").With("Down", "<Keyboard>/downArrow").With("Left", "<Keyboard>/leftArrow").With("Right", "<Keyboard>/rightArrow");
-            move.AddBinding("<Gamepad>/leftStick");
-            move.AddBinding("<Gamepad>/dpad");
+            move.AddBinding("<Gamepad>/leftStick"); // no d-pad: see InputService (a 2D template can opt in)
 
             var look = g.AddAction("Look", InputActionType.Value, expectedControlLayout: "Vector2");
             look.AddBinding("<Mouse>/delta");

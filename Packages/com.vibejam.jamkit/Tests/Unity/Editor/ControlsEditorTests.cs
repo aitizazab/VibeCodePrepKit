@@ -270,8 +270,56 @@ namespace JamKit.Tests.Editor
             Assert.That(code.Restart.bindings[Kbm(code, "restart")].effectivePath, Is.EqualTo("<Keyboard>/t"));
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MoveHasNoDpadButNavigateDoes(bool projectAsset)
+        {
+            var s = Make(projectAsset);
+            foreach (var b in s.Move.bindings)
+                Assert.That(b.effectivePath ?? "", Does.Not.StartWith(ControlBindings.Dpad), "gameplay Move has no d-pad: " + b.effectivePath);
+            Assert.That(HasEffective(s.Move, "<Gamepad>/leftStick"), Is.True, "the left stick steers");
+            Assert.That(HasEffective(s.Navigate, ControlBindings.Dpad), Is.True, "menus keep the d-pad");
+            var screen = new ControlsScreen(s);
+            screen.Init(null, null, new VisualElement());
+            Assert.That(screen.CellText("move", ControlColumn.Gamepad), Is.EqualTo("Left stick"), "just the stick");
+
+            // A 2D template's opt-in puts it back, and takes it away again.
+            s.Bindings.SetMoveDpad(true);
+            Assert.That(HasEffective(s.Move, ControlBindings.Dpad), Is.True);
+            s.Bindings.SetMoveDpad(false);
+            Assert.That(HasEffective(s.Move, ControlBindings.Dpad), Is.False);
+        }
+
+        // The save entry's layout (ControlBindings.Saved) and the Input System's override list, to write an old save.
+        [System.Serializable] class SavedControls { public int version = 1; public string overrides = ""; public bool crouchStickHolds; public bool sprintStickHolds; }
+        [System.Serializable] class OverrideEntry { public string action, id, path, interactions = "null", processors = "null"; }
+        [System.Serializable] class OverrideList { public List<OverrideEntry> bindings = new List<OverrideEntry>(); }
+
         [Test]
-        public void TheGhostsDpadLeftOverlapsMoveOnlyWhenShown()
+        public void ASavedOverrideOfTheRemovedDpadIsDroppedSilently()
+        {
+            var s = Make(true);
+            int jumpKey = s.Bindings.FindRow("jump").Primary(ControlColumn.KeyboardMouse);
+            var list = new OverrideList();
+            // The asset's old Move d-pad binding (removed 2026-10-10), as a save from before would have it...
+            list.bindings.Add(new OverrideEntry { action = "Gameplay/Move", id = "a47cf3a0-62ca-45b8-9437-b6b603d23541", path = "<Gamepad>/rightStick" });
+            // ...next to a good one.
+            list.bindings.Add(new OverrideEntry { action = "Gameplay/Dash", id = s.Dash.bindings[jumpKey].id.ToString(), path = "<Keyboard>/f" });
+            var data = new SaveData();
+            data.SetEntry(ControlBindings.SaveKey, JsonUtility.ToJson(new SavedControls { overrides = JsonUtility.ToJson(list) }));
+
+            var warnings = new List<string>();
+            Application.LogCallback grab = (text, trace, type) => { if (type == LogType.Warning || type == LogType.Error) warnings.Add(text); };
+            Application.logMessageReceived += grab;
+            try { s.Bindings.LoadFrom(data); }
+            finally { Application.logMessageReceived -= grab; }
+            Assert.That(warnings.Count, Is.EqualTo(0), "no 'Could not override binding' warning: " + string.Join(" | ", warnings));
+            Assert.That(s.Dash.bindings[jumpKey].effectivePath, Is.EqualTo("<Keyboard>/f"), "the good override still loads");
+            Assert.That(HasEffective(s.Move, "<Gamepad>/rightStick"), Is.False, "the stale one went nowhere");
+        }
+
+        [Test]
+        public void TheGhostsDpadLeftIsFreeAndRClashesOnlyWhenShown()
         {
             var s = Make(true);
             var m = s.Bindings;
@@ -288,12 +336,19 @@ namespace JamKit.Tests.Editor
             Assert.That(c.Row.Id, Is.EqualTo("restart"));
             m.SetPath(s.Interact, interact, "<Keyboard>/e");
 
-            // D-pad left is part of Move's whole d-pad: flagged, but not a swap (a button and a stick-like binding).
+            // Move has no d-pad now, so d-pad left is the ghost's alone; no (!) on either row.
+            Assert.That(m.FindConflict(s.Ghost, ghostPad).Exists, Is.False, "d-pad left doesn't move you any more");
+            Assert.That(m.HasConflict(m.FindRow("move"), ControlColumn.Gamepad), Is.False);
+            Assert.That(m.HasConflict(m.FindRow("ghost"), ControlColumn.Gamepad), Is.False);
+
+            // The nested-clash check stays for rebinds: a template that puts the d-pad back on Move gets it flagged,
+            // and it can't be swapped (a button and a stick-like binding).
+            m.SetMoveDpad(true);
             c = m.FindConflict(s.Ghost, ghostPad);
-            Assert.That(c.Exists, Is.True, "d-pad left also moves you left");
+            Assert.That(c.Exists, Is.True, "d-pad left inside Move's d-pad");
             Assert.That(c.Row.Id, Is.EqualTo("move"));
             Assert.That(c.Exact, Is.False);
-            Assert.That(m.HasConflict(m.FindRow("move"), ControlColumn.Gamepad), Is.True);
+            m.SetMoveDpad(false);
             Assert.That(m.FindConflict(s.Restart, Pad(s, "restart")).Exists, Is.False, "View is free");
             Assert.That(m.FindConflict(s.Restart, Kbm(s, "restart")).Exists, Is.False, "R is free");
             Assert.That(m.FindConflict(s.Ghost, Kbm(s, "ghost")).Exists, Is.False, "G is free");
