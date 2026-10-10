@@ -10,12 +10,16 @@ import soundfile as sf
 from kokoro import KPipeline
 
 SCRIPT, OUT = sys.argv[1], sys.argv[2]
+# Optional word swaps (OLD=NEW), for fixes decided before the script file itself is updated.
+SWAPS = [a.split("=", 1) for a in sys.argv[3:] if "=" in a]
 SR = 24000
 text = open(SCRIPT, encoding="utf-8").read()
 m = re.search(r"^## The news report[^\n]*\n(.*?)(?=^## |\Z)", text, re.S | re.M)
 if not m:
     sys.exit("no '## The news report' section found")
 report = " ".join(line.strip() for line in m.group(1).splitlines() if line.strip())
+for old, new in SWAPS:
+    report = report.replace(old, new)
 sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", report) if s.strip()]
 
 pipe = KPipeline(lang_code="a")
