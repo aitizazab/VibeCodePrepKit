@@ -628,3 +628,10 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   the same procedural poses (lean-in hand, slide legs, mantle, kick), with her head hidden in first person, her full
   shadow kept, her waking material in both builds (in the dream she's the one real 3D figure), and the capsules as the
   fallback. Possibly a third-person debug camera to judge the poses.
+- **Feel pass added** (the creator: "what about the feel portion of the model actioning?"), from
+  RESEARCH-MOVEMENT section 8: arm sway on look turns; a delayed, heavier landing dip; anticipation and follow-through
+  (jump lift, double-jump sweep and leg tuck, sprint-kick shove, wall-kick plant and push); visible contact (the
+  wallrun hand landing exactly on the catch and dragging, slide balance hands and feet in view, mantle hands on the
+  lip); speed tiers in her posture (pump tightens, arms sweep back, lean into turns); arms and legs on the footstep
+  phase so plants land on their sounds; a swinging lanyard and badge; all scaled by the Motion effects setting; an F4
+  orbit camera to judge poses from outside.
