@@ -348,6 +348,16 @@ namespace JamKit.VisitingHours
                 if (Mathf.Abs(q.x) > _phoneHalf.x + 0.01f || Mathf.Abs(q.z) > _phoneHalf.z + 0.01f) continue;
                 need = Mathf.Max(need, _phoneHalf.y + PalmClearance - side * q.y);
             }
+            // The fingers too: every joint and tip over the phone's outline clear of its face by a finger's thickness.
+            for (int f = 0; f < 4; f++)
+                for (int j = 1; j <= 3; j++)
+                {
+                    var t = j < 3 ? _fingers[f * 3 + j] : _fingerTips[f];
+                    if (t == null) continue;
+                    Vector3 q = _phoneInv * (t.position - _phoneCentre);
+                    if (Mathf.Abs(q.x) > _phoneHalf.x + 0.006f || Mathf.Abs(q.z) > _phoneHalf.z + 0.006f) continue;
+                    need = Mathf.Max(need, _phoneHalf.y + FingerRadius + 0.002f - side * q.y);
+                }
             return need;
         }
 
@@ -372,7 +382,7 @@ namespace JamKit.VisitingHours
             // bigger than the phone, and only the fingers should come round that edge.
             float side = Vector3.Dot(_lastWrist - phoneCentre, up) >= 0f ? 1f : -1f;
             Vector3 wrist = _lastWrist;
-            for (int pass = 0; pass < 3; pass++)
+            for (int pass = 0; pass < 4; pass++)
             {
                 float need = PalmShortfall(side);
                 Vector3 shift = need > 0.001f ? up * (side * (need + 0.002f)) : Vector3.zero;
@@ -380,9 +390,12 @@ namespace JamKit.VisitingHours
                 {
                     // The fingers nearly straight along its back: slide the hand so the middle fingertip ends 1.5 cm past
                     // the far (left) edge, the rest of the hand behind the phone.
-                    float tip = Vector3.Dot(_fingerTips[1].position - phoneCentre, right);
-                    float slide = Mathf.Clamp(-(_phoneHalf.x + 0.015f) - tip, -0.08f, 0.08f);
+                    Vector3 d = _fingerTips[1].position - phoneCentre;
+                    float slide = Mathf.Clamp(-(_phoneHalf.x + 0.015f) - Vector3.Dot(d, right), -0.08f, 0.08f);
                     if (Mathf.Abs(slide) > 0.003f) shift += right * slide;
+                    // ...at about the middle of its height (not over the top corner).
+                    float drop = Mathf.Clamp(-Vector3.Dot(d, top), -0.08f, 0.08f);
+                    if (Mathf.Abs(drop) > 0.005f) shift += top * drop;
                 }
                 if (shift.sqrMagnitude < 1e-6f) break;
                 wrist += shift;
@@ -401,15 +414,23 @@ namespace JamKit.VisitingHours
                     if (bone == null || end == null) continue;
                     Quaternion start = bone.rotation;
                     float max = CurlDegrees[j] * k, best = 0f;
+                    // Held: if the finger already points round to the screen's side, straighten it back a little.
+                    if (side < 0f)
+                        for (float a = -CurlStep; a >= -25f && side * Vector3.Dot(end.position - phoneCentre, up) < 0f; a -= CurlStep)
+                        {
+                            bone.rotation = Quaternion.AngleAxis(sign * a, across) * start;
+                            best = a;
+                        }
+                    if (best < 0f) { bone.rotation = Quaternion.AngleAxis(sign * best, across) * start; continue; }
                     // Bend in small steps until the finger would touch the phone (it then rests against it).
                     for (float a = CurlStep; a <= max + 0.01f; a += CurlStep)
                     {
                         bone.rotation = Quaternion.AngleAxis(sign * a, across) * start;
                         Vector3 e = end.position, m = (bone.position + e) * 0.5f;
                         if (PhoneDistance(e) < FingerRadius || PhoneDistance(m) < FingerRadius) break;
-                        // Round the edge and no further: the fingertips stop where they reach the other face (they
-                        // don't lie across the screen).
-                        if (side * Vector3.Dot(e - phoneCentre, up) < -_phoneHalf.y) break;
+                        // Not round the edge: the fingertips stay on the hand's side of the phone's middle (past its edge
+                        // they show from the side, never over the screen's face).
+                        if (side * Vector3.Dot(e - phoneCentre, up) < 0f) break;
                         best = a;
                     }
                     bone.rotation = Quaternion.AngleAxis(sign * best, across) * start;
