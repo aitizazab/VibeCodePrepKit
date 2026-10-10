@@ -20,6 +20,9 @@ Furniture models: Kenney, Furniture Kit (CC0), kenney.nl
 MUSIC AND SOUND
 Placeholder sounds and music generated in code by JamKit
 The dream's movement sounds: Kenney, Impact Sounds, RPG Audio and Sci-Fi Sounds (CC0), kenney.nl
+The bedroom's sounds, from Freesound (CC0): harleto (breathing), Ferrettomato (the ring),
+Splash.Yang (the buzz), bsmacbride and Froey_ (the bed), Vladislav_Sazonov (the phone set down),
+jentlemen (the tap)
 The news report: Kokoro TTS (af_nicole, Apache 2.0)
 
 

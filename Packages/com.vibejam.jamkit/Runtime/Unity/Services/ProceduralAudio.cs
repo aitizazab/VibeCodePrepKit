@@ -9,10 +9,15 @@ namespace JamKit.Shell
     /// Placeholder sounds made from code (core <see cref="ToneSynth"/>), so every id the shell uses
     /// plays something before real assets exist. Replace one by adding a clip with the same id to the
     /// Audio Registry. Clips are made once and cached.
+    /// <para>A recording in any <c>Resources/JamKitSounds/</c> folder named after an id (<c>vh_breath.wav</c>) wins over
+    /// the code-made sound: the Visiting Hours opening's breath, ring, buzz, rustles, set-down and tap are CC0
+    /// recordings there (tools/audio/make-vh-sfx.py). Delete one and the generated sound plays again.</para>
     /// </summary>
     public static class ProceduralAudio
     {
         const int Rate = 22050;
+        /// <summary>The Resources folder whose clips (named by id) replace the generated sounds.</summary>
+        public const string RecordedFolder = "JamKitSounds/";
         static readonly Dictionary<string, AudioClip> Cache = new Dictionary<string, AudioClip>();
 
         /// <summary>
@@ -67,6 +72,12 @@ namespace JamKit.Shell
             if (string.IsNullOrEmpty(id)) return null;
             if (MoveSounds.Knows(id)) return GetVariant(id, 0);
             if (Cache.TryGetValue(id, out var clip) && clip != null) return clip;
+            clip = Recorded(id);
+            if (clip != null)
+            {
+                Cache[id] = clip;
+                return clip;
+            }
             float[] data = Make(id);
             if (data == null) return null;
             if (Peaks.TryGetValue(id, out float peak)) MoveSounds.Normalize(data, peak);
@@ -75,6 +86,9 @@ namespace JamKit.Shell
             Cache[id] = clip;
             return clip;
         }
+
+        /// <summary>The recording for an id in Resources/JamKitSounds/, or null (then the generated sound plays).</summary>
+        public static AudioClip Recorded(string id) => string.IsNullOrEmpty(id) ? null : Resources.Load<AudioClip>(RecordedFolder + id);
 
         /// <summary>How many generated variants an id has (the movement one-shots have several; others 1, unknown 0).</summary>
         public static int VariantCount(string id) => MoveSounds.Knows(id) ? MoveSounds.VariantCount(id) : Knows(id) ? 1 : 0;
