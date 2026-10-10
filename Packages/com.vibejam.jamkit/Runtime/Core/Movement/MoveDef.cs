@@ -120,8 +120,9 @@ namespace JamKit.Movement
         public float wallMaxNormalY = 0.25f;
         /// <summary>Moving along the wall, not into it: dot(direction, wall tangent) at least this (70 degrees).</summary>
         public float wallMinAlongDot = 0.34f;
-        /// <summary>The stick may not push away from the wall more than this (dot(wish, -normal)).</summary>
-        public float wallMinTowardDot = -0.1f;
+        /// <summary>The stick may not push away from the wall more than this (dot(wish, -normal)); -0.2 forgives
+        /// a view turned about 12 degrees away.</summary>
+        public float wallMinTowardDot = -0.2f;
         /// <summary>Wall probes: from this height above the feet, sphere radius, reach beyond the body radius.</summary>
         public float wallProbeHeight = 1.0f;
         public float wallProbeRadius = 0.25f;

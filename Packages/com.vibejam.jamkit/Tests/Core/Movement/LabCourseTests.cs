@@ -40,10 +40,12 @@ namespace JamKit.Tests.Movement
 
         /// <summary>Runs the autopilot from a checkpoint until the finish (or <paramref name="untilS"/>) at
         /// <paramref name="fps"/> through a <see cref="MoveDriver"/>, the way the Unity controller does.</summary>
-        public static RunReport Drive(LabCourse c, int fromCheckpoint, float untilS, float maxSeconds, int fps = 60, bool chase = true)
+        public static RunReport Drive(LabCourse c, int fromCheckpoint, float untilS, float maxSeconds, int fps = 60, bool chase = true, int jitterSeed = 0, float skin = 0f)
         {
+            var jitter = jitterSeed != 0 ? new Random(jitterSeed) : null;
             var pieces = new List<BoxWorld.Box>();
             var world = WorldOf(c, pieces);
+            world.skin = skin;
             var sim = new MoveSim(world, new MoveDef());
             var driver = new MoveDriver(sim);
             var pilot = new CourseAutopilot(c);
@@ -56,10 +58,14 @@ namespace JamKit.Tests.Movement
             var fired = new bool[c.collapses.Count];
             int lastCp = fromCheckpoint;
             float dt = 1f / fps;
+            float baseDt = dt;
             string lastMode = "";
             var sums = new Dictionary<string, Vector2>();
             for (float t = 0f; t < maxSeconds; t += dt)
             {
+                // Uneven frames, like a busy editor: anywhere from 400 fps to 20 fps.
+                if (jitter != null) dt = jitter.NextDouble() < 0.1 ? 0.05f : (float)(0.0025 + jitter.NextDouble() * 0.02);
+                else dt = baseDt;
                 var input = pilot.Next(sim);
                 driver.Frame(dt, input);
                 var p = sim.Position;
@@ -131,6 +137,23 @@ namespace JamKit.Tests.Movement
             Assert.That(r.falls, Is.EqualTo(0), "no falls");
             Assert.That(r.caught, Is.EqualTo(0), "the pursuer never caught a good run");
             Assert.That(r.seconds, Is.InRange(35f, 90f));
+        }
+
+        [TestCase(20, 0)]
+        [TestCase(144, 0)]
+        [TestCase(300, 0)]
+        [TestCase(1000, 0)]
+        [TestCase(0, 7)]
+        [TestCase(0, 11)]
+        public void TheCourseFinishesAtAnyFrameRate(int fps, int jitterSeed)
+        {
+            var c = LabCourse.Build();
+            // With a CharacterController's 4 cm skin, as in Unity.
+            var r = Drive(c, 0, c.finishS, 150f, fps == 0 ? 60 : fps, true, jitterSeed, 0.04f);
+            TestContext.Out.WriteLine(r.log.ToString());
+            Assert.That(r.finished, Is.True, fps + " fps, jitter " + jitterSeed);
+            Assert.That(r.falls, Is.EqualTo(0), fps + " fps, jitter " + jitterSeed);
+            Assert.That(r.caught, Is.EqualTo(0));
         }
 
         [TestCase(0)]

@@ -45,6 +45,15 @@ namespace JamKit.Movement
             Vector3 p = sim.Position;
             float s = _course.route.Project(p, out float lateral);
             float targetX = _course.LaneAt(s + LookAhead);
+            // A wall ahead that hasn't been kicked off yet: hold its lane (looking further ahead would turn
+            // the stick away from the wall just before contact, and the wall refuses you).
+            for (int i = 0; i < _done.Length; i++)
+            {
+                var c = _course.cues[i];
+                if (_done[i] || c.kind != LabCueKind.WallJump) continue;
+                if (s >= c.s - 12f) targetX = _course.LaneAt(c.s);
+                break;
+            }
             bool jump = false;
             bool crouch = false;
             bool zig = false;

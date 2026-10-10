@@ -62,6 +62,15 @@ namespace JamKit.MovementLab
         public float TopSpeed => _topSpeed;
         public LabHud Hud => _hud;
         public bool AutopilotOn => player != null && player.Autopilot != null;
+        /// <summary>True from the moment a fall or a catch is noticed until the player is back and the fade is gone.</summary>
+        public bool Respawning => _respawning;
+        /// <summary>The last moments of the run, for diagnosing a fall: every change of movement state and every
+        /// respawn, with the section, position, state and speed (a line per change, not per frame).</summary>
+        public System.Collections.Generic.IReadOnlyList<string> Trace => _trace;
+        public string TraceText => string.Join(Newline, _trace);
+        const string Newline = "\n";
+        readonly List<string> _trace = new List<string>(64);
+        MoveMode _lastMode = MoveMode.Air;
         float _lastTime;
 
         void Start()
@@ -123,6 +132,11 @@ namespace JamKit.MovementLab
             float dt = Time.deltaTime;
             Vector3 p = player.transform.position;
             _s = _course.route.Project(new System.Numerics.Vector3(p.x, p.y, p.z));
+            if (player.Mode != _lastMode)
+            {
+                _lastMode = player.Mode;
+                AddTrace(player.Mode.ToString() + (player.Mode == MoveMode.Wallrun ? (player.Sim.WallSide > 0 ? " (wall right)" : " (wall left)") : ""));
+            }
             if (GameRoot.Flow.Current == GameState.Playing && !_respawning) Tick(dt, p);
             bool toggle = (Keyboard.current != null && Keyboard.current.f3Key.wasPressedThisFrame)
                 || (Gamepad.current != null && Gamepad.current.selectButton.wasPressedThisFrame);
@@ -140,11 +154,8 @@ namespace JamKit.MovementLab
             {
                 if (_s < _course.checkpoints[i].s) break;
                 _checkpoint = i;
-                if (player.Sim.Grounded || player.Mode == MoveMode.Air)
-                {
-                    GameRoot.Audio.Play("mv_checkpoint", 0.6f);
-                    GameRoot.Hud.Message("Checkpoint: " + _course.checkpoints[i].name, 1.5f);
-                }
+                GameRoot.Audio.Play("mv_checkpoint", 0.6f);
+                GameRoot.Hud.Message("Checkpoint: " + _course.checkpoints[i].name, 1.5f);
             }
 
             for (int i = 0; i < _collapsed.Length; i++)
@@ -196,10 +207,22 @@ namespace JamKit.MovementLab
             GameRoot.Juice.Shake(0.25f);
         }
 
+        void AddTrace(string what)
+        {
+            var p = player.transform.position;
+            var inv = CultureInfo.InvariantCulture;
+            if (_trace.Count >= 60) _trace.RemoveAt(0);
+            _trace.Add(Time.time.ToString("0.00", inv) + "s  " + _course.SectionAt(_s) + "  s " + _s.ToString("0.0", inv)
+                + "  pos (" + p.x.ToString("0.00", inv) + ", " + p.y.ToString("0.00", inv) + ", " + p.z.ToString("0.00", inv) + ")  "
+                + what + "  " + player.Speed.ToString("0.0", inv) + " m/s");
+        }
+
         IEnumerator Respawn(string message)
         {
             _respawning = true;
             _respawns++;
+            AddTrace("RESPAWN: " + message);
+            Debug.Log("JAMKIT_MOVEMENT respawn " + _respawns + ": " + message + Newline + TraceTail(8));
             for (float t = 0f; t < 0.18f; t += Time.unscaledDeltaTime) { GameRoot.Ui.SetFade(t / 0.18f); yield return null; }
             GameRoot.Ui.SetFade(1f);
             PlaceAt(_checkpoint, true);
@@ -253,6 +276,12 @@ namespace JamKit.MovementLab
             if (_chasing) pursuerView?.Place(_pursuer.S, pos.y + 2f, 0f);
             _pilot.Reset(cp.s);
             if (index == 0 && !keepTimer) { _timing = false; _runTime = 0f; _topSpeed = 0f; }
+        }
+
+        string TraceTail(int n)
+        {
+            int from = Mathf.Max(0, _trace.Count - n);
+            return string.Join(Newline, _trace.GetRange(from, _trace.Count - from));
         }
 
         // ---------- Presenter, smoke, autopilot ----------
@@ -317,7 +346,7 @@ namespace JamKit.MovementLab
             }
             SetAutopilot(false);
             string report = "landed " + landed + ", respawns " + (_respawns - respawns) + ", top speed " + top.ToString("0.0", CultureInfo.InvariantCulture) + " m/s";
-            if (!landed || _respawns != respawns || top < 12f) Debug.LogError("JAMKIT_MOVEMENT_SMOKE_FAIL the momentum chain: " + report);
+            if (!landed || _respawns != respawns || top < 12f) Debug.LogError("JAMKIT_MOVEMENT_SMOKE_FAIL the momentum chain: " + report + Newline + TraceTail(16));
             else Debug.Log("JAMKIT_MOVEMENT_SMOKE chain ok: " + report);
         }
     }

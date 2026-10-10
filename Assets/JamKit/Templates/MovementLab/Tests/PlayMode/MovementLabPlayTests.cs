@@ -36,6 +36,15 @@ namespace JamKit.MovementLab.Tests
 
         static MovementLabGame Game => MovementLabGame.Current;
 
+        /// <summary>Waits until a respawn has really put the player back and the fade is gone.</summary>
+        static IEnumerator RespawnDone() => WaitFor(() => !Game.Respawning && GameRoot.Ui.FadeAlpha == 0f, "the respawn to finish", 5f);
+
+        static void PrintTrace(string title)
+        {
+            TestContext.Out.WriteLine(title);
+            TestContext.Out.WriteLine(Game.TraceText);
+        }
+
         static IEnumerator StartLab()
         {
             Assert.That(GameRoot.Instance.SceneService.Load(MovementLabPresenter.Scene), Is.True, "MovementLab is in Build Settings");
@@ -70,6 +79,7 @@ namespace JamKit.MovementLab.Tests
                 yield return null;
             }
             Game.SetAutopilot(false);
+            PrintTrace("Trace (state changes and respawns):");
             TestContext.Out.WriteLine($"slide jump {slideJump:0.00}, wall entry {wallEntry:0.00}, after the kick {afterKick:0.00} (wall kick {kick}), after the double jump {afterDouble:0.00}, top {top:0.00} m/s");
             Assert.That(Game.Respawns, Is.EqualTo(respawns), "no fall");
             Assert.That(Game.S, Is.GreaterThanOrEqualTo(236f), "landed across the pit");
@@ -90,8 +100,11 @@ namespace JamKit.MovementLab.Tests
             yield return Frames(2);
             int respawns = Game.Respawns;
             Game.SetAutopilot(true);
-            yield return WaitFor(() => Game.Finishes > 0, "the autopilot to finish the course", 75f);
+            float until = Time.realtimeSinceStartup + 75f;
+            while (Game.Finishes == 0 && Time.realtimeSinceStartup < until) yield return null;
             Game.SetAutopilot(false);
+            PrintTrace("Trace (state changes and respawns):");
+            Assert.That(Game.Finishes, Is.GreaterThan(0), "the autopilot finished the course within 75 s (trace in the output)");
             TestContext.Out.WriteLine($"course time {Game.LastTime:0.0} s (game time), top speed {Game.TopSpeed:0.0} m/s, respawns {Game.Respawns - respawns}, caught {Game.Caught}");
             Assert.That(Game.Respawns - respawns, Is.LessThanOrEqualTo(1), "at most one slip on the real CharacterController");
             Assert.That(Game.TopSpeed, Is.GreaterThan(14f));
@@ -107,8 +120,8 @@ namespace JamKit.MovementLab.Tests
             Assert.That(Game.Gap, Is.EqualTo(Game.Course.pursuer.targetGap).Within(1.5f), "the static starts its target gap behind");
             Game.player.InputEnabled = false;
             yield return WaitFor(() => Game.Caught > 0, "the static to catch a player who stops", 10f);
+            yield return RespawnDone();
             Game.player.InputEnabled = true;
-            yield return WaitFor(() => GameRoot.Ui.FadeAlpha == 0f, "the respawn fade", 3f);
             int cp = Game.Course.CheckpointIndex(LabCourse.ChapterChase);
             Assert.That(Game.Checkpoint, Is.EqualTo(cp));
             Assert.That(Game.Gap, Is.GreaterThan(8f), "put back with room to run");
@@ -123,9 +136,12 @@ namespace JamKit.MovementLab.Tests
             int before = Game.Respawns;
             Game.player.Teleport(new Vector3(0f, -10f, 145f), 0f, Vector3.zero);
             yield return WaitFor(() => Game.Respawns > before, "the respawn", 5f);
-            yield return WaitFor(() => GameRoot.Ui.FadeAlpha == 0f, "the fade", 3f);
+            yield return RespawnDone();
             var cp = Game.Course.checkpoints[Game.Course.CheckpointIndex(LabCourse.ChapterWallruns)];
-            Assert.That(Vector3.Distance(Game.player.transform.position, new Vector3(cp.position.X, cp.position.Y, cp.position.Z)), Is.LessThan(4f));
+            var at = Game.player.transform.position;
+            TestContext.Out.WriteLine("back at " + at + ", checkpoint " + cp.position);
+            Assert.That(at.z, Is.InRange(cp.position.Z - 0.5f, cp.position.Z + 8f), "back at the checkpoint, running on from it");
+            Assert.That(at.y, Is.EqualTo(cp.position.Y).Within(0.5f));
             Assert.That(Game.player.Speed, Is.GreaterThan(5f), "you come back running");
         }
 

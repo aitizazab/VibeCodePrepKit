@@ -43,6 +43,8 @@ namespace JamKit.Tests.Movement
         }
 
         public readonly List<Box> Boxes = new List<Box>();
+        /// <summary>Like a CharacterController's skin width: the capsule keeps this gap from what it touches.</summary>
+        public float skin;
 
         public Box Add(Vector3 center, Vector3 size, bool runnable = true)
         {
@@ -84,7 +86,7 @@ namespace JamKit.Tests.Movement
                     foreach (var b in Boxes)
                     {
                         if (!b.enabled) continue;
-                        if (!Penetration(b, feet, radius, height, out var n, out float depth) || depth < 1e-5f) continue;
+                        if (!Penetration(b, feet, radius + skin, height, out var n, out float depth) || depth < 1e-5f) continue;
                         feet += n * depth;
                         step = MoveMath.Clip(step, n);
                         AddNormal(normals, ref hitCount, n);

@@ -153,8 +153,7 @@ namespace JamKit.Movement
             {
                 if (!allowed) return input;
                 var a = Autopilot(_sim);
-                _yaw = Mathf.MoveTowardsAngle(_yaw, a.yaw, 720f * dt);
-                a.yaw = _yaw;
+                _yaw = a.yaw; // exactly what the autopilot asks (the dotnet course tests drive it the same way)
                 _pitch = Mathf.MoveTowards(_pitch, 4f, 60f * dt);
                 return a;
             }
@@ -324,13 +323,42 @@ namespace JamKit.Movement
 
         bool IMoveWorld.CastWall(NVec3 origin, NVec3 direction, float radius, float maxDistance, out SurfaceHit hit)
         {
-            if (Physics.SphereCast(ToU(origin), radius, ToU(direction), out var h, maxDistance, Mask, QueryTriggerInteraction.Ignore))
+            Vector3 o = ToU(origin);
+            if (Physics.SphereCast(o, radius, ToU(direction), out var h, maxDistance, Mask, QueryTriggerInteraction.Ignore))
             {
                 hit = From(h, h.distance, Runnable(h.collider));
+                // A sphere touching a box's edge reports a rounded normal (halfway between two faces). The rules
+                // need the face's own normal (a wall's tangent from a corner normal would point 45 degrees off),
+                // so ask a ray aimed at the contact point, level with the probe.
+                Vector3 to = h.point - o;
+                to.y = 0f;
+                float len = to.magnitude;
+                if (len > 1e-3f && Physics.Raycast(o, to / len, out var face, len + 0.3f, Mask, QueryTriggerInteraction.Ignore) && face.collider == h.collider)
+                    hit.normal = ToN(face.normal);
+                else if (Mathf.Abs(h.normal.y) < 0.5f)
+                {
+                    // The ray missed the edge: snap the rounded normal to the box's nearest face direction.
+                    var box = h.collider as BoxCollider;
+                    if (box != null) hit.normal = ToN(NearestFaceNormal(box.transform, h.normal));
+                }
                 return true;
             }
             hit = default;
             return false;
+        }
+
+        static Vector3 NearestFaceNormal(Transform t, Vector3 n)
+        {
+            Vector3 best = n;
+            float bestDot = -2f;
+            for (int i = 0; i < 6; i++)
+            {
+                Vector3 a = i < 2 ? t.right : i < 4 ? t.forward : t.up;
+                if ((i & 1) == 1) a = -a;
+                float d = Vector3.Dot(a, n);
+                if (d > bestDot) { bestDot = d; best = a; }
+            }
+            return best;
         }
 
         bool IMoveWorld.CastLedge(NVec3 origin, float maxDistance, out SurfaceHit hit)
