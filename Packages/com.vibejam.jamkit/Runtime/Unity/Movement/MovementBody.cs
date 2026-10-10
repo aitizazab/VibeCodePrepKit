@@ -54,6 +54,10 @@ namespace JamKit.Movement
         BodyFeel _feel;
         MovementDebugOrbit _orbit;
         bool _handOnWall;
+        float _wallGap;
+
+        /// <summary>How far short of the wall the planted hand is because her arm can't reach it yet (m; 0 = touching).</summary>
+        public float WallGap => _wallGap;
 
         /// <summary>The hand on the wall's side is on the wall (tests and the HUD read it).</summary>
         public bool HandOnWall => _handOnWall;
@@ -182,6 +186,7 @@ namespace JamKit.Movement
                 cameraDip = feelCamera != null ? feelCamera.Dip : 0f,
             };
 
+            _wallGap = 0f;
             // The wall hand's spot: the wall point beside the shoulder, a little ahead along the run.
             if (sim.WallSide != 0)
             {
@@ -195,6 +200,7 @@ namespace JamKit.Movement
                     p0.y = transform.TransformPoint(new Vector3(0f, def.wallHandHeight, 0f)).y;
                     int arm = sim.WallSide > 0 ? 1 : 0;
                     Vector3 spot = p0 + t * ReachableAhead(arm, p0, t, def.wallHandAhead, Vector3.zero);
+                    spot = WithinReach(arm, spot, Vector3.zero);
                     Vector3 local = transform.InverseTransformPoint(spot);
                     input.hasWallTarget = true;
                     input.wallHandTarget = N(local);
@@ -243,56 +249,81 @@ namespace JamKit.Movement
         }
 
         /// <summary>
-        /// Looks wallLookAhead seconds along her path (velocity, plus gravity in the air) for a wall she'll run on: one
-        /// beside her (not head on), runnable. Gives the feel how close it is and where the hand will plant there,
-        /// relative to where her eyes will be, so the hand reaches out before contact (TF2's lean-in).
+        /// The lean-in's look-ahead: where she'll be over the next wallLookAhead seconds (velocity, plus gravity in the
+        /// air), probed the way the sim catches a wall (MoveSim.TryAttachWall: sideways and diagonal sphere casts from
+        /// wallProbeHeight, out to radius + wallProbeReach): the first moment a runnable wall beside her comes within
+        /// catch reach is the predicted contact. The hand's spot there is given relative to where her eyes will be,
+        /// kept within her arm's reach.
         /// </summary>
         void ProbeWall(BodyFeelDef def, ref BodyFeelInput input)
         {
-            var sim = body.Sim;
             Vector3 v = body.Velocity;
             Vector3 flat = new Vector3(v.x, 0f, v.z);
-            if (flat.magnitude < 3f || def.wallLookAhead <= 0f) return;
-            bool air = sim.Mode == MoveMode.Air;
-            float g = body.Def.gravity;
-            float r = body.Def.radius * 0.95f;
-            Vector3 origin = body.RenderPosition + Vector3.up * 1.0f;
-            Vector3 eye = transform.position;
-            const int steps = 5;
-            Vector3 prev = origin;
-            float tPrev = 0f;
-            for (int n = 1; n <= steps; n++)
+            float speed = flat.magnitude;
+            var md = body.Def;
+            if (speed < Mathf.Max(2f, md.wallMinSpeed * 0.8f) || def.wallLookAhead <= 0f) return;
+            bool air = body.Sim.Mode == MoveMode.Air;
+            Vector3 d = flat / speed;
+            Vector3 r = new Vector3(d.z, 0f, -d.x); // the sim's RightOf
+            float reach = md.radius + md.wallProbeReach;
+            int mask = body.worldMask.value & ~(1 << 2);
+            Vector3 feet = body.RenderPosition;
+            const int steps = 6;
+            for (int n = 0; n <= steps; n++)
             {
                 float t = def.wallLookAhead * n / steps;
-                Vector3 p = origin + v * t + (air ? Vector3.down * (0.5f * g * t * t) : Vector3.zero);
-                Vector3 seg = p - prev;
-                float len = seg.magnitude;
-                if (len > 1e-4f && Physics.SphereCast(prev, r, seg / len, out var hit, len, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                Vector3 travel = v * t + (air ? Vector3.down * (0.5f * md.gravity * t * t) : Vector3.zero);
+                Vector3 origin = feet + travel + Vector3.up * md.wallProbeHeight;
+                for (int k = 0; k < 4; k++)
                 {
+                    Vector3 dir = k == 0 ? r : k == 1 ? -r : k == 2 ? (d + r).normalized : (d - r).normalized;
+                    if (!Physics.SphereCast(origin, md.wallProbeRadius, dir, out var hit, reach, mask, QueryTriggerInteraction.Ignore)) continue;
                     Vector3 nrm = new Vector3(hit.normal.x, 0f, hit.normal.z);
-                    if (Mathf.Abs(hit.normal.y) > 0.3f || nrm.sqrMagnitude < 0.25f) return;
+                    if (Mathf.Abs(hit.normal.y) > md.wallMaxNormalY || nrm.sqrMagnitude < 0.25f) continue;
                     nrm.Normalize();
-                    if (Vector3.Dot(flat.normalized, -nrm) > 0.85f) return; // head on: a mantle or a stop, not a wallrun
-                    var surface = hit.collider != null ? hit.collider.GetComponentInParent<MovementSurface>() : null;
-                    bool runnable = body.onlyMarkedWalls ? surface != null && surface.runnable : surface == null || surface.runnable;
-                    if (!runnable) return;
-                    float tHit = tPrev + (t - tPrev) * (hit.distance / len);
-                    Vector3 travel = v * tHit + (air ? Vector3.down * (0.5f * g * tHit * tHit) : Vector3.zero);
-                    Vector3 along = Vector3.ProjectOnPlane(flat, nrm).normalized;
+                    Vector3 along = Vector3.Cross(Vector3.up, nrm).normalized;
+                    if (Vector3.Dot(along, d) < 0f) along = -along;
+                    if (Vector3.Dot(d, along) < md.wallMinAlongDot) continue; // head on: not a wallrun
+                    var surface = hit.collider != null ? hit.collider.GetComponent<MovementSurface>() : null;
+                    bool runnable = surface != null ? surface.runnable : !body.onlyMarkedWalls;
+                    if (!runnable) continue;
+                    // The wall point beside her at that moment, level with the planted hand, then ahead along the run.
+                    Vector3 eyeThen = transform.position + travel;
                     Vector3 p0 = hit.point + nrm * 0.03f;
-                    p0.y = eye.y + travel.y + (transform.rotation * new Vector3(0f, def.wallHandHeight, 0f)).y;
+                    p0.y = eyeThen.y + (transform.rotation * new Vector3(0f, def.wallHandHeight, 0f)).y;
                     int arm = Vector3.Dot(-nrm, body.transform.right) > 0f ? 1 : 0;
                     Vector3 spot = p0 + along * ReachableAhead(arm, p0, along, def.wallHandAhead, travel);
-                    Vector3 local = Quaternion.Inverse(transform.rotation) * (spot - (eye + travel));
+                    spot = WithinReach(arm, spot, travel);
                     input.approaching = true;
-                    input.approachSide = Vector3.Dot(-nrm, body.transform.right) > 0f ? 1 : -1;
-                    input.approachCloseness = Mathf.Clamp01(1f - tHit / def.wallLookAhead);
-                    input.approachTarget = N(local);
+                    input.approachSide = arm == 1 ? 1 : -1;
+                    input.approachCloseness = Mathf.Clamp01(1f - t / def.wallLookAhead);
+                    input.approachTarget = N(Quaternion.Inverse(transform.rotation) * (spot - eyeThen));
                     return;
                 }
-                prev = p;
-                tPrev = t;
             }
+        }
+
+        /// <summary>Her arm's root and reach (the rig's, or the placeholder's).</summary>
+        void Arm(int side, out Vector3 shoulder, out float reach)
+        {
+            if (UsingRig && rig.ArmReach(side, out shoulder, out reach)) return;
+            float k = _root != null ? _root.localScale.x : 1f;
+            var def = _feel.def;
+            shoulder = transform.TransformPoint(new Vector3((side == 0 ? -1f : 1f) * def.shoulderWidth, -def.shoulderDrop, 0.02f) * k);
+            reach = (upperArm + forearm) * k;
+        }
+
+        /// <summary>A hand spot moved, if needed, to the edge of what her arm can reach (the catch can come from up to
+        /// about a metre off the wall: the arm then stretches towards the wall until she's close enough to touch it).</summary>
+        Vector3 WithinReach(int side, Vector3 spot, Vector3 shift)
+        {
+            Arm(side, out var shoulder, out var reach);
+            shoulder += shift;
+            reach *= 0.97f;
+            Vector3 to = spot - shoulder;
+            float len = to.magnitude;
+            _wallGap = Mathf.Max(0f, len - reach);
+            return len > reach && len > 1e-5f ? shoulder + to * (reach / len) : spot;
         }
 
         /// <summary>
@@ -303,15 +334,7 @@ namespace JamKit.Movement
         /// </summary>
         float ReachableAhead(int side, Vector3 p0, Vector3 along, float want, Vector3 shift)
         {
-            Vector3 shoulder;
-            float reach;
-            if (!(UsingRig && rig.ArmReach(side, out shoulder, out reach)))
-            {
-                float k = _root != null ? _root.localScale.x : 1f;
-                var def = _feel.def;
-                shoulder = transform.TransformPoint(new Vector3((side == 0 ? -1f : 1f) * def.shoulderWidth, -def.shoulderDrop, 0.02f) * k);
-                reach = (upperArm + forearm) * k;
-            }
+            Arm(side, out var shoulder, out var reach);
             shoulder += shift;
             reach *= 0.97f;
             float s0 = Vector3.Dot(shoulder - p0, along);
