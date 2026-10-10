@@ -189,6 +189,7 @@ namespace JamKit.DreamEscape.Tests
                 Assert.That(game.music.music, Is.Not.Null, "the chase music rides on the speed stems");
                 Assert.That(game.music.music.playOnStart, Is.False, "the escape starts it");
                 Assert.That(body.GetComponent<MovementAudio>().music, Is.SameAs(game.music.music), "the player's speed drives the stems");
+                Assert.That(MovementAudio.FindFeel(body), Is.Not.Null, "the music follows the speed visuals' tier");
             }
             finally
             {

@@ -110,6 +110,7 @@ namespace JamKit.MovementLab.Tests
                 Assert.That(sound.music, Is.Not.Null, "the player's speed drives the stems");
                 Assert.That(sound.music.stemSet, Is.EqualTo("lab"), "real stems go in Resources/JamKitMusicStems/lab/");
                 Assert.That(sound.music.playOnStart, Is.True);
+                Assert.That(MovementAudio.FindFeel(sound.body), Is.Not.Null, "the sound follows the speed visuals' tier (one source of truth)");
             }
             finally
             {

@@ -12,7 +12,8 @@ using static JamKit.Tests.Play.ShellTestUtil;
 namespace JamKit.MovementLab.Tests
 {
     /// <summary>The speed music in the Movement Lab's real scene: the autopilot's run raises the number of stems
-    /// playing (base, then drive at fast, peak at flying), and every switch lands on a bar line.</summary>
+    /// playing (base, then drive at fast, peak at flying), and every switch lands on a bar line. The sound reads the
+    /// speed visuals' own tier, so the boom and the music agree on when flying starts.</summary>
     public class MovementMusicPlayTests
     {
         [UnitySetUp]
@@ -48,6 +49,11 @@ namespace JamKit.MovementLab.Tests
             Assert.That(music, Is.Not.Null, "the lab's player drives the speed music");
             yield return WaitFor(() => music.Playing && music.Beat > 0.5, "the stems to start", 5f);
             Assert.That(music.ActiveStems, Is.EqualTo(1), "standing on the start pad: the base alone");
+            var feel = MovementAudio.FindFeel(Game.player);
+            Assert.That(feel, Is.Not.Null);
+            Assert.That(sound.SharesTheVisualTier, Is.True);
+            Assert.That(sound.Speed, Is.SameAs(feel.State.Tier), "one tier for the sound and the visuals");
+            int booms = feel.Booms;
 
             Game.SetAutopilot(true);
             int most = 1, switches = 0, lastCount = music.Mixer.SwitchCount;
@@ -59,6 +65,13 @@ namespace JamKit.MovementLab.Tests
                 if (most >= 2 && switches >= 1 && Time.realtimeSinceStartup - start > 20f) break;
                 yield return null;
                 maxSpeed = Mathf.Max(maxSpeed, Game.player.Speed);
+                Assert.That(music.Tier, Is.EqualTo(feel.State.Tier.Tier), "the music hears the visuals' tier the same frame");
+                // (A coroutine wakes after Update: both the boom and the music's tier were set in last frame's LateUpdate.)
+                if (feel.Booms != booms)
+                {
+                    booms = feel.Booms;
+                    Assert.That(music.Tier, Is.EqualTo(SpeedTier.Flying), "the boom and the music agree on when flying starts");
+                }
                 most = Mathf.Max(most, music.ActiveStems);
                 int count = music.Mixer.SwitchCount;
                 if (count != lastCount)
@@ -72,7 +85,7 @@ namespace JamKit.MovementLab.Tests
                 }
             }
             Game.SetAutopilot(false);
-            TestContext.Out.WriteLine("top speed " + maxSpeed.ToString("0.0") + " m/s, most stems " + most + ", switches " + switches);
+            TestContext.Out.WriteLine("top speed " + maxSpeed.ToString("0.0") + " m/s, most stems " + most + ", switches " + switches + ", booms " + booms);
             Assert.That(most, Is.GreaterThanOrEqualTo(2), "the run reached the fast tier's drive stem");
             Assert.That(switches, Is.GreaterThanOrEqualTo(1));
         }

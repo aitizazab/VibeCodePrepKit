@@ -15,7 +15,9 @@ namespace JamKit.Movement
     /// (soft, normal, hard). Where a clip is missing the generated variants play; a clip in the game's Audio Registry
     /// under the same id replaces both. Loops play on their own sources at the effects volume; one-shots on a small
     /// pool of 2D voices here. Silent in batch mode like the shell.
-    /// <para>Speed (SPEED-FEEL A1, A2, A4, A5, A6; the shared <see cref="SpeedTier"/>): it drives the speed music
+    /// <para>Speed (SPEED-FEEL A1, A2, A4, A5, A6): it follows the very tier the speed visuals tick
+    /// (<see cref="SpeedFeel"/>'s, from the tuning asset's Speed Tiers), so the boom and the music agree on when flying
+    /// starts; with no SpeedFeel in the scene it ticks a tier of its own from the same thresholds. It drives the speed music
     /// (<see cref="music"/>: stems by tier, muffled when slow and open at flying), a supersonic whistle while flying
     /// (leaning away from a wallrun wall), tunnel focus (world and ambient sounds duck while flying; the music and
     /// wind don't) and Nadia's breathing, quiet, quickening with time spent fast. Every level is in this component's
@@ -46,8 +48,9 @@ namespace JamKit.Movement
         [Header("Speed (docs/MOVEMENT.md, Speed music)")]
         [Tooltip("The speed music this body drives (stems by tier). Optional.")]
         public MovementMusic music;
-        [Tooltip("The shared speed tiers: fast from 8 m/s, flying from 13 m/s.")]
-        public SpeedTierDef speedTiers = new SpeedTierDef();
+        [Tooltip("The speed visuals' hub whose tier the sound follows (found on the body's camera when empty). Without one: "
+            + "a tier of its own, from the body's tuning asset (Speed Tiers).")]
+        public SpeedFeel speedFeel;
         [Range(0f, 1f)] public float musicVolume = 0.45f;
         [Tooltip("A4: the supersonic whistle while flying.")]
         [Range(0f, 1f)] public float supersonicVolume = 0.14f;
@@ -72,7 +75,9 @@ namespace JamKit.Movement
 
         AudioSource _wind, _windHigh, _slide, _wall, _supersonic, _breathCalm, _breathFast;
         float _windV, _windHighV, _slideV, _wallV, _pan, _exertion, _worldGain = 1f, _duckScan;
-        SpeedTier _speed;
+        SpeedTier _speed, _ownTier;
+        float _speedNow;
+        bool _pausedNow, _existsNow;
         readonly List<AudioSource> _duckSrc = new List<AudioSource>();
         readonly List<float> _duckBase = new List<float>();
         readonly List<float> _duckSet = new List<float>();
@@ -84,8 +89,29 @@ namespace JamKit.Movement
         Bank _step, _heavy, _jump, _djump, _wallJump, _catch, _landSoft, _land, _landHard, _mantle, _kick, _slideIn, _boost;
 
         public float WindLevel => _windV + _windHighV;
-        /// <summary>The speed tier the sound follows (null before Start).</summary>
+        /// <summary>The speed tier the sound follows (null before the first frame): SpeedFeel's own when there is one.</summary>
         public SpeedTier Speed => _speed;
+        /// <summary>True when the sound reads the speed visuals' tier (one tick, one source of truth).</summary>
+        public bool SharesTheVisualTier => _speed != null && _ownTier == null;
+
+        /// <summary>The speed visuals' hub for a body: on its camera (where the builders put it), else under it.</summary>
+        public static SpeedFeel FindFeel(MovementController body)
+        {
+            if (body == null) return null;
+            var feel = body.cam != null ? body.cam.GetComponent<SpeedFeel>() : null;
+            return feel != null ? feel : body.GetComponentInChildren<SpeedFeel>(true);
+        }
+
+        SpeedTier ResolveTier()
+        {
+            if (speedFeel != null && speedFeel.State != null)
+            {
+                _ownTier = null;
+                return speedFeel.State.Tier;
+            }
+            if (_ownTier == null) _ownTier = new SpeedTier(body != null && body.tuning != null ? body.tuning.speedTiers : null);
+            return _ownTier;
+        }
         /// <summary>A6: 0 calm .. 1 out of breath.</summary>
         public float Exertion => _exertion;
         /// <summary>A5: the gain on world and ambient sounds now (1 = no duck).</summary>
@@ -136,7 +162,7 @@ namespace JamKit.Movement
             _supersonic = Loop("mv_supersonic");
             _breathCalm = Loop("mv_breath_calm");
             _breathFast = Loop("mv_breath_fast");
-            _speed = new SpeedTier(speedTiers);
+            if (speedFeel == null) speedFeel = FindFeel(body);
             _voices = new AudioSource[Voices];
             for (int i = 0; i < Voices; i++)
             {
@@ -215,22 +241,10 @@ namespace JamKit.Movement
             Set(_slide, _slideV * _sfx, MoveSoundMix.SlidePitch(speed), 0f);
             Set(_wall, _wallV * _sfx, 0.9f + 0.2f * MoveMath.Clamp01(speed / 12f), 0f);
 
-            // Speed: the tiers (frozen while paused), the music, the supersonic whistle, the breath, the duck.
-            float gameDt = paused ? 0f : Time.deltaTime;
-            _speed.Tick(speed, gameDt);
-            float fly = paused ? 0f : _speed.FlyingBlend;
-            if (music != null)
-            {
-                music.volume = musicVolume;
-                music.SetSpeed(_speed.Tier, StemMixer.Open(speed, speedTiers.flyingEnter, _speed.FlyingBlend));
-            }
-            Set(_supersonic, supersonicVolume * fly * _sfx, MoveSoundMix.SupersonicPitch(speed, speedTiers.flyingEnter), _pan * 1.2f);
-            _exertion = MoveSoundMix.Exertion(_exertion, _speed.Tier, gameDt, breathBuild, breathRecover);
-            float breath = paused ? 0f : breathVolume * _sfx;
-            Set(_breathCalm, breath * 0.5f * (1f - _exertion) * MoveMath.Clamp01(speed / 4f), 1f, 0f);
-            Set(_breathFast, breath * _exertion, 1f + 0.06f * _exertion, 0f);
-            _worldGain = MoveSoundMix.Duck(fly, worldDuck);
-            if (exists) GameRoot.Audio.WorldGain = _worldGain;
+            // The speed layers follow in LateUpdate, after SpeedFeel has ticked this frame's tier.
+            _speedNow = speed;
+            _pausedNow = paused;
+            _existsNow = exists;
 
             if (!exists || paused) return;
             float fx = effectsVolume;
@@ -278,7 +292,27 @@ namespace JamKit.Movement
 
         void LateUpdate()
         {
-            if (_speed == null) return;
+            if (body == null || body.Sim == null || _wind == null) return;
+            // Speed: the tier (SpeedFeel's, ticked in its LateUpdate just before this one; else our own), the music,
+            // the supersonic whistle, the breath, the duck. Frozen while paused.
+            _speed = ResolveTier();
+            float gameDt = _pausedNow ? 0f : Time.deltaTime;
+            if (_ownTier != null) _ownTier.Tick(_speedNow, gameDt);
+            float flyingEnter = _speed.Def.flyingEnter;
+            float fly = _pausedNow ? 0f : _speed.FlyingBlend;
+            if (music != null)
+            {
+                music.volume = musicVolume;
+                music.SetSpeed(_speed.Tier, StemMixer.Open(_speedNow, flyingEnter, _speed.FlyingBlend));
+            }
+            Set(_supersonic, supersonicVolume * fly * _sfx, MoveSoundMix.SupersonicPitch(_speedNow, flyingEnter), _pan * 1.2f);
+            _exertion = MoveSoundMix.Exertion(_exertion, _speed.Tier, gameDt, breathBuild, breathRecover);
+            float breath = _pausedNow ? 0f : breathVolume * _sfx;
+            Set(_breathCalm, breath * 0.5f * (1f - _exertion) * MoveMath.Clamp01(_speedNow / 4f), 1f, 0f);
+            Set(_breathFast, breath * _exertion, 1f + 0.06f * _exertion, 0f);
+            _worldGain = MoveSoundMix.Duck(fly, worldDuck);
+            if (_existsNow) GameRoot.Audio.WorldGain = _worldGain;
+
             // Tunnel focus for the scene's own sounds (the static's hiss and the like), after their owners set them.
             _duckScan -= Time.unscaledDeltaTime;
             if (_duckScan <= 0f)
