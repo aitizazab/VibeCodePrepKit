@@ -385,7 +385,7 @@ namespace JamKit.Shell
         protected override VisualElement FirstFocusable()
         {
             if (_state == State.Listening) return _modalBox;
-            if (_state == State.Conflict) return _swap;
+            if (_state == State.Conflict) return _conflict.Exact ? _swap : _keepBoth;
             foreach (var line in _lines)
                 foreach (var e in line)
                     if (CanFocus(e)) return e;
@@ -597,7 +597,8 @@ namespace JamKit.Shell
             _modal.BringToFront();
             // The table can't take focus or clicks under the prompt.
             _scroll.parent.SetEnabled(false);
-            FocusSoon(buttons ? (VisualElement)_swap : _modalBox);
+            if (buttons) SetShown(_swap, _conflict.Exact);
+            FocusSoon(buttons ? FirstFocusable() : _modalBox);
         }
 
         /// <summary>Focus now and again on the panel's next update (an element that was just shown can't
@@ -703,6 +704,13 @@ namespace JamKit.Shell
             _state = State.Conflict;
             string mine = ControlNames.PathName(path, _style);
             string theirs = _conflict.Row.Label;
+            if (!_conflict.Exact)
+            {
+                // One control inside the other (d-pad left and Move's d-pad): no swap, the types differ.
+                string other = ControlNames.PathName(_conflict.Row.Action.bindings[_conflict.Binding].effectivePath, _style);
+                OpenModal("<b>" + Escape(mine) + "</b> overlaps <b>" + theirs + "</b> (" + Escape(other) + "): pressing it does both.", true);
+                return;
+            }
             string old = ControlNames.PathName(_prevEffective, _style);
             string swap = old.Length > 0
                 ? "Swap gives " + theirs + " " + Escape(old) + " instead."
@@ -715,12 +723,12 @@ namespace JamKit.Shell
         {
             if (_state != State.Conflict) return;
             var model = Model;
-            if (choice > 0) model.Swap(_conflict, _prevEffective);
+            if (choice > 0 && _conflict.Exact) model.Swap(_conflict, _prevEffective);
             else if (choice < 0)
             {
+                // Back to what it was: the previous override, or the default (SetPath drops the override then).
                 var action = _view.row.Action;
-                if (_prevOverride == null) action.RemoveBindingOverride(_binding);
-                else action.ApplyBindingOverride(_binding, _prevOverride);
+                model.SetPath(action, _binding, _prevOverride ?? action.bindings[_binding].path);
             }
             _conflict = default;
             if (choice < 0) EndRebind();

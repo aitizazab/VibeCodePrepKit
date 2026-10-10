@@ -14,11 +14,12 @@ namespace JamKit.MovementLab
     /// clock (core <see cref="GauntletClock"/>) starts at the gate and stops at the finish line; touch markers
     /// light up as you pass over them (each missed one adds 2 s); every section's end shows a split with its
     /// delta against your best (green faster, red slower); falls respawn you at the section's start, running, with
-    /// the clock still going (the lab's respawn). R or the pad's View (Select) button restarts at once, from the
-    /// start pad. Your best time, splits and ghost are kept in the shell's save; the ghost of your best run plays
-    /// beside you (G or the pad's d-pad left hides it). The target board shows the developer's time (the
-    /// autopilot's), Mags's and yours; the end screen your time and splits.
-    /// Input is read directly here (a stopgap until the shell's InputService has a Restart action).
+    /// the clock still going (the lab's respawn). The shell's Restart action (R or the pad's View / Share by default)
+    /// restarts at once, from the start pad. Your best time, splits and ghost are kept in the shell's save; the ghost
+    /// of your best run plays beside you (the Ghost action, G or d-pad left, hides it). Both are rebindable in
+    /// Settings > Controls, whose "Restart run" and "Show ghost" rows show while this exists; the hints name the
+    /// current keys. The target board shows the developer's time (the autopilot's), Mags's and yours; the end
+    /// screen your time and splits. Without the shell (a bare test scene) it reads R / View and G / d-pad left.
     /// </summary>
     public sealed class GauntletRun : MonoBehaviour
     {
@@ -60,7 +61,59 @@ namespace JamKit.MovementLab
         {
             if (game == null || !GameRoot.Exists) { enabled = false; return; }
             _current = this;
+            ShowControlRows(true);
             TryInit();
+        }
+
+        static void ShowControlRows(bool shown)
+        {
+            if (!GameRoot.Exists || GameRoot.Ui == null || GameRoot.Ui.Controls == null) return;
+            GameRoot.Ui.Controls.SetRowShown("restart", shown);
+            GameRoot.Ui.Controls.SetRowShown("ghost", shown);
+        }
+
+        // ---------- The keys (rebindable) ----------
+
+        int _keysVersion = -1;
+        Gamepad _keysPad;
+        string _restartKeys = "R or View", _ghostKeys = "G";
+        string _readyHint = "", _ghostOffNote = "", _endKeys = "";
+
+        /// <summary>Rebuilds the hint texts when the bindings or the pad change (not every frame).</summary>
+        void RefreshKeyNames()
+        {
+            var pad = Gamepad.current;
+            int version = GameRoot.Exists ? GameRoot.Input.Bindings.Version : 0;
+            if (version == _keysVersion && pad == _keysPad && _readyHint.Length > 0) return;
+            _keysVersion = version;
+            _keysPad = pad;
+            if (GameRoot.Exists)
+            {
+                var style = ControlNames.DetectPadStyle();
+                _restartKeys = GameRoot.Input.Bindings.KeysText("restart", style);
+                _ghostKeys = GameRoot.Input.Bindings.KeysText("ghost", style);
+                if (_restartKeys.Length == 0) _restartKeys = "(no key: Settings > Controls)";
+                if (_ghostKeys.Length == 0) _ghostKeys = "(no key)";
+            }
+            _readyHint = _restartKeys + " restarts at any time. " + _ghostKeys + " hides the ghost of your best run.";
+            _ghostOffNote = "   (ghost off: " + _ghostKeys + ")";
+            _endKeys = "\n" + _restartKeys + ": run it again    " + _ghostKeys + ": ghost on or off    Esc: menu";
+        }
+
+        /// <summary>This frame's presses: the shell's rebindable actions (gameplay allowed), or the devices without a shell.</summary>
+        static void ReadKeys(out bool restart, out bool ghost)
+        {
+            if (GameRoot.Exists)
+            {
+                var input = GameRoot.Input;
+                restart = input.Pressed(input.Restart);
+                ghost = input.Pressed(input.Ghost);
+                return;
+            }
+            var kb = Keyboard.current;
+            var pad = Gamepad.current;
+            restart = (kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame);
+            ghost = (kb != null && kb.gKey.wasPressedThisFrame) || (pad != null && pad.dpad.left.wasPressedThisFrame);
         }
 
         /// <summary>Sets up once the lab has built its course (its Start may run after this one).</summary>
@@ -81,7 +134,11 @@ namespace JamKit.MovementLab
 
         void OnDestroy()
         {
-            if (_current == this) _current = null;
+            if (_current == this)
+            {
+                _current = null;
+                ShowControlRows(false);
+            }
             if (game != null && game.OnPlaced == (System.Action<int, bool>)OnPlaced) game.OnPlaced = null;
             _root?.RemoveFromHierarchy();
         }
@@ -142,12 +199,10 @@ namespace JamKit.MovementLab
         {
             if (_clock == null) { TryInit(); if (_clock == null) return; }
             float dt = Time.deltaTime;
-            bool allowed = GameRoot.Input.GameplayAllowed;
-            var kb = Keyboard.current;
-            var pad = Gamepad.current;
             bool inGauntlet = _g.InGauntlet(game.S);
-            if (allowed && inGauntlet && ((kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame))) Restart();
-            if (allowed && ((kb != null && kb.gKey.wasPressedThisFrame) || (pad != null && pad.dpad.left.wasPressedThisFrame))) ghostOn = !ghostOn;
+            ReadKeys(out bool restartPressed, out bool ghostPressed);
+            if (restartPressed && inGauntlet) Restart();
+            if (ghostPressed) ghostOn = !ghostOn;
 
             if (game.AutopilotOn) _autopiloted = true;
             var player = game.player;
@@ -321,11 +376,12 @@ namespace JamKit.MovementLab
             {
                 // Words refresh ten times a second (no string building every frame).
                 _uiT = 0.1f;
+                RefreshKeyNames();
                 int sec = _g.SectionAt(game.S);
                 _sub.text = state == GauntletState.Ready ? "Cross the gate to start the clock"
                     : "Markers " + _clock.MarkersHit + "/" + _clock.MarkerCount + (sec >= 0 ? "   " + _g.sections[sec].name : "")
-                      + (ghostOn && _best.Count > 1 ? "" : "   (ghost off: G)");
-                _hint.text = state == GauntletState.Ready && _hintShow > 0f ? "R or View restarts at any time. G hides the ghost of your best run." : "";
+                      + (ghostOn && _best.Count > 1 ? "" : _ghostOffNote);
+                _hint.text = state == GauntletState.Ready && _hintShow > 0f ? _readyHint : "";
                 BoardText();
                 if (state == GauntletState.Finished) EndText();
             }
@@ -358,7 +414,8 @@ namespace JamKit.MovementLab
                 if (_clock.HasBestSplit(i) && !_clock.NewBest) _sb.Append("   ").Append(Delta(_clock.SplitDelta(i)));
                 _sb.Append('\n');
             }
-            _sb.Append("\nR or View: run it again    G: ghost on or off    Esc: menu");
+            RefreshKeyNames();
+            _sb.Append(_endKeys);
             _endText.text = _sb.ToString();
         }
     }

@@ -145,6 +145,8 @@ cards: the blind tester reads them once.
 | Sprint, toggle (first-person movement) | - | L3 |
 | Interact | E | X |
 | Pause | Escape, P | Start |
+| Restart run (the Movement Lab's Gauntlet) | R | View / Share |
+| Show ghost (the Gauntlet) | G | d-pad left (also part of Move's d-pad: pressing it also moves you left) |
 | Menus | arrows, Enter, Escape, mouse | stick/d-pad, A, B |
 | Presenter mode (hidden) | Ctrl+Shift+P | hold L3+R3 for 1 s |
 
@@ -156,8 +158,9 @@ player changes them in **Settings > Controls** (below). Mouse sensitivity and in
 
 Every template's Settings has a **Controls** button (shown with the action settings, so not in the
 story template). It opens a table: a row per gameplay action (Move, Look, Jump / Dash, Crouch / Slide
-hold and toggle, Sprint hold and toggle, Interact, Fire, Alt Fire, Pause), a **Keyboard & Mouse** column
-and a **Controller** column, and a Reset per row.
+hold and toggle, Sprint hold and toggle, Interact, Fire, Alt Fire, Pause; and **Restart run** and **Show
+ghost**, which only the Movement Lab's Gauntlet shows), a **Keyboard & Mouse** column and a **Controller**
+column, and a Reset per row.
 
 - **Rebind:** select a cell, then press the new key, mouse button or pad button. **Esc** cancels (and
   **Start**, or **B / Circle** for a keyboard cell, on a pad). The keyboard column takes keys and mouse
@@ -166,7 +169,10 @@ and a **Controller** column, and a Reset per row.
   cell asks for Up, Down, Left, Right in turn. Look's mouse cell can't change. Start can't be bound
   (it cancels; Reset brings it back on Pause).
 - **Conflicts:** a key another action already uses asks **Swap** (that action gets your old key),
-  **Keep both**, or **Undo**. Shared keys you kept show **(!)**.
+  **Keep both**, or **Undo**. A control inside another one counts too (d-pad left is part of Move's
+  whole d-pad): that asks only **Keep both** or **Undo**, since a button can't swap with a stick-like
+  binding. Shared keys you kept show **(!)**; so does Show ghost's default d-pad left against Move in the
+  lab. Hidden rows don't count (R is free in a template without the Gauntlet).
 - **Reset** on a row puts that action back; **Reset all** puts everything back (stick clicks too).
 - **Stick clicks:** "Crouch / Slide on R3" and "Sprint on L3" switch between **Toggle** (the default:
   R3 / L3 belong to the toggle actions) and **Hold** (they move to the hold actions: crouch while R3 is
@@ -183,7 +189,10 @@ and a **Controller** column, and a Reset per row.
   the actions added at runtime and the code defaults), so saved rebinds survive restarts and rebuilds.
 - Code: `GameRoot.Input.Bindings` (`ControlBindings`: rows, `SetPath`, `FindConflict`, `ResetRow`,
   `ResetAll`, `SetStickHolds`, `SaveTo` / `LoadFrom`), `GameRoot.Ui.Controls` (`ControlsScreen`).
-  A template without shooting can hide rows: `GameRoot.Ui.Controls.SetRowShown("fire", false)`.
+  A template without shooting can hide rows: `GameRoot.Ui.Controls.SetRowShown("fire", false)`; Restart run
+  and Show ghost start hidden and `GauntletRun` shows them while it exists. To name the current keys in a
+  hint, use `GameRoot.Input.Bindings.KeysText("restart", ControlNames.DetectPadStyle())` ("R or View"),
+  rebuilt when `Bindings.Version` changes.
 
 ## Debug keys
 

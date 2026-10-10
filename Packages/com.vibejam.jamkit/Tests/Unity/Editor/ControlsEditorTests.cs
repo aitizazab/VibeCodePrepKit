@@ -15,7 +15,7 @@ namespace JamKit.Tests.Editor
     public class ControlsEditorTests
     {
         static readonly string[] RowIds =
-            { "move", "look", "jump", "crouch", "crouch-toggle", "sprint", "sprint-toggle", "interact", "fire", "alt-fire", "pause" };
+            { "move", "look", "jump", "crouch", "crouch-toggle", "sprint", "sprint-toggle", "interact", "fire", "alt-fire", "pause", "restart", "ghost" };
 
         readonly List<InputService> _made = new List<InputService>();
 
@@ -62,7 +62,7 @@ namespace JamKit.Tests.Editor
             var labels = new List<string>();
             screen.Root.Query<Label>().ForEach(l => labels.Add(l.text));
             foreach (var label in new[] { "Move", "Look", "Jump / Dash", "Crouch / Slide (hold)", "Crouch / Slide (toggle)", "Sprint (hold)",
-                         "Sprint (toggle)", "Interact", "Fire", "Alt Fire", "Pause", "Keyboard & Mouse" })
+                         "Sprint (toggle)", "Interact", "Fire", "Alt Fire", "Pause", "Restart run", "Show ghost", "Keyboard & Mouse" })
                 Assert.That(labels, Does.Contain(label), label);
 
             Assert.That(s.Bindings.Rows.Count, Is.EqualTo(RowIds.Length));
@@ -205,6 +205,98 @@ namespace JamKit.Tests.Editor
             m.SetStickHolds(StickClick.Crouch, false);
             Assert.That(HasEffective(s.CrouchToggle, ControlBindings.R3), Is.True);
             Assert.That(HasEffective(s.Crouch, ControlBindings.R3), Is.False);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void RestartAndGhostRowsAreHiddenUntilAScreenShowsThem(bool projectAsset)
+        {
+            var s = Make(projectAsset);
+            Assert.That(s.Restart, Is.Not.Null, "Restart, added at runtime to an older asset");
+            Assert.That(s.Ghost, Is.Not.Null);
+            Assert.That(HasEffective(s.Restart, "<Keyboard>/r") && HasEffective(s.Restart, "<Gamepad>/select"), Is.True, "R and View");
+            Assert.That(HasEffective(s.Ghost, "<Keyboard>/g") && HasEffective(s.Ghost, "<Gamepad>/dpad/left"), Is.True, "G and d-pad left");
+            var restart = s.Bindings.FindRow("restart");
+            var ghost = s.Bindings.FindRow("ghost");
+            Assert.That(restart.Label, Is.EqualTo("Restart run"));
+            Assert.That(ghost.Label, Is.EqualTo("Show ghost"));
+            Assert.That(restart.Shown || ghost.Shown, Is.False, "only the Gauntlet shows them");
+
+            var screen = new ControlsScreen(s);
+            screen.Init(null, null, new VisualElement());
+            var line = screen.Root.Q<VisualElement>("controls-row-restart");
+            Assert.That(line.style.display.value, Is.EqualTo(DisplayStyle.None));
+            screen.SetRowShown("restart", true);
+            Assert.That(restart.Shown, Is.True);
+            Assert.That(line.style.display.value, Is.EqualTo(DisplayStyle.Flex));
+            Assert.That(screen.CellText("restart", ControlColumn.KeyboardMouse), Is.Not.Empty);
+            Assert.That(screen.CellText("restart", ControlColumn.Gamepad), Does.StartWith("View"));
+            // (The key's letter follows the keyboard layout, so only the pad half is pinned.)
+            Assert.That(s.Bindings.KeysText("restart", PadStyle.Xbox), Does.EndWith(" or View"));
+            Assert.That(s.Bindings.KeysText("restart", PadStyle.PlayStation), Does.EndWith(" or Share"));
+            screen.SetRowShown("restart", false);
+            Assert.That(line.style.display.value, Is.EqualTo(DisplayStyle.None));
+        }
+
+        [Test]
+        public void AddedActionsHaveFixedBindingIds()
+        {
+            // The project asset lacks Crouch, the toggles, Restart and Ghost (InputService adds them); the code
+            // defaults have them. Both must give each binding the same id every time, or saved rebinds get lost.
+            var asset1 = Make(true);
+            var asset2 = Make(true);
+            var code = Make(false);
+            foreach (var name in new[] { "Crouch", "CrouchToggle", "SprintToggle", "Restart", "Ghost" })
+            {
+                var a = asset1.Gameplay.FindAction(name, true);
+                var b = asset2.Gameplay.FindAction(name, true);
+                var c = code.Gameplay.FindAction(name, true);
+                Assert.That(a.bindings[0].id, Is.Not.EqualTo(System.Guid.Empty), name);
+                for (int i = 0; i < a.bindings.Count && i < c.bindings.Count; i++)
+                {
+                    Assert.That(b.bindings[i].id, Is.EqualTo(a.bindings[i].id), name + " " + i + ": the same on every launch");
+                    if (c.bindings[i].path == a.bindings[i].path)
+                        Assert.That(c.bindings[i].id, Is.EqualTo(a.bindings[i].id), name + " " + i + ": the asset rebuilt from the defaults keeps it");
+                }
+            }
+
+            // So a Restart rebind made with one survives into another.
+            asset1.Bindings.SetPath(asset1.Restart, Kbm(asset1, "restart"), "<Keyboard>/t");
+            var data = new SaveData();
+            asset1.Bindings.SaveTo(data);
+            asset2.Bindings.LoadFrom(data);
+            Assert.That(asset2.Restart.bindings[Kbm(asset2, "restart")].effectivePath, Is.EqualTo("<Keyboard>/t"));
+            code.Bindings.LoadFrom(data);
+            Assert.That(code.Restart.bindings[Kbm(code, "restart")].effectivePath, Is.EqualTo("<Keyboard>/t"));
+        }
+
+        [Test]
+        public void TheGhostsDpadLeftOverlapsMoveOnlyWhenShown()
+        {
+            var s = Make(true);
+            var m = s.Bindings;
+            int ghostPad = Pad(s, "ghost");
+            Assert.That(m.FindConflict(s.Ghost, ghostPad).Exists, Is.False, "hidden rows don't count");
+            int interact = Kbm(s, "interact");
+            m.SetPath(s.Interact, interact, "<Keyboard>/r");
+            Assert.That(m.FindConflict(s.Interact, interact).Exists, Is.False, "R is free while Restart is hidden");
+
+            m.FindRow("restart").Shown = true;
+            m.FindRow("ghost").Shown = true;
+            var c = m.FindConflict(s.Interact, interact);
+            Assert.That(c.Exists && c.Exact, Is.True, "R is Restart's in the lab");
+            Assert.That(c.Row.Id, Is.EqualTo("restart"));
+            m.SetPath(s.Interact, interact, "<Keyboard>/e");
+
+            // D-pad left is part of Move's whole d-pad: flagged, but not a swap (a button and a stick-like binding).
+            c = m.FindConflict(s.Ghost, ghostPad);
+            Assert.That(c.Exists, Is.True, "d-pad left also moves you left");
+            Assert.That(c.Row.Id, Is.EqualTo("move"));
+            Assert.That(c.Exact, Is.False);
+            Assert.That(m.HasConflict(m.FindRow("move"), ControlColumn.Gamepad), Is.True);
+            Assert.That(m.FindConflict(s.Restart, Pad(s, "restart")).Exists, Is.False, "View is free");
+            Assert.That(m.FindConflict(s.Restart, Kbm(s, "restart")).Exists, Is.False, "R is free");
+            Assert.That(m.FindConflict(s.Ghost, Kbm(s, "ghost")).Exists, Is.False, "G is free");
         }
 
         [Test]

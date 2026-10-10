@@ -32,13 +32,14 @@ namespace JamKit.Shell
         /// <summary>Column of every binding of the action (composite parts too), -1 for neither.
         /// Worked out once, from the paths the asset shipped with.</summary>
         internal int[] columns;
-        bool _shown = true;
+        bool _shown;
 
-        internal ControlRow(string id, string label, InputAction action)
+        internal ControlRow(string id, string label, InputAction action, bool shown)
         {
             _id = id;
             _label = label;
             _action = action;
+            _shown = shown;
         }
 
         /// <summary>Stable short id ("move", "crouch-toggle"): button names and tests use it.</summary>
@@ -47,7 +48,8 @@ namespace JamKit.Shell
         public string Label => _label;
         public InputAction Action => _action;
 
-        /// <summary>False hides the row on the Controls screen (a template without shooting can hide Fire).</summary>
+        /// <summary>False hides the row on the Controls screen (a template without shooting can hide Fire), and a
+        /// hidden row's keys don't count as conflicts. Restart and Ghost start hidden: the Gauntlet shows them.</summary>
         public bool Shown
         {
             get => _shown;
@@ -75,17 +77,22 @@ namespace JamKit.Shell
         }
     }
 
-    /// <summary>Another row's binding on the same key or button.</summary>
+    /// <summary>Another row's binding on the same key or button, or on a control inside the other
+    /// (d-pad left is part of the whole d-pad).</summary>
     public struct ControlConflict
     {
         public ControlRow Row;
         public int Binding;
+        /// <summary>The very same control (false: one is part of the other). Only an exact clash can swap:
+        /// giving a stick-or-d-pad binding a button's path (or back) would break it.</summary>
+        public bool Exact;
         public bool Exists => Row != null;
     }
 
     /// <summary>
     /// Rebinding for the Controls screen (docs/SHELL.md "Controls"): the rows (Move, Look, Jump, Crouch hold
-    /// and toggle, Sprint hold and toggle, Interact, Fire, Alt Fire, Pause), conflicts, resets, the stick-click
+    /// and toggle, Sprint hold and toggle, Interact, Fire, Alt Fire, Pause, and the Gauntlet's Restart run and
+    /// Show ghost, hidden unless a scene shows them), conflicts, resets, the stick-click
     /// Hold / Toggle choice, and saving. Overrides are Input System binding overrides
     /// (SaveBindingOverridesAsJson), kept in the save file's entries under <see cref="SaveKey"/> together
     /// with the two Hold / Toggle choices; <see cref="UseSave"/> loads them at boot and again whenever the
@@ -136,6 +143,8 @@ namespace JamKit.Shell
             AddRow("fire", "Fire", input.Fire);
             AddRow("alt-fire", "Alt Fire", input.AltFire);
             AddRow("pause", "Pause", input.Pause);
+            AddRow("restart", "Restart run", input.Restart, false);
+            AddRow("ghost", "Show ghost", input.Ghost, false);
 
             SetUpStick(StickClick.Crouch, input.CrouchToggle, input.Crouch, R3);
             SetUpStick(StickClick.Sprint, input.SprintToggle, input.Sprint, L3);
@@ -159,10 +168,16 @@ namespace JamKit.Shell
             return null;
         }
 
-        void AddRow(string id, string label, InputAction action)
+        void AddRow(string id, string label, InputAction action, bool shown = true)
         {
-            if (action != null) _rows.Add(new ControlRow(id, label, action));
+            if (action != null) _rows.Add(new ControlRow(id, label, action, shown));
         }
+
+        int _version;
+
+        /// <summary>Goes up on every change (a rebind, a reset, a load, Hold / Toggle): code that shows the
+        /// current keys ("R or View restarts") rebuilds its text when it changes.</summary>
+        public int Version => _version;
 
         // ---------- Columns and slots ----------
 
@@ -292,6 +307,7 @@ namespace JamKit.Shell
         {
             int k = (int)which;
             _holds[k] = holds;
+            _version++;
             if (!HasStickChoice(which)) return;
             string stick = StickPath(which);
             SetBasePath(_toggleAction[k], _toggleIndex[k], holds ? "" : stick);
@@ -314,31 +330,46 @@ namespace JamKit.Shell
             path = path ?? "";
             if (string.Equals(path, action.bindings[index].path ?? "", StringComparison.OrdinalIgnoreCase)) action.RemoveBindingOverride(index);
             else action.ApplyBindingOverride(index, path);
+            _version++;
         }
 
-        /// <summary>The first binding of another row, in the same column, on the same control as binding
-        /// <paramref name="index"/> of <paramref name="action"/> (none if it's unbound).</summary>
+        /// <summary>The first binding of another shown row, in the same column, on the same control as binding
+        /// <paramref name="index"/> of <paramref name="action"/>, or on a control inside it or around it (Ghost's
+        /// d-pad left inside Move's d-pad). None if it's unbound or either row is hidden.</summary>
         public ControlConflict FindConflict(InputAction action, int index)
         {
             var none = default(ControlConflict);
             if (action == null || index < 0 || index >= action.bindings.Count) return none;
+            var mine = FindRow(action);
+            if (mine == null || !mine.Shown) return none;
             string path = action.bindings[index].effectivePath;
             int col = ColumnOf(action, index);
             if (string.IsNullOrEmpty(path) || col < 0) return none;
+            ControlConflict partial = none;
             for (int r = 0; r < _rows.Count; r++)
             {
                 var row = _rows[r];
-                if (row.Action == action) continue;
+                if (row.Action == action || !row.Shown) continue;
                 var bs = row.Action.bindings;
                 for (int j = 0; j < bs.Count; j++)
                 {
                     if (bs[j].isComposite || row.columns[j] != col) continue;
-                    if (string.Equals(bs[j].effectivePath, path, StringComparison.OrdinalIgnoreCase))
-                        return new ControlConflict { Row = row, Binding = j };
+                    string other = bs[j].effectivePath;
+                    if (string.IsNullOrEmpty(other)) continue;
+                    if (string.Equals(other, path, StringComparison.OrdinalIgnoreCase))
+                        return new ControlConflict { Row = row, Binding = j, Exact = true };
+                    if (!partial.Exists && (Inside(path, other) || Inside(other, path)))
+                        partial = new ControlConflict { Row = row, Binding = j, Exact = false };
                 }
             }
-            return none;
+            return partial;
         }
+
+        /// <summary>True if <paramref name="inner"/> names a control inside <paramref name="outer"/>
+        /// ("&lt;Gamepad&gt;/dpad/left" inside "&lt;Gamepad&gt;/dpad").</summary>
+        static bool Inside(string inner, string outer) =>
+            inner.Length > outer.Length + 1 && inner[outer.Length] == '/'
+            && inner.StartsWith(outer, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>True if any binding of this row's column shares its control with another row.</summary>
         public bool HasConflict(ControlRow row, ControlColumn column)
@@ -362,12 +393,14 @@ namespace JamKit.Shell
         public void ResetRow(ControlRow row)
         {
             if (row != null) row.Action.RemoveAllBindingOverrides();
+            _version++;
         }
 
         /// <summary>Every binding back to its default, and both stick clicks back to Toggle.</summary>
         public void ResetAll()
         {
             _asset.RemoveAllBindingOverrides();
+            _version++;
             SetStickHolds(StickClick.Crouch, false);
             SetStickHolds(StickClick.Sprint, false);
         }
@@ -419,6 +452,7 @@ namespace JamKit.Shell
                 catch (Exception e) { Debug.LogWarning("JamKit: the saved controls were damaged; using the defaults. " + e.Message); }
             }
             _asset.LoadBindingOverridesFromJson(s != null ? s.overrides : null);
+            _version++;
             SetStickHolds(StickClick.Crouch, s != null && s.crouchStickHolds);
             SetStickHolds(StickClick.Sprint, s != null && s.sprintStickHolds);
         }
@@ -476,6 +510,20 @@ namespace JamKit.Shell
             if (down != null) others.Add(down);
             if (right != null) others.Add(right);
             return string.Join(" ", others);
+        }
+
+        /// <summary>A row's current keys for a hint: "R or View" (keyboard, then pad; "" if the row is unknown).
+        /// Allocates: rebuild it when <see cref="Version"/> changes, not every frame.</summary>
+        public string KeysText(string rowId, PadStyle style)
+        {
+            var row = FindRow(rowId);
+            if (row == null) return "";
+            int k = row.Primary(ControlColumn.KeyboardMouse), p = row.Primary(ControlColumn.Gamepad);
+            string key = k >= 0 ? SlotName(row.Action, k, style) : "";
+            string pad = p >= 0 ? SlotName(row.Action, p, style) : "";
+            if (key.Length == 0) return pad;
+            if (pad.Length == 0) return key;
+            return key + " or " + pad;
         }
 
         /// <summary>The cell text: the rebindable slot, then the others ("Left Ctrl", "also C").

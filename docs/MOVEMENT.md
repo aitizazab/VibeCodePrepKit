@@ -32,7 +32,7 @@ Run the lab on its own: **JamKit > Use Template > Movement Lab**, then Play (swi
 | Wallrun | automatic: jump at a wall *along* it and hold forward | same |
 | Mantle | automatic: run or jump at a ledge 0.4 to 1.9 m above your feet | same |
 | Lab debug HUD | F3 | d-pad down |
-| Gauntlet: restart, ghost | R, G | View (Select), d-pad left |
+| Gauntlet: restart, ghost (rebindable in Settings > Controls) | R, G | View (Select), d-pad left |
 | Pause, Comfort and camera | Escape | Start |
 
 **You walk unless you sprint** (the creator, 2026-10-10: `autoSprint` is off by default). On a pad the
@@ -385,7 +385,12 @@ Gauntlet. Cross the gate and the clock starts; cross the finish line and it stop
 3. Each section's end shows a split: green if you're ahead of your best, red if you're behind.
 4. Fall, and you come back at the start of the section, already running. The clock keeps going.
 5. **R** or the pad's **View** button restarts at once from the start pad.
-6. The translucent figure is **the ghost of your best run**. **G** or the pad's **d-pad left** shows or hides it.
+6. The translucent figure is **the ghost of your best run**. **G** or the pad's **d-pad left** shows or hides it
+   (d-pad left also moves you left: it's part of Move's d-pad; Settings > Controls marks the overlap).
+
+Both are the shell's **Restart** and **Ghost** actions, so they can be rebound in Settings > Controls
+("Restart run", "Show ghost": rows that only show while the Gauntlet is loaded), and the hints and the
+end screen name whatever keys they're on.
 7. The board by the start pad lists the target times:
    - **the developer's time, 43.0 s** (the course autopilot's clean run);
    - **Mags's time, 60.0 s**;
@@ -504,7 +509,7 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 ## Known gaps
 
 - Air strafing works; only the Gauntlet's optional skip rewards it (it's weak on a stick, by design).
-- The Gauntlet: the restart and ghost buttons are read straight from the keyboard and pad in `GauntletRun` (a stopgap until the shell's `InputService` has a Restart action, so they can't be rebound yet); no online leaderboard; the developer's time is the autopilot's, not a human's.
+- The Gauntlet: no online leaderboard; the developer's time is the autopilot's, not a human's. (Restart and the ghost toggle are rebindable shell actions; without the shell, in a bare test scene, `GauntletRun` reads R / View and G / d-pad left from the devices.)
 - No strafe "lurch", no moving platforms, no ziplines or grapple.
 - No post-processing comfort effects (vignette at speed, optional motion blur): the lab camera has
   post-processing off. Add one "speed" Volume if wanted (RESEARCH-MOVEMENT 8.5).

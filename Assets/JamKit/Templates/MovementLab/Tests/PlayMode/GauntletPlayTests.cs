@@ -2,8 +2,10 @@ using System.Collections;
 using JamKit.Movement;
 using JamKit.Presenting;
 using JamKit.Shell;
+using JamKit.Tests.Play;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using static JamKit.Tests.Play.ShellTestUtil;
@@ -123,6 +125,46 @@ namespace JamKit.MovementLab.Tests
             Assert.That(clock.State, Is.EqualTo(GauntletState.Finished));
             Assert.That(clock.Missed, Is.GreaterThanOrEqualTo(Game.Gauntlet.markers.Count - 2), "the skipped sections' markers");
             Assert.That(clock.Total, Is.EqualTo(clock.Time + clock.Missed * GauntletCourse.MissPenalty).Within(0.01f), "2 s a missed marker");
+        }
+
+        [UnityTest]
+        public IEnumerator RestartAndGhostFollowTheirRebinds()
+        {
+            yield return StartLab();
+            var input = GameRoot.Input;
+            var restartRow = input.Bindings.FindRow("restart");
+            Assert.That(restartRow.Shown && input.Bindings.FindRow("ghost").Shown, Is.True, "the lab shows its Controls rows");
+            var kb = new TestKeyboard("GauntletTestKeyboard");
+            try
+            {
+                yield return null;
+                // Restart moves from R to T (Settings > Controls does the same through SetPath).
+                input.Bindings.SetPath(input.Restart, restartRow.Primary(ControlColumn.KeyboardMouse), "<Keyboard>/t");
+                Run.Restart();
+                yield return Frames(2);
+                Game.SetAutopilot(true);
+                yield return WaitFor(() => Run.Clock.State == GauntletState.Running && Run.Clock.Time > 1f, "the run to start", 20f);
+                Game.SetAutopilot(false);
+
+                yield return kb.Press(Key.R);
+                yield return kb.Press();
+                Assert.That(Run.Clock.State, Is.EqualTo(GauntletState.Running), "R doesn't restart any more");
+                yield return kb.Press(Key.T);
+                yield return kb.Press();
+                Assert.That(Run.Clock.State, Is.EqualTo(GauntletState.Ready), "T restarts the run");
+                Assert.That(Game.Checkpoint, Is.EqualTo(Game.Gauntlet.startCheckpoint), "back on the start pad");
+
+                // The ghost toggle, on its default G.
+                bool ghostWas = Run.ghostOn;
+                yield return kb.Press(Key.G);
+                yield return kb.Press();
+                Assert.That(Run.ghostOn, Is.Not.EqualTo(ghostWas), "G toggles the ghost");
+            }
+            finally
+            {
+                kb.Dispose();
+                input.Bindings.ResetAll();
+            }
         }
 
         [UnityTest]

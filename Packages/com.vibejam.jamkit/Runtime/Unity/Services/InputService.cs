@@ -6,7 +6,8 @@ namespace JamKit.Shell
 {
     /// <summary>
     /// One action asset with two maps, both always enabled: Gameplay (Move, Look, Fire, AltFire,
-    /// Focus (no default keys), Sprint, Dash, Crouch, Interact, Pause) and UI (Navigate, Submit, Cancel, Point, Click, ScrollWheel).
+    /// Focus (no default keys), Sprint, Dash, Crouch, Interact, Pause, and the Movement Lab's Restart and
+    /// Ghost) and UI (Navigate, Submit, Cancel, Point, Click, ScrollWheel).
     /// Keyboard + mouse and gamepad. Gameplay code reads e.g. <c>GameRoot.Input.Move.ReadValue&lt;Vector2&gt;()</c>
     /// and should check <see cref="GameplayAllowed"/> (false while paused, in dialogue or in menus).
     /// The player's rebinds (Settings > Controls) live in <see cref="Bindings"/>.
@@ -18,6 +19,9 @@ namespace JamKit.Shell
         public readonly InputActionMap Ui;
 
         public readonly InputAction Move, Look, Fire, AltFire, Focus, Sprint, SprintToggle, Dash, Crouch, CrouchToggle, Interact, Pause;
+        /// <summary>Restart a timed run (R, View / Share) and show or hide the best run's ghost (G, d-pad left):
+        /// the Movement Lab's Gauntlet. Their Controls rows are hidden unless a scene shows them.</summary>
+        public readonly InputAction Restart, Ghost;
         public readonly InputAction Navigate, Submit, Cancel, Point, Click, ScrollWheel;
 
         /// <summary>Rebinding: the Controls screen's rows, conflicts, resets, the stick clicks' Hold / Toggle
@@ -77,6 +81,21 @@ namespace JamKit.Shell
             }
             Interact = Gameplay.FindAction("Interact", true);
             Pause = Gameplay.FindAction("Pause", true);
+            // The Gauntlet's instant restart and its ghost toggle (Movement Lab); added when an older asset lacks them.
+            Restart = Gameplay.FindAction("Restart", false);
+            if (Restart == null)
+            {
+                Restart = Gameplay.AddAction("Restart", InputActionType.Button);
+                AddFixed(Restart, "<Keyboard>/r", 0);
+                AddFixed(Restart, "<Gamepad>/select", 1);
+            }
+            Ghost = Gameplay.FindAction("Ghost", false);
+            if (Ghost == null)
+            {
+                Ghost = Gameplay.AddAction("Ghost", InputActionType.Button);
+                AddFixed(Ghost, "<Keyboard>/g", 0);
+                AddFixed(Ghost, "<Gamepad>/dpad/left", 1);
+            }
             Navigate = Ui.FindAction("Navigate", true);
             Submit = Ui.FindAction("Submit", true);
             Cancel = Ui.FindAction("Cancel", true);
@@ -254,6 +273,8 @@ namespace JamKit.Shell
             Button(g, "SprintToggle", "<Gamepad>/leftStickPress");
             Button(g, "Interact", "<Keyboard>/e", "<Gamepad>/buttonWest");
             Button(g, "Pause", "<Keyboard>/escape", "<Keyboard>/p", "<Gamepad>/start");
+            Button(g, "Restart", "<Keyboard>/r", "<Gamepad>/select");
+            Button(g, "Ghost", "<Keyboard>/g", "<Gamepad>/dpad/left");
 
             var ui = asset.AddActionMap("UI");
             var nav = ui.AddAction("Navigate", InputActionType.PassThrough, expectedControlLayout: "Vector2");
