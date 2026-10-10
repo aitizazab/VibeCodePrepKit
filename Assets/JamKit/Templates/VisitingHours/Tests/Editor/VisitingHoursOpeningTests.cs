@@ -163,6 +163,75 @@ namespace JamKit.VisitingHours.Tests
             }
         }
 
+        static readonly System.Reflection.MethodInfo StageLateUpdate =
+            typeof(VhStage).GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+        /// <summary>
+        /// When she holds the phone up, her hand is there: the hand bone at the grip, in the camera's view, and her skinned
+        /// mesh round it (the capture once showed the phone floating with no hand). Logs what it measures (JAMKIT_VH_HAND).
+        /// </summary>
+        [Test]
+        public void HerHandHoldsThePhoneInView()
+        {
+            var stage = VhStageBuilder.Build(Boot(), false);
+            try
+            {
+                var model = stage.nadia as VhModelNadia;
+                if (model == null) Assert.Ignore("Nadia's model isn't imported: the stand-in arm is used");
+                stage.ResetForOpening();
+                stage.MoveCamera("nightstand", 0f);
+                stage.PlayArm("lift", 0f);
+                for (int i = 0; i < 3; i++) StageLateUpdate.Invoke(stage, null);
+                stage.GripPose(1f, out var wrist, out _);
+                var cam = stage.cam;
+                Vector3 hand = model.rHand.position;
+                Vector3 view = cam.WorldToViewportPoint(hand);
+                var log = new System.Text.StringBuilder();
+                log.Append("JAMKIT_VH_HAND wrist target ").Append(wrist.ToString("F3")).Append(" hand bone ").Append(hand.ToString("F3"))
+                    .Append(" fore ").Append(model.rFore.position.ToString("F3")).Append(" arm ").Append(model.rArm.position.ToString("F3"))
+                    .Append(" shoulder ").Append(stage.shoulder.ToString("F3")).Append(" phone ").Append(stage.phone.position.ToString("F3"))
+                    .Append(" cam ").Append(cam.transform.position.ToString("F3")).Append(" near ").Append(cam.nearClipPlane)
+                    .Append(" viewport ").Append(view.ToString("F3"));
+                // Her skinned mesh as drawn now: how much of it is round the hand bone, and where it all is.
+                var baked = new Mesh();
+                var verts = new System.Collections.Generic.List<Vector3>();
+                int near = 0;
+                float closest = float.MaxValue;
+                var all = new Bounds();
+                bool first = true;
+                foreach (var smr in model.model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                    smr.BakeMesh(baked, true);
+                    baked.GetVertices(verts);
+                    var m = Matrix4x4.TRS(smr.transform.position, smr.transform.rotation, Vector3.one);
+                    foreach (var v in verts)
+                    {
+                        Vector3 p = m.MultiplyPoint3x4(v);
+                        if (first) { all = new Bounds(p, Vector3.zero); first = false; }
+                        else all.Encapsulate(p);
+                        float d = Vector3.Distance(p, hand);
+                        if (d < closest) closest = d;
+                        if (d < 0.08f) near++;
+                    }
+                    log.Append(" | smr ").Append(smr.name).Append(" enabled ").Append(smr.enabled).Append(" active ").Append(smr.gameObject.activeInHierarchy)
+                        .Append(" bones ").Append(smr.bones.Length).Append(" rootBone ").Append(smr.rootBone != null ? smr.rootBone.name : "none")
+                        .Append(" handInBones ").Append(System.Array.IndexOf(smr.bones, model.rHand) >= 0);
+                }
+                Object.DestroyImmediate(baked);
+                log.Append(" | vertices within 8 cm of the hand ").Append(near).Append(" closest ").Append(closest.ToString("F3")).Append(" mesh bounds ").Append(all.ToString("F3"));
+                Debug.Log(log.ToString());
+                TestContext.WriteLine(log.ToString());
+                Assert.That(Vector3.Distance(hand, wrist), Is.LessThan(0.03f), "the hand is at the grip");
+                Assert.That(view.z > cam.nearClipPlane && view.x > 0f && view.x < 1f && view.y > 0f && view.y < 1f, Is.True, "the hand is in view");
+                Assert.That(near, Is.GreaterThan(50), "her skinned hand is round the hand bone");
+            }
+            finally
+            {
+                stage.DisposeOwned();
+                Object.DestroyImmediate(stage.gameObject);
+            }
+        }
+
         [Test]
         public void TheOpeningsSoundsAreMade()
         {
