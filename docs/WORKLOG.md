@@ -510,3 +510,29 @@ headings above were corrected from the commit times; the earlier guesses ran up 
 - **The rules for her look** are now in `CHARACTERS.md` under Lena.
 - **The page's questions:** do they read as two unrelated women at a glance? Is the ceramicist look right? Does the
   pencil read as deliberate? Are the dream versions cute enough?
+
+### The creator's first Movement Lab notes, and Lena round 3 (13:55)
+**Movement Lab** (played with a controller):
+- **Sound design needs work,** but having sound at all is a nice touch at speed.
+- **Air strafing:** they found a loop that builds forward speed to at least twice running speed. **Keep it as it is;**
+  they asked how it works. It's Source-style air acceleration: the 0.8 m/s cap applies only to the part of your
+  velocity along the direction you're steering, so holding a strafe key while turning the view adds about 0.8 m/s
+  sideways per tick (120 per second), and total speed keeps growing, up to the 22 m/s cap. A plain-words write-up is
+  going into `MOVEMENT.md`.
+- **Changes asked for, sent to the movement agent:**
+  - **Sprint is opt-in:** hold Shift; on a controller L3 toggles it (Titanfall style; LB holds).
+  - **A recovery boost:** sprinting from a near-stop (a bad landing, hitting something) kicks you back to sprint speed
+    in about 0.3–0.4 s, with a cooldown, and never above sprint speed.
+- **The art page took focus mid-game.** From now on, review pages are built but not opened while the creator is
+  playing; the path is given instead.
+
+**Lena** (notes on round 2):
+- **Right:** the fuller, rested, rounder face, and that she now looks different from Nadia.
+- **Wrong:** she looks like she works hard for a living. Elias comes from money; anything she does is a hobby, unless
+  it's a real passion (the creator has no idea for one). She must look **mysterious enough that her going missing isn't
+  just an allegory for being dead.**
+- **Her nose looks pasted on.**
+- **The pencil** is fine, but it's meant to show her **curious and ordered nature**.
+- **The dream version's ear sticks out** too wide for its size.
+- **Two agents, as the creator asked:** one adapts round 2 to these notes (round 3); a second designs Lena from scratch,
+  without seeing any Lena art so far. They take turns with Flow (one automation Chrome).
