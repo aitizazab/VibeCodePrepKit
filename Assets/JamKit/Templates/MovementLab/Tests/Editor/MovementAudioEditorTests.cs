@@ -97,6 +97,60 @@ namespace JamKit.MovementLab.Tests
             }
         }
 
+        [Test]
+        public void TheLabSceneDrivesTheSpeedMusic()
+        {
+            var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(JamKit.MovementLab.EditorTools.MovementLabBuilder.ScenePath, UnityEditor.SceneManagement.OpenSceneMode.Additive);
+            try
+            {
+                MovementAudio sound = null;
+                foreach (var go in scene.GetRootGameObjects())
+                    if (sound == null) sound = go.GetComponentInChildren<MovementAudio>(true);
+                Assert.That(sound, Is.Not.Null);
+                Assert.That(sound.music, Is.Not.Null, "the player's speed drives the stems");
+                Assert.That(sound.music.stemSet, Is.EqualTo("lab"), "real stems go in Resources/JamKitMusicStems/lab/");
+                Assert.That(sound.music.playOnStart, Is.True);
+            }
+            finally
+            {
+                UnityEditor.SceneManagement.EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Test]
+        public void TheSpeedMusicStemsExistInStepWithMuffledCopies()
+        {
+            var go = new GameObject("music test");
+            try
+            {
+                var music = go.AddComponent<MovementMusic>();
+                music.stemSet = "no-such-set";
+                music.Resolve();
+                int length = -1;
+                for (int slot = StemMixer.Base; slot <= StemMixer.Peak; slot++)
+                {
+                    var full = music.StemClip(slot);
+                    var muffled = music.MuffledClip(slot);
+                    Assert.That(full, Is.Not.Null, StemMixer.SlotNames[slot]);
+                    Assert.That(muffled, Is.Not.Null, StemMixer.SlotNames[slot] + " muffled");
+                    if (length < 0) length = full.samples;
+                    Assert.That(full.samples, Is.EqualTo(length), "every stem one length");
+                    Assert.That(muffled.samples, Is.EqualTo(length), "the muffled copy in step");
+                    float pk = 0f;
+                    foreach (var s in Samples(full)) pk = Math.Max(pk, Math.Abs(s));
+                    Assert.That(pk, Is.InRange(0.2f, MoveSounds.MaxPeak), full.name);
+                }
+                Assert.That(music.StemClip(StemMixer.Tension), Is.Null, "no tension stem unless a game brings one");
+                var supersonic = MovementAudio.ClipsFor("mv_supersonic", out _);
+                Assert.That(supersonic, Is.Not.Empty);
+                Assert.That(MovementAudio.ClipsFor("mv_breath_fast", out _), Is.Not.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
         static float[] Samples(AudioClip c)
         {
             c.LoadAudioData();

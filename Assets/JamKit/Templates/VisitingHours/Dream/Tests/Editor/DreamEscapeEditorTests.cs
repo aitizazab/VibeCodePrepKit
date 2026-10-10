@@ -186,6 +186,9 @@ namespace JamKit.DreamEscape.Tests
                 Assert.That(game.music.pad, Is.Not.Null);
                 Assert.That(game.music.pulse, Is.Not.Null);
                 Assert.That(game.music.box, Is.Not.Null);
+                Assert.That(game.music.music, Is.Not.Null, "the chase music rides on the speed stems");
+                Assert.That(game.music.music.playOnStart, Is.False, "the escape starts it");
+                Assert.That(body.GetComponent<MovementAudio>().music, Is.SameAs(game.music.music), "the player's speed drives the stems");
             }
             finally
             {
@@ -196,7 +199,8 @@ namespace JamKit.DreamEscape.Tests
         [Test]
         public void TheChaseMusicLoopsAreOneLengthAndNotSilent()
         {
-            var clips = new[] { DreamSynth.Pad, DreamSynth.Pulse, DreamSynth.MusicBox };
+            // The speed music's peak stem joins the chase's own: one length, so they stay in step.
+            var clips = new[] { DreamSynth.Pad, DreamSynth.Pulse, DreamSynth.MusicBox, MovementMusic.Default(StemMixer.Peak) };
             foreach (var c in clips)
             {
                 Assert.That(c, Is.Not.Null);

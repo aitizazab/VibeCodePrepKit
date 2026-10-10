@@ -13,6 +13,7 @@ Titanfall 2's measured wall numbers; section 8: feel). This page is the user's g
 |---|---|
 | The rules (pure C#, no Unity, tested with dotnet) | `Packages/com.vibejam.jamkit/Runtime/Core/Movement/` (`MoveSim`, `MoveDriver`, `MoveDef`, `MoveMath`) |
 | The Unity side, for any template | `Packages/com.vibejam.jamkit/Runtime/Unity/Movement/` (`MovementController`, `MovementCamera`, `MovementBody`, `MovementAudio`, `SpeedLines`, `MovementComfortScreen`, `MovementTuning`, `MovementSurface`) |
+| Speed music | `MovementMusic` (stems by speed tier, muffled when slow), `Runtime/Core/Movement/MusicStems.cs` (`StemMixer`: tier selection, bar-quantised switching, fades; the zero-phase low-pass), `MoveMusicSynth.cs` (placeholder stems); real stems go in `Assets/JamKit/Audio/MusicStems/Resources/JamKitMusicStems/<set>/` |
 | Sound | `MovementAudio` (the mix), `Runtime/Core/Movement/MoveSounds.cs` (generated loops and fallbacks, the mix rules `MoveSoundMix`), recorded variants in `Runtime/Audio/Movement/Resources/JamKitMovementAudio/` (built by `tools/audio/make-movement-sfx.py`; sources and licences in `Runtime/Audio/ThirdParty/LICENSES.md`) |
 | The Movement Lab (feel-test course, chase) | `Assets/JamKit/Templates/MovementLab/` (course data in core: `LabCourse`, `CourseAutopilot`, `PathLine`/`Pursuer`) |
 | Tests | `core-tests/Movement` (dotnet), `Assets/JamKit/Templates/MovementLab/Tests` (Unity EditMode and PlayMode) |
@@ -222,7 +223,7 @@ Metres, seconds, m/s, degrees.
 | `MovementCamera` (on the rig) | speedFov 8° from 9.5 to 22 m/s, **slideFovScale 1.1 over 0.25 s in and out** (TF2; slideFov extra degrees 0), fovRate 6; sprintKickFov 4° over sprintKickTime 0.35 s; wallRoll 9° away from the wall, wallCatchKick 4° (the lean-in on contact), slideRoll 2°, roll spring 14 rad/s damping 0.65; landDip 0.12 m from 4 to 18 m/s impact (spring 20), **slideEntryDip 0.05 m** (TF2: the sudden dip into a slide); bobAmount 0.035 m; mantleNod 3° |
 | `MovementBody` (on the camera) | The first-person body and its feel (**The body** below): `rig` (a MovementBodyRig; the lab and the escape wire Nadia's model), `feelCamera`; the placeholder capsules' colours and proportions when no rig is wired. Every feel number is in the tuning asset's **Body** section (`BodyFeelDef`). |
 | `SpeedLines` (on the camera) | 56 edge streaks from 12 to 20 m/s, alpha up to 0.35, never in the centre of the screen |
-| `MovementAudio` (on the body) | windVolume 0.5, windHighVolume 0.4, slideVolume 0.45, wallVolume 0.3, stepVolume 0.32, effectsVolume 0.8, pitchVariance 0.05, volumeVariance 0.12. What each sound is and when it plays: **Sound** below. |
+| `MovementAudio` (on the body) | windVolume 0.5, windHighVolume 0.4, slideVolume 0.45, wallVolume 0.3, stepVolume 0.32, effectsVolume 0.8, pitchVariance 0.05, volumeVariance 0.12; speed: music (the MovementMusic it drives), speedTiers (fast 8, flying 13, the shared SpeedTierDef), musicVolume 0.45, supersonicVolume 0.14, worldDuck 0.45, breathVolume 0.05, breathBuild 8 s, breathRecover 10 s. What each sound is and when it plays: **Sound** and **Speed music** below. |
 | `MovementController` | mouseDegreesPerPixel 0.09, gamepadDegreesPerSecond 190 (x1.6 boost after 0.25 s fully over), maxPitch 85, managePointerLock, onlyMarkedWalls, worldMask, skinWidth 0.04, stepOffset 0.35 standing, **crouchStepOffset 0** (the CharacterController's step-up pass lifts the capsule by the step offset before it sweeps forward: with 0.35 while sliding, a slide stopped dead at the face of a 1.15 m bar) |
 
 ## The body
@@ -333,9 +334,55 @@ layers crossfading stand in for a low-pass opening with speed (which WebGL can't
 `MoveSoundMix` in the core (dotnet-tested); the recorded sets are rebuilt by
 `uv run --with numpy python tools/audio/make-movement-sfx.py <packs dir>`.
 
-**Still placeholders:** the loops and the boost are synthesised, not recorded; there is one surface (concrete)
-for footsteps; no mantle grunt or breathing; no music stems by speed; the dream-static, collapse, checkpoint and
+**Still placeholders:** the speed music's stems (composed with the creator later; see **Speed music**); the loops, the boost, the supersonic whistle and the breath are synthesised, not recorded; there is one surface (concrete)
+for footsteps; no mantle grunt; the dream-static, collapse, checkpoint and
 caught sounds (`mv_static`, `mv_collapse`, `mv_checkpoint`, `mv_caught`) are untouched generated placeholders.
+
+## Speed music
+
+The creator (2026-10-10): "the background music getting more excited the faster you're going". Built from
+docs/SPEED-FEEL.md's A1, A2, A4, A5 and A6 (A3, the crossing stinger, left out by choice). Everything follows the
+shared speed tiers (`SpeedTier`: running, **fast** from 8 m/s, **flying** from 13 m/s, with hysteresis and a 0.6 s
+drop delay, so a stumble doesn't drop a tier).
+
+| Layer | What it does |
+|---|---|
+| **A1 Stems by tier** (`MovementMusic`) | Up to four stems of one length and tempo play in sync: **base** always, **drive** from fast, **peak** while flying, and an optional **tension** stem the game drives itself. Stems switch only on a **bar line** (the next one after the tier changes) and fade in over 1 s, out over 2 s. |
+| **A2 The music opens** | Every stem plays beside a muffled (low-passed, 700 Hz) copy of itself, in step; speed crossfades from muffled at a standstill to full and bright at flying speed (held full while the flying tier lasts). Pre-rendered, so it works on WebGL; the low-pass runs forwards and backwards, so the two copies line up and the crossfade doesn't comb. |
+| **A4 Supersonic** (`mv_supersonic`) | While flying: a high shimmering whistle over the air rush (sines a fifth and an octave apart, each with a twin 1.5 Hz off, a slow vibrato, a breath of noise), following the flying blend, a touch higher the faster you go, leaning away from a wallrun wall. Made in code. |
+| **A5 Tunnel focus** | While flying, world and ambient sounds duck (by `worldDuck`, 0.45: down to 55 %), smoothly with the flying blend: the shell's ambience and sound effects (`AudioService.WorldGain`) and the scene's own sources (the static's hiss and the like; found every 2 s). Not the music, not the wind or the movement's own sounds. |
+| **A6 Nadia's breath** (`mv_breath_calm`, `mv_breath_fast`) | Muted on purpose: a texture, not a feature (`breathVolume` 0.05, 0 = off). A calm breath while moving; panting takes over with **exertion**, which builds with time spent fast (full after 8 s of flying, 16 s of fast) and recovers over 10 s. No breath-in at the crossing (it would be a stinger). Made in code. |
+
+**Every level is in one place:** the `MovementAudio` inspector on the player (the speed block above: music,
+supersonic, duck, breath; plus the movement sounds). `MovementMusic` holds the stems' own balance (`stemLevels`
+1, 0.85, 0.7, 0.7) and the fades (`mix`: fadeIn 1, fadeOut 2, quantizeBeats 4). The music follows the Music
+volume setting, everything else the Effects volume, and all of it the Master volume. The stems peak at -6 dBFS or
+lower and sit under the movement sounds; nothing clips.
+
+### The real music: where it goes
+
+The placeholder stems are made in code (`MoveMusicSynth`: D minor, i-VI-III-VII, 104 bpm, four bars; the escape
+uses its own pad, pulse and music box from `DreamSynth` with the placeholder peak). The real music is composed with
+the creator; to drop it in:
+
+1. Export the stems from one session, **same length and start**, looping on bar lines.
+2. Put them in `Assets/JamKit/Audio/MusicStems/Resources/JamKitMusicStems/<set>/` as `base`, `drive`, `peak`
+   (and `tension`, the escape's music box part), .wav or .ogg. The sets: **`lab`** (the Movement Lab) and
+   **`dream`** (the dream escape). The folder's README says the same.
+3. Import as **Decompress On Load**, no Normalize. Set the tempo on the scene's `MovementMusic` (`bpm`,
+   `beatsPerBar`) if it isn't 104 bpm 4/4.
+4. Optional: your own muffled copies beside them (`base_muffled` ...). Otherwise the game makes them at load (not
+   on WebGL: there the music only muffles with supplied copies).
+
+A missing stem falls back to its placeholder, so stems can arrive one at a time.
+
+### In the dream escape
+
+`DreamChaseMusic` now rides on `MovementMusic`. **Speed** picks the stems (the pad, then the pulse at fast, the
+arpeggio at flying) and opens the music; **the gap** to the static adds tension on top: the pulse is pushed in as
+the static closes even when you're slow (a floor of the threat), the music box (the tension stem, never speed's)
+grows from half to full and slides out of tune, and the music opens partway (60 % of the threat). Once the static
+falls back the music box is put back in step.
 
 ## Comfort settings
 
@@ -623,7 +670,9 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 |---|---|
 | `core-tests/Movement` (`dotnet test core-tests/Movement/Movement.Tests.csproj`) | Source formulas (air strafe at most cap² per tick, tick-rate dependence), opt-in sprint (walk by default, Shift held or the L3 toggle reach sprint, forward only, the toggle ends on stop, pull-back, crouch and respawn and survives a jump), the sprint kick (sprint within 0.4 s from a near-stop, never past sprint, only below 60 %, 2 s cooldown, readies the slide boost), the air-strafe speed curve pinned, ground (never past sprint by input, overspeed lingers, landing grace), jumps (heights, lockout, coyote 0.11 works and 0.13 doesn't, buffer), slide (boost, cooldown, cap decay, slope, slide jump keeps speed, slide hop, fits under a bar), mantle (heights, rescue), wallrun with Titanfall 2's numbers (8.64 from above and below, 1.75 s, away ends it, neutral brakes, the wall-jump impulses, crouch kick, wall kick, same-wall rule, 25° rule, wall coyote, head-on isn't a wallrun), the momentum chain, identical paths at 30/60/144/240 fps, the driver's latching and interpolation, the course (autopilot finishes, every checkpoint to the next, chain at 30 and 144 fps, research sizes), pursuer and route |
 | `core-tests/Movement` (`MoveSoundTests`) | the generated sounds: at least 3 distinct variants per one-shot, peaks under -1 dBFS, no click at either end, seamless loops (the wrap is a typical step, no level jump across it), the double jump brighter than the jump; the mix rules: footsteps heavier with speed, landing tiers, wind rising with speed, the slide fading, round-robin never repeating |
-| Unity EditMode (`MovementAudioEditorTests`) | every movement event has clips and a generated fallback, at least 3 variants per one-shot, the recorded CC0 sets are there and mono, the loops are seamless, nothing peaks above -1 dBFS |
+| `core-tests/Movement` (`SpeedMusicTests`) | the speed music: stems picked by tier, switched only on bar lines (or beats when set), 1 s in and 2 s out, floors; the placeholder stems one length (the escape's), seamless and under -1 dBFS; the muffled copy darker, seamless and in phase; the opening by speed; the duck amount; the breath's exertion |
+| Unity EditMode (`MovementAudioEditorTests`) | every movement event has clips and a generated fallback, at least 3 variants per one-shot, the recorded CC0 sets are there and mono, the loops are seamless, nothing peaks above -1 dBFS; the lab scene drives the speed music (stem set `lab`); the stems and their muffled copies exist, in step. `DreamEscapeEditorTests`: the escape's chase music rides on the stems and the player drives them; the peak stem is the chase loops' length |
+| Unity PlayMode (`MovementMusicPlayTests`) | the autopilot's run raises the stems playing (to drive at least), and every switch lands on a bar line |
 | Unity EditMode (`MovementLabEditorTests`) | chapters and attract script, sprint opt-in in the tuning and the Shift, LB, L3 and R3 bindings, scene/tuning/preset/materials, Build Settings, every player part, sound ids and the Crouch binding |
 | `core-tests/Movement` (`WallFeelTests`) | the creator's controller notes: the first 0.5 s on a wall keeps all the speed, then 1.2/s; a kick in the grace keeps the entry speed; a stick at 50° into or away from the wall, at 80°, or the view 50° off keeps the run and its speed; only clear backward input or no stick brakes; a 30 ms flick away doesn't drop you, holding away does; the catch says why it refused (too slow, stick away, no stick, head-on, out of reach, the same wall) and clears on a catch; a catch refused for the stick is retried 0.1 s with more reach; the double jump adds +1 m/s up to sprint, nothing above it, along the view with the stick neutral; the Gauntlet's slide ramp adds over 2 m/s (measured +3.4) |
 | `core-tests/Movement` (`GauntletTests`) | the Gauntlet: the autopilot runs it clean (no falls, every marker) at 20, 60, 144 and 300 fps and with jittery frames, in the developer's time; every section reaches the next; reach and the slide-gap clearance (an old 0.35 m crouched step offset is caught); every move is used, mantles at three heights, a marker in every section; the safe lines are hoppable and stay off the fast lane; the old course is kept unchanged before it; the clock starts at the gate, splits, penalises a missed marker 2 s, resets on restart, keeps the best; the ghost records at a fixed rate and replays |
@@ -638,7 +687,6 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 - No strafe "lurch", no moving platforms, no ziplines or grapple.
 - No post-processing comfort effects (vignette at speed, optional motion blur): the lab camera has
   post-processing off. Add one "speed" Volume if wanted (RESEARCH-MOVEMENT 8.5).
-- No music stems by speed tier.
 - The body is drawn by the main camera, not an overlay camera: a hand can clip into a wall you press your face
   against. Her lanyard and hair don't swing (no bones of their own on the model).
 - The body is Nadia's model in the lab and the escape (the capsules are the fallback); the dream-static is a placeholder for the art pass; the sound's remaining placeholders are listed under **Sound**.

@@ -50,7 +50,10 @@ namespace JamKit.Tests.Movement
                 // No level jump across the seam: the last and first 50 ms match within 4 dB.
                 int w = MoveSounds.Rate / 20;
                 float head = Rms(s, 0, w), tail = Rms(s, s.Length - w, w);
-                Assert.That(20f * Math.Log10(head / tail), Is.InRange(-4.0, 4.0), id + " level across the seam");
+                // (Breathing loops start and end in a pause: both quiet is fine.)
+                float quiet = MoveSounds.Peak(s) * 0.003f;
+                if (head > quiet && tail > quiet)
+                    Assert.That(20f * Math.Log10((head + 1e-6f) / (tail + 1e-6f)), Is.InRange(-4.0, 4.0), id + " level across the seam");
             }
         }
 

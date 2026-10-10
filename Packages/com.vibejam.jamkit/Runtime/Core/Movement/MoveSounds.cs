@@ -20,8 +20,11 @@ namespace JamKit.Movement
         public const float MaxPeak = 0.891f;     // -1 dBFS: nothing may go over this
 
         /// <summary>The loops: a low wind body, a bright air rush on top (both follow speed), the slide's
-        /// scrape and the wallrun's shoe rub.</summary>
-        public static readonly string[] Loops = { "mv_wind", "mv_wind_high", "mv_slide", "mv_wallrun" };
+        /// scrape, the wallrun's shoe rub, the supersonic whistle (flying) and Nadia's breathing, calm and fast.</summary>
+        public static readonly string[] Loops =
+        {
+            "mv_wind", "mv_wind_high", "mv_slide", "mv_wallrun", "mv_supersonic", "mv_breath_calm", "mv_breath_fast",
+        };
 
         /// <summary>Every one-shot movement event, as MovementAudio plays them.</summary>
         public static readonly string[] OneShots =
@@ -47,6 +50,9 @@ namespace JamKit.Movement
                 case "mv_wind_high": return WindHigh();
                 case "mv_slide": return SlideScrape();
                 case "mv_wallrun": return WallRub();
+                case "mv_supersonic": return Supersonic();
+                case "mv_breath_calm": return Breath(4f, 1, 0.4f, 1.5f, 1.9f);
+                case "mv_breath_fast": return Breath(2f, 3, 0.05f, 0.27f, 0.33f);
             }
             var b = new float[N(id == "mv_land_hard" ? 0.6f : 0.45f)];
             switch (id)
@@ -203,6 +209,56 @@ namespace JamKit.Movement
                 float imp = rng.Unit() < 250f / Rate ? rng.Next() * 3f : 0f;
                 float am = 0.85f + 0.15f * Lfo(i, n, 3, 0.6f);
                 b[i] = (body.Process(x) * 0.5f + grit.Process(imp) * 0.3f) * am;
+            }
+            return FinishLoop(b, n, fade);
+        }
+
+        /// <summary>The supersonic layer (A4): a high shimmering whistle. Sines a fifth and an octave apart, each
+        /// with a twin 1.5 Hz off (a slow shimmer of beating), a gentle vibrato and a breathy band of noise. Every
+        /// frequency fits a whole number of cycles in the 4 s loop.</summary>
+        static float[] Supersonic()
+        {
+            int n = N(4f), fade = N(0.3f);
+            var b = new float[n + fade];
+            var rng = new Rng(61u);
+            var air = new Biquad();
+            double[] hz = { 1760.0, 1761.5, 2640.0, 2641.5, 3520.0 };
+            float[] amp = { 0.3f, 0.3f, 0.18f, 0.18f, 0.08f };
+            for (int i = 0; i < b.Length; i++)
+            {
+                double t = i / (double)Rate;
+                // Vibrato as a phase wobble with 5 whole cycles per loop (so the phase comes back round).
+                double vib = 0.0024 * Math.Sin(2.0 * Math.PI * 5.0 * i / n); // about 0.3 % of pitch (1.25 Hz)
+                float x = 0f;
+                for (int k = 0; k < hz.Length; k++) x += (float)Math.Sin(2.0 * Math.PI * hz[k] * t + hz[k] * vib) * amp[k];
+                air.BandPass(3000f + 400f * Lfo(i, n, 3, 0.5f), 6f);
+                float shimmer = 0.75f + 0.25f * Lfo(i, n, 7, 1.1f);
+                b[i] = (x + air.Process(rng.Next()) * 0.5f) * shimmer;
+            }
+            return FinishLoop(b, n, fade);
+        }
+
+        /// <summary>Breathing (A6): <paramref name="cycles"/> breaths in a loop of <paramref name="seconds"/>, each an
+        /// inhale (brighter) then an exhale (darker) of shaped noise, with a pause after.</summary>
+        static float[] Breath(float seconds, int cycles, float gap, float inSec, float outSec)
+        {
+            int n = N(seconds), fade = N(0.05f);
+            var b = new float[n + fade];
+            var rng = new Rng(67u + (uint)cycles);
+            var f1 = new Biquad();
+            var f2 = new Biquad();
+            float cycle = seconds / cycles;
+            for (int i = 0; i < b.Length; i++)
+            {
+                float t = (i % n) / (float)Rate;
+                float c = t % cycle;
+                float e = 0f, bright = 0f;
+                if (c >= gap && c < gap + inSec) { float u = (c - gap) / inSec; e = (float)Math.Pow(Math.Sin(Math.PI * u), 2) * 0.8f; bright = 1f; }
+                else if (c >= gap + inSec && c < gap + inSec + outSec) { float u = (c - gap - inSec) / outSec; e = (float)Math.Pow(Math.Sin(Math.PI * Math.Pow(u, 0.7)), 2); }
+                f1.BandPass(900f + 500f * bright, 0.9f);
+                f2.BandPass(2100f + 700f * bright, 2.5f);
+                float x = rng.Next();
+                b[i] = (f1.Process(x) * 0.7f + f2.Process(x) * 0.4f) * e;
             }
             return FinishLoop(b, n, fade);
         }
@@ -441,6 +497,25 @@ namespace JamKit.Movement
         /// <summary>The slide scrape fades out as the slide slows (silent at 4 m/s, where a slide ends).</summary>
         public static float SlideGain(float speed) => MoveMath.Clamp01((speed - 4f) / 5f);
         public static float SlidePitch(float speed) => 0.85f + 0.35f * MoveMath.Clamp01((speed - 4f) / 10f);
+
+        /// <summary>A5, tunnel focus: the gain on world and ambient sounds (not the music or wind) while flying,
+        /// 1 - amount x the flying blend.</summary>
+        public static float Duck(float flyingBlend, float amount) => 1f - MoveMath.Clamp01(amount) * MoveMath.Clamp01(flyingBlend);
+
+        /// <summary>A4: the supersonic whistle follows the flying blend, a touch higher the faster you go.</summary>
+        public static float SupersonicPitch(float speed, float flyingEnter) => 1f + 0.06f * MoveMath.Clamp01((speed - flyingEnter) / 9f);
+
+        /// <summary>A6: exertion (0..1) builds while fast or flying (full after <paramref name="build"/> seconds of
+        /// flying, half as fast while merely fast) and recovers over <paramref name="recover"/> seconds below that.</summary>
+        public static float Exertion(float e, int tier, float dt, float build, float recover)
+        {
+            if (tier >= SpeedTier.Fast)
+            {
+                float rate = (tier >= SpeedTier.Flying ? 1f : 0.5f) / Math.Max(0.01f, build);
+                return Math.Min(1f, e + rate * dt);
+            }
+            return Math.Max(0f, e - dt / Math.Max(0.01f, recover));
+        }
 
         /// <summary>Round-robin: a random variant that is never the last one played (r01 in 0..1).</summary>
         public static int NextVariant(int count, int last, float r01)

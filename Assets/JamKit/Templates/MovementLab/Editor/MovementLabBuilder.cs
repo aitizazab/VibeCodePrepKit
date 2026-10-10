@@ -283,6 +283,11 @@ namespace JamKit.MovementLab.EditorTools
             lines.material = m.speedLines;
             var sound = playerGo.AddComponent<MovementAudio>();
             sound.body = body;
+            // The speed music: placeholder stems until real ones sit in Resources/JamKitMusicStems/lab/ (MOVEMENT.md).
+            var musicGo = new GameObject("Speed music (stems)");
+            var speedMusic = musicGo.AddComponent<MovementMusic>();
+            speedMusic.stemSet = "lab";
+            sound.music = speedMusic;
 
             // The course.
             var root = new GameObject("Course").transform;

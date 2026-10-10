@@ -15,6 +15,11 @@ namespace JamKit.Movement
     /// (soft, normal, hard). Where a clip is missing the generated variants play; a clip in the game's Audio Registry
     /// under the same id replaces both. Loops play on their own sources at the effects volume; one-shots on a small
     /// pool of 2D voices here. Silent in batch mode like the shell.
+    /// <para>Speed (SPEED-FEEL A1, A2, A4, A5, A6; the shared <see cref="SpeedTier"/>): it drives the speed music
+    /// (<see cref="music"/>: stems by tier, muffled when slow and open at flying), a supersonic whistle while flying
+    /// (leaning away from a wallrun wall), tunnel focus (world and ambient sounds duck while flying; the music and
+    /// wind don't) and Nadia's breathing, quiet, quickening with time spent fast. Every level is in this component's
+    /// inspector.</para>
     /// </summary>
     [DefaultExecutionOrder(50)]
     public sealed class MovementAudio : MonoBehaviour
@@ -38,6 +43,22 @@ namespace JamKit.Movement
         [Range(0f, 0.2f)] public float pitchVariance = 0.05f;
         [Tooltip("Random volume cut per play, e.g. 0.12 = up to 12 % quieter.")]
         [Range(0f, 0.4f)] public float volumeVariance = 0.12f;
+        [Header("Speed (docs/MOVEMENT.md, Speed music)")]
+        [Tooltip("The speed music this body drives (stems by tier). Optional.")]
+        public MovementMusic music;
+        [Tooltip("The shared speed tiers: fast from 8 m/s, flying from 13 m/s.")]
+        public SpeedTierDef speedTiers = new SpeedTierDef();
+        [Range(0f, 1f)] public float musicVolume = 0.45f;
+        [Tooltip("A4: the supersonic whistle while flying.")]
+        [Range(0f, 1f)] public float supersonicVolume = 0.14f;
+        [Tooltip("A5: how far world and ambient sounds duck while flying (0 = off, 0.45 = down to 55 %).")]
+        [Range(0f, 1f)] public float worldDuck = 0.45f;
+        [Tooltip("A6: Nadia's breathing, kept low (a texture; 0 = off).")]
+        [Range(0f, 0.3f)] public float breathVolume = 0.05f;
+        [Tooltip("Seconds of flying for the breath to reach full panting (twice that while fast).")]
+        public float breathBuild = 8f;
+        [Tooltip("Seconds for the breath to calm again.")]
+        public float breathRecover = 10f;
 
         /// <summary>The last one-shot id played (tests, debugging).</summary>
         public string LastSound = "";
@@ -49,8 +70,13 @@ namespace JamKit.Movement
             public int last = -1;
         }
 
-        AudioSource _wind, _windHigh, _slide, _wall;
-        float _windV, _windHighV, _slideV, _wallV, _pan;
+        AudioSource _wind, _windHigh, _slide, _wall, _supersonic, _breathCalm, _breathFast;
+        float _windV, _windHighV, _slideV, _wallV, _pan, _exertion, _worldGain = 1f, _duckScan;
+        SpeedTier _speed;
+        readonly List<AudioSource> _duckSrc = new List<AudioSource>();
+        readonly List<float> _duckBase = new List<float>();
+        readonly List<float> _duckSet = new List<float>();
+        readonly HashSet<int> _duckSeen = new HashSet<int>();
         AudioSource[] _voices;
         int _nextVoice;
         float _sfx = 0.8f;
@@ -58,6 +84,12 @@ namespace JamKit.Movement
         Bank _step, _heavy, _jump, _djump, _wallJump, _catch, _landSoft, _land, _landHard, _mantle, _kick, _slideIn, _boost;
 
         public float WindLevel => _windV + _windHighV;
+        /// <summary>The speed tier the sound follows (null before Start).</summary>
+        public SpeedTier Speed => _speed;
+        /// <summary>A6: 0 calm .. 1 out of breath.</summary>
+        public float Exertion => _exertion;
+        /// <summary>A5: the gain on world and ambient sounds now (1 = no duck).</summary>
+        public float WorldGain => _worldGain;
 
         /// <summary>The clips an id plays, best first: the game's Audio Registry clip, else the recorded variants in
         /// Resources (<see cref="ResourceFolder"/>), else the generated ones. Never empty for a movement id.</summary>
@@ -101,6 +133,10 @@ namespace JamKit.Movement
             _windHigh = Loop("mv_wind_high");
             _slide = Loop("mv_slide");
             _wall = Loop("mv_wallrun");
+            _supersonic = Loop("mv_supersonic");
+            _breathCalm = Loop("mv_breath_calm");
+            _breathFast = Loop("mv_breath_fast");
+            _speed = new SpeedTier(speedTiers);
             _voices = new AudioSource[Voices];
             for (int i = 0; i < Voices; i++)
             {
@@ -179,6 +215,23 @@ namespace JamKit.Movement
             Set(_slide, _slideV * _sfx, MoveSoundMix.SlidePitch(speed), 0f);
             Set(_wall, _wallV * _sfx, 0.9f + 0.2f * MoveMath.Clamp01(speed / 12f), 0f);
 
+            // Speed: the tiers (frozen while paused), the music, the supersonic whistle, the breath, the duck.
+            float gameDt = paused ? 0f : Time.deltaTime;
+            _speed.Tick(speed, gameDt);
+            float fly = paused ? 0f : _speed.FlyingBlend;
+            if (music != null)
+            {
+                music.volume = musicVolume;
+                music.SetSpeed(_speed.Tier, StemMixer.Open(speed, speedTiers.flyingEnter, _speed.FlyingBlend));
+            }
+            Set(_supersonic, supersonicVolume * fly * _sfx, MoveSoundMix.SupersonicPitch(speed, speedTiers.flyingEnter), _pan * 1.2f);
+            _exertion = MoveSoundMix.Exertion(_exertion, _speed.Tier, gameDt, breathBuild, breathRecover);
+            float breath = paused ? 0f : breathVolume * _sfx;
+            Set(_breathCalm, breath * 0.5f * (1f - _exertion) * MoveMath.Clamp01(speed / 4f), 1f, 0f);
+            Set(_breathFast, breath * _exertion, 1f + 0.06f * _exertion, 0f);
+            _worldGain = MoveSoundMix.Duck(fly, worldDuck);
+            if (exists) GameRoot.Audio.WorldGain = _worldGain;
+
             if (!exists || paused) return;
             float fx = effectsVolume;
             bool foot = false; // a footstep sound already came with an event this frame
@@ -221,6 +274,62 @@ namespace JamKit.Movement
                 foot = true;
             }
             if (body.Stepped && !foot) FootStep(speed, mode == MoveMode.Wallrun);
+        }
+
+        void LateUpdate()
+        {
+            if (_speed == null) return;
+            // Tunnel focus for the scene's own sounds (the static's hiss and the like), after their owners set them.
+            _duckScan -= Time.unscaledDeltaTime;
+            if (_duckScan <= 0f)
+            {
+                _duckScan = 2f;
+                ScanWorldSources();
+            }
+            for (int i = _duckSrc.Count - 1; i >= 0; i--)
+            {
+                var s = _duckSrc[i];
+                if (s == null)
+                {
+                    _duckSrc.RemoveAt(i);
+                    _duckBase.RemoveAt(i);
+                    _duckSet.RemoveAt(i);
+                    continue;
+                }
+                if (Mathf.Abs(s.volume - _duckSet[i]) > 1e-4f) _duckBase[i] = s.volume; // its owner set a new level
+                s.volume = _duckBase[i] * _worldGain;
+                _duckSet[i] = s.volume;
+            }
+        }
+
+        /// <summary>Finds the scene's world sounds: every AudioSource that isn't this body's, the music's or the
+        /// shell's (the shell's ambience and effects duck through AudioService.WorldGain). Every 2 s, not every frame.</summary>
+        void ScanWorldSources()
+        {
+            var all = FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
+            var shell = GameRoot.Exists ? GameRoot.Instance.transform : null;
+            foreach (var s in all)
+            {
+                if (s == null || !_duckSeen.Add(s.GetInstanceID())) continue;
+                if (s.transform.IsChildOf(transform)) continue;
+                if (shell != null && s.transform.IsChildOf(shell)) continue;
+                if (s.GetComponentInParent<MovementMusic>(true) != null) continue;
+                _duckSrc.Add(s);
+                _duckBase.Add(s.volume);
+                _duckSet.Add(s.volume);
+            }
+        }
+
+        void OnDisable()
+        {
+            for (int i = 0; i < _duckSrc.Count; i++)
+                if (_duckSrc[i] != null) _duckSrc[i].volume = _duckBase[i];
+            _duckSrc.Clear();
+            _duckBase.Clear();
+            _duckSet.Clear();
+            _duckSeen.Clear();
+            _worldGain = 1f;
+            if (GameRoot.Exists) GameRoot.Audio.WorldGain = 1f;
         }
 
         void FootStep(float speed, bool onWall)

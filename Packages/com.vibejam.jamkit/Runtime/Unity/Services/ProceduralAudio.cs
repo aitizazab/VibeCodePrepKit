@@ -38,9 +38,10 @@ namespace JamKit.Shell
             "vh_vibrate", "vh_rustle", "vh_rustle_big", "vh_clunk", "vh_tap", "vh_breath",
             // First-person movement (Runtime/Unity/Movement, the Movement Lab), made by the core's MoveSounds
             // (MovementAudio prefers the recorded CC0 variants in Runtime/Audio/Movement). Loops: mv_wind,
-            // mv_wind_high, mv_slide, mv_wallrun, mv_static (the dream-static, still a placeholder); the rest are
+            // mv_wind_high, mv_slide, mv_wallrun, mv_supersonic, mv_breath_calm, mv_breath_fast, mv_static (the
+            // dream-static, still a placeholder); the rest are
             // one-shots, with MoveSounds.Variants round-robin variants each (GetVariant).
-            "mv_wind", "mv_wind_high", "mv_slide", "mv_wallrun", "mv_static",
+            "mv_wind", "mv_wind_high", "mv_slide", "mv_wallrun", "mv_supersonic", "mv_breath_calm", "mv_breath_fast", "mv_static",
             "mv_step", "mv_step_heavy", "mv_jump", "mv_djump", "mv_walljump", "mv_catch",
             "mv_land_soft", "mv_land", "mv_land_hard", "mv_boost", "mv_mantle", "mv_kick", "mv_slidein",
             "mv_collapse", "mv_checkpoint", "mv_caught",

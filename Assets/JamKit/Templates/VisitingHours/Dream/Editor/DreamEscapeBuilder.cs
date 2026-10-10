@@ -263,15 +263,20 @@ namespace JamKit.DreamEscape.EditorTools
                 + "; placeholders drawn: " + (placeholders.Count > 0 ? string.Join(", ", placeholders) : "none")
                 + " (drop real files into " + DreamArt.ArtDir + " and rebuild)");
 
-            var musicGo = new GameObject("Chase music (placeholder)");
+            // The chase music: the speed stems (MovementMusic) with the gap's tension (DreamChaseMusic) on top.
+            var musicGo = new GameObject("Chase music (speed stems, placeholder)");
+            var speedMusic = musicGo.AddComponent<MovementMusic>();
+            speedMusic.stemSet = DreamChaseMusic.StemSet;
+            speedMusic.playOnStart = false;
             var music = musicGo.AddComponent<DreamChaseMusic>();
+            music.music = speedMusic;
             foreach (var n in new[] { "Pad", "Pulse", "Music box" })
             {
                 var s = new GameObject(n);
                 s.transform.SetParent(musicGo.transform, false);
                 var src = s.AddComponent<AudioSource>();
                 src.playOnAwake = false;
-                if (n == "Pad") { music.pad = src; s.AddComponent<AudioLowPassFilter>().cutoffFrequency = 900f; }
+                if (n == "Pad") music.pad = src;
                 else if (n == "Pulse") music.pulse = src;
                 else music.box = src;
             }
@@ -291,6 +296,8 @@ namespace JamKit.DreamEscape.EditorTools
             game.player = body;
             game.staticView = staticView;
             game.music = music;
+            var playerSound = body.GetComponent<MovementAudio>();
+            if (playerSound != null) playerSound.music = speedMusic;
             game.courseRoot = root;
             game.skyDome = sky.transform;
             game.exitLight = exit;

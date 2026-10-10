@@ -39,6 +39,10 @@ namespace JamKit.Shell
         /// <summary>The last sound effect id played, for tests and debugging.</summary>
         public string LastSfx;
 
+        /// <summary>A gain on the world: the ambience bed and new sound effects (not the music). 1 = untouched. The
+        /// movement's tunnel focus lowers it while flying (MovementAudio, docs/MOVEMENT.md "Speed music").</summary>
+        public float WorldGain = 1f;
+
         bool _muted;
 
         /// <summary>Every sound plays silently (on in batch mode: test runs and the smoke run stay quiet).
@@ -98,7 +102,7 @@ namespace JamKit.Shell
             _next = (_next + 1) % _pool.Count;
             float variance = entry != null ? entry.pitchVariance : 0.05f;
             src.pitch = 1f + Random.Range(-variance, variance);
-            src.volume = Mathf.Clamp01(volume * (entry != null ? entry.volume : 1f) * _settings.sfxVolume);
+            src.volume = Mathf.Clamp01(volume * (entry != null ? entry.volume : 1f) * _settings.sfxVolume * WorldGain);
             src.clip = clip;
             src.Play();
             LastSfx = id;
@@ -180,7 +184,7 @@ namespace JamKit.Shell
         {
             for (int i = 0; i < 2; i++)
                 if (_music[i] != null) _music[i].volume = _fade[i] * _musicEntryVolume[i] * _settings.musicVolume;
-            if (_ambience != null) _ambience.volume = _ambienceFade * _ambienceEntryVolume * _settings.sfxVolume;
+            if (_ambience != null) _ambience.volume = _ambienceFade * _ambienceEntryVolume * _settings.sfxVolume * WorldGain;
         }
 
         bool Resolve(string id, out AudioClip clip, out AudioRegistry.Entry entry, bool warn = true)
