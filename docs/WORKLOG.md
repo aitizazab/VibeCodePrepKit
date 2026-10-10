@@ -359,3 +359,53 @@ PlayMode tests.
 - The route is a straight line down the street.
 - `NIGHTS-GAMEPLAY.md` proposes a different version of this escape ("the street rolls up behind her"). The agent
   built the brief it was given; which one you want is your call.
+
+#### Art: Lena redone, and the opening's art (about 09:00)
+Commits 69bb4dc and dffb428. **The review page is open in Firefox:**
+`FableAnimationTests\art\review\2026-10-10\visiting-hours-opening.html`. At the top is a sheet of the processed
+game files (textures tiled 2×2), then Lena, the concept frames, the images and the textures. Each subject shows
+the agent's pick and one alternate (39 tiles).
+
+**Lena, redone:**
+- She's honey-blonde with long loose waves, with a pencil tucked behind her ear. Her rust linen shirt,
+  paint-flecked jeans and freckles carry over from the old sheet.
+- New sheets: a waking turnaround (front, side and back, arms out in an A-pose), a dream billboard (hands clasped,
+  a bright smile) and three dream expressions (warm, knowing, defensive). Kept cute, per your note.
+
+**Concept frames for the 3D opening** (waking style: muted, not gritty):
+- the bedroom at 3 AM from the pillow towards the nightstand: blinds throwing streetlight stripes, the phone
+  glowing, scrubs on a chair;
+- the same room from directly above the nightstand: the phone face up, the bed's edge, a curled shape under the
+  blanket with dark hair showing;
+- the title table: tablet, mug, notepad and pen, the badge on its lanyard, in grey morning light.
+
+**Files the game uses directly** (in `Assets/JamKit/Templates/VisitingHours/Art/Opening/`; the builder picks every
+one up by name):
+- **Four news frames:** the same shot of an overturned, burnt car, police tape and corporate towers. Frames 2–4
+  are edits of frame 1 with the lights and smoke changed, for a subtle loop.
+- **The coffee:** the milk really spells "Quit" in cursive (all four takes spelled it cleanly).
+- **The notepad page** (blank and lined), **the badge face** (blank photo slot and text panels, filled in by the
+  game), and **Nadia's ID photo** in style E.
+- **The phone's wallpaper:** Nadia and Elias years ago on a sofa with a birthday cake.
+- **Seamless textures:** the bedroom wallpaper, the wood floor, the knit blanket and the table wood.
+
+**Weak spots:**
+- **The bedsheet is a plain weave made in code.** Flow's policy filter refused it four times, with different
+  wordings each time.
+- **The table wood didn't come out as a repeating pattern,** so its seams are blended; you may see soft doubled
+  plank lines in two bands.
+- **News frame 4's red flash is strong,** and the frames differ only in their lights and smoke, which is subtle.
+- **The mug in the table concept frame doesn't show a readable "Quit"** (the coffee texture itself does).
+- Still drawn in code because nobody was asked for them: the furniture wood and a photo frame on the nightstand.
+
+**The agent's questions for you** (also on the page):
+1. Does Lena read as her own person now?
+2. Is the bedroom's mood right, and are the two views what you pictured?
+3. Is the table arrangement right, and does the light feel enough like "the morning after"?
+4. Should the "Quit" lettering be rougher, like real latte art?
+5. Is the news footage right?
+
+**Log:** 46 takes from 20 prompts plus retries, 0 credits, about 75 minutes (about 35 of them lost to a Flow
+outage, with seven downloads re-run). Nano Banana Pro is still at its usage limit, so everything is Nano Banana
+2.1. The automation Chrome is closed. The raw takes are in `FableAnimationTests/art/incoming/` (`lena2-*`,
+`op-*`, `tex-*`).
