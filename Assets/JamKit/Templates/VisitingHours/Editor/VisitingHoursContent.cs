@@ -199,30 +199,17 @@ namespace JamKit.VisitingHours.EditorTools
         static void Boot(VisitingHoursArt.Set art, bool reset)
         {
             var b = AssetDatabase.LoadAssetAtPath<VisitingHoursBoot>(BootPath);
-            bool fresh = b == null;
-            if (fresh)
+            if (b == null)
             {
                 b = ScriptableObject.CreateInstance<VisitingHoursBoot>();
                 AssetDatabase.CreateAsset(b, BootPath);
             }
-            if (fresh || reset || b.opening == null || b.opening.Count == 0) b.opening = SliceContent.Opening();
-            if (fresh || reset || string.IsNullOrEmpty(b.ticker)) b.ticker = SliceContent.NewsTicker;
             b.sceneName = VisitingHoursBuilder.SceneName;
-            b.ceiling = Pick(b.ceiling, art, "bg_ceiling_dark");
-            b.phone = Pick(b.phone, art, "ui_phone");
-            b.titleNews = Pick(b.titleNews, art, "bg_title_news");
             b.style = AssetDatabase.LoadAssetAtPath<StyleSheet>(VisitingHoursBuilder.StylePath);
             b.voicemail = Voice(b.voicemail, "vo_elias_voicemail");
-            b.sleepIn = Voice(b.sleepIn, "vo_nadia_sleep_in");
             b.newsAnchor = Voice(b.newsAnchor, "vo_news_anchor");
+            VisitingHoursOpeningContent.Fill(b, reset);
             EditorUtility.SetDirty(b);
-        }
-
-        static Texture2D Pick(Texture2D current, VisitingHoursArt.Set art, string name)
-        {
-            art.textures.TryGetValue(name, out var tex);
-            if (current == null || VisitingHoursArt.IsFallback(current)) return tex;
-            return current;
         }
 
         static AudioClip Voice(AudioClip current, string name)

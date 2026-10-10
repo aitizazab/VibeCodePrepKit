@@ -153,8 +153,9 @@ to judge in each part, what's missing, and the questions I'd like answered befor
   - the walking tuning;
   - each place's tint and haze;
   - the art by name.
-- **The opening and the title:** `Resources/JamKit/VisitingHoursBoot.asset` (the cues, the pictures, the voices,
-  the ticker, the anchor's volume, the hold-to-skip time).
+- **The opening and the title:** rebuilt in 3D (style E) on 2026-10-10: `docs/OPENING-AND-TITLE.md`, "As built".
+  Data in `Resources/JamKit/VisitingHoursBoot.asset` (the cues, the voicemail's markers, the voices, the headline,
+  the pictures and models, the hold-to-skip time).
 - **The lines:** `Dialogue/VisitingHours.ink` (playable in Inky).
 - **The look:** `UI/VisitingHours.uss` (journal, box, cards, opening, title); `Shaders/VisitingHoursPainted.shader`.
 - **The rules, without Unity:**

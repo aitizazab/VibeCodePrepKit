@@ -79,3 +79,84 @@ then the pen and notepad, then the badge.
   mouth, slightly off to the side. Three full takes, plus one with extra-long pauses. A voice memo is fine.
 - **Where to put it:** `FableAnimationTests/audio/visiting-hours/raw/`. It gets cleaned, the pauses are timed to
   the shots, and the phone-speaker treatment is added.
+
+## As built (2026-10-10): the 3D opening and the title table, in style E
+**Where:** `Assets/JamKit/Templates/VisitingHours/Scripts/Opening/` (the sets, the opening, the title) and
+`Scripts/Waking/` (the reusable waking-world look); the shader `Shaders/VisitingHoursWaking.shader`; the data in
+`Resources/JamKit/VisitingHoursBoot.asset`; the editor side in `Editor/VisitingHoursOpeningContent.cs`.
+
+**How it hangs together.** With Visiting Hours as the template, the title scene gets two 3D sets built in code
+(`VhStageBuilder`): Nadia's bedroom at night and, 40 m away, the title table in the morning. One camera moves between
+named poses (pillow, nightstand, away, overhead, table). The opening (`VhOpening`) plays the boot asset's cue list on
+them; at its end the table (`VhTitleTable`) is the menu. The shell's own title buttons stay wired underneath (the
+table presses them), so Play, Settings, Credits and Quit behave exactly as before; their menu is hidden.
+
+**The shots, as built:**
+1. Black; the phone rings and buzzes twice.
+2. Fade up from her pillow: the ceiling, the streetlight's stripes through the blinds (a spot light below the
+   window, the blinds' slats casting the stripes), cold moonlight. She turns to the nightstand; the phone glows,
+   "Elias", the call rings pulsing.
+3. Her hand comes out from under the blanket, takes the phone as the ringing stops (missed call, then the voicemail
+   card), brings it close, her thumb taps play; the voicemail plays clean.
+4. At "Well, it's three in the morning..." she sets it back down (a clunk), the voice moves to the phone's small
+   speaker (Unity's high-pass, low-pass and distortion filters, crossfaded), she rolls away and the view goes dark
+   under the blanket.
+5. Cut: the phone from above on the nightstand, still playing, its glow on the wood; the edge of the bed, Nadia a
+   shape under the blanket with her hair on the pillow, breathing slowly (the blanket rises with each breath).
+   A slow push in; the screen dims.
+6. "G'night": the room's light goes, the phone's screen last, then black. Silence; the music blooms.
+7. The table: the table and the tablet first as the news report starts on it, then the mug, the notepad and pen,
+   the badge. The tablet's video drifts and crossfades its frames, the emergency lights pulse, the LIVE tag and its
+   own headline scrolls along the bottom of the video. When the report ends the video pauses and its play button
+   comes up: the title takes input.
+
+**The title table:** the tablet is Play, the mug Quit (inert and never highlighted in the web build), the ID badge
+Settings, the notepad and pen Credits. The mouse highlights what it's over (a warm glow and a small lift) and a click
+chooses it; the arrows, the d-pad or the stick move to the nearest thing in that direction (the first press
+highlights the tablet), Enter or (A) chooses. It pauses while Settings, the credits or the presenter panel are up.
+
+**Re-timing a new recording.** Every cue after the voicemail starts hangs off its markers (`voicemail:drop`,
+`voicemail:goodnight`, `voicemail:end`, `news:start`, `news:end`). Three ways:
+- **Tap along:** press Play, then *JamKit > Visiting Hours > Re-time the Voicemail*. The opening plays with a
+  prompt at the top; tap Space as Elias starts each line shown. When the voicemail ends, the taps are saved as the
+  markers (Undo works).
+- **By hand:** `VisitingHoursBoot.asset > Tracks > voicemail > Markers`: seconds into the recording (`drop` is
+  where she drops the phone, `goodnight` the "G'night"). `Recorded Length` is the take they were timed on.
+- **Do nothing:** a take of another length stretches the markers in proportion (logged) until they're re-timed.
+Any other beat: `Cues` (an `At` time, or an `Anchor` plus an `Offset`). *JamKit > Rebuild Shell Scenes* checks them
+(an anchor that never resolves, a marker past the end of its recording) and the EditMode tests do too.
+The timing is set on the creator's first take (32.3 s), from its pauses and a Whisper transcript. That take mixes
+the scripts ("Could I bother you for a...", "Well, it's **five** in the morning...", no "It's not true..." line), so
+the markers' lines are what he says in it. Playback skips its 3.9 s quiet lead-in (`Trim Start`), so "Hey, Nads"
+comes about a second after her thumb; "drop" is at 10.25 s and "goodnight" at 30.2 s of the recording.
+**Subtitles are off** (`Show Subtitles`): the shot list has none. Turn them on and they follow the markers.
+
+**The look (style E, reusable).** `VhWakingStyle` makes one material per palette colour from `Materials/VH_Waking.mat`
+(shader *JamKit/VisitingHours/Waking*): URP's real lights and soft shadows, shaded in soft steps (a lit side and a
+cool shade side), a gentle rim, a hemisphere ambient the scene sets, a thin dark outline, a dithered fade and a
+hover glow. `style.Restyle(model)` pulls imported models (Kenney's are named wood, carpet, metal...) into the
+palette. Any waking-world scene can use it the same way.
+
+**Models.** Kenney's Furniture Kit (CC0; `ThirdParty/LICENSES.md`): the nightstand, the lamp, the chair (her scrubs
+over it), the rug, a low bookcase with books, a plant. Made in code: the room, the window and its blinds, the
+streetlight and the buildings across the street, the bed, pillows and blanket, the framed photo, the phone, and the
+whole title table. **Nadia** is her Tripo model (`Models/Nadia/`, imported at scale 1.69 by `VhNadiaImport`):
+lying on her side, head hidden in first person, her right arm posed by two-bone IK to the phone; turned away for
+the overhead shot with her hair on the pillow. Without the model (or without Mixamo arm bones) a stand-in arm and
+hair are built instead: the seam is `VhNadiaRig` (`SetMode`, `SetHand`, `SetThumb`, `SetBreath`, `ShowArm`), so a
+better body is one more subclass.
+
+**Pictures.** The builder looks in `Art/` (any subfolder; `-` and `_` alike, a `-takeN` suffix ignored) for:
+`op-coffee` (the coffee with "Quit"), `op-notepad`, `op-badge` (`op-badge-photo` goes into the drawn badge),
+`op-phone-wallpaper` (the lock screen, and the framed photo), `op-news-*` (the tablet's frames), `tex-wallpaper`,
+`tex-woodfloor`, `tex-tablewood`, `tex-knit` (the blanket), `tex-bedsheet`. Anything missing is drawn in code in
+the same palette (the coffee writes "Quit" in milk, the notepad "Credits") and logged as `JAMKIT_VH art missing`.
+16:9 pictures are cropped to their surface (a round coffee, a tall page, a card). Run *Rebuild Shell Scenes* after
+new art lands.
+
+**Sounds.** The ring, the buzz, the sheets, the phone set down, the tap and her breathing are placeholders made by
+`ProceduralAudio` (`vh_phone_ring`, `vh_vibrate`, `vh_rustle`, `vh_rustle_big`, `vh_clunk`, `vh_tap`, `vh_breath`):
+give an id a clip in the Audio Registry to replace it. The music is still the placeholder pad.
+
+**Skipping and testing.** Hold Escape (or B) to skip to the title. Tests skip the opening (batch mode) and play it
+fast on purpose; the smoke run plays it at 30x and waits for the table before pressing Play (`SmokeRunner.TitleGate`).

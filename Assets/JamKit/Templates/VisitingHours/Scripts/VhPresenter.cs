@@ -28,10 +28,10 @@ namespace JamKit.VisitingHours
         /// <summary>Attract-mode segments VisitingHoursGame.AttractDrive plays.</summary>
         public static readonly string[] Segments = { "walk", "argument" };
 
-        /// <summary>About 85 s: the opening over the title, Nadia charting on Day 1, the street at night,
+        /// <summary>About 90 s: the opening (to the cut to the phone from above), Nadia charting on Day 1, the street at night,
         /// the argument (played by its autopilot at real speed), the Convinced end card.</summary>
         public static AttractScript Attract() => new AttractScript(Scene)
-            .Jump(Opening, 0.5f).Wait(14f)
+            .Jump(Opening, 0.5f).Wait(18f)
             .Jump(Day1, 1.5f).Drive("walk", 22f)
             .Jump(Street, 1.5f).Drive("walk", 18f)
             .Jump(Argument, 1f).Drive("argument", 22f)

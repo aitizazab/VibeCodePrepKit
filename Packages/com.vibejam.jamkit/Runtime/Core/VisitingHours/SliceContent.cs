@@ -214,33 +214,128 @@ namespace JamKit.VisitingHours
             heardOutEntry = PersWrench,
         };
 
-        /// <summary>The opening, before the title (placeholder timing for the placeholder voicemail;
-        /// the voicemail's subtitles stretch to the real recording's length).</summary>
-        public static List<OpeningCue> Opening() => new List<OpeningCue>
+        /// <summary>
+        /// The opening's cues (docs/OPENING-AND-TITLE.md's shot list). Cues before the voicemail are
+        /// absolute; everything after it hangs off the recordings' markers ("voicemail:drop",
+        /// "voicemail:goodnight", "voicemail:end", "news:start", "news:end"), so re-timing a new take
+        /// means moving the markers in <see cref="VoicemailTrack"/> only.
+        /// </summary>
+        public static List<OpeningCue> OpeningCues()
         {
-            new OpeningCue { at = 0f, kind = OpeningCueKind.Ring },
-            new OpeningCue { at = 1.8f, kind = OpeningCueKind.EyesOpen, seconds = 4f },
-            new OpeningCue { at = 3.2f, kind = OpeningCueKind.PhoneText, text = "Elias calling…" },
-            new OpeningCue { at = 8.6f, kind = OpeningCueKind.RingStop },
-            new OpeningCue { at = 8.8f, kind = OpeningCueKind.PhoneText, text = "Missed call: Elias, 5:52 AM" },
-            new OpeningCue { at = 10.8f, kind = OpeningCueKind.PhoneText, text = "Voicemail: Elias" },
-            new OpeningCue { at = 11.2f, kind = OpeningCueKind.Voice, text = "vo_elias_voicemail" },
-            new OpeningCue { at = 11.2f, kind = OpeningCueKind.Subtitle, text = "Hey, Nads. It's me. Could I bother you for a..." },
-            new OpeningCue { at = 12.6f, kind = OpeningCueKind.SitUp, seconds = 1.6f },
-            new OpeningCue { at = 15.0f, kind = OpeningCueKind.Subtitle, text = "...it's five in the morning." },
-            new OpeningCue { at = 15.3f, kind = OpeningCueKind.SinkBack, seconds = 2.2f },
-            new OpeningCue { at = 17.2f, kind = OpeningCueKind.Subtitle, text = "You're asleep. And your phone's probably dead again, isn't it." },
-            new OpeningCue { at = 21.0f, kind = OpeningCueKind.Subtitle, text = "(a small laugh) No cabs out here at this hour. Figures." },
-            new OpeningCue { at = 25.0f, kind = OpeningCueKind.Subtitle, text = "Look. About yesterday. I'm sorry. I shouldn't have said that." },
-            new OpeningCue { at = 30.0f, kind = OpeningCueKind.Subtitle, text = "...G'night." },
-            new OpeningCue { at = 32.0f, kind = OpeningCueKind.PhoneHide },
-            new OpeningCue { at = 32.0f, kind = OpeningCueKind.ClearSubtitle },
-            new OpeningCue { at = 32.6f, kind = OpeningCueKind.Voice, text = "vo_nadia_sleep_in" },
-            new OpeningCue { at = 32.6f, kind = OpeningCueKind.Subtitle, speaker = "Nadia", text = "...sleep in." },
-            new OpeningCue { at = 34.6f, kind = OpeningCueKind.ClearSubtitle },
-            new OpeningCue { at = 35.0f, kind = OpeningCueKind.FadeOut, seconds = 3f },
-            new OpeningCue { at = 38.8f, kind = OpeningCueKind.End },
+            var c = new List<OpeningCue>();
+            void At(float at, OpeningCueKind kind, string text = "", float seconds = 0f, float value = 1f, string note = "") =>
+                c.Add(new OpeningCue { at = at, kind = kind, text = text, seconds = seconds, value = value, note = note });
+            void On(string anchor, float offset, OpeningCueKind kind, string text = "", float seconds = 0f, float value = 1f, string note = "") =>
+                c.Add(new OpeningCue { anchor = anchor, offset = offset, kind = kind, text = text, seconds = seconds, value = value, note = note });
+
+            // Black. Silence, then the phone (two rings).
+            At(0f, OpeningCueKind.Camera, "pillow");
+            At(0f, OpeningCueKind.Phone, "incoming");
+            At(0f, OpeningCueKind.Lights, "", 0f, 1f);
+            At(0.5f, OpeningCueKind.Ring, note: "two rings before her eyes open");
+            // Fade up from her pillow: the dark bedroom, the streetlight through the blinds on the ceiling.
+            At(3.0f, OpeningCueKind.Fade, "in", 2.2f);
+            At(3.5f, OpeningCueKind.Sfx, "vh_rustle", 0f, 0.6f);
+            // She turns towards the nightstand; the phone glows: "Elias".
+            At(4.3f, OpeningCueKind.Camera, "nightstand", 1.5f);
+            At(5.4f, OpeningCueKind.Arm, "reach", 1.35f, note: "her hand comes out from under the blanket");
+            At(5.6f, OpeningCueKind.Sfx, "vh_rustle", 0f, 0.8f);
+            // She grabs it just as the ringing stops: missed call.
+            At(6.8f, OpeningCueKind.RingStop);
+            At(6.8f, OpeningCueKind.Arm, "grab", 0.25f);
+            At(6.85f, OpeningCueKind.Phone, "missed");
+            At(7.1f, OpeningCueKind.Arm, "lift", 0.9f, note: "she holds the phone near");
+            // Her thumb plays the voicemail.
+            At(8.25f, OpeningCueKind.Arm, "tap", 0.3f);
+            At(8.4f, OpeningCueKind.Sfx, "vh_tap", 0f, 0.7f);
+            At(8.45f, OpeningCueKind.Phone, "playing");
+            At(8.6f, OpeningCueKind.Voice, "voicemail", note: "close and clear while she holds it");
+
+            // "Well, it's three in the morning. You're probably asleep...": she drops the phone, rolls away,
+            // the blanket goes over her head.
+            On("voicemail:drop", 0f, OpeningCueKind.Arm, "drop", 0.55f);
+            On("voicemail:drop", 0.5f, OpeningCueKind.Sfx, "vh_clunk", 0f, 0.9f);
+            On("voicemail:drop", 0.5f, OpeningCueKind.Speaker, note: "from here the voicemail comes out of the phone's small speaker");
+            On("voicemail:drop", 0.6f, OpeningCueKind.Arm, "hide", 0.3f);
+            On("voicemail:drop", 0.7f, OpeningCueKind.Camera, "away", 1.0f);
+            On("voicemail:drop", 0.75f, OpeningCueKind.Sfx, "vh_rustle_big", 0f, 1f);
+            On("voicemail:drop", 1.15f, OpeningCueKind.Blanket, "", 0.7f, 1f);
+            // Cut: the phone from above, still playing on speaker; Nadia a shape under the blanket, asleep.
+            On("voicemail:drop", 2.3f, OpeningCueKind.Camera, "overhead", 0f);
+            On("voicemail:drop", 2.3f, OpeningCueKind.Blanket, "", 0f, 0f);
+            On("voicemail:drop", 2.3f, OpeningCueKind.Breathing, "on");
+            On("voicemail:drop", 2.4f, OpeningCueKind.Phone, "dim", 22f, 0.45f, note: "the screen slowly dims");
+            // "G'night": the room goes, the phone's screen goes out last.
+            On("voicemail:goodnight", 0.2f, OpeningCueKind.Lights, "", 2.0f, 0f);
+            On("voicemail:goodnight", 2.4f, OpeningCueKind.Phone, "off", 0.6f);
+            On("voicemail:goodnight", 3.0f, OpeningCueKind.Fade, "out", 0.4f);
+            On("voicemail:end", 0.6f, OpeningCueKind.Breathing, "off");
+            // Black, held. Then the music blooms.
+            On("voicemail:end", 3.0f, OpeningCueKind.Music, "", 5f, note: "the placeholder sad pad (the title music)");
+            // The news report, from the tablet's speaker (once); the table's pieces fade in one at a time.
+            On("voicemail:end", 6.0f, OpeningCueKind.Camera, "table", 0f);
+            On("voicemail:end", 6.0f, OpeningCueKind.Voice, "news");
+            On("news:start", 0f, OpeningCueKind.Show, "table", 2.0f);
+            On("news:start", 0f, OpeningCueKind.Show, "tablet", 2.0f);
+            On("news:start", 0f, OpeningCueKind.Fade, "in", 2.0f);
+            On("news:start", 7f, OpeningCueKind.Show, "mug", 1.8f);
+            On("news:start", 14f, OpeningCueKind.Show, "notepad", 1.8f);
+            On("news:start", 14.6f, OpeningCueKind.Show, "pen", 1.8f);
+            On("news:start", 21f, OpeningCueKind.Show, "badge", 1.8f);
+            // The end of the report: the tablet's play button is Play.
+            On("news:end", 0f, OpeningCueKind.Interactive);
+            On("news:end", 0.2f, OpeningCueKind.End);
+            return c;
+        }
+
+        /// <summary>
+        /// Elias's voicemail and its markers, timed on the creator's first take (32.3 s, from its pauses and a
+        /// Whisper transcript; the take mixes the old and new scripts, so the subtitles are what he says in it).
+        /// Playback skips the take's 3.9 s quiet lead-in. "drop" is where Nadia drops the phone ("Well, it's five
+        /// [three] in the morning..."), "goodnight" the "G'night". A re-record re-times them (docs/OPENING-AND-TITLE.md).
+        /// </summary>
+        public static VoiceTrack VoicemailTrack() => new VoiceTrack
+        {
+            name = "voicemail",
+            clip = "vo_elias_voicemail",
+            speaker = "Elias",
+            recordedLength = 32.32f,
+            trimStart = 3.9f,
+            markers = new List<VoiceMarker>
+            {
+                new VoiceMarker { name = "hey", at = 4.5f, subtitle = "Hey, Nads. It's me. Could I bother you for a..." },
+                new VoiceMarker { name = "drop", at = 10.25f, subtitle = "...Well, it's five in the morning. You're probably asleep," },
+                new VoiceMarker { name = "dead", at = 12.5f, subtitle = "and you'd pick up if your phone wasn't dead." },
+                new VoiceMarker { name = "look", at = 18.6f, subtitle = "Look. About yesterday. I'm sorry. I shouldn't have said that." },
+                new VoiceMarker { name = "cab", at = 24.25f, subtitle = "I'll see if I can get a cab back home." },
+                new VoiceMarker { name = "lena", at = 26.5f, subtitle = "Or maybe just call Lena..." },
+                new VoiceMarker { name = "goodnight", at = 30.2f, subtitle = "...G'night." },
+            },
         };
+
+        /// <summary>Nicole's news report (38.9 s). No markers needed: the table's pieces hang off its start and end.</summary>
+        public static VoiceTrack NewsTrack() => new VoiceTrack
+        {
+            name = "news",
+            clip = "vo_news_anchor",
+            speaker = "News",
+            recordedLength = 38.87f,
+            markers = new List<VoiceMarker>(),
+        };
+
+        /// <summary>The pieces of the title table, in the order they fade in.</summary>
+        public static readonly string[] TablePieces = { "table", "tablet", "mug", "notepad", "pen", "badge" };
+
+        /// <summary>The camera poses the opening uses.</summary>
+        public static readonly string[] CameraPoses = { "pillow", "nightstand", "away", "overhead", "table" };
+
+        /// <summary>The tablet's scrolling headline (script/opening-script.md; the second corporation is
+        /// Larpaca, so any "WeWork" there becomes "Larpaca").</summary>
+        public static string Headline(string scriptLine)
+        {
+            string s = string.IsNullOrEmpty(scriptLine) ? NewsHeadline : scriptLine.Trim();
+            return s.Replace("WeWork", "Larpaca").Replace("WEWORK", "LARPACA");
+        }
 
         /// <summary>The things Nadia can look at with E: where, what the prompt calls it, the ink knot
         /// it plays and the entry that knot writes in the journal (empty for none).</summary>
@@ -307,7 +402,7 @@ namespace JamKit.VisitingHours
             DedWaltDead, DedDayBefore,
         };
 
-        /// <summary>The ticker under the title's TV picture.</summary>
-        public const string NewsTicker = "ROUTE 9: TWO DEAD, DRIVER CRITICAL AFTER EARLY-MORNING CRASH";
+        /// <summary>The tablet's scrolling headline (script/opening-script.md, the headline section).</summary>
+        public const string NewsHeadline = "ROUTE 9: THREE CASUALTIES OF EARLY-MORNING GANG VIOLENCE - DOCTOR IN CRITICAL CONDITION - WIFE MISSING";
     }
 }

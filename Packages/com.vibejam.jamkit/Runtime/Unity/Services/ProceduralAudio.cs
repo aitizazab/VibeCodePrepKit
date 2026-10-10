@@ -32,6 +32,9 @@ namespace JamKit.Shell
             // Used by the Visiting Hours slice. music_vh_sad_pad is a PLACEHOLDER (the creator composes the score).
             "vh_phone_ring", "vh_monitor", "amb_vh_hospital", "amb_vh_suburb", "music_vh_sad_pad",
             "vh_crack", "vh_wrong", "vh_hit", "vh_journal",
+            // The Visiting Hours opening (PLACEHOLDERS): the phone's buzz (loops with vh_phone_ring), sheets,
+            // the phone set down, a screen tap, Nadia's slow breathing (loops).
+            "vh_vibrate", "vh_rustle", "vh_rustle_big", "vh_clunk", "vh_tap", "vh_breath",
             // First-person movement (Runtime/Unity/Movement, the Movement Lab). PLACEHOLDERS. Loops:
             // mv_wind, mv_slide, mv_wallrun, mv_static; the rest are one-shots.
             "mv_wind", "mv_slide", "mv_wallrun", "mv_static",
@@ -54,6 +57,8 @@ namespace JamKit.Shell
         }
 
         static ToneSynth.Note N(Waveform w, float a, float b, float s, float v = 0.4f) => new ToneSynth.Note(w, a, b, s, v);
+
+        static ToneSynth.Note N(Waveform w, float a, float b, float s, float v, float attack) => new ToneSynth.Note(w, a, b, s, v, attack);
 
         static float[] Make(string id)
         {
@@ -117,6 +122,12 @@ namespace JamKit.Shell
                 case "voice_high": return ToneSynth.Sequence(Rate, 1, N(Waveform.Triangle, 520f, 470f, 0.04f, 0.13f));
                 case "vh_phone_ring": return PhoneRing();
                 case "vh_monitor": return Monitor();
+                case "vh_vibrate": return Vibrate();
+                case "vh_rustle": return ToneSynth.Sequence(Rate, 181, N(Waveform.Noise, 2600f, 900f, 0.5f, 0.12f, 0.12f));
+                case "vh_rustle_big": return RustleBig();
+                case "vh_clunk": return ToneSynth.Sequence(Rate, 191, N(Waveform.Sine, 170f, 70f, 0.16f, 0.45f, 0.002f), N(Waveform.Noise, 900f, 200f, 0.08f, 0.12f));
+                case "vh_tap": return ToneSynth.Sequence(Rate, 193, N(Waveform.Noise, 7000f, 3000f, 0.025f, 0.18f, 0.001f));
+                case "vh_breath": return Breath();
                 case "amb_vh_hospital": return Bed(4f, N(Waveform.Sine, 60f, 60f, 4f, 0.07f), N(Waveform.Sine, 120f, 120f, 4f, 0.025f), N(Waveform.Noise, 260f, 260f, 4f, 0.01f), N(Waveform.Sine, 7400f, 7400f, 4f, 0.002f));
                 case "amb_vh_suburb": return Suburb();
                 case "music_vh_sad_pad": return SadPad();
@@ -158,6 +169,39 @@ namespace JamKit.Shell
                 ToneSynth.Mix(buffer, at, a, Rate);
                 ToneSynth.Mix(buffer, at, b, Rate);
             }
+            return buffer;
+        }
+
+        /// <summary>A phone buzzing on a wooden nightstand, in step with <see cref="PhoneRing"/> (loops every 3 s).</summary>
+        static float[] Vibrate()
+        {
+            var buffer = new float[ToneSynth.SampleCount(3f, Rate)];
+            for (int burst = 0; burst < 2; burst++)
+            {
+                int at = ToneSynth.SampleCount(burst * 0.55f, Rate);
+                var hum = N(Waveform.Square, 150f, 148f, 0.42f, 0.07f, 0.01f);
+                hum.duty = 0.3f;
+                ToneSynth.Mix(buffer, at, hum, Rate);
+                ToneSynth.Mix(buffer, at, N(Waveform.Noise, 300f, 280f, 0.42f, 0.05f, 0.01f), Rate, 197u + (uint)burst);
+            }
+            return buffer;
+        }
+
+        /// <summary>Rolling over and pulling the blanket up: two long swishes of cloth.</summary>
+        static float[] RustleBig()
+        {
+            var buffer = new float[ToneSynth.SampleCount(1.5f, Rate)];
+            ToneSynth.Mix(buffer, 0, N(Waveform.Noise, 3000f, 1100f, 0.75f, 0.16f, 0.2f), Rate, 199u);
+            ToneSynth.Mix(buffer, ToneSynth.SampleCount(0.55f, Rate), N(Waveform.Noise, 2200f, 700f, 0.9f, 0.14f, 0.25f), Rate, 211u);
+            return buffer;
+        }
+
+        /// <summary>Slow sleeping breath, in and out (loops every 4.8 s).</summary>
+        static float[] Breath()
+        {
+            var buffer = new float[ToneSynth.SampleCount(4.8f, Rate)];
+            ToneSynth.Mix(buffer, 0, N(Waveform.Noise, 500f, 800f, 1.7f, 0.05f, 1.1f), Rate, 223u);
+            ToneSynth.Mix(buffer, ToneSynth.SampleCount(1.9f, Rate), N(Waveform.Noise, 800f, 350f, 2.4f, 0.06f, 0.5f), Rate, 227u);
             return buffer;
         }
 

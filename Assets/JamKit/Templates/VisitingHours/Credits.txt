@@ -1,0 +1,34 @@
+VISITING HOURS
+
+Made at Vibe Coding GameDev
+
+
+STORY, DIRECTION AND THE VOICE OF ELIAS
+The creator
+
+
+DESIGN AND CODE
+The creator, with Claude
+
+
+ART
+Concept art and pictures: made for the game with Gemini
+Nadia's 3D model: Tripo Studio, from our character sheet
+Furniture models: Kenney, Furniture Kit (CC0), kenney.nl
+
+
+MUSIC AND SOUND
+Placeholder sounds and music generated in code by JamKit
+The news report: Kokoro TTS (af_nicole, Apache 2.0)
+
+
+DIALOGUE
+Written with ink by inkle (MIT licence)
+
+
+BUILT WITH
+Unity 6
+JamKit, our jam framework
+
+
+THANK YOU FOR PLAYING

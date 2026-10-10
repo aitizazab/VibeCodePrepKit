@@ -89,12 +89,12 @@ namespace JamKit.VisitingHours.Tests
             var boot = VisitingHoursBoot.Load();
             Assert.That(boot, Is.Not.Null);
             Assert.That(boot.sceneName, Is.EqualTo(VisitingHoursBuilder.SceneName));
-            Assert.That(boot.opening.Count, Is.GreaterThan(5));
-            Assert.That(boot.ticker, Does.Contain("Route 9").IgnoreCase);
+            Assert.That(boot.cues.Count, Is.GreaterThan(20), "the opening's cues");
+            Assert.That(boot.Track("voicemail"), Is.Not.Null);
+            Assert.That(boot.Track("news"), Is.Not.Null);
             Assert.That(boot.style, Is.Not.Null);
-            Assert.That(boot.ceiling, Is.Not.Null);
-            Assert.That(boot.titleNews, Is.Not.Null);
-            TestContext.WriteLine("Voices: voicemail " + (boot.voicemail != null) + ", sleep in " + (boot.sleepIn != null) + ", anchor " + (boot.newsAnchor != null));
+            Assert.That(boot.wakingMaterial, Is.Not.Null);
+            TestContext.WriteLine("Voices: voicemail " + (boot.voicemail != null) + ", news " + (boot.newsAnchor != null) + "; Nadia's model " + (boot.nadiaModel != null));
         }
 
         [Test]

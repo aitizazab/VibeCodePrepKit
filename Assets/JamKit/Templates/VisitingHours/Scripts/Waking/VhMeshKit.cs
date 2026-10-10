@@ -1,0 +1,297 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace JamKit.VisitingHours
+{
+    /// <summary>
+    /// Simple meshes for the waking world, made in code: boxes, soft rounded boxes (pillows, the phone,
+    /// the tablet), cylinders (the mug, the pen), tubes along a path (the lanyard, a mug handle, hair)
+    /// and draped heightfields (the blanket over Nadia). Every mesh it makes is remembered so
+    /// <see cref="Dispose"/> frees them with the set.
+    /// </summary>
+    public sealed class VhMeshKit
+    {
+        readonly List<Mesh> _meshes = new List<Mesh>();
+
+        public void Dispose()
+        {
+            foreach (var m in _meshes) VhUtil.Kill(m);
+            _meshes.Clear();
+        }
+
+        Mesh Finish(string name, List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t, List<Color> colors = null)
+        {
+            var m = new Mesh { name = name };
+            if (v.Count > 65000) m.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            m.SetVertices(v);
+            m.SetNormals(n);
+            m.SetUVs(0, uv);
+            if (colors != null) m.SetColors(colors);
+            m.SetTriangles(t, 0);
+            m.RecalculateBounds();
+            _meshes.Add(m);
+            return m;
+        }
+
+        /// <summary>A flat-shaded box centred on the origin. UVs are in metres times <paramref name="uvScale"/> (textures tile).</summary>
+        public Mesh Box(Vector3 size, float uvScale = 1f)
+        {
+            var v = new List<Vector3>(24);
+            var n = new List<Vector3>(24);
+            var uv = new List<Vector2>(24);
+            var t = new List<int>(36);
+            Vector3 h = size * 0.5f;
+            void Face(Vector3 normal, Vector3 u, Vector3 w, float su, float sw)
+            {
+                int i = v.Count;
+                Vector3 c = Vector3.Scale(normal, h);
+                v.Add(c - u - w); v.Add(c + u - w); v.Add(c + u + w); v.Add(c - u + w);
+                for (int k = 0; k < 4; k++) n.Add(normal);
+                uv.Add(new Vector2(0f, 0f)); uv.Add(new Vector2(su, 0f)); uv.Add(new Vector2(su, sw)); uv.Add(new Vector2(0f, sw));
+                t.Add(i); t.Add(i + 2); t.Add(i + 1);
+                t.Add(i); t.Add(i + 3); t.Add(i + 2);
+            }
+            Face(Vector3.right, new Vector3(0, 0, h.z), new Vector3(0, h.y, 0), size.z * uvScale, size.y * uvScale);
+            Face(Vector3.left, new Vector3(0, 0, -h.z), new Vector3(0, h.y, 0), size.z * uvScale, size.y * uvScale);
+            Face(Vector3.up, new Vector3(h.x, 0, 0), new Vector3(0, 0, h.z), size.x * uvScale, size.z * uvScale);
+            Face(Vector3.down, new Vector3(h.x, 0, 0), new Vector3(0, 0, -h.z), size.x * uvScale, size.z * uvScale);
+            Face(Vector3.forward, new Vector3(-h.x, 0, 0), new Vector3(0, h.y, 0), size.x * uvScale, size.y * uvScale);
+            Face(Vector3.back, new Vector3(h.x, 0, 0), new Vector3(0, h.y, 0), size.x * uvScale, size.y * uvScale);
+            return Finish("vh_box", v, n, uv, t);
+        }
+
+        /// <summary>
+        /// A box with soft rounded edges and smooth normals (radius clamped to half the smallest side).
+        /// <paramref name="puff"/> bulges the faces outwards (pillows, a mattress). The +Y face's UVs
+        /// cover 0..1 (a texture on the top: the tablet's screen side is +Y).
+        /// </summary>
+        public Mesh RoundedBox(Vector3 size, float radius, int segments = 6, float puff = 0f)
+        {
+            Vector3 h = size * 0.5f;
+            float r = Mathf.Clamp(radius, 0.0005f, Mathf.Min(h.x, Mathf.Min(h.y, h.z)) - 0.0001f);
+            Vector3 inner = h - new Vector3(r, r, r);
+            int s = Mathf.Max(2, segments);
+            var v = new List<Vector3>();
+            var n = new List<Vector3>();
+            var uv = new List<Vector2>();
+            var t = new List<int>();
+            void Face(Vector3 normal, Vector3 u, Vector3 w)
+            {
+                int start = v.Count;
+                for (int j = 0; j <= s; j++)
+                    for (int i = 0; i <= s; i++)
+                    {
+                        float a = (float)i / s * 2f - 1f, b = (float)j / s * 2f - 1f;
+                        Vector3 p = Vector3.Scale(normal + u * a + w * b, h);
+                        Vector3 q = new Vector3(Mathf.Clamp(p.x, -inner.x, inner.x), Mathf.Clamp(p.y, -inner.y, inner.y), Mathf.Clamp(p.z, -inner.z, inner.z));
+                        Vector3 d = p - q;
+                        Vector3 dir = d.sqrMagnitude > 1e-12f ? d.normalized : normal;
+                        Vector3 pos = q + dir * r;
+                        if (puff > 0f)
+                        {
+                            float bulge = (1f - a * a) * (1f - b * b);
+                            pos += normal * (puff * bulge);
+                        }
+                        v.Add(pos);
+                        n.Add(dir);
+                        uv.Add(new Vector2((a + 1f) * 0.5f, (b + 1f) * 0.5f));
+                    }
+                for (int j = 0; j < s; j++)
+                    for (int i = 0; i < s; i++)
+                    {
+                        int k = start + j * (s + 1) + i;
+                        t.Add(k); t.Add(k + s + 1); t.Add(k + 1);
+                        t.Add(k + 1); t.Add(k + s + 1); t.Add(k + s + 2);
+                    }
+            }
+            Face(Vector3.up, Vector3.right, Vector3.forward);
+            Face(Vector3.down, Vector3.right, Vector3.back);
+            // Every face's u x w points inwards, so (i, j) -> (i, j+1) -> (i+1, j) winds clockwise from outside.
+            Face(Vector3.right, Vector3.forward, Vector3.up);
+            Face(Vector3.left, Vector3.back, Vector3.up);
+            Face(Vector3.forward, Vector3.left, Vector3.up);
+            Face(Vector3.back, Vector3.right, Vector3.up);
+            var m = Finish("vh_rounded_box", v, n, uv, t);
+            if (puff > 0f) m.RecalculateNormals();
+            return m;
+        }
+
+        /// <summary>A cylinder (or a cone frustum) standing on the origin, smooth sides. <paramref name="inward"/> turns it inside out (a mug's inner wall).</summary>
+        public Mesh Cylinder(float radiusBottom, float radiusTop, float height, int segments = 24, bool capTop = true, bool capBottom = true, bool inward = false)
+        {
+            var v = new List<Vector3>();
+            var n = new List<Vector3>();
+            var uv = new List<Vector2>();
+            var t = new List<int>();
+            int seg = Mathf.Max(3, segments);
+            float slope = (radiusBottom - radiusTop) / Mathf.Max(height, 1e-4f);
+            for (int i = 0; i <= seg; i++)
+            {
+                float a = (float)i / seg * Mathf.PI * 2f;
+                float cx = Mathf.Cos(a), sz = Mathf.Sin(a);
+                Vector3 nn = new Vector3(cx, slope, sz).normalized * (inward ? -1f : 1f);
+                v.Add(new Vector3(cx * radiusBottom, 0f, sz * radiusBottom)); n.Add(nn); uv.Add(new Vector2((float)i / seg, 0f));
+                v.Add(new Vector3(cx * radiusTop, height, sz * radiusTop)); n.Add(nn); uv.Add(new Vector2((float)i / seg, 1f));
+            }
+            for (int i = 0; i < seg; i++)
+            {
+                int k = i * 2;
+                if (!inward) { t.Add(k); t.Add(k + 1); t.Add(k + 2); t.Add(k + 2); t.Add(k + 1); t.Add(k + 3); }
+                else { t.Add(k); t.Add(k + 2); t.Add(k + 1); t.Add(k + 2); t.Add(k + 3); t.Add(k + 1); }
+            }
+            void Cap(float y, float r, bool up)
+            {
+                int c = v.Count;
+                Vector3 nn = up ? Vector3.up : Vector3.down;
+                v.Add(new Vector3(0f, y, 0f)); n.Add(nn); uv.Add(new Vector2(0.5f, 0.5f));
+                for (int i = 0; i <= seg; i++)
+                {
+                    float a = (float)i / seg * Mathf.PI * 2f;
+                    v.Add(new Vector3(Mathf.Cos(a) * r, y, Mathf.Sin(a) * r)); n.Add(nn);
+                    uv.Add(new Vector2(0.5f + Mathf.Cos(a) * 0.5f, 0.5f + Mathf.Sin(a) * 0.5f));
+                }
+                for (int i = 0; i < seg; i++)
+                {
+                    if (up) { t.Add(c); t.Add(c + 2 + i); t.Add(c + 1 + i); }
+                    else { t.Add(c); t.Add(c + 1 + i); t.Add(c + 2 + i); }
+                }
+            }
+            if (capTop) Cap(height, radiusTop, true);
+            if (capBottom) Cap(0f, radiusBottom, false);
+            return Finish("vh_cylinder", v, n, uv, t);
+        }
+
+        /// <summary>A flat disc facing +Y (the coffee's surface), UVs 0..1 across it.</summary>
+        public Mesh Disc(float radius, int segments = 32) => Cylinder(radius, radius, 0f, segments, true, false);
+
+        /// <summary>A flat quad in XY facing -Z (towards a camera looking down +Z), UVs 0..1.</summary>
+        public Mesh Quad(float width, float height)
+        {
+            float x = width * 0.5f, y = height * 0.5f;
+            var v = new List<Vector3> { new Vector3(-x, -y, 0f), new Vector3(x, -y, 0f), new Vector3(x, y, 0f), new Vector3(-x, y, 0f) };
+            var n = new List<Vector3> { Vector3.back, Vector3.back, Vector3.back, Vector3.back };
+            var uv = new List<Vector2> { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
+            var t = new List<int> { 0, 2, 1, 0, 3, 2 };
+            return Finish("vh_quad", v, n, uv, t);
+        }
+
+        /// <summary>A round tube through <paramref name="path"/> (a lanyard, a handle, a strand of hair). Radius can taper to <paramref name="endRadius"/>.</summary>
+        public Mesh Tube(IList<Vector3> path, float radius, int sides = 8, float endRadius = -1f)
+        {
+            var v = new List<Vector3>();
+            var n = new List<Vector3>();
+            var uv = new List<Vector2>();
+            var t = new List<int>();
+            int count = path.Count;
+            if (count < 2) return Finish("vh_tube", v, n, uv, t);
+            if (endRadius < 0f) endRadius = radius;
+            Vector3 prevUp = Vector3.up;
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 fwd = (i < count - 1 ? path[i + 1] - path[i] : path[i] - path[i - 1]);
+                if (i > 0 && i < count - 1) fwd = path[i + 1] - path[i - 1];
+                fwd = fwd.sqrMagnitude > 1e-12f ? fwd.normalized : Vector3.forward;
+                Vector3 side = Vector3.Cross(prevUp, fwd);
+                if (side.sqrMagnitude < 1e-8f) side = Vector3.Cross(Vector3.right, fwd);
+                side.Normalize();
+                Vector3 up = Vector3.Cross(fwd, side).normalized;
+                prevUp = up;
+                float r = Mathf.Lerp(radius, endRadius, (float)i / (count - 1));
+                for (int s = 0; s <= sides; s++)
+                {
+                    float a = (float)s / sides * Mathf.PI * 2f;
+                    Vector3 dir = side * Mathf.Cos(a) + up * Mathf.Sin(a);
+                    v.Add(path[i] + dir * r);
+                    n.Add(dir);
+                    uv.Add(new Vector2((float)s / sides, (float)i / (count - 1)));
+                }
+            }
+            for (int i = 0; i < count - 1; i++)
+                for (int s = 0; s < sides; s++)
+                {
+                    int a = i * (sides + 1) + s, b = a + sides + 1;
+                    t.Add(a); t.Add(a + 1); t.Add(b);
+                    t.Add(a + 1); t.Add(b + 1); t.Add(b);
+                }
+            return Finish("vh_tube", v, n, uv, t);
+        }
+
+        /// <summary>
+        /// A draped sheet over XZ (centred on the origin, <paramref name="width"/> along X, <paramref name="depth"/>
+        /// along Z), its height at each point from <paramref name="height"/>(x, z). Smooth normals from the
+        /// heights; UVs in metres times <paramref name="uvScale"/>. Seen from above.
+        /// </summary>
+        public Mesh Heightfield(float width, float depth, int nx, int nz, Func<float, float, float> height, float uvScale = 1f)
+        {
+            nx = Mathf.Max(1, nx);
+            nz = Mathf.Max(1, nz);
+            var v = new List<Vector3>((nx + 1) * (nz + 1));
+            var n = new List<Vector3>((nx + 1) * (nz + 1));
+            var uv = new List<Vector2>((nx + 1) * (nz + 1));
+            var t = new List<int>(nx * nz * 6);
+            float dx = width / nx, dz = depth / nz;
+            for (int j = 0; j <= nz; j++)
+                for (int i = 0; i <= nx; i++)
+                {
+                    float x = -width * 0.5f + i * dx, z = -depth * 0.5f + j * dz;
+                    float y = height(x, z);
+                    v.Add(new Vector3(x, y, z));
+                    float hx = height(x + dx * 0.5f, z) - height(x - dx * 0.5f, z);
+                    float hz = height(x, z + dz * 0.5f) - height(x, z - dz * 0.5f);
+                    n.Add(new Vector3(-hx / dx, 1f, -hz / dz).normalized);
+                    uv.Add(new Vector2(x * uvScale, z * uvScale));
+                }
+            for (int j = 0; j < nz; j++)
+                for (int i = 0; i < nx; i++)
+                {
+                    int k = j * (nx + 1) + i;
+                    t.Add(k); t.Add(k + nx + 1); t.Add(k + 1);
+                    t.Add(k + 1); t.Add(k + nx + 1); t.Add(k + nx + 2);
+                }
+            return Finish("vh_drape", v, n, uv, t);
+        }
+
+        /// <summary>A mesh's copy with every vertex moved by <paramref name="delta"/>(position) as a blend shape named <paramref name="shape"/> (breathing).</summary>
+        public static void AddBlendShape(Mesh mesh, string shape, Func<Vector3, Vector3> delta)
+        {
+            var verts = mesh.vertices;
+            var deltas = new Vector3[verts.Length];
+            for (int i = 0; i < verts.Length; i++) deltas[i] = delta(verts[i]);
+            mesh.AddBlendShapeFrame(shape, 100f, deltas, null, null);
+        }
+
+        /// <summary>A child object showing <paramref name="mesh"/> with <paramref name="mat"/>.</summary>
+        public static MeshRenderer Show(Transform parent, string name, Mesh mesh, Material mat, Vector3 localPos, Quaternion localRot, bool shadows = true)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localRotation = localRot;
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = shadows ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = true;
+            return r;
+        }
+    }
+
+    public static class VhUtil
+    {
+        /// <summary>Destroy that works in edit mode too (EditMode tests build the sets).</summary>
+        public static void Kill(UnityEngine.Object o)
+        {
+            if (o == null) return;
+            if (Application.isPlaying) UnityEngine.Object.Destroy(o);
+            else UnityEngine.Object.DestroyImmediate(o);
+        }
+
+        /// <summary>Smooth 0..1 ease (in and out).</summary>
+        public static float Ease(float t)
+        {
+            t = Mathf.Clamp01(t);
+            return t * t * (3f - 2f * t);
+        }
+    }
+}

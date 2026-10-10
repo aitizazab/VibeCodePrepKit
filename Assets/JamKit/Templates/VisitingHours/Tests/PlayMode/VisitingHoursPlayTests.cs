@@ -11,7 +11,7 @@ namespace JamKit.VisitingHours.Tests
     /// <summary>The slice in its real scene: charting writes a fact and the journal combines (and
     /// refuses gently), Day 1 leads through the booth (the journal opens itself) into the dream, the
     /// rushing line comes with open questions and never blocks, each of the argument's four
-    /// outcomes (an autopilot plays it fast), replaying Walt, and the opening playing to the title.</summary>
+    /// outcomes (an autopilot plays it fast) and replaying Walt. The opening and the title: VisitingHoursOpeningPlayTests.</summary>
     public class VisitingHoursPlayTests
     {
         [UnitySetUp]
@@ -227,20 +227,6 @@ namespace JamKit.VisitingHours.Tests
             Assert.That(game.CurrentMode, Is.EqualTo(VisitingHoursGame.Mode.Explore));
             Assert.That(game.Area, Is.EqualTo(SliceArea.Street));
             LogAssert.NoUnexpectedReceived();
-        }
-
-        [UnityTest]
-        public IEnumerator TheOpeningPlaysToTheTitle()
-        {
-            var opening = VhBoot.PlayOpeningNow(30f);
-            Assert.That(opening, Is.Not.Null, "the boot asset is in Resources");
-            Assert.That(GameRoot.Ui.Title.Root.enabledSelf, Is.False, "no input until the title");
-            yield return WaitFor(() => !opening.Running, "the opening to end", 15f);
-            Assert.That(opening.Seen, Does.Contain(OpeningCueKind.Ring));
-            Assert.That(opening.Seen, Does.Contain(OpeningCueKind.EyesOpen));
-            Assert.That(opening.Seen, Does.Contain(OpeningCueKind.SinkBack));
-            Assert.That(opening.Seen, Does.Contain(OpeningCueKind.End));
-            Assert.That(GameRoot.Ui.Title.Root.enabledSelf, Is.True, "the title takes input again");
         }
     }
 }

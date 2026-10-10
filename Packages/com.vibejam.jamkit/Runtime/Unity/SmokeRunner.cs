@@ -26,6 +26,19 @@ namespace JamKit.Shell
             set => _driver = value;
         }
 
+        static Func<bool> _titleGate;
+
+        /// <summary>A template whose title has its own opening (Visiting Hours) sets this: the smoke run
+        /// waits until it returns true (the title is ready for Play) before pressing Play. Null: Play at once.</summary>
+        public static Func<bool> TitleGate
+        {
+            get => _titleGate;
+            set => _titleGate = value;
+        }
+
+        /// <summary>True when this run is a smoke run (-jamSmoke).</summary>
+        public static bool Active => Requested(out _);
+
         float _seconds = 20f;
         int _errors;
         string _firstError = "";
@@ -63,6 +76,11 @@ namespace JamKit.Shell
 
             yield return Until(() => flow.Current == GameState.Title && !GameRoot.IsLoadingScene, "title screen");
             yield return Real(0.5f);
+            if (TitleGate != null)
+            {
+                yield return Until(() => TitleGate == null || TitleGate(), "the title to be ready (its opening)");
+                Log("title gate open");
+            }
             Log("title");
             ui.Title.Activate("play");
             yield return null;

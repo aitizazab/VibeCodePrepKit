@@ -45,6 +45,7 @@ namespace JamKit.VisitingHours.EditorTools
             var config = VisitingHoursContent.EnsureAll(art, resetContent);
             AssetDatabase.SaveAssets();
             MakePreset(ctx);
+            UseOwnCredits(ctx);
             string path = BuildScene();
             // A new single scene unloads unused assets, which leaves earlier references "destroyed": reload.
             config = AssetDatabase.LoadAssetAtPath<VisitingHoursConfig>(VisitingHoursContent.ConfigPath);
@@ -127,6 +128,30 @@ namespace JamKit.VisitingHours.EditorTools
             };
             AssetDatabase.CreateAsset(p, PresetPath);
             AssetDatabase.SaveAssets();
+        }
+
+        public const string CreditsPath = Root + "/Credits.txt";
+        const string SharedCreditsPath = "Assets/JamKit/Credits.txt";
+
+        /// <summary>Visiting Hours credits its own downloads (Kenney's furniture...): its preset uses its own
+        /// credits file, and so does the active config while Visiting Hours is the template (unless the team
+        /// already pointed it at a file of their own).</summary>
+        static void UseOwnCredits(SceneBuilder.Context ctx)
+        {
+            var credits = AssetDatabase.LoadAssetAtPath<TextAsset>(CreditsPath);
+            if (credits == null) return;
+            var preset = AssetDatabase.LoadAssetAtPath<GameConfig>(PresetPath);
+            if (preset != null && preset.credits != credits)
+            {
+                preset.credits = credits;
+                EditorUtility.SetDirty(preset);
+            }
+            var active = ctx != null ? ctx.config : null;
+            if (active != null && active.firstGameplayScene == SceneName && (active.credits == null || AssetDatabase.GetAssetPath(active.credits) == SharedCreditsPath))
+            {
+                active.credits = credits;
+                EditorUtility.SetDirty(active);
+            }
         }
 
         // ---------- Scene ----------
