@@ -818,3 +818,14 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   ghost and HUD toggles no longer move you.
 - **The earlier Unity run on the body was stopped** (it was retrying after a failure). A single run, retries off, now
   covers everything on the newest code.
+
+### One Unity run of everything on the newest code (16:30): 97/100
+- Scenes OK, EditMode 643/643, PlayMode 97/100.
+- **The Gauntlet runs in Unity:** 43.1 s (the sim says 41.0), 9/9 markers, a ghost recorded. Escape 44.8 s, old course
+  47.4 s.
+- **The failures:**
+  - **Both body tests:** the lean-in reach never fires in Unity (0 times), and the planted wall hand is 0.4–0.6 m off
+    its spot. The lab test also watched no slide frames. Sent back to the body agent: the probe isn't seeing the
+    walls, and the newer wallrun rules allow catches up to about 1 m from the wall.
+  - **The d-pad ghost test:** its teardown restores a null input-settings object (a test bug). Sent back to the Controls
+    agent.
