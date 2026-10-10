@@ -971,3 +971,15 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - Unity check and a lab build under way.
 - **Verified:** Scenes OK, EditMode 696/696, PlayMode 108/108, smoke PASS (9.9 s). The lab was open, so the build went to
   `Builds/Play/MovementLab-next/VibeJamKit.exe`.
+
+## 2026-10-11
+- **Air strafing on keyboard and mouse is far too easy** (the creator, in MovementLab-next):
+  - Holding only W in the air and moving the mouse gains speed.
+  - At the cap: keep jumping and slide now and then to stay at top speed.
+  - Turning in the air is instant and costs no momentum.
+  - The first KBM Gauntlet run took 24 s, against their 31.42 s on controller.
+  - "The PC movement needs a significant nerf, but first we need to examine why it's so easy." Sent to the movement agent as an investigation: root causes, numbers, how the reference games limit it, nerf options. No code changes yet.
+- **Dream Lena at 6'2" is fine** (the creator). No change.
+- **The design docs** are about 1,600 lines. An agent is writing `docs/DESIGN-DECISIONS.md`: a short checklist of only the decisions the creator must confirm, a verdict on filler, and what to skip. The four docs are open in the editor and are not touched.
+- **Music:** the creator thinks the movement base sounds like a 2012–2019 song. Candidate: Alan Walker's "Faded" (2015), the same i–VI–III–VII under soft pads and a plucked figure.
+- **Visiting Hours** build launched for the creator's notes on the opening.
