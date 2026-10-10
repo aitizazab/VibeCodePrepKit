@@ -19,13 +19,24 @@ namespace JamKit.Tests.Play
     public sealed class TestInput : System.IDisposable
     {
         readonly InputSettings _saved, _test;
+        readonly HideFlags _savedFlags;
         public readonly Keyboard Keyboard;
         Gamepad _pad;
 
         public TestInput(string keyboardName)
         {
+            // Replacing InputSystem.settings destroys the old object when it's a temporary one (HideAndDontSave:
+            // the Input System's own defaults, or another test's copy). So keep the original alive while ours is
+            // in place: drop the flag that marks it temporary, and put it back in Dispose.
             _saved = InputSystem.settings;
-            _test = Object.Instantiate(_saved);
+            if (_saved != null)
+            {
+                _savedFlags = _saved.hideFlags;
+                if (_savedFlags == HideFlags.HideAndDontSave) _saved.hideFlags = HideFlags.DontSave;
+                _test = Object.Instantiate(_saved);
+            }
+            else _test = ScriptableObject.CreateInstance<InputSettings>();
+            _test.hideFlags = HideFlags.DontSave; // ours: destroyed by Dispose, never by the Input System
             _test.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             _test.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
             InputSystem.settings = _test;
@@ -62,8 +73,19 @@ namespace JamKit.Tests.Play
         {
             if (_pad != null && _pad.added) InputSystem.RemoveDevice(_pad);
             if (Keyboard != null && Keyboard.added) InputSystem.RemoveDevice(Keyboard);
-            if (InputSystem.settings == _test) InputSystem.settings = _saved;
-            if (_test != null) Object.Destroy(_test);
+            // Restore only an original that still exists (Unity's == also catches a destroyed one).
+            if (_saved != null)
+            {
+                if (InputSystem.settings == _test) InputSystem.settings = _saved;
+                _saved.hideFlags = _savedFlags;
+            }
+            // Destroy our copy only once it's no longer in use; with no original to go back to, it stays in
+            // place, marked temporary so whoever replaces it next cleans it up.
+            if (_test != null)
+            {
+                if (InputSystem.settings != _test) Object.Destroy(_test);
+                else _test.hideFlags = HideFlags.HideAndDontSave;
+            }
         }
     }
 
