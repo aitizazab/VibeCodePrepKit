@@ -662,3 +662,23 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   sideways in a slide; blend ledge climbs by height; the posture tiers are our own idea. Not yet sent to the body
   agent.
 - **Paused by the creator:** the PlayMode run with the body, controls and sound together (Scenes OK, EditMode 602/602).
+
+### Lena round 4, step 1, and the body revised to the research (15:25)
+- **Round 3's agent, fixed:** the key necklace is gone (nothing on her chest or neck; only the watch, worn face-in). The
+  skirt is now slim, deep wine-red wool trousers with dark-brown lace-up ankle boots. In the dream she holds one
+  notebook loosely at her side. The face, hair, freckles, sleeves down, pencil and half-smile are kept. Page:
+  `art/review/2026-10-10/visiting-hours-lena-round4-a.html`. Picks: `lena5-turn-take1`, `lena5-bb-take2`,
+  `lena5-expr-take2`.
+- **Next in the relay:** the fresh agent fixes its own design (green eyes, a level gaze, one notebook) and makes a
+  reconciled version from round 4-a's image with its practical coat outfit (page `...lena-round4-b.html`). Then round
+  3's agent makes one from the fresh fix, and the cast lineup.
+- **Body revised to section 8.7:**
+  - the wall hand reaches about 0.25 s before contact (a probe along her path) and plants on the contact frame;
+  - no jump lift: the arms sink while rising and float while falling, up to 1.5 cm;
+  - the double-jump pose holds 0.27 s;
+  - in a slide the arms tilt 18°, also in the air with crouch held; the camera dips 5 cm on entry and the view widens
+    x1.1 (a camera change); the legs in view are a setting, on by default;
+  - mantle poses blend by ledge height, the hands reach the lip by IK (at most 40 cm), and look stays free;
+  - the speed tiers are subtle and labelled ours;
+  - look sway uses Titanfall- and Apex-based numbers, and landings use Titanfall's view-punch spring.
+  Dotnet 499/499. Unity checks are next, after the current PlayMode run.
