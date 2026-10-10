@@ -49,14 +49,30 @@ in this city.
   - **A clearly different face from Nadia's.** Nadia is narrow and angular with hollow cheeks. Lena is soft and
     round: full cheeks, a rounded chin, a short button nose, soft rounded brows, large wide-set green-grey eyes, a wide
     mouth, freckles. Never make Lena's face with Nadia's sheet attached.
-  - **Her own clothes and silhouette.** A ceramicist: a long-sleeved dusty-rose midi dress, a clay-smeared ecru apron,
-    brown ankle boots. Nothing that echoes Nadia's jacket and scrubs or Elias's coat and shirt.
+  - **Her own clothes and silhouette.** Nothing that echoes Nadia's jacket and scrubs or Elias's coat and shirt (a
+    different colour family and silhouette).
   - **Sleeves down, always.** Pushed-up sleeves are the siblings' shared quirk (Nadia and Elias); Lena never has it.
   - **The pencil rests on top of her ear**, tucked behind it, with her hair tucked behind that ear so it reads as
     deliberate (not lost in her hair).
   - **Keep:** honey-blonde, long loose waves, freckles. In the dream she stays cute and not overwhelmingly wrong: being
     a billboard in the dream instead of 3D is eerie enough.
-  - Sheets: `docs/art/vh-lena3-picks.json` (the round-2 picks).
+- **Round 3 (the creator's notes on round 2, 2026-10-10):**
+  - **Fuller, rounder and rested is right**, but round 2 looked like she works hard for a living. **She doesn't need to
+    work** (Elias comes from money): what she makes is a hobby, unless it's a real passion. **No workwear, no apron, no
+    clay, no tired posture.** Dressed well but not flashy: quality, considered, a little private. Round 3's outfit: a
+    cream fine-knit high-neck sweater, a wine-red pleated midi skirt, slim dark boots.
+  - **Mysterious:** composed, guarded, a little unreadable, a private life, so that her going **missing** stays a real
+    open question and not an allegory for death. Through expression, posture and styling (a half-smile that doesn't
+    explain itself, a closed notebook, a watch worn face-in, an old brass key on a chain), never anything sinister.
+  - **The nose must belong to the face:** shaded into it, no separate outline (round 2's looked pasted on).
+  - **The pencil shows a curious, ordered mind:** neat, sharpened, always in the same place (a slim dark-green pencil
+    on the right ear), the habit of someone who notes things down and keeps things in order.
+  - **In the dream, her ear is small and sits close to the head** under the hair, never sticking out; the pencil stays
+    visible.
+  - **A passion (a proposal, open):** she keeps meticulous notebooks of the city's vanishing places, the old buildings
+    the corporations buy and tear down: walks, photographs, notes. It fits the pencil, the money, the dystopia, and gives
+    her somewhere else she goes.
+  - Sheets: round 2 in `docs/art/vh-lena3-picks.json`, round 3 in `docs/art/vh-lena4-picks.json`.
 
 ## Theo
 - **Role:** Elias and Lena's son, ten, killed in the crash. In the dream, he's the one who asks the question that

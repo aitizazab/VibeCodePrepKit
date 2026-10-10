@@ -157,3 +157,36 @@ put("lena3-expr", "Image 1 is Lena's dream billboard: keep the same character an
     "brows down, mouth tight). The hair, the pencil, the clothes and the colours identical in every portrait.", PAPER)
 for k in ("lena3-turn", "lena3-bb", "lena3-expr"):
     with open(os.path.join(OUT, k + ".txt"), "w", encoding="utf8", newline="\n") as f: f.write(P[k])
+
+# -- Lena, round 3 (the creator's notes on round 2, 2026-10-10): leisure not labour, mysterious, an integrated nose, the pencil
+#    as a habit of an ordered, curious mind, a small dream ear. Proposed passion: she keeps notebooks of the city's vanishing places.
+LENA4 = ("The character: Lena, a woman in her early thirties who married into money and has leisure: composed, rested, quietly "
+         "curious, a little unreadable. Her face: soft, full and round, rested (no tiredness), a rounded chin, freckles across "
+         "her nose and cheeks, large wide-set green-grey eyes with a calm, level, knowing look, a closed-lipped half-smile that "
+         "doesn't explain itself. Her NOSE is small and softly modelled INTO the face with the same skin tones and gentle shading as "
+         "her cheeks, no separate outline: it belongs to the face, never a shape pasted on top. Long, loose, wavy honey-blonde hair "
+         "worn down past her shoulders, the right side neatly tucked behind her right ear, and resting on top of that ear a "
+         "neatly sharpened slim dark-green pencil, placed precisely and deliberately, the habit of someone who notes things down "
+         "and keeps things in order. Clothes: quality, considered and a little private, never flashy, no workwear: a fitted "
+         "cream fine-knit high-neck sweater with the SLEEVES DOWN TO THE WRISTS; a long, softly pleated deep wine-red midi skirt; "
+         "slim dark-brown leather ankle boots; a thin gold watch worn with its face on the INSIDE of her left wrist; a small old "
+         "brass key on a fine chain around her neck. Posture: upright, relaxed, self-contained.")
+SLEEVES4 = ("Her sleeves are full length and down to her wrists in every view: never rolled or pushed up. No apron, no clay, no "
+            "paint, nothing that looks like work clothes.")
+put("lena4-turn", "Image 1 is Lena's previous model sheet: keep her face shape (full and round), freckles, honey-blonde waves and "
+    "the drawing style and sheet layout. CHANGE her clothes, expression and nose as described here.", REAL, LENA4, SLEEVES4, TURN, BG)
+put("lena4-bb", "Image 1 is Lena's new waking-world model sheet: keep the same person (face, hair tucked behind the right ear with "
+    "the pencil on that ear, the cream sweater, wine-red skirt, key necklace, colours). Image 2 shows the dream style (an older "
+    "dream billboard of her, in old clothes): redraw her completely in that style, in her NEW clothes. Do not copy Image 2's "
+    "apron or dress.", DREAM, LENA4, SLEEVES4,
+    "Her ear is SMALL and sits close against her head, partly under the hair, never sticking out; the pencil still visible on it. "
+    "Introduction pose: composed and gently welcoming, holding a slim closed dark-leather notebook against her middle with both "
+    "hands, a small closed-lipped half-smile that keeps something back. Cute, calm, not sinister.", BILL, PAPER)
+put("lena4-expr", "Image 1 is Lena's dream billboard: keep the same character and style exactly (round face, blonde waves tucked "
+    "behind a small close ear with the pencil on it, the cream high-neck sweater, the key necklace).", DREAM, LENA4,
+    "Her ear is small and close to her head. An expression sheet: three head-and-shoulders portraits of her in one row, at "
+    "exactly the same scale and framing, evenly spaced. From left to right: warm (a soft open smile), knowing (a small closed "
+    "half-smile, eyes calm and level, giving nothing away), defensive (chin up, a cool, guarded look, mouth set). The hair, the "
+    "pencil, the clothes and the colours identical in every portrait.", PAPER)
+for k in ("lena4-turn", "lena4-bb", "lena4-expr"):
+    with open(os.path.join(OUT, k + ".txt"), "w", encoding="utf8", newline="\n") as f: f.write(P[k])

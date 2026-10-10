@@ -1,0 +1,73 @@
+{
+ "name": "visiting-hours-lena-round3",
+ "title": "Visiting Hours: Lena, round 3",
+ "subtitle": "Round 2 adapted to your notes (2026-10-10), Nano Banana Pro, 0 credits. Kept: the fuller, rested, rounder face, honey-blonde waves, freckles, sleeves down, the pencil on her ear. Changed: no work clothes (a cream fine-knit high-neck sweater, a wine-red pleated skirt, slim boots), a composed half-smile, the nose shaded into the face, a neat sharpened dark-green pencil always on the right ear, a small close ear in the dream. Each tile: round 3 (green) with round 2 beside it (blue).",
+ "questions": [
+  "Does she now read as someone with money and leisure, not someone who works with her hands?",
+  "Is she mysterious enough for 'missing' to stay a real question: the half-smile, the closed notebook, the watch worn face-in on the inside of her wrist, the old brass key she wears?",
+  "A passion to propose: she keeps meticulous notebooks of the city's vanishing places (the old buildings the corporations buy and tear down): walks, photographs, notes. It fits the pencil (curious, ordered), the money (she doesn't need to work), the dystopia, and it gives her 'somewhere else she goes'. Keep it, change it, or leave her passion open?",
+  "Does the nose belong to the face now (waking), and is the dream ear small enough?"
+ ],
+ "notes": [
+  "Judged against your points, defects first. Dream billboard: rejected take 1 (adult proportions, not the dream style, and a smudged hem); take 3's ear still sticks out. Dream expressions: rejected take 2 (ghost duplicate heads at the top) and take 3 (a full-body figure pasted into the middle), so only take 1 was usable.",
+  "Waking turnaround: take 1 is the only one whose nose is shaded into the face with no outline (takes 2 to 4 outline the nose tip, the 'pasted on' look). Its face is a little less round than round 2's but still full and rested.",
+  "The key necklace and the face-in watch are the 'somewhere else' hints; nothing sinister. The notebook only appears in the dream billboard (the turnaround stays in a clean A-pose).",
+  "Weak spots: in the dream art the nose is a crayon line (that's the dream style's convention for every character). The billboard shows her watch face out, not face-in."
+ ],
+ "sections": [
+  {
+   "title": "Nadia, Lena round 2 and Lena round 3, front views",
+   "cols": 1,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\VibeJamKit\\docs\\art\\vh-lena-rounds.jpg",
+     "label": "Left to right: Nadia, Lena round 2, Lena round 3",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Lena, round 3 (with round 2 beside each)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena4-turn-take1.jpg",
+     "label": "Round 3: waking turnaround",
+     "verdict": "pick",
+     "note": "The nose is shaded into the face; the pencil sits neatly on the right ear (side view)."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena3-turn-take2.jpg",
+     "label": "Round 3: waking turnaround (alternate)",
+     "verdict": "alt",
+     "note": "Round 2"
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena4-bb-take2.jpg",
+     "label": "Round 3: dream billboard",
+     "verdict": "pick",
+     "note": "Small ear under the hair, the closed notebook held to her, a half-smile."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena3-bb-take3.jpg",
+     "label": "Round 3: dream billboard (alternate)",
+     "verdict": "alt",
+     "note": "Round 2"
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena4-expr-take1.jpg",
+     "label": "Round 3: dream expressions (warm, knowing, defensive)",
+     "verdict": "pick",
+     "note": "The only clean take."
+    },
+    {
+     "file": "C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests\\art\\incoming\\lena3-expr-take3.jpg",
+     "label": "Round 3: dream expressions (warm, knowing, defensive) (alternate)",
+     "verdict": "alt",
+     "note": "Round 2"
+    }
+   ]
+  }
+ ]
+}
