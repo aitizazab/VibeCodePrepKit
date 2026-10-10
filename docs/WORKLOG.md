@@ -708,3 +708,7 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - the Controls test: before any rebind, Left Ctrl didn't register as crouch on the test keyboard (the precondition).
 - Sent back to the body agent (to check against its research revision) and to the Controls agent. Everything gets
   verified once together with the Gauntlet.
+- **Controls test fixed (718d36c), a test-setup problem only:** a batch-mode test run has no focused Game View, so the
+  Input System's editor default sent the test keyboard's keys to the editor instead of the game. The rebind code saw
+  them (it reads raw input) but the game's actions didn't. Real play and built players aren't affected. The test now
+  runs with input settings that send all input to the game, and restores the originals afterwards.
