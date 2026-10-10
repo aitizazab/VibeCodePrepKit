@@ -944,3 +944,15 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   Walt's argument and the credits).
 - **Builds:** `VibeJamKit-play/Builds/Play/{MovementLab,DreamEscape,VisitingHours}/VibeJamKit.exe`.
 - **The new .meta files** (body, speed feel, tiers, tests) are committed.
+
+### The creator plays the new lab (21:30)
+- **"Pretty fun."** In the dream tool chapter (the "expert" route) they finished in **28 s against the developer's 44 s**,
+  by air strafing past the wallruns and gaps and using walls only to reset a landing without turning (hard on a
+  controller). Keeping strafe momentum mattered more than anything else.
+- **Decisions:**
+  - **Players may finish courses however they want,** unless the story needs Nadia to do something a specific way. No
+    gating against air strafing.
+  - **Idea for later:** hidden content or an easter egg out of bounds (a Stanley Parable-style nod, in our own words).
+  - **No controller strafe aid yet.** The creator first tests how hard strafing is on PC; if it's far too easy there, make
+    the PC input harder rather than the controller easier. The bar: a casual player shouldn't surf like a CS player.
+- **Reference:** the developer times (Gauntlet 41 s, dream tool 44 s) come from the non-strafing autopilot.
