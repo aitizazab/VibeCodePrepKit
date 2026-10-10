@@ -81,6 +81,8 @@ namespace JamKit.VisitingHours.EditorTools
             {
                 // 1. The dark room: from her pillow, the streetlight's stripes on the ceiling, the phone ringing.
                 stage.ResetForOpening();
+                // A first render warms the pipeline up (shadow atlases, post-processing textures); it isn't kept.
+                Shot(dir, tag, null, stage, rig, rt);
                 Shot(dir, tag, "1-dark-room", stage, rig, rt);
                 // 2. The phone lit on the nightstand.
                 stage.MoveCamera("nightstand", 0f);
@@ -145,6 +147,7 @@ namespace JamKit.VisitingHours.EditorTools
                 cam.Render();
                 cam.targetTexture = null;
             }
+            if (name == null) return;
             var prev = RenderTexture.active;
             RenderTexture.active = rt;
             var tex = new Texture2D(Width, Height, TextureFormat.RGB24, false);

@@ -14,6 +14,7 @@ namespace JamKit.VisitingHours
     /// and gives it back when they go.
     /// </summary>
     [DefaultExecutionOrder(100)]
+    [ExecuteAlways] // so OnDestroy frees the cookies and profiles in edit mode too (EditMode tests build the sets)
     public sealed class VhLightingRig : MonoBehaviour
     {
         public VhStage stage;
@@ -24,13 +25,13 @@ namespace JamKit.VisitingHours
         [Header("Practicals")]
         [Tooltip("Cool moon spill just inside the window (follows the room's light level).")]
         public Light windowSpill;
-        public float windowSpillIntensity = 0.5f;
+        public float windowSpillIntensity = 0.15f;
         [Tooltip("The phone's screen on her hand and the blanket (a spot out of the screen; follows the screen's brightness).")]
         public Light phoneFace;
-        public float phoneFaceIntensity = 1.6f;
+        public float phoneFaceIntensity = 0.018f;
         [Tooltip("The tablet's screen on the table and the mug; red and blue from the report's emergency lights while it plays.")]
         public Light tabletGlow;
-        public float tabletGlowIntensity = 0.35f;
+        public float tabletGlowIntensity = 0.008f;
         [Tooltip("How much of the report's red and blue reaches the table (0..1), and how fast it alternates (Hz).")]
         public float emergencyTint = 0.45f, emergencyRate = 0.9f;
         [Header("Night grade at 'G'night'")]
@@ -52,7 +53,10 @@ namespace JamKit.VisitingHours
         /// <summary>The grade in use now: "night" or "morning" (tests, captures).</summary>
         public string Grade => stage != null && stage.InBedroom ? "night" : "morning";
 
-        void OnEnable() => Engage();
+        void OnEnable()
+        {
+            if (Application.isPlaying) Engage();
+        }
         void OnDisable() => Release();
 
         void OnDestroy()
@@ -86,7 +90,10 @@ namespace JamKit.VisitingHours
             if (nightColor != null) _nightExposure = nightColor.postExposure.value;
         }
 
-        void LateUpdate() => Tick(Time.unscaledDeltaTime);
+        void LateUpdate()
+        {
+            if (Application.isPlaying) Tick(Time.unscaledDeltaTime);
+        }
 
         /// <summary>One frame of the lighting (the capture tool calls it in edit mode).</summary>
         public void Tick(float dt)
@@ -105,9 +112,9 @@ namespace JamKit.VisitingHours
             }
             if (phoneFace != null)
             {
-                phoneFace.enabled = bed && screen > 0.01f;
-                // Brighter in her hand (the screen turned to her) than face up on the nightstand.
-                phoneFace.intensity = phoneFaceIntensity * screen * (stage.PhoneHeld ? 1f : 0.55f);
+                // Only in her hand (face up on the nightstand, the screen's glow does it).
+                phoneFace.enabled = bed && screen > 0.01f && stage.PhoneHeld;
+                phoneFace.intensity = phoneFaceIntensity * screen;
             }
             if (nightColor != null)
                 nightColor.postExposure.value = _nightExposure + goodnightExposure * (1f - Mathf.Max(lights, screen * 0.6f));
@@ -140,8 +147,8 @@ namespace JamKit.VisitingHours
                     tabletGlow.enabled = _tablet != null && _tablet.renderers.Length > 0 && _tablet.renderers[0] != null && _tablet.renderers[0].enabled;
                     if (_tablet != null)
                     {
-                        // In front of the screen, a few centimetres out.
-                        tabletGlow.transform.position = _tablet.transform.TransformPoint(new Vector3(0f, 0.08f, 0.09f));
+                        // 16 cm in front of the screen (nearer, its 1/d^2 falloff blows out the table).
+                        tabletGlow.transform.position = _tablet.transform.TransformPoint(new Vector3(0f, 0.16f, 0.09f));
                         bool report = !stage.Interactive;
                         float side = Mathf.Sin(_clock * emergencyRate * Mathf.PI * 2f);
                         Color emergency = side > 0f ? new Color(1f, 0.25f, 0.25f) : new Color(0.3f, 0.45f, 1f);

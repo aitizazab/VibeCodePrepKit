@@ -4,6 +4,8 @@
 // a hemisphere ambient the scene sets (_VHWakeSky, _VHWakeGround), a distance haze (_VHWakeFog: rgb,
 // a = metres to full haze; 0 = none), a little of Unity's own ambient (_VHWakeSH) and a thin dark outline (a second, inverted-hull pass).
 // Per object: an emission map (screens), a hover highlight (_Highlight) and a dithered fade (_Fade).
+// URP's screen-space ambient occlusion (the PC renderer's SSAO feature) darkens the ambient and, a little, the direct
+// light in creases and contact points; its DepthNormals pass feeds it. Without the feature (Mobile, WebGL) nothing changes.
 // Reusable for every waking-world scene: make one material per colour (VhWakingStyle does this).
 Shader "JamKit/VisitingHours/Waking"
 {
@@ -112,6 +114,7 @@ Shader "JamKit/VisitingHours/Waking"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fragment _ _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
             #pragma multi_compile_instancing
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -192,6 +195,13 @@ Shader "JamKit/VisitingHours/Waking"
                     Light light = GetAdditionalLight(lightIndex, input.positionWS, half4(1, 1, 1, 1));
                     direct += light.color * Ramp(dot(n, light.direction)) * light.distanceAttenuation * light.shadowAttenuation;
                 LIGHT_LOOP_END
+                #endif
+
+                #if defined(_SCREEN_SPACE_OCCLUSION)
+                // Contact shading: occlusion from URP's SSAO pass (fed by the DepthNormals pass below).
+                AmbientOcclusionFactor ao = GetScreenSpaceAmbientOcclusion(GetNormalizedScreenSpaceUV(input.positionCS));
+                ambient *= ao.indirectAmbientOcclusion;
+                direct *= ao.directAmbientOcclusion;
                 #endif
 
                 half3 c = albedo * (ambient * _ShadeColor.rgb + direct);
@@ -333,6 +343,61 @@ Shader "JamKit/VisitingHours/Waking"
                 DitherClip(input.positionCS.xy);
                 CutoutClip(input.positionWS);
                 return input.positionCS.z;
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            ZWrite On
+            Cull Back
+
+            HLSLPROGRAM
+            #pragma vertex DepthNormalsVert
+            #pragma fragment DepthNormalsFrag
+            #pragma target 3.0
+            #pragma multi_compile_instancing
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
+                float3 normalWS : TEXCOORD1;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            Varyings DepthNormalsVert(Attributes input)
+            {
+                Varyings o = (Varyings)0;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, o);
+                o.positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                o.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                o.normalWS = TransformObjectToWorldNormal(input.normalOS);
+                return o;
+            }
+
+            half4 DepthNormalsFrag(Varyings input) : SV_Target
+            {
+                DitherClip(input.positionCS.xy);
+                CutoutClip(input.positionWS);
+                float3 n = normalize(input.normalWS);
+                #if defined(_GBUFFER_NORMALS_OCT)
+                float2 oct = saturate(PackNormalOctQuadEncode(n) * 0.5 + 0.5);
+                return half4(PackFloat2To888(oct), 0.0);
+                #else
+                return half4(n, 0.0);
+                #endif
             }
             ENDHLSL
         }

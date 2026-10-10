@@ -26,28 +26,31 @@ namespace JamKit.VisitingHours
     {
         // ---- The bedroom ----
         /// <summary>The hemisphere ambient at night: low and cool, so the motivated lights shape the room.</summary>
-        public static readonly Color NightSky = new Color(0.050f, 0.062f, 0.098f), NightGround = new Color(0.020f, 0.021f, 0.032f);
+        public static readonly Color NightSky = new Color(0.030f, 0.038f, 0.062f), NightGround = new Color(0.012f, 0.013f, 0.020f);
         /// <summary>The streetlight: warm sodium-amber, the room's key.</summary>
         public static readonly Color StreetColor = new Color(1f, 0.70f, 0.42f);
         public const float StreetIntensity = 7f;
         /// <summary>The moon through the window: cold blue, the main light (its shadows work everywhere, WebGL too).</summary>
         public static readonly Color MoonColor = new Color(0.42f, 0.54f, 0.88f);
-        public const float MoonIntensity = 0.42f;
-        /// <summary>The phone's screen: cool white-blue.</summary>
+        public const float MoonIntensity = 0.32f;
+        /// <summary>The phone's screen: cool white-blue. URP's point and spot lights fall off as 1/d^2, so the screen's
+        /// lights sit 12-14 cm off the glass at small intensities (0.012 lights the nightstand top to about 0.8; a light
+        /// a few centimetres from a surface blows it out).</summary>
         public static readonly Color ScreenColor = new Color(0.66f, 0.78f, 1f);
-        public const float PhoneGlowIntensity = 1.3f, PhoneGlowRange = 1.1f;
+        public const float PhoneGlowIntensity = 0.012f, PhoneGlowRange = 1.5f, PhoneGlowHeight = 0.12f;
 
         // ---- The table ----
         public static readonly Color MorningSky = new Color(0.30f, 0.33f, 0.40f), MorningGround = new Color(0.21f, 0.18f, 0.15f);
         /// <summary>The sun: warm, low (about 27 degrees up), from the camera's left and a little behind it.</summary>
-        public static readonly Color SunColor = new Color(1f, 0.84f, 0.64f);
+        public static readonly Color SunColor = new Color(1f, 0.87f, 0.70f);
         public const float SunIntensity = 1.9f;
         public static readonly Vector3 SunDirection = new Vector3(0.78f, -0.47f, 0.42f);
         /// <summary>The sky fill from the room side: cool, soft, no shadows.</summary>
         public static readonly Color FillColor = new Color(0.55f, 0.64f, 0.86f);
         public const float FillIntensity = 0.28f;
-        /// <summary>How much of the world the sun's window cookie covers (m).</summary>
-        public const float WindowCookieSize = 2.6f;
+        /// <summary>How much of the world the sun's window cookie covers (m): the window patch is about 1 m across, so
+        /// its edges and the cross of its mullions land on the table.</summary>
+        public const float WindowCookieSize = 1.4f;
 
         /// <summary>Captures: draw the WebGL path (the streetlight's cookie instead of its shadows) on any platform.</summary>
         public static bool ForceCookies;
@@ -122,19 +125,21 @@ namespace JamKit.VisitingHours
                 g.intensity = PhoneGlowIntensity;
                 g.range = PhoneGlowRange;
                 g.shadows = LightShadows.None;
+                g.transform.localPosition = new Vector3(0f, PhoneGlowHeight, 0f);
             }
 
             if (s.phone != null)
             {
-                // The screen's light thrown forward from its face: her fingers, the pillow, the blanket's edge.
+                // The screen's light thrown forward from its face (in her hand): her fingers, the pillow, the blanket's edge.
+                // It sits 14 cm behind the glass so the falloff is gentle across her hand.
                 var faceGo = new GameObject("Screen face light (light)");
                 faceGo.transform.SetParent(s.phone, false);
-                faceGo.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+                faceGo.transform.localPosition = new Vector3(0f, -0.14f, 0f);
                 faceGo.transform.localRotation = Quaternion.LookRotation(Vector3.up, Vector3.forward);
                 var f = faceGo.AddComponent<Light>();
                 f.type = LightType.Spot;
                 f.color = ScreenColor;
-                f.range = 1.4f;
+                f.range = 1.6f;
                 f.spotAngle = 130f;
                 f.innerSpotAngle = 60f;
                 f.intensity = 0f;
@@ -144,14 +149,17 @@ namespace JamKit.VisitingHours
 
             if (b != null)
             {
-                // Cool moonlight spilling in just inside the window: the sill, the blinds' inner edge, the near side of the bed.
+                // Cool moonlight spilling in through the window: a wide, faint spot from the window towards the bed.
                 var spillGo = new GameObject("Window spill (light)");
                 spillGo.transform.SetParent(b, false);
-                spillGo.transform.localPosition = new Vector3(-1.45f, 1.55f, 0.15f);
+                spillGo.transform.localPosition = new Vector3(-1.7f, 1.6f, 0.15f);
+                spillGo.transform.localRotation = Quaternion.LookRotation(new Vector3(1f, -0.45f, 0.1f), Vector3.up);
                 var sp = spillGo.AddComponent<Light>();
-                sp.type = LightType.Point;
+                sp.type = LightType.Spot;
+                sp.spotAngle = 110f;
+                sp.innerSpotAngle = 40f;
                 sp.color = new Color(0.45f, 0.56f, 0.86f);
-                sp.range = 2.4f;
+                sp.range = 4f;
                 sp.intensity = rig.windowSpillIntensity;
                 sp.shadows = LightShadows.None;
                 rig.windowSpill = sp;
@@ -254,7 +262,7 @@ namespace JamKit.VisitingHours
                 var g = glowGo.AddComponent<Light>();
                 g.type = LightType.Point;
                 g.color = new Color(0.78f, 0.86f, 1f);
-                g.range = 0.7f;
+                g.range = 0.9f;
                 g.intensity = rig.tabletGlowIntensity;
                 g.shadows = LightShadows.None;
                 rig.tabletGlow = g;
@@ -311,13 +319,15 @@ namespace JamKit.VisitingHours
                 cd.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
                 cd.antialiasingQuality = AntialiasingQuality.High;
                 cd.renderShadows = true;
+                // A blown pixel (NaN or infinity) must never spread through bloom.
+                cd.stopNaN = true;
             }
 
             // Night: teal shadows, warm highlights, contrast with the blacks just above black; the practicals bloom.
             var night = Profile(rig, "VH night grade");
             night.Add<Tonemapping>().mode.Override(TonemappingMode.ACES);
             var nc = night.Add<ColorAdjustments>();
-            nc.postExposure.Override(0.55f);
+            nc.postExposure.Override(0.15f);
             nc.contrast.Override(14f);
             nc.saturation.Override(-8f);
             night.Add<WhiteBalance>().temperature.Override(-6f);
@@ -332,6 +342,7 @@ namespace JamKit.VisitingHours
             nb.scatter.Override(0.72f);
             nb.tint.Override(new Color(1f, 0.9f, 0.8f));
             nb.highQualityFiltering.Override(true);
+            nb.clamp.Override(20f);
             var nv = night.Add<Vignette>();
             nv.intensity.Override(0.4f);
             nv.smoothness.Override(0.45f);
@@ -356,7 +367,7 @@ namespace JamKit.VisitingHours
             var mc = morning.Add<ColorAdjustments>();
             mc.postExposure.Override(0.35f);
             mc.contrast.Override(8f);
-            mc.saturation.Override(-10f);
+            mc.saturation.Override(-14f);
             var mw = morning.Add<WhiteBalance>();
             mw.temperature.Override(10f);
             mw.tint.Override(2f);
@@ -370,6 +381,7 @@ namespace JamKit.VisitingHours
             mb.scatter.Override(0.75f);
             mb.tint.Override(new Color(1f, 0.92f, 0.82f));
             mb.highQualityFiltering.Override(true);
+            mb.clamp.Override(20f);
             var mv = morning.Add<Vignette>();
             mv.intensity.Override(0.28f);
             mv.smoothness.Override(0.5f);
