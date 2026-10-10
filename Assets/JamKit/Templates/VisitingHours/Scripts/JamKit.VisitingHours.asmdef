@@ -6,6 +6,8 @@
         "JamKit.Unity",
         "JamKit.Doomlike",
         "Unity.InputSystem",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
         "Ink",
         "Ink-Libraries"
     ],
