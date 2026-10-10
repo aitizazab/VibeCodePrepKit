@@ -908,3 +908,13 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **One speed tier for sound and visuals (b0f4682):** `MovementAudio` reads the tier `SpeedFeel` ticks, and updates its
   speed layers just after it, so the boom and the music see flying start in the same frame. It has its own fallback
   where there's no `SpeedFeel`. **All agents are done; everything waits for one Unity batch.**
+
+### The game guard, and back to work (21:07)
+- **The creator freed the CPU.** The Unity batch for everything is running.
+- **The game guard** (the creator's request; in `~/.local/bin/game_guard.py`, used by every capped-run job):
+  - **Valorant:** jobs don't start and running ones are frozen; they resume 10 minutes after it closes.
+  - **Rocket League:** one job at a time across all sessions, oldest first.
+  - **A job that fails after a pause** gets a free retry.
+  - **Tested with stand-in games:** a running job froze and resumed; a second job waited for the first.
+- **Opened for review:** the four design docs (STORY-BIBLE, CHARACTER-BIBLE, NIGHTS-GAMEPLAY, ARGUMENT-BATTLES) and the
+  speed music audition. The docs are open in the creator's editor, so no agent edits them until the creator is done.
