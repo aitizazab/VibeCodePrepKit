@@ -635,3 +635,8 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   lip); speed tiers in her posture (pump tightens, arms sweep back, lean into turns); arms and legs on the footstep
   phase so plants land on their sounds; a swinging lanyard and badge; all scaled by the Motion effects setting; an F4
   orbit camera to judge poses from outside.
+- **The feel research was thin** (the creator asked whether it was passed over or just dictated). Honest answer: the agent
+  was told to read section 8, but 8.1's body-animation part is mostly opinion, Titanfall 2's hands were never checked,
+  and several of the moves I listed (sway, lean, lanyard, tiers) have no source. A research agent is now gathering
+  evidence (developer talks, transcripts, frame breakdowns: Titanfall 2, Mirror's Edge, Ghostrunner, Doom, Apex) into
+  a new section 8.7. The body agent builds the structure with every number tunable, and the evidence adjusts it.
