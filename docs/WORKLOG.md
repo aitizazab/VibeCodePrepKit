@@ -874,3 +874,17 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **Her arm doesn't lift when firing yet:** the hook was sent to the body agent.
 - **Her hand lifts when firing (46c07bc):** `MovementBody.Gesture` raises a hand toward a point for about 0.2 s; wall
   and ledge contact always win; the dream tool calls it on each shot. Dotnet 564/564. Waiting for the Unity batch.
+
+### Speed audio built (17:05; not yet in Unity)
+- **Audition:** `VibeJamKit/out/speed-audio-review/00-speed-run.wav` (37 s: standstill → fast → flying → stumble →
+  flying → stop). The cue times are in `00-speed-run-cues.txt`. Peak -8.4 dBFS; the music sits at -12.9.
+- **A1:** `MovementMusic` plays base, drive and peak stems in sync. Fast adds drive, flying adds peak; switches land
+  on bar lines, fading in over 1 s and out over 2 s. The placeholders are D minor, 104 bpm, four bars.
+- **A2:** each stem has a muffled copy (700 Hz); speed crossfades from muffled to full. It works on WebGL.
+- **A4:** a shimmering whistle while flying that leans away from a wallrun wall. **A5:** world and ambient sounds duck
+  to 55% while flying. **A6:** breath at 0.05 volume that pants with exertion. No crossing stinger.
+- **The escape:** speed picks its stems; the static's distance still drives the tension (the pulse and the music box).
+- **The real stems go in** `Assets/JamKit/Audio/MusicStems/Resources/JamKitMusicStems/lab/` and `/dream/` as
+  base / drive / peak / (tension), with a README.
+- **Note for the creator:** a stumble longer than 0.6 s drops the tier, so the drive and peak layers leave on the next
+  bar and come back when flying again. That can be made more forgiving (a longer fade-out, or a music-only hold).
