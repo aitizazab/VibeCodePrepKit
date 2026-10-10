@@ -829,3 +829,20 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
     walls, and the newer wallrun rules allow catches up to about 1 m from the wall.
   - **The d-pad ghost test:** its teardown restores a null input-settings object (a test bug). Sent back to the Controls
     agent.
+
+### Lena chosen, the speed overhaul started, the body fixed (16:45)
+- **Lena: 4-a is the one** (the creator). The other designs lost the sketchbook look, the unique posing and the strong
+  defining colour; that's recorded in CHARACTERS.md and as a standing note for future art.
+- **Open:** dream Lena reads taller (about 6'2" against 5'8"–5'11"), and the creator wants it thought through.
+- **The speed overhaul, the creator's picks:** A1 (music stems by tier), A2 (the music opens with speed), A4 (the
+  supersonic layer), A5 (tunnel focus), A6 (breath, muted); V1 (the boom), V2 (world-space streaks), V3 (contrast-proof
+  lines), V5 (footfall puffs and flying footprints), V6 (edge zoom blur at flying), V7 (the dream answers). Not A3, V4
+  or V8.
+  - **The shared tiers** (`SpeedTier.cs`, 4188d0a; 6 tests): running, fast and flying at 8 and 13 m/s, with
+    hysteresis, a 0.6 s drop delay and a crossing event.
+  - **Two agents:** the sound agent does the audio; a new agent does the visuals.
+- **The body's catch problem, explained:** since the wallrun changes, catches happen up to about 1 m from the wall,
+  beyond Nadia's arm. The lean-in probe now predicts catches the way the sim makes them, and the hand stays within her
+  reach (it stretches toward the wall, then plants as she drifts in). Unity run under way (no graphics).
+- **The creator, for now:** don't open anything in Firefox; keep the GPU idle (no transcription, no smoke runs that
+  launch the game).
