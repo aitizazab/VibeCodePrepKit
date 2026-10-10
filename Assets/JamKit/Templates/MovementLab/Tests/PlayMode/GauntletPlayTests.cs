@@ -68,12 +68,12 @@ namespace JamKit.MovementLab.Tests
             Game.SetAutopilot(false);
             var clock = Run.Clock;
             TestContext.Out.WriteLine(Game.TraceText);
-            TestContext.Out.WriteLine($"Gauntlet {clock.Time:0.00} s (developer's time {GauntletCourse.DeveloperTime:0.0}), markers {clock.MarkersHit}/{clock.MarkerCount}, respawns {Game.Respawns - respawns}, ghost {Run.LiveGhost.Count} samples over {Run.LiveGhost.Duration:0.00} s");
+            TestContext.Out.WriteLine($"Gauntlet {clock.Time:0.00} s (autopilot's time in the sim {GauntletCourse.AutopilotTime:0.0}), markers {clock.MarkersHit}/{clock.MarkerCount}, respawns {Game.Respawns - respawns}, ghost {Run.LiveGhost.Count} samples over {Run.LiveGhost.Duration:0.00} s");
             for (int i = 0; i < Game.Gauntlet.sections.Count; i++) TestContext.Out.WriteLine($"  {Game.Gauntlet.sections[i].name}: {clock.Split(i):0.00}");
             Assert.That(clock.State, Is.EqualTo(GauntletState.Finished), "the autopilot crossed the finish line within 60 s (trace in the output)");
             Assert.That(clock.Missed, Is.EqualTo(0), "every marker touched");
             Assert.That(Game.Respawns - respawns, Is.LessThanOrEqualTo(1), "at most one slip on the real CharacterController");
-            Assert.That(clock.Time, Is.InRange(GauntletCourse.DeveloperTime - 5f, GauntletCourse.DeveloperTime + 12f), "near the developer's time");
+            Assert.That(clock.Time, Is.InRange(GauntletCourse.AutopilotTime - 5f, GauntletCourse.AutopilotTime + 12f), "near the autopilot's time in the sim");
             Assert.That(Run.LiveGhost.Count, Is.GreaterThan(100), "a ghost was recorded");
             Assert.That(Run.LiveGhost.Duration, Is.EqualTo(clock.Time).Within(1.5f), "the ghost covers the run");
             Assert.That(Run.Autopiloted, Is.True);
@@ -156,10 +156,10 @@ namespace JamKit.MovementLab.Tests
                 Assert.That(Game.Checkpoint, Is.EqualTo(Game.Gauntlet.startCheckpoint), "back on the start pad");
 
                 // The ghost toggle, on its default G.
-                bool ghostWas = Run.ghostOn;
+                var ghostWas = Run.GhostChoice;
                 yield return kb.Press(Key.G);
                 yield return kb.Press();
-                Assert.That(Run.ghostOn, Is.Not.EqualTo(ghostWas), "G toggles the ghost");
+                Assert.That(Run.GhostChoice, Is.Not.EqualTo(ghostWas), "G changes the ghost (yours, the developer's, off)");
             }
             finally
             {
@@ -182,7 +182,7 @@ namespace JamKit.MovementLab.Tests
                 yield return Frames(5);
                 Assert.That(Run.Clock.State, Is.EqualTo(GauntletState.Ready));
                 var before = Game.player.transform.position;
-                bool ghostWas = Run.ghostOn;
+                var ghostWas = Run.GhostChoice;
 
                 // Hold d-pad left for half a second: one ghost toggle, no movement.
                 io.SetPad(GamepadButton.DpadLeft);
@@ -194,17 +194,66 @@ namespace JamKit.MovementLab.Tests
                     if (input.Move.ReadValue<Vector2>().sqrMagnitude > 0.0001f) moved = true;
                 }
                 Assert.That(moved, Is.False, "Move read nothing from the d-pad");
-                Assert.That(Run.ghostOn, Is.Not.EqualTo(ghostWas), "d-pad left toggled the ghost (once: it's a press)");
+                Assert.That(Run.GhostChoice, Is.Not.EqualTo(ghostWas), "d-pad left toggled the ghost (once: it's a press)");
                 var after = Game.player.transform.position;
                 Assert.That(new Vector2(after.x - before.x, after.z - before.z).magnitude, Is.LessThan(0.05f), "the player stayed put");
                 io.SetPad();
                 yield return Frames(2);
-                Assert.That(Run.ghostOn, Is.Not.EqualTo(ghostWas), "releasing doesn't toggle it back");
+                Assert.That(Run.GhostChoice, Is.Not.EqualTo(ghostWas), "releasing doesn't toggle it back");
             }
             finally
             {
                 io.Dispose();
             }
+        }
+
+        [UnityTest]
+        public IEnumerator TheBoardShowsTheDevelopersRealBestAndTheirGhostRacesYou()
+        {
+            yield return StartLab();
+            Run.Restart();
+            yield return Frames(5);
+
+            // The board: the creator's real best from the shipped records (penalty included), Mags at 1.5x rounded.
+            Assert.That(Run.DeveloperTime, Is.EqualTo(31.42f).Within(0.01f), "Data/DeveloperRecords.json");
+            Assert.That(Run.DeveloperMissed, Is.EqualTo(1));
+            Assert.That(Run.MagsTime, Is.EqualTo(47.5f));
+            yield return WaitFor(() => Run.BoardShown != null && Run.BoardShown.Contains("31.42"), "the board's words", 2f);
+            TestContext.Out.WriteLine(Run.BoardShown);
+            StringAssert.Contains("47.50", Run.BoardShown);
+            StringAssert.Contains("1 plate missed", Run.BoardShown);
+            StringAssert.DoesNotContain(GauntletCourse.AutopilotTime.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), Run.BoardShown, "the autopilot's time isn't a target");
+
+            // The developer's ghost loads, and the cycle offers it.
+            Assert.That(Run.DeveloperGhost.Count, Is.EqualTo(589), "the creator's run at 20 Hz");
+            Assert.That(Run.Ghost.Has(GhostChoice.Developer), Is.True);
+            Run.Ghost.Set(GhostChoice.Off);
+            Run.Ghost.Cycle();
+            Assert.That(Run.GhostChoice, Is.Not.EqualTo(GhostChoice.Off), "off → your best (or the developer's if you have none)");
+            Run.Ghost.Set(GhostChoice.Yours);
+            Run.Ghost.Cycle();
+            Assert.That(Run.GhostChoice, Is.EqualTo(GhostChoice.Developer), "your best → the developer's");
+            Run.Ghost.Cycle();
+            Assert.That(Run.GhostChoice, Is.EqualTo(GhostChoice.Off), "the developer's → off");
+            Run.Ghost.Set(GhostChoice.Developer);
+            StringAssert.Contains("developer", Run.Ghost.Label);
+
+            // It plays: once the clock runs, the gold figure stands where the creator was at that time.
+            DebugMenu.TimeScale = 2f;
+            Game.SetAutopilot(true);
+            yield return WaitFor(() => Run.Clock.State == GauntletState.Running && Run.Clock.Time > 3f, "three seconds into the run", 20f);
+            Assert.That(Run.GhostVisible, Is.True, "the developer's ghost shows while the clock runs");
+            yield return null;
+            float t = Run.Clock.Time;
+            Assert.That(Run.DeveloperGhost.Sample(t, out var p, out _), Is.True);
+            var at = Run.ghost.position;
+            float off = Vector3.Distance(at, new Vector3(p.X, p.Y, p.Z));
+            TestContext.Out.WriteLine($"at {t:0.00} s the ghost is at z {at.z - GauntletCourse.Origin:0.0}, the record says {p.Z - GauntletCourse.Origin:0.0} (off by {off:0.00} m); you're at {Game.player.transform.position.z - GauntletCourse.Origin:0.0}");
+            Assert.That(off, Is.LessThan(3f), "the figure follows the developer's record (a frame or so behind at most)");
+            Game.SetAutopilot(false);
+            Run.Restart();
+            yield return Frames(3);
+            Assert.That(Run.GhostVisible, Is.False, "hidden on the start pad");
         }
 
         [UnityTest]

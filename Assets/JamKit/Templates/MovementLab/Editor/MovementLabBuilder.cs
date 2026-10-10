@@ -321,6 +321,13 @@ namespace JamKit.MovementLab.EditorTools
             game.courseRoot = root;
             BuildGauntlet(gauntlet, root, m, game);
             DreamToolBuilder.Build(dream, root, game);
+            // The dream tool chapter's ghost and the developer's records (the chapter saved no ghost before 2026-10-10).
+            var dreamRun = game.GetComponent<DreamToolRun>();
+            if (dreamRun != null)
+            {
+                dreamRun.ghost = BuildGhost(root, "Ghost (dream tool)", m).transform;
+                dreamRun.developerRecords = AssetDatabase.LoadAssetAtPath<TextAsset>(DeveloperRecordsAsset.AssetPath);
+            }
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             return ScenePath;
@@ -463,8 +470,20 @@ namespace JamKit.MovementLab.EditorTools
             Arch(parent, "Start gate", g.gateS, g.startFloorY, m.marker, m.gold);
             Arch(parent, "Finish line", g.finishS, g.finishFloorY, m.finish, m.finish);
 
-            // The ghost of your best run: a translucent figure (not Nadia's rig), its feet at the recorded position.
-            var ghost = new GameObject("Ghost (your best run)");
+            // The ghost (your best run, or the developer's): a translucent figure (not Nadia's rig), its feet at the recorded position.
+            var ghost = BuildGhost(parent, "Ghost (Gauntlet)", m);
+
+            var run = game.gameObject.AddComponent<GauntletRun>();
+            run.game = game;
+            run.ghost = ghost.transform;
+            run.developerRecords = AssetDatabase.LoadAssetAtPath<TextAsset>(DeveloperRecordsAsset.AssetPath);
+            run.markerViews = views;
+        }
+
+        /// <summary>A run ghost's figure: a translucent capsule and head (tinted by the run for yours or the developer's), hidden.</summary>
+        static GameObject BuildGhost(Transform parent, string name, Materials m)
+        {
+            var ghost = new GameObject(name);
             ghost.transform.SetParent(parent, false);
             var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             body.name = "Body";
@@ -485,11 +504,7 @@ namespace JamKit.MovementLab.EditorTools
                 r.receiveShadows = false;
             }
             ghost.SetActive(false);
-
-            var run = game.gameObject.AddComponent<GauntletRun>();
-            run.game = game;
-            run.ghost = ghost.transform;
-            run.markerViews = views;
+            return ghost;
         }
 
         static void Arch(Transform parent, string name, float z, float floorTop, Material posts, Material line)

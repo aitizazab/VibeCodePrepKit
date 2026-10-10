@@ -54,11 +54,10 @@ namespace JamKit.Movement
         public const string ChapterFinish = "Gauntlet: finish";
         /// <summary>Seconds added for each marker you didn't touch (Titanfall 2 adds 2 s per target left).</summary>
         public const float MissPenalty = 2f;
-        /// <summary>The developer's time: the course autopilot's run from the gate to the finish in the dotnet sim at
-        /// 60 fps (pinned by a test: change it when the course changes).</summary>
-        public const float DeveloperTime = 41.0f;
-        /// <summary>Mags's time: a good human run, 1.4x the developer's (Titanfall 2's goal times run 33.65 to 56.65 s).</summary>
-        public const float MagsTime = 57.5f;
+        /// <summary>The course autopilot's run from the gate to the finish in the dotnet sim at 60 fps: a test driver's time,
+        /// for tests and logs only (pinned by a test: change it when the course changes). The board shows the developer's
+        /// real best from <see cref="DeveloperRecords"/> (the creator beat this by 10 s, 2026-10-10).</summary>
+        public const float AutopilotTime = 41.0f;
 
         public readonly LabCourse course;
         public readonly List<GauntletMarker> markers = new List<GauntletMarker>();

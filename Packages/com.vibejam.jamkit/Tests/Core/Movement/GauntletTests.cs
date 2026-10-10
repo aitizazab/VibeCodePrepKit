@@ -82,8 +82,7 @@ namespace JamKit.Tests.Movement
             Assert.That(r.falls, Is.EqualTo(0));
             Assert.That(r.clock.Missed, Is.EqualTo(0), "every marker touched");
             Assert.That(r.seconds, Is.InRange(28f, 45f), "a good run is 30-40 s");
-            Assert.That(GauntletCourse.DeveloperTime, Is.EqualTo(r.seconds).Within(0.6f), "the developer's time is the autopilot's: update GauntletCourse.DeveloperTime");
-            Assert.That(GauntletCourse.MagsTime, Is.GreaterThan(GauntletCourse.DeveloperTime * 1.2f));
+            Assert.That(GauntletCourse.AutopilotTime, Is.EqualTo(r.seconds).Within(0.6f), "the autopilot's time: update GauntletCourse.AutopilotTime");
             Assert.That(r.ghost.Duration, Is.EqualTo(r.seconds).Within(0.2f), "the ghost covers the run");
         }
 
@@ -290,6 +289,15 @@ namespace JamKit.Tests.Movement
             back.Sample(2f, out var q, out _);
             ghost.Sample(2f, out var q0, out _);
             Assert.That(Vector3.Distance(q, q0), Is.LessThan(1e-4f));
+        }
+
+        [Test]
+        public void MagsTimeIsHalfAgainTheDevelopersRoundedToTwoAndAHalfSeconds()
+        {
+            Assert.That(DeveloperRecords.MagsTimeFor(31.42f), Is.EqualTo(47.5f), "the creator's Gauntlet best");
+            Assert.That(DeveloperRecords.MagsTimeFor(28.17f), Is.EqualTo(42.5f), "the creator's dream tool best");
+            Assert.That(DeveloperRecords.MagsTimeFor(20f), Is.EqualTo(30f));
+            Assert.That(DeveloperRecords.MagsTimeFor(0f), Is.EqualTo(0f), "no developer time, no Mags time");
         }
     }
 }

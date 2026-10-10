@@ -75,11 +75,10 @@ namespace JamKit.Movement
         public const float Origin = GauntletCourse.End + 24f;
         public const string Chapter = "Dream tool";
         public const int Pink = 0, Blue = 1;
-        /// <summary>The developer's time: the course autopilot's clean run (the expert line) at 60 fps in the dotnet sim,
+        /// <summary>The course autopilot's clean run (the expert line) at 60 fps in the dotnet sim: a test driver's time, for
+        /// tests and logs only (the board shows the developer's real best from <see cref="DeveloperRecords"/>),
         /// pinned by a test: change it when the course changes.</summary>
-        public const float DeveloperTime = 44.0f;
-        /// <summary>Mags's time: a good human run, about 1.35x the developer's.</summary>
-        public const float MagsTime = 60.0f;
+        public const float AutopilotTime = 44.0f;
 
         public readonly GauntletCourse gauntlet;
         /// <summary>The chapter's own timed run (no touch markers): its gate, sections and finish.</summary>

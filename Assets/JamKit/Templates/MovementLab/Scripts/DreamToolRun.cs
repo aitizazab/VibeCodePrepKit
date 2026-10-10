@@ -14,7 +14,9 @@ namespace JamKit.MovementLab
     /// keeps the pieces' views and colliders in step with it; it runs the chapter's own clock, a core
     /// <see cref="GauntletClock"/> on the chapter's <see cref="DreamToolCourse.run"/> (the gate, three splits with deltas
     /// against your best, the finish, the best kept in the save under its own key); and it shows the HUD: the time, the
-    /// targets hit, which colour is solid, the board (the developer's time, Mags's, yours) and the end screen. A fall
+    /// targets hit, which colour is solid, the board (the developer's real best from Data/DeveloperRecords.json, Mags's at
+    /// 1.5x, yours) and the end screen. It records your run as a ghost and races you against your best (or the
+    /// developer's, once one is shipped); the Ghost action cycles it, as in the Gauntlet. A fall
     /// puts back what's ahead of the checkpoint (and its colour). The shell's Restart action (R or the pad's View by default,
     /// rebindable, as for the Gauntlet) restarts the chapter from its start pad. Autopilot runs don't count.
     /// </summary>
@@ -26,6 +28,10 @@ namespace JamKit.MovementLab
         public DreamTool tool;
         public DreamToolPieceView[] pieceViews;
         public DreamToolTargetView[] targetViews;
+        /// <summary>The ghost's figure (its own, beside the Gauntlet's).</summary>
+        public Transform ghost;
+        [Tooltip("The developer's best runs (Data/DeveloperRecords.json).")]
+        public TextAsset developerRecords;
 
         static DreamToolRun _current;
 
@@ -39,6 +45,9 @@ namespace JamKit.MovementLab
         GauntletClock _clock;
         int _version = -1;
         bool _autopiloted;
+        readonly GhostTrack _live = new GhostTrack();
+        RunGhost _ghost;
+        GauntletRecord _dev;
         VisualElement _root, _board, _end;
         Label _timer, _sub, _split, _boardText, _endText, _hint;
         float _splitShow, _hintShow, _uiT, _timerT;
@@ -51,6 +60,14 @@ namespace JamKit.MovementLab
         public DreamToolState State => _state;
         public GauntletClock Clock => _clock;
         public bool Autopiloted => _autopiloted;
+        public GhostTrack LiveGhost => _live;
+        public GhostTrack BestGhost => _ghost?.best;
+        public RunGhost Ghost => _ghost;
+        public GhostChoice GhostChoice => _ghost != null ? _ghost.Choice : GhostChoice.Off;
+        public float DeveloperTime => _dev != null ? _dev.best : 0f;
+        public float MagsTime => DeveloperRecords.MagsTimeFor(DeveloperTime);
+        /// <summary>What the target board says (for tests).</summary>
+        public string BoardShown => _boardText != null ? _boardText.text : null;
         public bool EndScreenShown => _end != null && _end.style.display == DisplayStyle.Flex;
 
         void Start()
@@ -66,6 +83,7 @@ namespace JamKit.MovementLab
             _d = game.DreamCourse;
             _state = new DreamToolState(_d);
             _clock = new GauntletClock(_d.run);
+            _ghost = new RunGhost(ghost);
             LoadRecord();
             BuildUi();
             game.Placed += OnPlaced;
@@ -93,11 +111,15 @@ namespace JamKit.MovementLab
                 catch (System.Exception e) { Debug.LogWarning("Dream tool: the saved record was damaged, starting fresh. " + e.Message); }
             }
             _clock.record = rec ?? new GauntletRecord();
+            _ghost.best.LoadFrom(_clock.record.ghost, _clock.record.ghostRate);
+            _dev = DeveloperRecordsAsset.DreamTool(developerRecords);
+            if (_dev != null) _ghost.developer.LoadFrom(_dev.ghost, _dev.ghostRate);
+            _ghost.PickDefault();
         }
 
         void SaveRecord()
         {
-            _clock.record.ghost.Clear(); // no ghost for the chapter
+            // The ghost goes with the record (the clock copied a new best into it at the finish).
             GameRoot.Save.Data.SetEntry(SaveKey, JsonUtility.ToJson(_clock.record));
             GameRoot.Save.Save();
         }
@@ -105,6 +127,7 @@ namespace JamKit.MovementLab
         public void ClearRecord()
         {
             _clock.record = new GauntletRecord();
+            _ghost?.best.Clear();
             GameRoot.Save.Data.SetEntry(SaveKey, null);
         }
 
@@ -122,6 +145,8 @@ namespace JamKit.MovementLab
                 // Anywhere before the chapter, or its start pad: a fresh chapter.
                 _state.ResetFrom(float.MinValue, DreamToolCourse.Pink);
                 _clock.Reset();
+                _live.Clear();
+                _ghost.Hide();
                 _autopiloted = game.AutopilotOn;
                 if (checkpoint == _d.startCheckpoint) _hintShow = 8f;
             }
@@ -156,20 +181,23 @@ namespace JamKit.MovementLab
             float dt = Time.deltaTime;
             bool inChapter = DreamToolCourse.InChapter(game.S);
             if (inChapter && GameRoot.Input.Pressed(GameRoot.Input.Restart)) Restart();
+            if (inChapter && GameRoot.Input.Pressed(GameRoot.Input.Ghost)) _ghost.Cycle();
             if (game.AutopilotOn) _autopiloted = true;
             if (GameRoot.Flow.Current == JamKit.Flow.GameState.Playing && inChapter)
             {
                 var p = game.player.transform.position;
                 var ev = _clock.Tick(dt, new System.Numerics.Vector3(p.x, p.y, p.z), game.S, game.player.Def.radius, game.player.Sim.Height, !_autopiloted && !PresenterMode.AttractRunning);
+                if (_clock.State == GauntletState.Running && !game.Respawning) _live.Record(dt, new System.Numerics.Vector3(p.x, p.y, p.z), game.player.Yaw);
                 Handle(ev);
             }
+            _ghost.Place(_clock.State == GauntletState.Running && inChapter, _clock.Time);
             UpdateUi(dt, inChapter);
         }
 
         void Handle(GauntletEvents ev)
         {
             var audio = GameRoot.Audio;
-            if (ev.started) { audio.Play("ui_select", 0.6f); _hintShow = 0f; }
+            if (ev.started) { _live.Clear(); audio.Play("ui_select", 0.6f); _hintShow = 0f; }
             if (ev.split >= 0 && !ev.finished)
             {
                 audio.Play("blip", 0.5f);
@@ -178,7 +206,17 @@ namespace JamKit.MovementLab
             if (ev.finished)
             {
                 audio.Play("level_done", 0.8f);
-                if (!_autopiloted) SaveRecord();
+                if (!_autopiloted)
+                {
+                    if (_clock.NewBest)
+                    {
+                        // The best run's ghost (the chapter saved none before 2026-10-10: the clock's record was cleared here).
+                        _ghost.best.CopyFrom(_live);
+                        _live.CopyTo(_clock.record.ghost);
+                        _clock.record.ghostRate = _live.rate;
+                    }
+                    SaveRecord();
+                }
                 GameRoot.Run.Set("Dream tool best", _clock.record.best > 0f ? Fmt(_clock.record.best) : "none");
                 Debug.Log("JAMKIT_DREAMTOOL finished " + _clock.Total.ToString("0.00", Inv) + " s, targets " + _state.RequiredDone + "/" + _d.RequiredCount
                     + ", shots " + _state.Shots + (_autopiloted ? " by the autopilot" : _clock.NewBest ? ", a new best" : ""));
@@ -282,7 +320,8 @@ namespace JamKit.MovementLab
                 bool pink = _state.Colour == DreamToolCourse.Pink;
                 _sub.text = state == GauntletState.Ready ? "Cross the gate to start the clock"
                     : "Targets " + _state.RequiredDone + "/" + _d.RequiredCount + (sec >= 0 ? "   " + _d.run.sections[sec].name : "")
-                      + (sec == 2 ? (pink ? "   Pink is solid" : "   Blue is solid") : "");
+                      + (sec == 2 ? (pink ? "   Pink is solid" : "   Blue is solid") : "")
+                      + "   " + _ghost.Label;
                 _sub.style.color = sec == 2 ? (pink ? PinkInk : BlueInk) : Ink;
                 _hint.text = state == GauntletState.Ready && _hintShow > 0f
                     ? "The dream tool: left mouse or RT. Point roughly: it locks on (the gold bracket). Pop the glass, build the sockets, flip the colours. R or View restarts."
@@ -300,8 +339,8 @@ namespace JamKit.MovementLab
         {
             _sb.Clear();
             _sb.Append("Dream tool: target times\n");
-            _sb.Append("The developer (autopilot)   ").Append(Fmt(DreamToolCourse.DeveloperTime)).Append('\n');
-            _sb.Append("Mags                        ").Append(Fmt(DreamToolCourse.MagsTime)).Append('\n');
+            _sb.Append("The developer               ").Append(DeveloperTime > 0f ? Fmt(DeveloperTime) : "-").Append('\n');
+            _sb.Append("Mags                        ").Append(MagsTime > 0f ? Fmt(MagsTime) : "-").Append('\n');
             _sb.Append("You                         ").Append(_clock.record.best > 0f ? Fmt(_clock.record.best) : "-");
             _boardText.text = _sb.ToString();
         }
@@ -321,7 +360,7 @@ namespace JamKit.MovementLab
                 if (_clock.HasBestSplit(i) && !_clock.NewBest) _sb.Append("   ").Append(Delta(_clock.SplitDelta(i)));
                 _sb.Append('\n');
             }
-            _sb.Append("\nR or View: run it again    Esc: menu");
+            _sb.Append("\nR or View: run it again    G: ghost (yours, the developer's, off)    Esc: menu");
             _endText.text = _sb.ToString();
         }
     }

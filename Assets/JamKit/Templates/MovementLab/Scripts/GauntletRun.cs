@@ -18,7 +18,9 @@ namespace JamKit.MovementLab
     /// restarts at once, from the start pad. Your best time, splits and ghost are kept in the shell's save; the ghost
     /// of your best run plays beside you (the Ghost action, G or d-pad left, hides it). Both are rebindable in
     /// Settings > Controls, whose "Restart run" and "Show ghost" rows show while this exists; the hints name the
-    /// current keys. The target board shows the developer's time (the autopilot's), Mags's and yours; the end
+    /// current keys. The Ghost action cycles the ghost: your best, the developer's (the creator's shipped run), off.
+    /// The target board shows the developer's time (their real best, from Data/DeveloperRecords.json; the autopilot's
+    /// time is a test driver's and only appears in tests and logs), Mags's (1.5x, rounded) and yours; the end
     /// screen your time and splits. Without the shell (a bare test scene) it reads R / View and G / d-pad left.
     /// </summary>
     public sealed class GauntletRun : MonoBehaviour
@@ -26,7 +28,8 @@ namespace JamKit.MovementLab
         public MovementLabGame game;
         public Transform ghost;
         public GauntletMarkerView[] markerViews;
-        public bool ghostOn = true;
+        [Tooltip("The developer's best runs (Data/DeveloperRecords.json): the board's developer time and the developer's ghost.")]
+        public TextAsset developerRecords;
 
         static GauntletRun _current;
 
@@ -38,9 +41,10 @@ namespace JamKit.MovementLab
         GauntletCourse _g;
         GauntletClock _clock;
         readonly GhostTrack _live = new GhostTrack();
-        readonly GhostTrack _best = new GhostTrack();
+        RunGhost _ghost;
+        GauntletRecord _dev;
         bool _autopiloted;
-        Renderer[] _ghostRenderers;
+
         VisualElement _root, _board, _end;
         Label _timer, _sub, _split, _boardText, _endText, _hint;
         float _splitShow, _hintShow;
@@ -51,8 +55,19 @@ namespace JamKit.MovementLab
 
         public GauntletClock Clock => _clock;
         public GhostTrack LiveGhost => _live;
-        public GhostTrack BestGhost => _best;
-        public bool GhostVisible => ghost != null && ghost.gameObject.activeSelf;
+        public GhostTrack BestGhost => _ghost?.best;
+        public GhostTrack DeveloperGhost => _ghost?.developer;
+        public RunGhost Ghost => _ghost;
+        /// <summary>Which ghost the Ghost action has picked (your best, the developer's, off).</summary>
+        public GhostChoice GhostChoice => _ghost != null ? _ghost.Choice : GhostChoice.Off;
+        public bool ghostOn => GhostChoice != GhostChoice.Off;
+        /// <summary>The developer's best (the shipped record), 0 without one; penalties included.</summary>
+        public float DeveloperTime => _dev != null ? _dev.best : 0f;
+        public int DeveloperMissed => _dev != null ? _dev.bestMissed : 0;
+        public float MagsTime => DeveloperRecords.MagsTimeFor(DeveloperTime);
+        public bool GhostVisible => _ghost != null && _ghost.Visible;
+        /// <summary>What the target board says (for tests).</summary>
+        public string BoardShown => _boardText != null ? _boardText.text : null;
         public bool EndScreenShown => _end != null && _end.style.display == DisplayStyle.Flex;
         /// <summary>The last run was (partly) driven by the autopilot, so it doesn't count for your best.</summary>
         public bool Autopiloted => _autopiloted;
@@ -95,9 +110,9 @@ namespace JamKit.MovementLab
                 if (_restartKeys.Length == 0) _restartKeys = "(no key: Settings > Controls)";
                 if (_ghostKeys.Length == 0) _ghostKeys = "(no key)";
             }
-            _readyHint = _restartKeys + " restarts at any time. " + _ghostKeys + " hides the ghost of your best run.";
-            _ghostOffNote = "   (ghost off: " + _ghostKeys + ")";
-            _endKeys = "\n" + _restartKeys + ": run it again    " + _ghostKeys + ": ghost on or off    Esc: menu";
+            _readyHint = _restartKeys + " restarts at any time. " + _ghostKeys + " picks the ghost: your best, the developer's, or none.";
+            _ghostOffNote = "   (" + _ghostKeys + ": change)";
+            _endKeys = "\n" + _restartKeys + ": run it again    " + _ghostKeys + ": ghost (yours, the developer's, off)    Esc: menu";
         }
 
         /// <summary>This frame's presses: the shell's rebindable actions (gameplay allowed), or the devices without a shell.</summary>
@@ -122,12 +137,11 @@ namespace JamKit.MovementLab
             if (_clock != null || game.Gauntlet == null) return;
             _g = game.Gauntlet;
             _clock = new GauntletClock(_g);
+            _ghost = new RunGhost(ghost);
             LoadRecord();
-            if (ghost != null)
-            {
-                _ghostRenderers = ghost.GetComponentsInChildren<Renderer>(true);
-                ghost.gameObject.SetActive(false);
-            }
+            _dev = DeveloperRecordsAsset.Gauntlet(developerRecords);
+            if (_dev != null) _ghost.developer.LoadFrom(_dev.ghost, _dev.ghostRate);
+            _ghost.PickDefault();
             BuildUi();
             game.OnPlaced = OnPlaced;
         }
@@ -155,7 +169,7 @@ namespace JamKit.MovementLab
                 catch (System.Exception e) { Debug.LogWarning("Gauntlet: the saved record was damaged, starting fresh. " + e.Message); }
             }
             _clock.record = rec ?? new GauntletRecord();
-            _best.LoadFrom(_clock.record.ghost, _clock.record.ghostRate);
+            _ghost.best.LoadFrom(_clock.record.ghost, _clock.record.ghostRate);
         }
 
         public static string ToJson(GauntletRecord rec) => JsonUtility.ToJson(rec);
@@ -171,7 +185,7 @@ namespace JamKit.MovementLab
         public void ClearRecord()
         {
             _clock.record = new GauntletRecord();
-            _best.Clear();
+            _ghost.best.Clear();
             GameRoot.Save.Data.SetEntry(GauntletClock.SaveKey, null);
         }
 
@@ -191,7 +205,7 @@ namespace JamKit.MovementLab
             _live.Clear();
             _autopiloted = game.AutopilotOn;
             if (markerViews != null) foreach (var v in markerViews) if (v != null) v.Show(GauntletMarkerView.Look.Waiting);
-            if (ghost != null) ghost.gameObject.SetActive(false);
+            _ghost.Hide();
             _hintShow = 6f;
         }
 
@@ -202,7 +216,7 @@ namespace JamKit.MovementLab
             bool inGauntlet = _g.InGauntlet(game.S);
             ReadKeys(out bool restartPressed, out bool ghostPressed);
             if (restartPressed && inGauntlet) Restart();
-            if (ghostPressed) ghostOn = !ghostOn;
+            if (ghostPressed && inGauntlet) _ghost.Cycle();
 
             if (game.AutopilotOn) _autopiloted = true;
             var player = game.player;
@@ -248,7 +262,7 @@ namespace JamKit.MovementLab
                 audio.Play("level_done", 0.8f);
                 if (_clock.NewBest && !_autopiloted)
                 {
-                    _best.CopyFrom(_live);
+                    _ghost.best.CopyFrom(_live);
                     _live.CopyTo(_clock.record.ghost);
                     _clock.record.ghostRate = _live.rate;
                     SaveRecord();
@@ -262,17 +276,7 @@ namespace JamKit.MovementLab
 
         void PlaceGhost()
         {
-            if (ghost == null) return;
-            bool show = ghostOn && _clock.State == GauntletState.Running && _best.Count > 1;
-            Vector3 at = Vector3.zero;
-            float yaw = 0f;
-            if (show)
-            {
-                show = _best.Sample(_clock.Time, out var p, out yaw);
-                at = new Vector3(p.X, p.Y, p.Z);
-            }
-            if (ghost.gameObject.activeSelf != show) ghost.gameObject.SetActive(show);
-            if (show) ghost.SetPositionAndRotation(at, Quaternion.Euler(0f, yaw, 0f));
+            _ghost.Place(_clock.State == GauntletState.Running && _g.InGauntlet(game.S), _clock.Time);
         }
 
         // ---------- The HUD, the board, the end screen ----------
@@ -380,7 +384,7 @@ namespace JamKit.MovementLab
                 int sec = _g.SectionAt(game.S);
                 _sub.text = state == GauntletState.Ready ? "Cross the gate to start the clock"
                     : "Markers " + _clock.MarkersHit + "/" + _clock.MarkerCount + (sec >= 0 ? "   " + _g.sections[sec].name : "")
-                      + (ghostOn && _best.Count > 1 ? "" : _ghostOffNote);
+                      + "   " + _ghost.Label + _ghostOffNote;
                 _hint.text = state == GauntletState.Ready && _hintShow > 0f ? _readyHint : "";
                 BoardText();
                 if (state == GauntletState.Finished) EndText();
@@ -393,8 +397,10 @@ namespace JamKit.MovementLab
         {
             _sb.Clear();
             _sb.Append("Target times\n");
-            _sb.Append("The developer (autopilot)   ").Append(Fmt(GauntletCourse.DeveloperTime)).Append('\n');
-            _sb.Append("Mags                        ").Append(Fmt(GauntletCourse.MagsTime)).Append('\n');
+            _sb.Append("The developer               ").Append(DeveloperTime > 0f ? Fmt(DeveloperTime) : "-");
+            if (DeveloperMissed > 0) _sb.Append("  (").Append(DeveloperMissed).Append(DeveloperMissed == 1 ? " plate missed)" : " plates missed)");
+            _sb.Append('\n');
+            _sb.Append("Mags                        ").Append(MagsTime > 0f ? Fmt(MagsTime) : "-").Append('\n');
             _sb.Append("You                         ").Append(_clock.record.best > 0f ? Fmt(_clock.record.best) : "-");
             _boardText.text = _sb.ToString();
         }

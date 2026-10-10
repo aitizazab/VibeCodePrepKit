@@ -253,3 +253,29 @@ namespace JamKit.Movement
         }
     }
 }
+
+namespace JamKit.Movement
+{
+    /// <summary>
+    /// The developer's records shipped with the lab (Data/DeveloperRecords.json, from the creator's own save,
+    /// tools/movementlab/creator-records-2026-10-10.json): the board's "the developer" times and the developer's
+    /// ghost. The autopilot's times are a test driver's, kept in tests and logs only (the creator, 2026-10-10:
+    /// their real runs beat it by 10-15 s). JSON with the save's keys, read by JsonUtility.
+    /// </summary>
+    [Serializable]
+    public class DeveloperRecords
+    {
+        public string note;
+        public DeveloperRecordSet records = new DeveloperRecordSet();
+
+        /// <summary>Mags's time: a fair casual target, 1.5x the developer's, rounded to the nearest 2.5 s.</summary>
+        public static float MagsTimeFor(float developer) => developer > 0f ? (float)(Math.Round(developer * 1.5 / 2.5) * 2.5) : 0f;
+    }
+
+    [Serializable]
+    public class DeveloperRecordSet
+    {
+        public GauntletRecord movementlab_gauntlet;
+        public GauntletRecord movementlab_dreamtool;
+    }
+}

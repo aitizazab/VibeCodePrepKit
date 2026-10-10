@@ -116,5 +116,56 @@ namespace JamKit.MovementLab.Tests
             track.LoadFrom(back.ghost, back.ghostRate);
             Assert.That(track.Count, Is.EqualTo(100), "x, y, z, yaw per sample");
         }
+
+        [Test]
+        public void TheDevelopersRecordsShipWithTheLab()
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(DeveloperRecordsAsset.AssetPath);
+            Assert.That(asset, Is.Not.Null, DeveloperRecordsAsset.AssetPath);
+            var gauntlet = DeveloperRecordsAsset.Gauntlet(asset);
+            Assert.That(gauntlet, Is.Not.Null);
+            Assert.That(gauntlet.best, Is.EqualTo(31.42f).Within(0.01f), "the creator's best: 29.42 on the clock + 2 s for one missed plate");
+            Assert.That(gauntlet.bestMissed, Is.EqualTo(1));
+            Assert.That(gauntlet.bestSplits.Count, Is.EqualTo(GauntletCourse.Build().sections.Count));
+            Assert.That(gauntlet.ghost.Count % 4, Is.EqualTo(0));
+            var ghost = new GhostTrack();
+            ghost.LoadFrom(gauntlet.ghost, gauntlet.ghostRate);
+            Assert.That(ghost.Count, Is.EqualTo(589), "the creator's run at 20 Hz");
+            Assert.That(ghost.Duration, Is.EqualTo(29.4f).Within(0.1f), "it covers the run on the clock");
+            Assert.That(ghost.Sample(0f, out var p0, out _), Is.True);
+            Assert.That(p0.Z, Is.EqualTo(GauntletCourse.Origin).Within(1f), "it starts at the gate");
+            var dream = DeveloperRecordsAsset.DreamTool(asset);
+            Assert.That(dream, Is.Not.Null);
+            Assert.That(dream.best, Is.EqualTo(28.17f).Within(0.01f));
+            Assert.That(DeveloperRecords.MagsTimeFor(gauntlet.best), Is.EqualTo(47.5f), "Mags: 1.5x, to the nearest 2.5 s");
+            Assert.That(DeveloperRecords.MagsTimeFor(dream.best), Is.EqualTo(42.5f));
+        }
+
+        [Test]
+        public void BothRunsGetTheRecordsAndAGhost()
+        {
+            var scene = EditorSceneManager.OpenScene(MovementLabBuilder.ScenePath, OpenSceneMode.Additive);
+            try
+            {
+                GauntletRun run = null;
+                DreamToolRun dream = null;
+                foreach (var go in scene.GetRootGameObjects())
+                {
+                    if (run == null) run = go.GetComponentInChildren<GauntletRun>(true);
+                    if (dream == null) dream = go.GetComponentInChildren<DreamToolRun>(true);
+                }
+                Assert.That(run, Is.Not.Null);
+                Assert.That(run.developerRecords, Is.Not.Null, "the Gauntlet reads the developer's records");
+                Assert.That(dream, Is.Not.Null);
+                Assert.That(dream.developerRecords, Is.Not.Null, "so does the dream tool chapter");
+                Assert.That(dream.ghost, Is.Not.Null, "the dream tool chapter has its own ghost figure");
+                Assert.That(dream.ghost, Is.Not.SameAs(run.ghost));
+                Assert.That(dream.ghost.GetComponentsInChildren<Collider>(true), Is.Empty);
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
     }
 }

@@ -445,20 +445,31 @@ Gauntlet. Cross the gate and the clock starts; cross the finish line and it stop
 3. Each section's end shows a split: green if you're ahead of your best, red if you're behind.
 4. Fall, and you come back at the start of the section, already running. The clock keeps going.
 5. **R** or the pad's **View** button restarts at once from the start pad.
-6. The translucent figure is **the ghost of your best run**. **G** or the pad's **d-pad left** shows or hides it
-   (the d-pad doesn't move you: gameplay Move is the left stick only, docs/SHELL.md).
+6. The translucent figure is **a ghost to race**. **G** or the pad's **d-pad left** cycles it: **your best**
+   (cool blue) → **the developer's** (gold: the creator's real best run, shipped with the lab) → **off**, skipping
+   one that doesn't exist yet. The HUD names the one you're racing ("Ghost: the developer's"). With no best of
+   your own, you race the developer's. (The d-pad doesn't move you: gameplay Move is the left stick only,
+   docs/SHELL.md.)
 
 Both are the shell's **Restart** and **Ghost** actions, so they can be rebound in Settings > Controls
 ("Restart run", "Show ghost": rows that only show while the Gauntlet is loaded), and the hints and the
 end screen name whatever keys they're on.
 7. The board by the start pad lists the target times:
-   - **the developer's time, 41.0 s** (the course autopilot's clean run);
-   - **Mags's time, 57.5 s**;
+   - **the developer's time, 31.42 s (1 plate missed)**: the creator's real best, 29.42 on the clock + 2 s for
+     the plate, penalty shown honestly;
+   - **Mags's time, 47.5 s**: 1.5× the developer's, rounded to the nearest 2.5 s (`DeveloperRecords.MagsTimeFor`);
    - **your best**.
 8. At the finish, the end screen shows your time and every split.
 
 Your best time, splits and ghost are kept in the save (`GauntletClock.SaveKey`). Autopilot and attract runs
-never count.
+never count. Finish however you like: nothing gates a line or a technique (air strafing included).
+
+**The developer's records.** `Data/DeveloperRecords.json` (a TextAsset, core type `DeveloperRecords`, read by
+`DeveloperRecordsAsset`) holds the creator's best Gauntlet run (time, splits, missed plates, the ghost at 20 Hz)
+and best dream tool run, copied from their save (`tools/movementlab/creator-records-2026-10-10.json`). The
+builder wires it into `GauntletRun` and `DreamToolRun`. To ship a faster run, copy the new
+`movementlab_gauntlet` / `movementlab_dreamtool` records from a save into it; the board, Mags's time and the
+developer's ghost follow. The autopilot's time (`AutopilotTime`) is a test driver's pace, only in tests and logs.
 
 **The route.** About 470 m along +Z. Every section has a safe line beside the fast line the autopilot runs
 (RESEARCH-MOVEMENT 8.4 rule 4).
@@ -502,7 +513,7 @@ same format: pieces, lane, autopilot cues, checkpoints (section starts), section
 beats are checked by `CourseReach`, the reach and clearance rules shared with the dream escape.
 - When you change the course, re-run `GauntletTests`: the frame-rate sweep, the section-to-section runs,
   reach, and the safe lines.
-- Then set `GauntletCourse.DeveloperTime` to the time the first test prints.
+- Then set `GauntletCourse.AutopilotTime` to the time the first test prints (a test pin, not a board time).
 
 ### Gauntlet notes (the research, brief)
 
@@ -589,10 +600,16 @@ Eight required shots in 44 s. That's one every **3.4 to 11 s, 5 s on average**, 
 keeps them at least 2.5 s apart).
 
 **Times:**
-- **The developer's time, 44.0 s:** the autopilot's clean run on the expert line, pinned by a test. The main line
-  takes 44.7 s.
-- **Mags's time:** 60.0 s.
-- Your best is saved under its own key (`DreamToolRun.SaveKey`). Autopilot and attract runs never count.
+- **The developer's time, 28.17 s:** the creator's real best (about 30 s without air strafing), from
+  `Data/DeveloperRecords.json`.
+- **Mags's time:** 42.5 s (1.5×, to the nearest 2.5 s).
+- The autopilot's clean run on the expert line, 44.0 s (`DreamToolCourse.AutopilotTime`, the main line 44.7 s),
+  is a test pin only.
+- Your best, splits and ghost are saved under its own key (`DreamToolRun.SaveKey`). Autopilot and attract runs
+  never count.
+- **The ghost** works as in the Gauntlet: G / d-pad left cycles your best → the developer's → off, and the HUD
+  names it. Every run records one (it used to save no samples); a new best keeps it. The creator's record has no
+  dream tool ghost yet, so "the developer's" is skipped until one is shipped in the records.
 
 **What to judge (the creator):**
 1. **Clear the way.** Does popping glass on the sprint feel like a reward, or like a chore you have to remember?
@@ -632,7 +649,8 @@ keeps them at least 2.5 s apart).
     - the colour flip, the aim assist and the sounds.
   - Unity EditMode, `DreamToolEditorTests`: the wiring.
   - Unity PlayMode, `DreamToolPlayTests`:
-    - the autopilot clears all three sections;
+    - the board shows the developer's 28.17 and Mags's 42.50; the autopilot clears all three sections, records a
+      ghost covering the run, and changes neither your best nor your best ghost;
     - a missed tile blocks the lane until it's shot, and the restart puts it back;
     - a flip makes the other colour solid, by its collider and a raycast.
 
@@ -678,15 +696,15 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 | Unity PlayMode (`MovementMusicPlayTests`) | the autopilot's run raises the stems playing (to drive at least), every switch lands on a bar line, the sound reads the visuals' own tier every frame, and every boom finds the music already at flying |
 | Unity EditMode (`MovementLabEditorTests`) | chapters and attract script, sprint opt-in in the tuning and the Shift, LB, L3 and R3 bindings, scene/tuning/preset/materials, Build Settings, every player part, sound ids and the Crouch binding |
 | `core-tests/Movement` (`WallFeelTests`) | the creator's controller notes: the first 0.5 s on a wall keeps all the speed, then 1.2/s; a kick in the grace keeps the entry speed; a stick at 50° into or away from the wall, at 80°, or the view 50° off keeps the run and its speed; only clear backward input or no stick brakes; a 30 ms flick away doesn't drop you, holding away does; the catch says why it refused (too slow, stick away, no stick, head-on, out of reach, the same wall) and clears on a catch; a catch refused for the stick is retried 0.1 s with more reach; the double jump adds +1 m/s up to sprint, nothing above it, along the view with the stick neutral; the Gauntlet's slide ramp adds over 2 m/s (measured +3.4) |
-| `core-tests/Movement` (`GauntletTests`) | the Gauntlet: the autopilot runs it clean (no falls, every marker) at 20, 60, 144 and 300 fps and with jittery frames, in the developer's time; every section reaches the next; reach and the slide-gap clearance (an old 0.35 m crouched step offset is caught); every move is used, mantles at three heights, a marker in every section; the safe lines are hoppable and stay off the fast lane; the old course is kept unchanged before it; the clock starts at the gate, splits, penalises a missed marker 2 s, resets on restart, keeps the best; the ghost records at a fixed rate and replays |
-| Unity EditMode (`GauntletEditorTests`) | the run loop, ghost and one plate per marker are wired; the gate and finish stand there; a gold stripe on every runnable wall; the materials compile; the route fits the lab's real tuning and controller; the best record round-trips through the save |
-| Unity PlayMode (`GauntletPlayTests`) | the lab opens on the start pad, ready; the autopilot runs the Gauntlet touching every marker and recording a ghost (not counted as your best) and gets the end screen; the restart puts the clock, markers and player back; skipping sections adds the missed markers' penalty; the chapters land on their sections |
+| `core-tests/Movement` (`GauntletTests`) | the Gauntlet: the autopilot runs it clean (no falls, every marker) at 20, 60, 144 and 300 fps and with jittery frames, in its pinned `AutopilotTime`; Mags's time is 1.5× the developer's, to the nearest 2.5 s; every section reaches the next; reach and the slide-gap clearance (an old 0.35 m crouched step offset is caught); every move is used, mantles at three heights, a marker in every section; the safe lines are hoppable and stay off the fast lane; the old course is kept unchanged before it; the clock starts at the gate, splits, penalises a missed marker 2 s, resets on restart, keeps the best; the ghost records at a fixed rate and replays |
+| Unity EditMode (`GauntletEditorTests`) | the run loop, ghost and one plate per marker are wired; the gate and finish stand there; a gold stripe on every runnable wall; the materials compile; the route fits the lab's real tuning and controller; the best record round-trips through the save; the developer's records ship (31.42 with 1 missed, a 589-sample ghost from the gate, the dream tool's 28.17, Mags 47.5 / 42.5) and both runs are wired to them, the dream tool with its own ghost figure |
+| Unity PlayMode (`GauntletPlayTests`) | the lab opens on the start pad, ready; the autopilot runs the Gauntlet touching every marker and recording a ghost (not counted as your best) and gets the end screen; the board shows the developer's real 31.42 (1 plate missed) and Mags's 47.50, not the autopilot's time; the ghost cycles your best → the developer's → off, and the developer's figure follows the creator's run once the clock runs; the restart puts the clock, markers and player back; skipping sections adds the missed markers' penalty; the chapters land on their sections |
 | Unity PlayMode (`MovementLabPlayTests`) | the scripted chain keeps its speed on the real CharacterController, the autopilot finishes the course, standing still in the chase gets you caught and put back, falling respawns, chapters jump cleanly, comfort settings reach the camera and the pause screen |
 
 ## Known gaps
 
 - Air strafing works; only the Gauntlet's optional skip rewards it (it's weak on a stick, by design).
-- The Gauntlet: no online leaderboard; the developer's time is the autopilot's, not a human's. (Restart and the ghost toggle are rebindable shell actions; without the shell, in a bare test scene, `GauntletRun` reads R / View and G / d-pad left from the devices.)
+- The Gauntlet: no online leaderboard; the developer's time and ghost are the creator's best as of 2026-10-10, copied by hand into `Data/DeveloperRecords.json`; the dream tool has no developer's ghost yet. (Restart and the ghost toggle are rebindable shell actions; without the shell, in a bare test scene, `GauntletRun` reads R / View and G / d-pad left from the devices.)
 - No strafe "lurch", no moving platforms, no ziplines or grapple.
 - No post-processing comfort effects (vignette at speed, optional motion blur): the lab camera has
   post-processing off. Add one "speed" Volume if wanted (RESEARCH-MOVEMENT 8.5).

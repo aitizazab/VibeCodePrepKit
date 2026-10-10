@@ -179,8 +179,7 @@ namespace JamKit.Tests.Movement
             Assert.That(r.falls, Is.EqualTo(0));
             Assert.That(r.state.RequiredDone, Is.EqualTo(d.RequiredCount), "every tile popped and every required socket built");
             Assert.That(r.firedExpert, Is.EqualTo(1), "the expert line takes the optional shot");
-            Assert.That(DreamToolCourse.DeveloperTime, Is.EqualTo(r.seconds).Within(0.6f), "the developer's time is the autopilot's: update DreamToolCourse.DeveloperTime");
-            Assert.That(DreamToolCourse.MagsTime, Is.GreaterThan(DreamToolCourse.DeveloperTime * 1.2f));
+            Assert.That(DreamToolCourse.AutopilotTime, Is.EqualTo(r.seconds).Within(0.6f), "the autopilot's time: update DreamToolCourse.AutopilotTime");
             for (int i = 1; i < r.shotTimes.Count; i++)
                 Assert.That(r.shotTimes[i] - r.shotTimes[i - 1], Is.GreaterThanOrEqualTo(2.5f), "required shots are spaced out: " + r.shotNames[i]);
         }
@@ -206,11 +205,11 @@ namespace JamKit.Tests.Movement
             var d = DreamToolCourse.Build(false);
             var r = Run(d, 60);
             TestContext.Out.WriteLine(r.log.ToString());
-            TestContext.Out.WriteLine($"main line {r.seconds:0.00} s (developer's, expert line: {DreamToolCourse.DeveloperTime:0.0})");
+            TestContext.Out.WriteLine($"main line {r.seconds:0.00} s (developer's, expert line: {DreamToolCourse.AutopilotTime:0.0})");
             Assert.That(r.finished, Is.True);
             Assert.That(r.falls, Is.EqualTo(0));
             Assert.That(r.firedExpert, Is.EqualTo(0));
-            Assert.That(r.seconds, Is.GreaterThan(DreamToolCourse.DeveloperTime), "the expert's wall saves time");
+            Assert.That(r.seconds, Is.GreaterThan(DreamToolCourse.AutopilotTime), "the expert's wall saves time");
         }
 
         [Test]
