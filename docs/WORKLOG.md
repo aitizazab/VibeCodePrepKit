@@ -905,3 +905,6 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **Risks:** the first render-graph pass in the project, three shaders never compiled in Unity, and unchecked streak
   stretch and footprint orientation. The audio is being switched to the same tier thresholds.
 - **Waiting:** one Unity batch for everything, when the creator frees the CPU.
+- **One speed tier for sound and visuals (b0f4682):** `MovementAudio` reads the tier `SpeedFeel` ticks, and updates its
+  speed layers just after it, so the boom and the music see flying start in the same frame. It has its own fallback
+  where there's no `SpeedFeel`. **All agents are done; everything waits for one Unity batch.**
