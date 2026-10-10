@@ -16,7 +16,7 @@ namespace JamKit.Shell
         public readonly InputActionMap Gameplay;
         public readonly InputActionMap Ui;
 
-        public readonly InputAction Move, Look, Fire, AltFire, Focus, Sprint, Dash, Crouch, CrouchToggle, Interact, Pause;
+        public readonly InputAction Move, Look, Fire, AltFire, Focus, Sprint, SprintToggle, Dash, Crouch, CrouchToggle, Interact, Pause;
         public readonly InputAction Navigate, Submit, Cancel, Point, Click, ScrollWheel;
 
         readonly GameFlow _flow;
@@ -40,6 +40,14 @@ namespace JamKit.Shell
                 Sprint = Gameplay.AddAction("Sprint", InputActionType.Button);
                 Sprint.AddBinding("<Keyboard>/leftShift");
                 Sprint.AddBinding("<Gamepad>/leftShoulder");
+            }
+            // Sprint as a toggle (L3, Titanfall's stick-click layout with R3 crouch): click to sprint until you stop
+            // moving forward, crouch, slide or respawn (the movement core keeps the toggle).
+            SprintToggle = Gameplay.FindAction("SprintToggle", false);
+            if (SprintToggle == null)
+            {
+                SprintToggle = Gameplay.AddAction("SprintToggle", InputActionType.Button);
+                SprintToggle.AddBinding("<Gamepad>/leftStickPress");
             }
             Dash = Gameplay.FindAction("Dash", true);
             // Crouch / slide (Left Ctrl, C, B / Circle) for first-person movement; added when an older asset lacks it.
@@ -222,6 +230,7 @@ namespace JamKit.Shell
             Button(g, "Dash", "<Keyboard>/space", "<Gamepad>/buttonSouth", "<Gamepad>/rightShoulder");
             Button(g, "Crouch", "<Keyboard>/leftCtrl", "<Keyboard>/c", "<Gamepad>/buttonEast");
             Button(g, "CrouchToggle", "<Gamepad>/rightStickPress");
+            Button(g, "SprintToggle", "<Gamepad>/leftStickPress");
             Button(g, "Interact", "<Keyboard>/e", "<Gamepad>/buttonWest");
             Button(g, "Pause", "<Keyboard>/escape", "<Keyboard>/p", "<Gamepad>/start");
 

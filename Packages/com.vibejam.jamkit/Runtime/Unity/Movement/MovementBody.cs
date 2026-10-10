@@ -196,6 +196,8 @@ namespace JamKit.Movement
                 target = Vector3.Lerp(target, new Vector3(side * 0.33f, -0.44f, 0.12f), _sweep);
                 // Arms feel a touch heavy on landing: they take the dip a moment later.
                 if (ev.landed && !ev.slideStarted) _handVel[i] += Vector3.down * Mathf.Clamp01((ev.landImpact - 4f) / 14f) * 1.2f;
+                // The sprint kick: both arms pump back hard and spring forward again (a push-off).
+                if (ev.sprintKick) _handVel[i] += new Vector3(0f, -0.3f, -1.8f);
 
                 // A critically damped spring toward the target.
                 if (dt > 0f)

@@ -38,8 +38,28 @@ namespace JamKit.Movement
         /// <summary>Running speed (the DOOM-like template's run speed).</summary>
         public float sprintSpeed = 9.5f;
         public float crouchSpeed = 3f;
-        /// <summary>On (default): moving forward always sprints. Off: hold Sprint.</summary>
-        public bool autoSprint = true;
+        /// <summary>Off (default, the creator's call 2026-10-10): you walk unless you sprint (hold Sprint, or click
+        /// the sprint toggle). On: moving forward always sprints.</summary>
+        public bool autoSprint = false;
+        /// <summary>Sprint only runs forward-ish: the stick's forward part must be at least this share of its push.</summary>
+        public float sprintForwardMin = 0.3f;
+        /// <summary>The sprint toggle (pad L3, Titanfall-style) ends on the ground when the stick's forward part
+        /// drops below this (released or pulled back); also on crouch, slide and respawn.</summary>
+        public float sprintToggleStopForward = 0.2f;
+
+        // ---------- Sprint kick (a push-off back to running after you lose your speed) ----------
+        /// <summary>Sprinting on the ground below this share of sprint speed (a bad landing, a wall, a mantle)
+        /// gives a sprint kick.</summary>
+        public float kickBelow = 0.6f;
+        /// <summary>The kick sets your speed along the stick to at least this share of sprint speed at once (never
+        /// above sprint); ground acceleration does the rest in a few hundredths of a second.</summary>
+        public float kickSpeed = 0.75f;
+        /// <summary>Seconds between kicks, so stopping on purpose can't farm them.</summary>
+        public float kickCooldown = 2f;
+        /// <summary>The kick also readies the slide boost (its own 2 s cooldown is usually what makes a slide right
+        /// after a stumble feel dead). The kick's cooldown equals the boost's, so this never boosts more often than
+        /// sliding alone would; it only puts the boost where you need it.</summary>
+        public bool kickRearmsSlideBoost = true;
         /// <summary>Source "accelerate": reaches full speed in about 1/accel seconds.</summary>
         public float groundAccel = 10f;
         /// <summary>Source friction (speed lost per second, proportional to speed).</summary>

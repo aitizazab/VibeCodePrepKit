@@ -88,6 +88,7 @@ namespace JamKit.DreamEscape.Tests
         {
             var tuning = AssetDatabase.LoadAssetAtPath<MovementTuning>(DreamEscapeBuilder.TuningPath);
             Assert.That(tuning, Is.Not.Null);
+            Assert.That(tuning.def.autoSprint, Is.False, "sprint is opt-in; the autopilot holds it, and the reach is measured at sprint speed");
             // The controller as the scene has it: its skin and the step offset it keeps while crouched or sliding.
             float skin, crouchStep;
             var scene = EditorSceneManager.OpenScene(DreamEscapeBuilder.ScenePath, OpenSceneMode.Additive);

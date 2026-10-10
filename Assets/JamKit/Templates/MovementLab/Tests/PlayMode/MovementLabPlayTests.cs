@@ -135,7 +135,7 @@ namespace JamKit.MovementLab.Tests
             yield return Frames(2);
             int before = Game.Respawns;
             // A player who keeps holding forward through the fall (letting go stops you: Source friction).
-            Game.player.Autopilot = sim => new MoveInput { move = new System.Numerics.Vector2(0f, 1f), yaw = 0f };
+            Game.player.Autopilot = sim => new MoveInput { move = new System.Numerics.Vector2(0f, 1f), yaw = 0f, sprintHeld = true }; // forward with sprint held (sprint is opt-in)
             Game.player.Teleport(new Vector3(0f, -10f, 145f), 0f, Vector3.zero);
             yield return WaitFor(() => Game.Respawns > before, "the respawn", 5f);
             yield return RespawnDone();
@@ -147,7 +147,7 @@ namespace JamKit.MovementLab.Tests
             TestContext.Out.WriteLine("back at " + at + ", checkpoint " + cp.position);
             Assert.That(at.z, Is.InRange(cp.position.Z - 0.5f, cp.position.Z + 8f), "back at the checkpoint, running on from it");
             Assert.That(at.y, Is.EqualTo(cp.position.Y).Within(0.5f));
-            Assert.That(Game.player.Speed, Is.GreaterThan(8.5f), "holding forward, you come back running");
+            Assert.That(Game.player.Speed, Is.GreaterThan(8.5f), "holding forward and sprint, you come back running");
         }
 
         [UnityTest]

@@ -9,7 +9,8 @@ namespace JamKit.Tests.Movement
     {
         public const float H = 1f / 120f;
 
-        public static MoveInput Forward(float yaw = 0f) => new MoveInput { move = new Vector2(0f, 1f), yaw = yaw };
+        /// <summary>Forward at a run: sprint held (sprint is opt-in since MoveDef.autoSprint went off).</summary>
+        public static MoveInput Forward(float yaw = 0f) => new MoveInput { move = new Vector2(0f, 1f), yaw = yaw, sprintHeld = true };
 
         public static MoveInput With(this MoveInput i, bool jump = false, bool crouchHeld = false, bool crouchPressed = false)
         {

@@ -105,8 +105,8 @@ namespace JamKit.Tests.Movement
                 if (reached < 0f && sim.HorizontalSpeed > sim.def.sprintSpeed * 0.95f) reached = t;
             }
             Assert.That(max, Is.LessThanOrEqualTo(sim.def.sprintSpeed + 1e-3f));
-            Assert.That(reached, Is.InRange(0.05f, 0.5f), "full speed in about 1/accel seconds");
-            Assert.That(sim.Mode, Is.EqualTo(MoveMode.Sprint), "auto-sprint");
+            Assert.That(reached, Is.InRange(0.01f, 0.4f), "full speed fast (the sprint kick pushes off from a standstill, then 1/accel seconds)");
+            Assert.That(sim.Mode, Is.EqualTo(MoveMode.Sprint), "sprint held");
         }
 
         [Test]

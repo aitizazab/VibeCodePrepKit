@@ -27,7 +27,7 @@ MonoBehaviour:
     walkSpeed: 5
     sprintSpeed: 9.5
     crouchSpeed: 3
-    autoSprint: 1
+    autoSprint: 0
     groundAccel: 10
     friction: 6
     stopSpeed: 2.5
@@ -101,3 +101,4 @@ MonoBehaviour:
     mantlePerMetre: 0.07
     mantleSpeedKeep: 0.8
     mantleExitSpeed: 5
+  defaultsVersion: 1

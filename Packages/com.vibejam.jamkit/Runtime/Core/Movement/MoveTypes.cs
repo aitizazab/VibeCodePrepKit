@@ -17,8 +17,10 @@ namespace JamKit.Movement
         public float yaw;
         public bool jumpHeld, jumpPressed;
         public bool crouchHeld, crouchPressed;
-        /// <summary>Only used when auto-sprint is off.</summary>
+        /// <summary>Sprint held (Left Shift, LB). Ignored when auto-sprint is on.</summary>
         public bool sprintHeld;
+        /// <summary>The sprint toggle (pad L3) was clicked: sprint until you stop moving forward, crouch, slide or respawn.</summary>
+        public bool sprintTogglePressed;
     }
 
     /// <summary>A surface a probe found. <see cref="distance"/> is along the probe; <see cref="id"/>
@@ -68,8 +70,10 @@ namespace JamKit.Movement
         public int wallSide;
         public bool mantleStarted;
         public bool leftGround;
+        /// <summary>A sprint kick: the push-off back to running speed.</summary>
+        public bool sprintKick;
 
-        public bool Any => jumped || doubleJumped || wallJumped || landed || slideStarted || slideEnded || wallrunStarted || wallrunEnded || mantleStarted || leftGround;
+        public bool Any => jumped || doubleJumped || wallJumped || landed || slideStarted || slideEnded || wallrunStarted || wallrunEnded || mantleStarted || leftGround || sprintKick;
 
         public void Merge(in MoveEvents e)
         {
@@ -89,6 +93,7 @@ namespace JamKit.Movement
             wallrunEnded |= e.wallrunEnded;
             mantleStarted |= e.mantleStarted;
             leftGround |= e.leftGround;
+            sprintKick |= e.sprintKick;
         }
     }
 }

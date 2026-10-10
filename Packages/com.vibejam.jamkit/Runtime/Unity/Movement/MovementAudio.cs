@@ -9,7 +9,7 @@ namespace JamKit.Movement
     /// up with speed), footsteps on the stride (faster at speed, 1.5x the cadence on a wall), a slide
     /// scrape loop, a wallrun scrape loop and a "catch" when a wall takes you, a whoosh for the jump, a
     /// different airy pop for the double jump, a kick for the wall jump, a boost whoosh, a mantle
-    /// scuff, and a landing thud scaled by the impact. Loops play on their own sources at the
+    /// scuff, a landing thud scaled by the impact, and a push-off for the sprint kick. Loops play on their own sources at the
     /// effects volume; one-shots go through GameRoot.Audio. Silent in batch mode like the shell.
     /// </summary>
     [DefaultExecutionOrder(50)]
@@ -83,6 +83,12 @@ namespace JamKit.Movement
             else if (ev.jumped) audio.Play("mv_jump", 0.7f);
             if (ev.slideBoosted) audio.Play("mv_boost", 0.7f);
             if (ev.mantleStarted) audio.Play("mv_mantle", 0.8f);
+            if (ev.sprintKick)
+            {
+                // The push-off: a hard footstep under a little whoosh (PLACEHOLDER pair; an mv_kick clip would replace it).
+                audio.Play("mv_step", Mathf.Min(1f, stepVolume * 2.6f));
+                audio.Play("mv_boost", 0.3f);
+            }
             if (ev.landed && !ev.slideStarted)
             {
                 float thud = Mathf.Clamp01((ev.landImpact - 3f) / 15f);

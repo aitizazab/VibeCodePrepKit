@@ -43,6 +43,10 @@ namespace JamKit.Movement
         float _lastBoost = -999f;
         float _slideFatigue;
 
+        // Sprint
+        bool _sprintToggled;
+        float _lastKick = -999f;
+
         // Wall
         Vector3 _wallN, _wallT;
         int _wallSide;
@@ -91,6 +95,10 @@ namespace JamKit.Movement
         public float SinceGrounded => _sinceGrounded;
         /// <summary>Seconds until the slide boost is ready again (0 = ready).</summary>
         public float SlideBoostCooldown => Math.Max(0f, def.slideBoostCooldown - (_time - _lastBoost));
+        /// <summary>The sprint toggle (pad L3) is on.</summary>
+        public bool SprintToggled => _sprintToggled;
+        /// <summary>Seconds until the next sprint kick can fire (0 = ready).</summary>
+        public float KickCooldown => Math.Max(0f, def.kickCooldown - (_time - _lastKick));
         /// <summary>The slide boost cap right now (lower after a lot of sliding).</summary>
         public float SlideBoostCap => Math.Max(def.sprintSpeed, def.slideBoostMaxSpeed - def.slideCapDecay * _slideFatigue);
         public float MantleProgress => _mode == MoveMode.Mantle && _mantleDur > 0f ? _mantleT / _mantleDur : 0f;
@@ -120,6 +128,8 @@ namespace JamKit.Movement
             _hasLastWall = false;
             _groundSinceWall = true;
             _slideFatigue = 0f;
+            _sprintToggled = false;
+            _lastKick = -999f;
             _events = default;
             if (_world.CastDown(feet, def.radius * 0.9f, def.groundEpsilon + 0.05f, out var g) && g.normal.Y > 0.2f)
             {
@@ -158,6 +168,9 @@ namespace JamKit.Movement
             _sinceWall += h;
             if (!_grounded) _sinceGrounded += h;
             if (_mode != MoveMode.Slide) _slideFatigue = Math.Max(0f, _slideFatigue - h);
+            // The sprint toggle: a click turns it on (clicking again keeps it on); crouching ends it.
+            if (input.sprintTogglePressed) _sprintToggled = true;
+            if (input.crouchHeld || input.crouchPressed) _sprintToggled = false;
 
             switch (_mode)
             {
@@ -208,11 +221,31 @@ namespace JamKit.Movement
 
             if (TryMantle(wishDir, stick, fwd)) return;
 
-            bool sprint = !_crouched && (def.autoSprint ? mv.Y > 0.3f * Math.Max(mv.Length(), 1e-3f) : input.sprintHeld);
+            // Sprint: forward-ish only, and only when asked (held, toggled) unless auto-sprint is on.
+            bool forward = mv.Y > def.sprintForwardMin * Math.Max(mv.Length(), 1e-3f);
+            if (_sprintToggled && mv.Y < def.sprintToggleStopForward) _sprintToggled = false; // stopped moving forward
+            bool sprint = !_crouched && forward && (def.autoSprint || input.sprintHeld || _sprintToggled);
             float wishSpeed = (_crouched ? def.crouchSpeed : sprint ? def.sprintSpeed : def.walkSpeed) * stick;
 
             Vector3 vH = Flat(_vel);
             speed = vH.Length();
+
+            // The sprint kick: sprinting from well under sprint speed (a stumble, a wall, a mantle) pushes you off
+            // straight back toward running speed, never past it, on a cooldown. It also readies the slide boost.
+            if (sprint && stick > 0f && speed < def.kickBelow * def.sprintSpeed && _time - _lastKick >= def.kickCooldown)
+            {
+                float along = Vector3.Dot(vH, wishDir);
+                float to = Math.Min(def.kickSpeed, 1f) * def.sprintSpeed * stick;
+                if (to > along)
+                {
+                    vH = wishDir * to; // push off along the stick (the sideways drift goes, so ground acceleration can't stack past sprint)
+                    if (vH.Length() > def.sprintSpeed) vH = Vector3.Normalize(vH) * def.sprintSpeed;
+                    speed = vH.Length();
+                    _lastKick = _time;
+                    _events.sprintKick = true;
+                    if (def.kickRearmsSlideBoost) _lastBoost = -999f;
+                }
+            }
             if (_landGrace > 0f && stick > 0f) { }
             else if (stick > 0f && speed > def.sprintSpeed)
             {

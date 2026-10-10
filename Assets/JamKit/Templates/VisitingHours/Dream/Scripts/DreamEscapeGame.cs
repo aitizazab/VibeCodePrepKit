@@ -147,7 +147,7 @@ namespace JamKit.DreamEscape
             if (music != null) music.Begin();
 
             PlaceAt(0, false, false);
-            GameRoot.Hud.Message("The street is waking up. Run.", 3f);
+            GameRoot.Hud.Message("The street is waking up. Run: hold Shift (or click L3) to sprint.", 3.5f);
         }
 
         void OnDestroy()

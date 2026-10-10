@@ -70,17 +70,33 @@ namespace JamKit.MovementLab.EditorTools
         static MovementTuning EnsureTuning()
         {
             var t = AssetDatabase.LoadAssetAtPath<MovementTuning>(TuningPath);
-            if (t != null) return t;
+            if (t != null)
+            {
+                // An asset made before changed defaults (sprint went opt-in) takes them once.
+                if (t.UpgradeDefaults()) EditorUtility.SetDirty(t);
+                return t;
+            }
             t = ScriptableObject.CreateInstance<MovementTuning>();
+            t.UpgradeDefaults();
             AssetDatabase.CreateAsset(t, TuningPath);
             return t;
         }
 
         // ---------- Preset ----------
 
+        /// <summary>The controls page of How to Play (sprint is opt-in: Shift / LB held, or L3 clicked).</summary>
+        public const string MovePage = "WASD or the left stick to walk. Hold Left Shift (LB) to sprint, or click the left stick (L3) to sprint until you stop. Mouse or right stick to look.\nSpace (A) jumps, and jumps again in the air. Ctrl or C (hold B, or click R3) slides when you're running.";
+
         static void MakePreset(SceneBuilder.Context ctx)
         {
-            if (AssetDatabase.LoadAssetAtPath<GameConfig>(PresetPath) != null) return;
+            var existing = AssetDatabase.LoadAssetAtPath<GameConfig>(PresetPath);
+            if (existing != null)
+            {
+                // A preset made when sprint was automatic: its controls page now says how to sprint.
+                foreach (var page in existing.howToPlay)
+                    if (page != null && page.body != null && page.body.Contains("you sprint on your own")) { page.body = MovePage; EditorUtility.SetDirty(existing); }
+                return;
+            }
             var p = ScriptableObject.CreateInstance<GameConfig>();
             p.gameTitle = "Movement Lab";
             p.tagline = "Slide, wallrun, double jump. Keep your speed.";
@@ -101,7 +117,7 @@ namespace JamKit.MovementLab.EditorTools
                 new HowToPlayPage
                 {
                     title = "Move",
-                    body = "WASD or the left stick; you sprint on your own. Mouse or right stick to look.\nSpace (A) jumps, and jumps again in the air. Ctrl or C (B) slides when you're running.",
+                    body = MovePage,
                 },
                 new HowToPlayPage
                 {

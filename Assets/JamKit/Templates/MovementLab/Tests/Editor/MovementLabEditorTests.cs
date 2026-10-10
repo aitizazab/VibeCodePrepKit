@@ -109,6 +109,32 @@ namespace JamKit.MovementLab.Tests
         }
 
         [Test]
+        public void SprintIsOptInWithShiftLbAndAnL3Toggle()
+        {
+            var tuning = AssetDatabase.LoadAssetAtPath<MovementTuning>(MovementLabBuilder.TuningPath);
+            Assert.That(tuning, Is.Not.Null);
+            Assert.That(tuning.def.autoSprint, Is.False, "you walk unless you sprint (the creator, 2026-10-10)");
+            Assert.That(tuning.defaultsVersion, Is.EqualTo(MovementTuning.CurrentDefaults), "the builder brought the asset up to the current defaults");
+            Assert.That(new MoveDef().autoSprint, Is.False);
+            var controls = DefaultControls.Create();
+            try
+            {
+                var sprint = controls.FindAction("Gameplay/Sprint", false);
+                Assert.That(sprint, Is.Not.Null);
+                var paths = new List<string>();
+                foreach (var b in sprint.bindings) paths.Add(b.path);
+                Assert.That(paths, Does.Contain("<Keyboard>/leftShift").And.Contain("<Gamepad>/leftShoulder"), "Shift and LB hold");
+                var toggle = controls.FindAction("Gameplay/SprintToggle", false);
+                Assert.That(toggle, Is.Not.Null);
+                Assert.That(toggle.bindings[0].path, Is.EqualTo("<Gamepad>/leftStickPress"), "L3 toggles sprint");
+                var crouchToggle = controls.FindAction("Gameplay/CrouchToggle", false);
+                Assert.That(crouchToggle, Is.Not.Null);
+                Assert.That(crouchToggle.bindings[0].path, Is.EqualTo("<Gamepad>/rightStickPress"), "R3 toggles crouch");
+            }
+            finally { Object.DestroyImmediate(controls); }
+        }
+
+        [Test]
         public void TheShellHasTheMovementSoundsAndACrouchBinding()
         {
             foreach (var id in new[] { "mv_wind", "mv_slide", "mv_wallrun", "mv_step", "mv_jump", "mv_djump", "mv_walljump", "mv_catch", "mv_land", "mv_static" })

@@ -113,7 +113,7 @@ namespace JamKit.MovementLab
             GameRoot.Run.Set("Lab", "Movement Lab");
 
             PlaceAt(0, false);
-            GameRoot.Hud.Message("Run. Space jumps (twice), Ctrl or C slides, run along walls.", 4f);
+            GameRoot.Hud.Message("Shift (L3 on a pad) sprints. Space jumps (twice), Ctrl or C slides, run along walls.", 4f);
         }
 
         void OnDestroy()

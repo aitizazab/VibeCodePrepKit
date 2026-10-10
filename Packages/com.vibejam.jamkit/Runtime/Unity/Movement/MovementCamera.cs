@@ -26,6 +26,9 @@ namespace JamKit.Movement
         public float fovFromSpeed = 9.5f;
         public float fovFullSpeed = 22f;
         public float fovRate = 6f;
+        [Tooltip("The sprint kick (the push-off back to running): a short FOV punch, degrees (x Motion effects), and how long it lasts.")]
+        public float sprintKickFov = 4f;
+        public float sprintKickTime = 0.35f;
 
         [Header("Roll")]
         [Tooltip("Lean while wallrunning, degrees (x Camera roll).")]
@@ -50,6 +53,7 @@ namespace JamKit.Movement
         float _dip, _dipVel;
         float _bobAmp;
         float _nod;
+        float _kickT = -1f;
 
         /// <summary>The current lean in degrees (tests, HUD).</summary>
         public float Roll => _roll;
@@ -82,7 +86,17 @@ namespace JamKit.Movement
             float kick = speedFov * MoveMath.SmoothStep(fovFromSpeed, fovFullSpeed, speed) + (mode == MoveMode.Slide ? slideFov : 0f);
             float targetFov = fovBase + kick * motionK;
             _fov = _fov < 0f ? targetFov : Mathf.Lerp(_fov, targetFov, 1f - Mathf.Exp(-fovRate * udt));
-            if (cam != null) cam.fieldOfView = _fov;
+            // The sprint kick: a quick punch out and back.
+            if (ev.sprintKick) _kickT = 0f;
+            float punch = 0f;
+            if (_kickT >= 0f)
+            {
+                _kickT += udt;
+                const float rise = 0.06f;
+                punch = _kickT < rise ? _kickT / rise : 1f - (_kickT - rise) / Mathf.Max(0.01f, sprintKickTime - rise);
+                if (punch <= 0f) { punch = 0f; _kickT = -1f; }
+            }
+            if (cam != null) cam.fieldOfView = _fov + sprintKickFov * punch * motionK;
 
             // Roll: away from the wall (wall on the right -> the top of the view tilts left), a spring so the
             // catch overshoots into a clear "lean-in".

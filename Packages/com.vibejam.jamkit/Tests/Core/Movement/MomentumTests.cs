@@ -94,6 +94,7 @@ namespace JamKit.Tests.Movement
             {
                 double t = frame * dt;
                 var input = Timeline(t, out bool jump, out bool crouch);
+                input.sprintHeld = true;
                 input.jumpHeld = jump;
                 input.jumpPressed = jump && !lastJump;
                 input.crouchHeld = crouch;

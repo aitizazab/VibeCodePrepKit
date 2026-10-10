@@ -15,7 +15,7 @@ namespace JamKit.Movement
         public readonly MoveSim Sim;
         double _acc;
         Vector3 _prev;
-        bool _jumpLatch, _crouchLatch;
+        bool _jumpLatch, _crouchLatch, _sprintToggleLatch;
         MoveEvents _frameEvents;
         int _lastSteps;
 
@@ -40,6 +40,7 @@ namespace JamKit.Movement
             _lastSteps = 0;
             if (input.jumpPressed) _jumpLatch = true;
             if (input.crouchPressed) _crouchLatch = true;
+            if (input.sprintTogglePressed) _sprintToggleLatch = true;
             if (!(dt > 0f)) return 0;
             float h = Sim.def.StepSeconds;
             int max = Sim.def.maxStepsPerFrame > 0 ? Sim.def.maxStepsPerFrame : 1;
@@ -51,10 +52,11 @@ namespace JamKit.Movement
                 var step = input;
                 step.jumpPressed = _jumpLatch;
                 step.crouchPressed = _crouchLatch;
+                step.sprintTogglePressed = _sprintToggleLatch;
                 // A tap that was released before its step still counts as held for that one step.
                 step.jumpHeld |= _jumpLatch;
                 step.crouchHeld |= _crouchLatch;
-                _jumpLatch = _crouchLatch = false;
+                _jumpLatch = _crouchLatch = _sprintToggleLatch = false;
                 _prev = Sim.Position;
                 Sim.Step(step, h);
                 _frameEvents.Merge(Sim.Events);
@@ -70,7 +72,7 @@ namespace JamKit.Movement
             Sim.Teleport(feet, yaw, velocity);
             _prev = Sim.Position;
             _acc = 0;
-            _jumpLatch = _crouchLatch = false;
+            _jumpLatch = _crouchLatch = _sprintToggleLatch = false;
         }
     }
 }

@@ -206,6 +206,7 @@ namespace JamKit.Movement
             input.crouchHeld = io.Held(io.Crouch) || _crouchToggled;
             input.crouchPressed = io.Pressed(io.Crouch) || (togglePressed && _crouchToggled);
             input.sprintHeld = io.Held(io.Sprint);
+            input.sprintTogglePressed = io.Pressed(io.SprintToggle);
             return input;
         }
 

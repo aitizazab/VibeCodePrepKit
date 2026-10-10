@@ -27,21 +27,34 @@ Run the lab on its own: **JamKit > Use Template > Movement Lab**, then Play (swi
 | Look | mouse | right stick (response curve, faster after holding it fully over) |
 | Jump, double jump, wall jump | Space | A / Cross (also RB) |
 | Slide / crouch | Left Ctrl or C (hold) | B / Circle (hold), or R3 (toggle: press again or jump to stand) |
-| Sprint | automatic when moving forward (Left Shift if auto-sprint is off) | automatic (LB) |
+| Sprint (forward only) | Left Shift (hold) | LB (hold), or **L3 click** (toggle, Titanfall-style: you sprint until you stop moving forward, crouch, slide or respawn; clicking again keeps it on) |
 | Wallrun | automatic: jump at a wall *along* it and hold forward | same |
 | Mantle | automatic: run or jump at a ledge 0.4 to 1.9 m above your feet | same |
 | Lab debug HUD | F3 | View / Select |
 | Pause, Comfort and camera | Escape | Start |
 
-The shell's `Dash` action is the jump; the `Crouch` action is new (Ctrl, C, pad B). Older input
-assets without it get it added at runtime.
+**You walk unless you sprint** (the creator, 2026-10-10: `autoSprint` is off by default). On a pad the
+two stick clicks pair up the Titanfall way: L3 sprints, R3 crouches and slides.
+
+The shell's `Dash` action is the jump; `Crouch` (Ctrl, C, pad B), `CrouchToggle` (R3) and `SprintToggle`
+(L3) are added at runtime to older input assets that lack them.
+
+**The sprint kick.** Sprinting on the ground from well under sprint speed (below 60 %: after a bad landing,
+running into a wall or ledge, out of a mantle, from a standstill) pushes you off at once to 75 % of sprint
+along the stick, and ground acceleration does the rest: sprint speed in about 0.05 s. It never takes you past
+sprint (high speed still only comes from slides, wallruns, wall kicks and air strafing), it has a 2 s
+cooldown, and it readies the slide boost, so a slide straight after it gets its +3 m/s. You feel it as a
+short FOV punch (4°), a hard footstep under a little whoosh, and the arms pumping back.
+Why it readies the boost: plain ground acceleration already gets you back to sprint in about 0.15 s, so
+what really made a stumble feel dead was the slide boost's 2 s cooldown (no +3 m/s on the next slide). The
+kick's cooldown equals the boost's, so it never boosts more often than sliding alone would.
 
 ## The states
 
 | State | What it is | How you get in / out |
 |---|---|---|
 | **Grounded** | Walking. Source acceleration and friction. | Landing, mantle end. |
-| **Sprint** | Grounded at sprint speed (automatic when moving forward). | Moving forward faster than walk. |
+| **Sprint** | Grounded at sprint speed, moving forward with Sprint held or toggled. | Moving forward faster than walk with sprint on; a sprint kick pushes you into it from a stumble. |
 | **Slide** | Crouched, low friction, a speed boost on a 2 s cooldown, downhill slopes speed you up. | Crouch while running at 6.5 m/s or more, or land with crouch held (slide hop). Ends below 4 m/s or when you let go of crouch. Jumping out keeps **all** your horizontal speed. |
 | **Air** | Gravity, Source air strafing (small cap: slow, real gains only by turning), gentle low-speed steering. | Jump, walk off a ledge, leave a wall. |
 | **Wallrun** | Along a near-vertical wall: you settle toward 8.64 m/s, weightless at first and sinking later, for at most 1.75 s. | Jump at a wall moving along it (not head-on), holding forward, 0.6 m or more above the ground. Ends by time, if the wall ends, if you push away, crouch, or stop holding forward. Jump = wall jump. |
@@ -54,6 +67,38 @@ wall jump *adds* speed (about +3.1 m/s at wallrun speed); the double jump turns 
 without losing speed; collisions only remove the part of your velocity going into the surface.
 **The wall kick:** a jump in the first 83 ms on a wall keeps almost everything (staying on the wall
 lets wall friction pull a fast run down toward 8.64 m/s), so quick kicks are the fast line.
+
+## Why air strafing gains speed
+
+The creator found this and wants it kept as it is (2026-10-10). A regression test
+(`SprintTests.AirStrafeGainIsUnchanged`) pins the speed curve.
+
+- **What the air step does** (`MoveMath.AirAccelerate`, Source's formula). Each 1/120 s tick, it looks only at
+  how fast you already move *along the stick's direction* (the projection of your velocity on it). It tops that
+  projection up to at most **airCap = 0.8 m/s**. The size of one top-up is limited by the *full* wish speed:
+  airAccel × sprint speed / tick rate = 12 × 9.5 / 120 ≈ **0.95 m/s**. So each tick adds
+  min(0.95, 0.8 − projection) along the stick.
+- **Why that grows your speed.** Hold a strafe direction (A or D, or the stick sideways) and turn the view the
+  same way. The stick's direction then stays nearly at right angles to your velocity, and the projection stays
+  near 0. Every tick then adds up to about 0.8 m/s *sideways*. A sideways add never slows you; it lengthens
+  your velocity by Pythagoras: √(v² + 0.8²).
+  - At 10 m/s that is about +0.03 m/s per tick.
+  - The gentle low-speed air control (airControlSpeed 5, airControlAccel 2) adds up to another 0.08 m/s along
+    the stick each tick.
+- **How fast you gain depends on how fast you turn.** Each add also turns your velocity (by about 4.6° per tick
+  at 10 m/s). If the view turns more slowly than that, the projection creeps up toward 0.8 and the adds shrink.
+  For example, turning 120°/s while bunny hopping takes you from 9.5 to about 11 m/s in 1 s and about 15.4 m/s
+  in 4 s. Straight-line strafing without turning gains nothing.
+- **The cap.** Horizontal speed is clamped to **maxHorizontalSpeed = 22 m/s** (about 2.3× sprint), in the air
+  and on the ground.
+- **Keeping it through landings.**
+  - For **0.15 s after landing** (landingGrace), while the stick is pushed, there is no ground friction and no
+    overspeed fade. If you let go of the stick, friction starts at once.
+  - A jump pressed up to **0.12 s before landing** (jumpBuffer) fires on the landing step itself, so a bunny
+    hop never touches friction.
+  - Jumping never changes horizontal speed.
+  - On the ground past the grace, speed above sprint fades by only 1.5 per second of the excess (overspeedDecay)
+    while you hold a direction, so a short run between hops costs little.
 
 ## Every tunable number
 
@@ -76,7 +121,13 @@ Metres, seconds, m/s, degrees.
 | Field | Default | What it does |
 |---|---|---|
 | walkSpeed / sprintSpeed / crouchSpeed | 5 / 9.5 / 3 | Wish speeds. Sprint is the DOOM-like's run speed. |
-| autoSprint | on | Moving forward sprints. Off: hold Sprint. |
+| autoSprint | **off** | Off: walk unless Sprint is held or toggled. On: moving forward always sprints. Tuning assets made before 2026-10-10 are switched off once by the builders (`MovementTuning.defaultsVersion`). |
+| sprintForwardMin | 0.3 | Sprint only runs forward-ish (the stick's forward share at least this). |
+| sprintToggleStopForward | 0.2 | The L3 toggle ends on the ground when the stick's forward part drops below this. |
+| kickBelow | 0.6 | Sprinting below this share of sprint speed on the ground gives a sprint kick. |
+| kickSpeed | 0.75 | The kick sets your speed along the stick to this share of sprint at once (never above sprint). |
+| kickCooldown | 2 | Seconds between kicks (equal to the slide boost's). |
+| kickRearmsSlideBoost | on | The kick readies the slide boost. |
 | groundAccel | 10 | Source accelerate: full speed in about 0.1 s. |
 | friction / stopSpeed | 6 / 2.5 | Source friction; constant below stopSpeed so you stop. |
 | overspeedDecay | 1.5 | Speed above sprint fades at this rate (per second, of the excess) while you hold a direction. |
@@ -152,7 +203,7 @@ Metres, seconds, m/s, degrees.
 ### Feel components (inspector fields)
 | Component | Fields (defaults) |
 |---|---|
-| `MovementCamera` (on the rig) | speedFov 8° from 9.5 to 22 m/s, slideFov 3°, fovRate 6; wallRoll 9° away from the wall, wallCatchKick 4° (the lean-in on contact), slideRoll 2°, roll spring 14 rad/s damping 0.65; landDip 0.12 m from 4 to 18 m/s impact (spring 20); bobAmount 0.035 m; mantleNod 3° |
+| `MovementCamera` (on the rig) | speedFov 8° from 9.5 to 22 m/s, slideFov 3°, fovRate 6; sprintKickFov 4° over sprintKickTime 0.35 s; wallRoll 9° away from the wall, wallCatchKick 4° (the lean-in on contact), slideRoll 2°, roll spring 14 rad/s damping 0.65; landDip 0.12 m from 4 to 18 m/s impact (spring 20); bobAmount 0.035 m; mantleNod 3° |
 | `MovementBody` (on the camera) | PLACEHOLDER arms and slide legs: colours, proportions; sprint pump with the stride, jump lift, double-jump sweep, **wall-side hand reaching out and planting on the wall on contact**, slide balance pose with legs out, mantle plant |
 | `SpeedLines` (on the camera) | 56 edge streaks from 12 to 20 m/s, alpha up to 0.35, never in the centre of the screen |
 | `MovementAudio` (on the body) | wind loop (volume smoothstep 6..18 m/s, pitch up with speed), slide scrape, wallrun scrape, footsteps on the stride (about 4.9/s at sprint, 1.5x on a wall), catch, jump, double jump (distinct), wall jump, boost, mantle, landing thud by impact (none when landing into a slide). Ids `mv_*` in the Audio Registry replace the placeholders. |
@@ -231,8 +282,8 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 
 | Where | What |
 |---|---|
-| `core-tests/Movement` (`dotnet test core-tests/Movement/Movement.Tests.csproj`) | Source formulas (air strafe at most cap² per tick, tick-rate dependence), ground (never past sprint by input, overspeed lingers, landing grace), jumps (heights, lockout, coyote 0.11 works and 0.13 doesn't, buffer), slide (boost, cooldown, cap decay, slope, slide jump keeps speed, slide hop, fits under a bar), mantle (heights, rescue), wallrun with Titanfall 2's numbers (8.64 from above and below, 1.75 s, away ends it, neutral brakes, the wall-jump impulses, crouch kick, wall kick, same-wall rule, 25° rule, wall coyote, head-on isn't a wallrun), the momentum chain, identical paths at 30/60/144/240 fps, the driver's latching and interpolation, the course (autopilot finishes, every checkpoint to the next, chain at 30 and 144 fps, research sizes), pursuer and route |
-| Unity EditMode (`MovementLabEditorTests`) | chapters and attract script, scene/tuning/preset/materials, Build Settings, every player part, sound ids and the Crouch binding |
+| `core-tests/Movement` (`dotnet test core-tests/Movement/Movement.Tests.csproj`) | Source formulas (air strafe at most cap² per tick, tick-rate dependence), opt-in sprint (walk by default, Shift held or the L3 toggle reach sprint, forward only, the toggle ends on stop, pull-back, crouch and respawn and survives a jump), the sprint kick (sprint within 0.4 s from a near-stop, never past sprint, only below 60 %, 2 s cooldown, readies the slide boost), the air-strafe speed curve pinned, ground (never past sprint by input, overspeed lingers, landing grace), jumps (heights, lockout, coyote 0.11 works and 0.13 doesn't, buffer), slide (boost, cooldown, cap decay, slope, slide jump keeps speed, slide hop, fits under a bar), mantle (heights, rescue), wallrun with Titanfall 2's numbers (8.64 from above and below, 1.75 s, away ends it, neutral brakes, the wall-jump impulses, crouch kick, wall kick, same-wall rule, 25° rule, wall coyote, head-on isn't a wallrun), the momentum chain, identical paths at 30/60/144/240 fps, the driver's latching and interpolation, the course (autopilot finishes, every checkpoint to the next, chain at 30 and 144 fps, research sizes), pursuer and route |
+| Unity EditMode (`MovementLabEditorTests`) | chapters and attract script, sprint opt-in in the tuning and the Shift, LB, L3 and R3 bindings, scene/tuning/preset/materials, Build Settings, every player part, sound ids and the Crouch binding |
 | Unity PlayMode (`MovementLabPlayTests`) | the scripted chain keeps its speed on the real CharacterController, the autopilot finishes the course, standing still in the chase gets you caught and put back, falling respawns, chapters jump cleanly, comfort settings reach the camera and the pause screen |
 
 ## Known gaps

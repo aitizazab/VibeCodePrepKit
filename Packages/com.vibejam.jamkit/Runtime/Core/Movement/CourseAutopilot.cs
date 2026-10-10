@@ -120,6 +120,7 @@ namespace JamKit.Movement
             _jumpWasHeld = jump;
             input.crouchHeld = crouch;
             input.crouchPressed = crouch && !_crouching;
+            input.sprintHeld = true; // sprint is opt-in (MoveDef.autoSprint off): the autopilot holds it
             _crouching = crouch;
             return input;
         }
