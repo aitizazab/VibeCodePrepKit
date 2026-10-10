@@ -938,3 +938,9 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **Times:** the Gauntlet 43.13 s in Unity (the sim's developer time is 41.0; 9/9 markers, a ghost recorded), the escape
   44.8 s, the old course 47.4 s.
 - **Building now:** the escape, the lab and Visiting Hours, each with a smoke run, into `Builds/Play`.
+
+### New builds ready (21:20)
+- **Smoke runs pass for all three:** the dream escape, the Movement Lab, and Visiting Hours (12.4 s; it plays through to
+  Walt's argument and the credits).
+- **Builds:** `VibeJamKit-play/Builds/Play/{MovementLab,DreamEscape,VisitingHours}/VibeJamKit.exe`.
+- **The new .meta files** (body, speed feel, tiers, tests) are committed.
