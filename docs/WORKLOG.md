@@ -1032,3 +1032,8 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - `photo_frame.png`: the siblings laughing on a cluttered balcony at night, a headlock and a beer.
   - `phone_wallpaper.png`: Elias in scrubs in the break room, mid-bite, deadpan.
   - Takes are in `FableAnimationTests/art/review/2026-10-11/snap-*`, with drawn alternates in case real photos jar in the stylised room.
+- **Verified (main at 53cc2b2 + movement 8454370):** Scenes OK, EditMode 708/708, PlayMode 108/108. Movement Lab and Dream Escape built, smoke PASS, copied to `Builds/Play/MovementLab` and `Builds/Play/DreamEscape`: the new air control (speed needs strafe input above 5 m/s) and the hop costs, ready to try.
+- **The opening agent's fixes (8bc41a9):**
+  - The bedroom: a finger-posed phone grip, the frame on the nightstand's real top, the blanket draped over her baked body (the ridge was bumps starting 6 mm below the blanket's height), and a real phone model.
+  - The title: the fade order (mug +0.5 s, badge +6, notepad +11.5, tablet +17, table +23, room +29), a 46×30 cm tablet at about 60% of the frame's height, a gear and "Settings" on the badge, and "Credits" on the notepad.
+  - Under way: the lighting capture with the new layout, then a Visiting Hours verify and build.
