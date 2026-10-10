@@ -81,10 +81,10 @@ course, then `MOVEMENT.md`.
 | The slice (opening, Day 1, booth, street, journal, Walt's argument) | Built and verified in Unity, in the superseded painterly art and old opening |
 | The movement module and Movement Lab | Verified overnight: PlayMode 79/79, smoke pass, playable build |
 | The design docs (story, characters, nights, battles) | Proposals written, awaiting the creator's decisions |
-| Style-E character sheets | Made (review page 2026-10-10); Lena being redone (blonde, long loose waves) |
+| Style-E character sheets | Made; Lena redone (blonde, long loose waves) on `art/review/2026-10-10/visiting-hours-opening.html` |
 | Nadia's 3D model (Tripo) | Done, 80 credits (550 left) |
-| The opening and title rebuild (style E, new script) | Next, after the sheets and the 3D models |
-| The dream street in 3D, an escape sequence | After the opening |
+| The opening and title rebuild (style E, 3D bedroom, table title) | Built and verified overnight (smoke pass, playable build); timed to the earlier voicemail take; needs its first look |
+| The dream street in 3D, the first escape | Built and verified overnight (PlayMode 89/89, smoke pass, playable build `Builds/Play/DreamEscape`); not linked into the story yet |
 | Music | With the creator, later |
 
 ## Open questions for the creator
