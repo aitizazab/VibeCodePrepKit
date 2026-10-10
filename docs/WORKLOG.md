@@ -1037,3 +1037,10 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - The bedroom: a finger-posed phone grip, the frame on the nightstand's real top, the blanket draped over her baked body (the ridge was bumps starting 6 mm below the blanket's height), and a real phone model.
   - The title: the fade order (mug +0.5 s, badge +6, notepad +11.5, tablet +17, table +23, room +29), a 46×30 cm tablet at about 60% of the frame's height, a gear and "Settings" on the badge, and "Credits" on the notepad.
   - Under way: the lighting capture with the new layout, then a Visiting Hours verify and build.
+- **Lighting done (a36f9c9):**
+  - Night: an amber streetlight cookie through the blinds, the moon as key, the phone's glow, and an ACES teal-and-warm grade.
+  - Title: a 35° sun with a window pattern among the pieces, a cool fill, a warm wallpaper glow, and SSAO.
+  - Option for the creator: backlight from behind the tablet.
+- **Held-hand saga (opening agent):** a stale skin in captures (now `forceMatrixRecalculationPerRender` outside play), out of reach, the hand in front of the phone, then mitten fingers crumpling. Now a simple grip (88a5f61): the thumb beside the right edge, fingers nearly straight behind. Left: two fingertips overlap the screen's lower-left, and `HerHandHoldsThePhoneInView` fails "the hand is at the grip" (one last nudge queued).
+- **Visiting Hours build (88a5f61):** PlayMode 108/108, smoke PASS, in `Builds/Play/VisitingHours`. EditMode is 708/709: only the hand test above fails.
+- **Memory:** a build was killed once for low system memory (Firefox and Discord). It was re-run per the creator's standing rule.
