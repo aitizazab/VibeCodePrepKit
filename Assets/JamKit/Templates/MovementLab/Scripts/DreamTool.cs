@@ -160,6 +160,8 @@ namespace JamKit.MovementLab
             else _beamTo = Physics.Raycast(cam.position, cam.forward, out var hit, def.range, sightMask, QueryTriggerInteraction.Ignore) ? hit.point : cam.position + cam.forward * def.range;
             _beamT = 0f;
             _pulseT = 0f;
+            // Her right hand lifts towards where the pulse goes (the wall and ledge hands win over it).
+            if (body != null) body.Gesture(1, _beamTo, 0.2f);
             Play(_fire, 0.7f);
             if (target < 0) Play(_dry, 0.5f);
             else if (shot.kind == DreamTargetKind.Tile) Play(_pop, 0.9f);

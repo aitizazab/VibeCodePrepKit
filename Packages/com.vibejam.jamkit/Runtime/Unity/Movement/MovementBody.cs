@@ -59,6 +59,25 @@ namespace JamKit.Movement
         /// <summary>How far short of the wall the planted hand is because her arm can't reach it yet (m; 0 = touching).</summary>
         public float WallGap => _wallGap;
 
+        /// <summary>
+        /// Called each frame between the feel's pose and drawing it (the rig or the capsules): a gameplay component may
+        /// adjust the pose here (hands in camera space, legs in body space). Leave hands with <c>contact</c> set alone.
+        /// </summary>
+        public event System.Action<BodyFeelPose> PoseReady;
+
+        Vector3 _gestureWorld;
+
+        /// <summary>
+        /// Lifts a hand (0 left, 1 right) towards a world point for <paramref name="duration"/> seconds: a quick raise, then
+        /// a blend back (the dream tool's pulse). A contact cue on that hand (the wall hand, the ledge hands) wins.
+        /// </summary>
+        public void Gesture(int hand, Vector3 worldTarget, float duration = 0.2f)
+        {
+            if (!_built) Build();
+            _gestureWorld = worldTarget;
+            _feel.Gesture(hand, duration);
+        }
+
         /// <summary>The hand on the wall's side is on the wall (tests and the HUD read it).</summary>
         public bool HandOnWall => _handOnWall;
         /// <summary>This frame's pose (null before the first frame).</summary>
@@ -184,6 +203,7 @@ namespace JamKit.Movement
                 wallSide = sim.WallSide,
                 motion = s != null ? s.motionEffects : 1f,
                 cameraDip = feelCamera != null ? feelCamera.Dip : 0f,
+                gestureTarget = N(transform.InverseTransformPoint(_gestureWorld)),
             };
 
             _wallGap = 0f;
@@ -226,6 +246,7 @@ namespace JamKit.Movement
             }
 
             var pose = _feel.Tick(input);
+            PoseReady?.Invoke(pose);
             int wallIdx = sim.WallSide > 0 ? 1 : 0;
             _handOnWall = mode == MoveMode.Wallrun && sim.WallSide != 0 && pose.contact[wallIdx];
 

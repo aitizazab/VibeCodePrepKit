@@ -331,5 +331,41 @@ namespace JamKit.Tests.Movement
             Assert.That(f.pose.legs, Is.EqualTo(1f));
             Assert.That(f.pose.armRoll, Is.EqualTo(def.slideCant).Within(0.5f));
         }
+    
+        [Test]
+        public void AGestureLiftsTheHandTowardsItsPointAndYieldsToTheWallHand()
+        {
+            var def = new BodyFeelDef();
+            var f = new BodyFeel(def);
+            var i = Input(MoveMode.Sprint, 9f, 0.5f);
+            Run(f, i, 30);
+            var point = new Vector3(0.6f, 0.4f, 6f); // up ahead, to the right
+            Vector3 start = f.pose.hand[1];
+            i.gestureTarget = point;
+            f.Gesture(1, 0.2f);
+            Run(f, i, 4); // 0.067 s: the quick raise
+            Assert.That(f.pose.gesture[1], Is.GreaterThan(0.9f));
+            Assert.That(f.pose.hand[1].Y, Is.GreaterThan(start.Y + 0.05f), "the hand lifts");
+            Vector3 dir = Vector3.Normalize(point - start);
+            Assert.That(Vector3.Dot(f.pose.hand[1] - start, dir), Is.GreaterThan(0.06f), "towards the point");
+            Assert.That(f.pose.gesture[0], Is.EqualTo(0f), "only that hand");
+            Run(f, i, 20); // past 0.2 s: back to the run
+            Assert.That(f.pose.gesture[1], Is.EqualTo(0f));
+            Run(f, i, 30);
+            Assert.That(Vector3.Distance(f.pose.hand[1], start), Is.LessThan(0.06f), "blended back");
+
+            // On the wall the planted hand wins.
+            var w = Input(MoveMode.Wallrun, 8.6f);
+            w.wallSide = 1;
+            w.hasWallTarget = true;
+            w.wallHandTarget = new Vector3(0.5f, -0.06f, 0.34f);
+            w.events.wallrunStarted = true;
+            w.gestureTarget = point;
+            Run(f, w, 2);
+            f.Gesture(1, 0.2f);
+            Run(f, w, 4);
+            Assert.That(f.pose.gesture[1], Is.EqualTo(0f));
+            Assert.That(Vector3.Distance(f.pose.hand[1], w.wallHandTarget), Is.LessThan(1e-5f), "the wall hand stays planted");
+        }
     }
 }

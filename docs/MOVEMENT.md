@@ -278,6 +278,11 @@ a whole body on the main camera, so the hands keep their real size and the Comfo
 her you see. If the shoulders or hands look stretched at wide FOV, the fix is Dying Light's: scale the hand targets
 towards the camera by the FOV ratio (the placeholder capsules already do this).
 
+**Gestures and gameplay hooks.** `MovementBody.Gesture(hand, worldPoint, 0.2f)` lifts a hand towards a point: a
+quick raise over the first 30%, then a blend back (`BodyFeelDef.gestureReach`, `gestureRise`, `gestureSpring`). The
+dream tool's pulse uses it for her right hand. A contact cue on that hand wins: the wall hand and the ledge hands stay
+put. For anything else, `MovementBody.PoseReady` hands a component the pose each frame before it's drawn.
+
 **Comfort.** Everything above scales with the **Motion effects** setting, except the contact cues, which stay at 0:
 the wall hand's reach and plant, the ledge hands, the slide tilt and legs. The camera is never moved by the body.
 

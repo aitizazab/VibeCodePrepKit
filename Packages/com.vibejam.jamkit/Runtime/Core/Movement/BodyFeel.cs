@@ -131,6 +131,14 @@ namespace JamKit.Movement
         /// <summary>Double-jump tuck and mantle feet (body space).</summary>
         public float tuckFootHeight = 0.5f, tuckFootForward = 0.18f;
 
+        // ---- Gestures (a gameplay action lifting a hand towards a point, e.g. the dream tool's pulse). Never scaled;
+        //      contact cues win ----
+        /// <summary>How far from the shoulder the hand reaches towards the point (m), and the share of the gesture spent
+        /// raising it (the rest blends back).</summary>
+        public float gestureReach = 0.5f, gestureRise = 0.3f;
+        /// <summary>The hand's spring while it gestures (x armSpring: a quick raise).</summary>
+        public float gestureSpring = 2f;
+
         // ---- Secondary motion (ours). x Motion ----
         /// <summary>Breathing at rest: the period (s) and how far the arms rise (m).</summary>
         public float breathPeriod = 3.6f, breathArms = 0.006f;
@@ -168,6 +176,8 @@ namespace JamKit.Movement
         public bool hasLedge;
         public Vector3 ledgeLeft, ledgeRight;
         public float ledgeHeight;
+        /// <summary>The gesture's point (camera space), while a gesture runs (<see cref="BodyFeel.Gesture"/>).</summary>
+        public Vector3 gestureTarget;
         /// <summary>The player's Motion effects setting, 0..1.</summary>
         public float motion;
         /// <summary>The camera's own landing dip this frame (m, negative down).</summary>
@@ -184,6 +194,8 @@ namespace JamKit.Movement
         public readonly bool[] contact = new bool[2];
         /// <summary>How far the wall hand has reached out ahead of contact (0..1), per hand.</summary>
         public readonly float[] reach = new float[2];
+        /// <summary>How far into a gesture each hand is (0..1; 0 when a contact cue holds it).</summary>
+        public readonly float[] gesture = new float[2];
         /// <summary>Where each foot is (body space) and which way each knee points.</summary>
         public readonly Vector3[] foot = new Vector3[2];
         public readonly Vector3[] kneePole = new Vector3[2];
@@ -246,6 +258,8 @@ namespace JamKit.Movement
         float _lanX, _lanXV, _lanZ, _lanZV, _slideLegs, _wallBlend, _lastSpeed;
         Vector3 _lastVel;
         int _lastWallSide, _wallArm;
+        int _gestureHand = -1;
+        float _gestureT, _gestureDur;
         // The camera's dip history, to replay it a moment later.
         readonly float[] _dipT = new float[64];
         readonly float[] _dipV = new float[64];
@@ -264,6 +278,29 @@ namespace JamKit.Movement
         /// furthest on each footfall (the right hand forward when the left foot lands).</summary>
         public static float Swing(float side, float stridePhase) => side * (float)Math.Cos(stridePhase * Math.PI);
 
+        /// <summary>
+        /// Lifts <paramref name="hand"/> (0 left, 1 right) towards a point for <paramref name="duration"/> seconds: a quick raise,
+        /// then a blend back. The point comes in each frame as <see cref="BodyFeelInput.gestureTarget"/>. A contact cue on that
+        /// hand (the wall, a ledge) wins: the gesture waits it out silently.
+        /// </summary>
+        public void Gesture(int hand, float duration)
+        {
+            _gestureHand = hand == 0 ? 0 : 1;
+            _gestureT = 0f;
+            _gestureDur = Math.Max(0.05f, duration);
+        }
+
+        /// <summary>The gesture's weight now (0..1): up over gestureRise of it, then back down.</summary>
+        float GestureWeight()
+        {
+            if (_gestureHand < 0) return 0f;
+            float u = Clamp01(_gestureT / _gestureDur);
+            float rise = Clamp(def.gestureRise, 0.05f, 0.95f);
+            float w = u < rise ? u / rise : 1f - (u - rise) / (1f - rise);
+            w = Clamp01(w);
+            return w * w * (3f - 2f * w);
+        }
+
         public BodyFeelPose Tick(in BodyFeelInput i)
         {
             var d = def;
@@ -280,6 +317,11 @@ namespace JamKit.Movement
                 _lastSpeed = i.speed;
             }
             float approachSpeed = Math.Max(_lastSpeed, i.speed);
+            if (_gestureHand >= 0)
+            {
+                _gestureT += dt;
+                if (_gestureT >= _gestureDur) _gestureHand = -1;
+            }
 
             // Tiers (8.4; the posture part is ours).
             float fast = SmoothStep(d.tierFast - d.tierBlend, d.tierFast + d.tierBlend, i.speed);
@@ -445,6 +487,17 @@ namespace JamKit.Movement
                 if (!contact && !onWall && _wallBlend > 0f && (int)side == _wallArm)
                     target = Vector3.Lerp(target, _lastContact[k], _wallBlend);
                 pose.reach[k] = reach;
+                // A gesture: the hand lifts towards the point at gestureReach from her shoulder (never over a contact cue).
+                float gw = !contact && k == _gestureHand ? GestureWeight() : 0f;
+                pose.gesture[k] = gw;
+                if (gw > 0f)
+                {
+                    Vector3 shoulder = new Vector3(side * d.shoulderWidth, -d.shoulderDrop, 0.02f);
+                    Vector3 to = i.gestureTarget - shoulder;
+                    float len = to.Length();
+                    Vector3 point = len > 1e-4f ? shoulder + to * (Math.Min(len, d.gestureReach) / len) : target;
+                    target = Vector3.Lerp(target, point, gw);
+                }
 
                 if (!contact)
                 {
@@ -482,6 +535,7 @@ namespace JamKit.Movement
                 else if (dt > 0f)
                 {
                     float w = reach > 0f ? d.armSpring * 1.6f : d.armSpring;
+                    if (pose.gesture[k] > 0f) w = d.armSpring * Math.Max(1f, d.gestureSpring);
                     _vel[k] += (w * w * (target - pose.hand[k]) - 2f * w * _vel[k]) * dt;
                     pose.hand[k] += _vel[k] * dt;
                 }
