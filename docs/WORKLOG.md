@@ -743,3 +743,25 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   left), saved bests, a target board and an end screen.
 - **The old course is kept** as free roam before the Gauntlet. The lab's debug HUD moved to F3 / d-pad down.
 - **Restart and ghost** are being made rebindable by the Controls agent.
+
+### The creator's notes on the sprint-and-kick lab, played on a controller (16:20)
+- **Overall:** pretty good on a controller. Air strafing is complicated on a stick (tap strafing untried), but that's
+  not a big deal.
+- **Wallrun catches can be funky.** The verdict from the code: a catch needs at least 5 m/s, 0.6 m off the ground, a
+  direction within 70° of the wall, and the stick not pointing away. Any of these can silently refuse a catch. The fix:
+  an F3 readout of WHY a catch was refused, plus a looser angle and probe and a 0.1 s retry while the stick comes round.
+- **The wall bleeds speed fast.** The verdict: above the 8.64 m/s goal, the excess fades at rate 2 per second (13 m/s
+  becomes about 10.3 m/s in half a second). And on a stick that isn't counted as forward along the wall, wall
+  friction brakes toward 0, which may be the real cause on a controller. The fix: a grace of about 0.5 s with no
+  bleed, softer friction after it, and a more forgiving "forward".
+- **The double jump gets a small forward push,** about +1 m/s, never past sprint speed.
+- **Do slide ramps give an impulse?** Yes: the downhill pull is 1.5× gravity along the slope, on top of the slide
+  boost. The Gauntlet's ramp is being checked to make sure it's felt (at least +3 m/s by the bottom).
+- **Shooting while running:** the creator wants to feel it (shooting tiles out ahead, a puzzle while running) but
+  worries air strafing plus anything else is too many actions. The verdict: worth a prototype, because Titanfall's own
+  Gauntlet is shoot-while-running. Frame it as a dream tool, not a gun; one button (Fire) with generous aim assist;
+  shots placed in calm moments, replacing a movement input rather than stacking on it, plus one optional expert
+  moment that stacks. Three section types: clear the way (glass tiles), build the way (a socket unfolds a platform or
+  wall), a running puzzle (a two-colour flip, like Night 3's badge). A new agent is building it as its own chapter
+  after the Gauntlet.
+- **All of this goes into the next lab build** with the Gauntlet, Nadia's body and the Controls screen.
