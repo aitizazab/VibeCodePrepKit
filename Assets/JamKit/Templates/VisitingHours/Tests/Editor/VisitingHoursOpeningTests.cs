@@ -239,6 +239,20 @@ namespace JamKit.VisitingHours.Tests
                     bool inside = Mathf.Abs(q.x) < half.x && Mathf.Abs(q.y) < half.y && Mathf.Abs(q.z) < half.z;
                     Assert.That(inside, Is.False, t.name + " is inside the phone");
                 }
+                // Her hand is behind the phone (on the side away from her eyes), only the fingertips round its edges and
+                // the thumb in front: no finger bone lies over the screen on the camera's side.
+                Vector3 toEye = cam.transform.position - centre;
+                Vector3 normal = stage.phone.rotation * Vector3.up;
+                if (Vector3.Dot(normal, toEye) < 0f) normal = -normal;
+                Vector3 side = stage.phone.rotation * Vector3.right, length = stage.phone.rotation * Vector3.forward;
+                foreach (var t in model.model.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t.name.IndexOf("RightHand", System.StringComparison.Ordinal) < 0 || t.name.IndexOf("Thumb", System.StringComparison.Ordinal) >= 0) continue;
+                    Vector3 d = t.position - centre;
+                    bool overScreen = Mathf.Abs(Vector3.Dot(d, side)) < half.x - 0.004f && Mathf.Abs(Vector3.Dot(d, length)) < half.z - 0.004f;
+                    bool cameraSide = Vector3.Dot(d, normal) > half.y + 0.004f;
+                    Assert.That(overScreen && cameraSide, Is.False, t.name + " lies over the screen on her side of the phone (the hand should be behind it)");
+                }
             }
             finally
             {

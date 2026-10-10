@@ -326,18 +326,29 @@ namespace JamKit.VisitingHours
             return outside.magnitude + Mathf.Min(Mathf.Max(q.x, Mathf.Max(q.y, q.z)), 0f);
         }
 
-        /// <summary>The nearest the palm comes to the phone: the wrist, the knuckles and between them.</summary>
-        float PalmDistance()
+        /// <summary>
+        /// How far the palm (the wrist, the knuckles and between them) must move along <paramref name="side"/> times the
+        /// phone's normal to be clear of it on that side: every palm point over the phone's outline at least
+        /// <see cref="PalmClearance"/> beyond that face. 0 when it already is.
+        /// </summary>
+        float PalmShortfall(float side)
         {
-            float d = PhoneDistance(rHand.position);
-            for (int f = 0; f < 4; f++)
+            float need = 0f;
+            for (int i = 0; i < 9; i++)
             {
-                var k = _fingers[f * 3];
-                if (k == null) continue;
-                d = Mathf.Min(d, PhoneDistance(k.position));
-                d = Mathf.Min(d, PhoneDistance((k.position + rHand.position) * 0.5f));
+                Vector3 p;
+                if (i == 0) p = rHand.position;
+                else
+                {
+                    var k = _fingers[((i - 1) / 2) * 3];
+                    if (k == null) continue;
+                    p = (i & 1) == 1 ? k.position : (k.position + rHand.position) * 0.5f;
+                }
+                Vector3 q = _phoneInv * (p - _phoneCentre);
+                if (Mathf.Abs(q.x) > _phoneHalf.x + 0.01f || Mathf.Abs(q.z) > _phoneHalf.z + 0.01f) continue;
+                need = Mathf.Max(need, _phoneHalf.y + PalmClearance - side * q.y);
             }
-            return d;
+            return need;
         }
 
         /// <summary>
@@ -356,14 +367,23 @@ namespace JamKit.VisitingHours
             _phoneInv = Quaternion.Inverse(phoneRotation);
             Vector3 up = phoneRotation * Vector3.up, top = phoneRotation * Vector3.forward, right = phoneRotation * Vector3.right;
 
-            // The palm off the phone, on the side it is on (behind it once held, over the screen while it lies there).
+            // The palm off the phone, on the side the grip puts it (behind it once held, over the screen while it lies
+            // there), and, when held, slid across its back so the knuckles line up with its far (left) edge: her hand is
+            // bigger than the phone, and only the fingers should come round that edge.
             float side = Vector3.Dot(_lastWrist - phoneCentre, up) >= 0f ? 1f : -1f;
             Vector3 wrist = _lastWrist;
             for (int pass = 0; pass < 3; pass++)
             {
-                float gap = PalmDistance();
-                if (gap >= PalmClearance) break;
-                wrist += up * (side * (PalmClearance - gap + 0.002f));
+                float need = PalmShortfall(side);
+                Vector3 shift = need > 0.001f ? up * (side * (need + 0.002f)) : Vector3.zero;
+                if (side < 0f && _fingers[3] != null)
+                {
+                    float knuckle = Vector3.Dot(_fingers[3].position - phoneCentre, right);
+                    float slide = Mathf.Clamp(-(_phoneHalf.x + 0.004f) - knuckle, -0.06f, 0.06f);
+                    if (Mathf.Abs(slide) > 0.003f) shift += right * slide;
+                }
+                if (shift.sqrMagnitude < 1e-6f) break;
+                wrist += shift;
                 SetHand(wrist, _lastPalm, _lastWeight);
             }
 
@@ -385,6 +405,9 @@ namespace JamKit.VisitingHours
                         bone.rotation = Quaternion.AngleAxis(sign * a, across) * start;
                         Vector3 e = end.position, m = (bone.position + e) * 0.5f;
                         if (PhoneDistance(e) < FingerRadius || PhoneDistance(m) < FingerRadius) break;
+                        // Round the edge and no further: the fingertips stop where they reach the other face (they
+                        // don't lie across the screen).
+                        if (side * Vector3.Dot(e - phoneCentre, up) < -_phoneHalf.y) break;
                         best = a;
                     }
                     bone.rotation = Quaternion.AngleAxis(sign * best, across) * start;

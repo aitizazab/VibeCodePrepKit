@@ -389,10 +389,13 @@ namespace JamKit.VisitingHours
             Vector3 up = phone.rotation * Vector3.up, top = phone.rotation * Vector3.forward, right = phone.rotation * Vector3.right;
             float hw = phoneSize.x * 0.5f, th = phoneSize.y, hl = phoneSize.z * 0.5f;
             Vector3 centre = phone.position + up * (th * 0.5f);
+            // "Behind" in world terms: the side of the phone away from her eyes (the camera), whichever way it's turned.
+            Vector3 front = cam != null && Vector3.Dot(up, cam.transform.position - centre) < 0f ? -up : up;
+            Vector3 behindDir = -front;
             Vector3 aboveWrist = centre - top * (hl + 0.03f) + up * (th * 0.5f + 0.024f);
             Quaternion above = Quaternion.LookRotation(top, up);
-            Vector3 behindWrist = centre - top * (hl + 0.025f) + right * (hw * 0.45f) - up * (th * 0.5f + 0.012f);
-            Quaternion behind = Quaternion.LookRotation((top * 0.75f - right * 0.66f).normalized, -up);
+            Vector3 behindWrist = centre - top * (hl + 0.025f) + right * (hw * 0.45f) + behindDir * (th * 0.5f + 0.012f);
+            Quaternion behind = Quaternion.LookRotation((top * 0.75f - right * 0.66f).normalized, behindDir);
             float k = VhUtil.Ease(held);
             wrist = Vector3.Lerp(aboveWrist, behindWrist, k) + up * (Mathf.Sin(k * Mathf.PI) * 0.03f);
             palm = Quaternion.Slerp(above, behind, k);
