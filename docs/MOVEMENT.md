@@ -33,6 +33,7 @@ Run the lab on its own: **JamKit > Use Template > Movement Lab**, then Play (swi
 | Mantle | automatic: run or jump at a ledge 0.4 to 1.9 m above your feet | same |
 | Lab debug HUD | F3 | d-pad down |
 | Gauntlet: restart, ghost (rebindable in Settings > Controls) | R, G | View (Select), d-pad left |
+| Dream tool (its chapter only): fire, restart the chapter (both rebindable) | left mouse, R | RT, View (Select) |
 | Pause, Comfort and camera | Escape | Start |
 
 **You walk unless you sprint** (the creator, 2026-10-10: `autoSprint` is off by default). On a pad the
@@ -472,6 +473,119 @@ transcribed no videos):
 - The course is a loop that brings you back to the start line, with a leaderboard screen beside it.
 - The timer runs from the line to the line.
 - It opens with wallruns over pits, then rooms of holographic targets, a slide and mantles.
+
+## Dream tool prototype
+
+**The question it tests (the creator, 2026-10-10):** does a one-button action on top of the Titanfall-style movement
+feel good, or is it too many actions at once? "Shooting tiles out in front of you to make a way through, or solving
+a puzzle while running."
+
+**The fiction (placeholder):** a gun doesn't fit Nadia, so it's a **dream tool**. She points, and a pulse of light
+pops glass, unfolds the dream or flips it: the dream bends to her will. The look is a placeholder: pastel glass, gold
+sockets, pink and blue platforms.
+
+**How to play it**
+1. Open presenter mode (**Ctrl+Shift+P**, or hold L3+R3 on a pad) and pick the chapter **Dream tool**. You can also
+   walk on past the Gauntlet's finish: the walkway leads to the chapter's start pad.
+2. Cross the gate and the chapter's own clock starts. It has three splits and a best time, and **R** or **View**
+   restarts the chapter (the same rebindable Restart action as the Gauntlet).
+3. **Fire** (left mouse or RT; rebind it under Controls) sends the pulse. Point roughly at a target: the aim locks
+   onto the target nearest the crosshair within 6° on a mouse or 8° on a pad, measured from the target's edge, and a
+   gold bracket shows the lock. There's a 0.25 s cooldown and a 40 m range.
+4. What the pulse does:
+   - It **pops a glass tile**.
+   - It **builds from a gold socket**: a bridge or a runnable wall.
+   - It **flips a switch**: pink or blue, only one colour is solid at a time. The diamond shows the colour a hit
+     will make solid, and the HUD says which colour is solid now.
+5. Falls put you back at the last checkpoint. Everything ahead of it is restored, in the checkpoint's colour.
+
+**The route.** Three sections after the Gauntlet, from z 1144 (`DreamToolCourse.Origin`). Every section has a safe
+line (stop, then shoot) and a fast line (shoot on the move).
+
+| # | Section | Beats | Safe line | Fast line |
+|---|---|---|---|---|
+| 1 | **Clear the way** | Three doorways filled with pastel glass tiles: one seen from the start pad on a grounded sprint; one after a 5.5 m gap, shot at the top of the jump; one shot during a long wallrun glide | Stop at the glass and shoot it point-blank | Shoot each from about 20 m without breaking stride |
+| 2 | **Build the way** | A socket unfolds a bridge over an 18 m chasm. A socket raises a runnable wall over an 18 m pit. Neither can be crossed any other way. Then the expert moment (below) | Stop at the edge, shoot, cross. After the long wall, take the three-step mantle stair | Shoot each socket from the run-up |
+| 3 | **Running puzzle** | Pink is solid at first. Flip on the deck: the pink barrier goes and the blue steps appear. Flip again **mid-glide** on a grey wall: the pink landing appears and the blue steps behind you go. Flip again **at the top of the drop**: the blue landing appears and the pink you just left goes | Flip while standing on grey (the deck, the stones beside the wall, the stone beside the drop). Grey is always solid | Flip on the move |
+
+**The pacing.** A shot replaces a movement input instead of stacking on one. Every required shot comes when the
+movement asks for nothing else: a grounded sprint, a glide along a wall, the top of a jump or a drop. No required
+shot falls during a wall kick or while air strafing.
+- **The one expert moment does stack, and it's optional.** During the long wallrun in section 2, a socket far ahead
+  and up to the left (about 12° off your line) raises a second wall. Kick across to it, run it, then kick and double
+  jump over the mantle stair. That's a shot, a wallrun and a wall kick inside about one second.
+- It saves about **0.7 s** and two of the three mantles, and you reach the puzzle at about 10 m/s instead of 8.
+
+The seconds between required shots (the autopilot's clean run in the dotnet sim at 60 fps, clock time):
+
+| Shot | When | Since the previous | Moment |
+|---|---|---|---|
+| Glass 1 | 1.5 s | 1.5 s | grounded sprint, 22 m out |
+| Glass 2 | 5.7 s | 4.2 s | top of the jump, 18 m out |
+| Glass 3 | 10.9 s | 5.2 s | mid-glide on the wall, 25 m out |
+| Bridge socket | 14.5 s | 3.6 s | the run-up, 28 m out |
+| Wall socket | 18.5 s | 4.0 s | the run-up, 20 m out |
+| (expert socket) | 25.1 s | (6.6 s) | on the long wall, 29 m out: optional |
+| Switch 1 | 29.6 s | 11.1 s | grounded sprint on the deck, 13 m out |
+| Switch 2 | 37.0 s | 7.4 s | mid-glide on the grey wall, 18 m out |
+| Switch 3 | 40.4 s | 3.4 s | the top of the drop, 17 m out |
+
+Eight required shots in 44 s. That's one every **3.4 to 11 s, 5 s on average**, never closer than 3.4 s (a test
+keeps them at least 2.5 s apart).
+
+**Times:**
+- **The developer's time, 44.0 s:** the autopilot's clean run on the expert line, pinned by a test. The main line
+  takes 44.7 s.
+- **Mags's time:** 60.0 s.
+- Your best is saved under its own key (`DreamToolRun.SaveKey`). Autopilot and attract runs never count.
+
+**What to judge (the creator):**
+1. **Clear the way.** Does popping glass on the sprint feel like a reward, or like a chore you have to remember?
+   Does shooting at the top of the jump feel natural?
+2. **Build the way.** Is planning while moving (seeing a gap and a socket, building before you get there) the fun
+   kind of thinking at this speed?
+3. **The puzzle.** Is the flip mid-glide exciting, or one thing too many? Is the flip at the top of the drop (a
+   window under a second) fair?
+4. **The expert moment.** Is a shot during a wallrun, right before a kick, too much? This answers the worry
+   directly.
+5. **The aim assist.** Is 6° (mouse) and 8° (pad) generous enough that you never feel you're aiming? If it's too
+   sticky or too loose, tune `DreamTool.def` on the lab's Movement Lab object.
+6. **Spacing.** Is about 5 s between shots right? Shorter would add more actions; longer and the tool fades into
+   the background.
+
+**Where things are.**
+- The core, plain C# and dotnet-tested:
+  - `Runtime/Core/Movement/DreamToolCourse.cs`: the chapter's data.
+  - `DreamTool.cs`: the state, the aim assist and the autopilot's trigger.
+  - `DreamToolSounds.cs`: the generated placeholder sounds (`dt_fire`, `dt_lock`, `dt_pop`, `dt_build`, `dt_flip`,
+    `dt_dry`). Any of them can be replaced through the Audio Registry.
+- The lab, `Assets/JamKit/Templates/MovementLab/`:
+  - `Scripts/DreamTool.cs`: input, aim, beam, pulse, sound.
+  - `Scripts/DreamToolRun.cs`: the state, the clock, the HUD.
+  - `Scripts/DreamToolPieceView.cs` and `Scripts/DreamToolTargetView.cs`.
+  - `Editor/DreamToolBuilder.cs`.
+- The run reuses the Gauntlet's clock. `GauntletCourse.Chapter` makes an empty timed run, and a `GauntletClock`
+  runs it. `GauntletCourse.End` (z 1120) is where the Gauntlet's HUD and restart stop.
+- The autopilot can't aim, so the tool has a test hook: while the course autopilot drives, `DreamTool.autoFire`
+  fires at each cue's target when it's in range (`DreamToolPilot`).
+- Tests:
+  - `core-tests/Movement`, `DreamToolTests`:
+    - the autopilot clears the chapter at 20 to 300 fps and with jitter, and the main line works too;
+    - every checkpoint runs to the next, and a held fire leaves the first pane blocking the lane;
+    - every target can be shot from the route, in range and in sight;
+    - the builds close gaps nothing else crosses, and the reach checks pass with them built;
+    - the colour flip, the aim assist and the sounds.
+  - Unity EditMode, `DreamToolEditorTests`: the wiring.
+  - Unity PlayMode, `DreamToolPlayTests`:
+    - the autopilot clears all three sections;
+    - a missed tile blocks the lane until it's shot, and the restart puts it back;
+    - a flip makes the other colour solid, by its collider and a raycast.
+
+**Not done:**
+- Nadia's arm doesn't rise on a shot; the pulse starts at her right hand's pose position. `MovementBody` has no hook
+  between the feel's pose and the rig. A small one, an `OnPose` callback before `rig.Apply`, would let the tool lift
+  her hand toward the target for about 0.2 s.
+- The fiction (what the tool is, why she has it) is open.
 
 ## Free roam: the old course
 

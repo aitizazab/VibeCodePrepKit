@@ -75,6 +75,10 @@ namespace JamKit.Movement
 
         GauntletCourse(LabCourse c) { course = c; }
 
+        /// <summary>An empty timed run on an existing course, for another chapter's own clock (the dream tool's): its builder
+        /// fills in the gate, the sections, any markers and the finish, and a <see cref="GauntletClock"/> runs it.</summary>
+        public static GauntletCourse Chapter(LabCourse course) => new GauntletCourse(course);
+
         /// <summary>The lab's whole course: the old course (free roam) and the Gauntlet after it.</summary>
         public static GauntletCourse Build()
         {
@@ -92,7 +96,11 @@ namespace JamKit.Movement
             return 0;
         }
 
-        public bool InGauntlet(float s) => s >= Origin - 20f;
+        /// <summary>Where the Gauntlet's stretch of the lab ends: the dream tool chapter (<see cref="DreamToolCourse"/>) comes
+        /// after it with its own clock, so the Gauntlet's HUD and restart stop here.</summary>
+        public const float End = Origin + 520f;
+
+        public bool InGauntlet(float s) => s >= Origin - 20f && s < End;
 
         public List<string> CheckReach(MoveDef def, float skin = 0.04f, float crouchStepOffset = 0f) => CourseReach.Check(beats, def, skin, crouchStepOffset);
 

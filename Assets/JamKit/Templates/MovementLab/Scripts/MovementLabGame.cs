@@ -36,6 +36,7 @@ namespace JamKit.MovementLab
 
         LabCourse _course;
         GauntletCourse _gauntlet;
+        DreamToolCourse _dream;
         readonly List<LabPieceView> _pieces = new List<LabPieceView>();
         bool[] _collapsed;
         Pursuer _pursuer;
@@ -56,8 +57,12 @@ namespace JamKit.MovementLab
         public LabCourse Course => _course;
         /// <summary>The Gauntlet (its course is <see cref="Course"/>: the old course, kept as free roam, then the Gauntlet).</summary>
         public GauntletCourse Gauntlet => _gauntlet;
+        /// <summary>The dream tool chapter after the Gauntlet (its course is <see cref="Course"/> too; its run loop is <see cref="DreamToolRun"/>).</summary>
+        public DreamToolCourse DreamCourse => _dream;
         /// <summary>Called whenever the player is put at a checkpoint (start, respawn, chapter jump, restart): (index, running).</summary>
         public System.Action<int, bool> OnPlaced;
+        /// <summary>The same moment as <see cref="OnPlaced"/>, for any number of listeners (the dream tool's run loop).</summary>
+        public event System.Action<int, bool> Placed;
         public float S => _s;
         public int Checkpoint => _checkpoint;
         public bool Chasing => _chasing;
@@ -94,7 +99,8 @@ namespace JamKit.MovementLab
                 return;
             }
             _current = this;
-            _gauntlet = GauntletCourse.Build();
+            _dream = DreamToolCourse.Build(); // the old course, the Gauntlet, then the dream tool chapter
+            _gauntlet = _dream.gauntlet;
             _course = _gauntlet.course;
             _pursuer = new Pursuer
             {
@@ -181,7 +187,7 @@ namespace JamKit.MovementLab
             {
                 if (_s < _course.checkpoints[i].s) break;
                 _checkpoint = i;
-                if (_gauntlet.InGauntlet(_course.checkpoints[i].s)) continue; // the Gauntlet shows splits instead
+                if (_gauntlet.InGauntlet(_course.checkpoints[i].s) || DreamToolCourse.InChapter(_course.checkpoints[i].s)) continue; // the Gauntlet and the dream tool show splits instead
                 GameRoot.Audio.Play("mv_checkpoint", 0.6f);
                 GameRoot.Hud.Message("Checkpoint: " + _course.checkpoints[i].name, 1.5f);
             }
@@ -306,6 +312,7 @@ namespace JamKit.MovementLab
             _pilot.Reset(cp.s);
             if (index == 0 && !keepTimer) { _timing = false; _runTime = 0f; _topSpeed = 0f; }
             OnPlaced?.Invoke(index, running);
+            Placed?.Invoke(index, running);
         }
 
         string TraceTail(int n)
@@ -324,7 +331,7 @@ namespace JamKit.MovementLab
             StopAllCoroutines();
             _respawning = false;
             GameRoot.Ui.SetFade(0f);
-            PlaceAt(i, false, i != 0 && i != _gauntlet.startCheckpoint);
+            PlaceAt(i, false, i != 0 && i != _gauntlet.startCheckpoint && i != _dream.startCheckpoint);
         }
 
         /// <summary>Puts the player at a checkpoint at once (the Gauntlet's restart): clears any fade or respawn in progress.</summary>
@@ -342,7 +349,7 @@ namespace JamKit.MovementLab
             StopAllCoroutines();
             _respawning = false;
             GameRoot.Ui.SetFade(0f);
-            PlaceAt(next, true, next != 0 && next != _gauntlet.startCheckpoint);
+            PlaceAt(next, true, next != 0 && next != _gauntlet.startCheckpoint && next != _dream.startCheckpoint);
             return true;
         }
 

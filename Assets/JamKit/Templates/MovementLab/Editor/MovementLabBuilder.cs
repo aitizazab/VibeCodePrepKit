@@ -213,8 +213,9 @@ namespace JamKit.MovementLab.EditorTools
         static string BuildScene(Materials m)
         {
             var scene = SceneBuilder.NewScene(Sky, out var cam);
-            var gauntlet = GauntletCourse.Build();
-            var course = gauntlet.course; // the old course (free roam), then the Gauntlet
+            var dream = DreamToolCourse.Build();
+            var gauntlet = dream.gauntlet;
+            var course = gauntlet.course; // the old course (free roam), then the Gauntlet, then the dream tool chapter
 
             RenderSettings.ambientMode = AmbientMode.Trilight;
             RenderSettings.ambientSkyColor = new Color(0.78f, 0.82f, 0.92f);
@@ -287,7 +288,7 @@ namespace JamKit.MovementLab.EditorTools
             var root = new GameObject("Course").transform;
             for (int i = 0; i < course.pieces.Count; i++) BuildPiece(course.pieces[i], i, root, m);
             foreach (var cp in course.checkpoints)
-                Marker(root, "Checkpoint " + cp.name, cp.position.Z, cp.position.Y, m.marker, 0.25f, gauntlet.InGauntlet(cp.s) ? 8.6f : LabCourse.Half + 0.2f);
+                Marker(root, "Checkpoint " + cp.name, cp.position.Z, cp.position.Y, m.marker, 0.25f, gauntlet.InGauntlet(cp.s) || DreamToolCourse.InChapter(cp.s) ? 8.6f : LabCourse.Half + 0.2f);
             Marker(root, "Finish", course.finishS, course.pieces.Find(p => p.name == "Finish").Max.Y, m.finish, 0.6f);
 
             // The pursuer: a curtain of dream-static across the route.
@@ -312,6 +313,7 @@ namespace JamKit.MovementLab.EditorTools
             game.pursuerView = view;
             game.courseRoot = root;
             BuildGauntlet(gauntlet, root, m, game);
+            DreamToolBuilder.Build(dream, root, game);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             return ScenePath;
