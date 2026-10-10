@@ -73,6 +73,17 @@ in this city.
     the corporations buy and tear down: walks, photographs, notes. It fits the pencil, the money, the dystopia, and gives
     her somewhere else she goes.
   - Sheets: round 2 in `docs/art/vh-lena3-picks.json`, round 3 in `docs/art/vh-lena4-picks.json`.
+- **Round 4: CHOSEN (the creator, 2026-10-10): "4-a is what we'll work with."** Sheets in `docs/art/vh-lena5-picks.json`:
+  waking turnaround `lena5-turn-take1`, dream billboard `lena5-bb-take2`, dream expressions `lena5-expr-take2`.
+  - **The fixes that made 4-a:** the key necklace is gone (it could read as a cross; nothing on her chest or neck, only
+    the watch worn face-in); the notebook is held loosely in one hand, never clasped to her chest (that read religious);
+    the skirt became slim deep wine-red wool trousers with dark-brown lace-up ankle boots (she goes out at night, so the
+    clothes are practical).
+  - **Why not the other designs:** the fresh design and the reconciled versions lost what the creator liked about 4-a:
+    **the sketchbook look, the unique posing and the strength of the defining colour.** Keep those in every future
+    sheet of her.
+  - **Open:** her dream billboard reads taller than the rest of the dream cast (about 6'2" against 5'8"–5'11", with Theo
+    smaller). The creator isn't against her being tallest but wants it thought through. Not changed yet.
 
 ## Theo
 - **Role:** Elias and Lena's son, ten, killed in the crash. In the dream, he's the one who asks the question that
