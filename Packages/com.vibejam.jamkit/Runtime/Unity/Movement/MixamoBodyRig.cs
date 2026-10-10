@@ -44,6 +44,7 @@ namespace JamKit.Movement
         Quaternion[] _bindRot;
         Vector3[] _bindScale;
         Quaternion _faceFix = Quaternion.identity;
+        readonly float[] _armLength = new float[2];
         Quaternion _lanyardBind;
         SkinnedMeshRenderer[] _visible = new SkinnedMeshRenderer[0];
         MaterialPropertyBlock _block;
@@ -57,9 +58,18 @@ namespace JamKit.Movement
         public override Vector3 HeadPosition => _head != null ? _head.position : transform.position;
         public override Vector3 HandPosition(int side) => _hand[side] != null ? _hand[side].position : Vector3.zero;
         public override Vector3 FootPosition(int side) => _foot[side] != null ? _foot[side].position : Vector3.zero;
+
+        public override bool ArmReach(int side, out Vector3 shoulder, out float reach)
+        {
+            shoulder = _arm[side] != null ? _arm[side].position : Vector3.zero;
+            reach = _armLength[side];
+            return _ready && reach > 0f;
+        }
         public IReadOnlyList<SkinnedMeshRenderer> VisibleRenderers => _visible;
         /// <summary>After the last pose: how far each hand and ankle ended from its target (m), and the head bone from the camera (tests).</summary>
         public readonly float[] HandError = new float[2], FootError = new float[2];
+        /// <summary>After the last pose: each ankle in the body's frame (x right, y up from the soles, z forward).</summary>
+        public readonly Vector3[] FootLocal = new Vector3[2];
         public float HeadDistance;
 
         void Awake() => Bind();
@@ -117,6 +127,8 @@ namespace JamKit.Movement
                 _bindScale[i] = _bones[i].localScale;
             }
             if (lanyardBone != null) _lanyardBind = lanyardBone.localRotation;
+            for (int i = 0; i < 2; i++)
+                _armLength[i] = Vector3.Distance(_arm[i].position, _fore[i].position) + Vector3.Distance(_fore[i].position, _hand[i].position);
 
             var list = new List<SkinnedMeshRenderer>();
             foreach (var smr in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
@@ -223,6 +235,7 @@ namespace JamKit.Movement
                 Vector3 pole = f.bodyRotation * U(pose.kneePole[i]);
                 TwoBone(_up[i], _leg[i], _foot[i], ankle, pole);
                 FootError[i] = Vector3.Distance(_foot[i].position, ankle);
+                FootLocal[i] = Quaternion.Inverse(f.bodyRotation) * (_foot[i].position - f.feet);
                 if (_toe[i] != null)
                 {
                     Vector3 toes = _toe[i].position - _foot[i].position;

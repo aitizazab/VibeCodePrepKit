@@ -191,9 +191,11 @@ namespace JamKit.Movement
                     Vector3 t = new Vector3(sim.WallTangent.X, 0f, sim.WallTangent.Z);
                     if (Vector3.Dot(t, body.Velocity) < 0f) t = -t;
                     t = t.sqrMagnitude > 1e-6f ? t.normalized : body.transform.forward;
-                    Vector3 spot = hit.point + n * 0.03f + t * def.wallHandAhead;
+                    Vector3 p0 = hit.point + n * 0.03f;
+                    p0.y = transform.TransformPoint(new Vector3(0f, def.wallHandHeight, 0f)).y;
+                    int arm = sim.WallSide > 0 ? 1 : 0;
+                    Vector3 spot = p0 + t * ReachableAhead(arm, p0, t, def.wallHandAhead, Vector3.zero);
                     Vector3 local = transform.InverseTransformPoint(spot);
-                    local.y = def.wallHandHeight;
                     input.hasWallTarget = true;
                     input.wallHandTarget = N(local);
                 }
@@ -277,9 +279,11 @@ namespace JamKit.Movement
                     float tHit = tPrev + (t - tPrev) * (hit.distance / len);
                     Vector3 travel = v * tHit + (air ? Vector3.down * (0.5f * g * tHit * tHit) : Vector3.zero);
                     Vector3 along = Vector3.ProjectOnPlane(flat, nrm).normalized;
-                    Vector3 spot = hit.point + nrm * 0.03f + along * def.wallHandAhead;
+                    Vector3 p0 = hit.point + nrm * 0.03f;
+                    p0.y = eye.y + travel.y + (transform.rotation * new Vector3(0f, def.wallHandHeight, 0f)).y;
+                    int arm = Vector3.Dot(-nrm, body.transform.right) > 0f ? 1 : 0;
+                    Vector3 spot = p0 + along * ReachableAhead(arm, p0, along, def.wallHandAhead, travel);
                     Vector3 local = Quaternion.Inverse(transform.rotation) * (spot - (eye + travel));
-                    local.y = def.wallHandHeight;
                     input.approaching = true;
                     input.approachSide = Vector3.Dot(-nrm, body.transform.right) > 0f ? 1 : -1;
                     input.approachCloseness = Mathf.Clamp01(1f - tHit / def.wallLookAhead);
@@ -289,6 +293,31 @@ namespace JamKit.Movement
                 prev = p;
                 tPrev = t;
             }
+        }
+
+        /// <summary>
+        /// How far along the wall (from <paramref name="p0"/>, the wall point beside her, along <paramref name="along"/>) the
+        /// hand can plant: <paramref name="want"/> (0.35 m in TF2's spot), or less when her arm can't reach that far
+        /// (the hand must really touch the wall; a hand floating short of it would break the cue).
+        /// <paramref name="shift"/> moves the shoulder to where it will be (the look-ahead).
+        /// </summary>
+        float ReachableAhead(int side, Vector3 p0, Vector3 along, float want, Vector3 shift)
+        {
+            Vector3 shoulder;
+            float reach;
+            if (!(UsingRig && rig.ArmReach(side, out shoulder, out reach)))
+            {
+                float k = _root != null ? _root.localScale.x : 1f;
+                var def = _feel.def;
+                shoulder = transform.TransformPoint(new Vector3((side == 0 ? -1f : 1f) * def.shoulderWidth, -def.shoulderDrop, 0.02f) * k);
+                reach = (upperArm + forearm) * k;
+            }
+            shoulder += shift;
+            reach *= 0.97f;
+            float s0 = Vector3.Dot(shoulder - p0, along);
+            float perp2 = (shoulder - (p0 + along * s0)).sqrMagnitude;
+            if (perp2 >= reach * reach) return Mathf.Clamp(s0, 0f, want);
+            return Mathf.Clamp(s0 + Mathf.Sqrt(reach * reach - perp2), 0f, want);
         }
 
         // ---------- The placeholder ----------

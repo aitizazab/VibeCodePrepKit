@@ -45,5 +45,14 @@ namespace JamKit.Movement
 
         /// <summary>How far around the camera the visible body is cut away in first person (m).</summary>
         public abstract float CutoutRadius { get; }
+
+        /// <summary>Where an arm starts (world; 0 left, 1 right) and how far its hand can reach from there (m), so a
+        /// contact spot can be kept within reach. False: unknown (the body uses its own estimate).</summary>
+        public virtual bool ArmReach(int side, out Vector3 shoulder, out float reach)
+        {
+            shoulder = Vector3.zero;
+            reach = 0f;
+            return false;
+        }
     }
 }

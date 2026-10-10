@@ -17,9 +17,10 @@ namespace JamKit.Tests.Play
         public sealed class Report
         {
             public int catches, catchesChecked, slideFrames, reachedEarly;
+            public float leastLeadForward = float.MaxValue, leastLeadUp = float.MaxValue;
             public float worstWallHand, worstSlideFoot, worstHead, cutout;
             public override string ToString() =>
-                $"catches {catches} (reaching out before contact on {reachedEarly}, checked {catchesChecked}, worst hand {worstWallHand:0.000} m), slide frames {slideFrames} (worst ankle {worstSlideFoot:0.000} m), head {worstHead:0.000} m from the eye (cut-away {cutout:0.00} m)";
+                $"catches {catches} (reaching out before contact on {reachedEarly}, checked {catchesChecked}, worst hand {worstWallHand:0.000} m), slide frames {slideFrames} (worst ankle off its target {worstSlideFoot:0.000} m, leading ankle at least {leastLeadForward:0.00} m ahead and {leastLeadUp:0.00} m up), head {worstHead:0.000} m from the eye (cut-away {cutout:0.00} m)";
         }
 
         public static MixamoBodyRig RigOf(MovementController player)
@@ -41,6 +42,7 @@ namespace JamKit.Tests.Play
             var rig = RigOf(player);
             r.cutout = rig.CutoutRadius;
             int catchFrame = -1, wallIdx = 0;
+            bool counted = false;
             float end = Time.realtimeSinceStartup + seconds;
             while (!done() && Time.realtimeSinceStartup < end)
             {
@@ -49,34 +51,37 @@ namespace JamKit.Tests.Play
                 {
                     r.catches++;
                     // The pose read here is the frame before contact: the lean-in should already be under way.
-                    int side = ev.wallSide > 0 ? 1 : 0;
-                    if (mb.Pose != null && mb.Pose.reach[side] > 0.3f) r.reachedEarly++;
-                    catchFrame = Time.frameCount;
                     wallIdx = ev.wallSide > 0 ? 1 : 0;
+                    if (mb.Pose != null && mb.Pose.reach[wallIdx] > 0.3f) r.reachedEarly++;
+                    catchFrame = Time.frameCount;
+                    counted = false;
                 }
-                // The coroutine runs after Update: what it reads is the last LateUpdate's pose, the frame before.
-                if (catchFrame >= 0 && Time.frameCount - catchFrame == 3)
+                // The hand is planted on the contact frame; the coroutine reads the pose a frame late, so every wallrun
+                // frame from two after the catch must have the hand on its spot (the IK reached it).
+                if (catchFrame >= 0 && player.Mode == MoveMode.Wallrun && mb.HandOnWall && Time.frameCount - catchFrame >= 2)
                 {
-                    if (player.Mode == MoveMode.Wallrun && mb.HandOnWall)
-                    {
-                        r.catchesChecked++;
-                        r.worstWallHand = Mathf.Max(r.worstWallHand, rig.HandError[wallIdx]);
-                    }
-                    catchFrame = -1;
+                    if (!counted) { r.catchesChecked++; counted = true; }
+                    r.worstWallHand = Mathf.Max(r.worstWallHand, rig.HandError[wallIdx]);
                 }
+                if (player.Mode != MoveMode.Wallrun) catchFrame = -1;
                 if (player.Mode == MoveMode.Slide && mb.Pose != null && mb.Pose.legs > 0.99f)
                 {
                     r.slideFrames++;
                     r.worstSlideFoot = Mathf.Max(r.worstSlideFoot, Mathf.Max(rig.FootError[0], rig.FootError[1]));
+                    // The leading (left) foot out in front and up: what makes the feet show at the bottom of the screen.
+                    var lead = rig.FootLocal[0];
+                    r.leastLeadForward = Mathf.Min(r.leastLeadForward, lead.z);
+                    r.leastLeadUp = Mathf.Min(r.leastLeadUp, lead.y);
                 }
                 r.worstHead = Mathf.Max(r.worstHead, rig.HeadDistance);
                 yield return null;
             }
         }
 
-        /// <summary>The checks: the wall hand on its spot (within <paramref name="handTolerance"/> m: the arm's reach),
-        /// the slide feet reached, the head cut away from the first-person view.</summary>
-        public static void AssertFollowed(Report r, bool expectWallruns, bool expectSlides, float handTolerance = 0.06f)
+        /// <summary>The checks: the wall hand on its spot (within <paramref name="handTolerance"/> m: the spot is kept within the
+        /// arm's reach, so this is only the IK's rounding), it reached out before contact, the leading foot out in front and up
+        /// in a slide, the head cut away from the first-person view.</summary>
+        public static void AssertFollowed(Report r, bool expectWallruns, bool expectSlides, float handTolerance = 0.03f)
         {
             TestContext.Out.WriteLine("Body: " + r);
             if (expectWallruns)
@@ -88,7 +93,9 @@ namespace JamKit.Tests.Play
             if (expectSlides)
             {
                 Assert.That(r.slideFrames, Is.GreaterThan(0), "a slide was watched");
-                Assert.That(r.worstSlideFoot, Is.LessThan(0.12f), "the legs take the slide pose");
+                Assert.That(r.leastLeadForward, Is.GreaterThan(0.45f), "the leading foot is out in front in the slide");
+                Assert.That(r.leastLeadUp, Is.GreaterThan(0.12f), "and up off the ground, where the camera sees it");
+                Assert.That(r.worstSlideFoot, Is.LessThan(0.12f), "the legs reach the slide pose (the recline puts the feet in reach)");
             }
             Assert.That(r.worstHead, Is.LessThan(r.cutout - 0.04f), "the head stays inside the cut-away: the first-person camera never sees it");
         }

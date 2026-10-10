@@ -191,13 +191,22 @@ namespace JamKit.MovementLab.Tests
         public IEnumerator NadiasBodyCarriesTheMoves()
         {
             yield return StartLab();
+            // The wallrun section: several catches.
+            Game.JumpToChapter(LabCourse.ChapterWallruns);
+            yield return Frames(2);
+            var walls = new BodyTestUtil.Report();
+            Game.SetAutopilot(true);
+            yield return BodyTestUtil.Watch(Game.player, () => walls.catchesChecked >= 3, 20f, walls);
+            Game.SetAutopilot(false);
+            BodyTestUtil.AssertFollowed(walls, true, false);
+            // The momentum chain: the slide.
             Game.JumpToChapter(LabCourse.ChapterChain);
             yield return Frames(2);
-            var report = new BodyTestUtil.Report();
+            var slides = new BodyTestUtil.Report();
             Game.SetAutopilot(true);
-            yield return BodyTestUtil.Watch(Game.player, () => Game.S >= 236f && Game.player.Sim.Grounded, 12f, report);
+            yield return BodyTestUtil.Watch(Game.player, () => Game.S >= 236f && Game.player.Sim.Grounded, 12f, slides);
             Game.SetAutopilot(false);
-            BodyTestUtil.AssertFollowed(report, true, true);
+            BodyTestUtil.AssertFollowed(slides, false, true);
         }
     }
 }
