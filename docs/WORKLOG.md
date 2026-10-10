@@ -961,3 +961,11 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   44 s are a test driver's pace. Their records are in `tools/movementlab/creator-records-2026-10-10.json`. Sent to the
   Gauntlet agent: the boards show the creator's times; Mags's time is recalibrated; the creator's Gauntlet ghost ships
   as a developer ghost; the dream tool's empty ghost recording gets fixed.
+- **The real targets (52ae6d3):**
+  - **Developer's time:** the creator's best (Gauntlet "31.42 (1 plate missed)", dream tool 28.17), from a shipped
+    `Data/DeveloperRecords.json`.
+  - **Mags's time:** 1.5× that, rounded to 2.5 s (47.5 s and 42.5 s).
+  - **Ghosts:** G or d-pad left cycles your best (blue) → the developer's (gold) → off, and the HUD names the one
+    you're racing.
+  - **The dream tool's ghost recording is fixed** (it cleared the ghost on a new best).
+  - Unity check and a lab build under way.
