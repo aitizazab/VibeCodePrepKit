@@ -621,3 +621,10 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   names), conflicts, resets, saved between sessions; possibly a hold-or-toggle choice for crouch and sprint.
 - **Waiting on the creator:** the design-doc audit, the Lena pick (round 3 or fresh), a first look at the opening and
   the escape, which escape version to keep, the voicemail re-record, and music (composed together).
+
+### Started (14:30): Nadia's model as the first-person body
+- The creator: the lab and the escape should use the real Nadia, since most of the game uses the same Nadia (casual or
+  nurse clothes at most). The opening's agent is replacing the capsule arms and legs with her Tripo model, driven from
+  the same procedural poses (lean-in hand, slide legs, mantle, kick), with her head hidden in first person, her full
+  shadow kept, her waking material in both builds (in the dream she's the one real 3D figure), and the capsules as the
+  fallback. Possibly a third-person debug camera to judge the poses.
