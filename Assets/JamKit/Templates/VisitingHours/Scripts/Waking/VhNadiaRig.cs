@@ -311,7 +311,7 @@ namespace JamKit.VisitingHours
         }
 
         /// <summary>The most each finger joint bends (degrees) when the hand is closed and nothing stops it.</summary>
-        static readonly float[] CurlDegrees = { 70f, 90f, 60f };
+        static readonly float[] CurlDegrees = { 12f, 18f, 12f }; // small: her model's mitten-like fingers crumple when bent far
         const float FingerRadius = 0.008f, PalmClearance = 0.015f, CurlStep = 5f;
 
         Vector3 _phoneCentre, _phoneHalf;
@@ -376,10 +376,12 @@ namespace JamKit.VisitingHours
             {
                 float need = PalmShortfall(side);
                 Vector3 shift = need > 0.001f ? up * (side * (need + 0.002f)) : Vector3.zero;
-                if (side < 0f && _fingers[3] != null)
+                if (side < 0f && _fingerTips[1] != null)
                 {
-                    float knuckle = Vector3.Dot(_fingers[3].position - phoneCentre, right);
-                    float slide = Mathf.Clamp(-(_phoneHalf.x + 0.004f) - knuckle, -0.06f, 0.06f);
+                    // The fingers nearly straight along its back: slide the hand so the middle fingertip ends 1.5 cm past
+                    // the far (left) edge, the rest of the hand behind the phone.
+                    float tip = Vector3.Dot(_fingerTips[1].position - phoneCentre, right);
+                    float slide = Mathf.Clamp(-(_phoneHalf.x + 0.015f) - tip, -0.08f, 0.08f);
                     if (Mathf.Abs(slide) > 0.003f) shift += right * slide;
                 }
                 if (shift.sqrMagnitude < 1e-6f) break;
@@ -413,32 +415,45 @@ namespace JamKit.VisitingHours
                     bone.rotation = Quaternion.AngleAxis(sign * best, across) * start;
                 }
 
-            // The thumb: its tip at the screen's lower right edge, or pressing the screen below its middle; turned less if
-            // the full turn would take it through the phone.
+            // The thumb, held: beside the phone's right edge (seen from the side, never across the screen), or folded
+            // behind it if that can't be reached; pressing the screen near its lower right corner only while it taps.
+            // Lying on the nightstand (the hand over it) the thumb just stays out of the phone.
             if (_thumb[0] == null || _thumbTip == null) return;
-            Vector3 rest = phoneCentre + up * (_phoneHalf.y + 0.006f) + right * (_phoneHalf.x + 0.002f) - top * (_phoneHalf.z * 0.3f);
-            Vector3 press = phoneCentre + up * (_phoneHalf.y + 0.003f) + right * (_phoneHalf.x * 0.15f) - top * (_phoneHalf.z * 0.15f);
-            Vector3 target = Vector3.Lerp(rest, press, Mathf.Clamp01(thumbPress));
+            bool held = side < 0f;
+            bool pressing = thumbPress > 0.3f;
+            _thumbTargets[0] = phoneCentre + up * (_phoneHalf.y + 0.003f) + right * (_phoneHalf.x * 0.5f) - top * (_phoneHalf.z * 0.55f);
+            _thumbTargets[1] = phoneCentre + right * (_phoneHalf.x + 0.010f) - top * (_phoneHalf.z * 0.25f);
+            _thumbTargets[2] = phoneCentre - up * (_phoneHalf.y + 0.012f) + right * (_phoneHalf.x * 0.5f) - top * (_phoneHalf.z * 0.2f);
             float w = Mathf.Clamp01(curl) * _lastWeight;
             for (int i = 0; i < 3; i++) _thumbStart[i] = _thumb[i] != null ? _thumb[i].localRotation : Quaternion.identity;
-            for (float k2 = 1f; k2 > -0.01f; k2 -= 0.25f)
-            {
-                for (int i = 0; i < 3; i++) if (_thumb[i] != null) _thumb[i].localRotation = _thumbStart[i];
-                for (int j = 0; j < 2; j++)
+            bool done = false;
+            for (int c = pressing ? 0 : 1; c < 3 && !done; c++)
+                for (float k2 = 1f; k2 > 0.4f && !done; k2 -= 0.25f)
                 {
-                    var bone = _thumb[j];
-                    if (bone == null) continue;
-                    Quaternion aim = Quaternion.FromToRotation(_thumbTip.position - bone.position, target - bone.position);
-                    bone.rotation = Quaternion.Slerp(Quaternion.identity, aim, w * k2 * (j == 0 ? 1f : 0.6f)) * bone.rotation;
+                    AimThumb(_thumbTargets[c], w * k2);
+                    done = ThumbClear(!held || c == 0);
                 }
-                if (ThumbClear()) break;
-            }
+            if (!done) AimThumb(_thumbTargets[2], 1f);
         }
 
         readonly Quaternion[] _thumbStart = new Quaternion[3];
+        readonly Vector3[] _thumbTargets = new Vector3[3];
 
-        /// <summary>True when no part of the thumb is inside the phone.</summary>
-        bool ThumbClear()
+        void AimThumb(Vector3 target, float weight)
+        {
+            for (int i = 0; i < 3; i++) if (_thumb[i] != null) _thumb[i].localRotation = _thumbStart[i];
+            for (int j = 0; j < 2; j++)
+            {
+                var bone = _thumb[j];
+                if (bone == null) continue;
+                Quaternion aim = Quaternion.FromToRotation(_thumbTip.position - bone.position, target - bone.position);
+                bone.rotation = Quaternion.Slerp(Quaternion.identity, aim, weight * (j == 0 ? 1f : 0.6f)) * bone.rotation;
+            }
+        }
+
+        /// <summary>True when no part of the thumb is inside the phone and (unless <paramref name="screenAllowed"/>) none of
+        /// it lies over the screen on its face's side.</summary>
+        bool ThumbClear(bool screenAllowed)
         {
             Vector3 prev = _thumb[0].position;
             for (int i = 1; i <= 3; i++)
@@ -446,10 +461,19 @@ namespace JamKit.VisitingHours
                 var t = i < 3 ? _thumb[i] : _thumbTip;
                 if (t == null) continue;
                 Vector3 p = t.position;
-                if (PhoneDistance(p) < 0.006f || PhoneDistance((p + prev) * 0.5f) < 0.006f) return false;
+                Vector3 m = (p + prev) * 0.5f;
+                if (PhoneDistance(p) < 0.006f || PhoneDistance(m) < 0.006f) return false;
+                if (!screenAllowed && (OverScreen(p) || OverScreen(m))) return false;
                 prev = p;
             }
             return true;
+        }
+
+        /// <summary>Over the screen on the screen's side of the phone.</summary>
+        bool OverScreen(Vector3 p)
+        {
+            Vector3 q = _phoneInv * (p - _phoneCentre);
+            return q.y > _phoneHalf.y && Mathf.Abs(q.x) < _phoneHalf.x && Mathf.Abs(q.z) < _phoneHalf.z;
         }
 
         public override void SetThumb(float press01) { }

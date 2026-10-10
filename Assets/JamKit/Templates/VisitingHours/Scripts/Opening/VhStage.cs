@@ -395,7 +395,7 @@ namespace JamKit.VisitingHours
             Vector3 aboveWrist = centre - top * (hl + 0.03f) + up * (th * 0.5f + 0.024f);
             Quaternion above = Quaternion.LookRotation(top, up);
             Vector3 behindWrist = centre - top * (hl + 0.025f) + right * (hw * 0.45f) + behindDir * (th * 0.5f + 0.012f);
-            Quaternion behind = Quaternion.LookRotation((top * 0.75f - right * 0.66f).normalized, behindDir);
+            Quaternion behind = Quaternion.LookRotation((top * 0.9f - right * 0.44f).normalized, behindDir);
             float k = VhUtil.Ease(held);
             wrist = Vector3.Lerp(aboveWrist, behindWrist, k) + up * (Mathf.Sin(k * Mathf.PI) * 0.03f);
             palm = Quaternion.Slerp(above, behind, k);
