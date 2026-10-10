@@ -15,6 +15,19 @@ namespace JamKit.Shell
         const int Rate = 22050;
         static readonly Dictionary<string, AudioClip> Cache = new Dictionary<string, AudioClip>();
 
+        /// <summary>
+        /// The Visiting Hours sounds came out far too quiet (a phone ring peaking at 0.44, a breath at 0.05, the
+        /// creator couldn't hear the opening), so each is scaled to a set peak when it's made. The peaks keep the
+        /// mix's order: the ring and impacts loudest, then the voices' bed, then breath and ambience.
+        /// </summary>
+        static readonly Dictionary<string, float> Peaks = new Dictionary<string, float>
+        {
+            { "vh_phone_ring", 0.75f }, { "vh_vibrate", 0.6f }, { "vh_clunk", 0.75f }, { "vh_tap", 0.6f },
+            { "vh_rustle", 0.55f }, { "vh_rustle_big", 0.6f }, { "vh_breath", 0.35f }, { "vh_monitor", 0.45f },
+            { "vh_crack", 0.7f }, { "vh_wrong", 0.6f }, { "vh_hit", 0.7f }, { "vh_journal", 0.6f },
+            { "amb_vh_hospital", 0.35f }, { "amb_vh_suburb", 0.35f }, { "music_vh_sad_pad", 0.6f },
+        };
+
         /// <summary>The ids this class can make.</summary>
         public static readonly string[] Ids =
         {
@@ -56,6 +69,7 @@ namespace JamKit.Shell
             if (Cache.TryGetValue(id, out var clip) && clip != null) return clip;
             float[] data = Make(id);
             if (data == null) return null;
+            if (Peaks.TryGetValue(id, out float peak)) MoveSounds.Normalize(data, peak);
             clip = AudioClip.Create("gen_" + id, data.Length, 1, Rate, false);
             clip.SetData(data, 0);
             Cache[id] = clip;

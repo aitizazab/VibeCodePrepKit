@@ -13,7 +13,7 @@ namespace JamKit.Flow
     [Serializable]
     public class Settings
     {
-        public float masterVolume = 0.8f;
+        public float masterVolume = 1f;
         public float musicVolume = 0.7f;
         public float sfxVolume = 0.8f;
         public float mouseSensitivity = 1f;
