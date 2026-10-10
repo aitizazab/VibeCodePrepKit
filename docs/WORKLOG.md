@@ -849,3 +849,26 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **The creator needs the CPU (16:50):** the Unity test run was stopped. Leftover .NET build processes were lowered to
   below-normal priority, and the three working agents (speed audio, speed visuals, dream tool) run dotnet at low
   priority, one project at a time. No Unity until the creator says.
+
+### The dream tool chapter (16:55; not yet in Unity)
+- **How to play:**
+  - **Getting there:** chapter "Dream tool" (Ctrl+Shift+P, or hold L3+R3 on a pad), or walk on past the Gauntlet's
+    finish.
+  - **Fire:** left mouse or RT.
+  - **Aim:** aim assist locks the target nearest the crosshair within 6° (mouse) or 8° (pad), with a gold bracket;
+    0.25 s cooldown, 40 m range.
+  - **Feedback and restart:** a pulse from her right hand and a beam; R or View restarts.
+- **Three timed sections, each with a safe line (stop, then shoot) and a fast line (shoot on the move):**
+  1. **Clear the way:** pastel glass in three doorways, shot on a sprint, at the top of a jump, and during a wallrun
+     glide.
+  2. **Build the way:** a socket unfolds a bridge over an 18 m chasm, and another raises a runnable wall over an 18 m
+     pit (neither gap can be crossed otherwise).
+  3. **Running puzzle:** pink and blue platforms (one colour solid at a time; grey always solid), with flips on a deck,
+     mid-glide on a wall, and at the top of a drop.
+  - **The expert stacked shot:** a far socket during a wallrun raises a second wall, saving about 0.7 s.
+- **Pacing:** 8 required shots in 44 s, about one every 5 s, never closer than 3.4 s. None falls during a wall kick or
+  air strafing. Developer 44.0 s, Mags 60 s.
+- **The questions for the creator:** is popping glass a reward or a chore? Is building while moving fun? Is the
+  mid-glide flip exciting, and is the under-a-second flip at the top of the drop fair? Is the stacked shot too much?
+  Is the aim assist generous enough? Is 5 s between shots right?
+- **Her arm doesn't lift when firing yet:** the hook was sent to the body agent.
