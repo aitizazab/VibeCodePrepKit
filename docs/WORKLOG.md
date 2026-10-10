@@ -1000,3 +1000,17 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   5. **The stick:** the same maths, but a 190–304°/s turn limit.
   - Ideal strafing from 13 to 22 m/s takes 3.25 s of air today; 4.1 s with air control off; 7.5 s with it off and the cap at 0.59.
   - Seven options went to the creator (agent's guess: redirect-only air control plus a soft limit on strafe gains at about 13–14 m/s).
+- **The creator's choices and notes (2026-10-11, about 03:00):**
+  - **Air strafing:** options 1 (air control only steers, adding speed only below about 5 m/s) and 5 (bunny-hop dampening: a chain of hops costs about what a slide burns, a mistimed hop costs more). Controller strafing must not get worse. The double jump's free steering is part of why hopping is easy. To try in the next Movement Lab and Dream Escape builds. Sent to the movement agent.
+  - **Visiting Hours opening:**
+    - The lighting isn't cinematic and needs an overhaul. Sent to the speed-visuals agent, which owns the new `VhLighting.cs` hook (fbf0b84).
+    - The sounds go to public recordings: breath, ring, buzz, rolling over in bed. Sent to the sound agent, through ProceduralAudio.
+    - The phone clips through her hand, the photo frame floats half off the table, the bed has a bump under her, and the phone has no real screen edges. Sent to the opening agent.
+    - The framed photo and the call background look AI-made. Sent to the art agent; takes go in art/review/2026-10-11/.
+  - **Title:**
+    - The fade order is wrong. It should be coffee, then badge, then notepad, then tablet, then table, then room.
+    - The tablet is too small; it should fill most of the frame.
+    - The badge needs a gear and "Settings", and the notepad needs Credits.
+    - The lighting needs an overhaul (the creator stressed this: it's the first screen everyone sees).
+    - Sent to the opening and lighting agents.
+  - **DESIGN-DECISIONS.md** was opened in the creator's editor for their answers. After they hand it back: a full prose explanation of the scenario and the people that asks every obvious question, says what isn't written, and states each extrapolation or interpretation made.
