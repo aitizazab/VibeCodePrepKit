@@ -63,6 +63,7 @@ namespace JamKit.VisitingHours
             BuildBedroom(s);
             BuildTable(s);
             Poses(s);
+            VhLighting.Apply(s);
             Sounds(s);
             if (screens) Screens(s);
             else
