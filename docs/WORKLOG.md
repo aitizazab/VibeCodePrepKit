@@ -460,3 +460,27 @@ The same dead stop was hiding at the Movement Lab's chase bar; its test passed o
 build run and the keep-awake helper. Nothing was lost: free memory was back to 5.8 GB, and the builds were redone
 one at a time. Unity's compiler server (left idle by the tests, 344 MB) was stopped too. (Note: the times in the
 headings above were corrected from the commit times; the earlier guesses ran up to three hours late.)
+
+---
+
+## Day of 2026-10-11
+
+### The creator's notes on the overnight art (morning)
+- **Lena reads as her own person, but still looks too much like Nadia,** and they aren't related:
+  - she dresses the same as Nadia;
+  - her facial structure leaves little room to tell them apart;
+  - **her sleeves are pushed up, like Elias's and Nadia's.** The two siblings sharing that quirk is fine; Lena must not have it;
+  - with the longer hair, the pencil doesn't look deliberate. **It should rest above her ear.**
+  - → A round-2 redo was sent to the art agent: a contrasting face, her own clothes and silhouette, sleeves down,
+    the pencil above her ear, with Nadia shown beside her for comparison.
+- **The bedroom images** aren't bad, but would need a custom crop or zoom if used directly. They're concept art;
+  the scene itself is 3D.
+- **The title table needs a significant crop and zoom, maybe a different angle, and the camera raised** so the
+  "Quit" in the coffee shows properly. The creator will judge the 3D version in the new opening; apply this note
+  to the 3D title camera if it shows the same problem.
+
+### The order for today (the creator's)
+1. Try the Movement Lab with a controller now, and later with mouse and keyboard.
+2. Audit almost everything in the four design docs. First, defined: where Theo gives his blessing and why, what
+   "Lena's truth" is, and the Long Night as written.
+3. Then watch the new opening and title, and play the dream escape.
