@@ -85,6 +85,24 @@ namespace JamKit.Tests.DreamEscape
         }
 
         [Test]
+        public void TheGarageDoorClearsTheSlidingCapsuleOnTheRealController()
+        {
+            var d = Build();
+            var def = new MoveDef();
+            LabPiece P(string name) => d.course.pieces.Find(p => p.name == name);
+            float gap = P("Garage door").Min.Y - P("Street D").Max.Y;
+            // The Unity controller: 4 cm skin, no step offset while crouched (MovementController defaults).
+            float need = DreamEscapeCourse.SlideGapNeeded(def, 0.04f, 0f);
+            TestContext.Out.WriteLine($"gap {gap:0.00} m, the sliding capsule needs {need:0.00} m");
+            Assert.That(gap, Is.GreaterThanOrEqualTo(need));
+            Assert.That(gap, Is.LessThan(def.standHeight), "standing, you can't pass");
+            // With the 0.35 m step offset the controller used to keep while sliding, its step-up pass lifted the capsule
+            // into the door's face and the slide stopped dead (Unity PlayMode, 2026-10-10): the check must catch that.
+            var withStep = d.CheckReach(def, 0.04f, 0.35f);
+            Assert.That(withStep.Exists(s => s.StartsWith("Under the garage door", StringComparison.Ordinal)), Is.True, string.Join("\n", withStep));
+        }
+
+        [Test]
         public void TheGapsBetweenSurfacesAreWhatTheBeatsSay()
         {
             var d = Build();

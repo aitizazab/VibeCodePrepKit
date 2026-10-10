@@ -170,8 +170,18 @@ namespace JamKit.DreamEscape
             return speed * (up1 + up2 + down);
         }
 
-        /// <summary>Every beat that doesn't fit the movement's measured reach with a margin, in words (empty = all good).</summary>
-        public List<string> CheckReach(MoveDef def)
+        /// <summary>Clearance a slide gap needs over the crouched capsule (the controller's sweep must not graze it).</summary>
+        public const float SlideMargin = 0.05f;
+
+        /// <summary>The lowest gap a slide passes at full speed on Unity's CharacterController: the crouched capsule,
+        /// its skin, and the step offset the controller's step-up pass lifts it by before sweeping forward.</summary>
+        public static float SlideGapNeeded(MoveDef def, float skin, float crouchStepOffset) =>
+            def.slideHeight + skin + crouchStepOffset + SlideMargin;
+
+        /// <summary>Every beat that doesn't fit the movement's measured reach with a margin, in words (empty = all good).
+        /// <paramref name="skin"/> and <paramref name="crouchStepOffset"/> are the Unity controller's (MovementController
+        /// skinWidth and crouchStepOffset).</summary>
+        public List<string> CheckReach(MoveDef def, float skin = 0.04f, float crouchStepOffset = 0f)
         {
             var problems = new List<string>();
             float single = SingleJumpReach(def, def.sprintSpeed);
@@ -208,8 +218,11 @@ namespace JamKit.DreamEscape
                         if (b.height < def.mantleMinHeight || b.height > def.mantleMaxHeight - 0.2f) problems.Add($"{b.name}: step {b.height:0.00} m outside the mantle's {def.mantleMinHeight:0.0}-{def.mantleMaxHeight - 0.2f:0.0} m");
                         break;
                     case DreamBeatKind.Slide:
-                        if (b.height < def.slideHeight + 0.1f) problems.Add($"{b.name}: {b.height:0.00} m under the door, the slide needs {def.slideHeight + 0.1f:0.00}");
-                        if (b.height > def.standHeight - 0.2f) problems.Add($"{b.name}: {b.height:0.00} m under the door, you could walk under it");
+                    {
+                        float need = SlideGapNeeded(def, skin, crouchStepOffset);
+                        if (b.height < need) problems.Add($"{b.name}: {b.height:0.00} m under the door; a slide needs {need:0.00} (capsule {def.slideHeight:0.00} + skin {skin:0.00} + crouched step offset {crouchStepOffset:0.00} + {SlideMargin:0.00})");
+                        if (b.height > def.standHeight + skin - 0.05f) problems.Add($"{b.name}: {b.height:0.00} m under the door, you could walk under it");
+                    }
                         break;
                 }
             }

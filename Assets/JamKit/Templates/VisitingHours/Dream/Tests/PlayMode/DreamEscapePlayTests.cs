@@ -55,8 +55,16 @@ namespace JamKit.DreamEscape.Tests
             int respawns = Game.Respawns, caught = Game.Caught;
             Game.SetAutopilot(true);
             float until = Time.realtimeSinceStartup + 70f;
-            while (Game.Finishes == 0 && Time.realtimeSinceStartup < until) yield return null;
+            float underDoor = float.MaxValue; // the slowest speed while passing under the garage door (z 205.2-206.8)
+            while (Game.Finishes == 0 && Time.realtimeSinceStartup < until)
+            {
+                float z = Game.player.transform.position.z;
+                if (z > 205.2f && z < 206.8f && !Game.Respawning) underDoor = Mathf.Min(underDoor, Game.player.Speed);
+                yield return null;
+            }
             Game.SetAutopilot(false);
+            TestContext.Out.WriteLine($"slowest under the garage door: {underDoor:0.0} m/s");
+            Assert.That(underDoor, Is.GreaterThan(7f), "the slide carries its speed under the garage door (no dead stop at its face)");
             TestContext.Out.WriteLine("Trace (state changes and respawns):");
             TestContext.Out.WriteLine(Game.TraceText);
             TestContext.Out.WriteLine($"escape {Game.LastTime:0.0} s (game time), top speed {Game.TopSpeed:0.0} m/s, respawns {Game.Respawns - respawns}, caught {Game.Caught - caught}, collapses {Game.CollapsesFired}");

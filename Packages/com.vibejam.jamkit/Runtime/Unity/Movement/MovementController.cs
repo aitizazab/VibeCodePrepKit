@@ -42,6 +42,16 @@ namespace JamKit.Movement
         [Tooltip("Off: every wall is runnable unless a MovementSurface says no. On: only walls with a runnable MovementSurface.")]
         public bool onlyMarkedWalls;
         public LayerMask worldMask = ~(1 << 2);
+        [Tooltip("The CharacterController's skin: it rests this far off what it touches.")]
+        public float skinWidth = 0.04f;
+        [Tooltip("Small steps the standing body walks up by itself.")]
+        public float stepOffset = 0.35f;
+        [Tooltip("The step offset while crouched or sliding. The controller's step-up pass lifts the capsule by the step " +
+                 "offset before its forward sweep, so with 0.35 a slide stops dead at the face of a 1.15 m bar it fits under.")]
+        public float crouchStepOffset = 0f;
+
+        /// <summary>The step offset for a capsule of this height (crouched: <see cref="crouchStepOffset"/>).</summary>
+        public float StepOffsetFor(float height) => height < Def.standHeight - 0.01f ? crouchStepOffset : stepOffset;
 
         MoveSim _sim;
         MoveDriver _driver;
@@ -96,9 +106,9 @@ namespace JamKit.Movement
             controller.radius = d.radius;
             controller.height = d.standHeight;
             controller.center = new Vector3(0f, d.standHeight * 0.5f, 0f);
-            controller.stepOffset = 0.35f;
+            controller.stepOffset = StepOffsetFor(d.standHeight);
             controller.slopeLimit = d.slopeLimit;
-            controller.skinWidth = 0.04f;
+            controller.skinWidth = skinWidth;
             controller.minMoveDistance = 0f;
             _sim = new MoveSim(this, d);
             _driver = new MoveDriver(_sim);
@@ -266,6 +276,7 @@ namespace JamKit.Movement
                 controller.radius = radius;
                 controller.height = height;
                 controller.center = new Vector3(0f, height * 0.5f, 0f);
+                controller.stepOffset = Mathf.Min(StepOffsetFor(height), height);
             }
             Vector3 pos = ToU(feet);
             if ((transform.position - pos).sqrMagnitude > 1e-8f)

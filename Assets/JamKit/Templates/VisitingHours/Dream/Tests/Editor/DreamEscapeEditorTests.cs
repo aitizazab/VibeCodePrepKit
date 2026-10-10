@@ -88,9 +88,35 @@ namespace JamKit.DreamEscape.Tests
         {
             var tuning = AssetDatabase.LoadAssetAtPath<MovementTuning>(DreamEscapeBuilder.TuningPath);
             Assert.That(tuning, Is.Not.Null);
+            // The controller as the scene has it: its skin and the step offset it keeps while crouched or sliding.
+            float skin, crouchStep;
+            var scene = EditorSceneManager.OpenScene(DreamEscapeBuilder.ScenePath, OpenSceneMode.Additive);
+            try
+            {
+                MovementController body = null;
+                foreach (var go in scene.GetRootGameObjects())
+                    if (body == null) body = go.GetComponentInChildren<MovementController>(true);
+                Assert.That(body, Is.Not.Null);
+                Assert.That(body.tuning, Is.SameAs(tuning), "the scene runs on the dream escape's tuning asset");
+                skin = body.skinWidth;
+                crouchStep = body.crouchStepOffset;
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
             var dream = DreamEscapeCourse.Build();
-            var problems = dream.CheckReach(tuning.def);
-            Assert.That(problems, Is.Empty, "the dream escape's tuning was changed beyond the route's sizes:\n" + string.Join("\n", problems));
+            var problems = dream.CheckReach(tuning.def, skin, crouchStep);
+            Assert.That(problems, Is.Empty, "the dream escape's tuning or controller was changed beyond the route's sizes:\n" + string.Join("\n", problems));
+
+            // The slide under the garage door: the crouched capsule, its skin and the step-up lift must fit under the door
+            // (with the old 0.35 m step offset while sliding, the slide stopped dead at the door's face).
+            var door = dream.course.pieces.Find(p => p.name == "Garage door");
+            var floor = dream.course.pieces.Find(p => p.name == "Street D");
+            float gap = door.Min.Y - floor.Max.Y;
+            float need = DreamEscapeCourse.SlideGapNeeded(tuning.def, skin, crouchStep);
+            TestContext.Out.WriteLine($"garage door gap {gap:0.00} m; sliding capsule {tuning.def.slideHeight:0.00} + skin {skin:0.00} + crouched step {crouchStep:0.00} + margin = {need:0.00} m");
+            Assert.That(gap, Is.GreaterThanOrEqualTo(need), "the slide clears the garage door");
         }
 
         [Test]

@@ -156,7 +156,7 @@ Metres, seconds, m/s, degrees.
 | `MovementBody` (on the camera) | PLACEHOLDER arms and slide legs: colours, proportions; sprint pump with the stride, jump lift, double-jump sweep, **wall-side hand reaching out and planting on the wall on contact**, slide balance pose with legs out, mantle plant |
 | `SpeedLines` (on the camera) | 56 edge streaks from 12 to 20 m/s, alpha up to 0.35, never in the centre of the screen |
 | `MovementAudio` (on the body) | wind loop (volume smoothstep 6..18 m/s, pitch up with speed), slide scrape, wallrun scrape, footsteps on the stride (about 4.9/s at sprint, 1.5x on a wall), catch, jump, double jump (distinct), wall jump, boost, mantle, landing thud by impact (none when landing into a slide). Ids `mv_*` in the Audio Registry replace the placeholders. |
-| `MovementController` | mouseDegreesPerPixel 0.09, gamepadDegreesPerSecond 190 (x1.6 boost after 0.25 s fully over), maxPitch 85, managePointerLock, onlyMarkedWalls, worldMask |
+| `MovementController` | mouseDegreesPerPixel 0.09, gamepadDegreesPerSecond 190 (x1.6 boost after 0.25 s fully over), maxPitch 85, managePointerLock, onlyMarkedWalls, worldMask, skinWidth 0.04, stepOffset 0.35 standing, **crouchStepOffset 0** (the CharacterController's step-up pass lifts the capsule by the step offset before it sweeps forward: with 0.35 while sliding, a slide stopped dead at the face of a 1.15 m bar) |
 
 ## Comfort settings
 
