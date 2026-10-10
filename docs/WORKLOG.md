@@ -712,3 +712,20 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   Input System's editor default sent the test keyboard's keys to the editor instead of the game. The rebind code saw
   them (it reads raw input) but the game's actions didn't. Real play and built players aren't affected. The test now
   runs with input settings that send all input to the game, and restores the originals afterwards.
+
+### Lena round 4, steps 2 and 3 (16:00)
+- **Page:** `art/review/2026-10-10/visiting-hours-lena-round4-b.html`.
+- **The fresh design, fixed:** green eyes, a level gaze and a faint closed half-smile; one notebook at her hip; the
+  pockets empty; the waking and dream versions now match (honey-ash hair; plum, cream, stone, oxblood). Picks:
+  `lenafresh2-turn-take3`, `lenafresh2-bb-take1`, `lenafresh2-expr-take3`.
+- **Reconciled (round 4-a's Lena in the fresh design's clothes):** her face, freckles, golden waves and dark-green pencil,
+  in the plum coat, cream sweater, stone trousers and loafers; the billboard re-run for a centred, calm gaze. Picks:
+  `lenafresh-recon2-turn-take2`, `lenafresh-recon3-bb-take1`, `lenafresh-recon3-expr-take3`.
+- **Weak spots:** the pencil stands upright in front view but lies across the ear in side view; a small round ear still
+  shows in the dream; the reconciled expressions still glance slightly sideways; the reconciled turnaround's eyes read
+  grey and its trousers end above the ankle; on the fixed billboard the watch faces out.
+- **Its questions:** is the level, half-lidded gaze mysterious enough or too blank? The notebook at her hip or under her
+  arm? Does the plum coat suit 4-a's golden hair? Should the turnaround carry the notebook as a prop? Should the hair
+  cover the dream ear completely?
+- **Next:** round 3's agent makes the fresh fix in 4-a's clothes, then the cast lineups (waking and dream, every Lena
+  candidate in her own row with the cast) on `visiting-hours-lena-final.html`.
