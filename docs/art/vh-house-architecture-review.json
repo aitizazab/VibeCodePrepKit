@@ -1,0 +1,278 @@
+{
+ "name": "visiting-hours-house-architecture",
+ "title": "Visiting Hours: Night 2's house, rebuilt as a real home (architecture and level design)",
+ "subtitle": "Your note: \"too much space... the walls just being an uninteresting box for every single room, and only one floor that we explore (when we need the attic too), and the space doesn't feel exciting to explore.\" The house is rebuilt to a real family home's size (15 x 12 m), with eight rooms of their own shapes and ceiling heights, walls with character (a bay, a chimney breast, an archway and a pass-through, a cupboard under the stairs, wainscoting, rails, cornices) and an attic under a sloped roof: up steep stairs from Theo's room, down through a hatch into the hall. Movement and stealth values are unchanged, and hide-and-seek, Theo's paths, the hiding spots and the tests all still work. Grey = before (the decorated house of this morning), green = after, stills from the game.",
+ "questions": [
+  "Does each room now read as its own place, and is it cosy rather than empty? Which room still feels like a box?",
+  "Is the attic a reveal? You arrive on the storage side, see starlight past the hung sheets, and find the observatory through them. Does that land, or does the attic need more (a puzzle, a memory up there, a darker approach)?",
+  "The observatory is MY PROPOSAL, from your note in STORY-PROSE (\"maybe a small observatory in the attic?\"): Lena's telescope, chair, star charts and notebook, tying to her Thursdays. Keep it, change it, or make the attic only stored family life?",
+  "Hide-and-seek stays on the main floor; the attic is one hiding spot Theo checks from the foot of its stairs. Is that right, or should he search the attic too?",
+  "Size: the main floor is now real proportions with narrow hall and small rooms. Too tight to sneak round Theo, or right?",
+  "Still open from before: the floorboards (realistic wood, crayon-drawn, or plain pastel?); dressing the tipped house as a house on its side; the cast's white sticker borders; the house front (is it their home?)."
+ ],
+ "notes": [
+  "Level-design rules used (landmarks, loops, teasing, compression and release, rewarding curiosity, light leading the eye): sources and details in docs/DREAM-HOUSE.md, 'Architecture and level design'.",
+  "Loops: kitchen to living room through the archway or round by the hall; the pantry's two doors; and the vertical loop (Theo's room, the stairs, the attic, the hatch, the hall).",
+  "Hidden memories: the height marks on the door jamb, the fridge calendar, the fourth chair, Theo's drawing on top of his bookcase (climb his desk), the photo wall.",
+  "Shaded walls look a different colour from lit ones (the pink hall paper reads purple in shade); that's the lighting, not a different paper.",
+  "Known small things: the chimney stack in the attic is plain brick colour (no courses yet); the hall's wall lights are simple brass cubes."
+ ],
+ "sections": [
+  {
+   "title": "The plans (top-down, from the game's data)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-arch/house-plan-main.png",
+     "label": "The main floor: rooms, ceilings, doorways, Theo's paths, hiding spots, memories, the two loops",
+     "verdict": "pick"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-plan-attic.png",
+     "label": "The attic: the storage side (stairs, hatch), the wall of stored things, the sheets, the observatory",
+     "verdict": "pick"
+    }
+   ]
+  },
+  {
+   "title": "Kitchen and dining (ceiling 2.8 m; tiles to the rail, yellow paper above)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-after/house-03-kitchen-from-slide.png",
+     "label": "Before: the kitchen from the slide",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-03-kitchen-from-slide.png",
+     "label": "After: the kitchen from the slide: the table on its rug under the pendant",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-04-table-and-lena.png",
+     "label": "Before: the table and Lena",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-04-table-and-lena.png",
+     "label": "After: the table, Lena at the stove, the fridge with the calendar",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-05-counter-stove-fridge.png",
+     "label": "Before: the counter",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-05-counter-stove.png",
+     "label": "After: the counter run under the window",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-06-fridge-calendar.png",
+     "label": "After: the fridge: drawings, the calendar (a memory)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-08d-pass-through.png",
+     "label": "After: the pass-through over a half wall: the living room's fireplace seen from the kitchen",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The living room (ceiling 3.0 m; a bay window, a chimney breast)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-after/house-08-sofa.png",
+     "label": "Before: the sofa and the curtains",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-08-living-room.png",
+     "label": "After: the living room: sofa, coffee table, armchair, the fireplace in its chimney breast",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-08c-fireplace.png",
+     "label": "Before: the fireplace on a flat wall",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-08b-fireplace.png",
+     "label": "After: the fireplace: brick breast, mantel, mirror, the siblings' photo",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-08d-armchair-corner.png",
+     "label": "Before: the armchair corner",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-08c-bay-window.png",
+     "label": "After: the bay window: the window seat behind its curtain (a hiding spot)",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The hall (narrow, 2.4 m; the photo wall; the hatch)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-after/house-08e-hallway.png",
+     "label": "Before: the hallway",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-09-hall.png",
+     "label": "After: the hall: runner, wainscot, the photo wall, the coats at the end",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-09-photo-wall.png",
+     "label": "Before: the photo wall",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-09b-photo-wall.png",
+     "label": "After: the photo wall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-09c-hatch-from-below.png",
+     "label": "After: the hatch in the hall's ceiling, open: the attic seen from below",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The parents' room and its bath (new rooms; the study is gone)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-after/house-10c-study-corner.png",
+     "label": "Before: the study corner (no longer in the house)",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-10-parents-room.png",
+     "label": "After: the parents' room (2.7 m): the bed, two lamps, their photo",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-10b-bath.png",
+     "label": "After: the en-suite bath: the bath curtain (a hiding spot), tiles, the sink and mirror",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Theo's room (2.6 m; his wardrobe, the bookcase, the door to the attic stairs)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-after/house-10-theos-room.png",
+     "label": "Before: Theo's room",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-11-theos-room.png",
+     "label": "After: Theo's room: the bunk, the round rug, his wardrobe (a hiding spot) with its doors open",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-11-theos-desk-drawing.png",
+     "label": "Before: his desk and drawing",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-11b-theos-desk-bookcase.png",
+     "label": "After: the bookcase (his drawing is on top of it: climb the desk) and his clothes in the wardrobe",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-11c-attic-stairs-door.png",
+     "label": "After: the narrow door to the attic stairs",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The attic (new: up the stairs from Theo's room, down through the hatch)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-arch/house-12-attic-stairs-up.png",
+     "label": "After: the steep stairs up, the childhood photos climbing beside them",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-12b-attic-arrival.png",
+     "label": "After: arriving: the storage side; the hatch; the sheets, the starry window glowing past them",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-12bc-attic-through-the-sheets.png",
+     "label": "After: the way through the sheets, between the wall of boxes and the covered wardrobe",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-12c-attic-observatory.png",
+     "label": "After: the reveal: Lena's observatory (a proposal): the round window, the telescope, star charts",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-12d-attic-storage.png",
+     "label": "After: the stored life: Theo's crib, the trunk, the old bike, boxes in the eaves, the chimney stack",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-12e-attic-hatch.png",
+     "label": "After: the hatch: drop down into the hall (the loop)",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Hide-and-seek (unchanged rules)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-after/house-07-theo.png",
+     "label": "Before: Theo counting",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-arch/house-07-theo-counting.png",
+     "label": "After: Theo counting in the kitchen",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  }
+ ]
+}
