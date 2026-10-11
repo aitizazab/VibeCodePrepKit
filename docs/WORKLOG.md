@@ -1300,3 +1300,12 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 
   The recommendation is A + C2 with three guards, its own "Recommended" chapter.
 - **At 45d0a50:** Scenes OK, EditMode 851/852. The one failure is the argument focus-model test, sent back to a385c22. PlayMode is running.
+- **Music round 2, the creator's notes:**
+  - Chase, grounded: the base stem is too quiet and should take the Opening's bass and drone. The peak stem is quieter than drive.
+  - The Opening plays through the news report and loops on the title.
+  - Elias's outro drones unpleasantly, then goes almost silent for about 9 s.
+  - Lena "perfect", Nadia "pretty good".
+  - The argument drags: halve the build-up and fill the space with a new section.
+  - New: **hope and despair motifs** that overlay any piece. The despair motif is key for the Long Night ending and needs its own track later; an eerie first try was requested.
+  - Round 3 sent to a7eac08.
+- **The cursor stays visible during controller use**, everywhere. Sent to a385c22 for one global fix.
