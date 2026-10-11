@@ -1196,3 +1196,7 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - **Not done:** art, the Tell verb, and an Off setting for pressure.
   - **Notes:** `docs/ARGUMENT-PROTOTYPE.md`. The 5c490e2 metas were broken and are fixed in 6d4ee54.
   - **The house** will call `ArgumentHost.Begin` (approved), with the 1/2 debug skip kept.
+- **About 07:30, both background jobs killed for low system memory:** the house verify (mid-PlayMode) and stay-awake. The PC then went into Modern Standby until about 16:30, so the night's remaining Unity work was lost. All the agents had finished their code by 07:28.
+  - The house is wired to the argument battle in 00004d4, with the 1/2 skip kept.
+  - Re-run in stages: Edit/Play/Build each in its own call, so test failures never trigger a full re-run.
+- **16:32, at 00004d4:** Scenes OK, EditMode 819/819. PlayMode is running.
