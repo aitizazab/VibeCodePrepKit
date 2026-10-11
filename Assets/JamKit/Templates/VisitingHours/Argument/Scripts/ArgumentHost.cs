@@ -132,11 +132,15 @@ namespace JamKit.Argument
             foreach (var id in ControlBindings.ArgumentRows) GameRoot.Ui.Controls.SetRowShown(id, shown);
         }
 
-        /// <summary>Ends it and removes its screen (the record is already saved if the battle finished).
+        /// <summary>Ends it and removes its screen. A finished battle is saved and its record passed to the callback
+        /// (even if it ended this frame); one closed before it ended calls back with null.
         /// <paramref name="callBack"/> false: replaced, no callback.</summary>
         public void Close(bool callBack = true)
         {
             if (_closed) return;
+            // Ended this very frame (Continue pressed as Ended turned true): save and build the record first, so
+            // the callback never gets null for a finished battle. A battle closed before it ended still gives null.
+            if (_engine != null && _engine.Ended && _mode != ArgueMode.Ended) EnterEnd();
             _closed = true;
             var cb = _onClosed;
             _onClosed = null;
@@ -419,7 +423,7 @@ namespace JamKit.Argument
             string body = def.opponent + " is " + ArgumentEngine.StanceWords(_record.stance) + "." + gift
                 + "\nKey premises broken: " + _record.keysBroken + ".  Presses: " + _record.presses + ".  Anger: " + _record.anger + "."
                 + "\n(Kept in the save: a later battle reads it.)";
-            _view.ShowEnd(Title(_record.outcome), body);
+            _view?.ShowEnd(Title(_record.outcome), body);
             _dirty = true;
         }
 

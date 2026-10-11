@@ -82,6 +82,24 @@ namespace JamKit.Argument.Tests
         }
 
         [UnityTest]
+        public IEnumerator ContinueOnTheFrameItEndsStillGivesTheRecord()
+        {
+            yield return OpenPrototype(ArgumentPrototype.Story);
+            ArgumentHost.Current.Close(false);
+            ArgumentRecord got = null;
+            bool called = false;
+            var host = ArgumentHost.Begin(DreamLenaDemo.Build(), ArgumentPrototype.SetupFor(ArgumentPrototype.Story), r => { called = true; got = r; });
+            Assert.That(new ArgumentPilot().Play(host.Engine), Is.EqualTo(ArgumentOutcome.Convinced));
+            host.Continue(); // the same frame: the host's Update hasn't shown the end card yet
+            Assert.That(called, Is.True);
+            Assert.That(got, Is.Not.Null, "a finished battle always calls back with its record");
+            Assert.That(got.outcome, Is.EqualTo(ArgumentOutcome.Convinced));
+            Assert.That(ArgumentLedger.Parse(GameRoot.Save.Data.GetEntry(ArgumentLedger.SaveKey)).StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Amenable), "and it's saved");
+            yield return null;
+            Assert.That(ArgumentHost.Running, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator TheKeysDriveTheVerbs()
         {
             yield return OpenPrototype(ArgumentPrototype.Story);
