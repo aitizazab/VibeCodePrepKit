@@ -1,0 +1,9 @@
+Aspect ratio: 16:9 landscape.
+
+Image 1 is Dream-Lena, cropped from her chosen billboard. Redraw Image 1 as a crisp, full-resolution drawing with EXACTLY the same framing, size, position, pose and expression: the same head, face, green eyes, freckles, warm golden-blonde long loose waves, the slim dark-green pencil resting on top of her right ear, the cream high-neck sweater with the sleeves fully down to the wrists, the deep wine-red trousers, the one dark notebook held loosely in her left hand at her hip, the gold watch, the relaxed right arm. Do not move, resize, re-pose or re-frame anything. Nothing on her chest or neck: no necklace, no pendant, no chain, no cross or cross-like shape.
+
+Keep the hand-drawn sketchbook look of Image 1 exactly: pastel crayon and coloured pencil, wobbly dark outlines, visible crayon strokes and grain inside every colour, never a clean polished digital render. Keep the wine-red of the trousers strong and saturated.
+
+Change only the background: replace the off-white paper with a completely flat, uniform, solid pure blue (#0050ff) digital fill, edge to edge: no paper texture, no crayon strokes, no gradient, no glow, no shadow, nothing else in the picture. Nothing of the character is blue, and there is no white halo around her.
+
+No text, no labels, no captions, no numbers, no letters, no logos, no watermark, no signature anywhere in the image.
