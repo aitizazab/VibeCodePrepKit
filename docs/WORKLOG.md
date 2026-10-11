@@ -1272,3 +1272,11 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
     - C1, the daytime profile for waking stealth.
     - C2, "being watched dims her lucidity": her dream powers fade near a guard.
   - Also 2-3 guards with overlapping patrols.
+- **Argument battle reworked after the playtest** (a385c22): every point of the creator's "disaster" list, apart from their own prose.
+  - **One controller model** everywhere (the battle, its verbs, evidence, reasons, end card and menu): a gold focus, no wrap, A chooses, B backs, never lost. The old mix of focusable buttons and custom selection is gone. Challenge's pad shortcut moved to RB.
+  - **Sound:** the shell kept the previous scene's ambience playing and the battle had none. It now fades the world's ambience and music out, plays the battle loop (the round-2 sketch, swappable) and its own sounds, and restores the world's at the end.
+  - **On black,** with Lena's sprite slot: a pencil placeholder per expression until a097a2a's art lands (`Resources/ArgumentArt/lena_<expression>.png`, 1024x1536).
+  - **A real skin:** DM Serif Display and Crimson Text (OFL); the claim as a paper card; designed premise cards; a focus panel and a roomy dialogue box.
+  - **Timed transitions:** the claims fold into the pressure box and back, into the battle from the world and back out.
+  - **Every word in two text files** the creator edits (`Resources/ArgumentText/lena_night2.txt`, `screen.txt`), with ids matching the prose brief.
+  - **Tests:** the whole battle on a gamepad alone, and the ambience silent during and back after. Notes: `docs/ARGUMENT-PROTOTYPE.md`.

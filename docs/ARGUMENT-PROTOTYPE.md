@@ -1,116 +1,184 @@
 # Argument battle prototype: "Take it apart"
 
-> **Status: a playable prototype (overnight, 2026-10-11)** of concept A from `ARGUMENT-BATTLES.md`, using that
-> doc's recommended defaults plus the creator's four additions. **Every line of dialogue in it is a placeholder.**
-> The creator writes the real ones; the screen says so. The slice's old battle (`ArgumentBattle.cs`,
-> `VhBattleView`) is untouched and still runs the slice.
+> **Status: a playable prototype, reworked after the creator's playtest (2026-10-11).** Concept A from
+> `ARGUMENT-BATTLES.md`, built on that doc's recommended defaults plus the creator's four additions. **Every line of
+> dialogue is a placeholder**: the creator writes the real ones in a text file (below), not in code, and the screen
+> says so. The slice's old battle (`ArgumentBattle.cs`, `VhBattleView`) is untouched and still runs the slice.
 
 ## Play it
 - **From the title:** open the presenter panel (Ctrl+Shift+P, or hold L3+R3) and pick a chapter.
-  - Visiting Hours' and the Dream Escape's chapter lists include **"Argument prototype (Dream-Lena)"**, which
-    jumps to the prototype.
+  - Visiting Hours' and the Dream Escape's chapter lists include **"Argument prototype (Dream-Lena)"**, which jumps
+    to the prototype.
   - The prototype's own chapters: **Normal**, **Story** (nothing hurts), **Long Night** (scripted but beatable),
     **without Walt's truth**, **watch it play** (its autopilot).
-- **In the prototype's scene** (`ArgumentPrototype`): a menu offers the same settings, shows what the save
+- **In the prototype's scene** (`ArgumentPrototype`): a menu on black offers the same settings, shows what the save
   remembers, and can forget it.
-- **The battle:** Dream-Lena at the kitchen table, Night 2 ("Lena isn't willing to let Elias go"). Claim:
-  "He stays. This is his home." Its premise map follows `ARGUMENT-BATTLES.md` section 5 (L1 to L4), plus L5, a
-  hidden deepest premise ("To him, you're the bad dream") revealed by the paper-plane slip or by asking L3 twice.
+- **The battle:** Dream-Lena at the kitchen table, Night 2 ("Lena isn't willing to let Elias go"). Claim: "He stays.
+  This is his home." The premise map follows `ARGUMENT-BATTLES.md` section 5 (L1 to L4). L5 is a hidden deepest
+  premise ("To him, you're the bad dream"), revealed by the paper-plane slip or by asking L3 twice.
+- **The house:** the dream house (`DreamHouseGame.BeginArgument`) plays the same battle for its argument with Lena.
 
-| Do | Keyboard (default) | Pad (default) | Mouse |
-|---|---|---|---|
-| Pick a premise or the claim | arrows | stick / d-pad | click a tag |
-| **Ask** ("Why?") | 1 | X / Square | the verb button |
-| **Challenge**: pick evidence, then a reason | 2, then Enter | A / Cross | the verb button, then the cards |
-| **Concede** ("That's true"; on the claim: give in) | 3 | Y / Triangle | the verb button |
-| **Press** (a 0.6 s hold; on the claim: ends it) | hold 4 | hold B / Circle | hold the verb button |
-| **Let it rest** (once every premise is heard) | 5 | View / Share | the verb button |
-| Back out of a choice | Backspace | B / Circle | click a tag |
-| Dodge in a pressure phase | WASD / arrows | stick / d-pad | |
+## Controls (one focus model everywhere)
+Every screen of the battle and its menu works the same way:
+- **Stick / d-pad / arrows** move a gold-edged focus between cards: up and down between rows, left and right along
+  one. There's no wrap-around, and switched-off items are skipped.
+- **A / Enter** chooses; **B / Backspace** goes back one step.
+- The mouse hovers to focus and clicks to choose.
+- Nothing uses UI Toolkit's own focus, so a click on empty space or a screen change can't lose it.
 
-All five verbs are rebindable in **Settings > Controls**, where their rows ("Argue: ...") show while a battle
-runs. They live in their own context, so A being both Jump and Challenge isn't flagged as a clash; Pause clashes
-with everything (`SHELL.md`, Controls). The verb buttons show the current keys.
+| Where | What A does | What B does |
+|---|---|---|
+| The premise list (the claim and the premise cards) | Opens that premise's verbs | Nothing (it's the top) |
+| The verbs row | Does the verb (Press: hold A for 0.6 s) | Back to the premises |
+| The evidence | Picks it: the reason cards, or her answer at once | Back to the verbs |
+| The reasons | States it | Back to the evidence |
+| The transcript (from the verbs row) | (up / down scroll) | Back to the verbs |
+| The end card | Continue | |
+| The prototype's menu | Starts that setting | |
+
+Shortcuts on the premise list (rebindable in Settings > Controls, rows "Argue: ..."):
+
+| Shortcut | Pad | Keyboard |
+|---|---|---|
+| Ask | X / Square | 1 |
+| Challenge | RB / R1 | 2 |
+| Concede | Y / Triangle | 3 |
+| Press | hold B / Circle | hold 4 |
+| Let it rest | View / Share | 5 |
+
+Challenge's pad shortcut moved from A to RB, because A now confirms everywhere. Pressure phases move the light with
+the stick, the d-pad, WASD or the arrows.
+
+## The screen
+- **Mostly black.** The scene behind is hidden. Lena's sprite stands large on the left, and her expression follows
+  the last thing she said (neutral, angry, rattled, softened, hurt). Her name and expression sit above it, the heart
+  rate, heat and anger beside it.
+- **The claim** is the centrepiece: a paper card in the display font, saying how many key premises still hold it up.
+- **Premises** are designed cards in two columns: the label (L1, L1' ...), FACT or LINK, KEY, the status, and the
+  words. Broken ones are struck through, conceded ones edged green, forced ones red, hidden ones dark with "?".
+- **The focus panel** reads the focused premise in full: its words, and what she said about it when asked (and her
+  question, if she asked one), so statements can be read and compared and inconsistencies found.
+- **The dialogue box** runs along the bottom: her last line, Nadia's, and the step spelled out as a sentence ("You
+  said X. The fourth chair shows: ... So X doesn't hold."). The hint line shows the keys.
+- **The full transcript** opens from the verbs row: every exchange, scrollable.
+- **Fonts** (open licence, OFL, in `Argument/Resources/ArgumentFonts`, licences in `Argument/Licenses`): DM Serif
+  Display for the claim, names and headings; Crimson Text (regular, italic, bold) for everything else.
+
+## Transitions
+Timed, never a cut:
+- **Into the battle:** the black fades up over the world (0.45 s), then Lena slides in and the claims settle (0.6 s).
+- **Into a pressure phase:** the claims fold away (0.25 s), then the box opens from the middle (0.28 s).
+- **Out of a pressure phase:** the box collapses, then the claims fold back in.
+- **The end card** rises in (0.5 s).
+- **Out of the battle:** Continue calls back at once (the house moves on). The screen fades to black and then back
+  to the world by itself (about 0.85 s).
+
+Input waits while a transition plays.
+
+## Sound
+**Why it was broken:** the shell keeps a scene's ambience bed and music playing across scene loads, and the battle
+played nothing of its own. So the previous scene's ambience went on.
+
+**Now:**
+- **On Begin**, the battle remembers the world's ambience and music, fades them out (0.8 s) and fades in its own
+  loop.
+- **On Continue**, it fades its loop out and brings the world's ambience and music back.
+- Everything follows the player's volumes and the shell's mute (batch mode).
+- **The battle's sounds:**
+  - navigating;
+  - confirming a verb;
+  - picking a card;
+  - backing out;
+  - a premise breaking;
+  - a wrong reason;
+  - an antagonised or forced reply;
+  - a hit on Nadia, plus the heartbeat stepping up;
+  - the pressure phase opening and closing;
+  - a slip caught;
+  - the end card (a warm chord for Convinced and Heard out, a dark one otherwise).
+- **Swappable files** in `Argument/Resources/ArgumentAudio/`:
+  - `argument_battle_loop`: the music. The placeholder is the round-2 sketch `out/vh-music-sketches/05-argument-battle.loop.wav` as OGG, 111 s.
+  - `sfx_nav`, `sfx_confirm`, `sfx_pick`, `sfx_back`, `sfx_break`, `sfx_wrong`, `sfx_angry`, `sfx_hit`, `sfx_heartbeat`,
+    `sfx_pressure_in`, `sfx_pressure_out`, `sfx_slip`, `sfx_end_good`, `sfx_end_bad`.
+  - A sound with no file is generated in code (a placeholder). Drop in a file with the same name (WAV or OGG) to
+    replace it.
+
+## Art: the sprite slot (a drop-in)
+- **Files:** `Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentArt/lena_<expression>.png`:
+  `lena_neutral`, `lena_angry`, `lena_rattled`, `lena_softened`, `lena_hurt`.
+- **Size:** portrait 2:3, 1024 x 1536 px, transparent background.
+- **Framing:** the figure from the waist (or hips) up, filling most of the height, facing slightly right (towards
+  the claims). Default Texture2D import settings are fine.
+- **Missing files:** a missing expression falls back to `lena_neutral`. With no file at all, the screen draws a
+  sketch-style pencil silhouette (a different face per expression) and notes that it's a placeholder.
+- The slot is 640 x 860 px on screen, bottom-aligned, scaled to fit.
+
+## The prose files (for the creator)
+Every word of the battle is in two text files, read at runtime from
+`Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentText/`:
+- **`lena_night2.txt`:** every line of Dream-Lena's battle.
+  - The claim and the frame lines: `claim`, `opening`, `letItRestReply` ...
+  - Each premise's lines: `L1.text`, `L1.askReply`, `L1.concedeLine` ...
+  - Each premise's reason cards: `L1b.sound`, `L1b.sound.reply`, `L1b.beside`, `.nonsequitur`, `.antagonise`.
+  - Its retort: `L2.retort`, `L2.retort.reply`.
+  - The evidence cards: `mem_fourth_chair.name`, `.note`.
+  - A reason can differ per piece of evidence: `L3c.truth_walt.sound` overrides `L3c.sound` for Walt's truth.
+- **`screen.txt`:** the screen's own words: prompts, labels, verb names, Nadia's default lines, the transcript's
+  sentences (with `{premise}`, `{evidence}`, `{reason}` filled in), the end card, the menu.
+
+**The format:** one entry per line, `id: the line`, with an indented `? note` under it saying what the line must do
+(ignored by the game). `#` lines are headings, and `\n` is a line break. The ids match
+`docs/ARGUMENT-PROSE-BRIEF.md`, which explains the flow and every line.
+
+**Editing:** edit the text after the colon, keep the id, and press Play again (the files are read once per session). A
+missing or misspelt id shows on screen as `[its.id]`, so a gap is visible, never silent. A test checks that both
+files have a line for every id and no stray ones.
 
 ## What's built (the doc's defaults)
-- **The case as an object.** The claim is the centrepiece; each premise is a tag that shows its kind and status
-  as shape and text, never colour alone:
-  - kind: a square for a fact, the infinity sign for a link, "KEY" on a key premise;
-  - status: hidden ones show as "?"; then standing, BROKEN (struck through), conceded (a check mark), or FORCED.
+- **The case as an object:** a claim held up by premises (facts and links; some hidden, shown as "?").
 - **Breaking a premise** takes evidence **plus** a reason. Picking evidence brings up "because..." cards: one sound,
-  one true but beside the point, one that doesn't follow. The order is shuffled, the same for the same pair every
-  time. Other answers come at once, with a little heat:
-  - evidence that doesn't touch the premise: "That's not what I said";
-  - a true premise: "Then where am I? Go on.";
-  - an unbreakable one (L2'): "can't be broken tonight".
-- **The opponent answers logically.** A sound reason makes her concede (the premise breaks), **fall back** (a
-  weaker premise appears), or **deepen** (the one under it appears). Each wrong reason gets its own reply, saying
-  why it doesn't follow.
-- **Every step as a sentence** for a judge, in the transcript: "You said "X". The fourth chair shows otherwise:
-  ... So "X" doesn't hold.", "... doesn't follow from ...", "Nadia conceded "X": it's true."
+  one true but beside the point, one that doesn't follow. Other evidence is answered at once, with a little heat:
+  - evidence that doesn't touch it;
+  - a true premise;
+  - an unbreakable one (L2', "can't be broken tonight").
+- **She answers logically.** A sound reason makes her concede (it breaks), fall back (a weaker premise appears) or
+  deepen. Each wrong reason gets its own reply, saying why it doesn't follow.
 - **Pressure phases** (5–8 s) come only as consequences:
   - the opening (low);
   - an unsound reason (+1 heat), a press (+2), an antagonising reply (+2);
-  - a painful premise surfacing by script (L4, "He called you first": the high phase, 8 s).
+  - a painful premise surfacing (L4, "He called you first": the high phase).
 
-  Heat falls with each concession and each sound challenge. The phase's shapes, on the tablecloth:
-  - plates sliding across in walls with gaps;
-  - flour blooming out in rings with gaps;
-  - batter lobbed at Nadia's light.
-
-  **Slips** (the paper plane) reveal what she isn't saying.
-- **Composure is Nadia's heart rate**: 70, 88, 106, 124, 142, 160 bpm. Each hit is a step; conceding something
-  true calms her a step; 160 ends the battle (Composure lost).
-- **Press** is a 0.6 s hold, never a click. **Let it rest** opens only once every premise, hidden ones included,
-  has been heard (asked, conceded, challenged or pressed). **Concede** works on any premise; on the claim it ends
-  the battle as **Yielded**.
-- **Outcomes:** Convinced (every key premise broken, nothing pressed: a truth), Heard out (a personal entry),
-  Pressed, Composure lost, Yielded.
+  Heat falls with concessions and sound challenges. On the surface: plates sliding in walls with gaps, flour
+  blooming in rings with gaps, batter lobbed at Nadia's light. **Slips** (the paper plane) reveal what she isn't
+  saying.
+- **Composure is Nadia's heart rate**: 70, 88, 106, 124, 142, 160 bpm. A hit is a step, a true concession calms a
+  step, and 160 ends it.
+- **Press** is a 0.6 s hold. **Let it rest** opens once every premise is heard. **Concede** works on any premise, and
+  on the claim it gives in (Yielded).
+- **Outcomes:** Convinced (every key premise broken, nothing forced: a truth), Heard out (a keepsake), Pressed,
+  Composure lost, Yielded.
 
 ## The creator's additions
-1. **Antagonising replies.** Two forms:
-   - a fourth "because..." card ("You're a dream. A dream doesn't get a say in his life.");
-   - a **Retort** card in the tray when she's asked Nadia a question. On L2 she asks "Then tell me where I am,
-     Nadia"; the retort is "You don't get to ask me that. You're not real. Stop acting like you are."
+1. **Antagonising replies.** Two forms: a fourth "because..." card ("You're a dream..."), or the **Retort** card
+   when she asks Nadia a question ("Then tell me where I am" → "You're not real. Stop acting like you are."). Either
+   dodges the question and attacks her: anger +1 (0–3), heat +2, and a pressure phase.
 
-   Either one dodges the question and attacks her: **anger +1** (0–3), heat +2, and a pressure phase. Every
-   later phase is **noticeably harder** (`PressureSpec.For`):
+   Every later phase is **noticeably harder**:
 
    | Per point of anger | Effect |
    |---|---|
    | Speed | +30 % |
-   | Density | +40 % more often |
-   | Gaps | 15 % narrower, and one gap instead of two from the first point on |
+   | Density | +40 % |
+   | Gaps | 15 % narrower, and one gap instead of two |
 
-   Anger pushes the outcome towards **condemns**: three antagonisms always condemn, and two leave even a Convinced
-   Lena only unsure.
-2. **Outcomes carry forward.** Each battle ends in a stance: **amenable**, **unsure** or **condemns**.
-   - Kept in the save (entry `vh_arguments`, `ArgumentLedger`, one line per battle; damaged lines are skipped),
-     with the outcome, anger, presses, the truth or personal entry won, and a play count.
-   - A later battle reads it (`ArgumentHost.LoadLedger().StanceOf("lena_night2")`: Lena's blessing, or not).
-   - A truth won in one battle counts as evidence in later ones: L3'' breaks only with Walt's truth or "the same
-     Saturday".
-
-   | Outcome | Stance |
-   |---|---|
-   | Convinced | amenable (anger 2: unsure) |
-   | Heard out | amenable (any anger: unsure) |
-   | Pressed | unsure (two presses, or any anger: condemns) |
-   | Composure lost, Yielded | unsure (anger 2: condemns) |
-   | Anger 3, any outcome | condemns |
-3. **Scripted but beatable** (`ArgumentDifficulty.ScriptedButBeatable`, per battle; for the Long Night).
-   - Nadia starts at 124 bpm: two hits from panic.
-   - **Every** exchange brings an 8 s full-heat phase: faster still, twice as dense, walls only.
-   - Each gap is only 5 cm wider than her light.
-   - It stays technically winnable by construction: each wall's gap is placed where the light can reach in time.
-     `PressurePilot` (a perfect dodger) clears every phase untouched, across seeds and anger levels; standing
-     still loses.
-4. **Supporters** (`SupporterDef`): a data slot for Lena or Theo in the back seats. Each can add:
-   - a line, at the start or when a premise appears;
-   - an evidence card for the tray;
-   - an extra reason card on one challenge.
-
-   Present supporters are listed in `ArgumentSetup.supporters`. There's no content yet; a test exercises the slot.
+   Anger pushes the outcome towards **condemns**.
+2. **Outcomes carry forward.** Each battle ends in a stance, **amenable**, **unsure** or **condemns**, kept in the
+   save (entry `vh_arguments`). A later battle reads it, and a truth won earlier counts as evidence later.
+3. **Scripted but beatable** (per battle; for the Long Night):
+   - Nadia starts at 124 bpm.
+   - A brutal walls-only phase follows every exchange, with a gap only just wider than her light.
+   - It's winnable by construction: a perfect dodger survives every phase, and standing still loses.
+4. **Supporters** (`SupporterDef`): a data slot for a line and a card. No content yet.
 
 ## For code (calling a battle)
 ```csharp
@@ -121,44 +189,37 @@ var host = ArgumentHost.Begin(DreamLenaDemo.Build(),
 ```
 - **Where it runs:** any scene.
 - **While it runs:**
-  - world gameplay is blocked (`InputService.BlockWorld`: `GameplayAllowed` is false, so the player stands
-    still);
+  - world gameplay is blocked (`InputService.BlockWorld`);
+  - the world's sound gives way to the battle's;
   - the cursor is free;
   - the d-pad is on Move for the dodging;
   - the argument's Controls rows show.
-- **When it ends:** it saves to the ledger. Continue on the end card closes it and calls back.
-- **From another assembly:** add `JamKit.Argument` to its asmdef references (the Dream Escape will need this).
-  `ArgumentHost.Running` says whether one is up; a scene that locks the cursor every frame should skip that while
-  it's true.
-- **Setup:**
-  - `difficulty`;
-  - `evidence` (journal ids) or `allEvidence`;
-  - `supporters`;
-  - `ledger` (null loads the save);
-  - `pressureSpeed` (accessibility, 0.5–1);
-  - `seed`.
+- **When it ends:** it saves. Continue calls back with the record at once, even on the frame it ended.
+- **Also:**
+  - `ArgumentHost.Running` and `Current`;
+  - `Close(false)` stops a battle without a callback;
+  - `Autopilot` plays it;
+  - `ArgumentHost.LoadLedger().StanceOf(id)` reads a past result.
+- **From another assembly:** add `JamKit.Argument` to its asmdef references.
 
 | Code | Where |
 |---|---|
-| Data, rules, pressure, ledger, pilot, demo | `Packages/com.vibejam.jamkit/Runtime/Core/VisitingHours/Argument/` (namespace `JamKit.Argument`; pure C#) |
-| Host, screen, prototype scene | `Assets/JamKit/Templates/VisitingHours/Argument/Scripts/` (assembly `JamKit.Argument`) |
+| Rules, pressure, ledger, pilot, prose loading, the demo's structure | `Packages/com.vibejam.jamkit/Runtime/Core/VisitingHours/Argument/` (pure C#; `ArgumentText` reads the prose files) |
+| Host, screen, focus model, sound, art, menu | `Assets/JamKit/Templates/VisitingHours/Argument/Scripts/` (assembly `JamKit.Argument`): `ArgumentHost`, `ArgumentView`, `ArgueNav` (with `NavInput` and `ArgueUi`), `ArgumentAudio`, `ArgumentArt`, `ArgumentContent`, `ArgumentPrototype` |
+| Prose, fonts, music | `Assets/JamKit/Templates/VisitingHours/Argument/Resources/` (`ArgumentText`, `ArgumentFonts`, `ArgumentAudio`; `ArgumentArt` for the sprites when they land) |
 | Scene builder | `Assets/JamKit/Templates/VisitingHours/Argument/Editor/ArgumentPrototypeBuilder.cs` (a step of Rebuild Shell Scenes) |
-| Verbs and the world block | `InputService` (`ArgueAsk` ... `ArgueRest`, `BlockWorld`), `ControlBindings` (rows with contexts) |
 
 ## Tests
 | Suite | What |
 |---|---|
-| dotnet (`core-tests/VisitingHours`, `All`), `ArgumentEngineTests`, 28 tests | Premise breaking (only the sound card breaks; fall back; each wrong reason's own reply and heat); true, irrelevant and unbreakable answers; Ask, and asking twice, reveal hidden premises; conceding reveals links and calms her; conceding something false closes the line; a slip reveals the hidden one; the painful premise surfaces with the high phase; Let it rest only when all is heard; Press forces a piece and pressing the claim ends it; Yielded; five hits lose composure; **antagonising** (the retort dodges her question, anger, faster / denser / narrower / fewer gaps, twice as dense when furious, pushes the stance to condemns); **persistence** (the ledger round-trips, plays count, damaged lines skipped, a later battle reads the stance and an earlier truth); **the Long Night** (starts at 124, the gap only just fits, standing still loses, a perfect dodge wins, every phase dodgeable over 8 seeds and 4 anger levels); **supporters** (line, card, extra reason, nothing when absent); the honest path is Convinced, and without Walt's truth it's Heard out at best |
-| Unity EditMode, `ArgumentPrototypeEditorTests` | The screen builds without the shell (the claim, the placeholder badge, steps as sentences, heart rate, no focusable buttons, the end card); the scene is built and in Build Settings; the chapters' setups. `ControlsEditorTests`: the verb rows are hidden, in their own context, and don't clash with walking-around keys |
-| Unity PlayMode, `ArgumentPrototypePlayTests` | The chapter opens the scene and the battle; the world waits and the d-pad steers; a won battle is saved and Continue returns to the menu; the keys drive Ask, Challenge (evidence, then the sound reason, by arrows and Enter), Concede and the 0.6 s Press hold |
+| dotnet, `ArgumentEngineTests` (28) and `ArgumentProseTests` (6) | The rules: breaking, the reasons, her replies, slips, reveals, Let it rest, Press, the antagonising escalation, persistence, the Long Night, supporters. The prose: both files have every line and no stray ids, the format, per-evidence overrides, export round-trips, nothing left in code, the transcript's sentences come from screen.txt |
+| Unity EditMode, `ArgumentPrototypeEditorTests` | The screen builds on black with the sprite and the real fonts, with no UI Toolkit buttons; the transitions are timed and finish; every expression has a sprite (a placeholder until the art lands); the prose, music and sounds load from their files; the focus model (no wrap, disabled skipped, one item lit); the scene and the chapters |
+| Unity PlayMode, `ArgumentPrototypePlayTests` | **The whole battle on a gamepad alone**, to Convinced: the d-pad to each premise, A into its verbs, B back, Y concede, X ask, A through the evidence and the sound reason, the pressure box opening and closing, A on Continue, then the menu by d-pad. The world's ambience is silent during the battle and back after, and the battle loop starts. Keyboard shortcuts, Backspace stepping back, the 0.6 s Press hold. A won battle saved and Continue back to the menu. Continue on the frame it ends still gives the record |
 
 ## Not done (yet)
-- **Art:** the arena is a placeholder kitchen of primitives and a capsule for Lena. There's no billboard, no
-  expressions on screen (the expression shows as a word), and no per-arena UI skin. Premise tags are cards, not
-  plates on the table.
-- **Pressure shapes:** coded shapes, not the existing `Patterns` emitters (which have no guaranteed gaps). There's
-  no "Off" pressure setting (Story is the gentle one), and no Tell verb (Night 4).
-- **Not wired into the slice:** the evidence tray doesn't read the slice's journal (the setup lists ids), and the
-  ink dialogue service isn't used (the lines are in code). The Dream Escape house can call it once its asmdef
-  references `JamKit.Argument`.
-- **All dialogue is placeholder.**
+- **Lena's sprite:** the slot shows a pencil placeholder until the art lands (file names above).
+- **The music and sounds:** placeholders until the sound pass (file names above).
+- **All dialogue is placeholder:** the creator's, in `lena_night2.txt`.
+- **Not wired into the slice:** the evidence tray doesn't read the slice's journal yet (the setup lists ids), the
+  ink dialogue service isn't used, and there's no Tell verb (Night 4) and no "Off" pressure setting (Story is the
+  gentle one).

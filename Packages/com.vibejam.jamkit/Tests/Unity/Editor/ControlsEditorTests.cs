@@ -369,9 +369,9 @@ namespace JamKit.Tests.Editor
                 Assert.That(row.Context, Is.EqualTo(ControlBindings.ContextArgument));
                 row.Shown = true;
             }
-            Assert.That(HasEffective(s.ArgueChallenge, "<Gamepad>/buttonSouth") && HasEffective(s.ArgueChallenge, "<Keyboard>/2"), Is.True, "2 / A challenges");
+            Assert.That(HasEffective(s.ArgueChallenge, "<Gamepad>/rightShoulder") && HasEffective(s.ArgueChallenge, "<Keyboard>/2"), Is.True, "2 / RB challenges (A confirms everywhere)");
             Assert.That(HasEffective(s.ArguePress, "<Gamepad>/buttonEast"), Is.True, "hold B / Circle presses");
-            // A is Jump and Challenge, B is Crouch and Press, X is Interact and Ask: different moments, no clash.
+            // RB is Dash and Challenge, B is Crouch and Press, X is Interact and Ask: different moments, no clash.
             foreach (var row in m.Rows)
                 for (int i = 0; i < row.Action.bindings.Count; i++)
                     Assert.That(m.FindConflict(row.Action, i).Exists, Is.False, row.Id + " " + i);

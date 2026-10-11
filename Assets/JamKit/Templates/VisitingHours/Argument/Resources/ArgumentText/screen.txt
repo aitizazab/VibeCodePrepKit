@@ -115,8 +115,8 @@ screen.end.truth: You won a truth: "{reason}"
 screen.end.personal: She gave you: {reason}
 screen.end.tally: Key premises broken: {n}. Forced: {keys}.
 screen.end.saved: Kept in the save: a later conversation remembers this.
-screen.hint.browse: {keys}
-  ? the bottom line while choosing a premise (the game lists the keys)
+screen.hint.browse: A / Enter: open its actions.    Shortcuts: {keys}
+  ? the bottom line while choosing a premise ({keys} is the game's list of shortcut keys)
 screen.hint.verbs: Pick what to do with it. B / Backspace: back to the premises.
 screen.hint.pick: A / Enter: choose.   B / Backspace: back.
 screen.hint.pressure: Move: stick, d-pad, WASD or arrows. Catch the slips: they reveal what she isn't saying.

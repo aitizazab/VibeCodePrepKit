@@ -22,7 +22,7 @@ namespace JamKit.Shell
         /// <summary>Restart a timed run (R, View / Share) and show or hide the best run's ghost (G, d-pad left):
         /// the Movement Lab's Gauntlet. Their Controls rows are hidden unless a scene shows them.</summary>
         public readonly InputAction Restart, Ghost;
-        /// <summary>The argument battle's verbs (docs/ARGUMENT-PROTOTYPE.md): Ask (1, X / Square), Challenge (2, A / Cross),
+        /// <summary>The argument battle's verb shortcuts (docs/ARGUMENT-PROTOTYPE.md; A / Enter picks from the verb row too): Ask (1, X / Square), Challenge (2, RB / R1),
         /// Concede (3, Y / Triangle), Press (hold 4, B / Circle), Let it rest (5, View / Share). Their Controls rows show
         /// while a battle runs; they never clash with walking-around keys (a separate context).</summary>
         public readonly InputAction ArgueAsk, ArgueChallenge, ArgueConcede, ArguePress, ArgueRest;
@@ -110,7 +110,7 @@ namespace JamKit.Shell
                 AddFixed(Ghost, "<Gamepad>/dpad/left", 1);
             }
             ArgueAsk = Ensure("ArgueAsk", "<Keyboard>/1", "<Gamepad>/buttonWest");
-            ArgueChallenge = Ensure("ArgueChallenge", "<Keyboard>/2", "<Gamepad>/buttonSouth");
+            ArgueChallenge = Ensure("ArgueChallenge", "<Keyboard>/2", "<Gamepad>/rightShoulder");
             ArgueConcede = Ensure("ArgueConcede", "<Keyboard>/3", "<Gamepad>/buttonNorth");
             ArguePress = Ensure("ArguePress", "<Keyboard>/4", "<Gamepad>/buttonEast");
             ArgueRest = Ensure("ArgueRest", "<Keyboard>/5", "<Gamepad>/select");
@@ -326,7 +326,7 @@ namespace JamKit.Shell
             Button(g, "Restart", "<Keyboard>/r", "<Gamepad>/select");
             Button(g, "Ghost", "<Keyboard>/g", "<Gamepad>/dpad/left");
             Button(g, "ArgueAsk", "<Keyboard>/1", "<Gamepad>/buttonWest");
-            Button(g, "ArgueChallenge", "<Keyboard>/2", "<Gamepad>/buttonSouth");
+            Button(g, "ArgueChallenge", "<Keyboard>/2", "<Gamepad>/rightShoulder");
             Button(g, "ArgueConcede", "<Keyboard>/3", "<Gamepad>/buttonNorth");
             Button(g, "ArguePress", "<Keyboard>/4", "<Gamepad>/buttonEast");
             Button(g, "ArgueRest", "<Keyboard>/5", "<Gamepad>/select");

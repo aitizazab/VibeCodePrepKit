@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using JamKit.Flow;
 using JamKit.Presenting;
 using JamKit.Shell;
@@ -10,26 +12,30 @@ using Vec = System.Numerics.Vector2;
 
 namespace JamKit.Argument
 {
+    /// <summary>The host's coarse state (kept for callers and tests); <see cref="ArgumentHost.Screen"/> is the fine one.</summary>
     public enum ArgueMode { Browse, PickEvidence, PickReason, Pressure, Ended }
+
+    /// <summary>Which screen of the battle is up.</summary>
+    public enum ArgueScreen { Intro, Browse, Verbs, PickEvidence, PickReason, Transcript, BoxIn, Pressure, BoxOut, End }
 
     /// <summary>
     /// Runs one argument battle in whatever scene is loaded (docs/ARGUMENT-PROTOTYPE.md): the engine, its screen,
-    /// keys and pads through the shell's rebindable actions, the save. The entry point for anyone who wants a battle:
+    /// sound, keys and pads through the shell's actions, the save. The entry point:
     /// <code>ArgumentHost.Begin(DreamLenaDemo.Build(), new ArgumentSetup { allEvidence = true }, record => { ... });</code>
-    /// While it runs, world gameplay is blocked (InputService.BlockWorld: the player stands still), the cursor is free,
-    /// the d-pad steers Nadia's light, and Settings > Controls shows the argument's rows. When it ends the result goes
-    /// into the save (<see cref="ArgumentLedger"/>, entry "vh_arguments"); Continue on the end card closes it and calls
-    /// back with the record.
+    /// While it runs: world gameplay is blocked (InputService.BlockWorld), the world's ambience and music give way to
+    /// the battle's (ArgumentAudio), the cursor is free, the d-pad steers Nadia's light, the argument's Controls rows
+    /// show. When it ends the result goes into the save (ArgumentLedger, "vh_arguments"); Continue on the end card
+    /// calls back with the record at once and the screen fades back to the world by itself.
     ///
-    /// Controls (defaults; rebindable): arrows / stick / d-pad pick a premise; 1 or X Ask, 2 or A Challenge (then pick
-    /// evidence, then a reason; Enter / A confirms, Backspace / B goes back), 3 or Y Concede, hold 4 or B for 0.6 s to
-    /// Press, 5 or View to Let it rest. Select the claim to concede it (3) or press it (hold 4). Pressure phases: move
-    /// the light with the stick, WASD, arrows or the d-pad. Mouse: click anything.
+    /// One focus model everywhere (ArgueNav): stick / d-pad / arrows move, A / Enter chooses, B / Backspace goes back.
+    /// The premises: choose one (A) to open its verbs (Ask, Challenge, Concede, Press by holding A, Let it rest,
+    /// Transcript); Challenge opens the evidence, then the reasons. Shortcuts on the premise list: Ask X / 1,
+    /// Challenge RB / 2, Concede Y / 3, Press hold B / 4, Let it rest View / 5 (all rebindable, Settings > Controls).
     /// </summary>
     public sealed class ArgumentHost : MonoBehaviour
     {
         public const float PressHold = 0.6f;
-        const string RetortItem = "\u0001retort";
+        const string RetortId = "\u0001retort";
 
         static ArgumentHost _current;
 
@@ -42,54 +48,68 @@ namespace JamKit.Argument
 
         ArgumentEngine _engine;
         ArgumentView _view;
+        ArgumentAudio _audio;
         Action<ArgumentRecord> _onClosed;
         ArgumentRecord _record;
-        ArgueMode _mode;
+        ArgueScreen _screen = ArgueScreen.Intro;
         bool _autopilot, _closed, _saved;
-        float _pilotWait;
+        float _pilotWait = 0.8f;
         readonly ArgumentPilot _pilot = new ArgumentPilot();
-        int _keysVersion = -1;
-        Gamepad _keysPad;
-
-        // The tags: index 0 is the claim, then each visible premise (hidden ones shown as "?" and skipped).
-        readonly List<string> _items = new List<string>(16);
-        int _selected;
-        // Choosing: the tray (plus the retort card), then the reasons.
+        readonly ArgueNav _nav = new ArgueNav();
+        readonly NavInput _navInput = new NavInput();
+        string _selected = ArgumentEngine.ClaimId;
         readonly List<EvidenceDef> _tray = new List<EvidenceDef>(16);
         readonly List<string> _trayIds = new List<string>(16);
         readonly List<ReasonCard> _cards = new List<ReasonCard>(5);
-        int _trayIndex, _cardIndex;
-        string _evidence;
-        float _pressHeld;
-        bool _pointerPress;
-        string _statusLine = "";
-        int _shownTranscript = -1, _shownHeart = -1, _shownHeat = -1, _shownAnger = -1, _shownSeconds = -1;
-        ArgueMode _shownMode = (ArgueMode)(-1);
+        string _evidence = "";
+        float _holdTime;
+        VisualElement _pointerHold;
+        int _lastHeart, _lastVisible, _shownTranscript = -1, _shownSeconds = -1, _keysVersion = -1;
+        Gamepad _keysPad;
         bool _dirty = true;
-
-        // Scratch lists for the view (filled on refresh only).
-        readonly List<string> _labels = new List<string>(16), _texts = new List<string>(16), _statuses = new List<string>(16), _names = new List<string>(16);
-        readonly List<bool> _selectable = new List<bool>(16);
+        readonly StringBuilder _sb = new StringBuilder(256);
 
         public ArgumentEngine Engine => _engine;
         public ArgumentView View => _view;
-        public ArgueMode Mode => _mode;
-        /// <summary>The selected tag's id (ArgumentEngine.ClaimId for the claim).</summary>
-        public string Selected => _selected >= 0 && _selected < _items.Count ? _items[_selected] : "";
+        public ArgumentAudio Audio => _audio;
+        public ArgueScreen Screen => _screen;
         public ArgumentRecord Result => _record;
+        /// <summary>The premise (or ArgumentEngine.ClaimId) the verbs act on: the focused card, or the one chosen.</summary>
+        public string Selected => _selected;
+        /// <summary>The id of the focused item (a premise id, "claim", a verb, an evidence id, "reason0".., "continue").</summary>
+        public string FocusedId => _nav.FocusedId;
+        public bool Ended => _engine != null && _engine.Ended;
         /// <summary>The reason cards on screen (PickReason), in their shown order.</summary>
         public IReadOnlyList<ReasonCard> Cards => _cards;
         /// <summary>The tray's ids on screen (PickEvidence), in their shown order (the retort card last, if any).</summary>
         public IReadOnlyList<string> TrayIds => _trayIds;
-        /// <summary>True once its end card is up.</summary>
-        public bool Ended => _engine != null && _engine.Ended;
 
-        /// <summary>The autopilot plays it (ArgumentPilot and PressurePilot): attract mode, the "watch it play" chapter.</summary>
+        public ArgueMode Mode
+        {
+            get
+            {
+                switch (_screen)
+                {
+                    case ArgueScreen.PickEvidence: return ArgueMode.PickEvidence;
+                    case ArgueScreen.PickReason: return ArgueMode.PickReason;
+                    case ArgueScreen.Intro:
+                    case ArgueScreen.BoxIn:
+                    case ArgueScreen.Pressure:
+                    case ArgueScreen.BoxOut: return ArgueMode.Pressure;
+                    case ArgueScreen.End: return ArgueMode.Ended;
+                    default: return ArgueMode.Browse;
+                }
+            }
+        }
+
+        /// <summary>The autopilot plays it (ArgumentPilot and PressurePilot): attract mode, "watch it play", tests.</summary>
         public bool Autopilot
         {
             get => _autopilot;
             set => _autopilot = value;
         }
+
+        static ArgumentStrings S => ArgumentStrings.Shared;
 
         /// <summary>Starts a battle now (replacing one already running). Null without the shell.</summary>
         public static ArgumentHost Begin(ArgumentDef def, ArgumentSetup setup, Action<ArgumentRecord> onClosed = null)
@@ -110,17 +130,22 @@ namespace JamKit.Argument
             if (setup.ledger == null) setup.ledger = LoadLedger();
             _engine = new ArgumentEngine(def, setup);
             _engine.Start();
+            _lastHeart = _engine.HeartStep;
             _view = new ArgumentView(GameRoot.Hud.Root.parent ?? GameRoot.Ui.Root);
-            _view.Bind(this);
+            _view.Hovered = OnHover;
+            _view.Clicked = OnClick;
+            _view.PointerHeld = OnPointerHeld;
+            _audio = gameObject.AddComponent<ArgumentAudio>();
+            _audio.Begin();
             var input = GameRoot.Input;
             input.BlockWorld(this, true);
             input.Bindings.SetMoveDpad(true);
             ShowControlRows(true);
-            _mode = ArgueMode.Pressure;
-            Rebuild();
-            for (int i = 1; i < _items.Count; i++)
-                if (Selectable(i)) { _selected = i; break; }
-            _dirty = true;
+            for (int i = 0; i < def.premises.Count; i++)
+                if (_engine.Status(def.premises[i].id) != PremiseStatus.Hidden) { _selected = def.premises[i].id; break; }
+            _screen = ArgueScreen.Intro;
+            Refresh();
+            _view.PlayIntro(() => { _screen = ArgueScreen.Browse; Enter(ArgueScreen.Browse); });
         }
 
         /// <summary>The save's argument results (what later battles read).</summary>
@@ -133,29 +158,32 @@ namespace JamKit.Argument
             foreach (var id in ControlBindings.ArgumentRows) GameRoot.Ui.Controls.SetRowShown(id, shown);
         }
 
-        /// <summary>Ends it and removes its screen. A finished battle is saved and its record passed to the callback
-        /// (even if it ended this frame); one closed before it ended calls back with null.
+        /// <summary>Ends it. A finished battle is saved and its record passed to the callback (even if it ended this
+        /// frame); one closed before it ended calls back with null. The screen fades back to the world by itself.
         /// <paramref name="callBack"/> false: replaced, no callback.</summary>
         public void Close(bool callBack = true)
         {
             if (_closed) return;
-            // Ended this very frame (Continue pressed as Ended turned true): save and build the record first, so
-            // the callback never gets null for a finished battle. A battle closed before it ended still gives null.
-            if (_engine != null && _engine.Ended && _mode != ArgueMode.Ended) EnterEnd();
+            if (_engine != null && _engine.Ended && _screen != ArgueScreen.End) EnterEnd();
             _closed = true;
             var cb = _onClosed;
             _onClosed = null;
-            if (gameObject != null) Destroy(gameObject);
+            if (_view != null) { _view.PlayOutro(); _view = null; }
+            _audio?.End();
             Cleanup();
+            if (gameObject != null) Destroy(gameObject, 1.2f); // the battle loop fades out first
             if (callBack) cb?.Invoke(_record);
         }
 
-        void OnDestroy() => Cleanup();
+        void OnDestroy()
+        {
+            if (!_closed) { _view?.Remove(); _view = null; _audio?.End(); }
+            Cleanup();
+        }
 
         void Cleanup()
         {
             if (_current == this) _current = null;
-            if (_view != null) { _view.Remove(); _view = null; }
             if (!GameRoot.Exists) return;
             GameRoot.Input.BlockWorld(this, false);
             GameRoot.Input.Bindings.SetMoveDpad(false);
@@ -170,35 +198,39 @@ namespace JamKit.Argument
         void Update()
         {
             if (_engine == null || _closed) return;
+            float dt = Time.deltaTime;
+            _view.Tick(Time.unscaledDeltaTime);
             var input = GameRoot.Input;
             bool allowed = InputAllowed;
-            float dt = Time.deltaTime;
 
-            if (_engine.Ended)
+            if (!_view.Busy)
             {
-                if (_mode != ArgueMode.Ended) EnterEnd();
-                if (allowed && (input.Submit.WasPressedThisFrame() || input.ArgueChallenge.WasPressedThisFrame())) Continue();
-            }
-            else if (_engine.InPressure)
-            {
-                _mode = ArgueMode.Pressure;
-                Vec move = default;
-                if (_autopilot) move = _engine.Pressure != null ? PressurePilot.Steer(_engine.Pressure) : default;
-                else if (allowed)
+                if (_engine.Ended && _screen != ArgueScreen.End && _screen != ArgueScreen.Pressure) EnterEnd();
+                else if (_engine.InPressure && _screen != ArgueScreen.Pressure && _screen != ArgueScreen.BoxIn && _screen != ArgueScreen.Intro && _screen != ArgueScreen.End)
                 {
-                    Vector2 m = input.Move.ReadValue<Vector2>();
-                    move = new Vec(m.x, m.y);
+                    _screen = ArgueScreen.BoxIn;
+                    _nav.Clear();
+                    _audio.Play("sfx_pressure_in");
+                    _view.OpenBox(() => { _screen = ArgueScreen.Pressure; _dirty = true; });
                 }
-                if (allowed || _autopilot) _engine.Tick(dt, move);
-                if (!_engine.InPressure && !_engine.Ended) { _mode = ArgueMode.Browse; _dirty = true; }
-                _view.SetPhase(_engine.Pressure);
             }
-            else
+
+            switch (_screen)
             {
-                if (_mode == ArgueMode.Pressure) { _mode = ArgueMode.Browse; _dirty = true; }
-                if (_autopilot) TickPilot(dt);
-                else if (allowed) TickInput(input, dt);
+                case ArgueScreen.Pressure:
+                    TickPressure(input, allowed, dt);
+                    break;
+                case ArgueScreen.Intro:
+                case ArgueScreen.BoxIn:
+                case ArgueScreen.BoxOut:
+                    break;
+                default:
+                    if (_view.Busy) break;
+                    if (_autopilot) TickPilot(dt);
+                    else if (allowed) TickInput(input, dt);
+                    break;
             }
+            Sounds();
             Refresh();
         }
 
@@ -210,204 +242,362 @@ namespace JamKit.Argument
             if (!UnityEngine.Cursor.visible) UnityEngine.Cursor.visible = true;
         }
 
+        void TickPressure(InputService input, bool allowed, float dt)
+        {
+            Vec move = default;
+            if (_autopilot) move = _engine.Pressure != null ? PressurePilot.Steer(_engine.Pressure) : default;
+            else if (allowed)
+            {
+                Vector2 m = input.Move.ReadValue<Vector2>();
+                move = new Vec(m.x, m.y);
+            }
+            if (allowed || _autopilot) _engine.Tick(dt, move);
+            _view.SetPhase(_engine.Pressure);
+            if (_engine.InPressure) return;
+            // The phase is over (or her heart gave out): the box collapses, the claims come back.
+            _screen = ArgueScreen.BoxOut;
+            _audio.Play("sfx_pressure_out");
+            _view.SetPhase(null);
+            _view.CloseBox(() =>
+            {
+                if (_engine.Ended) EnterEnd();
+                else Enter(ArgueScreen.Browse);
+            });
+        }
+
         void TickPilot(float dt)
         {
+            if (_screen == ArgueScreen.End) return;
             _pilotWait -= dt;
             if (_pilotWait > 0f) return;
-            _pilotWait = 1.6f; // slow enough to read
-            if (_pilot.Step(_engine)) _statusLine = "Autopilot: " + _pilot.LastAction;
+            _pilotWait = 1.2f; // slow enough to read
+            if (_pilot.Step(_engine))
+            {
+                _audio.Play("sfx_confirm");
+                Enter(ArgueScreen.Browse);
+            }
             _dirty = true;
         }
 
         void TickInput(InputService input, float dt)
         {
-            Vector2 nav = Vector2.zero;
-            if (input.Navigate.WasPressedThisFrame()) nav = input.Navigate.ReadValue<Vector2>();
+            var step = _navInput.Step(input, Time.unscaledDeltaTime);
             bool submit = input.Submit.WasPressedThisFrame();
+            bool submitHeld = input.Submit.IsPressed();
             bool back = input.Cancel.WasPressedThisFrame();
-            switch (_mode)
+
+            if (_screen == ArgueScreen.Transcript)
             {
-                case ArgueMode.Browse:
-                    if (nav.sqrMagnitude > 0.25f) Step(Mathf.Abs(nav.x) >= Mathf.Abs(nav.y) ? Math.Sign(nav.x) : -Math.Sign(nav.y) * 4);
-                    if (input.ArgueAsk.WasPressedThisFrame()) DoAsk();
-                    else if (input.ArgueChallenge.WasPressedThisFrame() || submit) DoChallenge();
-                    else if (input.ArgueConcede.WasPressedThisFrame()) DoConcede();
-                    else if (input.ArgueRest.WasPressedThisFrame()) DoRest();
-                    TickPress(input.ArguePress.IsPressed() || _pointerPress, dt);
-                    break;
-                case ArgueMode.PickEvidence:
-                    if (nav.sqrMagnitude > 0.25f && _trayIds.Count > 0)
-                    {
-                        int d = Mathf.Abs(nav.x) >= Mathf.Abs(nav.y) ? Math.Sign(nav.x) : -Math.Sign(nav.y) * 5;
-                        _trayIndex = Mathf.Clamp(_trayIndex + d, 0, _trayIds.Count - 1);
-                        _dirty = true;
-                    }
-                    if (submit || input.ArgueChallenge.WasPressedThisFrame()) ChooseEvidence(_trayIndex);
-                    else if (back) { _mode = ArgueMode.Browse; _dirty = true; }
-                    break;
-                case ArgueMode.PickReason:
-                    if (nav.sqrMagnitude > 0.25f && _cards.Count > 0)
-                    {
-                        _cardIndex = Mathf.Clamp(_cardIndex - Math.Sign(nav.y) + Math.Sign(nav.x), 0, _cards.Count - 1);
-                        _dirty = true;
-                    }
-                    if (submit || input.ArgueChallenge.WasPressedThisFrame()) ChooseReason(_cardIndex);
-                    else if (back) { _mode = ArgueMode.PickEvidence; _dirty = true; }
-                    break;
+                if (step.y != 0) _view.ScrollTranscript(step.y);
+                if (back) { _audio.Play("sfx_back"); Enter(ArgueScreen.Verbs); }
+                return;
             }
+
+            if (step != Vector2Int.zero && _nav.Move(step.x, step.y))
+            {
+                _audio.Play("sfx_nav");
+                if (_screen == ArgueScreen.Browse) _selected = _nav.FocusedId;
+                _dirty = true;
+            }
+
+            var focused = _nav.Focused;
+            // Press: hold A on the Press verb, or the Press shortcut (hold B / 4) on the premise list, or the mouse.
+            bool holding = (focused != null && focused.hold && (submitHeld || _pointerHold == focused.element))
+                           || (_screen == ArgueScreen.Browse && input.ArguePress.IsPressed());
+            TickHold(holding, dt);
+
+            if (_screen == ArgueScreen.Browse)
+            {
+                // The shortcuts act on the focused premise.
+                if (input.ArgueAsk.WasPressedThisFrame()) { Do("ask"); return; }
+                if (input.ArgueConcede.WasPressedThisFrame()) { Do("concede"); return; }
+                if (input.ArgueRest.WasPressedThisFrame()) { Do("rest"); return; }
+                if (input.ArgueChallenge.WasPressedThisFrame()) { Do("challenge"); return; }
+            }
+            if (submit && focused != null && !focused.hold) { Activate(focused); return; }
+            if (back) Back();
         }
 
-        void TickPress(bool held, float dt)
+        void TickHold(bool held, float dt)
         {
             if (!held)
             {
-                if (_pressHeld > 0f) { _pressHeld = 0f; _view.SetPressProgress(0f); }
+                if (_holdTime > 0f) { _holdTime = 0f; _view.SetPressProgress("press", 0f); }
                 return;
             }
-            _pressHeld += dt;
-            _view.SetPressProgress(Mathf.Clamp01(_pressHeld / PressHold));
-            if (_pressHeld < PressHold) return;
-            _pressHeld = 0f;
-            _pointerPress = false;
-            _view.SetPressProgress(0f);
-            DoPress();
+            _holdTime += dt;
+            _view.SetPressProgress("press", Mathf.Clamp01(_holdTime / PressHold));
+            if (_holdTime < PressHold) return;
+            _holdTime = 0f;
+            _pointerHold = null;
+            _view.SetPressProgress("press", 0f);
+            Do("press");
         }
 
-        // ---------- Verbs (keys, clicks and tests all come here) ----------
+        // ---------- Screens ----------
 
-        void Step(int d)
+        /// <summary>Opens a screen: builds its focus lines and focuses the right item (never left without one).</summary>
+        void Enter(ArgueScreen screen)
         {
-            if (_items.Count == 0) return;
-            int i = _selected;
-            for (int n = 0; n < _items.Count; n++)
+            if (_engine.Ended && screen != ArgueScreen.End) { EnterEnd(); return; }
+            if (_engine.InPressure && screen == ArgueScreen.Browse) { _screen = ArgueScreen.Browse; _dirty = true; return; }
+            _screen = screen;
+            _nav.Clear();
+            _navInput.Reset();
+            _view.HideOverlays();
+            var def = _engine.Def;
+            switch (screen)
             {
-                i = Mathf.Clamp(i + (d == 0 ? 1 : d), 0, _items.Count - 1);
-                if (Selectable(i)) { _selected = i; break; }
-                if (i == 0 || i == _items.Count - 1) break;
+                case ArgueScreen.Browse:
+                {
+                    _nav.AddLine(new NavItem { id = ArgumentEngine.ClaimId, element = _view.ClaimCard, activate = () => Choose(ArgumentEngine.ClaimId) });
+                    var line = new List<NavItem>(2);
+                    for (int i = 0; i < def.premises.Count && i < ArgumentView.MaxPremises; i++)
+                    {
+                        var p = def.premises[i];
+                        bool visible = _engine.Status(p.id) != PremiseStatus.Hidden;
+                        string id = p.id;
+                        line.Add(new NavItem { id = id, element = _view.PremiseCard(i), activate = () => Choose(id), enabled = visible });
+                        if (line.Count == 2) { _nav.AddLine(line); line.Clear(); }
+                    }
+                    if (line.Count > 0) _nav.AddLine(line);
+                    if (!_nav.Focus(_selected)) _nav.FocusFirst();
+                    _selected = _nav.FocusedId;
+                    break;
+                }
+                case ArgueScreen.Verbs:
+                {
+                    string sel = _selected;
+                    bool claim = sel == ArgumentEngine.ClaimId;
+                    _nav.AddLine(
+                        new NavItem { id = "ask", element = _view.Verb("ask"), activate = () => Do("ask"), enabled = !claim && _engine.CanAsk(sel) },
+                        new NavItem { id = "challenge", element = _view.Verb("challenge"), activate = () => Do("challenge"), enabled = !claim && _engine.CanChallenge(sel) },
+                        new NavItem { id = "concede", element = _view.Verb("concede"), activate = () => Do("concede"), enabled = claim ? _engine.CanConcedeClaim : _engine.CanConcede(sel) },
+                        new NavItem { id = "press", element = _view.Verb("press"), hold = true, enabled = _engine.CanPress(sel) },
+                        new NavItem { id = "rest", element = _view.Verb("rest"), activate = () => Do("rest"), enabled = _engine.CanLetItRest },
+                        new NavItem { id = "transcript", element = _view.Verb("transcript"), activate = () => Enter(ArgueScreen.Transcript) });
+                    if (!(_nav.Focus("challenge") || _nav.Focus("ask") || _nav.Focus("concede") || _nav.Focus("rest"))) _nav.Focus("transcript");
+                    break;
+                }
+                case ArgueScreen.PickEvidence:
+                {
+                    var names = new List<string>();
+                    var notes = new List<string>();
+                    foreach (var id in _trayIds)
+                    {
+                        if (id == RetortId) { names.Add(S["screen.retortCard"]); notes.Add("“" + def.Premise(_selected).retort.line + "”"); continue; }
+                        var ev = def.Evidence(id);
+                        names.Add(ev != null ? ev.name : id);
+                        notes.Add(ev != null ? ev.note : "");
+                    }
+                    _view.ShowEvidence(S.Format("screen.prompt.pickEvidence", "premise", def.Premise(_selected).text), names, notes);
+                    var line = new List<NavItem>(3);
+                    for (int i = 0; i < _trayIds.Count; i++)
+                    {
+                        int index = i;
+                        line.Add(new NavItem { id = _trayIds[i] == RetortId ? "retort" : _trayIds[i], element = _view.EvidenceCard(i), activate = () => ChooseEvidence(index) });
+                        if (line.Count == 3) { _nav.AddLine(line); line.Clear(); }
+                    }
+                    if (line.Count > 0) _nav.AddLine(line);
+                    _nav.FocusFirst();
+                    break;
+                }
+                case ArgueScreen.PickReason:
+                {
+                    var texts = new List<string>();
+                    foreach (var c in _cards) texts.Add((string.IsNullOrEmpty(c.supporter) ? "" : "<i>(" + c.supporter + ")</i>  ") + c.reason.text);
+                    var ev = def.Evidence(_evidence);
+                    _view.ShowReasons(S.Format("screen.prompt.reasonHeading", "premise", def.Premise(_selected).text, "evidence", ev != null ? ev.name : _evidence), texts);
+                    for (int i = 0; i < _cards.Count; i++)
+                    {
+                        int index = i;
+                        _nav.AddLine(new NavItem { id = "reason" + i, element = _view.ReasonCard(i), activate = () => ChooseReason(index) });
+                    }
+                    _nav.FocusFirst();
+                    break;
+                }
+                case ArgueScreen.Transcript:
+                    _view.ShowTranscript(S["screen.transcriptTitle"], _engine.Transcript);
+                    break;
+                case ArgueScreen.End:
+                    _nav.AddLine(new NavItem { id = "continue", element = _view.ContinueButton, activate = Continue });
+                    _nav.FocusFirst();
+                    break;
             }
+            _nav.Highlight();
             _dirty = true;
         }
 
-        bool Selectable(int i) => i >= 0 && i < _items.Count && (i == 0 || _engine.Status(_items[i]) != PremiseStatus.Hidden);
+        void Back()
+        {
+            switch (_screen)
+            {
+                case ArgueScreen.Verbs: _audio.Play("sfx_back"); Enter(ArgueScreen.Browse); break;
+                case ArgueScreen.PickEvidence: _audio.Play("sfx_back"); Enter(ArgueScreen.Verbs); break;
+                case ArgueScreen.PickReason: _audio.Play("sfx_back"); Enter(ArgueScreen.PickEvidence); break;
+                case ArgueScreen.Transcript: _audio.Play("sfx_back"); Enter(ArgueScreen.Verbs); break;
+            }
+        }
 
-        /// <summary>Selects a tag by premise id (or ArgumentEngine.ClaimId). Tests and clicks.</summary>
+        void Activate(NavItem item)
+        {
+            if (item == null || !item.enabled || item.activate == null) return;
+            item.activate();
+        }
+
+        /// <summary>A premise (or the claim) chosen on the list: its verbs open.</summary>
+        void Choose(string id)
+        {
+            _selected = id;
+            _audio.Play("sfx_confirm");
+            Enter(ArgueScreen.Verbs);
+        }
+
+        // ---------- Verbs (keys, clicks, tests and the menus all come here) ----------
+
+        /// <summary>Selects a premise by id (or ArgumentEngine.ClaimId) and focuses it on the list. Tests and clicks.</summary>
         public bool Select(string id)
         {
-            Rebuild();
-            int i = _items.IndexOf(id);
-            if (!Selectable(i)) return false;
-            _selected = i;
-            if (_mode == ArgueMode.PickEvidence || _mode == ArgueMode.PickReason) _mode = ArgueMode.Browse;
-            _dirty = true;
+            if (id != ArgumentEngine.ClaimId && (_engine.Def.Premise(id) == null || _engine.Status(id) == PremiseStatus.Hidden)) return false;
+            _selected = id;
+            if (_screen != ArgueScreen.Pressure && _screen != ArgueScreen.BoxIn && _screen != ArgueScreen.BoxOut && _screen != ArgueScreen.End && _screen != ArgueScreen.Intro)
+                Enter(ArgueScreen.Browse);
             return true;
         }
 
-        public bool DoAsk() => Did(_engine.Ask(Selected), "Nothing to ask there.");
+        public bool DoAsk() => Do("ask");
+        public bool DoConcede() => Do("concede");
+        public bool DoPress() => Do("press");
+        public bool DoRest() => Do("rest");
+        public bool DoChallenge() => Do("challenge");
 
-        public bool DoConcede()
+        bool Do(string verb)
         {
-            if (Selected == ArgumentEngine.ClaimId) return Did(_engine.ConcedeClaim(), "");
-            return Did(_engine.Concede(Selected), "That can't be conceded now.");
+            string id = _selected;
+            bool claim = id == ArgumentEngine.ClaimId;
+            bool ok;
+            switch (verb)
+            {
+                case "ask":
+                    ok = !claim && _engine.Ask(id);
+                    return After(ok, ok ? "sfx_confirm" : "sfx_back", "screen.why.nothingToAsk");
+                case "concede":
+                    ok = claim ? _engine.ConcedeClaim() : _engine.Concede(id);
+                    return After(ok, ok ? "sfx_confirm" : "sfx_back", "screen.why.cantConcede");
+                case "press":
+                    ok = _engine.Press(id);
+                    return After(ok, ok ? "sfx_angry" : "sfx_back", "screen.why.cantPress");
+                case "rest":
+                    ok = _engine.LetItRest();
+                    return After(ok, ok ? "sfx_confirm" : "sfx_back", "screen.why.notYet");
+                case "challenge":
+                    if (claim) return After(false, "sfx_back", "screen.why.claimNoChallenge");
+                    if (!_engine.CanChallenge(id)) return After(false, "sfx_back", "screen.why.cantChallenge");
+                    _tray.Clear();
+                    _tray.AddRange(_engine.Tray());
+                    _trayIds.Clear();
+                    foreach (var e in _tray) _trayIds.Add(e.id);
+                    if (_engine.CanRetort(id)) _trayIds.Add(RetortId);
+                    _audio.Play("sfx_confirm");
+                    Enter(ArgueScreen.PickEvidence);
+                    return true;
+            }
+            return false;
         }
 
-        public bool DoPress() => Did(_engine.Press(Selected), "That can't be pressed now.");
+        string _why = "";
 
-        public bool DoRest() => Did(_engine.LetItRest(), "Not yet: hear every premise first (hidden ones too).");
-
-        /// <summary>Opens the evidence tray for the selected premise (with the retort card if they asked a question).</summary>
-        public bool DoChallenge()
+        bool After(bool ok, string sound, string whyNotKey)
         {
-            string id = Selected;
-            if (id == ArgumentEngine.ClaimId) { _statusLine = "The claim stands on its premises: challenge those."; _dirty = true; return false; }
-            if (!_engine.CanChallenge(id)) { _statusLine = "That can't be challenged now."; _dirty = true; return false; }
-            _tray.Clear();
-            _tray.AddRange(_engine.Tray());
-            _trayIds.Clear();
-            foreach (var e in _tray) _trayIds.Add(e.id);
-            if (_engine.CanRetort(id)) _trayIds.Add(RetortItem);
-            _trayIndex = 0;
-            _mode = ArgueMode.PickEvidence;
+            _why = ok ? "" : S[whyNotKey];
+            _audio.Play(sound);
+            if (ok) Enter(ArgueScreen.Browse);
             _dirty = true;
-            return true;
+            return ok;
         }
 
-        /// <summary>Picks tray card <paramref name="index"/>: the reasons come up, or they answer at once.</summary>
+        /// <summary>Picks tray card <paramref name="index"/>: the reasons come up, or she answers at once.</summary>
         public bool ChooseEvidence(int index)
         {
-            if (_mode != ArgueMode.PickEvidence || index < 0 || index >= _trayIds.Count) return false;
-            string id = Selected;
+            if (_screen != ArgueScreen.PickEvidence || index < 0 || index >= _trayIds.Count) return false;
+            string id = _selected;
             string ev = _trayIds[index];
-            if (ev == RetortItem)
+            _audio.Play("sfx_pick");
+            if (ev == RetortId)
             {
-                _mode = ArgueMode.Browse;
-                return Did(_engine.Retort(id), "");
+                bool ok = _engine.Retort(id);
+                if (ok) _audio.Play("sfx_angry");
+                Enter(ArgueScreen.Browse);
+                return ok;
             }
             var step = _engine.BeginChallenge(id, ev, _cards);
             if (step == ChallengeStep.Reasons)
             {
                 _evidence = ev;
-                _cardIndex = 0;
-                _mode = ArgueMode.PickReason;
-                _dirty = true;
+                Enter(ArgueScreen.PickReason);
                 return true;
             }
-            _mode = ArgueMode.Browse;
-            return Did(step != ChallengeStep.NotAllowed, "That can't be challenged now.");
+            _audio.Play(step == ChallengeStep.NotAllowed ? "sfx_back" : "sfx_wrong");
+            Enter(ArgueScreen.Browse);
+            return step != ChallengeStep.NotAllowed;
         }
 
         /// <summary>States reason card <paramref name="index"/>.</summary>
         public bool ChooseReason(int index)
         {
-            if (_mode != ArgueMode.PickReason || index < 0 || index >= _cards.Count) return false;
-            bool ok = _engine.ResolveChallenge(Selected, _evidence, _cards[index].reason);
-            _mode = ArgueMode.Browse;
-            return Did(ok, "");
+            if (_screen != ArgueScreen.PickReason || index < 0 || index >= _cards.Count) return false;
+            string id = _selected;
+            var reason = _cards[index].reason;
+            bool ok = _engine.ResolveChallenge(id, _evidence, reason);
+            _audio.Play("sfx_pick");
+            if (ok)
+            {
+                if (_engine.Status(id) == PremiseStatus.Broken) _audio.Play("sfx_break");
+                else _audio.Play(reason.kind == ReasonKind.Antagonise ? "sfx_angry" : "sfx_wrong");
+            }
+            Enter(ArgueScreen.Browse);
+            return ok;
         }
 
-        /// <summary>The end card's Continue: closes and calls back with the record.</summary>
+        /// <summary>The end card's Continue: closes and calls back with the record (the fade back to the world follows).</summary>
         public void Continue()
         {
             if (_engine != null && _engine.Ended) Close();
         }
 
-        bool Did(bool ok, string whyNot)
-        {
-            _statusLine = ok ? "" : whyNot;
-            _dirty = true;
-            return ok;
-        }
+        // ---------- Mouse ----------
 
-        // Clicks from the view.
-        public void ClickPremise(int index)
+        void OnHover(VisualElement e)
         {
-            if (_mode == ArgueMode.Pressure || _engine.Ended || !Selectable(index)) return;
-            _selected = index;
-            if (_mode != ArgueMode.Browse) _mode = ArgueMode.Browse;
+            if (_view == null || _view.Busy || _autopilot) return;
+            var item = _nav.Find(e);
+            if (item == null || !item.enabled || _nav.Focused == item) return;
+            _nav.Focus(item);
+            if (_screen == ArgueScreen.Browse) _selected = item.id;
             _dirty = true;
         }
 
-        public void ClickVerb(string verb)
+        void OnClick(VisualElement e)
         {
-            if (_mode == ArgueMode.Pressure || _engine.Ended || !InputAllowed) return;
-            _mode = ArgueMode.Browse;
-            switch (verb)
-            {
-                case "ask": DoAsk(); break;
-                case "challenge": DoChallenge(); break;
-                case "concede": DoConcede(); break;
-                case "rest": DoRest(); break;
-            }
+            if (_view == null || _view.Busy || _autopilot || !InputAllowed) return;
+            var item = _nav.Find(e);
+            if (item == null || !item.enabled || item.hold) return;
+            _nav.Focus(item);
+            Activate(item);
         }
 
-        public void PointerPress(bool down) => _pointerPress = down && _mode == ArgueMode.Browse;
-        public void ClickEvidence(int index) { if (InputAllowed) ChooseEvidence(index); }
-        public void ClickReason(int index) { if (InputAllowed) ChooseReason(index); }
+        void OnPointerHeld(VisualElement e, bool down)
+        {
+            if (!down) { if (_pointerHold == e) _pointerHold = null; return; }
+            var item = _nav.Find(e);
+            _pointerHold = item != null && item.hold && item.enabled ? e : null;
+        }
 
         // ---------- The end ----------
 
         void EnterEnd()
         {
-            _mode = ArgueMode.Ended;
+            if (_screen == ArgueScreen.End) return;
             _record = _engine.Record();
             if (!_saved && GameRoot.Exists)
             {
@@ -419,54 +609,45 @@ namespace JamKit.Argument
                 _record = ledger.Get(_record.id).Clone();
             }
             var def = _engine.Def;
-            string gift = _record.truth.Length > 0 ? "\nTruth: “" + def.truthText + "”"
-                : _record.personal.Length > 0 ? "\nPersonal: " + def.personalText : "";
-            string body = def.opponent + " is " + ArgumentEngine.StanceWords(_record.stance) + "." + gift
-                + "\nKey premises broken: " + _record.keysBroken + ".  Presses: " + _record.presses + ".  Anger: " + _record.anger + "."
-                + "\n(Kept in the save: a later battle reads it.)";
-            _view?.ShowEnd(Title(_record.outcome), body);
-            _dirty = true;
+            _sb.Clear();
+            _sb.Append(S.Format("screen.end.stance", "opponent", def.opponent, "stance", ArgumentEngine.StanceWords(_record.stance, S)));
+            if (_record.truth.Length > 0) _sb.Append('\n').Append(S.Format("screen.end.truth", "reason", def.truthText));
+            else if (_record.personal.Length > 0) _sb.Append('\n').Append(S.Format("screen.end.personal", "reason", def.personalText));
+            _sb.Append("\n\n").Append(S.Format("screen.end.tally", "n", _record.keysBroken.ToString(CultureInfo.InvariantCulture), "keys", _record.presses.ToString(CultureInfo.InvariantCulture)));
+            _sb.Append('\n').Append(S["screen.end.saved"]);
+            bool good = _record.outcome == ArgumentOutcome.Convinced || _record.outcome == ArgumentOutcome.HeardOut;
+            _audio.Play(good ? "sfx_end_good" : "sfx_end_bad");
+            _view?.ShowEnd(S["outcome." + _record.outcome], _sb.ToString(), S["screen.end.continue"]);
+            if (_view != null) Enter(ArgueScreen.End);
+            else _screen = ArgueScreen.End;
         }
 
-        static string Title(ArgumentOutcome o)
+        // ---------- Sound that follows the state ----------
+
+        void Sounds()
         {
-            switch (o)
+            int heart = _engine.HeartStep;
+            if (heart > _lastHeart)
             {
-                case ArgumentOutcome.Convinced: return "Convinced";
-                case ArgumentOutcome.HeardOut: return "Heard out";
-                case ArgumentOutcome.Pressed: return "Pressed";
-                case ArgumentOutcome.ComposureLost: return "Composure lost";
-                case ArgumentOutcome.Yielded: return "Yielded";
-                default: return "Over";
+                if (_screen == ArgueScreen.Pressure) _audio.Play("sfx_hit");
+                _audio.Play("sfx_heartbeat", 0.9f);
             }
+            _lastHeart = heart;
+            int visible = _engine.VisiblePremises.Count;
+            if (visible > _lastVisible && _screen == ArgueScreen.Pressure) _audio.Play("sfx_slip");
+            _lastVisible = visible;
         }
 
         // ---------- The view ----------
-
-        void Rebuild()
-        {
-            _items.Clear();
-            _items.Add(ArgumentEngine.ClaimId);
-            foreach (var p in _engine.Def.premises) if (p != null) _items.Add(p.id);
-            if (!Selectable(_selected)) _selected = 0;
-        }
 
         void Refresh()
         {
             if (_view == null) return;
             var e = _engine;
-            if (e.HeartRate != _shownHeart || e.Heat != _shownHeat || e.Anger != _shownAnger)
-            {
-                _shownHeart = e.HeartRate;
-                _shownHeat = e.Heat;
-                _shownAnger = e.Anger;
-                _view.SetVitals(e.HeartRate, e.HeartStep, e.Heat, e.Anger);
-            }
             var bindings = GameRoot.Input.Bindings;
             if (bindings.Version != _keysVersion || Gamepad.current != _keysPad) { _keysVersion = bindings.Version; _keysPad = Gamepad.current; _dirty = true; }
             if (e.Transcript.Count != _shownTranscript) { _shownTranscript = e.Transcript.Count; _dirty = true; }
-            if (_mode != _shownMode) { _shownMode = _mode; _dirty = true; }
-            if (_mode == ArgueMode.Pressure)
+            if (_screen == ArgueScreen.Pressure)
             {
                 _view.Repaint();
                 int left = e.Pressure != null ? Mathf.CeilToInt(e.Pressure.Duration - e.Pressure.Time) : 0;
@@ -474,106 +655,141 @@ namespace JamKit.Argument
             }
             if (!_dirty) return;
             _dirty = false;
+            var def = e.Def;
+            var style = ControlNames.DetectPadStyle();
 
-            Rebuild();
-            string expression = "";
+            // The opponent: name, expression (the last one they showed), sprite.
+            string expression = "neutral";
             for (int i = e.Transcript.Count - 1; i >= 0; i--)
                 if (e.Transcript[i].speaker == Speaker.Opponent && e.Transcript[i].expression.Length > 0) { expression = e.Transcript[i].expression; break; }
-            _view.SetHeader(e.Def.opponent, expression, e.Def.claim, e.Def.placeholderLines);
-            _view.SetTranscript(e.Transcript);
-            _view.ShowPressure(_mode == ArgueMode.Pressure);
-            if (_mode == ArgueMode.Pressure) _view.SetPhase(e.Pressure);
+            _view.SetOpponent(def.opponent, expression, expression, S["screen.placeholder"]);
+            _view.SetPlaceholderBadge(def.placeholderLines ? S["screen.placeholder"] : "");
+            _view.SetVitals(S.Format("screen.heart", "bpm", e.HeartRate.ToString(CultureInfo.InvariantCulture)) + "  " + Pips(e.HeartStep, 5),
+                e.HeartStep >= 4, S["screen.heat"] + " " + Pips(e.Heat, 3), e.Anger > 0 ? S["screen.anger"] + " " + Pips(e.Anger, 3) : "");
 
-            _labels.Clear(); _texts.Clear(); _statuses.Clear(); _selectable.Clear();
-            for (int i = 0; i < _items.Count; i++)
+            int keys = e.KeysLeft;
+            _view.SetClaim(S["screen.claim"], def.claim, keys == 1 ? S["screen.keyHolding"] : S.Format("screen.keysHolding", "n", keys.ToString(CultureInfo.InvariantCulture)));
+
+            for (int i = 0; i < ArgumentView.MaxPremises; i++)
             {
-                if (i == 0)
-                {
-                    _labels.Add("CLAIM");
-                    _texts.Add(e.Def.claim);
-                    _statuses.Add(e.KeysLeft + " key premise" + (e.KeysLeft == 1 ? "" : "s") + " holding it up");
-                    _selectable.Add(true);
-                    continue;
-                }
-                var p = e.Def.Premise(_items[i]);
-                var s = e.Status(p.id);
-                bool hidden = s == PremiseStatus.Hidden;
-                _labels.Add(hidden ? "?" : p.label + (p.kind == PremiseKind.Fact ? "  ■ fact" : "  ∞ link") + (p.key ? "  KEY" : ""));
-                _texts.Add(hidden ? "(something they aren't saying)" : s == PremiseStatus.Broken ? "<s>" + p.text + "</s>" : p.text);
-                _statuses.Add(StatusWords(s, e.IsHeard(p.id)));
-                _selectable.Add(!hidden);
+                if (i >= def.premises.Count) { _view.SetPremise(i, null, null, null, null, null, PremiseStatus.Hidden); continue; }
+                var p = def.premises[i];
+                var st = e.Status(p.id);
+                if (st == PremiseStatus.Hidden) { _view.SetPremise(i, S["screen.hidden"], "", "", S["screen.status.hidden"], S["screen.hiddenText"], st); continue; }
+                _view.SetPremise(i, p.label, p.kind == PremiseKind.Fact ? S["screen.fact"] : S["screen.link"], p.key ? S["screen.key"] : "",
+                    StatusWords(st, e.IsHeard(p.id)), p.text, st);
             }
-            _view.SetPremises(_labels, _texts, _statuses, _selectable, _mode == ArgueMode.Pressure ? -1 : _selected);
 
-            var style = ControlNames.DetectPadStyle();
-            string sel = Selected;
-            bool browse = _mode == ArgueMode.Browse && !e.Ended;
-            bool claim = sel == ArgumentEngine.ClaimId;
-            _view.SetVerb("ask", "Ask\n<size=70%>" + bindings.KeysText("argue-ask", style) + "</size>", browse && !claim && e.CanAsk(sel));
-            _view.SetVerb("challenge", "Challenge\n<size=70%>" + bindings.KeysText("argue-challenge", style) + "</size>", browse && !claim && e.CanChallenge(sel));
-            _view.SetVerb("concede", (claim ? "Concede the claim" : "Concede") + "\n<size=70%>" + bindings.KeysText("argue-concede", style) + "</size>", browse && (claim ? e.CanConcedeClaim : e.CanConcede(sel)));
-            _view.SetVerb("press", (claim ? "Press the claim" : "Press") + " (hold)\n<size=70%>" + bindings.KeysText("argue-press", style) + "</size>", browse && e.CanPress(sel));
-            _view.SetVerb("rest", "Let it rest\n<size=70%>" + bindings.KeysText("argue-rest", style) + "</size>", browse && e.CanLetItRest);
-
-            _names.Clear();
-            if (_mode == ArgueMode.PickEvidence)
+            // The focus panel: the selected (or focused) premise, in full, with what she said about it.
+            string focusId = _screen == ArgueScreen.Browse ? _nav.FocusedId : _selected;
+            if (focusId == ArgumentEngine.ClaimId || def.Premise(focusId) == null)
+                _view.SetFocusPanel(PromptFor(), S["screen.claim"], def.claim, "", "");
+            else
             {
-                foreach (var id in _trayIds)
-                {
-                    if (id == RetortItem) { _names.Add("<b>Retort</b> (no evidence): “" + e.Def.Premise(sel).retort.line + "”"); continue; }
-                    var ev = e.Def.Evidence(id);
-                    _names.Add(ev != null ? "<b>" + ev.name + "</b>  <size=75%>(" + ev.style + ")</size>" : id);
-                }
+                var p = def.Premise(focusId);
+                string said = e.TimesAsked(p.id) >= 2 && p.askAgainReply.Length > 0 ? p.askReply + "\n" + p.askAgainReply : e.TimesAsked(p.id) >= 1 ? p.askReply : "";
+                if (p.question.Length > 0 && e.Status(p.id) == PremiseStatus.Standing) said = (said.Length > 0 ? said + "\n" : "") + S.Format("screen.prompt.question", "question", p.question);
+                _view.SetFocusPanel(PromptFor(), p.label + "  ·  " + (p.kind == PremiseKind.Fact ? S["screen.fact"] : S["screen.link"]) + (p.key ? "  ·  " + S["screen.key"] : "") + "  ·  " + StatusWords(e.Status(p.id), e.IsHeard(p.id)),
+                    p.text, S["screen.saidAbout"], said);
             }
-            _view.SetTray(_names, _trayIndex);
 
-            if (_mode == ArgueMode.PickReason)
+            // The verbs, with their current keys.
+            bool claim = _selected == ArgumentEngine.ClaimId;
+            Verb("ask", S["screen.verb.ask"], "argue-ask", bindings, style);
+            Verb("challenge", S["screen.verb.challenge"], "argue-challenge", bindings, style);
+            Verb("concede", claim ? S["screen.verb.concedeClaim"] : S["screen.verb.concede"], "argue-concede", bindings, style);
+            Verb("press", claim ? S["screen.verb.pressClaim"] : S["screen.verb.press"], "argue-press", bindings, style);
+            Verb("rest", S["screen.verb.rest"], "argue-rest", bindings, style);
+            _view.SetVerb("transcript", S["screen.verb.transcript"]);
+            // What's possible for the focused (or chosen) premise, also while browsing: the row previews it.
+            string vid = focusId;
+            bool vclaim = vid == ArgumentEngine.ClaimId;
+            VerbOn("ask", !vclaim && e.CanAsk(vid));
+            VerbOn("challenge", !vclaim && e.CanChallenge(vid));
+            VerbOn("concede", vclaim ? e.CanConcedeClaim : e.CanConcede(vid));
+            VerbOn("press", e.CanPress(vid));
+            VerbOn("rest", e.CanLetItRest);
+            VerbOn("transcript", true);
+
+            // The dialogue box: the last thing each said, and the step as a sentence.
+            string opp = "", nadia = "", logic = "";
+            for (int i = e.Transcript.Count - 1; i >= 0 && (opp.Length == 0 || nadia.Length == 0 || logic.Length == 0); i--)
             {
-                _names.Clear();
-                foreach (var c in _cards) _names.Add((string.IsNullOrEmpty(c.supporter) ? "" : "<i>(" + c.supporter + ")</i> ") + c.reason.text);
-                var p = e.Def.Premise(sel);
-                var ev = e.Def.Evidence(_evidence);
-                _view.SetReasons("You said “" + p.text + "”. " + (ev != null ? ev.name : _evidence) + " shows that it doesn't hold, because...", _names, _cardIndex);
+                var x = e.Transcript[i];
+                if (x.speaker == Speaker.Opponent && opp.Length == 0) opp = "<b>" + x.who + ":</b>  " + x.text;
+                else if (x.speaker == Speaker.Nadia && nadia.Length == 0) nadia = "<b>Nadia:</b>  " + x.text;
+                else if (x.speaker == Speaker.Logic && logic.Length == 0) logic = x.text;
+                else if (x.speaker == Speaker.Supporter && nadia.Length == 0) nadia = "<b>" + x.who + ":</b>  " + x.text;
             }
-            else _view.SetReasons(null, null, -1);
-
-            _view.SetPrompt(Prompt(e, sel));
-            _view.SetStatus(_statusLine);
+            _view.SetDialogue(opp, nadia, _why.Length > 0 ? _why : logic);
             _view.SetHint(Hint(bindings, style));
+            if (_screen == ArgueScreen.Pressure && e.Pressure != null)
+                _view.SetPressureLabel(S.Format(e.Pressure.Spec.anger > 0 ? "screen.prompt.pressureAngry" : "screen.prompt.pressure", "n", _shownSeconds.ToString(CultureInfo.InvariantCulture)));
+            _nav.Highlight();
         }
 
-        string Prompt(ArgumentEngine e, string sel)
+        void VerbOn(string id, bool on)
         {
-            switch (_mode)
-            {
-                case ArgueMode.Pressure:
-                    var ph = e.Pressure;
-                    return ph != null ? "Pressure: stay clear of " + e.Def.opponent + "'s feeling. " + Mathf.CeilToInt(ph.Duration - ph.Time) + " s" + (ph.Spec.anger > 0 ? "  (angrier: faster, denser)" : "") : "";
-                case ArgueMode.PickEvidence: return "Show what? (pick evidence)";
-                case ArgueMode.PickReason: return "Why does it answer that? (pick the reason that follows)";
-                case ArgueMode.Ended: return "";
-            }
-            if (sel == ArgumentEngine.ClaimId) return "The claim. Break its key premises, or let it rest once you've heard them all.";
-            var p = e.Def.Premise(sel);
-            if (p == null) return "";
-            return string.IsNullOrEmpty(p.question) || e.Status(sel) != PremiseStatus.Standing ? p.label + ": “" + p.text + "”" : p.label + ": she asks “" + p.question + "”";
+            var v = _view.Verb(id);
+            if (v != null && _screen != ArgueScreen.Verbs) v.style.opacity = on ? 1f : 0.38f;
         }
 
-        static string Hint(ControlBindings b, PadStyle style) =>
-            "Move: arrows / stick.  Ask " + b.KeysText("argue-ask", style) + ".  Challenge " + b.KeysText("argue-challenge", style)
-            + ".  Concede " + b.KeysText("argue-concede", style) + ".  Press: hold " + b.KeysText("argue-press", style)
-            + ".  Let it rest " + b.KeysText("argue-rest", style) + ".  Back: Backspace / " + ControlNames.PadName("buttonEast", style) + ".  Rebind: Settings > Controls.";
+        void Verb(string id, string name, string row, ControlBindings b, PadStyle style) =>
+            _view.SetVerb(id, name + "\n<size=72%>" + b.KeysText(row, style) + "</size>");
+
+        string PromptFor()
+        {
+            var def = _engine.Def;
+            switch (_screen)
+            {
+                case ArgueScreen.PickEvidence: return S.Format("screen.prompt.pickEvidence", "premise", def.Premise(_selected)?.text);
+                case ArgueScreen.PickReason: return S.Format("screen.prompt.pickReason", "evidence", def.Evidence(_evidence)?.name);
+            }
+            string id = _screen == ArgueScreen.Browse ? _nav.FocusedId : _selected;
+            if (id == ArgumentEngine.ClaimId) return S["screen.prompt.claim"];
+            var p = def.Premise(id);
+            return p == null ? "" : S.Format("screen.prompt.premise", "premise", p.text);
+        }
+
+        string Hint(ControlBindings b, PadStyle style)
+        {
+            switch (_screen)
+            {
+                case ArgueScreen.Browse:
+                    _sb.Clear();
+                    _sb.Append(S["screen.verb.ask"]).Append(' ').Append(b.KeysText("argue-ask", style)).Append("   ");
+                    _sb.Append(S["screen.verb.challenge"]).Append(' ').Append(b.KeysText("argue-challenge", style)).Append("   ");
+                    _sb.Append(S["screen.verb.concede"]).Append(' ').Append(b.KeysText("argue-concede", style)).Append("   ");
+                    _sb.Append(S["screen.verb.press"]).Append(' ').Append(b.KeysText("argue-press", style)).Append("   ");
+                    _sb.Append(S["screen.verb.rest"]).Append(' ').Append(b.KeysText("argue-rest", style));
+                    return S.Format("screen.hint.browse", "keys", _sb.ToString());
+                case ArgueScreen.Verbs: return S["screen.hint.verbs"];
+                case ArgueScreen.PickEvidence:
+                case ArgueScreen.PickReason: return S["screen.hint.pick"];
+                case ArgueScreen.Transcript: return S["screen.hint.transcript"];
+                case ArgueScreen.Pressure: return S["screen.hint.pressure"];
+                case ArgueScreen.End: return S["screen.hint.end"];
+                default: return "";
+            }
+        }
+
+        static string Pips(int n, int max)
+        {
+            var c = new char[max];
+            for (int i = 0; i < max; i++) c[i] = i < n ? '●' : '○';
+            return new string(c);
+        }
 
         static string StatusWords(PremiseStatus s, bool heard)
         {
             switch (s)
             {
-                case PremiseStatus.Broken: return "BROKEN";
-                case PremiseStatus.Conceded: return "✓ conceded";
-                case PremiseStatus.ConcededFalse: return "✓ agreed (closed)";
-                case PremiseStatus.Forced: return "FORCED";
-                case PremiseStatus.Hidden: return "hidden";
-                default: return heard ? "standing (heard)" : "standing";
+                case PremiseStatus.Broken: return S["screen.status.broken"];
+                case PremiseStatus.Conceded: return S["screen.status.conceded"];
+                case PremiseStatus.ConcededFalse: return S["screen.status.agreed"];
+                case PremiseStatus.Forced: return S["screen.status.forced"];
+                case PremiseStatus.Hidden: return S["screen.status.hidden"];
+                default: return heard ? S["screen.status.heard"] : S["screen.status.standing"];
             }
         }
     }

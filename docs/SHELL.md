@@ -175,9 +175,9 @@ column, and a Reset per row.
   stick-like binding. Shared keys you kept show **(!)**. Hidden rows don't count (R is free in a template
   without the Gauntlet). The defaults share nothing.
 - **Contexts:** rows only clash with rows used at the same time. Walking-around rows are "play"; the argument
-  battle's verbs ("Argue: Ask / Challenge / Concede / Press (hold) / Let it rest": 1-5; X, A, Y, hold B, View),
-  shown while a battle runs, are "argument"; Pause is "any" and clashes with both. So A being both Jump and
-  Challenge isn't flagged (docs/ARGUMENT-PROTOTYPE.md).
+  battle's verbs ("Argue: Ask / Challenge / Concede / Press (hold) / Let it rest": 1-5; X, RB, Y, hold B, View),
+  shown while a battle runs, are "argument"; Pause is "any" and clashes with both. So RB being both Dash and
+  Challenge, or B both Crouch and Press, isn't flagged (docs/ARGUMENT-PROTOTYPE.md).
 - **`GameRoot.Input.BlockWorld(owner, true)`** stops world gameplay (`GameplayAllowed` is false) while something
   modal runs in the world, such as an argument battle; a destroyed owner stops counting.
 - **Reset** on a row puts that action back; **Reset all** puts everything back (stick clicks too).

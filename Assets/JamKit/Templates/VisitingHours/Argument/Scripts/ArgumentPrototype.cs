@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using JamKit.Flow;
 using JamKit.Presenting;
 using JamKit.Shell;
@@ -9,11 +10,12 @@ using UnityEngine.UIElements;
 namespace JamKit.Argument
 {
     /// <summary>
-    /// The prototype's scene (ArgumentPrototype, built by ArgumentPrototypeBuilder): a kitchen table for four as the
-    /// backdrop, a small menu to start Dream-Lena's battle in each setting (Normal, Story, the Long Night's "scripted
-    /// but beatable", without Walt's truth, or watched by its autopilot), and what the save remembers. Presenter
-    /// chapters (Ctrl+Shift+P, or hold L3+R3) start each setting directly; Visiting Hours' and the Dream Escape's
-    /// chapter lists also carry "Argument prototype (Dream-Lena)", which jumps here.
+    /// The prototype's scene (ArgumentPrototype, built by ArgumentPrototypeBuilder): a menu on black to start Dream-Lena's
+    /// battle in each setting (Normal, Story, the Long Night's "scripted but beatable", without Walt's truth, or watched
+    /// by its autopilot), what the save remembers, and the way back. The menu uses the battle's focus model (ArgueNav):
+    /// up / down to choose, A / Enter to start; the mouse hovers and clicks. Presenter chapters (Ctrl+Shift+P, or hold
+    /// L3+R3) start each setting directly; Visiting Hours' and the Dream Escape's chapter lists also carry "Argument
+    /// prototype (Dream-Lena)", which jumps here.
     /// </summary>
     public sealed class ArgumentPrototype : MonoBehaviour
     {
@@ -47,14 +49,18 @@ namespace JamKit.Argument
         }
 
         VisualElement _menu;
-        Label _saved;
-        readonly List<Button> _buttons = new List<Button>(8);
-        string _lastChapter = Normal;
+        Label _saved, _hint;
+        readonly ArgueNav _nav = new ArgueNav();
+        readonly NavInput _navInput = new NavInput();
+        readonly List<NavItem> _items = new List<NavItem>(8);
         float _shownAt = -10f;
+
+        static ArgumentStrings S => ArgumentStrings.Shared;
 
         void Start()
         {
             if (!GameRoot.Exists) { enabled = false; return; }
+            ArgumentContent.Ensure();
             _current = this;
             PresenterMode.Register(Scene, Normal, () => Play(Normal), this);
             PresenterMode.Register(Scene, Story, () => Play(Story), this);
@@ -101,7 +107,6 @@ namespace JamKit.Argument
         /// <summary>Starts Dream-Lena's battle in the chapter's setting.</summary>
         public ArgumentHost Play(string chapter)
         {
-            _lastChapter = chapter;
             ShowMenu(false);
             var host = ArgumentHost.Begin(DreamLenaDemo.Build(), SetupFor(chapter), _ => ShowMenu(true));
             if (host != null) host.Autopilot = chapter == Watch;
@@ -113,55 +118,60 @@ namespace JamKit.Argument
         void BuildMenu()
         {
             var parent = GameRoot.Hud.Root.parent ?? GameRoot.Ui.Root;
-            _menu = new VisualElement { name = "argument-prototype-menu" };
+            _menu = new VisualElement { name = "argument-prototype-menu", pickingMode = PickingMode.Position };
             _menu.AddToClassList(UiHider.KeepClass);
-            _menu.style.position = Position.Absolute;
-            _menu.style.left = 560;
-            _menu.style.top = 150;
-            _menu.style.width = 800;
-            _menu.style.backgroundColor = new Color(0.1f, 0.09f, 0.16f, 0.94f);
-            _menu.style.paddingLeft = _menu.style.paddingRight = 30;
-            _menu.style.paddingTop = _menu.style.paddingBottom = 24;
-            _menu.style.borderTopLeftRadius = _menu.style.borderTopRightRadius = 16;
-            _menu.style.borderBottomLeftRadius = _menu.style.borderBottomRightRadius = 16;
+            ArgueUi.Fill(_menu);
+            _menu.style.backgroundColor = ArgueUi.Black;
+            _menu.style.alignItems = Align.Center;
+            _menu.style.paddingTop = 110;
             parent.Add(_menu);
 
-            var title = new Label("Argument battle prototype: “Take it apart”");
-            title.style.fontSize = 38;
-            title.style.color = new Color(1f, 0.79f, 0.29f);
-            _menu.Add(title);
-            var sub = new Label("Dream-Lena at the kitchen table (Night 2). Placeholder lines: the creator writes the real ones.");
-            sub.style.fontSize = 22;
-            sub.style.color = new Color(0.8f, 0.78f, 0.86f);
-            sub.style.whiteSpace = WhiteSpace.Normal;
-            sub.style.marginBottom = 16;
-            _menu.Add(sub);
+            var title = ArgueUi.Text(_menu, S["menu.title"], ArgumentArt.Display, 56, ArgueUi.Gold, "argument-menu-title");
+            title.style.unityTextAlign = TextAnchor.MiddleCenter;
+            var sub = ArgueUi.Text(_menu, S["menu.subtitle"], ArgumentArt.BodyItalic, 24, ArgueUi.Dim);
+            sub.style.unityTextAlign = TextAnchor.MiddleCenter;
+            sub.style.marginTop = 8;
+            sub.style.marginBottom = 34;
+            sub.style.width = 1100;
 
-            Add("argument-play-normal", "Play (Normal)", () => Play(Normal));
-            Add("argument-play-story", "Play (Story: nothing hurts, slips collect themselves)", () => Play(Story));
-            Add("argument-play-longnight", "Play (Long Night: scripted but beatable)", () => Play(LongNight));
-            Add("argument-play-nowalt", "Play without Walt's truth (Heard out at best)", () => Play(NoWalt));
-            Add("argument-play-watch", "Watch it play (the autopilot)", () => Play(Watch));
-            Add("argument-forget", "Forget the saved results", Forget);
-            Add("argument-title", "Back to the title", () => GameRoot.Instance.QuitToTitle());
+            Add("argument-play-normal", S["menu.normal"], () => Play(Normal));
+            Add("argument-play-story", S["menu.story"], () => Play(Story));
+            Add("argument-play-longnight", S["menu.longNight"], () => Play(LongNight));
+            Add("argument-play-nowalt", S["menu.noWalt"], () => Play(NoWalt));
+            Add("argument-play-watch", S["menu.watch"], () => Play(Watch));
+            Add("argument-forget", S["menu.forget"], Forget);
+            Add("argument-title", S["menu.title.back"], () => GameRoot.Instance.QuitToTitle());
 
-            _saved = new Label();
-            _saved.style.fontSize = 20;
-            _saved.style.color = new Color(0.8f, 0.78f, 0.86f);
-            _saved.style.whiteSpace = WhiteSpace.Normal;
-            _saved.style.marginTop = 14;
-            _menu.Add(_saved);
+            _saved = ArgueUi.Text(_menu, "", ArgumentArt.BodyItalic, 22, ArgueUi.Dim, "argument-menu-saved");
+            _saved.style.marginTop = 22;
+            _saved.style.width = 1000;
+            _saved.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _hint = ArgueUi.Text(_menu, S["menu.hint"], ArgumentArt.Body, 18, new Color(0.5f, 0.48f, 0.56f));
+            _hint.style.marginTop = 10;
+
+            foreach (var i in _items) _nav.AddLine(i);
         }
 
         void Add(string name, string text, Action action)
         {
-            // The press that closed the end card mustn't also click the menu's first button.
-            var b = new Button(() => { if (MenuShown && Time.unscaledTime - _shownAt >= 0.25f) action(); }) { name = name, text = text };
-            b.AddToClassList("jk-button");
-            b.style.marginTop = 6;
-            b.style.marginBottom = 6;
-            _menu.Add(b);
-            _buttons.Add(b);
+            var b = ArgueUi.CardBox(_menu, name, ArgueUi.Card, ArgueUi.CardEdge);
+            b.style.width = 760;
+            b.style.height = 64;
+            b.style.marginTop = b.style.marginBottom = 6;
+            b.style.justifyContent = Justify.Center;
+            ArgueUi.Text(b, text, ArgumentArt.BodyBold, 26, ArgueUi.Ink).style.unityTextAlign = TextAnchor.MiddleCenter;
+            var item = new NavItem { id = name, element = b, activate = action };
+            b.RegisterCallback<PointerEnterEvent>(_ => { if (MenuShown) _nav.Focus(item); });
+            b.RegisterCallback<ClickEvent>(_ => Activate(item));
+            _items.Add(item);
+        }
+
+        void Activate(NavItem item)
+        {
+            // The press that closed the end card mustn't also choose here.
+            if (!MenuShown || Time.unscaledTime - _shownAt < 0.25f || item?.activate == null) return;
+            GameRoot.Audio.Play("ui_select");
+            item.activate();
         }
 
         void Forget()
@@ -175,45 +185,35 @@ namespace JamKit.Argument
         {
             if (_menu == null) return;
             _menu.style.display = shown ? DisplayStyle.Flex : DisplayStyle.None;
-            if (!shown)
-            {
-                // Hidden buttons keep focus otherwise, and Enter would click them behind the battle.
-                var f = _menu.focusController != null ? _menu.focusController.focusedElement as VisualElement : null;
-                if (f != null && _buttons.Contains(f as Button)) f.Blur();
-                return;
-            }
+            if (!shown) return;
             _shownAt = Time.unscaledTime;
+            _navInput.Reset();
             RefreshSaved();
-            FocusMenu();
+            if (_nav.Focused == null) _nav.FocusFirst();
+            _nav.Highlight();
         }
 
         public bool MenuShown => _menu != null && _menu.style.display == DisplayStyle.Flex;
 
+        /// <summary>The focused menu line's name (tests).</summary>
+        public string FocusedId => _nav.FocusedId;
+
         void RefreshSaved()
         {
             if (_saved == null) return;
-            var ledger = ArgumentHost.LoadLedger();
-            var r = ledger.Get(DreamLenaDemo.Id);
-            _saved.text = r == null
-                ? "Saved: nothing yet. Each battle's result is kept, and a later battle reads it (Lena's blessing, or not)."
-                : "Saved: Lena is " + ArgumentEngine.StanceWords(r.stance) + " (" + r.outcome + ", anger " + r.anger + ", presses " + r.presses + ", played " + r.plays + "x).";
-        }
-
-        void FocusMenu()
-        {
-            if (_buttons.Count == 0) return;
-            _buttons[0].Focus();
-            _menu.schedule.Execute(() => { if (MenuShown) _buttons[0].Focus(); });
+            var r = ArgumentHost.LoadLedger().Get(DreamLenaDemo.Id);
+            _saved.text = r == null ? S["menu.savedNone"]
+                : S.Format("menu.saved", "stance", ArgumentEngine.StanceWords(r.stance, S), "outcome", S["outcome." + r.outcome],
+                    "n", r.anger.ToString(CultureInfo.InvariantCulture), "keys", r.plays.ToString(CultureInfo.InvariantCulture));
         }
 
         void Update()
         {
-            // Keyboard and pad: keep focus in the menu while it's up (a click on empty space, or the pause menu, drops it).
-            if (!MenuShown || GameRoot.Ui.Top != null) return;
+            if (!MenuShown || ArgumentHost.Running || GameRoot.Ui.Top != null || GameRoot.Flow.Current != GameState.Playing) return;
             var input = GameRoot.Input;
-            if (!(input.Navigate.WasPressedThisFrame() || input.Submit.WasPressedThisFrame())) return;
-            var focused = _menu.focusController != null ? _menu.focusController.focusedElement as VisualElement : null;
-            if (focused == null || !_buttons.Contains(focused as Button)) FocusMenu();
+            var step = _navInput.Step(input, Time.unscaledDeltaTime);
+            if (step.y != 0 && _nav.Move(0, step.y)) GameRoot.Audio.Play("ui_move");
+            if (input.Submit.WasPressedThisFrame()) Activate(_nav.Focused);
         }
     }
 }
