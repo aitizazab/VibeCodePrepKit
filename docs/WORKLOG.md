@@ -1143,3 +1143,19 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **Overnight Unity run started:** `scratchpad/overnight-1011.ps1` at f10b08d. The creator closed the Movement Lab. It runs:
   - the VH verify (Scenes → PlayMode), the lighting capture and the VH build;
   - then the Movement Lab, Dream Escape and Stealth Lab builds, each to `Builds/Play/`.
+- **More overnight work (the creator asked for more):**
+  - Dream tool aa8de10: the playable Night 2 house.
+    - The house playing with her, as the movement intro.
+    - Theo's hide-and-seek, using the stealth kit.
+    - Memories with a count, and the "anything left to find" line on `AllFound`.
+    - The house tipping over, with the umbrella and rain moved to its front door.
+    - A stand-in Lena argument with an unsure / condemns debug choice; "condemns" feeds Despair.
+  - Movement abd54a5: a walkable greybox of dense-street layout A, with the four routes, the hide-and-seek garden and a night selector.
+  - Controls a385c22: a prototype of the argument battle, concept A ("Take it apart"), approved by the creator. Their additions:
+    - an antagonising reply that makes the opponent angrier and the pressure pattern **noticeably harder**;
+    - outcomes that carry forward in the save;
+    - a near-impossible but beatable setting for the Long Night;
+    - a slot for supporters (Lena and Theo in the back seat).
+    
+    The notes go in `docs/ARGUMENT-PROTOTYPE.md`.
+  - **Asked of the creator:** Elias's real surname. The news report says "Lasname".
