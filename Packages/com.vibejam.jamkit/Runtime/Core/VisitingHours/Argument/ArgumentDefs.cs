@@ -199,6 +199,9 @@ namespace JamKit.Argument
         /// <summary>Every line is a placeholder for the creator's writing pass (the view says so on screen).</summary>
         public bool placeholderLines;
 
+        /// <summary>This battle's screen words, or null for the shared screen file (ArgumentStrings.Shared).</summary>
+        [NonSerialized] public ArgumentStrings strings;
+
         public PremiseDef Premise(string id)
         {
             foreach (var p in premises)

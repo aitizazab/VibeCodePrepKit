@@ -13,6 +13,9 @@ namespace JamKit.Tests.Argument
     {
         const float Dt = 1f / 60f;
 
+        [OneTimeSetUp]
+        public void Files() => ArgumentTestFiles.Use();
+
         static ArgumentEngine Engine(ArgumentDifficulty difficulty = ArgumentDifficulty.Story, string[] evidence = null, ulong seed = 7)
         {
             var setup = new ArgumentSetup { difficulty = difficulty, seed = seed };

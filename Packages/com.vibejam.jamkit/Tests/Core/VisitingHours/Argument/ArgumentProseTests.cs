@@ -1,0 +1,123 @@
+using System;
+using System.IO;
+using System.Linq;
+using JamKit.Argument;
+using NUnit.Framework;
+
+namespace JamKit.Tests.Argument
+{
+    /// <summary>Finds the prose files (Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentText/) from the
+    /// test run and makes the demo and the screen read them, as the game does from Resources.</summary>
+    public static class ArgumentTestFiles
+    {
+        public const string Folder = "Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentText";
+
+        public static string Path(string name)
+        {
+            foreach (var start in new[] { TestContext.CurrentContext.TestDirectory, Directory.GetCurrentDirectory() })
+            {
+                for (var dir = new DirectoryInfo(start); dir != null; dir = dir.Parent)
+                {
+                    string p = System.IO.Path.Combine(dir.FullName, Folder, name + ".txt");
+                    if (File.Exists(p)) return p;
+                }
+            }
+            Assert.Fail("Can't find " + Folder + "/" + name + ".txt above " + TestContext.CurrentContext.TestDirectory);
+            return null;
+        }
+
+        public static string Read(string name) => File.ReadAllText(Path(name));
+
+        /// <summary>The demo's prose and the screen's words from the files on disk.</summary>
+        public static void Use()
+        {
+            string prose = Read(DreamLenaDemo.ProseFile);
+            string screen = Read("screen");
+            DreamLenaDemo.ProseSource = () => prose;
+            ArgumentStrings.SharedSource = () => screen;
+        }
+    }
+
+    /// <summary>Every word of the battle is in the creator's files, not in code: the battle's file has a line for every
+    /// id its structure asks for (and nothing it doesn't use), the screen's file has every id the screen asks for, and
+    /// the format reads as documented.</summary>
+    public class ArgumentProseTests
+    {
+        [OneTimeSetUp]
+        public void Files() => ArgumentTestFiles.Use();
+
+        [Test]
+        public void TheBattleFileHasEveryLineAndNoStrayOnes()
+        {
+            var lines = ArgumentText.Parse(ArgumentTestFiles.Read(DreamLenaDemo.ProseFile));
+            var def = DreamLenaDemo.Structure();
+            var missing = ArgumentText.Apply(def, lines);
+            Assert.That(missing, Is.Empty, "lines missing from lena_night2.txt");
+            var keys = ArgumentText.Keys(DreamLenaDemo.Structure());
+            var stray = lines.Keys.Where(k => !keys.Contains(k) && !k.EndsWith(".noTouchReply", StringComparison.Ordinal) && k.Count(c => c == '.') < 2).ToList();
+            Assert.That(stray, Is.Empty, "ids in the file the battle doesn't use (a typo?)");
+            foreach (var k in keys) Assert.That(lines[k], Is.Not.Empty, k + " is empty");
+        }
+
+        [Test]
+        public void TheScreenFileHasEveryLine()
+        {
+            var screen = new ArgumentStrings(ArgumentText.Parse(ArgumentTestFiles.Read("screen")));
+            var missing = ArgumentStrings.Required.Where(k => !screen.Has(k)).ToList();
+            Assert.That(missing, Is.Empty, "lines missing from screen.txt");
+        }
+
+        [Test]
+        public void NoLineOfTheBattleIsInCode()
+        {
+            var bare = DreamLenaDemo.Build(null);
+            Assert.That(bare.claim, Is.EqualTo("[claim]"), "without the file, a line shows as its id");
+            Assert.That(bare.Premise("L1").text, Is.EqualTo("[L1.text]"));
+            Assert.That(bare.Premise("L1b").challenges[0].reasons[0].text, Is.EqualTo("[L1b.sound]"));
+            Assert.That(bare.Evidence(DreamLenaDemo.FourthChair).name, Is.EqualTo("[mem_fourth_chair.name]"));
+            var full = DreamLenaDemo.Build();
+            Assert.That(full.claim, Is.Not.Empty.And.Not.StartWith("["));
+            Assert.That(full.Premise("L3c").challenges.All(c => c.reasons.All(r => !r.text.StartsWith("[", StringComparison.Ordinal))), Is.True);
+        }
+
+        [Test]
+        public void TheFormatReadsAsDocumented()
+        {
+            var d = ArgumentText.Parse("# a heading\nclaim: He stays.\n  ? a note: ignored\n? also a note\nL1.text: Two\\nlines: with a colon\nbad line\n");
+            Assert.That(d.Count, Is.EqualTo(2));
+            Assert.That(d["claim"], Is.EqualTo("He stays."));
+            Assert.That(d["L1.text"], Is.EqualTo("Two\nlines: with a colon"));
+
+            // A line for one piece of evidence overrides the premise's shared reason.
+            var def = DreamLenaDemo.Structure();
+            var lines = ArgumentText.Parse(ArgumentTestFiles.Read(DreamLenaDemo.ProseFile) + "\nL3c.truth_walt.sound: Walt's own words.\n");
+            ArgumentText.Apply(def, lines);
+            var walt = def.Premise("L3c").ChallengeFor(DreamLenaDemo.TruthWalt).reasons.First(r => r.kind == ReasonKind.Sound);
+            var same = def.Premise("L3c").ChallengeFor(DreamLenaDemo.SameSaturday).reasons.First(r => r.kind == ReasonKind.Sound);
+            Assert.That(walt.text, Is.EqualTo("Walt's own words."));
+            Assert.That(same.text, Is.EqualTo(lines["L3c.sound"]));
+        }
+
+        [Test]
+        public void ExportWritesAFileThatReadsBackTheSame()
+        {
+            var def = DreamLenaDemo.Build();
+            string text = ArgumentText.Export(def, ArgumentText.Capture(def));
+            var again = DreamLenaDemo.Build(text);
+            Assert.That(ArgumentText.Capture(again), Is.EquivalentTo(ArgumentText.Capture(def)));
+            Assert.That(text, Does.Contain("  ? "), "notes say what each line must do");
+        }
+
+        [Test]
+        public void TheTranscriptSentencesComeFromTheScreenFile()
+        {
+            var e = new ArgumentEngine(DreamLenaDemo.Build(), new ArgumentSetup { difficulty = ArgumentDifficulty.Story, allEvidence = true });
+            e.Start();
+            e.SkipPressure();
+            e.Concede("L1");
+            var screen = ArgumentStrings.Shared;
+            string expected = screen.Format("logic.concede", "premise", e.Def.Premise("L1").text, "opponent", e.Def.opponent);
+            Assert.That(e.Transcript.Any(x => x.speaker == Speaker.Logic && x.text == expected), Is.True);
+        }
+    }
+}

@@ -206,7 +206,7 @@ namespace JamKit.Argument
             var p = _def.Premise(id);
             int n = TimesAsked(id) + 1;
             _asked[id] = n;
-            Say(Speaker.Nadia, "Nadia", n == 1 ? "Why do you say that?" : "...And under that?", "");
+            Say(Speaker.Nadia, "Nadia", n == 1 ? S["nadia.ask"] : S["nadia.askAgain"], "");
             if (n >= 2 && (p.askAgainReveals.Count > 0 || !string.IsNullOrEmpty(p.askAgainReply)))
             {
                 Say(Speaker.Opponent, _def.opponent, Or(p.askAgainReply, p.askReply), "");
@@ -236,9 +236,9 @@ namespace JamKit.Argument
             string shown = ev != null ? ev.name : evidenceId;
             if (p.unbreakable)
             {
-                Say(Speaker.Nadia, "Nadia", "(shows " + shown + ") " + Quote(p.text) + "? Not with this.", "");
+                Say(Speaker.Nadia, "Nadia", S.Format("nadia.showUnbreakable", "evidence", shown, "premise", p.text), "");
                 Say(Speaker.Opponent, _def.opponent, Or(p.unbreakableReply, _def.noTouchReply), "");
-                Logic("Nothing Nadia has answers " + Quote(p.text) + " tonight.");
+                Logic(S.Format("logic.unbreakable", "premise", p.text));
                 _heard.Add(id);
                 AfterExchange(false);
                 return ChallengeStep.Unbreakable;
@@ -246,9 +246,9 @@ namespace JamKit.Argument
             var c = p.ChallengeFor(evidenceId);
             if (c == null && p.truth != PremiseTruth.False)
             {
-                Say(Speaker.Nadia, "Nadia", "(shows " + shown + ") That isn't true.", "");
+                Say(Speaker.Nadia, "Nadia", S.Format("nadia.showTrue", "evidence", shown, "premise", p.text), "");
                 Say(Speaker.Opponent, _def.opponent, Or(p.trueReply, _def.noTouchReply), "");
-                Logic(Quote(p.text) + " is true: it can be conceded, not broken.");
+                Logic(S.Format("logic.true", "premise", p.text));
                 RaiseHeat(1);
                 _heard.Add(id);
                 AfterExchange(false);
@@ -256,9 +256,9 @@ namespace JamKit.Argument
             }
             if (c == null)
             {
-                Say(Speaker.Nadia, "Nadia", "(shows " + shown + ")", "");
+                Say(Speaker.Nadia, "Nadia", S.Format("nadia.showNoTouch", "evidence", shown, "premise", p.text), "");
                 Say(Speaker.Opponent, _def.opponent, Or(p.noTouchReply, _def.noTouchReply), "");
-                Logic(shown + " doesn't touch " + Quote(p.text) + ".");
+                Logic(S.Format("logic.noTouch", "evidence", shown, "Evidence", Cap(shown), "premise", p.text));
                 RaiseHeat(1);
                 _heard.Add(id);
                 AfterExchange(false);
@@ -285,13 +285,13 @@ namespace JamKit.Argument
             if (c == null || p.unbreakable) return false;
             var ev = _def.Evidence(evidenceId);
             string shown = ev != null ? ev.name : evidenceId;
-            Say(Speaker.Nadia, "Nadia", "(" + shown + ") " + reason.text, "");
+            Say(Speaker.Nadia, "Nadia", S.Format("nadia.reason", "evidence", shown, "reason", reason.text), "");
             Say(Speaker.Opponent, _def.opponent, reason.reply, reason.expression);
             _heard.Add(id);
             switch (reason.kind)
             {
                 case ReasonKind.Sound:
-                    Logic("You said " + Quote(p.text) + ". " + Cap(shown) + " shows otherwise: " + reason.text + " So " + Quote(p.text) + " doesn't hold.");
+                    Logic(S.Format("logic.sound", "premise", p.text, "evidence", shown, "Evidence", Cap(shown), "reason", reason.text));
                     Set(id, PremiseStatus.Broken);
                     if (p.key) _keysBroken++;
                     LowerHeat(1);
@@ -300,17 +300,17 @@ namespace JamKit.Argument
                     AfterExchange(false);
                     break;
                 case ReasonKind.Beside:
-                    Logic(Quote(reason.text) + " may be true, but it doesn't touch " + Quote(p.text) + ".");
+                    Logic(S.Format("logic.beside", "premise", p.text, "evidence", shown, "Evidence", Cap(shown), "reason", reason.text));
                     RaiseHeat(1);
                     AfterExchange(true);
                     break;
                 case ReasonKind.Antagonise:
-                    Logic("That dodged " + Quote(p.text) + " and went for " + _def.opponent + " instead. " + _def.opponent + " is angrier.");
+                    Logic(S.Format("logic.antagonise", "premise", p.text, "opponent", _def.opponent, "reason", reason.text));
                     Antagonise();
                     AfterExchange(true);
                     break;
                 default:
-                    Logic(Quote(reason.text) + " doesn't follow from " + shown + ".");
+                    Logic(S.Format("logic.nonSequitur", "premise", p.text, "evidence", shown, "Evidence", Cap(shown), "reason", reason.text));
                     RaiseHeat(1);
                     AfterExchange(true);
                     break;
@@ -328,7 +328,7 @@ namespace JamKit.Argument
             var p = _def.Premise(id);
             Say(Speaker.Nadia, "Nadia", p.retort.line, "");
             Say(Speaker.Opponent, _def.opponent, p.retort.reply, p.retort.expression);
-            Logic("That dodged " + (string.IsNullOrEmpty(p.question) ? Quote(p.text) : "the question " + Quote(p.question)) + " and attacked " + _def.opponent + ". " + _def.opponent + " is angrier.");
+            Logic(string.IsNullOrEmpty(p.question) ? S.Format("logic.retort", "premise", p.text, "opponent", _def.opponent) : S.Format("logic.retortQuestion", "question", p.question, "premise", p.text, "opponent", _def.opponent));
             _heard.Add(id);
             Antagonise();
             AfterExchange(true);
@@ -343,19 +343,19 @@ namespace JamKit.Argument
         {
             if (!CanConcede(id)) return false;
             var p = _def.Premise(id);
-            Say(Speaker.Nadia, "Nadia", Or(p.concedeLine, "That's true."), "");
+            Say(Speaker.Nadia, "Nadia", Or(p.concedeLine, S["nadia.concede"]), "");
             _heard.Add(id);
             if (p.truth == PremiseTruth.False)
             {
                 Set(id, PremiseStatus.ConcededFalse);
-                Say(Speaker.Opponent, _def.opponent, Or(p.concedeFalseReply, "Then we agree."), "");
-                Logic("Nadia agreed with " + Quote(p.text) + ", which isn't true: that line is closed.");
+                Say(Speaker.Opponent, _def.opponent, Or(p.concedeFalseReply, S["opponent.concedeFalse"]), "");
+                Logic(S.Format("logic.concedeFalse", "premise", p.text, "opponent", _def.opponent));
                 AfterExchange(false);
                 return true;
             }
             Set(id, PremiseStatus.Conceded);
-            Say(Speaker.Opponent, _def.opponent, Or(p.concedeReply, "...Thank you."), "softened");
-            Logic("Nadia conceded " + Quote(p.text) + ": it's true. Her heart slows.");
+            Say(Speaker.Opponent, _def.opponent, Or(p.concedeReply, S["opponent.concedeTrue"]), "softened");
+            Logic(S.Format("logic.concede", "premise", p.text, "opponent", _def.opponent));
             if (_heart > 0) _heart--;
             LowerHeat(1);
             foreach (var r in p.concedeReveals) Reveal(r, false);
@@ -373,16 +373,16 @@ namespace JamKit.Argument
             _presses++;
             if (id == ClaimId)
             {
-                Say(Speaker.Nadia, "Nadia", Or(_def.pressClaimLine, "Enough. You're wrong."), "");
-                Say(Speaker.Opponent, _def.opponent, Or(_def.pressClaimReply, "..."), "hurt");
-                Logic("Nadia forced the claim itself.");
+                Say(Speaker.Nadia, "Nadia", Or(_def.pressClaimLine, S["nadia.pressClaim"]), "");
+                Say(Speaker.Opponent, _def.opponent, Or(_def.pressClaimReply, S["opponent.silence"]), "hurt");
+                Logic(S.Format("logic.pressClaim", "claim", _def.claim, "opponent", _def.opponent));
                 Finish(ArgumentOutcome.Pressed);
                 return true;
             }
             var p = _def.Premise(id);
-            Say(Speaker.Nadia, "Nadia", Or(p.pressLine, "No. It isn't."), "");
-            Say(Speaker.Opponent, _def.opponent, Or(p.pressReply, "..."), "hurt");
-            Logic("Nadia forced " + Quote(p.text) + " down without a reason.");
+            Say(Speaker.Nadia, "Nadia", Or(p.pressLine, S["nadia.press"]), "");
+            Say(Speaker.Opponent, _def.opponent, Or(p.pressReply, S["opponent.silence"]), "hurt");
+            Logic(S.Format("logic.press", "premise", p.text, "opponent", _def.opponent));
             Set(id, PremiseStatus.Forced);
             _heard.Add(id);
             RaiseHeat(2);
@@ -412,7 +412,7 @@ namespace JamKit.Argument
             if (!CanLetItRest) return false;
             Say(Speaker.Nadia, "Nadia", _def.letItRestLine, "");
             if (!string.IsNullOrEmpty(_def.letItRestReply)) Say(Speaker.Opponent, _def.opponent, _def.letItRestReply, "softened");
-            Logic("Nadia heard every premise out and let it rest.");
+            Logic(S.Format("logic.rest", "opponent", _def.opponent, "claim", _def.claim));
             Finish(_presses > 0 ? ArgumentOutcome.Pressed : ArgumentOutcome.HeardOut);
             return true;
         }
@@ -423,9 +423,9 @@ namespace JamKit.Argument
         public bool ConcedeClaim()
         {
             if (!CanConcedeClaim) return false;
-            Say(Speaker.Nadia, "Nadia", Or(_def.concedeClaimLine, "...You're right."), "");
-            Say(Speaker.Opponent, _def.opponent, Or(_def.concedeClaimReply, "..."), "");
-            Logic("Nadia conceded the claim: " + Quote(_def.claim));
+            Say(Speaker.Nadia, "Nadia", Or(_def.concedeClaimLine, S["nadia.concedeClaim"]), "");
+            Say(Speaker.Opponent, _def.opponent, Or(_def.concedeClaimReply, S["opponent.silence"]), "");
+            Logic(S.Format("logic.concedeClaim", "claim", _def.claim, "opponent", _def.opponent));
             Finish(ArgumentOutcome.Yielded);
             return true;
         }
@@ -456,8 +456,8 @@ namespace JamKit.Argument
                 if (_heart >= PanicStep)
                 {
                     _heart = PanicStep;
-                    Say(Speaker.Nadia, "Nadia", Or(_def.composureLostLine, "...I can't breathe."), "");
-                    Logic("Nadia's heart reached " + HeartRates[PanicStep] + " bpm.");
+                    Say(Speaker.Nadia, "Nadia", _def.composureLostLine, "");
+                    Logic(S.Format("logic.heart", "bpm", HeartRates[PanicStep].ToString(System.Globalization.CultureInfo.InvariantCulture)));
                     _pressure = null;
                     Finish(ArgumentOutcome.ComposureLost);
                     return;
@@ -467,7 +467,7 @@ namespace JamKit.Argument
             if (slip != null && Status(slip) == PremiseStatus.Hidden)
             {
                 var p = _def.Premise(slip);
-                Logic("Nadia caught " + Or(p?.slipName, "something") + ": what " + _def.opponent + " isn't saying.");
+                Logic(S.Format("logic.slip", "slip", Or(p?.slipName, S["logic.something"]), "opponent", _def.opponent));
                 Reveal(slip, true);
             }
             if (_pressure != null && _pressure.Finished)
@@ -607,7 +607,7 @@ namespace JamKit.Argument
                     if (!string.IsNullOrEmpty(_def.pressedReply)) Say(Speaker.Opponent, _def.opponent, _def.pressedReply, "hurt");
                     break;
             }
-            Logic("Outcome: " + outcome + ". " + _def.opponent + " is " + StanceWords(_stance) + ".");
+            Logic(S.Format("logic.outcome", "outcome", S["outcome." + outcome], "opponent", _def.opponent, "stance", StanceWords(_stance, S)));
         }
 
         /// <summary>
@@ -628,16 +628,14 @@ namespace JamKit.Argument
             }
         }
 
-        public static string StanceWords(ArgumentStance s)
-        {
-            switch (s)
-            {
-                case ArgumentStance.Amenable: return "amenable";
-                case ArgumentStance.Unsure: return "unsure";
-                case ArgumentStance.Condemns: return "condemning";
-                default: return "unmoved";
-            }
-        }
+        /// <summary>The stance in words, from the screen file ("amenable", "unsure", "condemning").</summary>
+        public static string StanceWords(ArgumentStance s) => StanceWords(s, ArgumentStrings.Shared);
+
+        public static string StanceWords(ArgumentStance s, ArgumentStrings strings) => strings["stance." + s];
+
+        /// <summary>The words this battle speaks in (its own, else the shared screen file).</summary>
+        public ArgumentStrings Strings => _def.strings ?? ArgumentStrings.Shared;
+        ArgumentStrings S => Strings;
 
         /// <summary>The result for the ledger (valid once <see cref="Ended"/>).</summary>
         public ArgumentRecord Record() => new ArgumentRecord

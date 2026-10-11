@@ -94,6 +94,7 @@ namespace JamKit.Argument
         /// <summary>Starts a battle now (replacing one already running). Null without the shell.</summary>
         public static ArgumentHost Begin(ArgumentDef def, ArgumentSetup setup, Action<ArgumentRecord> onClosed = null)
         {
+            ArgumentContent.Ensure();
             if (!GameRoot.Exists || def == null) return null;
             if (_current != null) _current.Close(false);
             var go = new GameObject("Argument: " + def.id);

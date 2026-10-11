@@ -1,0 +1,138 @@
+# The argument screen's own words: prompts, labels, Nadia's default lines, and the transcript's sentences.
+# Edit the text after the colon; keep the id before it. Indented lines starting with ? are notes; the game ignores them.
+# {curly} words are filled in by the game: {premise} the premise's words, {evidence} the evidence's name ({Evidence}
+# with a capital), {reason} the reason card, {opponent} who she's arguing with, {question} their question,
+# {slip} the slip's name, {bpm}, {outcome}, {stance}, {claim}, {n}, {keys} (the keys for an action). \n is a line break.
+# Every line of one battle is in its own file (lena_night2.txt). The brief: docs/ARGUMENT-PROSE-BRIEF.md.
+
+## Nadia's own words (when a premise has no line of its own)
+nadia.ask: Why do you say that?
+  ? Nadia asks why (the Ask verb)
+nadia.askAgain: ...And under that? Why?
+  ? Nadia asks the same premise a second time, digging deeper
+nadia.showUnbreakable: ({evidence}) "{premise}"... not with this.
+  ? Nadia shows evidence against a premise that can't be broken tonight
+nadia.showTrue: ({evidence}) That isn't true.
+  ? Nadia tries to challenge something true
+nadia.showNoTouch: ({evidence})
+  ? Nadia shows evidence that has nothing to do with the premise
+nadia.reason: ({evidence}) {reason}
+  ? Nadia states her reason, with the evidence she's showing
+nadia.concede: That's true.
+nadia.press: No. It isn't.
+nadia.pressClaim: Enough. You're wrong.
+nadia.concedeClaim: ...You're right.
+opponent.concedeTrue: ...Thank you.
+opponent.concedeFalse: Then we agree.
+opponent.silence: ...
+
+## The transcript: every step spelled out (a judge reads these)
+logic.sound: You said "{premise}". {Evidence} shows: {reason} So "{premise}" doesn't hold.
+  ? a premise broken by a sound reason
+logic.beside: "{reason}" may be true, but it doesn't answer "{premise}".
+  ? a reason that's true but beside the point
+logic.nonSequitur: "{reason}" doesn't follow from {evidence}.
+  ? a reason that doesn't follow
+logic.antagonise: That dodged "{premise}" and attacked {opponent} instead. {opponent} is angrier, and her pressure will be harder.
+logic.retort: That dodged "{premise}" and attacked {opponent}. {opponent} is angrier, and her pressure will be harder.
+logic.retortQuestion: That dodged the question "{question}" and attacked {opponent}. {opponent} is angrier, and her pressure will be harder.
+logic.unbreakable: Nothing Nadia has can answer "{premise}" tonight.
+logic.true: "{premise}" is true. Concede it instead: true premises can't be broken.
+logic.noTouch: {Evidence} has nothing to do with "{premise}".
+logic.concede: Nadia conceded "{premise}": it's true. Her heart slows.
+logic.concedeFalse: Nadia agreed with "{premise}", which isn't true. That line is closed now.
+logic.press: Nadia forced "{premise}" down without a reason. {opponent} is hurt.
+logic.pressClaim: Nadia forced the claim itself. It's over.
+logic.rest: Nadia heard every premise out and let it rest.
+logic.concedeClaim: Nadia gave up the claim: "{claim}"
+logic.slip: Nadia caught {slip}: something {opponent} wasn't saying.
+logic.something: something
+logic.heart: Nadia's heart reached {bpm} bpm. She has to stop.
+logic.outcome: {outcome}. {opponent} is {stance}.
+stance.Amenable: amenable
+stance.Unsure: unsure
+stance.Condemns: condemning
+stance.None: unmoved
+outcome.Convinced: Convinced
+outcome.HeardOut: Heard out
+outcome.Pressed: Pressed
+outcome.ComposureLost: Composure lost
+outcome.Yielded: Yielded
+outcome.None: Over
+
+## The screen
+screen.claim: THE CLAIM
+screen.fact: FACT
+screen.link: LINK
+screen.key: KEY
+screen.hidden: ?
+screen.hiddenText: Something she isn't saying.
+screen.status.standing: standing
+screen.status.heard: heard
+screen.status.broken: BROKEN
+screen.status.conceded: conceded (true)
+screen.status.agreed: agreed (closed)
+screen.status.forced: FORCED
+screen.status.hidden: hidden
+screen.keysHolding: {n} key premises hold the claim up
+screen.keyHolding: 1 key premise holds the claim up
+screen.verb.ask: Ask why
+screen.verb.challenge: Challenge
+screen.verb.concede: Concede
+screen.verb.concedeClaim: Give in
+screen.verb.press: Press (hold)
+screen.verb.pressClaim: Force it (hold)
+screen.verb.rest: Let it rest
+screen.verb.transcript: Transcript
+screen.back: Back
+screen.prompt.claim: Her claim stands on the premises below. Break every KEY premise to win her over, or hear them all and let it rest.
+  ? what the claim card says when it's selected: how to win
+screen.prompt.premise: {premise}
+screen.prompt.question: She asks you: "{question}"
+screen.prompt.pickEvidence: Which piece of evidence answers "{premise}"?
+screen.prompt.pickReason: Why does {evidence} answer it? Pick the reason that really follows.
+screen.prompt.reasonHeading: She said "{premise}". You show {evidence}. Because...
+screen.prompt.pressure: Her feeling fills the table: keep your light clear of it. {n} s
+screen.prompt.pressureAngry: She's angry: faster, denser, fewer gaps. Keep your light clear. {n} s
+screen.retortCard: Answer her question back (no evidence)
+screen.because: Because...
+screen.why.nothingToAsk: There's nothing more to ask about that.
+screen.why.cantConcede: That can't be conceded now.
+screen.why.cantPress: That can't be forced now.
+screen.why.notYet: Not yet: hear every premise first (the hidden ones too).
+screen.why.claimNoChallenge: The claim stands on its premises. Challenge those instead.
+screen.why.cantChallenge: That can't be challenged now.
+screen.heard: What she said about it
+screen.saidAbout: She said:
+screen.transcriptTitle: Everything said so far
+screen.placeholder: Placeholder lines: the creator writes the real ones.
+screen.heart: {bpm} bpm
+screen.heat: Heat
+screen.anger: Anger
+screen.end.continue: Continue
+screen.end.stance: {opponent} is {stance}.
+screen.end.truth: You won a truth: "{reason}"
+screen.end.personal: She gave you: {reason}
+screen.end.tally: Key premises broken: {n}. Forced: {keys}.
+screen.end.saved: Kept in the save: a later conversation remembers this.
+screen.hint.browse: {keys}
+  ? the bottom line while choosing a premise (the game lists the keys)
+screen.hint.verbs: Pick what to do with it. B / Backspace: back to the premises.
+screen.hint.pick: A / Enter: choose.   B / Backspace: back.
+screen.hint.pressure: Move: stick, d-pad, WASD or arrows. Catch the slips: they reveal what she isn't saying.
+screen.hint.end: A / Enter: continue.
+screen.hint.transcript: Up / down: scroll.   B / Backspace: back.
+
+## The prototype's menu
+menu.title: Argument battle prototype: "Take it apart"
+menu.subtitle: Dream-Lena at the kitchen table, Night 2. Placeholder lines: the creator writes the real ones.
+menu.normal: Play (Normal)
+menu.story: Play (Story: nothing hurts, slips collect themselves)
+menu.longNight: Play (Long Night: scripted but beatable)
+menu.noWalt: Play without Walt's truth (Heard out at best)
+menu.watch: Watch it play (the autopilot)
+menu.forget: Forget the saved results
+menu.title.back: Back to the title
+menu.savedNone: Saved: nothing yet. Each battle's result is kept, and a later battle reads it (Lena's blessing, or not).
+menu.saved: Saved: Lena is {stance} ({outcome}, anger {n}, played {keys}x).
+menu.hint: Up / down: choose.   A / Enter: start.

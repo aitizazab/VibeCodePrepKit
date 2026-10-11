@@ -14,6 +14,7 @@ namespace JamKit.Argument.Tests
         [Test]
         public void TheScreenBuildsAndShowsTheBattle()
         {
+            ArgumentContent.Ensure();
             var parent = new VisualElement();
             var view = new ArgumentView(parent);
             Assert.That(parent.Q<VisualElement>(ArgumentView.RootName), Is.Not.Null);
