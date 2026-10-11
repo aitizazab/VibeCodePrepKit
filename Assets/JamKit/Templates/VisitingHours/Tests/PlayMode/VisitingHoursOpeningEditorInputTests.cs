@@ -1,0 +1,478 @@
+using System.Collections;
+using System.IO;
+using JamKit.Flow;
+using JamKit.Shell;
+using JamKit.Tests.Play;
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.TestTools;
+using static JamKit.Tests.Play.ShellTestUtil;
+
+namespace JamKit.VisitingHours.Tests
+{
+    /// <summary>
+    /// The opening editor worked the way the creator works it (docs/OPENING-EDITOR.md): through a test keyboard and a
+    /// test mouse fed to the Input System, never by calling the editor's own methods. Opening with F9, flying the free
+    /// camera (right mouse + W, the mouse turning the view) while the opening holds still, panning, the wheel, F, clicking
+    /// in the view and on the panels, dragging the X arrow, snapping, undo and redo, typing a number, the beat buttons
+    /// and the scrub bar, a shot set from the view, saving and building again with the save, and closing (the opening
+    /// plays on, the title takes input again). Edits go to a file in the temp folder, never the repository.
+    /// </summary>
+    public class VisitingHoursOpeningEditorInputTests
+    {
+        TestInput _keys;
+        VhVirtualInput _in;
+        string _file;
+
+        static VhOpeningEditor Ed => VhOpeningEditor.Instance;
+
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            yield return BootToTitle();
+            VhOpeningEditor.SaveOnClose = false;
+            _file = Path.Combine(Path.GetTempPath(), "vh-opening-edits-test-" + System.Guid.NewGuid().ToString("N") + ".json");
+            VhSceneEdits.FileOverride = _file;
+            var c = Object.Instantiate(GameRoot.Config);
+            c.firstGameplayScene = VhPresenter.Scene;
+            c.chooseDifficultyOnPlay = false;
+            c.showHowToPlayOnFirstRun = false;
+            GameRoot.UseConfig(c);
+            VhBoot.Refresh();
+            yield return WaitFor(() => VhBoot.Stage != null && VhBoot.Stage.Interactive, "the title table", 10f);
+            _keys = new TestInput("EditorTestKeyboard");
+            _in = new VhVirtualInput("EditorTest", _keys.Keyboard);
+            GameRoot.Input.SetPadMode(false);
+            yield return null;
+        }
+
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            if (Ed != null && Ed.IsOpen) Ed.Close();
+            VhOpeningEditor.SaveOnClose = true;
+            if (VhBoot.Opening != null) VhBoot.Opening.Finish(true);
+            _in?.Dispose();
+            _in = null;
+            _keys?.Dispose();
+            _keys = null;
+            VhSceneEdits.FileOverride = null;
+            if (_file != null && File.Exists(_file)) File.Delete(_file);
+            // The next test builds the sets from the real (committed) edits again.
+            var runner = GameRoot.Instance != null ? GameRoot.Instance.GetComponent<VhTitleRunner>() : null;
+            if (runner != null) runner.DestroyStage();
+            UnityEngine.Cursor.lockState = CursorLockMode.None;
+            yield return WaitFor(() => !GameRoot.IsLoadingScene, "any load to finish");
+            UseSandboxConfig();
+            VhBoot.Refresh();
+            yield return null;
+        }
+
+        IEnumerator OpenWithF9()
+        {
+            Assert.That(Ed, Is.Not.Null, "the editor lives on the GameRoot");
+            Assert.That(Ed.IsOpen, Is.False);
+            yield return _in.Tap(Key.F9);
+            yield return WaitFor(() => Ed.IsOpen, "F9 to open the editor", 5f);
+            yield return Frames(6); // its panels laid out
+            _in.MoveTo(Ed.ViewScreenPoint());
+            yield return Frames(2);
+        }
+
+        Vector2 Point(string id)
+        {
+            Assert.That(Ed.TryScreenPointOf(id, out var p), Is.True, "\"" + id + "\" shows on screen");
+            return p;
+        }
+
+        IEnumerator ClickThing(string id)
+        {
+            Assert.That(Ed.TryThingScreenPoint(id, out var p), Is.True, id + " shows in the view");
+            Assert.That(Ed.IsOverPanels(p), Is.False, "and not under a panel");
+            yield return _in.Click(p);
+        }
+
+        IEnumerator ClickListRow(string id)
+        {
+            for (int i = 0; i < 12 && !Ed.TryScreenPointOf("list:" + id, out _); i++)
+            {
+                Assert.That(Ed.TryPanelScreenPoint("left", out var left), Is.True, "the list panel");
+                _in.MoveTo(left + new Vector2(0f, 80f));
+                yield return null;
+                _in.Scroll(-2f);
+                yield return Frames(3);
+            }
+            yield return _in.Click(Point("list:" + id));
+        }
+
+        IEnumerator HoldKeyFor(Key key, float seconds)
+        {
+            _in.Keys(key);
+            float end = Time.realtimeSinceStartup + seconds;
+            while (Time.realtimeSinceStartup < end) yield return null;
+            _in.Keys();
+            yield return null;
+        }
+
+        static Transform Cam => Ed.Stage.cam.transform;
+
+        // ---------- Opening, closing, nothing leaking ----------
+
+        [UnityTest]
+        public IEnumerator F9OpensItHeldStillAndF9ClosesItBackToTheTitle()
+        {
+            yield return OpenWithF9();
+            Assert.That(Ed.Opening, Is.Not.Null);
+            Assert.That(Ed.Opening.Paused, Is.True, "the opening holds still while editing");
+            Assert.That(Ed.Stage.table.Live, Is.False, "the title table doesn't take input under the editor");
+            float t0 = Ed.Opening.Time;
+            yield return Frames(20);
+            Assert.That(Ed.Opening.Time, Is.EqualTo(t0).Within(1e-4f), "held");
+            Assert.That(Ed.StatusText, Does.Contain("Editing the opening"), "the status line says what's open");
+
+            // Enter (the title's Submit) and a click on the tablet don't press Play under the editor.
+            yield return _in.Tap(Key.Enter);
+            yield return ClickThing("title-tablet");
+            yield return Frames(3);
+            Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.Title), "still on the title: nothing leaked into the game");
+            Assert.That(Ed.Selected != null && Ed.Selected.id == "title-tablet", Is.True, "the click selected the tablet instead");
+
+            // A pad touched by accident doesn't hide the cursor here.
+            GameRoot.Input.SetPadMode(true);
+            yield return Frames(2);
+            Assert.That(GameRoot.Input.PadMode, Is.False, "the editor keeps the mouse cursor");
+
+            yield return _in.Tap(Key.F9);
+            Assert.That(Ed.IsOpen, Is.False, "F9 closes it");
+            yield return Frames(3);
+            Assert.That(Ed.Stage == null || !Ed.Stage.editorCamera, Is.True, "the shots have the camera again");
+            Assert.That(VhBoot.Stage.table.Live, Is.True, "the title table takes input again");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator ClosingMidOpeningPlaysOnFromThere()
+        {
+            Assert.That(VhBoot.PlayOpeningNow(1f), Is.Not.Null, "the opening plays");
+            float end = Time.realtimeSinceStartup + 1.5f;
+            while (Time.realtimeSinceStartup < end) yield return null;
+            yield return OpenWithF9();
+            float t0 = Ed.Opening.Time;
+            Assert.That(t0, Is.GreaterThan(0.5f), "opened part way in");
+            end = Time.realtimeSinceStartup + 0.6f;
+            while (Time.realtimeSinceStartup < end) yield return null;
+            Assert.That(Ed.Opening.Time, Is.EqualTo(t0).Within(1e-4f), "held while editing");
+            // Space plays it from here; Space again pauses.
+            yield return _in.Tap(Key.Space);
+            Assert.That(Ed.Playing, Is.True, "Space plays");
+            Assert.That(Ed.FreeCamera, Is.False, "through the shot cameras");
+            end = Time.realtimeSinceStartup + 0.5f;
+            while (Time.realtimeSinceStartup < end) yield return null;
+            Assert.That(Ed.Opening.Time, Is.GreaterThan(t0 + 0.2f), "it plays on");
+            yield return _in.Tap(Key.Space);
+            Assert.That(Ed.Playing, Is.False, "Space pauses");
+            var opening = Ed.Opening;
+            float t1 = opening.Time;
+            yield return _in.Tap(Key.F9);
+            Assert.That(Ed.IsOpen, Is.False);
+            end = Time.realtimeSinceStartup + 0.6f;
+            while (Time.realtimeSinceStartup < end) yield return null;
+            Assert.That(opening.Running, Is.True, "the opening goes on after closing");
+            Assert.That(opening.Time, Is.GreaterThan(t1 + 0.3f), "from where it was");
+        }
+
+        // ---------- The free camera ----------
+
+        [UnityTest]
+        public IEnumerator RightMouseAndWFlyForwardAndTheMouseTurnsTheView()
+        {
+            yield return OpenWithF9();
+            Assert.That(Ed.IsOverPanels(_in.Position), Is.False, "the mouse is in the view");
+            float held = Ed.Opening.Time;
+            var p0 = Cam.position;
+            var f0 = Cam.forward;
+
+            // Without the right button, W is the move tool, not a flight.
+            yield return _in.Tap(Key.E);
+            yield return _in.Tap(Key.W);
+            Assert.That(Ed.CurrentTool, Is.EqualTo(VhOpeningEditor.Tool.Move), "W: the move tool");
+            Assert.That(Vector3.Distance(Cam.position, p0), Is.LessThan(1e-4f), "W alone doesn't fly");
+
+            _in.SetButton(MouseButton.Right, true);
+            yield return Frames(2);
+            float t0 = Time.unscaledTime;
+            var start = Cam.position;
+            yield return HoldKeyFor(Key.W, 0.5f);
+            float t1 = Time.unscaledTime;
+            var moved = Cam.position - start;
+            float along = Vector3.Dot(moved, f0);
+            float expected = Ed.FlySpeed * (t1 - t0);
+            Assert.That(along, Is.GreaterThan(0.1f), "right mouse + W flies forward");
+            Assert.That(along, Is.InRange(expected * 0.5f, expected * 1.5f), "at the fly speed (" + Ed.FlySpeed + " m/s for " + (t1 - t0).ToString("F2") + " s)");
+            Assert.That((moved - f0 * along).magnitude, Is.LessThan(0.03f), "straight ahead");
+
+            float yaw0 = Cam.eulerAngles.y, pitch0 = Cam.eulerAngles.x;
+            _in.MoveBy(new Vector2(100f, 0f));
+            yield return Frames(3);
+            Assert.That(Mathf.DeltaAngle(yaw0, Cam.eulerAngles.y), Is.EqualTo(100f * VhOpeningEditor.LookDegreesPerPixel).Within(0.5f), "the mouse turns the view right");
+            Assert.That(Mathf.DeltaAngle(pitch0, Cam.eulerAngles.x), Is.EqualTo(0f).Within(0.5f), "and not up or down");
+            _in.MoveBy(new Vector2(0f, 40f));
+            yield return Frames(3);
+            Assert.That(Mathf.DeltaAngle(pitch0, Cam.eulerAngles.x), Is.EqualTo(-40f * VhOpeningEditor.LookDegreesPerPixel).Within(0.5f), "moving it up looks up");
+            _in.SetButton(MouseButton.Right, false);
+            yield return Frames(2);
+            Assert.That(Ed.Opening.Time, Is.EqualTo(held).Within(1e-4f), "the opening held still all along");
+            Assert.That(Ed.FreeCamera, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator MiddleMousePansTheWheelMovesInAndFFrames()
+        {
+            yield return OpenWithF9();
+            var p0 = Cam.position;
+            var r0 = Cam.rotation;
+            _in.SetButton(MouseButton.Middle, true);
+            yield return Frames(2);
+            for (int i = 0; i < 5; i++)
+            {
+                _in.MoveBy(new Vector2(20f, 0f));
+                yield return null;
+            }
+            _in.SetButton(MouseButton.Middle, false);
+            yield return Frames(2);
+            var d = Cam.position - p0;
+            Assert.That(Vector3.Dot(d, r0 * Vector3.right), Is.LessThan(-0.005f), "dragging right moves the view so the scene follows the mouse");
+            Assert.That(Quaternion.Angle(r0, Cam.rotation), Is.LessThan(0.01f), "panning doesn't turn");
+
+            var p1 = Cam.position;
+            _in.Scroll(1f);
+            yield return Frames(3);
+            Assert.That(Vector3.Dot(Cam.position - p1, Cam.forward), Is.GreaterThan(0.005f), "the wheel moves in");
+            Assert.That(Quaternion.Angle(r0, Cam.rotation), Is.LessThan(0.01f), "without turning");
+
+            yield return ClickThing("title-tablet");
+            Assert.That(Ed.Selected != null && Ed.Selected.id == "title-tablet", Is.True);
+            // Look away, then F.
+            _in.MoveTo(Ed.ViewScreenPoint());
+            yield return null;
+            _in.SetButton(MouseButton.Right, true);
+            yield return Frames(2);
+            _in.MoveBy(new Vector2(400f, 0f));
+            yield return Frames(2);
+            _in.SetButton(MouseButton.Right, false);
+            yield return Frames(2);
+            yield return _in.Tap(Key.F);
+            var centre = Ed.Selected.target.GetComponentInChildren<Renderer>().bounds.center;
+            Vector3 sp = Ed.Stage.cam.WorldToScreenPoint(centre);
+            Assert.That(sp.z, Is.GreaterThan(0f), "F: it's in front");
+            Assert.That(Mathf.Abs(sp.x / Screen.width - 0.5f), Is.LessThan(0.15f), "F: centred across");
+            Assert.That(Mathf.Abs(sp.y / Screen.height - 0.5f), Is.LessThan(0.15f), "F: centred up and down");
+            Assert.That(sp.z, Is.LessThan(2f), "F: close to it");
+        }
+
+        // ---------- Selecting, handles, snapping, undo ----------
+
+        [UnityTest]
+        public IEnumerator AClickInTheViewSelectsAndAClickOnAPanelDoesnt()
+        {
+            yield return OpenWithF9();
+            Assert.That(Ed.Selected, Is.Null);
+            Assert.That(Ed.TryThingScreenPoint("title-tablet", out var tablet), Is.True);
+            _in.MoveTo(tablet);
+            yield return Frames(3);
+            Assert.That(Ed.Hovered != null && Ed.Hovered.id == "title-tablet", Is.True, "hovering shows what a click would pick");
+            yield return _in.Click(tablet);
+            Assert.That(Ed.Selected != null && Ed.Selected.id == "title-tablet", Is.True, "the click selects it");
+            Assert.That(Ed.StatusText, Does.Contain("Selected"), "and says so");
+
+            foreach (var panel in new[] { "left", "right", "top", "bottom" })
+            {
+                Assert.That(Ed.TryPanelScreenPoint(panel, out var p), Is.True, "the " + panel + " panel");
+                yield return _in.Click(p);
+                Assert.That(Ed.Selected != null && Ed.Selected.id == "title-tablet", Is.True, "a click on the " + panel + " panel doesn't reach the view");
+            }
+            yield return _in.Tap(Key.Escape);
+            Assert.That(Ed.Selected, Is.Null, "Esc selects nothing");
+
+            yield return ClickListRow("title-mug");
+            Assert.That(Ed.Selected != null && Ed.Selected.id == "title-mug", Is.True, "a click in the list selects");
+        }
+
+        [UnityTest]
+        public IEnumerator DraggingTheXArrowMovesOnlyXSnappedAndUndoRedoAndEscWork()
+        {
+            yield return OpenWithF9();
+            yield return ClickThing("title-tablet");
+            var t = Ed.Selected.target;
+            Vector3 start = t.position;
+            Assert.That(Ed.Snap, Is.True, "snapping starts on");
+            Assert.That(Ed.TryHandleScreenPoint(0, out var x), Is.True, "the X arrow shows");
+            var cam = Ed.Stage.cam;
+            Vector2 dir = ((Vector2)cam.WorldToScreenPoint(start + Vector3.right * 0.1f) - (Vector2)cam.WorldToScreenPoint(start)).normalized;
+            yield return _in.DragTo(x, x + dir * 80f, 10);
+            Vector3 d = t.position - start;
+            Assert.That(d.x, Is.GreaterThan(0.005f), "dragging the X arrow moves along X");
+            Assert.That(Mathf.Abs(d.y) + Mathf.Abs(d.z), Is.LessThan(1e-4f), "and only along X");
+            Assert.That(Mathf.Abs(d.x * 100f - Mathf.Round(d.x * 100f)), Is.LessThan(1e-3f), "in whole centimetres (snapping)");
+            Assert.That(Ed.StatusText, Does.Contain("along X"), "the status line says what moved");
+            Assert.That(Ed.Dirty, Is.True, "unsaved");
+            Vector3 moved = t.position;
+
+            yield return _in.Tap(Key.LeftCtrl, Key.Z);
+            Assert.That(Vector3.Distance(t.position, start), Is.LessThan(1e-4f), "Ctrl+Z undoes");
+            yield return _in.Tap(Key.LeftCtrl, Key.Y);
+            Assert.That(Vector3.Distance(t.position, moved), Is.LessThan(1e-4f), "Ctrl+Y redoes");
+
+            // Esc while dragging cancels.
+            Assert.That(Ed.TryHandleScreenPoint(0, out x), Is.True);
+            _in.MoveTo(x);
+            yield return Frames(2);
+            _in.SetButton(MouseButton.Left, true);
+            yield return Frames(2);
+            for (int i = 1; i <= 6; i++)
+            {
+                _in.MoveTo(x + dir * (10f * i));
+                yield return null;
+            }
+            Assert.That(Vector3.Distance(t.position, moved), Is.GreaterThan(0.004f), "it follows the drag");
+            yield return _in.Tap(Key.Escape);
+            _in.SetButton(MouseButton.Left, false);
+            yield return Frames(2);
+            Assert.That(Vector3.Distance(t.position, moved), Is.LessThan(1e-4f), "Esc put it back");
+            Assert.That(Ed.Selected, Is.Not.Null, "and kept the selection");
+
+            // Snapping off (X): free moves.
+            yield return _in.Tap(Key.X);
+            Assert.That(Ed.Snap, Is.False, "X turns snapping off");
+            Assert.That(Ed.StatusText, Does.Contain("off"));
+            bool fractional = false;
+            foreach (float px in new[] { 23f, 37f })
+            {
+                Vector3 before = t.position;
+                Assert.That(Ed.TryHandleScreenPoint(0, out x), Is.True);
+                yield return _in.DragTo(x, x + dir * px, 6);
+                float dx = (t.position.x - before.x) * 100f;
+                Assert.That(Mathf.Abs(dx), Is.GreaterThan(0.1f), "it moved");
+                if (Mathf.Abs(dx - Mathf.Round(dx)) > 1e-3f) fractional = true;
+            }
+            Assert.That(fractional, Is.True, "without snapping it isn't held to whole centimetres");
+        }
+
+        [UnityTest]
+        public IEnumerator TypingANumberAppliesItAndTheShortcutsWait()
+        {
+            yield return OpenWithF9();
+            yield return ClickThing("title-tablet");
+            yield return _in.Click(Point("field:pos.y"));
+            Assert.That(Ed.Typing, Is.True, "a click on a number box starts typing");
+            yield return _in.Tap(Key.E);
+            Assert.That(Ed.CurrentTool, Is.EqualTo(VhOpeningEditor.Tool.Move), "E while typing isn't the turn tool");
+            _in.Type("82.5");
+            yield return Frames(2);
+            yield return _in.Tap(Key.Enter);
+            Assert.That(Ed.Typing, Is.False, "Enter applies");
+            Assert.That(Ed.Selected.target.localPosition.y, Is.EqualTo(0.825f).Within(1e-4f), "82.5 cm");
+            Assert.That(Ed.StatusText, Does.Contain("82.5"));
+
+            // Esc cancels a typed number.
+            yield return _in.Click(Point("field:pos.x"));
+            float x0 = Ed.Selected.target.localPosition.x;
+            _in.Type("40");
+            yield return Frames(2);
+            yield return _in.Tap(Key.Escape);
+            Assert.That(Ed.Selected.target.localPosition.x, Is.EqualTo(x0).Within(1e-5f), "Esc leaves it as it was");
+            Assert.That(Ed.Selected, Is.Not.Null, "and doesn't deselect");
+        }
+
+        // ---------- The timeline ----------
+
+        [UnityTest]
+        public IEnumerator TheBeatButtonsTheArrowsAndTheScrubBarChangeTheMoment()
+        {
+            yield return OpenWithF9();
+            Assert.That(Ed.Stage.Pose, Is.EqualTo("table"));
+            yield return _in.Click(Point("beat:The grab"));
+            Assert.That(Ed.Opening.Time, Is.EqualTo(Ed.BeatTime("The grab")).Within(0.05f), "the beat button jumps there");
+            Assert.That(Ed.Stage.Pose, Is.Not.EqualTo("table"), "the bedroom");
+            Assert.That(Vector3.Distance(Cam.position, Ed.Stage.bedroom.position), Is.LessThan(6f), "the free camera went to the bedroom too");
+            Assert.That(Ed.Opening.Paused, Is.True, "still held");
+
+            yield return _in.Tap(Key.RightArrow);
+            Assert.That(Ed.Opening.Time, Is.EqualTo(Ed.BeatTime("Holding it: the voicemail")).Within(0.05f), "the right arrow: the next beat");
+            yield return _in.Tap(Key.LeftArrow);
+            Assert.That(Ed.Opening.Time, Is.EqualTo(Ed.BeatTime("The grab")).Within(0.05f), "the left arrow: back");
+
+            float len = Ed.Opening.Length;
+            Assert.That(Ed.TryTrackScreenPoint(len * 0.1f, out var a), Is.True, "the scrub bar");
+            Assert.That(Ed.TryTrackScreenPoint(len * 0.5f, out var b), Is.True);
+            yield return _in.DragTo(a, b, 8);
+            Assert.That(Ed.Opening.Time, Is.EqualTo(len * 0.5f).Within(len * 0.02f), "dragging along the bar sets the time");
+            Assert.That(Ed.Opening.Paused, Is.True);
+        }
+
+        // ---------- Shots ----------
+
+        [UnityTest]
+        public IEnumerator SetFromMyViewChangesOnlyThatShot()
+        {
+            yield return OpenWithF9();
+            yield return ClickListRow("shot:table");
+            Assert.That(Ed.Selected != null && Ed.Selected.id == "shot:table", Is.True, "the title table's shot");
+            var stage = Ed.Stage;
+            int i = stage.PoseIndex("table");
+            var before = new Vector3[stage.posePositions.Count];
+            for (int k = 0; k < before.Length; k++) before[k] = stage.posePositions[k];
+            yield return _in.Click(Point("button:look-through"));
+            Assert.That(Vector3.Distance(Cam.position, stage.posePositions[i]), Is.LessThan(1e-3f), "'Look through it' puts the camera at the shot");
+
+            _in.MoveTo(Ed.ViewScreenPoint());
+            yield return null;
+            _in.SetButton(MouseButton.Right, true);
+            yield return Frames(2);
+            yield return HoldKeyFor(Key.D, 0.3f);
+            _in.SetButton(MouseButton.Right, false);
+            yield return Frames(2);
+            Vector3 view = Cam.position;
+            Assert.That(Vector3.Distance(view, before[i]), Is.GreaterThan(0.05f), "flew away from it");
+
+            yield return _in.Click(Point("button:set-from-view"));
+            Assert.That(Vector3.Distance(stage.posePositions[i], view), Is.LessThan(1e-3f), "the shot films from the view now");
+            for (int k = 0; k < before.Length; k++)
+                if (k != i) Assert.That(Vector3.Distance(stage.posePositions[k], before[k]), Is.LessThan(1e-5f), "shot " + stage.poseNames[k] + " didn't change");
+            Assert.That(Ed.StatusText, Does.Contain("Only this shot changed"));
+        }
+
+        // ---------- Saving ----------
+
+        [UnityTest]
+        public IEnumerator CtrlSSavesAndTheSetsBuildWithTheSave()
+        {
+            yield return OpenWithF9();
+            yield return ClickThing("title-tablet");
+            var t = Ed.Selected.target;
+            Vector3 start = t.position;
+            Assert.That(Ed.TryHandleScreenPoint(0, out var x), Is.True);
+            var cam = Ed.Stage.cam;
+            Vector2 dir = ((Vector2)cam.WorldToScreenPoint(start + Vector3.right * 0.1f) - (Vector2)cam.WorldToScreenPoint(start)).normalized;
+            yield return _in.DragTo(x, x + dir * 60f, 8);
+            Vector3 moved = t.position;
+            Assert.That(moved.x - start.x, Is.GreaterThan(0.005f));
+            yield return _in.Tap(Key.LeftCtrl, Key.S);
+            Assert.That(Ed.Dirty, Is.False, "saved");
+            Assert.That(Ed.StatusText, Does.Contain("Saved 1 change"));
+            Assert.That(File.Exists(_file), Is.True, "the file is written");
+            var data = VhSceneEditsData.FromJson(File.ReadAllText(_file));
+            Assert.That(data.Object("title-tablet"), Is.Not.Null, "with the tablet in it");
+
+            yield return _in.Tap(Key.F9);
+            var runner = GameRoot.Instance.GetComponent<VhTitleRunner>();
+            runner.DestroyStage();
+            Assert.That(runner.TryBuildStage(), Is.True, "the sets build again");
+            yield return Frames(2);
+            var again = runner.stage.edits.Find("title-tablet");
+            Assert.That(Vector3.Distance(again.target.position, moved), Is.LessThan(1e-3f), "with the saved move");
+        }
+    }
+}

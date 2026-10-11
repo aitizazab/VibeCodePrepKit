@@ -105,6 +105,10 @@ namespace JamKit.VisitingHours
         /// <summary>Tests: where the builder takes overrides from instead of the saved ones (null = the saved ones).</summary>
         public static Func<VhSceneEditsData> Source;
 
+        /// <summary>Tests and the editor's capture tour: one file that <see cref="Save"/> writes to and <see cref="Load"/>
+        /// reads from instead of the build's and the repository's (null = the real places).</summary>
+        public static string FileOverride;
+
         readonly VhStage _stage;
         readonly List<VhEditable> _all = new List<VhEditable>();
         readonly Dictionary<string, VhEditable> _byId = new Dictionary<string, VhEditable>();
@@ -127,6 +131,8 @@ namespace JamKit.VisitingHours
             if (Source != null) return Source() ?? new VhSceneEditsData();
             try
             {
+                if (FileOverride != null)
+                    return File.Exists(FileOverride) ? VhSceneEditsData.FromJson(File.ReadAllText(FileOverride)) : new VhSceneEditsData();
                 if (!Application.isEditor)
                 {
                     string local = BuildPath();
@@ -192,6 +198,11 @@ namespace JamKit.VisitingHours
                 {
                     Debug.LogWarning("JAMKIT_VH opening edits: couldn't write " + path + ": " + e.Message);
                 }
+            }
+            if (FileOverride != null)
+            {
+                Write(FileOverride);
+                return wrote;
             }
             if (!Application.isEditor) Write(BuildPath());
             string repo = FindRepoFile();

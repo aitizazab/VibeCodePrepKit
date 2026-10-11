@@ -9,14 +9,22 @@ namespace JamKit.VisitingHours
 {
     /// <summary>
     /// The opening editor (docs/OPENING-EDITOR.md), in the build as in the Unity editor: F9 (or the presenter panel's
-    /// "Edit the opening") pauses the opening and lets the creator scrub to any beat, pick a thing (in the view or from the
-    /// list, by plain names), move, turn or size it with handles or numbers, set each shot's camera from a free-flying
-    /// view, undo, reset, save, and play on from any point to check. What moves is <see cref="VhSceneEdits"/>; the saved
-    /// overrides are applied by the builder every time it builds the sets.
+    /// "Edit the opening", or the -edit-opening flag) pauses the opening and lets the creator scrub to any beat, pick a
+    /// thing (in the view or from the list, by plain names), move, turn or size it with handles or numbers, fly a free
+    /// camera, set each shot's camera from that view, undo, reset, save, and play on from any point to check. What moves
+    /// is <see cref="VhSceneEdits"/>; the saved overrides are applied by the builder every time it builds the sets.
+    ///
+    /// Input: the editor reads the mouse and keyboard straight from the Input System every frame (the shell's UI input
+    /// module only carries the left button, so the right and middle buttons never reach UI Toolkit). Its panels are
+    /// hit-tested here too; one full-screen element under them stops the shell's own pointer events from reaching the
+    /// title behind. Files: this one (state, input, the camera, edits), VhOpeningEditorUi.cs (the panels and their
+    /// controls), VhOpeningEditorView.cs (picking, outlines and handles in the view).
     /// </summary>
-    public sealed class VhOpeningEditor : MonoBehaviour
+    public sealed partial class VhOpeningEditor : MonoBehaviour
     {
-        enum Tool { Move, Rotate, Scale }
+        public enum Tool { Move, Rotate, Scale }
+
+        enum Drag { None, Ui, Look, Pan, Orbit, Handle, Scrub, Number }
 
         struct Beat
         {
@@ -24,48 +32,78 @@ namespace JamKit.VisitingHours
             public float time;
         }
 
+        struct UndoStep
+        {
+            public string json;
+            public string what;
+        }
+
         static VhOpeningEditor _instance;
         /// <summary>Closing saves unsaved edits (tests turn it off so nothing is written).</summary>
         public static bool SaveOnClose = true;
         public static VhOpeningEditor Instance => _instance;
 
+        /// <summary>Starts the game straight in the editor ("Edit the opening.cmd" next to the exe passes it).</summary>
+        public const string LaunchFlag = "-edit-opening";
+
+        /// <summary>Mouse-look: degrees per pixel of mouse movement while the right button is held.</summary>
+        public const float LookDegreesPerPixel = 0.15f;
+        /// <summary>Alt + left drag: degrees per pixel of orbit.</summary>
+        public const float OrbitDegreesPerPixel = 0.3f;
+        /// <summary>The handles' length on screen, in the panel's pixels (1920 x 1080), whatever the distance.</summary>
+        public const float HandlePixels = 120f;
+        public const float DefaultFlySpeed = 1.5f;
+        const float SnapMove = 0.01f, SnapTurn = 5f, SnapSize = 0.05f;
+
         VhTitleRunner _runner;
         VhStage _stage;
         VhOpening _opening;
-        bool _open, _openWhenReady, _playing, _free = true, _snap = true, _looking, _typing, _dirty;
+        bool _open, _openWhenReady, _playing, _free = true, _snap = true, _dirty, _world;
         Tool _tool = Tool.Move;
-        VhEditable _sel;
+        VhEditable _sel, _hover, _throughShot;
         readonly List<Beat> _beats = new List<Beat>();
-        readonly List<string> _undo = new List<string>(), _redo = new List<string>();
-        readonly Dictionary<VhEditable, Renderer[]> _renderers = new Dictionary<VhEditable, Renderer[]>();
-        readonly List<Button> _listButtons = new List<Button>();
-        readonly List<VhEditable> _listItems = new List<VhEditable>();
+        readonly List<UndoStep> _undo = new List<UndoStep>(), _redo = new List<UndoStep>();
 
-        // The free camera.
-        Vector3 _flyPos;
-        float _yaw, _pitch, _flyFov = 55f, _flySpeed = 1.2f;
+        // The free camera (roll is kept from a shot looked through, so "Set from my view" keeps it).
+        Vector3 _camPos;
+        float _yaw, _pitch, _roll, _fov = 55f, _flySpeed = DefaultFlySpeed, _pivotDist = 1.5f;
+
+        // The pointer.
+        Drag _drag;
+        Vector2 _screen, _mouse, _pressMouse;
+        bool _mouseSeen, _cursorLocked;
+        Vector2 _lockedAt;
+        float _lastPick = -1f;
+        Vector2 _lastPickMouse = new Vector2(-1f, -1f);
 
         // A drag on a handle.
-        int _dragAxis = -1, _hoverAxis = -1;
-        Vector2 _dragStart, _dragMouse;
-        Matrix4x4 _dragWorld;
-        Vector3 _dragScale, _dragPivot, _dragRingPoint;
-        float _dragApplied;
+        int _dragHandle = -1, _hoverHandle = -1;
+        Vector3 _dragPivot, _dragAxis, _dragRing, _dragPlane0, _dragScale0;
+        Matrix4x4 _dragWorld0;
+        Vector2 _dragMouse0;
+        float _dragT0, _dragLength0, _dragAmount;
+        bool _dragParallel;
 
-        // The interface.
-        VisualElement _root, _view, _left, _right, _top, _help, _list;
-        Label _status, _timeLabel, _name, _note, _toolLabel, _camLabel;
-        Slider _time;
-        FloatField[] _pos, _rot, _scl;
-        FloatField _fov;
-        VisualElement _shotRow, _scaleRow;
-        Toggle _snapToggle;
-        Button _playButton;
+        // Typing into a number box.
+        Keyboard _textKb;
+        readonly List<char> _typed = new List<char>(16);
 
         public bool IsOpen => _open;
         public VhEditable Selected => _sel;
         public VhStage Stage => _stage;
         public VhOpening Opening => _opening;
+        /// <summary>The free camera (true) or the opening's own shot camera (false).</summary>
+        public bool FreeCamera => _free;
+        public Tool CurrentTool => _tool;
+        public bool Snap => _snap;
+        /// <summary>Changes not saved yet.</summary>
+        public bool Dirty => _dirty;
+        public bool Playing => _playing;
+        public float FlySpeed => _flySpeed;
+        /// <summary>What the status line says (what just happened).</summary>
+        public string StatusText => _statusText;
+        /// <summary>The thing under the mouse in the view (what a click would select), or null.</summary>
+        public VhEditable Hovered => _hover;
         public IReadOnlyList<string> BeatNames
         {
             get
@@ -75,9 +113,6 @@ namespace JamKit.VisitingHours
                 return n;
             }
         }
-
-        /// <summary>Starts the game straight in the editor ("Edit the opening.cmd" next to the exe passes it).</summary>
-        public const string LaunchFlag = "-edit-opening";
 
         void Awake()
         {
@@ -96,6 +131,8 @@ namespace JamKit.VisitingHours
 
         void OnDestroy()
         {
+            UnhookText();
+            UnlockCursor();
             if (_instance == this) _instance = null;
         }
 
@@ -132,18 +169,21 @@ namespace JamKit.VisitingHours
             _opening.Paused = true;
             _opening.blackScale = 0.2f;
             foreach (var a in _stage.Sounds()) a.Pause();
+            _undo.Clear();
+            _redo.Clear();
+            _dirty = false;
+            _playing = false;
+            _drag = Drag.None;
+            _sel = _hover = _throughShot = null;
             BuildBeats();
+            BuildPickables();
             BuildUi();
-            var c = _stage.cam.transform;
-            _flyPos = c.position;
-            var e = c.rotation.eulerAngles;
-            _yaw = e.y;
-            _pitch = e.x > 180f ? e.x - 360f : e.x;
-            _flyFov = _stage.cam.fieldOfView;
+            GrabCameraFromStage();
             if (fresh) SeekTo(TitleTime());
-            SetFree(true);
-            Select((VhEditable)null);
-            Status("Editing the opening. F9 closes (your edits are saved). H for help.");
+            SetFree(true, false);
+            Select((VhEditable)null, false);
+            RefreshChanges();
+            Status("Editing the opening. Click a thing to select it; hold the right mouse button and use W A S D to fly. H for help, F9 closes (and saves).");
             return true;
         }
 
@@ -151,12 +191,14 @@ namespace JamKit.VisitingHours
         public void Close()
         {
             if (!_open) return;
+            if (_editing != null) CommitNumber();
+            if (_drag == Drag.Handle) EndHandleDrag(true);
             if (_dirty && SaveOnClose) Save();
             _open = false;
-            _dragAxis = -1;
-            _looking = false;
-            if (_root != null) _root.RemoveFromHierarchy();
-            _root = null;
+            _drag = Drag.None;
+            UnlockCursor();
+            UnhookText();
+            RemoveUi();
             if (_stage != null) _stage.editorCamera = false;
             if (_opening != null && _opening.Running)
             {
@@ -179,6 +221,7 @@ namespace JamKit.VisitingHours
             {
                 _openWhenReady = false;
                 Open();
+                return;
             }
             if (!_open)
             {
@@ -187,23 +230,44 @@ namespace JamKit.VisitingHours
             }
             if (_runner == null || _runner.stage != _stage || _stage == null || !onTitle)
             {
-                // The set went (the title left, a rebuild): close quietly.
+                // The set went (the title left, a rebuild from outside): close quietly.
                 _open = false;
-                if (_root != null) _root.RemoveFromHierarchy();
-                _root = null;
+                _drag = Drag.None;
+                UnlockCursor();
+                UnhookText();
+                RemoveUi();
                 return;
             }
             if (_opening == null || !_opening.Running) Rebind();
             if (_stage.table != null && _stage.table.interactive) _stage.SetInteractive(false);
-            Keys(kb);
-            FlyCamera();
-            if (_playing && _opening != null)
+
+            // An overlay on top (Settings, the presenter panel): the editor steps aside until it closes.
+            var top = GameRoot.Ui.Top;
+            bool covered = top != null && top != GameRoot.Ui.Title;
+            if (_root != null) _root.style.display = covered ? DisplayStyle.None : DisplayStyle.Flex;
+            if (covered)
             {
-                _time.SetValueWithoutNotify(_opening.Time);
-                if (!_opening.Running) _playing = false;
+                if (_drag == Drag.Handle) EndHandleDrag(true);
+                _drag = Drag.None;
+                UnlockCursor();
+                ApplyFreeCamera();
+                return;
             }
-            if (_timeLabel != null && _opening != null) _timeLabel.text = Clock(_opening.Time) + " / " + Clock(_opening.Length) + "   " + BeatAt(_opening.Time);
+            // The editor is driven with the mouse: a pad touched by accident mustn't hide the cursor.
+            if (GameRoot.Input.PadMode) GameRoot.Input.SetPadMode(false);
+
+            HookText(kb);
+            Keys(kb);
+            if (!_open) return;
+            Pointer(Mouse.current, kb);
+            _typed.Clear();
+            Fly(kb);
+            ApplyFreeCamera();
+            if (_playing && _opening != null && !_opening.Running) _playing = false;
+            RefreshUi();
+            PlaceTags();
             _view?.MarkDirtyRepaint();
+            _track?.MarkDirtyRepaint();
         }
 
         /// <summary>The opening ended (played through): a fresh one, held at the title, so the timeline still works.</summary>
@@ -215,9 +279,9 @@ namespace JamKit.VisitingHours
             _opening.Paused = true;
             _opening.blackScale = 0.2f;
             _playing = false;
+            bool tableBefore = _stage.Pose == "table";
             _opening.Seek(TitleTime());
-            _time?.SetValueWithoutNotify(_opening.Time);
-            if (_playButton != null) _playButton.text = "Play from here (Space)";
+            if (_free && tableBefore != (_stage.Pose == "table")) CameraToCurrentShot();
         }
 
         // ---------- The timeline ----------
@@ -259,28 +323,39 @@ namespace JamKit.VisitingHours
             return _opening.Length;
         }
 
+        int BeatIndexAt(float t)
+        {
+            int i = -1;
+            for (int k = 0; k < _beats.Count; k++)
+                if (_beats[k].time <= t + 0.01f) i = k;
+            return i;
+        }
+
         string BeatAt(float t)
         {
-            string name = "";
-            foreach (var b in _beats)
-                if (b.time <= t + 0.01f) name = b.name;
-            return name;
+            int i = BeatIndexAt(t);
+            return i >= 0 ? _beats[i].name : "Before the first beat";
         }
 
         static string Clock(float t) => ((int)(t / 60f)).ToString("0") + ":" + (t % 60f).ToString("00.0");
 
-        /// <summary>Jumps the opening to <paramref name="t"/> seconds, paused.</summary>
+        /// <summary>Jumps the opening to <paramref name="t"/> seconds, paused. When that's in the other set (the bedroom or
+        /// the title table), the free camera goes to that moment's shot so there's something to see.</summary>
         public void SeekTo(float t)
         {
             if (_opening == null || !_opening.Running) Rebind();
             if (_opening == null) return;
+            bool tableBefore = _stage.Pose == "table";
             _playing = false;
             _opening.Paused = true;
             _opening.Seek(Mathf.Clamp(t, 0f, _opening.Length));
-            _time?.SetValueWithoutNotify(_opening.Time);
-            if (_playButton != null) _playButton.text = "Play from here (Space)";
-            if (_sel != null) ShowFields();
+            _setMoved = tableBefore != (_stage.Pose == "table");
+            if (_setMoved && _free) CameraToCurrentShot();
+            if (!_free) _stage.RefreshPose();
+            ShowFields();
         }
+
+        bool _setMoved;
 
         /// <summary>Jumps to a beat by its name (see <see cref="BeatNames"/>); false if there's none.</summary>
         public bool SeekBeat(string name)
@@ -294,25 +369,44 @@ namespace JamKit.VisitingHours
             return false;
         }
 
+        void GoToBeat(int i)
+        {
+            if (i < 0 || i >= _beats.Count) return;
+            SeekTo(_beats[i].time);
+            Status("At \"" + _beats[i].name + "\" (" + Clock(_beats[i].time) + ")." + (_setMoved ? " The camera went to " + (_stage.Pose == "table" ? "the title table." : "the bedroom.") : ""));
+        }
+
+        /// <summary>The time a beat starts at (0 when there's no such beat).</summary>
+        public float BeatTime(string name)
+        {
+            foreach (var b in _beats)
+                if (b.name == name) return b.time;
+            return 0f;
+        }
+
         void StepBeat(int dir)
         {
             float t = _opening != null ? _opening.Time : 0f;
             if (dir > 0)
             {
-                foreach (var b in _beats)
-                    if (b.time > t + 0.05f)
+                for (int i = 0; i < _beats.Count; i++)
+                    if (_beats[i].time > t + 0.05f)
                     {
-                        SeekTo(b.time);
+                        GoToBeat(i);
                         return;
                     }
+                Status("That's the last beat (the title).");
             }
             else
+            {
                 for (int i = _beats.Count - 1; i >= 0; i--)
                     if (_beats[i].time < t - 0.05f)
                     {
-                        SeekTo(_beats[i].time);
+                        GoToBeat(i);
                         return;
                     }
+                Status("That's the first beat.");
+            }
         }
 
         void TogglePlay()
@@ -323,153 +417,161 @@ namespace JamKit.VisitingHours
                 _playing = false;
                 _opening.Paused = true;
                 foreach (var a in _stage.Sounds()) a.Pause();
-                _playButton.text = "Play from here (Space)";
+                Status("Paused at " + Clock(_opening.Time) + " (" + BeatAt(_opening.Time) + "). Space plays on.");
                 return;
             }
+            if (_drag == Drag.Handle) EndHandleDrag(true);
+            if (_opening.Time >= _opening.Length - 0.05f) SeekTo(0f);
             _playing = true;
-            _dragAxis = -1;
-            SetFree(false);
+            SetFree(false, false);
             _opening.PlayFromHere();
-            _playButton.text = "Pause (Space)";
+            Status("Playing from " + Clock(_opening.Time) + " through the shot cameras. Space pauses; C flies the free camera.");
         }
 
-        // ---------- Selecting and moving ----------
+        // ---------- Selecting ----------
 
         /// <summary>Selects a thing by its id (null: nothing).</summary>
         public bool Select(string id)
         {
             var e = id != null ? _stage?.edits?.Find(id) : null;
-            Select(e);
+            Select(e, false);
             return e != null || id == null;
         }
 
-        void Select(VhEditable e)
+        /// <summary>Selects <paramref name="e"/> (a thing in the other set: the opening goes there first). The status line
+        /// says what's selected and what to do with it when <paramref name="say"/>.</summary>
+        void Select(VhEditable e, bool say)
         {
+            if (_editing != null) CommitNumber();
+            bool changed = e != _sel;
             _sel = e;
-            for (int i = 0; i < _listButtons.Count; i++)
-                _listButtons[i].style.backgroundColor = _listItems[i] == e ? new Color(0.25f, 0.42f, 0.62f) : new Color(0.16f, 0.17f, 0.2f);
-            if (_right == null) return;
-            _right.style.display = e != null ? DisplayStyle.Flex : DisplayStyle.None;
-            if (e == null) return;
-            // A thing at the other set: go where it is (the title table, or the bedroom's first beat).
-            bool atTable = _stage.Pose == "table";
-            if (e.bedroom == atTable && !_playing) SeekTo(e.bedroom ? BeatTime("The phone on the nightstand") : TitleTime());
-            _name.text = e.label;
-            _note.text = e.note;
-            _note.style.display = string.IsNullOrEmpty(e.note) ? DisplayStyle.None : DisplayStyle.Flex;
-            _shotRow.style.display = e.isShot ? DisplayStyle.Flex : DisplayStyle.None;
-            _scaleRow.style.display = e.isShot || !e.canScale ? DisplayStyle.None : DisplayStyle.Flex;
-            ShowFields();
-        }
-
-        float BeatTime(string name)
-        {
-            foreach (var b in _beats)
-                if (b.name == name) return b.time;
-            return 0f;
-        }
-
-        void ShowFields()
-        {
-            if (_sel == null || _pos == null) return;
-            var t = _sel.target;
-            Vector3 p = t.localPosition, r = t.localRotation.eulerAngles, s = t.localScale;
-            for (int i = 0; i < 3; i++)
+            if (e != _throughShot) _throughShot = null;
+            string moved = "";
+            if (e != null && _stage != null && !_playing)
             {
-                _pos[i].SetValueWithoutNotify(Round(p[i], 3));
-                _rot[i].SetValueWithoutNotify(Round(r[i] > 180f ? r[i] - 360f : r[i], 1));
-                _scl[i].SetValueWithoutNotify(Round(s[i], 3));
+                bool atTable = _stage.Pose == "table";
+                if (e.bedroom == atTable)
+                {
+                    float t = e.bedroom ? BeatTime("The phone on the nightstand") : TitleTime();
+                    SeekTo(t);
+                    moved = " (It's " + (e.bedroom ? "in the bedroom: jumped to \"The phone on the nightstand\"." : "at the title table: jumped to the title.") + ")";
+                }
             }
-            _fov.SetValueWithoutNotify(Round(_sel.fov, 1));
+            RefreshSelectionPanel();
+            if (!say) return;
+            if (e == null) Status(changed ? "Nothing selected." : "Nothing to select there.");
+            else Status("Selected " + e.label + ". " + ToolHint(e) + moved);
         }
 
-        static float Round(float v, int digits)
+        string ToolHint(VhEditable e)
         {
-            float k = Mathf.Pow(10f, digits);
-            return Mathf.Round(v * k) / k;
+            switch (_tool)
+            {
+                case Tool.Rotate: return "Drag a ring to turn it, or type numbers on the right.";
+                case Tool.Scale:
+                    return e.canScale && !e.isShot ? "Drag a box to size it (the middle one sizes it all), or type numbers." : "It can't be sized: W moves it, E turns it.";
+                default: return "Drag an arrow to move it along that axis (the middle square moves it across the view), or type numbers.";
+            }
         }
+
+        static string Short(VhEditable e)
+        {
+            if (e == null) return "";
+            string s = e.label;
+            int i = s.IndexOf(" (", System.StringComparison.Ordinal);
+            return i > 0 ? s.Substring(0, i) : s;
+        }
+
+        // ---------- Edits, undo, save ----------
 
         /// <summary>Moves the selected thing by a world move (and what it carries); one undo step.</summary>
         public void MoveSelected(Matrix4x4 worldDelta)
         {
             if (_sel == null) return;
-            PushUndo();
+            PushUndo("moved " + Short(_sel));
             _stage.edits.MoveBy(_sel, worldDelta);
             Finished();
         }
 
-        void FromFields()
-        {
-            if (_sel == null) return;
-            PushUndo();
-            var t = _sel.target;
-            var local = Matrix4x4.TRS(new Vector3(_pos[0].value, _pos[1].value, _pos[2].value),
-                Quaternion.Euler(_rot[0].value, _rot[1].value, _rot[2].value),
-                _sel.canScale && !_sel.isShot ? new Vector3(_scl[0].value, _scl[1].value, _scl[2].value) : t.localScale);
-            var world = t.parent != null ? t.parent.localToWorldMatrix * local : local;
-            if (_sel.isShot) _sel.fov = Mathf.Clamp(_fov.value, 10f, 120f);
-            _stage.edits.MoveBy(_sel, world * t.localToWorldMatrix.inverse);
-            if (_sel.canScale && !_sel.isShot) _stage.edits.Set(_sel, t.localPosition, t.localRotation, local.lossyScale);
-            Finished();
-        }
-
-        /// <summary>After any change: the blanket reshapes if she moved, the fields show the new numbers.</summary>
+        /// <summary>After any change: the blanket reshapes if she moved, the numbers and the list of changes follow.</summary>
         void Finished()
         {
             if (_stage.blanketDirty) VhStageBuilder.ReshapeBlanket(_stage);
+            _stage.blanketDirty = false;
             _dirty = true;
             ShowFields();
+            RefreshChanges();
         }
 
-        void PushUndo()
+        void PushUndo(string what)
         {
-            _undo.Add(_stage.edits.Capture().ToJson());
-            if (_undo.Count > 100) _undo.RemoveAt(0);
+            _undo.Add(new UndoStep { json = _stage.edits.Capture().ToJson(), what = what });
+            if (_undo.Count > 200) _undo.RemoveAt(0);
             _redo.Clear();
         }
 
         /// <summary>Undoes the last change (true if there was one).</summary>
-        public bool Undo() => Step(_undo, _redo, "Undone.");
+        public bool Undo() => StepUndo(_undo, _redo, "Undid");
 
-        public bool Redo() => Step(_redo, _undo, "Redone.");
+        public bool Redo() => StepUndo(_redo, _undo, "Redid");
 
-        bool Step(List<string> from, List<string> to, string said)
+        bool StepUndo(List<UndoStep> from, List<UndoStep> to, string said)
         {
-            if (from.Count == 0) return false;
-            to.Add(_stage.edits.Capture().ToJson());
-            string json = from[from.Count - 1];
+            if (from.Count == 0)
+            {
+                Status(said == "Undid" ? "Nothing to undo." : "Nothing to redo.");
+                return false;
+            }
+            var step = from[from.Count - 1];
             from.RemoveAt(from.Count - 1);
-            _stage.edits.ApplyAll(VhSceneEditsData.FromJson(json));
+            to.Add(new UndoStep { json = _stage.edits.Capture().ToJson(), what = step.what });
+            _stage.edits.ApplyAll(VhSceneEditsData.FromJson(step.json));
+            _stage.blanketDirty = false;
             _dirty = true;
             ShowFields();
-            Status(said);
+            RefreshChanges();
+            Status(said + ": " + (string.IsNullOrEmpty(step.what) ? "the last change" : step.what) + ".");
             return true;
         }
 
         void ResetSelected()
         {
             if (_sel == null) return;
-            PushUndo();
-            _stage.edits.Reset(_sel);
+            ResetOne(_sel);
+        }
+
+        void ResetOne(VhEditable e)
+        {
+            PushUndo("reset " + Short(e));
+            _stage.edits.Reset(e);
             Finished();
-            Status(_sel.label + ": back where it was built.");
+            Status(e.label + " is back where it was built (Ctrl+Z undoes).");
         }
 
         void ResetEverything()
         {
-            PushUndo();
+            PushUndo("reset everything");
             _stage.edits.ApplyAll(new VhSceneEditsData());
+            _stage.blanketDirty = false;
             _dirty = true;
             ShowFields();
-            Status("Everything is back where it was built (Ctrl+Z to undo).");
+            RefreshChanges();
+            Status("Everything is back where it was built (Ctrl+Z undoes).");
         }
 
         /// <summary>Saves the edits; the status line says where.</summary>
         public void Save()
         {
-            var wrote = VhSceneEdits.Save(_stage.edits.Capture());
+            var data = _stage.edits.Capture();
+            var wrote = VhSceneEdits.Save(data);
+            if (wrote.Count == 0)
+            {
+                Status("Couldn't save (the log says why). Your changes are still here.");
+                return;
+            }
             _dirty = false;
-            Status(wrote.Count > 0 ? "Saved to " + string.Join("  and  ", wrote) : "Couldn't save (see the log).");
+            int n = data.objects.Count + data.shots.Count;
+            Status("Saved " + (n == 0 ? "(nothing differs from the built scene)" : n + (n == 1 ? " change" : " changes")) + " to " + string.Join("  and  ", wrote));
         }
 
         void Rebuild()
@@ -496,96 +598,236 @@ namespace JamKit.VisitingHours
             _opening.Paused = true;
             _opening.blackScale = 0.2f;
             BuildBeats();
+            BuildPickables();
             BuildList();
+            BuildBeatChips();
             SeekTo(t);
-            SetFree(_free);
-            Select(sel);
-            Status("Rebuilt with your edits (the lighting worked out again).");
+            SetFree(_free, false);
+            _sel = null;
+            Select(sel != null ? _stage.edits.Find(sel) : null, false);
+            RefreshChanges();
+            Status("Rebuilt the sets with your edits (the lighting and the blinds' stripes worked out again).");
         }
 
         // ---------- The camera ----------
 
-        void SetFree(bool free)
+        Quaternion CamRot => Quaternion.Euler(_pitch, _yaw, _roll);
+
+        void SetRot(Quaternion q)
         {
-            _free = free;
-            _stage.editorCamera = free;
-            if (free)
-            {
-                _stage.cam.transform.SetPositionAndRotation(_flyPos, Quaternion.Euler(_pitch, _yaw, 0f));
-                _stage.cam.fieldOfView = _flyFov;
-            }
-            else _stage.RefreshPose();
-            if (_camLabel != null) _camLabel.text = free ? "Camera: free (C for the shot's)" : "Camera: the shot's (C for free)";
+            var e = q.eulerAngles;
+            _pitch = e.x > 180f ? e.x - 360f : e.x;
+            _yaw = e.y;
+            _roll = e.z > 180f ? e.z - 360f : e.z;
         }
 
-        void FlyCamera()
+        void GrabCameraFromStage()
         {
-            if (!_free || _stage == null) return;
-            var kb = Keyboard.current;
-            var mouse = Mouse.current;
-            if (_looking && mouse != null)
+            if (_stage == null || _stage.cam == null) return;
+            var c = _stage.cam.transform;
+            _camPos = c.position;
+            SetRot(c.rotation);
+            _fov = _stage.cam.fieldOfView;
+        }
+
+        /// <summary>The free camera jumps to the shot the opening is on now (after a jump to the other set).</summary>
+        void CameraToCurrentShot()
+        {
+            int i = _stage.PoseIndex(_stage.Pose);
+            if (i < 0) return;
+            _camPos = _stage.posePositions[i];
+            SetRot(_stage.poseRotations[i]);
+            _fov = _stage.poseFov[i];
+            _throughShot = null;
+        }
+
+        void SetFree(bool free, bool say)
+        {
+            if (free && !_free) GrabCameraFromStage();
+            _free = free;
+            _stage.editorCamera = free;
+            if (!free)
             {
-                if (!mouse.rightButton.isPressed) _looking = false;
-                else
-                {
-                    Vector2 d = mouse.delta.ReadValue();
-                    _yaw += d.x * 0.12f;
-                    _pitch = Mathf.Clamp(_pitch - d.y * 0.12f, -89f, 89f);
-                }
+                _throughShot = null;
+                _stage.RefreshPose();
             }
-            var rot = Quaternion.Euler(_pitch, _yaw, 0f);
-            if (_looking && kb != null)
+            ApplyFreeCamera();
+            if (!say) return;
+            Status(free
+                ? "Free camera: hold the right mouse button and use W A S D (Q E down and up) to fly; the wheel moves in and out."
+                : "Shot camera: you see what the opening shows at this moment. C goes back to the free camera.");
+        }
+
+        /// <summary>Any camera move while on the shot camera switches to the free camera, starting from the same view.</summary>
+        void TakeCamera()
+        {
+            if (_free) return;
+            SetFree(true, false);
+        }
+
+        void ApplyFreeCamera()
+        {
+            if (!_free || _stage == null || _stage.cam == null) return;
+            _stage.editorCamera = true;
+            _stage.cam.transform.SetPositionAndRotation(_camPos, CamRot);
+            _stage.cam.fieldOfView = _fov;
+        }
+
+        void LockCursor()
+        {
+            if (_cursorLocked) return;
+            _cursorLocked = true;
+            _lockedAt = _screen;
+            UnityEngine.Cursor.lockState = CursorLockMode.Locked;
+            UnityEngine.Cursor.visible = false;
+        }
+
+        void UnlockCursor()
+        {
+            if (!_cursorLocked) return;
+            _cursorLocked = false;
+            UnityEngine.Cursor.lockState = CursorLockMode.None;
+            UnityEngine.Cursor.visible = true;
+            // Back where the drag started (as the Scene view does), not the middle of the window.
+            var m = Mouse.current;
+            if (m != null && !Application.isBatchMode) m.WarpCursorPosition(_lockedAt);
+        }
+
+        void Fly(Keyboard kb)
+        {
+            if (_drag != Drag.Look || kb == null) return;
+            Vector3 move = Vector3.zero;
+            if (kb.wKey.isPressed) move += Vector3.forward;
+            if (kb.sKey.isPressed) move += Vector3.back;
+            if (kb.aKey.isPressed) move += Vector3.left;
+            if (kb.dKey.isPressed) move += Vector3.right;
+            if (kb.eKey.isPressed) move += Vector3.up;
+            if (kb.qKey.isPressed) move += Vector3.down;
+            if (move == Vector3.zero) return;
+            float speed = _flySpeed * (kb.shiftKey.isPressed ? 4f : 1f);
+            // Up and down are the world's (Q E), the rest the view's.
+            Vector3 world = CamRot * new Vector3(move.x, 0f, move.z) + Vector3.up * move.y;
+            _camPos += world * (speed * Time.unscaledDeltaTime);
+        }
+
+        Vector3 OrbitPivot()
+        {
+            var fwd = CamRot * Vector3.forward;
+            if (_sel != null && _sel.target != null && _sel.target.gameObject.activeInHierarchy)
             {
-                Vector3 move = Vector3.zero;
-                if (kb.wKey.isPressed) move += Vector3.forward;
-                if (kb.sKey.isPressed) move += Vector3.back;
-                if (kb.aKey.isPressed) move += Vector3.left;
-                if (kb.dKey.isPressed) move += Vector3.right;
-                if (kb.eKey.isPressed) move += Vector3.up;
-                if (kb.qKey.isPressed) move += Vector3.down;
-                float speed = _flySpeed * (kb.leftShiftKey.isPressed ? 3f : 1f);
-                _flyPos += rot * move * (speed * Time.unscaledDeltaTime);
+                Vector3 c = BoundsOf(_sel).center;
+                if (Vector3.Dot(c - _camPos, fwd) > 0.05f) return c;
             }
-            _stage.cam.transform.SetPositionAndRotation(_flyPos, rot);
-            _stage.cam.fieldOfView = _flyFov;
+            return _camPos + fwd * _pivotDist;
+        }
+
+        void Look(Vector2 d)
+        {
+            _yaw += d.x * LookDegreesPerPixel;
+            _pitch = Mathf.Clamp(_pitch - d.y * LookDegreesPerPixel, -89f, 89f);
+        }
+
+        void Orbit(Vector2 d)
+        {
+            Vector3 pivot = _orbitPivot;
+            var rot = CamRot;
+            var right = rot * Vector3.right;
+            float dPitch = -d.y * OrbitDegreesPerPixel;
+            if (_pitch + dPitch > 89f || _pitch + dPitch < -89f) dPitch = 0f;
+            var q = Quaternion.AngleAxis(d.x * OrbitDegreesPerPixel, Vector3.up) * Quaternion.AngleAxis(dPitch, right);
+            _camPos = pivot + q * (_camPos - pivot);
+            SetRot(q * rot);
+        }
+
+        Vector3 _orbitPivot;
+
+        /// <summary>World size of one screen pixel at <paramref name="distance"/> in front of the camera.</summary>
+        float WorldPerScreenPixel(float distance) =>
+            2f * Mathf.Max(0.01f, distance) * Mathf.Tan(_fov * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1f, Screen.height);
+
+        void Pan(Vector2 d)
+        {
+            var rot = CamRot;
+            float dist = Vector3.Dot(OrbitPivot() - _camPos, rot * Vector3.forward);
+            float k = WorldPerScreenPixel(dist);
+            // Grab the view: what's under the mouse follows it.
+            _camPos -= (rot * Vector3.right) * (d.x * k) + (rot * Vector3.up) * (d.y * k);
+        }
+
+        void Dolly(float notches)
+        {
+            var fwd = CamRot * Vector3.forward;
+            float dist = Mathf.Max(0.05f, Vector3.Dot(OrbitPivot() - _camPos, fwd));
+            float step = Mathf.Max(0.02f, dist * 0.15f) * notches;
+            _camPos += fwd * step;
+            _pivotDist = Mathf.Max(0.15f, _pivotDist - step);
         }
 
         void FrameSelected()
         {
-            if (_sel == null) return;
-            if (!_free) SetFree(true);
+            if (_sel == null)
+            {
+                Status("Select something first; then F frames it.");
+                return;
+            }
+            TakeCamera();
             var b = BoundsOf(_sel);
-            float size = Mathf.Max(0.15f, b.extents.magnitude);
-            var dir = Quaternion.Euler(_pitch, _yaw, 0f) * Vector3.forward;
-            _flyPos = b.center - dir * (size * 2.6f + 0.1f);
+            float radius = Mathf.Max(0.04f, b.extents.magnitude);
+            float dist = radius / Mathf.Sin(_fov * 0.5f * Mathf.Deg2Rad) * 1.15f;
+            var fwd = CamRot * Vector3.forward;
+            _camPos = b.center - fwd * dist;
+            _pivotDist = dist;
+            _throughShot = null;
+            ApplyFreeCamera();
+            Status("Framed " + _sel.label + ". Alt + left mouse orbits around it; the wheel moves in and out.");
         }
 
         void LookThroughShot()
         {
             if (_sel == null || !_sel.isShot) return;
-            SetFree(true);
-            _flyPos = _sel.target.position;
-            var e = _sel.target.rotation.eulerAngles;
-            _yaw = e.y;
-            _pitch = e.x > 180f ? e.x - 360f : e.x;
-            _flyFov = _sel.fov;
-            Status("Looking through " + _sel.label + ". Fly to where it should be, then 'Set from my view'.");
+            TakeCamera();
+            _camPos = _sel.target.position;
+            SetRot(_sel.target.rotation);
+            _fov = _sel.fov;
+            _throughShot = _sel;
+            ApplyFreeCamera();
+            Status("Looking through " + _sel.label + ". Fly to where it should be (right mouse + W A S D), then press \"Set from my view\".");
         }
 
         void ShotFromView()
         {
             if (_sel == null || !_sel.isShot) return;
-            PushUndo();
+            PushUndo("set " + Short(_sel) + " from your view");
             var cam = _stage.cam.transform;
             _sel.fov = _stage.cam.fieldOfView;
             var t = _sel.target;
             var world = Matrix4x4.TRS(cam.position, cam.rotation, Vector3.one);
             _stage.edits.MoveBy(_sel, world * Matrix4x4.TRS(t.position, t.rotation, Vector3.one).inverse);
             Finished();
-            Status(_sel.label + ": set from your view (only this shot changed).");
+            Status(_sel.label + " now films from your view (field of view " + _sel.fov.ToString("0") + "°). Only this shot changed.");
         }
 
-        // ---------- Keys ----------
+        // ---------- The keyboard ----------
+
+        void HookText(Keyboard kb)
+        {
+            if (kb == _textKb) return;
+            UnhookText();
+            _textKb = kb;
+            if (kb != null) kb.onTextInput += OnText;
+        }
+
+        void UnhookText()
+        {
+            if (_textKb != null) _textKb.onTextInput -= OnText;
+            _textKb = null;
+            _typed.Clear();
+        }
+
+        void OnText(char c)
+        {
+            if (_typed.Count < 32) _typed.Add(c);
+        }
 
         void Keys(Keyboard kb)
         {
@@ -595,574 +837,450 @@ namespace JamKit.VisitingHours
                 Close();
                 return;
             }
-            if (_typing || _looking) return;
-            bool ctrl = kb.leftCtrlKey.isPressed || kb.rightCtrlKey.isPressed;
-            if (ctrl && kb.zKey.wasPressedThisFrame)
+            if (_editing != null)
             {
-                if (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed) Redo();
-                else Undo();
+                NumberKeys(kb);
+                return;
             }
-            else if (ctrl && kb.yKey.wasPressedThisFrame) Redo();
-            else if (ctrl && kb.sKey.wasPressedThisFrame) Save();
-            else if (kb.spaceKey.wasPressedThisFrame) TogglePlay();
-            else if (kb.wKey.wasPressedThisFrame) SetTool(Tool.Move);
-            else if (kb.eKey.wasPressedThisFrame) SetTool(Tool.Rotate);
-            else if (kb.rKey.wasPressedThisFrame) SetTool(Tool.Scale);
-            else if (kb.cKey.wasPressedThisFrame) SetFree(!_free);
+            if (_confirmShown)
+            {
+                if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) ConfirmResetAll(true);
+                else if (kb.escapeKey.wasPressedThisFrame) ConfirmResetAll(false);
+                return;
+            }
+            if (_helpShown && (kb.escapeKey.wasPressedThisFrame || kb.hKey.wasPressedThisFrame))
+            {
+                ShowHelp(false);
+                return;
+            }
+            if (kb.escapeKey.wasPressedThisFrame)
+            {
+                if (_drag == Drag.Handle) CancelHandleDrag();
+                else if (_sel != null) Select((VhEditable)null, true);
+                return;
+            }
+            // While flying, W A S D Q E are the camera's.
+            if (_drag == Drag.Look) return;
+            bool ctrl = kb.ctrlKey.isPressed;
+            if (ctrl)
+            {
+                if (kb.zKey.wasPressedThisFrame)
+                {
+                    if (kb.shiftKey.isPressed) Redo();
+                    else Undo();
+                }
+                else if (kb.yKey.wasPressedThisFrame) Redo();
+                else if (kb.sKey.wasPressedThisFrame) Save();
+                return;
+            }
+            if (kb.altKey.isPressed) return;
+            bool dragging = _drag != Drag.None && _drag != Drag.Ui;
+            if (kb.spaceKey.wasPressedThisFrame) TogglePlay();
+            else if (kb.hKey.wasPressedThisFrame) ShowHelp(!_helpShown);
+            else if (dragging) return;
+            else if (kb.wKey.wasPressedThisFrame) SetTool(Tool.Move, true);
+            else if (kb.eKey.wasPressedThisFrame) SetTool(Tool.Rotate, true);
+            else if (kb.rKey.wasPressedThisFrame) SetTool(Tool.Scale, true);
+            else if (kb.xKey.wasPressedThisFrame) SetSnap(!_snap);
+            else if (kb.cKey.wasPressedThisFrame) SetFree(!_free, true);
             else if (kb.fKey.wasPressedThisFrame) FrameSelected();
-            else if (kb.xKey.wasPressedThisFrame) _snapToggle.value = !_snapToggle.value;
-            else if (kb.hKey.wasPressedThisFrame) _help.style.display = _help.resolvedStyle.display == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None;
             else if (kb.rightArrowKey.wasPressedThisFrame) StepBeat(1);
             else if (kb.leftArrowKey.wasPressedThisFrame) StepBeat(-1);
-            else if (kb.escapeKey.wasPressedThisFrame) Select((VhEditable)null);
         }
 
-        void SetTool(Tool t)
+        void SetTool(Tool t, bool say)
         {
             _tool = t;
-            if (_toolLabel != null) _toolLabel.text = "Handles: " + (t == Tool.Move ? "move (W)" : t == Tool.Rotate ? "turn (E)" : "size (R)");
+            if (!say) return;
+            switch (t)
+            {
+                case Tool.Move: Status("Move (W): drag an arrow to move along it, the middle square to move across the view."); break;
+                case Tool.Rotate: Status("Turn (E): drag a ring to turn around that axis (red X, green Y, blue Z)."); break;
+                default:
+                    Status("Size (R): drag a box to size along it, the middle box to size it all." +
+                           (_sel != null && (!_sel.canScale || _sel.isShot) ? " " + _sel.label + " can't be sized." : ""));
+                    break;
+            }
         }
 
-        void Status(string text)
+        void SetSnap(bool on)
         {
-            if (_status != null) _status.text = text;
+            _snap = on;
+            Status(on ? "Snapping on: 1 cm, 5°, 5% (X turns it off; Ctrl held while dragging flips it)." : "Snapping off (X turns it on; Ctrl held while dragging flips it).");
         }
 
-        // ---------- Handles (drawn and picked in screen space) ----------
+        // ---------- The mouse ----------
 
-        bool ToPanel(Vector3 world, out Vector2 p)
+        void Pointer(Mouse m, Keyboard kb)
         {
-            p = Vector2.zero;
-            var cam = _stage.cam;
-            Vector3 sp = cam.WorldToScreenPoint(world);
-            if (sp.z <= 0.01f || _view?.panel == null) return false;
-            p = RuntimePanelUtils.ScreenToPanel(_view.panel, new Vector2(sp.x, Screen.height - sp.y));
+            if (m == null) return;
+            _screen = m.position.ReadValue();
+            _mouse = ScreenToPanel(_screen);
+            bool alt = kb != null && kb.altKey.isPressed, ctrl = kb != null && kb.ctrlKey.isPressed, shift = kb != null && kb.shiftKey.isPressed;
+            Vector2 delta = m.delta.ReadValue();
+
+            Ctl ctl = _drag == Drag.None || _drag == Drag.Ui ? HitControl(_mouse) : null;
+            bool overUi = ctl != null || OverUi(_mouse);
+            if (_drag == Drag.None)
+            {
+                SetHoverControl(ctl);
+                bool viewHover = !overUi && !_helpShown && !_confirmShown;
+                _hoverHandle = viewHover && !_playing ? HitHandle(_mouse, out _) : -1;
+                if (!viewHover || _hoverHandle >= 0) _hover = null;
+                else if (!_mouseSeen || (_mouse - _lastPickMouse).sqrMagnitude > 1f || Time.unscaledTime - _lastPick > 0.25f)
+                {
+                    _hover = PickThing(_mouse);
+                    _lastPickMouse = _mouse;
+                    _lastPick = Time.unscaledTime;
+                }
+                _mouseSeen = true;
+            }
+            else if (_drag != Drag.Ui) SetHoverControl(null);
+
+            if (m.leftButton.wasPressedThisFrame) LeftDown(ctl, overUi, alt);
+            if (m.rightButton.wasPressedThisFrame && _drag == Drag.None && !overUi && !Modal)
+            {
+                TakeCamera();
+                _drag = Drag.Look;
+                _hover = null;
+                LockCursor();
+            }
+            if (m.middleButton.wasPressedThisFrame && _drag == Drag.None && !overUi && !Modal)
+            {
+                TakeCamera();
+                _drag = Drag.Pan;
+                _hover = null;
+            }
+
+            switch (_drag)
+            {
+                case Drag.Look:
+                    if (!m.rightButton.isPressed) EndCameraDrag();
+                    else Look(delta);
+                    break;
+                case Drag.Pan:
+                    if (!m.middleButton.isPressed) EndCameraDrag();
+                    else Pan(delta);
+                    break;
+                case Drag.Orbit:
+                    if (!m.leftButton.isPressed) EndCameraDrag();
+                    else Orbit(delta);
+                    break;
+                case Drag.Handle:
+                    if (!m.leftButton.isPressed) EndHandleDrag(true);
+                    else HandleDrag(ctrl);
+                    break;
+                case Drag.Scrub:
+                    if (!m.leftButton.isPressed)
+                    {
+                        _drag = Drag.None;
+                        Status("At " + Clock(_opening.Time) + " (" + BeatAt(_opening.Time) + ").");
+                    }
+                    else ScrubTo(_mouse.x);
+                    break;
+                case Drag.Number:
+                    if (!m.leftButton.isPressed) NumberRelease();
+                    else NumberDrag(shift);
+                    break;
+                case Drag.Ui:
+                    if (!m.leftButton.isPressed)
+                    {
+                        _drag = Drag.None;
+                        if (_pressCtl != null && HitControl(_mouse) == _pressCtl) Click(_pressCtl);
+                        _pressCtl = null;
+                    }
+                    break;
+            }
+
+            float wheel = m.scroll.ReadValue().y;
+            if (Mathf.Abs(wheel) > 0.001f)
+            {
+                float notches = Mathf.Abs(wheel) >= 30f ? wheel / 120f : wheel;
+                Wheel(notches, overUi);
+            }
+        }
+
+        bool Modal => _helpShown || _confirmShown;
+
+        void LeftDown(Ctl ctl, bool overUi, bool alt)
+        {
+            if (_editing != null && (ctl == null || ctl.number != _editing)) CommitNumber();
+            if (_helpShown)
+            {
+                ShowHelp(false);
+                _drag = Drag.Ui;
+                _pressCtl = null;
+                return;
+            }
+            if (_drag != Drag.None) return;
+            if (ctl != null)
+            {
+                if (ctl.number != null)
+                {
+                    _drag = Drag.Number;
+                    _pressCtl = ctl;
+                    _pressMouse = _mouse;
+                    NumberPress(ctl.number);
+                    return;
+                }
+                if (ctl.track)
+                {
+                    _drag = Drag.Scrub;
+                    ScrubTo(_mouse.x);
+                    return;
+                }
+                _drag = Drag.Ui;
+                _pressCtl = ctl;
+                return;
+            }
+            if (overUi || _confirmShown)
+            {
+                // A panel's background: nothing (and never the view behind it).
+                _drag = Drag.Ui;
+                _pressCtl = null;
+                return;
+            }
+            if (alt)
+            {
+                TakeCamera();
+                _orbitPivot = OrbitPivot();
+                _drag = Drag.Orbit;
+                _hover = null;
+                return;
+            }
+            if (_playing)
+            {
+                Status("Pause first (Space) to pick and move things.");
+                return;
+            }
+            int h = HitHandle(_mouse, out var ring);
+            if (h >= 0)
+            {
+                BeginHandleDrag(h, ring);
+                return;
+            }
+            var picked = PickThing(_mouse);
+            bool wall = PickedSomething;
+            if (picked == null && _sel == null)
+            {
+                Status(wall ? "That can't be moved (the walls, floor and window stay put). Click another thing, or pick one from the list." : "Nothing there to select.");
+                return;
+            }
+            Select(picked, true);
+            if (picked == null && wall) Status("Nothing selected (that's a wall, the floor or the window: they stay put).");
+        }
+
+        void EndCameraDrag()
+        {
+            var was = _drag;
+            _drag = Drag.None;
+            UnlockCursor();
+            if (was == Drag.Look) _lastPick = -1f;
+        }
+
+        void Wheel(float notches, bool overUi)
+        {
+            if (Modal) return;
+            if (overUi)
+            {
+                if (_list != null && Shown(_list) && _list.worldBound.Contains(_mouse)) _list.scrollOffset -= new Vector2(0f, notches * 48f);
+                return;
+            }
+            if (_drag == Drag.Look)
+            {
+                _flySpeed = Mathf.Clamp(_flySpeed * Mathf.Pow(1.25f, notches), 0.1f, 20f);
+                Status("Fly speed: " + _flySpeed.ToString("0.0") + " m/s (the wheel, while flying; Shift is 4x).");
+                return;
+            }
+            if (_drag != Drag.None) return;
+            TakeCamera();
+            Dolly(notches);
+        }
+
+        // ---------- Handles: dragging ----------
+
+        Ray MouseRay() => _stage.cam.ScreenPointToRay(new Vector3(_screen.x, _screen.y, 0f));
+
+        /// <summary>Where along the axis line (through the drag's pivot) the mouse ray passes closest.</summary>
+        bool AxisParam(Ray ray, out float t)
+        {
+            t = 0f;
+            Vector3 a = _dragAxis, d = ray.direction, w = _dragPivot - ray.origin;
+            float b = Vector3.Dot(a, d);
+            float denom = 1f - b * b;
+            if (denom < 0.004f) return false;
+            t = (b * Vector3.Dot(d, w) - Vector3.Dot(a, w)) / denom;
             return true;
         }
 
-        Vector3 Pivot(VhEditable e) => e.target.position;
-
-        float HandleLength(VhEditable e) => Mathf.Max(0.03f, Vector3.Distance(_stage.cam.transform.position, Pivot(e)) * 0.18f);
-
-        Vector3 Axis(VhEditable e, int i)
+        bool PlaneHit(Ray ray, out Vector3 hit)
         {
-            Vector3 a = i == 0 ? Vector3.right : i == 1 ? Vector3.up : Vector3.forward;
-            return _tool == Tool.Scale ? e.target.rotation * a : a;
+            var plane = new Plane(_stage.cam.transform.forward, _dragPivot);
+            hit = Vector3.zero;
+            if (!plane.Raycast(ray, out float enter)) return false;
+            hit = ray.GetPoint(enter);
+            return true;
         }
 
-        static readonly Color[] AxisColors = { new Color(0.95f, 0.3f, 0.3f), new Color(0.4f, 0.9f, 0.35f), new Color(0.35f, 0.55f, 1f) };
-
-        void Draw(MeshGenerationContext ctx)
+        void BeginHandleDrag(int h, Vector3 ring)
         {
-            if (!_open || _stage == null) return;
-            var p = ctx.painter2D;
-            // Shots and lights show as small marks so they can be found and picked.
-            foreach (var e in _stage.edits.All)
-            {
-                if (e.target == null || !e.target.gameObject.activeInHierarchy || (!e.isShot && Renderers(e).Length > 0)) continue;
-                if (!ToPanel(e.target.position, out var c)) continue;
-                p.strokeColor = e == _sel ? new Color(1f, 0.85f, 0.3f) : new Color(1f, 1f, 1f, 0.7f);
-                p.lineWidth = 2f;
-                p.BeginPath();
-                p.Arc(c, e.isShot ? 9f : 6f, 0f, 360f);
-                p.Stroke();
-                if (e.isShot && ToPanel(e.target.position + e.target.forward * 0.15f, out var f))
-                {
-                    p.BeginPath();
-                    p.MoveTo(c);
-                    p.LineTo(f);
-                    p.Stroke();
-                }
-            }
-            if (_sel == null || _sel.target == null || !_sel.target.gameObject.activeInHierarchy || _playing) return;
-            Vector3 o = Pivot(_sel);
-            if (!ToPanel(o, out var po)) return;
-            float L = HandleLength(_sel);
-            for (int i = 0; i < 3; i++)
-            {
-                Color col = (_dragAxis == i || (_dragAxis < 0 && _hoverAxis == i)) ? new Color(1f, 0.9f, 0.3f) : AxisColors[i];
-                p.strokeColor = col;
-                p.fillColor = col;
-                p.lineWidth = 3f;
-                Vector3 a = Axis(_sel, i);
-                if (_tool == Tool.Rotate)
-                {
-                    bool started = false;
-                    p.BeginPath();
-                    for (int k = 0; k <= 48; k++)
-                    {
-                        if (!ToPanel(RingPoint(o, a, L * 0.85f, k / 48f * Mathf.PI * 2f), out var q)) { started = false; continue; }
-                        if (!started) p.MoveTo(q);
-                        else p.LineTo(q);
-                        started = true;
-                    }
-                    p.Stroke();
-                    continue;
-                }
-                if (_tool == Tool.Scale && (_sel.isShot || !_sel.canScale)) continue;
-                if (!ToPanel(o + a * L, out var pe)) continue;
-                p.BeginPath();
-                p.MoveTo(po);
-                p.LineTo(pe);
-                p.Stroke();
-                p.BeginPath();
-                if (_tool == Tool.Move) p.Arc(pe, 6f, 0f, 360f);
-                else
-                {
-                    p.MoveTo(pe + new Vector2(-5f, -5f));
-                    p.LineTo(pe + new Vector2(5f, -5f));
-                    p.LineTo(pe + new Vector2(5f, 5f));
-                    p.LineTo(pe + new Vector2(-5f, 5f));
-                    p.ClosePath();
-                }
-                p.Fill();
-            }
-            if (_tool == Tool.Scale && _sel.canScale && !_sel.isShot)
-            {
-                p.fillColor = _dragAxis == 3 || (_dragAxis < 0 && _hoverAxis == 3) ? new Color(1f, 0.9f, 0.3f) : Color.white;
-                p.BeginPath();
-                p.Arc(po, 7f, 0f, 360f);
-                p.Fill();
-            }
+            var t = _sel.target;
+            PushUndo(null);
+            _drag = Drag.Handle;
+            _dragHandle = h;
+            _dragPivot = Pivot(_sel);
+            _dragWorld0 = t.localToWorldMatrix;
+            _dragScale0 = t.localScale;
+            _dragMouse0 = _mouse;
+            _dragRing = ring;
+            _dragAmount = 0f;
+            _dragLength0 = HandleLength(_sel);
+            _dragAxis = h < 3 ? Axis(_sel, h) : Vector3.zero;
+            _dragParallel = false;
+            var ray = MouseRay();
+            if (h < 3 && _tool != Tool.Rotate) _dragParallel = !AxisParam(ray, out _dragT0);
+            if (h == 3 && _tool == Tool.Move) PlaneHit(ray, out _dragPlane0);
+            _hover = null;
         }
 
-        static Vector3 RingPoint(Vector3 o, Vector3 axis, float r, float angle)
-        {
-            Vector3 u = Vector3.Cross(axis, Mathf.Abs(axis.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
-            Vector3 v = Vector3.Cross(axis, u);
-            return o + (u * Mathf.Cos(angle) + v * Mathf.Sin(angle)) * r;
-        }
+        static readonly string[] AxisNames = { "X (red)", "Y (green, up)", "Z (blue)" };
 
-        static float SegmentDistance(Vector2 m, Vector2 a, Vector2 b)
-        {
-            Vector2 ab = b - a;
-            float t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector2.Dot(m - a, ab) / ab.sqrMagnitude) : 0f;
-            return Vector2.Distance(m, a + ab * t);
-        }
-
-        /// <summary>The handle under the mouse (0..2 an axis, 3 the middle when sizing), or -1.</summary>
-        int HitHandle(Vector2 m, out Vector3 ringPoint)
-        {
-            ringPoint = Vector3.zero;
-            if (_sel == null || _sel.target == null || !_sel.target.gameObject.activeInHierarchy) return -1;
-            Vector3 o = Pivot(_sel);
-            if (!ToPanel(o, out var po)) return -1;
-            float L = HandleLength(_sel);
-            if (_tool == Tool.Scale && _sel.canScale && !_sel.isShot && Vector2.Distance(m, po) < 11f) return 3;
-            int best = -1;
-            float bestD = 10f;
-            for (int i = 0; i < 3; i++)
-            {
-                Vector3 a = Axis(_sel, i);
-                if (_tool == Tool.Rotate)
-                {
-                    for (int k = 0; k < 48; k++)
-                    {
-                        Vector3 w0 = RingPoint(o, a, L * 0.85f, k / 48f * Mathf.PI * 2f), w1 = RingPoint(o, a, L * 0.85f, (k + 1) / 48f * Mathf.PI * 2f);
-                        if (!ToPanel(w0, out var q0) || !ToPanel(w1, out var q1)) continue;
-                        float d = SegmentDistance(m, q0, q1);
-                        if (d < bestD)
-                        {
-                            bestD = d;
-                            best = i;
-                            ringPoint = (w0 + w1) * 0.5f;
-                        }
-                    }
-                    continue;
-                }
-                if (_tool == Tool.Scale && (_sel.isShot || !_sel.canScale)) continue;
-                if (!ToPanel(o + a * L, out var pe)) continue;
-                float dd = SegmentDistance(m, po, pe);
-                if (dd < bestD)
-                {
-                    bestD = dd;
-                    best = i;
-                }
-            }
-            return best;
-        }
-
-        void OnPointerDown(PointerDownEvent ev)
-        {
-            if (!_open) return;
-            Vector2 m = ev.localPosition;
-            if (ev.button == 1)
-            {
-                if (!_free) SetFree(true);
-                _looking = true;
-                return;
-            }
-            if (ev.button != 0 || _playing) return;
-            int h = HitHandle(m, out var ring);
-            if (h >= 0)
-            {
-                PushUndo();
-                _dragAxis = h;
-                _dragStart = m;
-                _dragMouse = m;
-                _dragWorld = _sel.target.localToWorldMatrix;
-                _dragScale = _sel.target.localScale;
-                _dragPivot = Pivot(_sel);
-                _dragRingPoint = ring;
-                _dragApplied = 0f;
-                _view.CapturePointer(ev.pointerId);
-                return;
-            }
-            Select(Pick(m));
-        }
-
-        void OnPointerMove(PointerMoveEvent ev)
-        {
-            if (!_open) return;
-            Vector2 m = ev.localPosition;
-            if (_dragAxis < 0)
-            {
-                _hoverAxis = _playing ? -1 : HitHandle(m, out _);
-                return;
-            }
-            _dragMouse = m;
-            Drag();
-        }
-
-        void OnPointerUp(PointerUpEvent ev)
-        {
-            if (ev.button == 1) _looking = false;
-            if (_dragAxis < 0 || ev.button != 0) return;
-            _dragAxis = -1;
-            if (_view.HasPointerCapture(ev.pointerId)) _view.ReleasePointer(ev.pointerId);
-            Finished();
-        }
-
-        void Drag()
+        void HandleDrag(bool ctrl)
         {
             var e = _sel;
-            if (e == null) return;
-            Vector2 delta = _dragMouse - _dragStart;
-            float L = HandleLength(e);
-            if (_dragAxis == 3)
-            {
-                float k = 1f + (delta.x - delta.y) / 150f;
-                if (_snap) k = Mathf.Round(k / 0.05f) * 0.05f;
-                k = Mathf.Max(0.05f, k);
-                _stage.edits.Set(e, e.target.localPosition, e.target.localRotation, _dragScale * k);
-                ShowFields();
-                return;
-            }
-            Vector3 axis = Axis(e, _dragAxis);
-            if (!ToPanel(_dragPivot, out var p0)) return;
-            if (_tool == Tool.Rotate)
-            {
-                Vector3 tangent = Vector3.Cross(axis, _dragRingPoint - _dragPivot).normalized;
-                if (!ToPanel(_dragRingPoint, out var r0) || !ToPanel(_dragRingPoint + tangent * (L * 0.2f), out var r1)) return;
-                Vector2 ts = (r1 - r0).normalized;
-                float angle = Vector2.Dot(delta, ts) * 0.6f;
-                if (_snap) angle = Mathf.Round(angle / 5f) * 5f;
-                var target = Matrix4x4.Translate(_dragPivot) * Matrix4x4.Rotate(Quaternion.AngleAxis(angle, axis)) * Matrix4x4.Translate(-_dragPivot) * _dragWorld;
-                _stage.edits.MoveBy(e, target * e.target.localToWorldMatrix.inverse);
-                ShowFields();
-                return;
-            }
-            if (!ToPanel(_dragPivot + axis * L, out var p1)) return;
-            Vector2 ds = p1 - p0;
-            if (ds.sqrMagnitude < 1f) return;
-            float along = Vector2.Dot(delta, ds.normalized) / ds.magnitude * L;
+            if (e == null || e.target == null) return;
+            bool snap = _snap != ctrl;
+            var ray = MouseRay();
+            Vector2 md = _mouse - _dragMouse0;
+            string name = Short(e);
             if (_tool == Tool.Move)
             {
-                if (_snap) along = Mathf.Round(along / 0.01f) * 0.01f;
-                var target = Matrix4x4.Translate(axis * along) * _dragWorld;
+                Vector3 shift;
+                if (_dragHandle == 3)
+                {
+                    if (!PlaneHit(ray, out var hit)) return;
+                    shift = hit - _dragPlane0;
+                    if (snap) shift = new Vector3(Round(shift.x, SnapMove), Round(shift.y, SnapMove), Round(shift.z, SnapMove));
+                    _dragAmount = shift.magnitude;
+                    Status("Moving " + name + " across the view: " + Cm(shift.magnitude) + (snap ? " (snapping)" : ""));
+                }
+                else
+                {
+                    float along;
+                    if (!_dragParallel && AxisParam(ray, out float t)) along = t - _dragT0;
+                    else along = ScreenAlong(md, _dragAxis, _dragLength0);
+                    if (snap) along = Round(along, SnapMove);
+                    shift = _dragAxis * along;
+                    _dragAmount = along;
+                    Status("Moving " + name + " along " + AxisNames[_dragHandle] + ": " + SignedCm(along) + (snap ? " (snapping)" : ""));
+                }
+                var target = Matrix4x4.Translate(shift) * _dragWorld0;
                 _stage.edits.MoveBy(e, target * e.target.localToWorldMatrix.inverse);
+            }
+            else if (_tool == Tool.Rotate)
+            {
+                if (!ToPanel(_dragPivot, out _)) return;
+                Vector3 tangent = Vector3.Cross(_dragAxis, _dragRing - _dragPivot).normalized;
+                if (!ToPanel(_dragRing, out var r0) || !ToPanel(_dragRing + tangent * (_dragLength0 * 0.2f), out var r1)) return;
+                Vector2 ts = (r1 - r0).normalized;
+                float angle = Vector2.Dot(md, ts) * 0.5f;
+                if (snap) angle = Round(angle, SnapTurn);
+                _dragAmount = angle;
+                var target = Matrix4x4.Translate(_dragPivot) * Matrix4x4.Rotate(Quaternion.AngleAxis(angle, _dragAxis)) * Matrix4x4.Translate(-_dragPivot) * _dragWorld0;
+                _stage.edits.MoveBy(e, target * e.target.localToWorldMatrix.inverse);
+                Status("Turning " + name + " around " + AxisNames[_dragHandle] + ": " + angle.ToString("0.0") + "°" + (snap ? " (snapping)" : ""));
             }
             else
             {
-                float k = 1f + along / L;
-                if (_snap) k = Mathf.Round(k / 0.05f) * 0.05f;
+                float k;
+                if (_dragHandle == 3) k = 1f + (md.x - md.y) / 200f;
+                else
+                {
+                    float along;
+                    if (!_dragParallel && AxisParam(ray, out float t)) along = t - _dragT0;
+                    else along = ScreenAlong(md, _dragAxis, _dragLength0);
+                    k = 1f + along / Mathf.Max(0.01f, _dragLength0);
+                }
+                if (snap) k = Round(k, SnapSize);
                 k = Mathf.Max(0.05f, k);
-                Vector3 s = _dragScale;
-                s[_dragAxis] *= k;
+                _dragAmount = k - 1f;
+                Vector3 s = _dragScale0;
+                if (_dragHandle == 3) s *= k;
+                else s[_dragHandle] *= k;
                 _stage.edits.Set(e, e.target.localPosition, e.target.localRotation, s);
+                Status("Sizing " + name + (_dragHandle == 3 ? "" : " along " + AxisNames[_dragHandle]) + ": " + (k * 100f).ToString("0") + "%" + (snap ? " (snapping)" : ""));
             }
             ShowFields();
         }
 
-        Renderer[] Renderers(VhEditable e)
+        /// <summary>A move along an axis from the mouse's travel on screen (when the axis points at the camera).</summary>
+        float ScreenAlong(Vector2 md, Vector3 axis, float length)
         {
-            if (!_renderers.TryGetValue(e, out var r) || r == null)
+            if (!ToPanel(_dragPivot, out var p0) || !ToPanel(_dragPivot + axis * length, out var p1)) return 0f;
+            Vector2 ds = p1 - p0;
+            if (ds.sqrMagnitude < 1f) return 0f;
+            return Vector2.Dot(md, ds.normalized) / ds.magnitude * length;
+        }
+
+        void EndHandleDrag(bool commit)
+        {
+            if (_drag != Drag.Handle) return;
+            _drag = Drag.None;
+            var e = _sel;
+            if (!commit || e == null) return;
+            if (Mathf.Abs(_dragAmount) < 1e-5f)
             {
-                r = e.target != null ? e.target.GetComponentsInChildren<Renderer>(true) : new Renderer[0];
-                _renderers[e] = r;
+                // A click on a handle without a move: no undo step, no change.
+                if (_undo.Count > 0) _undo.RemoveAt(_undo.Count - 1);
+                Status(_tool == Tool.Move ? "Drag the arrow (hold the button and move the mouse) to move " + Short(e) + "." : "Hold the button and move the mouse to " + (_tool == Tool.Rotate ? "turn " : "size ") + Short(e) + ".");
+                return;
             }
-            return r;
-        }
-
-        Bounds BoundsOf(VhEditable e)
-        {
-            var rs = Renderers(e);
-            if (rs.Length == 0) return new Bounds(e.target.position, Vector3.one * 0.2f);
-            var b = rs[0].bounds;
-            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
-            return b;
-        }
-
-        /// <summary>The thing under the mouse: the nearest one whose drawn parts the ray meets, or a shot or light mark near it.</summary>
-        VhEditable Pick(Vector2 m)
-        {
-            VhEditable best = null;
-            float bestD = float.MaxValue;
-            // Marks (shots, lights) first: they're small and sit inside other things.
-            foreach (var e in _stage.edits.All)
+            string what;
+            if (_tool == Tool.Move) what = _dragHandle == 3 ? "moved " + Short(e) + " " + Cm(_dragAmount) + " across the view" : "moved " + Short(e) + " " + SignedCm(_dragAmount) + " along " + AxisNames[_dragHandle];
+            else if (_tool == Tool.Rotate) what = "turned " + Short(e) + " " + _dragAmount.ToString("0.0") + "° around " + AxisNames[_dragHandle];
+            else what = "sized " + Short(e) + " to " + ((1f + _dragAmount) * 100f).ToString("0") + "%";
+            if (_undo.Count > 0)
             {
-                if (e.target == null || !e.target.gameObject.activeInHierarchy || (!e.isShot && Renderers(e).Length > 0)) continue;
-                if (ToPanel(e.target.position, out var c) && Vector2.Distance(c, m) < 12f) return e;
+                var top = _undo[_undo.Count - 1];
+                top.what = what;
+                _undo[_undo.Count - 1] = top;
             }
-            var tree = _view.panel.visualTree.layout;
-            float sx = tree.width > 1f ? Screen.width / tree.width : 1f, sy = tree.height > 1f ? Screen.height / tree.height : 1f;
-            var ray = _stage.cam.ScreenPointToRay(new Vector3(m.x * sx, Screen.height - m.y * sy, 0f));
-            foreach (var e in _stage.edits.All)
+            Finished();
+            Status(char.ToUpperInvariant(what[0]) + what.Substring(1) + ". (Ctrl+Z undoes.)");
+        }
+
+        void CancelHandleDrag()
+        {
+            if (_drag != Drag.Handle) return;
+            _drag = Drag.None;
+            if (_undo.Count > 0)
             {
-                if (e.isShot || e.target == null || !e.target.gameObject.activeInHierarchy) continue;
-                foreach (var r in Renderers(e))
-                {
-                    if (r == null || !r.gameObject.activeInHierarchy) continue;
-                    if (r.bounds.IntersectRay(ray, out float d) && d < bestD)
-                    {
-                        // Big things (the bed, the table) lose to smaller things in front of or on them.
-                        float size = r.bounds.size.magnitude;
-                        float score = d + size * 0.15f;
-                        if (score < bestD)
-                        {
-                            bestD = score;
-                            best = e;
-                        }
-                    }
-                }
+                var step = _undo[_undo.Count - 1];
+                _undo.RemoveAt(_undo.Count - 1);
+                _stage.edits.ApplyAll(VhSceneEditsData.FromJson(step.json));
+                _stage.blanketDirty = false;
             }
-            return best;
+            ShowFields();
+            Status("Cancelled: " + Short(_sel) + " is back where it was.");
         }
 
-        // ---------- The interface ----------
+        static float Round(float v, float step) => Mathf.Round(v / step) * step;
 
-        static VisualElement Box(VisualElement parent, string name)
+        static string Cm(float metres) => (metres * 100f).ToString("0.0") + " cm";
+
+        static string SignedCm(float metres) => (metres >= 0f ? "+" : "") + (metres * 100f).ToString("0.0") + " cm";
+
+        // ---------- The timeline's scrub bar ----------
+
+        void ScrubTo(float panelX)
         {
-            var e = new VisualElement { name = name };
-            parent?.Add(e);
-            return e;
-        }
-
-        static Label Text(VisualElement parent, string text, int size = 13, bool bold = false)
-        {
-            var l = new Label(text);
-            l.style.color = new Color(0.93f, 0.93f, 0.95f);
-            l.style.fontSize = size;
-            l.style.whiteSpace = WhiteSpace.Normal;
-            if (bold) l.style.unityFontStyleAndWeight = FontStyle.Bold;
-            parent?.Add(l);
-            return l;
-        }
-
-        static Button Btn(VisualElement parent, string text, System.Action click)
-        {
-            var b = new Button(click) { text = text, focusable = false };
-            b.style.fontSize = 12;
-            b.style.marginTop = 1;
-            b.style.marginBottom = 1;
-            parent?.Add(b);
-            return b;
-        }
-
-        static void Panel(VisualElement e)
-        {
-            e.style.backgroundColor = new Color(0.07f, 0.075f, 0.09f, 0.9f);
-            e.style.paddingLeft = e.style.paddingRight = 8;
-            e.style.paddingTop = e.style.paddingBottom = 6;
-            e.style.position = Position.Absolute;
-        }
-
-        FloatField[] Row(VisualElement parent, string label)
-        {
-            var row = Box(parent, label);
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
-            var l = Text(row, label);
-            l.style.width = 62;
-            var f = new FloatField[3];
-            string[] axes = { "x", "y", "z" };
-            for (int i = 0; i < 3; i++)
-            {
-                f[i] = new FloatField(axes[i]);
-                f[i].style.flexGrow = 1;
-                f[i].style.minWidth = 60;
-                f[i].labelElement.style.minWidth = 10;
-                f[i].labelElement.style.color = AxisColors[i];
-                f[i].isDelayed = true;
-                f[i].RegisterValueChangedCallback(_ => FromFields());
-                f[i].RegisterCallback<FocusInEvent>(_ => _typing = true);
-                f[i].RegisterCallback<FocusOutEvent>(_ => _typing = false);
-                row.Add(f[i]);
-            }
-            return f;
-        }
-
-        void BuildUi()
-        {
-            _root = new VisualElement { name = "vh-opening-editor", pickingMode = PickingMode.Ignore };
-            _root.style.position = Position.Absolute;
-            _root.style.left = _root.style.right = _root.style.top = _root.style.bottom = 0;
-
-            // The view: picking, handles, the free camera's look.
-            _view = Box(_root, "view");
-            _view.style.position = Position.Absolute;
-            _view.style.left = _view.style.right = _view.style.top = _view.style.bottom = 0;
-            _view.pickingMode = PickingMode.Position;
-            _view.generateVisualContent += Draw;
-            _view.RegisterCallback<PointerDownEvent>(OnPointerDown);
-            _view.RegisterCallback<PointerMoveEvent>(OnPointerMove);
-            _view.RegisterCallback<PointerUpEvent>(OnPointerUp);
-            _view.RegisterCallback<WheelEvent>(ev => _flySpeed = Mathf.Clamp(_flySpeed * (ev.delta.y > 0 ? 0.8f : 1.25f), 0.1f, 10f));
-
-            // The timeline along the top.
-            _top = Box(_root, "timeline");
-            Panel(_top);
-            _top.style.left = 230;
-            _top.style.right = 290;
-            _top.style.top = 6;
-            var row = Box(_top, "row");
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
-            _playButton = Btn(row, "Play from here (Space)", TogglePlay);
-            Btn(row, "< beat", () => StepBeat(-1));
-            Btn(row, "beat >", () => StepBeat(1));
-            _timeLabel = Text(row, "");
-            _timeLabel.style.marginLeft = 8;
-            _time = new Slider(0f, _opening.Length) { name = "time" };
-            _time.style.flexGrow = 1;
-            _time.RegisterValueChangedCallback(ev => SeekTo(ev.newValue));
-            _top.Add(_time);
-            var beats = Box(_top, "beats");
-            beats.style.flexDirection = FlexDirection.Row;
-            beats.style.flexWrap = Wrap.Wrap;
-            foreach (var b in _beats)
-            {
-                float at = b.time;
-                Btn(beats, b.name, () => SeekTo(at));
-            }
-
-            // The things, by plain names, on the left.
-            _left = Box(_root, "things");
-            Panel(_left);
-            _left.style.left = 6;
-            _left.style.top = 6;
-            _left.style.bottom = 40;
-            _left.style.width = 216;
-            Text(_left, "Opening editor", 15, true);
-            _list = new ScrollView();
-            _list.style.flexGrow = 1;
-            _left.Add(_list);
-            BuildList();
-
-            // The selected thing, on the right.
-            _right = Box(_root, "selected");
-            Panel(_right);
-            _right.style.right = 6;
-            _right.style.top = 6;
-            _right.style.width = 278;
-            _name = Text(_right, "", 14, true);
-            _note = Text(_right, "", 12);
-            _note.style.color = new Color(0.8f, 0.85f, 0.95f);
-            _note.style.marginBottom = 4;
-            _pos = Row(_right, "Position");
-            _rot = Row(_right, "Turn (°)");
-            _scaleRow = Box(_right, "scale");
-            _scl = Row(_scaleRow, "Size");
-            _shotRow = Box(_right, "shot");
-            _fov = new FloatField("Field of view") { isDelayed = true };
-            _fov.RegisterValueChangedCallback(_ => FromFields());
-            _fov.RegisterCallback<FocusInEvent>(_ => _typing = true);
-            _fov.RegisterCallback<FocusOutEvent>(_ => _typing = false);
-            _shotRow.Add(_fov);
-            Btn(_shotRow, "Set from my view", ShotFromView);
-            Btn(_shotRow, "Look through it", LookThroughShot);
-            Btn(_right, "Frame it in my view (F)", FrameSelected);
-            Btn(_right, "Reset this one", ResetSelected);
-            _right.style.display = DisplayStyle.None;
-
-            // Tools and file, along the bottom.
-            var bottom = Box(_root, "tools");
-            Panel(bottom);
-            bottom.style.left = 6;
-            bottom.style.right = 6;
-            bottom.style.bottom = 6;
-            bottom.style.flexDirection = FlexDirection.Row;
-            bottom.style.alignItems = Align.Center;
-            bottom.style.flexWrap = Wrap.Wrap;
-            Btn(bottom, "Move (W)", () => SetTool(Tool.Move));
-            Btn(bottom, "Turn (E)", () => SetTool(Tool.Rotate));
-            Btn(bottom, "Size (R)", () => SetTool(Tool.Scale));
-            _snapToggle = new Toggle("Snap (X)") { value = _snap };
-            _snapToggle.labelElement.style.color = Color.white;
-            _snapToggle.RegisterValueChangedCallback(ev => _snap = ev.newValue);
-            bottom.Add(_snapToggle);
-            Btn(bottom, "Undo (Ctrl+Z)", () => Undo());
-            Btn(bottom, "Redo (Ctrl+Y)", () => Redo());
-            Btn(bottom, "Camera (C)", () => SetFree(!_free));
-            Btn(bottom, "Reset everything", ResetEverything);
-            Btn(bottom, "Rebuild with my edits", Rebuild);
-            Btn(bottom, "Save (Ctrl+S)", Save);
-            Btn(bottom, "Help (H)", () => _help.style.display = _help.resolvedStyle.display == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None);
-            Btn(bottom, "Close (F9)", Close);
-            _toolLabel = Text(bottom, "");
-            _toolLabel.style.marginLeft = 8;
-            _camLabel = Text(bottom, "");
-            _camLabel.style.marginLeft = 8;
-            _status = Text(bottom, "");
-            _status.style.marginLeft = 8;
-            _status.style.flexShrink = 1;
-
-            _help = Box(_root, "help");
-            Panel(_help);
-            _help.style.left = 240;
-            _help.style.top = 150;
-            _help.style.width = 430;
-            _help.pickingMode = PickingMode.Ignore;
-            Text(_help,
-                "THE OPENING EDITOR\n\n" +
-                "Click a thing in the view, or pick it from the list on the left.\n" +
-                "Drag the coloured handles: W move, E turn, R size (the white dot sizes it all). X snaps (1 cm, 5°).\n" +
-                "Or type numbers on the right (in its parent: the room, the bed, the table).\n\n" +
-                "Hold the RIGHT mouse button to look around; with it held, W A S D move, Q E down/up, Shift faster, the wheel sets the speed.\n" +
-                "C: the free camera or the shot's own camera. F: frame the selected thing.\n" +
-                "Shots (cameras): 'Look through it', fly where it should be, then 'Set from my view'.\n\n" +
-                "Space plays from here (and pauses). Left/right arrows jump between beats; the slider scrubs.\n" +
-                "Ctrl+Z undo, Ctrl+Y redo, Ctrl+S save. F9 closes (and saves). H hides this.", 12);
-            SetTool(_tool);
-            GameRoot.Ui.Root.Add(_root);
-        }
-
-        void BuildList()
-        {
-            if (_list == null) return;
-            _list.Clear();
-            _listButtons.Clear();
-            _listItems.Clear();
-            string group = null;
-            foreach (var e in _stage.edits.All)
-            {
-                if (e.group != group)
-                {
-                    group = e.group;
-                    var h = Text(null, group, 12, true);
-                    h.style.marginTop = 6;
-                    h.style.color = new Color(0.7f, 0.78f, 0.9f);
-                    _list.Add(h);
-                }
-                var item = e;
-                var b = Btn(null, e.label, () => Select(item));
-                b.style.unityTextAlign = TextAnchor.MiddleLeft;
-                b.style.backgroundColor = new Color(0.16f, 0.17f, 0.2f);
-                b.style.color = Color.white;
-                _list.Add(b);
-                _listButtons.Add(b);
-                _listItems.Add(e);
-            }
+            if (_track == null || _opening == null) return;
+            var r = _track.worldBound;
+            float k = Mathf.Clamp01((panelX - r.xMin) / Mathf.Max(1f, r.width));
+            float t = k * _opening.Length;
+            if (Mathf.Abs(t - _opening.Time) < 0.02f) return;
+            SeekTo(t);
+            Status("At " + Clock(_opening.Time) + " (" + BeatAt(_opening.Time) + ")." + (_setMoved ? " The camera went to " + (_stage.Pose == "table" ? "the title table." : "the bedroom.") : ""));
         }
     }
 }

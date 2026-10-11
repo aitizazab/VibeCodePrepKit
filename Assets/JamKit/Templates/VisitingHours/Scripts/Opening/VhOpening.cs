@@ -146,7 +146,9 @@ namespace JamKit.VisitingHours
             var kb = Keyboard.current;
             var input = GameRoot.Exists ? GameRoot.Input : null;
             bool pad = input != null && (input.Synthetic != null ? input.Synthetic.IsHeld(input.Cancel) : input.Cancel.IsPressed());
-            bool hold = _boot.holdToSkipSeconds > 0f && ((kb != null && kb.escapeKey.isPressed) || pad);
+            // (Not while the opening editor plays it: there Escape cancels and deselects.)
+            bool editing = VhOpeningEditor.Instance != null && VhOpeningEditor.Instance.IsOpen;
+            bool hold = !editing && _boot.holdToSkipSeconds > 0f && ((kb != null && kb.escapeKey.isPressed) || pad);
             _holdSkip = hold ? _holdSkip + udt : 0f;
             _skipHint.style.opacity = hold ? Mathf.Clamp01(0.4f + _holdSkip / Mathf.Max(0.01f, _boot.holdToSkipSeconds)) : Mathf.Max(0f, _skipHint.resolvedStyle.opacity - udt);
             if (_boot.holdToSkipSeconds > 0f && _holdSkip >= _boot.holdToSkipSeconds)

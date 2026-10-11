@@ -48,10 +48,12 @@ namespace JamKit.VisitingHours
         public bool Selectable(VhTitlePiece p) =>
             p != null && p.action != VhTitleAction.None && (p.action != VhTitleAction.Quit || QuitAvailable) && p.Group == p.id;
 
-        /// <summary>True while the table takes input: interactive, the title on top, nothing loading.</summary>
+        /// <summary>True while the table takes input: interactive, the title on top, nothing loading, and the opening
+        /// editor closed (a click in the editor's view never presses the tablet's Play).</summary>
         public bool Live =>
             interactive && GameRoot.Exists && GameRoot.Flow.Current == GameState.Title && !GameRoot.IsLoadingScene
-            && GameRoot.Ui.Top == GameRoot.Ui.Title && GameRoot.Ui.Title.IsVisible;
+            && GameRoot.Ui.Top == GameRoot.Ui.Title && GameRoot.Ui.Title.IsVisible
+            && (VhOpeningEditor.Instance == null || !VhOpeningEditor.Instance.IsOpen);
 
         void Update()
         {

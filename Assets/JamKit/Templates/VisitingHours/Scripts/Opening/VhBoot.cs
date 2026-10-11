@@ -56,6 +56,9 @@ namespace JamKit.VisitingHours
             _runner.boot = _boot;
             // The opening editor (F9 on the title, or the presenter panel's "Edit the opening").
             if (root.gameObject.GetComponent<VhOpeningEditor>() == null) root.gameObject.AddComponent<VhOpeningEditor>();
+            // Its capture tour (tools/vh-editor-capture.ps1): only with -opening-editor-tour.
+            if (VhOpeningEditorTour.RequestedFolder() != null && root.gameObject.GetComponent<VhOpeningEditorTour>() == null)
+                root.gameObject.AddComponent<VhOpeningEditorTour>();
             GameRoot.Ui.Title.Shown -= OnTitleShown;
             GameRoot.Ui.Title.Shown += OnTitleShown;
             VhPresenter.RegisterOpening(PresenterMode.Chapters);
