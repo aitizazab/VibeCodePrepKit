@@ -15,6 +15,11 @@ namespace JamKit.Tests.Movement
     {
         // ---------- Air ----------
 
+        /// <summary>The 2026-10-11 costs (the Current preset; the default is now Mild, see HopPresetTests).</summary>
+        static MoveDef Current() => HopCostPresets.Apply(new MoveDef(), HopCostPreset.Current);
+
+        static MoveDef NoTurnCost() { var d = Current(); d.doubleJumpHopTurnLoss = 0f; return d; }
+
         static MoveDef Before() => new MoveDef { airStrafeSideShare = 0f, hopSpeedLoss = 0f, slideHopSpeedLoss = 0f, doubleJumpHopTurnLoss = 0f, landingGraceDecay = 0f };
 
         /// <summary>High in an empty sky: nothing to land on for the length of a test.</summary>
@@ -183,7 +188,7 @@ namespace JamKit.Tests.Movement
         [Test]
         public void AHopCostsALittleLikeASlideAndJumpsAtSprintAreFree()
         {
-            var def = new MoveDef();
+            var def = Current();
             float atSprint = HopAt(def, def.sprintSpeed, 0f);
             Assert.That(atSprint, Is.EqualTo(def.sprintSpeed).Within(0.02f), "a jump at running speed costs nothing");
             foreach (float speed in new[] { 13f, 16f, 20f })
@@ -205,7 +210,7 @@ namespace JamKit.Tests.Movement
         [Test]
         public void ALateHopCostsMoreThanACleanOne()
         {
-            var def = new MoveDef();
+            var def = Current();
             float clean = HopAt(def, 18f, 0f);
             float late = HopAt(def, 18f, 0.08f);
             float later = HopAt(def, 18f, 0.25f);
@@ -218,7 +223,7 @@ namespace JamKit.Tests.Movement
         [Test]
         public void ASlideHopBeatsAPlainHop()
         {
-            var def = new MoveDef();
+            var def = Current();
             foreach (float speed in new[] { 12f, 16f, 20f })
             {
                 float plain = HopAt(def, speed, 0f);
@@ -231,7 +236,7 @@ namespace JamKit.Tests.Movement
         [Test]
         public void ADoubleJumpRightAfterAGroundJumpPaysForItsTurn()
         {
-            var def = new MoveDef();
+            var def = Current();
             float After(float wait, Vector2 stick, MoveDef d)
             {
                 var sim = Falling(d, 16f);
@@ -255,7 +260,7 @@ namespace JamKit.Tests.Movement
             Assert.That(soon, Is.InRange(0.15f, 0.6f), "about 5% of the speed above sprint for the 45 degree redirect");
             Assert.That(late, Is.LessThan(0.02f), "later in the flight it's free");
             Assert.That(straight, Is.LessThan(0.02f), "no turn, no cost");
-            Assert.That(After(0.15f, side, new MoveDef { doubleJumpHopTurnLoss = 0f }), Is.LessThan(0.02f), "0 switches it off");
+            Assert.That(After(0.15f, side, NoTurnCost()), Is.LessThan(0.02f), "0 switches it off");
         }
     }
 }

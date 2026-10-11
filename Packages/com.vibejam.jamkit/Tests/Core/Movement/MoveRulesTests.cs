@@ -129,7 +129,7 @@ namespace JamKit.Tests.Movement
             float landed = sim.HorizontalSpeed;
             float t = Run(sim, Forward(), 0.12f);
             float excess = landed - sim.def.sprintSpeed;
-            Assert.That(sim.HorizontalSpeed, Is.EqualTo(sim.def.sprintSpeed + excess * (float)Math.Exp(-sim.def.overspeedDecay * t)).Within(0.02f),
+            Assert.That(sim.HorizontalSpeed, Is.EqualTo(sim.def.sprintSpeed + excess * (float)Math.Exp(-sim.def.overspeedDecay * sim.def.landingGraceDecay * t)).Within(0.02f),
                 "the excess over sprint fades from the landing tick (no frozen grace: a late hop costs its time on the ground)");
             Assert.That(sim.HorizontalSpeed, Is.GreaterThan(landed * (1f - sim.def.friction * t) + 1f), "but no friction");
         }

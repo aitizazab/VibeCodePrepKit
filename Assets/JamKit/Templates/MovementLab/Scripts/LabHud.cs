@@ -126,6 +126,8 @@ namespace JamKit.MovementLab
         {
             var sim = body.Sim;
             if (sim == null) return;
+            // The hop-cost preset (F6 / LB + d-pad up), kept in the save.
+            if (HopCostSwitch.Tick()) _textT = 0f;
             float speed = sim.HorizontalSpeed;
             _sampleT += dt;
             while (_sampleT >= SampleEvery)
@@ -153,6 +155,7 @@ namespace JamKit.MovementLab
                 float cd = sim.SlideBoostCooldown;
                 _extra.text = (cd > 0f ? "Slide boost in " + cd.ToString("0.0", inv) + " s" : "Slide boost ready")
                     + "   Double jump " + (sim.DoubleJumpAvailable ? "ready" : "used")
+                    + "\n" + HopCostSwitch.HudLine
                     + (sim.LastCatchMiss != WallCatchMiss.None && sim.SinceCatchMiss < 6f
                         ? "\nWall not caught: " + CatchWords(sim.LastCatchMiss) + " (" + sim.SinceCatchMiss.ToString("0.0", inv) + " s ago)" : "");
                 _section.text = section + "   " + runTime.ToString("0.0", inv) + " s" + (best > 0f ? "   best " + best.ToString("0.0", inv) + " s" : "");

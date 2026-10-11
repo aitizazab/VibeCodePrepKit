@@ -57,7 +57,7 @@ namespace JamKit.Movement
         /// <summary>The course autopilot's run from the gate to the finish in the dotnet sim at 60 fps: a test driver's time,
         /// for tests and logs only (pinned by a test: change it when the course changes). The board shows the developer's
         /// real best from <see cref="DeveloperRecords"/> (the creator beat this by 10 s, 2026-10-10).</summary>
-        public const float AutopilotTime = 41.7f; // 41.0 before the hop costs (2026-10-11)
+        public const float AutopilotTime = 41.3f; // the Mild hop-cost preset (Off 40.9, Current 41.75; 2026-10-11)
 
         public readonly LabCourse course;
         public readonly List<GauntletMarker> markers = new List<GauntletMarker>();

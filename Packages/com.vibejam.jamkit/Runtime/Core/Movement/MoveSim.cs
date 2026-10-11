@@ -273,7 +273,7 @@ namespace JamKit.Movement
             if (stick > 0f && speed > def.sprintSpeed)
             {
                 // During the landing grace the excess fades at landingGraceDecay x the rate (0: frozen, the old grace).
-                float rate = _landGrace > 0f ? def.overspeedDecay * def.landingGraceDecay : def.overspeedDecay;
+                float rate = _landGrace > 0f ? def.overspeedDecay * HopCostPresets.For(def).landingGraceDecay : def.overspeedDecay;
                 float target = def.sprintSpeed + (speed - def.sprintSpeed) * (float)Math.Exp(-rate * h);
                 Vector3 dir = vH / speed;
                 if (Vector3.Dot(dir, wishDir) > 0f)
@@ -339,7 +339,8 @@ namespace JamKit.Movement
         void GroundJump(bool fromSlide)
         {
             // The bunny-hop cost: a share of the speed above sprint (smaller out of a slide, so slide hops beat plain hops).
-            float loss = fromSlide ? def.slideHopSpeedLoss : def.hopSpeedLoss;
+            var hc = HopCostPresets.For(def);
+            float loss = fromSlide ? hc.slideHopSpeedLoss : hc.hopSpeedLoss;
             float s = HorizontalSpeed;
             if (loss > 0f && s > def.sprintSpeed)
             {
@@ -439,10 +440,12 @@ namespace JamKit.Movement
                 Vector3 nd = NormalizeOr(dir + (wishDir - dir) * def.doubleJumpRedirect, dir);
                 float ns = Math.Max(s, def.doubleJumpMinSpeed * stick);
                 // Hop and steer: a double jump right after a ground jump pays for its turn (a share of the speed above sprint).
-                if (_sinceHop <= def.doubleJumpHopWindow && def.doubleJumpHopTurnLoss > 0f && ns > def.sprintSpeed)
+                var hc = HopCostPresets.For(def);
+                if (_sinceHop <= hc.doubleJumpHopWindow && hc.doubleJumpHopTurnLoss > 0f && ns > def.sprintSpeed)
                 {
-                    float turned = (float)Math.Acos(Math.Max(-1f, Math.Min(1f, Vector3.Dot(dir, nd)))) / (float)(Math.PI / 2.0);
-                    float lost = (ns - def.sprintSpeed) * Math.Min(1f, def.doubleJumpHopTurnLoss * Math.Min(turned, 1f));
+                    float deg = (float)(Math.Acos(Math.Max(-1f, Math.Min(1f, Vector3.Dot(dir, nd)))) * 180.0 / Math.PI);
+                    float turned = Math.Max(0f, deg - hc.doubleJumpHopTurnFree) / 90f;
+                    float lost = (ns - def.sprintSpeed) * Math.Min(1f, hc.doubleJumpHopTurnLoss * Math.Min(turned, 1f));
                     ns -= lost;
                     _events.hopSpeedLost += lost;
                 }

@@ -76,8 +76,9 @@ namespace JamKit.Movement
         public float landingGrace = 0.15f;
         /// <summary>How much of <see cref="overspeedDecay"/> still applies during the landing grace (0: the grace freezes your
         /// speed, as before 2026-10-11; 1: speed above sprint fades from the landing tick, so a late hop costs what the
-        /// time on the ground cost). Only a jump on the landing tick (a buffered press) skips it.</summary>
-        public float landingGraceDecay = 1f;
+        /// time on the ground cost). Only a jump on the landing tick (a buffered press) skips it. Default 0.5 (the Mild
+        /// hop-cost preset, <see cref="HopCostPresets"/>; Current is 1).</summary>
+        public float landingGraceDecay = 0.5f;
         /// <summary>A stick pushed this far counts as fully pushed (gamepad players reach sprint).</summary>
         public float stickFullAt = 0.7f;
 
@@ -102,15 +103,19 @@ namespace JamKit.Movement
         public float jumpBuffer = 0.12f;
         /// <summary>Bunny-hop cost: a ground jump keeps all speed up to sprint and loses this share of the speed above it
         /// (0.08: about 1 m/s at 22 m/s, 0.5 at 15; what a 0.4 s slide burns at speed). Jumps at sprint or below are free.
-        /// 0 = the old free hop.</summary>
-        public float hopSpeedLoss = 0.08f;
-        /// <summary>The same for a jump out of a slide (a slide hop): smaller, so the slide is the better speed tool.</summary>
-        public float slideHopSpeedLoss = 0.03f;
+        /// 0 = the old free hop. Default 0 (the Mild preset; Current is 0.08). A game's hop-cost preset
+        /// (<see cref="HopCostPresets"/>) overrides these hop fields while it's set.</summary>
+        public float hopSpeedLoss = 0f;
+        /// <summary>The same for a jump out of a slide (a slide hop): smaller, so the slide is the better speed tool (Current: 0.03).</summary>
+        public float slideHopSpeedLoss = 0f;
         /// <summary>A double jump this soon after a ground jump (the hop-and-steer) pays for its turn...</summary>
         public float doubleJumpHopWindow = 0.35f;
         /// <summary>...this share of the speed above sprint for a 90 degree turn of the flight, in proportion (a 45 degree
         /// redirect, stick square to the flight, costs half). Later double jumps and wall jumps turn for free. 0 = free.</summary>
         public float doubleJumpHopTurnLoss = 0.1f;
+        /// <summary>...but the first this-many degrees of the turn are free (Mild: 45, so the usual 45 degree redirect costs
+        /// nothing and only sharper turns pay; Current: 0).</summary>
+        public float doubleJumpHopTurnFree = 45f;
 
         // ---------- Air ----------
         /// <summary>Source air accelerate (air strafing).</summary>

@@ -74,7 +74,8 @@ kick's cooldown equals the boost's, so it never boosts more often than sliding a
 | **Mantle** | Pulled up onto a ledge in 0.2 + 0.07 s per metre. | Running or falling into a ledge 0.4 to 1.9 m above your feet while holding forward. You leave at 80 % of your speed (at least 5 m/s). |
 
 **Momentum rules** (what keeps your speed): a jump at sprint speed or below never touches horizontal speed;
-above sprint a ground jump keeps all but 8% of the excess (a slide hop 3%, see "Air strafing and bunny hops");
+above sprint a ground jump is free under the default Mild hop-cost preset (the Current preset keeps all but 8% of
+the excess, a slide hop 3%: see "Hop-cost presets");
 landing has 0.15 s with no friction, but speed over sprint fades from the landing tick (1.5/s of the excess)
 instead of being braked, and you can still steer it; catching a wall keeps your full speed (turned along the
 wall); a wall jump *adds* speed (about +3.1 m/s at wallrun speed); the double jump turns you toward the stick
@@ -116,7 +117,8 @@ pins the old speed curve with the hop costs switched off.
   - A jump pressed up to **0.12 s before landing** (jumpBuffer) fires on the landing step itself, so a bunny
     hop never touches friction. (A press in the air fires the double jump if you still have it: hoppers spend
     it first.)
-  - A ground jump above sprint costs 8% of the excess (a slide hop 3%); at or below sprint it's free.
+  - A ground jump above sprint is free under Mild (the default); under Current it costs 8% of the excess (a slide
+    hop 3%). At or below sprint it's always free. See "Hop-cost presets".
   - On the ground, speed above sprint fades by only 1.5 per second of the excess (overspeedDecay)
     while you hold a direction, so a short run between hops costs little.
 
@@ -165,7 +167,8 @@ while a slide at speed always burns a bit.
    - Side effect: with W alone, spinning the view very fast (720°/s and up) now loses more than before (13 →
      6.7 m/s in a second at 720°/s, was 10.1): the backward half of the spin still brakes, and nothing wins it
      back. Holding W while looking behind you brakes, as it always did.
-2. **Bunny hops cost a little, mistakes cost more, slides do better.**
+2. **Bunny hops cost a little, mistakes cost more, slides do better.** (This is now the **Current** preset; the
+   default became **Mild** the same day: see "Hop-cost presets" below.)
    - **A clean hop** (a ground jump, buffered onto the landing tick) keeps all speed up to sprint and loses
      **8% of the speed above it** (`hopSpeedLoss`): 0.28 m/s at 13, 0.52 at 16, 0.84 at 20, about 1.0 at 22. A
      0.4 s slide at speed burns 1.0. Jumps at running speed are free, so ordinary platforming is untouched.
@@ -181,7 +184,37 @@ while a slide at speed always burns a bit.
      redirect, stick square to the flight, turns it 45°: 5%, 0.28 m/s at 16 m/s. Later double jumps and wall
      jumps turn for free. Set it to 0 to remove it.
    - Untouched: the jump buffer (0.12 s), coyote time, the wall jump and wall kick, the slide boost.
-   - The Gauntlet's autopilot is 0.7 s slower for it (41.7 s; it hops a few times above sprint).
+   - The Gauntlet's autopilot is 0.8 s slower for it (41.75 s; it hops a few times above sprint).
+
+### Hop-cost presets (2026-10-11)
+
+The creator on a controller, after the costs above: "My new first run through was 33s through the DT portion [best
+28.17]... the slower increase in air strafing wasn't felt as much as the insane bleed-off from bunny hops." The air
+rule passed; the hop bleed was too strong. So the hop costs became three presets, switched in game with **F6** or
+**LB held + d-pad up** (shown on the lab's F3 / d-pad-down HUD, `HopCostSwitch`), kept in the save
+(`movement_hop_cost`), default **Mild**. The air rule is the same in all three.
+
+| Preset | Clean hop | Slide hop | Late hop | Double jump right after a hop |
+|---|---|---|---|---|
+| **Off** | free | free | free inside the 0.15 s grace (before 2026-10-11) | free |
+| **Mild** (default) | free | free | the overspeed fade at half rate (0.75/s of the excess) from the landing tick | the first 45° free, then 10% of the excess per 90° |
+| **Current** (8454370) | 8% of the speed above sprint | 3% | the full 1.5/s fade, then the 8% | 10% of the excess per 90° from the first degree |
+
+What each costs, from the core sim and the autopilot (`HopPresetTests`, printed in the test output):
+
+| Preset | 10 hops from 20 m/s, clean | each 0.08 s late | slide hops | 45° hop-steer at 16 m/s | 75° | Gauntlet autopilot | Dream tool autopilot |
+|---|---|---|---|---|---|---|---|
+| Off | 20.00 | 20.00 | 20.00 | 0 | 0 | 40.93 s | 44.07 s |
+| Mild | 20.00 | 15.83 | 20.00 | 0 | 0.19 m/s | 41.32 s | 44.15 s |
+| Current | 14.06 | 11.16 | 16.84 | 0.30 m/s | 0.48 m/s | 41.75 s | 44.23 s |
+
+The autopilot barely hops above sprint, so its times move by under a second; a player chaining hops at speed feels
+the 10-hop column. (Ten hops from 20 m/s take about 10 s, each flight with a double jump at the top.)
+
+How it works: the presets live in core `HopCostPresets`; the switch sets a global override that every `MoveSim`
+reads instead of its def's hop fields (`hopSpeedLoss`, `slideHopSpeedLoss`, `landingGraceDecay`,
+`doubleJumpHopWindow`, `doubleJumpHopTurnLoss`, `doubleJumpHopTurnFree`), so no tuning asset is written. Without the
+switch (another game, the core tests) a sim uses its def, whose defaults are Mild.
 
 **What to judge (the creator):** controller strafing on the stick (sideways or diagonal) should feel the same
 as before; W alone should steer but never speed you up; a hop chain should bleed a little unless you slide-hop
@@ -220,7 +253,7 @@ Metres, seconds, m/s, degrees.
 | overspeedDecay | 1.5 | Speed above sprint fades at this rate (per second, of the excess) while you hold a direction. |
 | groundTurnRate | 220 | Above sprint you still turn toward the stick this fast (deg/s) without losing speed. |
 | landingGrace | 0.15 | No friction right after landing. |
-| landingGraceDecay | 1 | How much of overspeedDecay runs during the grace (1: a late hop pays its time on the ground; 0: the old frozen grace). |
+| landingGraceDecay | 0.5 | How much of overspeedDecay runs during the grace (1: a late hop pays its time on the ground; 0: the old frozen grace). Mild 0.5, Current 1, Off 0. |
 | stickFullAt | 0.7 | Stick push that counts as full (gamepad parity). |
 
 ### Jumps and air
@@ -235,8 +268,8 @@ Metres, seconds, m/s, degrees.
 | doubleJumpForwardBoost | 1 | The double jump also pushes you this much along the stick (or the view, stick neutral and moving forward), never past sprint: getting started without a wall nearby (the creator, 2026-10-10). |
 | coyoteTime | 0.12 | Jump still works this long after walking off a ledge. |
 | jumpBuffer | 0.12 | A press this early still fires on landing, on a wall or at the end of a mantle. |
-| hopSpeedLoss / slideHopSpeedLoss | 0.08 / 0.03 | A ground jump (out of a slide) loses this share of the speed above sprint. 0 = free hops. |
-| doubleJumpHopWindow / doubleJumpHopTurnLoss | 0.35 / 0.1 | A double jump this soon after a ground jump loses this share of the speed above sprint per 90° it turns your flight. |
+| hopSpeedLoss / slideHopSpeedLoss | 0 / 0 | A ground jump (out of a slide) loses this share of the speed above sprint. 0 = free hops (Mild, Off); Current 0.08 / 0.03. |
+| doubleJumpHopWindow / doubleJumpHopTurnLoss / doubleJumpHopTurnFree | 0.35 / 0.1 / 45 | A double jump this soon after a ground jump loses this share of the speed above sprint per 90° it turns your flight, past the first doubleJumpHopTurnFree degrees (Mild 45, Current 0; Off: no loss). The in-game hop-cost preset overrides all the hop fields. |
 | airAccel / airCap | 12 / 0.8 | Source air strafing (cap 0.8 m/s = 30 Quake units). |
 | airControlSpeed / airControlAccel | 5 / 2 | Steering of slow jumps; above 5 m/s it adds speed only with strafe input. |
 | airStrafeSideShare | 0.5 | Above 5 m/s, speed gained in the air needs the move input this far sideways for the full gain (W alone: none, a turn only). 0 = pure Source. |
@@ -579,7 +612,7 @@ or air strafing.
 **Touch markers.** There are nine, one per section, all where the two lines meet.
 
 **Times** (the autopilot in the dotnet sim, 60 fps, pinned by a test):
-- **41.7 s** clean since the hop costs (2026-10-11; 41.0 before them, 43.0 before the wall grace, 2026-10-10). The splits before the hop costs were 3.2, 7.0, 11.3, 16.1, 20.2, 24.1, 29.5, 36.3 and 41.0 s.
+- **41.3 s** clean under the Mild hop-cost preset (2026-10-11; Off 40.9, Current 41.75; 43.0 before the wall grace, 2026-10-10). The splits before the hop costs were 3.2, 7.0, 11.3, 16.1, 20.2, 24.1, 29.5, 36.3 and 41.0 s.
 - The autopilot doesn't take the skip or the fastest kicks, so a strong player should beat it.
 - A first run takes 60–90 s.
 

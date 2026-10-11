@@ -15,7 +15,7 @@ namespace JamKit.Tests.Movement
     {
         static GauntletCourse Build() => GauntletCourse.Build();
 
-        sealed class RunResult
+        internal sealed class RunResult
         {
             public bool finished;
             public int falls;
@@ -26,7 +26,7 @@ namespace JamKit.Tests.Movement
         }
 
         /// <summary>The autopilot from the start pad (standing) to the finish, with the run clock and a ghost recording.</summary>
-        static RunResult Run(GauntletCourse g, int fps, int jitterSeed = 0, float skin = 0.04f)
+        internal static RunResult Run(GauntletCourse g, int fps, int jitterSeed = 0, float skin = 0.04f)
         {
             var c = g.course;
             var world = LabCourseTests.WorldOf(c, null);
