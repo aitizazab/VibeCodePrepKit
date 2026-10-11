@@ -13,8 +13,11 @@ It's a standalone scene in the dream escape's folder and assemblies:
 **Placeholders:**
 - Every line of dialogue is a placeholder, marked `[placeholder]`. The dialogue is the creator's to write, in
   `DreamHouseLines` (`Runtime/Core/DreamEscape/DreamHouseStory.cs`).
-- Lena and Theo are placeholder doodle cut-outs. Drop style-E art in as `Templates/VisitingHours/Art/Dream/dream_lena.png`
-  and `dream_theo.png`, and the build uses it.
+- **Art (2026-10-11, pass 1):** Lena and Theo are style-E dream cut-outs, `Templates/VisitingHours/Art/Dream/dream_lena.png`
+  and `dream_theo.png` (Lena is the creator's pick, round 4-a), with a white sticker border made by
+  `tools/art/vh_dream_cutout.py`. The story pictures are drop-ins too, used when present (the plain cards stay otherwise):
+  the photo wall `dream_pic_photo_1` to `_6` (top row 1 to 3, left to right), `dream_pic_calendar` (the fridge) and
+  `dream_pic_theo_drawing` (his desk). The rooms themselves are still pastel boxes.
 
 ## The sequence
 

@@ -269,14 +269,21 @@ namespace JamKit.DreamEscape.EditorTools
                 DreamEscapeBuilder.Box("Plate", t, new Vector3(pz.x, F + 0.8f, pz.y), new Vector3(0.5f, 0.03f, 0.5f), plate);
             DreamEscapeBuilder.Box("Pancakes", t, new Vector3(-6f, F + 0.88f, 77.5f), new Vector3(0.45f, 0.14f, 0.45f), DreamEscapeBuilder.Pastel("HousePancakes", new Color(0.98f, 0.8f, 0.5f), 0.03f));
             // The fridge calendar (its keys on Thursdays are the creator's; a blank grid here).
-            DreamEscapeBuilder.Quad("Fridge calendar", t, new Vector3(-11.08f, F + 1.4f, 81.7f), Vector3.right, 0.6f, 0.8f, white);
+            DreamEscapeBuilder.Quad("Fridge calendar", t, new Vector3(-11.08f, F + 1.4f, 81.7f), Vector3.right, 0.6f, 0.8f, Picture(DreamArt.PicCalendar, white));
             // The height marks on Theo's door frame: they stop at ten.
             for (int i = 0; i < 7; i++)
                 DreamEscapeBuilder.Box("Height mark", t, new Vector3(-6.02f, F + 0.9f + i * 0.09f, 89.1f), new Vector3(0.03f, 0.015f, 0.18f), plum);
             // Theo's drawings on his desk, and the photo wall in the study.
             DreamEscapeBuilder.Box("Theo's drawings", t, new Vector3(-7f, F + 0.77f, 89.9f), new Vector3(0.6f, 0.01f, 0.45f), white);
+            var drawing = Picture(DreamArt.PicTheoDrawing, null);
+            if (drawing != null)
+                DreamEscapeBuilder.Quad("Theo's drawing (picture)", t, new Vector3(-7f, F + 0.782f, 89.9f), Vector3.up, 0.6f, 0.45f, drawing);
             for (int i = 0; i < 6; i++)
-                DreamEscapeBuilder.Quad("Photo", t, new Vector3(5.5f + (i % 3) * 1.2f, F + 1.3f + (i / 3) * 0.8f, DreamHouse.HubZ1 - 0.02f), Vector3.back, 0.7f, 0.55f, white);
+            {
+                int pic = (i / 3 == 1 ? 1 : 4) + i % 3;   // the top row is photos 1 to 3, left to right; the bottom row 4 to 6
+                DreamEscapeBuilder.Quad("Photo", t, new Vector3(5.5f + (i % 3) * 1.2f, F + 1.3f + (i / 3) * 0.8f, DreamHouse.HubZ1 - 0.02f), Vector3.back, 0.7f, 0.55f,
+                    Picture(DreamArt.PicPhoto + pic, white));
+            }
             // The escape: a picture frame and a light hanging sideways off the tipped walls.
             DreamEscapeBuilder.Box("Picture (sideways)", t, new Vector3(-4.4f, 1.2f, 205f), new Vector3(0.05f, 0.8f, 1.1f), white);
             DreamEscapeBuilder.Box("Lamp (sideways)", t, new Vector3(3f, 0.3f, 240f), new Vector3(0.9f, 0.3f, 0.3f), white);
@@ -369,6 +376,19 @@ namespace JamKit.DreamEscape.EditorTools
         }
 
         /// <summary>A flat cut-out (the dream's cast) that turns to face the camera.</summary>
+        /// <summary>A story picture (the photo wall, the fridge calendar, Theo's drawing) when its style-E file exists in
+        /// <c>Art/Dream/</c>, else <paramref name="fallback"/> (the plain card). Visual only: the quads have no colliders.</summary>
+        static Material Picture(string art, Material fallback)
+        {
+            if (DreamArt.RealPath(art) == null) return fallback;
+            var tex = DreamArt.Get(art, out _);
+            Debug.Log("JAMKIT_HOUSE art: " + art + " real");
+            var mat = DreamEscapeBuilder.Mat("Picture_" + art, "JamKit/Dream/Cutout");
+            mat.SetTexture("_MainTex", tex);
+            mat.SetFloat("_Cutoff", 0.1f);
+            return mat;
+        }
+
         static GameObject CutOut(string name, string art, Transform parent, Vector3 feet, float height)
         {
             var tex = DreamArt.Get(art, out bool placeholder);
