@@ -49,6 +49,12 @@ core) and `tools/art/vh_house_plan.py` (draws them).
   STORY-PROSE "maybe a small observatory in the attic?", tying to her Thursdays and the calendar's keys; nothing in the
   story says so yet), and the family's stored life to the east (Theo's old crib, Elias's old bike, boxes, a rocking
   horse, the Christmas box). It's always night in Lena's attic: the one place the dream exaggerates.
+  **Two spaces, not one big floor** (second round, same day): a wall of stored things (stacked boxes, an old wardrobe
+  under a dust sheet) runs across the attic, stepped down under the roof, with one gap hung with old sheets on a line.
+  The storage side holds the stairs and the hatch (the loop never needs the observatory); the observatory is the room
+  you find through the sheets, fairy lights along the ridge leading there. Boxes fill the low eaves on the storage
+  side, so the walkable attic is the band under the ridge; the chimney stack rises through it at the east end.
+  `TheAtticIsAVerticalLoopTheMovementCanDo` checks the wall and the gap.
 - **Walls with character** (no room is a box): the bay; the chimney breast; an archway and a pass-through over a half
   wall between the kitchen and the living room; doorways of different widths with real headers; the low cupboard
   under the stairs; each room's own wallpaper over wainscoting (tiles in the kitchen and bath), chair rails, skirting,
@@ -65,7 +71,8 @@ release, rewarding curiosity; sources: Totten, *An Architectural Approach to Lev
   vertical loop (up the stairs from Theo's room, along the attic, down the hatch into the hall).
 - **Teasing:** the open hatch in the hall's ceiling shows the attic's starlight from below before she finds the way up;
   the bulb at the top of the stairs.
-- **Compression and release:** the narrow hall and the steep, narrow stairs open into the long, tall attic.
+- **Compression and release:** the narrow hall and the steep, narrow stairs open into the attic's storage side; the
+  gap in the sheets opens into the observatory under the starry window.
 - **Rewarding curiosity:** Theo's drawing is on top of his bookcase (climb his desk); the cupboard under the stairs;
   the attic's storage to climb.
 - **Light leads the eye:** the fireplace, the pendants over each room's group, the stair bulb, the starry windows.

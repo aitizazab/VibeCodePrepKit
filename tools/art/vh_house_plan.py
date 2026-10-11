@@ -60,12 +60,11 @@ def plan(attic):
         dx0, dx1, dz0 = P["dormer"]
         rect(d, dx0, dz0, dx1, Z1, outline=(120, 90, 70), width=3)
         d.text(px(dx0 + 0.1, Z1 - 0.6), "dormer (night window)", font=font(15), fill=(120, 90, 70))
-        d.text(px(X0 + 0.1, P["ridgeZ"] - 0.3), "round window", font=font(14, True), fill=(60, 70, 160))
     # Pieces at this level.
     for p in P["pieces"]:
         mn, mx = p["min"], p["max"]
         if attic:
-            if mx[1] <= fy + 0.05 or mn[1] > fy + 2.5 or mx[2] < Z0 - 0.4: continue
+            if mx[1] <= fy + 0.05 or mn[1] > fy + 2.5 or mn[2] < Z0 - 0.4 or mx[2] > Z1 + 0.4: continue
         else:
             if mn[1] > fy + 2.0 or mx[1] <= fy + 0.05: continue
         if p["look"] in ("Floor", "Ceiling", "RoofStep", "Roof", "Lawn", "Stairs") or p["kind"] == "Floor": continue
@@ -78,9 +77,26 @@ def plan(attic):
             rect(d, mn[0], mn[2], mx[0], mx[2], outline=(220, 120, 140), width=2)
         elif p["solid"]:
             rect(d, mn[0], mn[2], mx[0], mx[2], fill=FURN, outline=(150, 128, 112))
-            if attic:
+            if attic and not p["name"].startswith("Boxes"):
                 x, y = px(mn[0], mn[2])
-                d.text((x + 3, y + 2), p["name"].replace("Observatory platform", "the observatory (telescope, Lena's chair, star charts)"), font=font(13, True), fill=INK)
+                label = {"Observatory platform": "the observatory (telescope, Lena's chair, star charts)",
+                         "Old wardrobe (attic, under a dust sheet)": "old wardrobe (dust sheet)"}.get(p["name"], p["name"])
+                d.text((x + 3, y + 2), label, font=font(13, True), fill=INK)
+    if attic:
+        d.text(px(X0 + 0.1, P["ridgeZ"] + 0.35), "round window", font=font(14, True), fill=(60, 70, 160))
+        # The wall of stored things across the attic, and its one gap (the sheets on a line).
+        a, b = px(-2.55, 77.0), px(-2.55, 80.0)
+        for k in range(0, int(b[1] - a[1]) if b[1] > a[1] else int(a[1] - b[1]), 12):
+            y0 = min(a[1], b[1]) + k
+            d.line([(a[0], y0), (a[0], y0 + 6)], fill=(200, 120, 140), width=4)
+        x, y = px(-2.55, 78.5)
+        d.text((x + 10, y - 10), "sheets on a line: the way through", font=font(14, True), fill=(200, 90, 120))
+        x, y = px(-2.2, 74.2)
+        d.text((x + 6, y - 8), "a wall of stored things (boxes)", font=font(14, True), fill=INK)
+        x, y = px(3.2, 83.3)
+        d.text((x + 4, y - 8), "boxes under the eaves", font=font(13, True), fill=INK)
+        x, y = px(-2.2, 72.9)
+        d.text((x + 4, y - 8), "boxes under the eaves", font=font(13, True), fill=INK)
     # The stairs (with their climb) and the hatch.
     sx0, sx1, sz0, sz1 = P["stairs"]
     rect(d, sx0, sz0, sx1, sz1, fill=(210, 180, 150), outline=INK)
@@ -145,7 +161,7 @@ def plan(attic):
         d.regular_polygon((x, y, 11), 5, fill=MEM)
         d.text((x + 9, y + 4), f"{i + 1}. {m['name']}", font=font(13, True), fill=MEM)
     note = ("A vertical loop: up the steep stairs from Theo's room, along the attic, and down through the hatch into the hall."
-            if not attic else "Arrive at the top of the stairs (over the hall); the observatory's round window glows at the far west end.")
+            if not attic else "Arrive at the top of the stairs on the storage side; through the sheets, the observatory's round window glows.")
     d.text((20, H - 250), note, font=font(17, True), fill=LOOP if not attic else INK)
     # Scale and legend.
     lx, ly = 20, H - 210

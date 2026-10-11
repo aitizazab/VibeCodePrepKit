@@ -230,6 +230,10 @@ namespace JamKit.DreamEscape
         void Furniture(string name, HouseLook look, float x0, float x1, float z0, float z1, float height) =>
             Add(name, LabPieceKind.Ledge, look, new Vector3(x0, Ground, z0), new Vector3(x1, Ground + height, z1));
 
+        /// <summary>Stored things on the attic's floor (boxes, a covered wardrobe): solid, climbable, under the roof.</summary>
+        void Storage(string name, float x0, float x1, float z0, float z1, float height) =>
+            Add(name, LabPieceKind.Ledge, HouseLook.Storage, new Vector3(x0, AtticFloor, z0), new Vector3(x1, AtticFloor + height, z1));
+
         void Cue(LabCueKind kind, float s, float sEnd = 0f) => course.cues.Add(new LabCue { kind = kind, s = s, sEnd = sEnd });
 
         void Lane(float s, float x) => course.lane.Add(new Vector2(s, x));
@@ -441,6 +445,27 @@ namespace JamKit.DreamEscape
             Add("Crates", LabPieceKind.Ledge, HouseLook.Storage, V(4.8f, AtticFloor, 74.4f), V(5.8f, AtticFloor + 1.2f, 75.4f));
             Add("Theo's old crib", LabPieceKind.Ledge, HouseLook.Storage, V(0.6f, AtticFloor, 76f), V(2.0f, AtticFloor + 0.9f, 76.8f));
             Add("Observatory platform", LabPieceKind.Ledge, HouseLook.Storage, V(HubX0, AtticFloor, 76.4f), V(-5.6f, AtticFloor + 0.3f, 79.6f));
+            // The chimney stack rising through the attic from the living room's chimney breast.
+            Add("Chimney stack (attic)", LabPieceKind.Wall, HouseLook.Chimney, V(7.4f, AtticFloor, 74f), V(HubX1, AtticFloor + RoofAt(76.4f), 76.4f));
+            // The stored life walls the attic into two (the architecture pass's second round, 2026-10-12): a wall of boxes and
+            // an old wardrobe under a dust sheet runs across it, stepped down under the roof, with one gap hung with sheets on a
+            // line: the storage side (the stairs and the hatch) and, through the sheets, the observatory (the reveal). The
+            // low eaves on the storage side are filled with more boxes, so the walkable attic is the band under the ridge.
+            float px0 = -2.9f, px1 = -2.2f;
+            Storage("Boxes (the wall across, south eave)", px0, px1, HubZ0 + 0.3f, 73.4f, 0.8f);
+            Storage("Boxes (the wall across, south)", px0, px1, 73.4f, 75f, 1.3f);
+            Storage("Old wardrobe (attic, under a dust sheet)", px0, px1, 75f, 76.2f, 1.9f);
+            Storage("Boxes (the wall across, by the sheets)", px0, px1, 76.2f, 77f, 1.4f);
+            // (z 77..80: the sheets on their line: the way through)
+            Storage("Boxes (the wall across, north)", px0, px1, 80f, 81.4f, 1.5f);
+            Storage("Boxes (the wall across, north eave)", px0, px1, 81.4f, 82.6f, 1.1f);
+            Storage("Boxes (the wall across, north eave, low)", px0, px1, 82.6f, HubZ1 - 0.3f, 0.75f);
+            Storage("Old sofa (under a dust sheet)", 4.6f, 6.6f, 79.4f, 80.3f, 0.85f);
+            Storage("Boxes (by the chimney: Christmas)", 6.2f, 7.4f, 76.6f, 77.6f, 1.2f);
+            Storage("Boxes under the eaves (south, west)", px1, -0.6f, HubZ0 + 0.3f, 73.4f, 0.8f);
+            Storage("Boxes under the eaves (south, east)", 1.0f, 7.4f, HubZ0 + 0.3f, 73.4f, 0.8f);
+            Storage("Boxes under the eaves (north, west)", -0.6f, StairX0 - 0.4f, 82.6f, HubZ1 - 0.3f, 0.75f);
+            Storage("Boxes under the eaves (north, east)", StairX1 + 0.4f, HubX1, 82.6f, HubZ1 - 0.3f, 0.75f);
             Spot("The attic", HideKind.Closet, V((HubX0 + HubX1) * 0.5f, AtticFloor + 1.6f, (HubZ0 + HubZ1) * 0.5f), V(HubX1 - HubX0, 3.2f, HubZ1 - HubZ0),
                 V(3.6f, F, 83.3f));
 

@@ -189,6 +189,16 @@ namespace JamKit.Tests.DreamEscape
             Assert.That(boxes.CapsuleFits(new Vector3(-5.2f, DreamHouse.AtticFloor + 0.35f, 81.4f), 0.38f, d.standHeight), Is.True, "standing in the dormer, on the observatory's platform");
             // A jump in the attic stays inside (the roof's solid steps).
             Assert.That(boxes.CapsuleFits(new Vector3(0f, DreamHouse.AtticFloor + 2.6f, 73f), 0.38f, d.standHeight), Is.False, "the roof stops a jump near the eaves");
+            // The stored things wall the attic into two, and the only way through on foot is the gap hung with sheets: the
+            // observatory is a room you find, not the far end of one big floor.
+            float wallX = -2.55f;
+            for (float z = DreamHouse.HubZ0 + 0.5f; z < DreamHouse.HubZ1 - 0.4f; z += 0.25f)
+            {
+                bool gap = z > 77.4f && z < 79.6f;
+                if (z > 76.9f && z < 80.1f && !gap) continue;   // the gap's edges
+                Assert.That(boxes.CapsuleFits(new Vector3(wallX, DreamHouse.AtticFloor + 0.05f, z), 0.3f, 1.0f), Is.EqualTo(gap),
+                    gap ? $"the way through the sheets at z {z:0.00}" : $"the wall of stored things at z {z:0.00}");
+            }
         }
 
         [Test]

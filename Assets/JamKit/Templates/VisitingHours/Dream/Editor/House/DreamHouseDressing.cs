@@ -77,6 +77,16 @@ namespace JamKit.DreamEscape.EditorTools
         {
             if (pieceName.StartsWith("Curtains") || pieceName.StartsWith("Pantry curtain")) { Pleats(box); return; }
             if (pieceName.StartsWith("Coats")) { Coats(box); return; }
+            // The attic's stored life (the architecture pass, second round).
+            if (pieceName.StartsWith("Boxes") || pieceName.StartsWith("Crates")) { BoxStack(box, root); return; }
+            if (pieceName.StartsWith("Old wardrobe") || pieceName.StartsWith("Old sofa")) { DustSheet(box, root); return; }
+            if (pieceName.StartsWith("Theo's old crib")) { Crib(box, root); return; }
+            if (pieceName.StartsWith("Trunk")) { Trunk(box, root); return; }
+            if (pieceName.StartsWith("Wardrobe"))   // Theo's wardrobe: painted wood (its doors and clothes: DreamHouseDecor)
+            {
+                box.GetComponent<MeshRenderer>().sharedMaterial = DreamEscapeBuilder.Pastel("HouseWardrobe", new Color(0.62f, 0.78f, 0.86f), 0.04f);
+                return;
+            }
             Dress dress = null;
             foreach (var (prefix, d) in Plan)
                 if (pieceName.StartsWith(prefix)) { dress = d; break; }
@@ -143,6 +153,123 @@ namespace JamKit.DreamEscape.EditorTools
             DreamEscapeBuilder.Box("Curtain rail", parent, new Vector3(b.center.x, b.max.y + 0.04f, b.center.z), alongZ ? new Vector3(0.06f, 0.06f, b.size.z + 0.2f) : new Vector3(b.size.x + 0.2f, 0.06f, 0.06f),
                 DreamEscapeBuilder.Pastel("HouseRail", new Color(0.62f, 0.46f, 0.38f), 0.01f));
             box.GetComponent<MeshRenderer>().enabled = false;
+        }
+
+        /// <summary>A stored-things box filled with stacked cardboard boxes (rows along its long side, layers of about
+        /// 0.4 m, a slight turn each), the box hidden; it keeps its collider, so the stack is what she stands on.</summary>
+        static void BoxStack(GameObject box, Transform root)
+        {
+            var closed = AssetDatabase.LoadAssetAtPath<GameObject>(KenneyDir + "/cardboardBoxClosed.fbx");
+            var open = AssetDatabase.LoadAssetAtPath<GameObject>(KenneyDir + "/cardboardBoxOpen.fbx");
+            if (closed == null || open == null) { if (!_missing.Contains("cardboardBoxClosed")) _missing.Add("cardboardBoxClosed"); return; }
+            var b = new Bounds(box.transform.position, box.transform.lossyScale);
+            var parent = new GameObject(box.name + " (boxes)").transform;
+            parent.SetParent(root, false);
+            bool alongZ = b.size.z >= b.size.x;
+            float len = alongZ ? b.size.z : b.size.x, depth = alongZ ? b.size.x : b.size.z;
+            int cols = Mathf.Max(1, Mathf.RoundToInt(len / 0.6f)), rows = Mathf.Max(1, Mathf.RoundToInt(depth / 0.7f));
+            int layers = Mathf.Max(1, Mathf.RoundToInt(b.size.y / 0.42f));
+            float cw = len / cols, rd = depth / rows, lh = b.size.y / layers;
+            var rnd = new System.Random(StableSeed(box.name));
+            for (int c = 0; c < cols; c++)
+                for (int r = 0; r < rows; r++)
+                    for (int l = 0; l < layers; l++)
+                    {
+                        float shrink = 0.86f + 0.12f * (float)rnd.NextDouble();
+                        float a = (alongZ ? b.min.z : b.min.x) + cw * (c + 0.5f), d = (alongZ ? b.min.x : b.min.z) + rd * (r + 0.5f);
+                        var centre = alongZ ? new Vector3(d, b.min.y + lh * l + lh * 0.5f, a) : new Vector3(a, b.min.y + lh * l + lh * 0.5f, d);
+                        var size = alongZ ? new Vector3(rd * shrink, lh * 0.98f, cw * shrink) : new Vector3(cw * shrink, lh * 0.98f, rd * shrink);
+                        var model = l == layers - 1 && rnd.NextDouble() < 0.3 ? open : closed;
+                        Fit(model, parent, new Bounds(centre, size), rnd.Next(4) * 90f + (float)(rnd.NextDouble() - 0.5) * 10f, 0f);
+                    }
+            box.GetComponent<MeshRenderer>().enabled = false;
+            if (!_used.Contains("cardboardBoxClosed")) _used.Add("cardboardBoxClosed");
+        }
+
+        static int StableSeed(string s)
+        {
+            int h = 17;
+            foreach (char ch in s) h = h * 31 + ch;
+            return h;
+        }
+
+        /// <summary>Something stored under a dust sheet (the old wardrobe, Theo's crib): a soft rounded sheet over the box,
+        /// a fold down each long side, its legs showing under the hem.</summary>
+        static void DustSheet(GameObject box, Transform root)
+        {
+            var b = new Bounds(box.transform.position, box.transform.lossyScale);
+            var parent = new GameObject(box.name + " (dust sheet)").transform;
+            parent.SetParent(root, false);
+            float hem = 0.08f, h = b.size.y - hem;
+            var sheet = DreamProps.RoundedBox("Dust sheet", new Vector3(b.size.x + 0.08f, h, b.size.z + 0.08f), 0.07f);
+            var go = DreamProps.Show("Dust sheet", sheet, DreamProps.MeshLook("DustSheet", new Color(0.96f, 0.93f, 0.86f), 0.01f), parent, Vector3.zero, Quaternion.identity);
+            go.transform.position = new Vector3(b.center.x, b.min.y + hem + h * 0.5f, b.center.z);
+            bool alongZ = b.size.z >= b.size.x;
+            var fold = DreamEscapeBuilder.Pastel("DustSheetFold", new Color(0.9f, 0.86f, 0.78f), 0.01f);
+            foreach (float s in new[] { -1f, 1f })
+                foreach (float f in new[] { -0.22f, 0.18f })
+                {
+                    float along = f * (alongZ ? b.size.z : b.size.x), y = b.min.y + hem + h * 0.45f;
+                    var pos = alongZ ? new Vector3(b.center.x + s * (b.size.x * 0.5f + 0.045f), y, b.center.z + along)
+                                     : new Vector3(b.center.x + along, y, b.center.z + s * (b.size.z * 0.5f + 0.045f));
+                    DreamEscapeBuilder.Box("Sheet fold", parent, pos, alongZ ? new Vector3(0.03f, h * 0.9f, 0.08f) : new Vector3(0.08f, h * 0.9f, 0.03f), fold);
+                }
+            var wood = DreamEscapeBuilder.Pastel("HouseRail", new Color(0.62f, 0.46f, 0.38f), 0.01f);
+            foreach (float sx in new[] { -1f, 1f })
+                foreach (float sz in new[] { -1f, 1f })
+                    DreamEscapeBuilder.Box("Leg", parent, new Vector3(b.center.x + sx * (b.size.x * 0.5f - 0.06f), b.min.y + hem * 0.5f, b.center.z + sz * (b.size.z * 0.5f - 0.06f)), new Vector3(0.06f, hem, 0.06f), wood);
+            box.GetComponent<MeshRenderer>().enabled = false;
+        }
+
+        /// <summary>Theo's old crib: painted posts, top rails, slats down the long sides, a little mattress and a folded
+        /// blanket; the box hidden (its top is the rails she can stand on).</summary>
+        static void Crib(GameObject box, Transform root)
+        {
+            var b = new Bounds(box.transform.position, box.transform.lossyScale);
+            var parent = new GameObject(box.name + " (crib)").transform;
+            parent.SetParent(root, false);
+            var paint = DreamEscapeBuilder.Pastel("AtticCrib", new Color(0.98f, 0.95f, 0.88f), 0.03f);
+            bool alongX = b.size.x >= b.size.z;
+            float len = alongX ? b.size.x : b.size.z, wid = alongX ? b.size.z : b.size.x;
+            Vector3 P(float a, float y, float c) => alongX ? new Vector3(b.center.x + a, b.min.y + y, b.center.z + c) : new Vector3(b.center.x + c, b.min.y + y, b.center.z + a);
+            Vector3 S(float a, float y, float c) => alongX ? new Vector3(a, y, c) : new Vector3(c, y, a);
+            float hgt = b.size.y;
+            foreach (float sa in new[] { -1f, 1f })
+                foreach (float sc in new[] { -1f, 1f })
+                    DreamEscapeBuilder.Box("Crib post", parent, P(sa * (len * 0.5f - 0.03f), hgt * 0.5f, sc * (wid * 0.5f - 0.03f)), S(0.06f, hgt, 0.06f), paint);
+            foreach (float sc in new[] { -1f, 1f })
+            {
+                DreamEscapeBuilder.Box("Crib rail", parent, P(0f, hgt - 0.03f, sc * (wid * 0.5f - 0.03f)), S(len, 0.05f, 0.06f), paint);
+                DreamEscapeBuilder.Box("Crib rail", parent, P(0f, 0.3f, sc * (wid * 0.5f - 0.03f)), S(len, 0.05f, 0.05f), paint);
+                for (float a = -len * 0.5f + 0.14f; a < len * 0.5f - 0.08f; a += 0.1f)
+                    DreamEscapeBuilder.Box("Crib slat", parent, P(a, (hgt + 0.3f) * 0.5f, sc * (wid * 0.5f - 0.03f)), S(0.025f, hgt - 0.3f, 0.025f), paint);
+            }
+            foreach (float sa in new[] { -1f, 1f })
+                DreamEscapeBuilder.Box("Crib end", parent, P(sa * (len * 0.5f - 0.03f), (hgt + 0.3f) * 0.5f, 0f), S(0.03f, hgt - 0.3f, wid - 0.06f), paint);
+            DreamEscapeBuilder.Box("Crib mattress", parent, P(0f, 0.38f, 0f), S(len - 0.1f, 0.12f, wid - 0.1f), DreamEscapeBuilder.Pastel("AtticCribMattress", new Color(0.78f, 0.88f, 0.96f), 0.02f));
+            DreamEscapeBuilder.Box("Folded blanket", parent, P(len * 0.22f, 0.48f, 0f), S(0.3f, 0.08f, wid * 0.55f), DreamEscapeBuilder.Pastel("AtticCribBlanket", new Color(0.98f, 0.8f, 0.45f), 0.02f));
+            box.GetComponent<MeshRenderer>().enabled = false;
+        }
+
+        /// <summary>An old travelling trunk: its own colour, two leather straps, a lid line, brass corners.</summary>
+        static void Trunk(GameObject box, Transform root)
+        {
+            var b = new Bounds(box.transform.position, box.transform.lossyScale);
+            box.GetComponent<MeshRenderer>().sharedMaterial = DreamEscapeBuilder.Pastel("AtticTrunk", new Color(0.36f, 0.5f, 0.62f), 0.04f);
+            var parent = new GameObject(box.name + " (straps)").transform;
+            parent.SetParent(root, false);
+            var leather = DreamEscapeBuilder.Pastel("AtticTrunkStrap", new Color(0.55f, 0.36f, 0.28f), 0.01f);
+            var brass = DreamEscapeBuilder.Pastel("DecorBrassKnob", new Color(0.95f, 0.78f, 0.38f), 0.01f);
+            bool alongX = b.size.x >= b.size.z;
+            foreach (float f in new[] { -0.28f, 0.28f })
+            {
+                var pos = alongX ? new Vector3(b.center.x + f * b.size.x, b.center.y, b.center.z) : new Vector3(b.center.x, b.center.y, b.center.z + f * b.size.z);
+                DreamEscapeBuilder.Box("Trunk strap", parent, pos, alongX ? new Vector3(0.08f, b.size.y + 0.02f, b.size.z + 0.02f) : new Vector3(b.size.x + 0.02f, b.size.y + 0.02f, 0.08f), leather);
+            }
+            DreamEscapeBuilder.Box("Trunk lid line", parent, new Vector3(b.center.x, b.max.y - 0.14f, b.center.z), new Vector3(b.size.x + 0.015f, 0.025f, b.size.z + 0.015f), leather);
+            foreach (float sx in new[] { -1f, 1f })
+                foreach (float sz in new[] { -1f, 1f })
+                    DreamEscapeBuilder.Box("Brass corner", parent, new Vector3(b.center.x + sx * b.size.x * 0.5f, b.max.y - 0.04f, b.center.z + sz * b.size.z * 0.5f), Vector3.one * 0.1f, brass);
         }
 
         /// <summary>Coats on a row of hooks (art pass 4): soft rounded coats in the family's colours, the box hidden.</summary>

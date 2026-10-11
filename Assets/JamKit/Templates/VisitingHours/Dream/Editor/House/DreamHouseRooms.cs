@@ -52,13 +52,6 @@ namespace JamKit.DreamEscape.EditorTools
 
         // ---------- The walls ----------
 
-        static HouseRoom RoomAt(DreamHouse h, float x, float z)
-        {
-            foreach (var r in h.rooms)
-                if (r.name != "Attic" && r.Contains(x, z)) return r;
-            return null;
-        }
-
         static void WallFaces(DreamHouse h)
         {
             var t = Group("Walls");
@@ -83,11 +76,19 @@ namespace JamKit.DreamEscape.EditorTools
             float width = alongZ ? mx.z - mn.z : mx.x - mn.x;
             if (width < 0.12f) return;
             float planeCoord = alongZ ? (n.x > 0f ? mx.x : mn.x) : (n.z > 0f ? mx.z : mn.z);
-            float midAlong = alongZ ? (mn.z + mx.z) * 0.5f : (mn.x + mx.x) * 0.5f;
-            // Which room does it face? Probe just outside its middle.
-            float px = alongZ ? planeCoord + n.x * 0.15f : midAlong, pz = alongZ ? midAlong : planeCoord + n.z * 0.15f;
-            var room = RoomAt(h, px, pz);
-            if (room == null || !Finishes.TryGetValue(room.name, out var fin)) return;
+            // Which rooms does it face? A long wall can face several (the hall's north wall faces the parents' room, the
+            // bath and Theo's room from the other side): each room gets its own stretch of the face, in its own finish.
+            float probe = planeCoord + (alongZ ? n.x : n.z) * 0.15f;
+            foreach (var room in h.rooms)
+            {
+                if (room.name == "Attic" || !Finishes.TryGetValue(room.name, out var fin)) continue;
+                bool across = alongZ ? probe > room.x0 && probe < room.x1 : probe > room.z0 && probe < room.z1;
+                if (across) FaceIn(t, name, mn, mx, n, look, alongZ, planeCoord, room, fin);
+            }
+        }
+
+        static void FaceIn(Transform t, string name, Vector3 mn, Vector3 mx, Vector3 n, HouseLook look, bool alongZ, float planeCoord, HouseRoom room, Finish fin)
+        {
             float ceiling = room.floorY + room.ceiling;
             float y0 = Mathf.Max(mn.y, room.floorY), y1 = Mathf.Min(mx.y, ceiling);
             if (y1 - y0 < 0.05f) return;
@@ -213,7 +214,7 @@ namespace JamKit.DreamEscape.EditorTools
             var r = DreamEscapeBuilder.Box("Handrail", t, new Vector3(x1 - 0.08f, F + rise * 0.5f + 0.9f, (zTop + zFoot) * 0.5f), new Vector3(0.05f, 0.05f, Mathf.Sqrt(run * run + rise * rise)), rail);
             r.transform.rotation = Quaternion.Euler(-Mathf.Atan2(rise, run) * Mathf.Rad2Deg, 0f, 0f);
             // A bare bulb at the top, its warm light leading up the stairs.
-            DreamEscapeBuilder.Part("Bulb (the top of the attic stairs)", PrimitiveType.Sphere, t, Vector3.zero, Vector3.one * 0.5f,
+            DreamEscapeBuilder.Part("Bulb (the top of the attic stairs)", PrimitiveType.Sphere, t, Vector3.zero, Vector3.one * 0.2f,
                 DreamEscapeBuilder.Glow("StairBulb", new Color(1f, 0.86f, 0.6f), 1.0f, 0f, 0.1f)).transform.position = new Vector3((x0 + x1) * 0.5f, DreamHouse.AtticFloor + 2.0f, zTop + 0.3f);
         }
 
@@ -227,6 +228,12 @@ namespace JamKit.DreamEscape.EditorTools
             DreamEscapeBuilder.Box("Hatch frame", t, new Vector3((x0 + x1) * 0.5f, y - 0.03f, z1), new Vector3(x1 - x0 + 0.12f, 0.06f, 0.06f), frame);
             DreamEscapeBuilder.Box("Hatch frame", t, new Vector3(x0, y - 0.03f, (z0 + z1) * 0.5f), new Vector3(0.06f, 0.06f, z1 - z0), frame);
             DreamEscapeBuilder.Box("Hatch frame", t, new Vector3(x1, y - 0.03f, (z0 + z1) * 0.5f), new Vector3(0.06f, 0.06f, z1 - z0), frame);
+            // Its rim on the attic's side.
+            float ya = DreamHouse.AtticFloor + 0.02f;
+            DreamEscapeBuilder.Box("Hatch rim", t, new Vector3((x0 + x1) * 0.5f, ya, z0 - 0.04f), new Vector3(x1 - x0 + 0.16f, 0.04f, 0.08f), frame);
+            DreamEscapeBuilder.Box("Hatch rim", t, new Vector3((x0 + x1) * 0.5f, ya, z1 + 0.04f), new Vector3(x1 - x0 + 0.16f, 0.04f, 0.08f), frame);
+            DreamEscapeBuilder.Box("Hatch rim", t, new Vector3(x0 - 0.04f, ya, (z0 + z1) * 0.5f), new Vector3(0.08f, 0.04f, z1 - z0), frame);
+            DreamEscapeBuilder.Box("Hatch rim", t, new Vector3(x1 + 0.04f, ya, (z0 + z1) * 0.5f), new Vector3(0.08f, 0.04f, z1 - z0), frame);
             // The lid, swung up against the attic's floor beside it.
             var lid = DreamEscapeBuilder.Box("Hatch lid (open)", t, Vector3.zero, new Vector3(x1 - x0, 0.05f, z1 - z0), DreamEscapeBuilder.Pastel("StairTread", new Color(0.78f, 0.58f, 0.46f), 0.02f));
             lid.transform.position = new Vector3(x0 - 0.02f, DreamHouse.AtticFloor + (z1 - z0) * 0.5f, (z0 + z1) * 0.5f);
@@ -267,9 +274,29 @@ namespace JamKit.DreamEscape.EditorTools
             DreamEscapeBuilder.Box("Ridge beam", t, new Vector3((x0 + x1) * 0.5f, FA + DreamHouse.RidgeHeight - 0.12f, rz), new Vector3(x1 - x0, 0.22f, 0.2f), beam);
             foreach (float x in new[] { -3.4f, 4.8f })
                 DreamEscapeBuilder.Box("Collar tie", t, new Vector3(x, FA + 2.55f, rz), new Vector3(0.12f, 0.14f, 4.2f), beam);
-            // The floorboards' look on the attic floor (the ceilings' tops), rough and plain.
-            DreamEscapeBuilder.Quad("Attic floorboards", t, new Vector3((x0 + x1) * 0.5f, FA + 0.004f, (z0 + z1) * 0.5f), Vector3.up, x1 - x0, z1 - z0,
-                DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("AtticFloor", new Color(0.78f, 0.62f, 0.5f), 0f), DreamHouseDressing.PatternFloorboards, 2.4f, 0.4f));
+            // The floorboards' look on the attic floor (the ceilings' tops), rough and plain, open over the hatch and the
+            // stairwell (cut into cells round the two holes; the pattern is laid in world space, so the cells match).
+            var floorMat = DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("AtticFloor", new Color(0.78f, 0.62f, 0.5f), 0f), DreamHouseDressing.PatternFloorboards, 2.4f, 0.4f);
+            var holes = new[]
+            {
+                new Rect(DreamHouse.HatchX0, DreamHouse.HatchZ0, DreamHouse.HatchX1 - DreamHouse.HatchX0, DreamHouse.HatchZ1 - DreamHouse.HatchZ0),
+                new Rect(DreamHouse.StairX0, DreamHouse.StairZ0, DreamHouse.StairX1 - DreamHouse.StairX0, 83.4f - DreamHouse.StairZ0),
+            };
+            var xs = new List<float> { x0, x1 };
+            var zs = new List<float> { z0, z1 };
+            foreach (var hole in holes) { xs.Add(hole.xMin); xs.Add(hole.xMax); zs.Add(hole.yMin); zs.Add(hole.yMax); }
+            xs.Sort(); zs.Sort();
+            for (int i = 0; i + 1 < xs.Count; i++)
+                for (int j = 0; j + 1 < zs.Count; j++)
+                {
+                    float cw = xs[i + 1] - xs[i], cd = zs[j + 1] - zs[j];
+                    if (cw < 0.01f || cd < 0.01f) continue;
+                    var mid = new Vector2(xs[i] + cw * 0.5f, zs[j] + cd * 0.5f);
+                    bool open = false;
+                    foreach (var hole in holes) open |= hole.Contains(mid);
+                    if (!open)
+                        DreamEscapeBuilder.Quad("Attic floorboards", t, new Vector3(mid.x, FA + 0.004f, mid.y), Vector3.up, cw, cd, floorMat);
+                }
             // The observatory's round window in the west gable, full of stars (it's always night in Lena's attic).
             Stars(t, new Vector3(x0 + 0.01f, FA + 1.85f, rz), Vector3.right, 2.1f, round: true);
             // The dormer: its window to the north, also night.

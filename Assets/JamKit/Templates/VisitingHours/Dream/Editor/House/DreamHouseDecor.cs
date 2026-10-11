@@ -150,7 +150,7 @@ namespace JamKit.DreamEscape.EditorTools
         {
             var t = Group("Bath");
             Model(t, "bathroomSink", new Vector3(1.18f, F, 81.4f), Vector3.left);
-            DreamEscapeBuilder.Quad("Mirror", t, new Vector3(1.395f, F + 1.55f, 81.4f), Vector3.left, 0.5f, 0.6f, DreamEscapeBuilder.Pastel("DecorMirror", new Color(0.82f, 0.9f, 1f), 0f, 0.35f));
+            DreamEscapeBuilder.Quad("Mirror", t, new Vector3(1.37f, F + 1.55f, 81.4f), Vector3.left, 0.5f, 0.6f, DreamEscapeBuilder.Pastel("DecorMirror", new Color(0.82f, 0.9f, 1f), 0f, 0.35f));
             Model(t, "toilet", new Vector3(1.15f, F, 82.6f), Vector3.left);
             Rug(t, "rugDoormat", new Vector3(0.1f, F, 82.75f), 1.0f, 0.5f, new Color(0.7f, 0.9f, 0.9f));
             DreamEscapeBuilder.Box("Curtain rail", t, new Vector3(0.1f, F + 2.05f, 83.2f), new Vector3(2.6f, 0.04f, 0.04f), DreamEscapeBuilder.Pastel("DecorChrome", new Color(0.85f, 0.88f, 0.92f), 0.01f));
@@ -173,6 +173,7 @@ namespace JamKit.DreamEscape.EditorTools
             Picture(t, "dream_pic_kids_drawing_2", new Vector3(DreamHouse.HubX1 - 0.012f, F + 1.55f, 82.65f), Vector3.left, 0.36f, 0.48f, null);
             Model(t, "cardboardBoxClosed", new Vector3(3.4f, F, 81.2f), Vector3.back, 2.6f, new Color(0.45f, 0.7f, 0.9f));
             Toys(t, new Vector3(3.9f, F, 83.55f));
+            Wardrobe(t);
             Books(t, new Vector3(7.72f, F, 81.6f), true, new[] { 0.42f, 0.86f, 1.3f });
             // Glow-in-the-dark stars on the ceiling.
             var star = DreamEscapeBuilder.Glow("TheoStar", new Color(0.92f, 1f, 0.75f), 0.9f, 0f, 0.25f);
@@ -181,6 +182,37 @@ namespace JamKit.DreamEscape.EditorTools
             {
                 float x = 3.3f + 4.5f * (float)rnd.NextDouble(), z = 81.0f + 2.8f * (float)rnd.NextDouble();
                 DreamEscapeBuilder.Quad("Ceiling star", t, new Vector3(x, F + 2.595f, z), Vector3.down, 0.09f, 0.09f, star);
+            }
+        }
+
+        /// <summary>Theo's wardrobe (a hiding spot; its sides and roof are the gameplay pieces): a back, both doors standing
+        /// open into the room, and his clothes on the rail (small, a child's).</summary>
+        static void Wardrobe(Transform parent)
+        {
+            var t = new GameObject("Theo's wardrobe (doors and clothes)").transform;
+            t.SetParent(parent, false);
+            var paint = DreamEscapeBuilder.Pastel("HouseWardrobe", new Color(0.62f, 0.78f, 0.86f), 0.04f);
+            var knob = DreamEscapeBuilder.Pastel("DecorBrassKnob", new Color(0.95f, 0.78f, 0.38f), 0.01f);
+            float z0 = DreamHouse.HallZ1 + 0.2f, z1 = 81.7f, x0 = 5.4f, x1 = 6.8f, top = F + 2.1f;
+            DreamEscapeBuilder.Box("Wardrobe back", t, new Vector3((x0 + x1) * 0.5f, F + 1.05f, z0 + 0.02f), new Vector3(x1 - x0, 2.1f, 0.04f), paint);
+            DreamEscapeBuilder.Box("Wardrobe plinth", t, new Vector3((x0 + x1) * 0.5f, F + 0.05f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, 0.1f, z1 - z0), paint);
+            // The doors: each 0.7 wide, hinged at the front corners, swung open square to the front (into the room).
+            foreach (float hx in new[] { x0 + 0.03f, x1 - 0.03f })
+            {
+                DreamEscapeBuilder.Box("Wardrobe door", t, new Vector3(hx, F + 1.08f, z1 + 0.35f), new Vector3(0.04f, 1.96f, 0.68f), paint);
+                DreamEscapeBuilder.Box("Wardrobe door panel", t, new Vector3(hx, F + 1.45f, z1 + 0.35f), new Vector3(0.05f, 0.8f, 0.5f), DreamEscapeBuilder.Pastel("HouseWardrobePanel", new Color(0.7f, 0.84f, 0.9f), 0.02f));
+                Prim(t, "Wardrobe knob", PrimitiveType.Sphere, new Vector3(hx + (hx < 6f ? 0.04f : -0.04f), F + 1.05f, z1 + 0.62f), Vector3.one * 0.05f, knob);
+            }
+            // The rail and his clothes.
+            DreamEscapeBuilder.Box("Wardrobe rail", t, new Vector3((x0 + x1) * 0.5f, top - 0.3f, (z0 + z1) * 0.5f), new Vector3(x1 - x0 - 0.4f, 0.04f, 0.04f),
+                DreamEscapeBuilder.Pastel("HouseRail", new Color(0.62f, 0.46f, 0.38f), 0.01f));
+            var colours = new[] { new Color(0.95f, 0.75f, 0.3f), new Color(0.45f, 0.62f, 0.9f), new Color(0.9f, 0.5f, 0.45f), new Color(0.55f, 0.78f, 0.55f), new Color(0.98f, 0.95f, 0.9f) };
+            var shirt = DreamProps.RoundedBox("Child's shirt", new Vector3(0.36f, 0.6f, 0.06f), 0.03f);
+            for (int i = 0; i < colours.Length; i++)
+            {
+                float x = x0 + 0.42f + i * 0.14f;
+                var go = DreamProps.Show("Child's shirt", shirt, DreamProps.MeshLook("Shirt" + i, colours[i], 0.01f), t, Vector3.zero, Quaternion.Euler(0f, 90f + (i % 2 == 0 ? 8f : -8f), 0f));
+                go.transform.position = new Vector3(x, top - 0.65f, (z0 + z1) * 0.5f);
             }
         }
 
@@ -235,8 +267,34 @@ namespace JamKit.DreamEscape.EditorTools
             for (int i = 0; i < 4; i++)
                 DreamEscapeBuilder.Box("Old frame (back)", t, new Vector3(-1.2f + i * 0.08f, FA + 0.45f, 83.5f - i * 0.05f), new Vector3(0.06f, 0.8f - i * 0.1f, 0.7f),
                     DreamEscapeBuilder.Pastel("AtticStorage", new Color(0.74f, 0.6f, 0.5f), 0.02f)).transform.rotation = Quaternion.Euler(-14f, 90f, 0f);
+            // The way through the wall of stored things: old sheets on a line, two drawn back, one half across, starlight
+            // showing round them (the observatory beyond).
+            var lineMat = DreamEscapeBuilder.Pastel("HouseRail", new Color(0.62f, 0.46f, 0.38f), 0.01f);
+            float lx = -2.55f, ly = FA + 2.05f;
+            DreamEscapeBuilder.Box("Washing line", t, new Vector3(lx, ly, 78.5f), new Vector3(0.02f, 0.02f, 3.2f), lineMat);
+            var sheets = new[] { new Color(0.97f, 0.9f, 0.88f), new Color(0.86f, 0.9f, 0.98f), new Color(0.96f, 0.94f, 0.84f) };
+            var spans = new[] { (77.0f, 77.75f, 1.9f), (79.35f, 80.0f, 1.9f), (77.75f, 78.45f, 1.25f) };   // (z0, z1, drop)
+            for (int i = 0; i < spans.Length; i++)
+            {
+                var (sz0, sz1, drop) = spans[i];
+                var m = DreamEscapeBuilder.Pastel("AtticSheet" + i, sheets[i], 0.01f);
+                int folds = Mathf.Max(2, Mathf.RoundToInt((sz1 - sz0) / 0.18f));
+                float w = (sz1 - sz0) / folds;
+                for (int k = 0; k < folds; k++)
+                    DreamEscapeBuilder.Box("Sheet", t, new Vector3(lx + (k % 2 == 0 ? 0.03f : -0.03f), ly - drop * 0.5f, sz0 + w * (k + 0.5f)), new Vector3(0.03f, drop, w * 1.05f), m);
+                foreach (float pz in new[] { sz0 + 0.06f, sz1 - 0.06f })
+                    DreamEscapeBuilder.Box("Peg", t, new Vector3(lx, ly + 0.02f, pz), new Vector3(0.05f, 0.08f, 0.03f), DreamEscapeBuilder.Pastel("DecorPeg", new Color(0.95f, 0.6f, 0.55f), 0.01f));
+            }
+            // Fairy lights along the ridge from the stairs, past the sheets and on into the observatory: they lead the eye
+            // (and her) west, to the stars.
+            var fairy = DreamEscapeBuilder.Glow("AtticFairyLight", new Color(1f, 0.88f, 0.6f), 1.2f, 0f, 0.15f);
+            for (float x = 2.4f; x > DreamHouse.HubX0 + 0.6f; x -= 0.3f)
+            {
+                float sag = 0.18f * Mathf.Sin(Mathf.Repeat((2.4f - x) / 1.2f, 1f) * Mathf.PI);   // drooping between rafters
+                Prim(t, "Fairy light", PrimitiveType.Sphere, new Vector3(x, FA + DreamHouse.RidgeHeight - 0.3f - sag, DreamHouse.RidgeZ + 0.14f), Vector3.one * 0.07f, fairy);
+            }
             // A dim bulb hanging from the ridge in the middle.
-            Prim(t, "Bulb (attic)", PrimitiveType.Sphere, new Vector3(1.2f, FA + 2.6f, DreamHouse.RidgeZ), Vector3.one * 0.55f,
+            Prim(t, "Bulb (attic)", PrimitiveType.Sphere, new Vector3(1.2f, FA + 2.6f, DreamHouse.RidgeZ), Vector3.one * 0.2f,
                 DreamEscapeBuilder.Glow("StairBulb", new Color(1f, 0.86f, 0.6f), 1.0f, 0f, 0.1f));
         }
 
@@ -397,7 +455,7 @@ namespace JamKit.DreamEscape.EditorTools
             Vector3 P(float out_, float y, float along) => new Vector3(faceX - out_, F + y, z + along);
             var white = DreamEscapeBuilder.Pastel("HouseTrim", DreamEscapeBuilder.Palette[0], 0.03f);
             var soot = DreamEscapeBuilder.Pastel("DecorSoot", new Color(0.3f, 0.25f, 0.36f), 0.02f);
-            DreamEscapeBuilder.Quad("Firebox", t, P(0.02f, 0.45f, 0f), n, 1.1f, 0.85f, soot);
+            DreamEscapeBuilder.Quad("Firebox", t, P(0.04f, 0.45f, 0f), n, 1.1f, 0.85f, soot);
             DreamEscapeBuilder.Box("Hearth", t, P(0.3f, 0.04f, 0f), new Vector3(0.6f, 0.08f, 2.0f), white);
             // The surround: two pilasters and the mantel shelf.
             foreach (float a in new[] { -0.7f, 0.7f })
@@ -420,11 +478,11 @@ namespace JamKit.DreamEscape.EditorTools
             Model(t, "plantSmall1", P(0.14f, mantel + 0.04f, -0.82f), Vector3.zero, 2.2f);
             // The mirror above, framed.
             var pane = DreamEscapeBuilder.Pastel("DecorMirror", new Color(0.82f, 0.9f, 1f), 0f, 0.35f);
-            DreamEscapeBuilder.Quad("Mirror", t, P(0.015f, 2.1f, 0f), n, 1.0f, 0.75f, pane);
-            DreamEscapeBuilder.Box("Mirror frame", t, P(0.03f, 2.1f + 0.4f, 0f), new Vector3(0.04f, 0.06f, 1.12f), white);
-            DreamEscapeBuilder.Box("Mirror frame", t, P(0.03f, 2.1f - 0.4f, 0f), new Vector3(0.04f, 0.06f, 1.12f), white);
-            DreamEscapeBuilder.Box("Mirror frame", t, P(0.03f, 2.1f, 0.53f), new Vector3(0.04f, 0.86f, 0.06f), white);
-            DreamEscapeBuilder.Box("Mirror frame", t, P(0.03f, 2.1f, -0.53f), new Vector3(0.04f, 0.86f, 0.06f), white);
+            DreamEscapeBuilder.Quad("Mirror", t, P(0.04f, 2.1f, 0f), n, 1.0f, 0.75f, pane);
+            DreamEscapeBuilder.Box("Mirror frame", t, P(0.055f, 2.1f + 0.4f, 0f), new Vector3(0.04f, 0.06f, 1.12f), white);
+            DreamEscapeBuilder.Box("Mirror frame", t, P(0.055f, 2.1f - 0.4f, 0f), new Vector3(0.04f, 0.06f, 1.12f), white);
+            DreamEscapeBuilder.Box("Mirror frame", t, P(0.055f, 2.1f, 0.53f), new Vector3(0.04f, 0.86f, 0.06f), white);
+            DreamEscapeBuilder.Box("Mirror frame", t, P(0.055f, 2.1f, -0.53f), new Vector3(0.04f, 0.86f, 0.06f), white);
         }
 
         /// <summary>A round wall clock (or a standing mantel clock) facing <paramref name="normal"/>.</summary>
