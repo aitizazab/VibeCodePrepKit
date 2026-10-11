@@ -20,8 +20,22 @@ namespace JamKit.DreamEscape
         [Range(0f, 1f)] public float hissVolume = 0.65f;
         [Range(0f, 1f)] public float buzzVolume = 0.45f;
         /// <summary>V7 (docs/SPEED-FEEL.md): the wall is DRAWN this many metres further back (set each frame by
-        /// DreamSpeedAnswer at flying). Visual only: the pursuer's distance and catch don't read it.</summary>
-        [System.NonSerialized] public float visualRecede;
+        /// DreamSpeedAnswer at flying). Visual only: the pursuer's distance and catch don't read it.
+        /// <para>Applied the moment it's set. The game places the wall in its Update, and DreamSpeedAnswer sets this
+        /// later, in its LateUpdate, so a plain field drew the wall with the previous frame's recede: a frame late, off
+        /// by the change in one frame (2026-10-12: 0.31 m in a PlayMode run, at 23.7 m/s with a long frame).</para></summary>
+        public float visualRecede
+        {
+            get => _recede;
+            set
+            {
+                float shift = Mathf.Max(0f, value) - Mathf.Max(0f, _recede);
+                _recede = value;
+                if (shift != 0f && _placed) Recede(shift);
+            }
+        }
+        float _recede;
+        bool _placed;
 
         static readonly int ThreatId = Shader.PropertyToID("_Threat");
         MaterialPropertyBlock _block;
@@ -86,9 +100,10 @@ namespace JamKit.DreamEscape
         {
             float dt = Time.deltaTime;
             _cam = cam;
-            center.z -= Mathf.Max(0f, visualRecede); // the route runs along +Z: back is -Z
+            center.z -= Mathf.Max(0f, _recede); // the route runs along +Z: back is -Z
             _center = center;
             transform.position = center;
+            _placed = true;
             _threat = Mathf.MoveTowards(_threat, threat, 2f * dt);
             if (wall != null)
                 foreach (var r in wall)
@@ -113,6 +128,18 @@ namespace JamKit.DreamEscape
                 buzz.pitch = 0.95f + 0.25f * _threat;
                 buzz.mute = muted;
             }
+        }
+
+        /// <summary>Moves the drawn wall and its swarm <paramref name="shift"/> metres further back (-Z) at once. The
+        /// scouts, children too but flying beside the camera, keep their place in the world.</summary>
+        void Recede(float shift)
+        {
+            var back = new Vector3(0f, 0f, shift);
+            _center -= back;
+            transform.position = _center;
+            if (wasps == null) return;
+            for (int i = Mathf.Max(0, wasps.Length - scouts); i < wasps.Length; i++)
+                if (wasps[i] != null) wasps[i].position += back;
         }
 
         void FlyWasps(float dt)

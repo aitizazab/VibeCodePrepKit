@@ -128,7 +128,9 @@ namespace JamKit.DreamEscape.Tests
             Assert.That(answer.FlowersOpened, Is.GreaterThan(0), "flowers opened along the route");
             Assert.That(maxRecede, Is.GreaterThan(2f), "the static fell back (visually)");
             Assert.That(recedeChecks, Is.GreaterThan(0));
-            Assert.That(worstWallOffset, Is.LessThan(0.3f), "the wall is drawn exactly the recede behind the pursuer's real distance");
+            // The recede is applied the moment DreamSpeedAnswer sets it (2026-10-12): before, the wall was drawn with the
+            // previous frame's recede, off by one frame's change (up to 0.31 m on a long frame at 23.7 m/s).
+            Assert.That(worstWallOffset, Is.LessThan(0.02f), "the wall is drawn exactly the recede behind the pursuer's real distance, in the same frame");
             Assert.That(measured, Is.True, "the steady state at flying was measured for allocations");
         }
     }
