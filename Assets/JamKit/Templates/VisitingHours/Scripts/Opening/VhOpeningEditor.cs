@@ -76,7 +76,23 @@ namespace JamKit.VisitingHours
             }
         }
 
-        void Awake() => _instance = this;
+        /// <summary>Starts the game straight in the editor ("Edit the opening.cmd" next to the exe passes it).</summary>
+        public const string LaunchFlag = "-edit-opening";
+
+        void Awake()
+        {
+            _instance = this;
+            ApplyLaunchArgs(System.Environment.GetCommandLineArgs());
+        }
+
+        /// <summary>With <see cref="LaunchFlag"/> among <paramref name="args"/>: opens the editor as soon as the title's
+        /// set is up (as the presenter panel's entry does). True when it's there.</summary>
+        public bool ApplyLaunchArgs(string[] args)
+        {
+            if (args == null || System.Array.IndexOf(args, LaunchFlag) < 0) return false;
+            _openWhenReady = true;
+            return true;
+        }
 
         void OnDestroy()
         {
@@ -157,7 +173,9 @@ namespace JamKit.VisitingHours
             if (!GameRoot.Exists) return;
             var kb = Keyboard.current;
             bool onTitle = GameRoot.Flow.Current == GameState.Title && !GameRoot.IsLoadingScene;
-            if (_openWhenReady && onTitle && VhBoot.Stage != null)
+            var run = _runner != null ? _runner : GetComponent<VhTitleRunner>();
+            // (Once the title's own opening, if one is due, has started: the editor holds that one.)
+            if (_openWhenReady && onTitle && VhBoot.Stage != null && run != null && !run.openingWanted && !run.openingOnTitle)
             {
                 _openWhenReady = false;
                 Open();

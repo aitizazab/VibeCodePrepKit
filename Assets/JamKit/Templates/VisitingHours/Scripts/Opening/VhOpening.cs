@@ -30,7 +30,7 @@ namespace JamKit.VisitingHours
         readonly List<OpeningCue> _resolved;
         readonly List<OpeningCue> _fired = new List<OpeningCue>(16);
         readonly VisualElement _root, _black, _blanket;
-        readonly Label _subtitle, _skipHint, _retime;
+        readonly Label _subtitle, _skipHint, _retime, _editHint;
         readonly VoiceTrack _voicemail;
         readonly List<float> _taps = new List<float>();
         float _black01 = 1f, _blackTarget = 1f, _blackSpeed = 1f;
@@ -80,6 +80,15 @@ namespace JamKit.VisitingHours
             _subtitle.AddToClassList("vh-opening__subtitle");
             _root.Add(_subtitle);
             _black = Add("vh-opening__black");
+            // The first seconds: the editor is there (F9).
+            _editHint = new Label("F9: edit this scene") { pickingMode = PickingMode.Ignore };
+            _editHint.style.position = Position.Absolute;
+            _editHint.style.left = 16;
+            _editHint.style.bottom = 14;
+            _editHint.style.fontSize = 14;
+            _editHint.style.color = new Color(1f, 1f, 1f, 0.75f);
+            _editHint.style.opacity = 0f;
+            _root.Add(_editHint);
             _skipHint = new Label("Hold Esc to skip") { pickingMode = PickingMode.Ignore };
             _skipHint.AddToClassList("vh-opening__skip");
             _skipHint.style.opacity = 0f;
@@ -333,6 +342,10 @@ namespace JamKit.VisitingHours
 
         void Apply()
         {
+            // "F9: edit this scene" for the first seconds, while the editor exists and nothing is being edited.
+            bool hint = VhOpeningEditor.Instance != null && !VhOpeningEditor.Instance.IsOpen && speed <= 1.5f && !Paused;
+            float t = _timeline != null ? _timeline.Time : 0f;
+            _editHint.style.opacity = hint ? Mathf.Clamp01(Mathf.Min(t / 0.5f, (7f - t) / 1.5f)) : 0f;
             _black.style.opacity = _black01 * Mathf.Clamp01(blackScale);
             _blanket.style.opacity = VhUtil.Ease(_blanket01) * 0.97f;
         }

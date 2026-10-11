@@ -8,6 +8,10 @@ built.
 ## Opening it
 - **F9** on the title (during the opening or after it). F9 again closes it.
 - Or the presenter panel: **Edit the opening**. This works from anywhere: it goes back to the title first.
+- Or start the game straight in it: double-click **Edit the opening.cmd**. Every Windows build with Visiting Hours
+  in it writes this file next to its exe. It runs the exe with the **-edit-opening** flag, which you can also pass
+  yourself.
+- During the opening, "F9: edit this scene" shows in the bottom-left corner for its first few seconds.
 - While it's open, the opening holds still and its black fades are lightened so you can see the set at dark moments.
   When you close it, the opening plays on from where you were, or the title takes input if you were at the end.
 

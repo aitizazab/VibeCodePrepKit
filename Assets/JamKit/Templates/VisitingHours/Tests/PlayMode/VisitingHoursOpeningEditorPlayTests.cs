@@ -96,6 +96,21 @@ namespace JamKit.VisitingHours.Tests
         }
 
         [UnityTest]
+        public IEnumerator TheLaunchFlagOpensItOnTheTitle()
+        {
+            var ed = VhOpeningEditor.Instance;
+            Assert.That(ed, Is.Not.Null);
+            Assert.That(ed.ApplyLaunchArgs(new[] { "VisitingHours.exe" }), Is.False, "no flag, nothing");
+            Assert.That(ed.IsOpen, Is.False);
+            Assert.That(ed.ApplyLaunchArgs(new[] { "VisitingHours.exe", VhOpeningEditor.LaunchFlag }), Is.True);
+            yield return WaitFor(() => ed.IsOpen, "the editor to open on the title", 5f);
+            Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.Title));
+            Assert.That(ed.Opening != null && ed.Opening.Paused, Is.True, "the opening held for editing");
+            ed.Close();
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator ThePresenterPanelOpensItFromARun()
         {
             VisitingHoursGame.FastTransitions = true;
