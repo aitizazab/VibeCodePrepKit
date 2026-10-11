@@ -1326,3 +1326,15 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - Hope and despair overlays are built from each bar's chord, per piece. Demos on the Dream theme, Daytime and Lena.
   - The Long Night's first try: D phrygian, 54 bpm, a 71 s loop.
   - Page: `out/vh-music-sketches/index.html`. The decisions are at the end of `docs/MUSIC-SKETCHES.md`.
+- **Verified, 21:55:**
+  - PlayMode at 9080984: 136/137. The one failure is the opening editor's launch-flag test (a destroyed Transform in ShowFields); it was forwarded to the usability rework.
+  - The Lena sprites' fix (2c751cb): their metas held only a GUID, so the PNGs never loaded. At 2c751cb: Scenes OK, **EditMode 854/854**.
+  - Builds, smoke PASS:
+    - **VisitingHours-next**: the rebuilt argument battle with Lena's sprites, and the cursor fix. The old build was still open.
+    - **StealthLab**: the answers on keys 1-5 and the Recommended chapter.
+    - **DreamHouse**: furnished, with the pictures and the cast.
+    - **DreamEscape**: the cast.
+  - The Unity metas are committed (fe395da). PlayMode at 2c751cb is running.
+- **Lena's battle ink, round 2 (a097a2a):**
+  - A, ink hair (the agent's pick); B, white hair; C, gold and wine; D, patterns.
+  - Page: `art/review/2026-10-11/visiting-hours-lena-battle-ink.html`. Nothing is installed until the creator picks.
