@@ -159,6 +159,7 @@ namespace JamKit.MovementLab
                 _extra.text = (cd > 0f ? "Slide boost in " + cd.ToString("0.0", inv) + " s" : "Slide boost ready")
                     + "   Double jump " + (sim.DoubleJumpAvailable ? "ready" : "used")
                     + "\n" + HopCostSwitch.HudLine + "\n" + MovementProfileSwitch.HudLine(body)
+                    + "\n" + InputLine(sim, inv)
                     + (sim.LastCatchMiss != WallCatchMiss.None && sim.SinceCatchMiss < 6f
                         ? "\nWall not caught: " + CatchWords(sim.LastCatchMiss) + " (" + sim.SinceCatchMiss.ToString("0.0", inv) + " s ago)" : "");
                 _section.text = section + "   " + runTime.ToString("0.0", inv) + " s" + (best > 0f ? "   best " + best.ToString("0.0", inv) + " s" : "");
@@ -170,6 +171,18 @@ namespace JamKit.MovementLab
                 _chaseFill.style.width = Length.Percent(Mathf.Clamp01(gap / 24f) * 100f);
                 _chaseFill.style.backgroundColor = Color.Lerp(new Color(0.6f, 0.85f, 0.95f), new Color(1f, 0.4f, 0.5f), threat);
             }
+        }
+
+        /// <summary>The input device in use and how fast the view turns; above the air-strafe turn cap (a mouse sweeping
+        /// faster than any stick) the share of the strafe gain that still counts. One standard for both devices: the
+        /// speed cap above holds on either.</summary>
+        static string InputLine(MoveSim sim, CultureInfo inv)
+        {
+            bool pad = GameRoot.Exists && GameRoot.Input.PadMode;
+            float rate = sim.YawRate, cap = sim.def.airStrafeTurnCap;
+            string line = (pad ? "Input: gamepad" : "Input: keyboard and mouse") + "   view turn " + rate.ToString("0", inv) + " deg/s";
+            if (cap > 0f && rate > cap) line += "  (air strafe counts " + (cap / rate * 100f).ToString("0", inv) + "%)";
+            return line;
         }
 
         /// <summary>The wall-catch diagnostic in words (why the last runnable wall nearby in the air wasn't caught).</summary>

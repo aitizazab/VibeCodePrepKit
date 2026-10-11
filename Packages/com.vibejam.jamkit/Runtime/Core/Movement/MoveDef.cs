@@ -105,9 +105,9 @@ namespace JamKit.Movement
         /// (0.08: about 1 m/s at 22 m/s, 0.5 at 15; what a 0.4 s slide burns at speed). Jumps at sprint or below are free.
         /// 0 = the old free hop. Default 0 (the Mild preset; Current is 0.08). A game's hop-cost preset
         /// (<see cref="HopCostPresets"/>) overrides these hop fields while it's set.</summary>
-        public float hopSpeedLoss = 0f;
+        public float hopSpeedLoss = 0.02f;
         /// <summary>The same for a jump out of a slide (a slide hop): smaller, so the slide is the better speed tool (Current: 0.03).</summary>
-        public float slideHopSpeedLoss = 0f;
+        public float slideHopSpeedLoss = 0.01f;
         /// <summary>A double jump this soon after a ground jump (the hop-and-steer) pays for its turn...</summary>
         public float doubleJumpHopWindow = 0.35f;
         /// <summary>...this share of the speed above sprint for a 90 degree turn of the flight, in proportion (a 45 degree
@@ -131,6 +131,11 @@ namespace JamKit.Movement
         /// still turns your flight toward the view but adds no speed: no more W-only strafing (the creator, 2026-10-11).
         /// 0 = pure Source, any input gains.</summary>
         public float airStrafeSideShare = 0.5f;
+        /// <summary>The turn-rate equalizer (2026-10-12): air-strafe gains made while the view turns faster than this
+        /// (deg/s) count only in proportion (at 640 deg/s, half). A stick tops out at 304 (190 x the full-tilt boost),
+        /// so this only reins in a mouse sweeping faster than any stick can turn: one standard for both devices.
+        /// 0 = no limit.</summary>
+        public float airStrafeTurnCap = 320f;
         /// <summary>Whether the air control may add speed above <see cref="airControlSpeed"/> with strafe input (1, keeps
         /// controller and A/D strafing as strong as before) or only redirects (0: strafing gains 25-40% less, on a stick too).</summary>
         public float airControlStrafeGain = 1f;

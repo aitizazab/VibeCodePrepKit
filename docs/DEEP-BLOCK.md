@@ -27,14 +27,14 @@ with Theo, using the stealth kit (`docs/STEALTH.md`). Greybox: boxes, a gold mar
 ## The four routes (night 1)
 
 Every route ends on the hill gate's apron (6.0 m, in front of the chained gate). The autopilot times are from the
-dotnet sim at 60 fps (`TheAutopilotRunsTheRouteToTheHillGate`); the doc's rough times are its estimates.
+dotnet sim at 60 fps (`TheAutopilotRunsTheRouteToTheHillGate`, since the 2026-10-12 ground-speed fix); the doc's rough times are its estimates.
 
 | Route | Line | Moves | Length | Autopilot | Doc |
 |---|---|---|---|---|---|
-| **The street** | the south pavement, hop the party's two sawhorses (0.85), across the road, up the hill path's mantle stair | 2 hops, 4 mantles (1.5 m terraces) | 128 m | 14.2 s | ~13 s |
-| **The back** | across to side gate A (S2), up side passage A (4.5 m), garden 1, over the hedge (1.2, mantle), through garage 8 (its lane door half open: slide), up the lane (flat, then rising 2 m), through its top gate (S6), up the lot's steps | 3-4 mantles, a slide | 171 m | 18.4 s | ~20-25 s |
-| **The roofs** | house 1's porch roof (2.9: jump + mantle), its eaves (5.2: jump + mantle), over the ridge to the back pitch, along it, jumping passages A and B (4.5 m), down the scaffold's decks (6, 4, 2), out of the extension, a wallrun along the unfinished wing's 14 m block wall, wall kick + double jump to the skip, the builders' crate, the lot's steps | 4 jumps + mantles, 2 roof gaps, a wallrun, a wall kick, a double jump | 131 m | 14.9 s | ~18 s |
-| **Under** | through Walt's half-open door (S8: slide), out his back door, down the creek bank, along the creek bed (under the plank, S5), north up the channel and through the culvert under the street (1.15 m: slide), the pond, out by its step, up the mantle stair | 2 slides, a 2 m drop, 5 mantles | 214 m | 22.1 s | ~25 s |
+| **The street** | the south pavement, hop the party's two sawhorses (0.85), across the road, up the hill path's mantle stair | 2 hops, 4 mantles (1.5 m terraces) | 128 m | 14.3 s | ~13 s |
+| **The back** | across to side gate A (S2), up side passage A (4.5 m), garden 1, over the hedge (1.2, mantle), through garage 8 (its lane door half open: slide), up the lane (flat, then rising 2 m), through its top gate (S6), up the lot's steps | 3-4 mantles, a slide | 171 m | 18.7 s | ~20-25 s |
+| **The roofs** | house 1's porch roof (2.9: jump + mantle), its eaves (5.2: jump + mantle), over the ridge to the back pitch, along it, jumping passages A and B (4.5 m), down the scaffold's decks (6, 4, 2), out of the extension, a wallrun along the unfinished wing's 14 m block wall, wall kick + double jump to the skip, the builders' crate, the lot's steps | 4 jumps + mantles, 2 roof gaps, a wallrun, a wall kick, a double jump | 131 m | 15.7 s | ~18 s |
+| **Under** | through Walt's half-open door (S8: slide), out his back door, down the creek bank, along the creek bed (under the plank, S5), north up the channel and through the culvert under the street (1.15 m: slide), the pond, out by its step, up the mantle stair | 2 slides, a 2 m drop, 5 mantles | 214 m | 22.8 s | ~25 s |
 
 Every move is checked against the movement's reach by `CourseReach` (`EveryRouteBeatFitsTheMovementsReach`): mantles
 0.4 to 1.7 m (a jump + mantle reaches 3.15), roof gaps under a single jump (6.1 m at sprint), the slide gaps' 1.15 m,

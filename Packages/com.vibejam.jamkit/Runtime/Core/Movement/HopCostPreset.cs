@@ -3,7 +3,8 @@ using System;
 namespace JamKit.Movement
 {
     /// <summary>How much bunny hopping costs (docs/MOVEMENT.md "Hop-cost presets"). Off: free, as before 2026-10-11.
-    /// Mild (the default): clean hops and slide hops are free; only a late hop costs a little, and the double jump's
+    /// Mild (the default): clean hops bleed 2% of the speed above sprint (slide hops 1%, since 2026-10-12); a late hop
+    /// costs more, and the double jump's
     /// steer right after a hop costs only on sharp turns. Current: the 2026-10-11 costs (8% of the speed above sprint
     /// per hop, 3% per slide hop, a late hop pays its ground time, the hop-and-steer pays every degree).</summary>
     public enum HopCostPreset { Off, Mild, Current }
@@ -44,7 +45,9 @@ namespace JamKit.Movement
                 case HopCostPreset.Current:
                     return new HopCosts { hopSpeedLoss = 0.08f, slideHopSpeedLoss = 0.03f, landingGraceDecay = 1f, doubleJumpHopWindow = 0.35f, doubleJumpHopTurnLoss = 0.1f, doubleJumpHopTurnFree = 0f };
                 default:
-                    return new HopCosts { hopSpeedLoss = 0f, slideHopSpeedLoss = 0f, landingGraceDecay = 0.5f, doubleJumpHopWindow = 0.35f, doubleJumpHopTurnLoss = 0.1f, doubleJumpHopTurnFree = 45f };
+                    // Mild (2026-10-12): a chain of clean hops bleeds a little (2% of the speed above sprint per hop, 1% a
+                    // slide hop) so momentum isn't kept for free; a late hop still costs more.
+                    return new HopCosts { hopSpeedLoss = 0.02f, slideHopSpeedLoss = 0.01f, landingGraceDecay = 0.5f, doubleJumpHopWindow = 0.35f, doubleJumpHopTurnLoss = 0.1f, doubleJumpHopTurnFree = 45f };
             }
         }
 
@@ -88,7 +91,7 @@ namespace JamKit.Movement
             {
                 case HopCostPreset.Off: return "Off: hops are free (before 2026-10-11)";
                 case HopCostPreset.Current: return "Current: 8% of the speed over sprint per hop, 3% per slide hop";
-                default: return "Mild: clean hops free, a late hop costs a little";
+                default: return "Mild: clean hops bleed 2%, a late hop costs more";
             }
         }
     }

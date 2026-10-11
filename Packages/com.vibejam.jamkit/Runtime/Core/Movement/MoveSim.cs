@@ -38,6 +38,8 @@ namespace JamKit.Movement
         float _sinceJump = 999f;
         float _sinceHop = 999f;
         float _groundedFor = 999f;
+        float _yawRate, _lastYaw;
+        bool _hasLastYaw;
         int _jumpChain;
         MoveProfile _profile;
         bool _doubleJump;
@@ -159,6 +161,8 @@ namespace JamKit.Movement
             _sinceHop = 999f;
             _groundedFor = 999f;
             _jumpChain = 0;
+            _hasLastYaw = false;
+            _yawRate = 0f;
             _sinceWall = 999f;
             _wallCoyote = false;
             _hasLastWall = false;
@@ -188,6 +192,11 @@ namespace JamKit.Movement
             if (!(h > 0f)) return;
             _events = default;
             _time += h;
+            // How fast the view turns (deg/s, smoothed over about 0.06 s: a frame's turn lands on its first step).
+            float dyaw = _hasLastYaw ? Math.Abs(DeltaYaw(_lastYaw, input.yaw)) / h : 0f;
+            _yawRate += (dyaw - _yawRate) * (1f - (float)Math.Exp(-h / 0.06f));
+            _lastYaw = input.yaw;
+            _hasLastYaw = true;
             _yaw = input.yaw;
             _crouchHeld = input.crouchHeld;
 
@@ -299,7 +308,17 @@ namespace JamKit.Movement
                 vH = dir * target;
             }
             else vH = Friction(vH, def.friction, def.stopSpeed, h);
-            if (stick > 0f) vH = Accelerate(vH, wishDir, wishSpeed, def.groundAccel, h);
+            if (stick > 0f)
+            {
+                // Ground acceleration steers and brings you up to the wish speed, never past it: Source's accelerate
+                // only caps the projection on the wish direction, so a view kept ahead of the run (a mouse sweep, or
+                // a stick at full turn) kept adding speed sideways, to the 22 m/s cap (2026-10-12). Above the wish
+                // speed it may turn you, not speed you up.
+                float before = vH.Length();
+                vH = Accelerate(vH, wishDir, wishSpeed, def.groundAccel, h);
+                float limit = Math.Max(before, wishSpeed), after = vH.Length();
+                if (after > limit && after > 1e-4f) vH *= limit / after;
+            }
             _vel = CapFlat(new Vector3(vH.X, 0f, vH.Z), MaxSpeed);
             _mode = sprint && HorizontalSpeed > def.walkSpeed + 0.5f ? MoveMode.Sprint : MoveMode.Grounded;
         }
@@ -419,7 +438,7 @@ namespace JamKit.Movement
             {
                 // Above airControlSpeed, speed gained in the air needs strafe input (W alone only turns the flight):
                 // the gain of each push is scaled by how far sideways the move input points (airStrafeSideShare).
-                float share = StrafeShare(input.move);
+                float share = StrafeShare(input.move) * TurnShare();
                 float s0 = FlatLength(vH);
                 float strafe = AirStrafeScale;
                 vH = LimitGain(AirAccelerate(vH, wishDir, def.sprintSpeed, def.airAccel * strafe, def.airCap * strafe, h), Math.Max(s0, def.airControlSpeed), share);
@@ -445,6 +464,22 @@ namespace JamKit.Movement
             float m = move.Length();
             if (m < 1e-3f) return 0f;
             return Math.Min(1f, Math.Abs(move.X) / m / def.airStrafeSideShare);
+        }
+
+        /// <summary>The turn-rate equalizer: an air-strafe gain made while the view turns faster than
+        /// <see cref="MoveDef.airStrafeTurnCap"/> (above any stick's turn) counts only in proportion, so a mouse sweep
+        /// strafes no better than the fastest stick.</summary>
+        float TurnShare() => def.airStrafeTurnCap > 0f && _yawRate > def.airStrafeTurnCap ? def.airStrafeTurnCap / _yawRate : 1f;
+
+        /// <summary>The view's turn rate now (deg/s, smoothed).</summary>
+        public float YawRate => _yawRate;
+
+        static float DeltaYaw(float a, float b)
+        {
+            float d = (b - a) % 360f;
+            if (d > 180f) d -= 360f;
+            if (d < -180f) d += 360f;
+            return d;
         }
 
         /// <summary>Keeps <paramref name="v"/>'s direction but lets its speed rise above <paramref name="free"/> only by

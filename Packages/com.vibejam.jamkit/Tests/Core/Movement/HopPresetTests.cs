@@ -79,8 +79,9 @@ namespace JamKit.Tests.Movement
                         clean0 = clean; late0 = late;
                         break;
                     case HopCostPreset.Mild:
-                        Assert.That(clean, Is.EqualTo(clean0).Within(0.05f), "Mild: clean hops are free");
-                        Assert.That(slide, Is.GreaterThanOrEqualTo(clean - 0.3f), "slide hops about free too");
+                        // Mild (2026-10-12): a chain of clean hops bleeds a little, never keeps the speed for free.
+                        Assert.That(clean, Is.InRange(16.5f, clean0 - 1f), "Mild: ten clean hops from 20 m/s lose 1-3.5 m/s");
+                        Assert.That(slide, Is.GreaterThan(clean), "slide hops bleed less");
                         Assert.That(late, Is.LessThan(clean - 1f), "a late hop costs");
                         Assert.That(late, Is.LessThan(late0 - 1f), "more than with hops Off");
                         break;
@@ -138,7 +139,8 @@ namespace JamKit.Tests.Movement
         public void TheOverrideWinsOverTheDefAndClearsBack()
         {
             var d = new MoveDef();
-            Assert.That(HopCostPresets.For(d).hopSpeedLoss, Is.EqualTo(0f), "the def's defaults are Mild");
+            Assert.That(HopCostPresets.For(d).hopSpeedLoss, Is.EqualTo(HopCostPresets.Of(HopCostPreset.Mild).hopSpeedLoss), "the def's defaults are Mild");
+            Assert.That(HopCostPresets.Of(HopCostPreset.Mild).hopSpeedLoss, Is.EqualTo(0.02f));
             Assert.That(HopCostPresets.Active, Is.EqualTo(HopCostPreset.Mild));
             HopCostPresets.SetOverride(HopCostPreset.Current);
             Assert.That(HopCostPresets.For(d).hopSpeedLoss, Is.EqualTo(0.08f));
@@ -147,7 +149,7 @@ namespace JamKit.Tests.Movement
             Assert.That(HopCostPresets.TryParse("", out var none), Is.False);
             Assert.That(none, Is.EqualTo(HopCostPreset.Mild), "nothing saved: Mild");
             HopCostPresets.ClearOverride();
-            Assert.That(HopCostPresets.For(d).hopSpeedLoss, Is.EqualTo(0f));
+            Assert.That(HopCostPresets.For(d).hopSpeedLoss, Is.EqualTo(0.02f));
         }
     }
 }

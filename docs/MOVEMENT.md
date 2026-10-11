@@ -197,7 +197,7 @@ rule passed; the hop bleed was too strong. So the hop costs became three presets
 | Preset | Clean hop | Slide hop | Late hop | Double jump right after a hop |
 |---|---|---|---|---|
 | **Off** | free | free | free inside the 0.15 s grace (before 2026-10-11) | free |
-| **Mild** (default) | free | free | the overspeed fade at half rate (0.75/s of the excess) from the landing tick | the first 45° free, then 10% of the excess per 90° |
+| **Mild** (default) | 2% of the speed above sprint (since 2026-10-12; free before) | 1% | the overspeed fade at half rate (0.75/s of the excess) from the landing tick | the first 45° free, then 10% of the excess per 90° |
 | **Current** (8454370) | 8% of the speed above sprint | 3% | the full 1.5/s fade, then the 8% | 10% of the excess per 90° from the first degree |
 
 What each costs, from the core sim and the autopilot (`HopPresetTests`, printed in the test output):
@@ -246,6 +246,69 @@ is good enough to implement universally". So every game that uses the movement n
   22.1 s. They ran on the defaults before, and the shared asset equals them now.
 - **The dream umbrella's "soaked" movement** still makes its runtime copy of whatever tuning the player has, which is
   now the shared one.
+
+## One standard for mouse and stick (2026-10-12)
+
+The creator on keyboard and mouse, with the shared tuning: "I'm gaining speed just by turning my mouse while
+sprinting on the ground. I can get to 19 m/s and then continue that momentum for completely free just jumping." Then a
+dream tool run of 20.53 s, against 26.45 s on a controller.
+
+**The root cause:**
+- Ground acceleration was Source's: it adds speed along the wish direction until the velocity's *projection* on it
+  reaches the wish speed, with no limit on the resulting speed.
+- Above sprint the ground step has no friction, only the slow 1.5/s overspeed fade.
+- So a view kept 45-60° ahead of the run kept the projection under 9.5 m/s and kept adding sideways speed:
+  - a 360°/s sweep went from 9.5 m/s to the 22 m/s cap in 10 s;
+  - the view held 55° ahead of the run reached 15.7 m/s;
+  - **a stick at its boosted 304°/s reached 19.9 m/s too**.
+- The mouse did it easily because it turns as fast as the hand.
+- Mild's clean hops were free, so the speed then carried.
+
+**The fixes:**
+1. **Ground acceleration never raises the speed past the larger of what you had and the wish speed** (`MoveSim`,
+   the ground step): it brings you up to sprint and steers, never more.
+   - Above sprint a turn keeps your speed (the 220°/s ground turn) and the overspeed fade runs as before.
+   - Pinned at every sweep rate, flicks included, the stick's too (`GroundStrafeTests`, and input-driven on both
+     devices in `MouseAndStickSpeedPlayTests`).
+2. **Hops bleed a little:** Mild now costs 2% of the speed above sprint per clean hop, 1% per slide hop (it was free).
+   - Ten hops from 19 m/s end at about 17.3 m/s; from 20 m/s, 18.1.
+   - **The fair carry, as the tests say it:** a chain keeps most of a speed you earned, but at least 1 m/s goes over
+     ten hops.
+   - Late hops cost more, as before; Current and Off are unchanged.
+3. **An air-strafe turn-rate equalizer** (`airStrafeTurnCap`, 320°/s, just above a stick's 304):
+   - An air-strafe gain made while the view turns faster than that counts only in proportion (at 640°/s, half).
+   - A stick never turns that fast, so the controller's strafing is exactly as before (tested at 120, 190 and 304°/s).
+   - The best mouse strafe (any rate) is now +5.69 m/s in 2 s from 13 m/s, against the best stick's +5.59.
+
+**Why not separate PC and controller movement.**
+- The exploit wasn't a device difference: the stick could do it too, only harder. Separate tuning would have left it in.
+- Once it's fixed, the two devices strafe within 2% of each other at their best, so a split would buy nothing.
+- A split would also cost:
+  - two feels that change the moment you pick up the other device;
+  - two sets of numbers to keep balanced;
+  - routes and records that no longer compare.
+- The one input difference left, the mouse turning faster than any stick, is answered by the equalizer, which is
+  invisible on a stick.
+- If the creator still wants device profiles after feeling this, the hop presets can be split per device in a few
+  lines.
+
+**The lab's panel** (F3 / d-pad down) now shows:
+- the input in use (keyboard and mouse, or gamepad);
+- how fast the view is turning;
+- above 320°/s, the share of the air strafe that still counts.
+
+The big speed readout shows the sprint cap holding.
+
+**Times:**
+- The autopilot runs the dream tool chapter in 44.17 s and the Gauntlet in 41.37 s (Mild).
+- The Deep Block's four routes moved a little: street 14.2 to 14.3 s, back 18.4 to 18.7, roofs 14.9 to 15.7,
+  under 22.1 to 22.8.
+- The autopilot never ground-strafed, so these barely move. A human keyboard-and-mouse run should now land near the
+  controller's time.
+- **For the creator to compare:** run the dream tool chapter (presenter chapter "Dream tool") on keyboard and mouse,
+  then on a controller.
+  - Expect both near 25-27 s, not 20.
+  - Holding W and sweeping the mouse no longer gains anything: watch the panel's speed stay at 9.5 while sprinting.
 
 ## Profiles: dream and daytime (2026-10-11)
 
