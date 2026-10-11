@@ -174,6 +174,12 @@ column, and a Reset per row.
   has the whole d-pad): that asks only **Keep both** or **Undo**, since a button can't swap with a
   stick-like binding. Shared keys you kept show **(!)**. Hidden rows don't count (R is free in a template
   without the Gauntlet). The defaults share nothing.
+- **Contexts:** rows only clash with rows used at the same time. Walking-around rows are "play"; the argument
+  battle's verbs ("Argue: Ask / Challenge / Concede / Press (hold) / Let it rest": 1-5; X, A, Y, hold B, View),
+  shown while a battle runs, are "argument"; Pause is "any" and clashes with both. So A being both Jump and
+  Challenge isn't flagged (docs/ARGUMENT-PROTOTYPE.md).
+- **`GameRoot.Input.BlockWorld(owner, true)`** stops world gameplay (`GameplayAllowed` is false) while something
+  modal runs in the world, such as an argument battle; a destroyed owner stops counting.
 - **Reset** on a row puts that action back; **Reset all** puts everything back (stick clicks too).
 - **Stick clicks:** "Crouch / Slide on R3" and "Sprint on L3" switch between **Toggle** (the default:
   R3 / L3 belong to the toggle actions) and **Hold** (they move to the hold actions: crouch while R3 is
