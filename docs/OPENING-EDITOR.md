@@ -10,15 +10,16 @@ built.
 1. **Launch:** double-click **Edit the opening.cmd** next to the game's exe (or press **F9** on the title, during the
    opening or after it). The opening stops where it is. The bar at the bottom says `PAUSED | FREE CAMERA | ...`.
 2. **Look around:** hold the **right mouse button** and move the mouse to look; while you hold it, **W A S D** fly
-   and **Q / E** go down and up (Shift is 4x faster). The **mouse wheel** moves in and out, the **middle mouse
-   button** pans, **Alt + left mouse** orbits around the selected thing, **F** frames it.
+   and **Q / E** go down and up (Shift is 4x faster; held over a second it speeds up). The **mouse wheel** moves in
+   and out, the **middle mouse button** pans, **Alt + left mouse** orbits around the selected thing, **F** frames it.
+   Too dark to see? **L** turns on a work light (only while editing). **Tab** hides the panels for a clean view.
 3. **Select:** move the mouse over a thing: a white box and its name show what a click would pick. Click it. Or
    click it in the list on the left (double-click selects it and frames it). It gets an orange box, and its
    numbers and notes show on the right.
 4. **Move:** drag one of its arrows (red X, green Y up, blue Z) to move it along that arrow, or the small square in
    the middle to move it across the view. **E** gives rings to turn it, **R** boxes to size it, **W** the arrows
    again. Or click a number on the right and type (Enter applies). The status line says what happened
-   ("Moved Tablet +12.0 cm along X"). **Ctrl+Z** undoes.
+   ("Moved The tablet +5.0 cm along X (red)"). **Ctrl+Z** undoes.
 5. **Save:** **Ctrl+S**, or just close with **F9** (closing saves too). The bar shows `* UNSAVED CHANGES` until you do.
 
 ## Opening it
@@ -28,7 +29,8 @@ built.
   in it writes this file next to its exe. It runs the exe with the **-edit-opening** flag, which you can also pass
   yourself. It opens on the opening's first moment (the room, dark); click the beat **The title** for the table.
 - During the opening, "F9: edit this scene" shows in the bottom-left corner for its first few seconds.
-- While it's open, the opening holds still and its black fades are lightened so you can see the set at dark moments.
+- While it's open, the opening holds still and its black fades (and the dark under the blanket) are lightened so you
+  can see the set at dark moments. **Play from here** shows the real blacks while it plays.
   The title table doesn't take clicks or keys (a click on the tablet selects it, it doesn't start the game).
 - When you close it, the opening plays on from where you were, or the title takes input again if you were at the end.
 - If the presenter panel or Settings opens on top, the editor steps aside until it closes.
@@ -48,7 +50,7 @@ built.
     nightstand, she reaches, the grab, holding it (the voicemail), she puts it down, falling asleep, the phone from
     above, G'night, the news report, the pieces arrive, the title.
   - A jump to the other set (the bedroom or the title table) takes the free camera to that moment's shot, so there's
-    something to see; the status line says so.
+    something to see, and lets go of a selection that isn't in that set; the status line says both.
 - **Right: the selected thing.** **Hide** folds it away; selecting something brings it back.
   - Its name, where it is (in the bedroom or at the title table), and a note on what follows it or what can't.
   - **Numbers:** the button switches between its parent's space (the room, the bed, the table: what's saved) and
@@ -60,14 +62,19 @@ built.
   - **Frame it (F)**, **Reset this one**.
 - **Bottom: the tools and what's going on.**
   - Move (W), Turn (E), Size (R), **Snap: on/off (X)**, Undo, Redo, **Camera: free/shot (C)**, Save,
-    **Reset everything...** (it asks first; Enter confirms, Esc cancels), **Rebuild with my edits**, Help (H),
-    Close (F9). The active tool, snapping and the camera are lit.
+    **Work light (L)**, **Reset everything...** (it asks first; Enter confirms, Esc cancels), **Rebuild with my
+    edits**, Help (H), Close (F9). The active tool, snapping, the camera and the work light are lit.
   - The **mode strip:** playing or paused, free or shot camera (and which shot, or which shot you're looking
-    through, or flying and how fast), the tool, snapping, and saved or `* UNSAVED CHANGES`.
+    through, or flying and how fast), the tool, snapping, the work light, panels hidden, and saved or
+    `* UNSAVED CHANGES`.
   - The **status line:** what just happened (it flashes when it changes): "Selected...", "Moved...", "Saved 3
     changes to ...", "Undid: moved Tablet...", "Nothing to undo."
-  - A **hint line:** what the thing under the mouse does (a button, a handle, a thing a click would select).
   - The **keys**, always shown.
+- **Tips:** rest the mouse on a button or a number box and a tip says what it does, next to the mouse; on a handle,
+  which way it moves; while flying, how fast.
+- **Tab** hides every panel but the bottom bar (a clean view of the shot); Tab again brings them back.
+- **L**, the work light: an even light over the whole set so you can place things at dark moments. It's only for
+  editing (never saved, gone when you close); turn it off to judge the real lighting.
 - **H** shows a help page with every control (click anywhere, H or Esc closes it).
 
 ## Moving things
@@ -82,8 +89,8 @@ built.
   - **Size (R):** boxes along the thing's own directions; the middle box sizes it all at once.
   - **Snap (X):** 1 cm, 5°, 5%. Hold **Ctrl** while dragging to flip snapping for that drag.
   - **Esc** while dragging puts it back. A click on a handle without moving changes nothing.
-- **The free camera:** right mouse held + W A S D / Q E; the wheel while flying sets the speed (shown in the mode
-  strip); the wheel otherwise moves in and out; middle mouse pans; Alt + left mouse orbits; F frames. Any of these
+- **The free camera:** right mouse held + W A S D / Q E (1.5 m/s to start; held over a second it speeds up to 3x
+  over the next two); the wheel while flying sets the speed (shown in the mode strip); the wheel otherwise moves in and out; middle mouse pans; Alt + left mouse orbits; F frames. Any of these
   while on the shot camera switches to the free camera from the same view. **C** switches between the free camera and
   the opening's own shot camera.
 - **Shots:** each shot's camera is one key.
@@ -157,6 +164,8 @@ with a warning in the log.
     full-screen element under them takes the shell's own pointer events, so nothing reaches the title behind.
   - `VhTitleTable.Live` is false while the editor is open, and the opening's hold-Esc skip is off.
   - The editor turns the shell's pad mode off while it's open, so the mouse cursor shows.
+  - The work light is `VhStage.workLight`, an ambient boost in `VhStage.ApplyAmbient` (the waking shader reads the
+    stage's sky and ground colours, so it lights everything).
   - Right-mouse look locks the cursor and puts it back where it was when you let go.
 - **The timeline:** `VhOpening.Seek` replays every cue up to a time, at each cue's end state. `VhOpening.PlayFromHere`
   restarts the voices mid-way.

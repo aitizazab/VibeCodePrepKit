@@ -139,6 +139,18 @@ namespace JamKit.VisitingHours.Tests
             Assert.That(GameRoot.Flow.Current, Is.EqualTo(GameState.Title), "still on the title: nothing leaked into the game");
             Assert.That(Ed.Selected != null && Ed.Selected.id == "title-tablet", Is.True, "the click selected the tablet instead");
 
+            // L: the work light (the stage's ambient boost); Tab: the panels away and back.
+            yield return _in.Tap(Key.L);
+            Assert.That(Ed.WorkLight, Is.True, "L turns the work light on");
+            Assert.That(Ed.Stage.workLight, Is.EqualTo(1f), "the stage lights the set evenly");
+            yield return _in.Tap(Key.Tab);
+            Assert.That(Ed.PanelsHidden, Is.True, "Tab hides the panels");
+            Assert.That(Ed.TryScreenPointOf("button:play", out _), Is.False, "the timeline is gone");
+            yield return _in.Tap(Key.Tab);
+            Assert.That(Ed.PanelsHidden, Is.False);
+            yield return Frames(2);
+            Assert.That(Ed.TryScreenPointOf("button:play", out _), Is.True, "and back");
+
             // A pad touched by accident doesn't hide the cursor here.
             GameRoot.Input.SetPadMode(true);
             yield return Frames(2);
@@ -149,6 +161,7 @@ namespace JamKit.VisitingHours.Tests
             yield return Frames(3);
             Assert.That(Ed.Stage == null || !Ed.Stage.editorCamera, Is.True, "the shots have the camera again");
             Assert.That(VhBoot.Stage.table.Live, Is.True, "the title table takes input again");
+            Assert.That(VhBoot.Stage.workLight, Is.EqualTo(0f), "the work light goes with the editor");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -393,7 +406,11 @@ namespace JamKit.VisitingHours.Tests
         {
             yield return OpenWithF9();
             Assert.That(Ed.Stage.Pose, Is.EqualTo("table"));
+            yield return ClickThing("title-tablet");
+            Assert.That(Ed.Selected, Is.Not.Null);
             yield return _in.Click(Point("beat:The grab"));
+            Assert.That(Ed.Selected, Is.Null, "the tablet (at the title table) isn't left selected in the bedroom");
+            Assert.That(Ed.StatusText, Does.Contain("nothing is selected"), "and the status line says so");
             Assert.That(Ed.Opening.Time, Is.EqualTo(Ed.BeatTime("The grab")).Within(0.05f), "the beat button jumps there");
             Assert.That(Ed.Stage.Pose, Is.Not.EqualTo("table"), "the bedroom");
             Assert.That(Vector3.Distance(Cam.position, Ed.Stage.bedroom.position), Is.LessThan(6f), "the free camera went to the bedroom too");

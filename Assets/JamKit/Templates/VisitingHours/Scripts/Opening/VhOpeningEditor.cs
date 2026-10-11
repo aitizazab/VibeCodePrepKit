@@ -24,7 +24,7 @@ namespace JamKit.VisitingHours
     {
         public enum Tool { Move, Rotate, Scale }
 
-        enum Drag { None, Ui, Look, Pan, Orbit, Handle, Scrub, Number }
+        enum Drag { None, Ui, Look, Pan, Orbit, Handle, Scrub, Number, ListScroll }
 
         struct Beat
         {
@@ -58,7 +58,9 @@ namespace JamKit.VisitingHours
         VhTitleRunner _runner;
         VhStage _stage;
         VhOpening _opening;
-        bool _open, _openWhenReady, _playing, _free = true, _snap = true, _dirty, _world;
+        bool _open, _openWhenReady, _playing, _free = true, _snap = true, _dirty, _world, _workLight, _panelsHidden;
+        float _flyHeld;
+        string _dropped;
         Tool _tool = Tool.Move;
         VhEditable _sel, _hover, _throughShot;
         readonly List<Beat> _beats = new List<Beat>();
@@ -100,6 +102,10 @@ namespace JamKit.VisitingHours
         public bool Dirty => _dirty;
         public bool Playing => _playing;
         public float FlySpeed => _flySpeed;
+        /// <summary>The work light (L) is on: an even light so the set shows at dark moments (only while editing).</summary>
+        public bool WorkLight => _workLight;
+        /// <summary>Tab hid the panels (a clean view).</summary>
+        public bool PanelsHidden => _panelsHidden;
         /// <summary>What the status line says (what just happened).</summary>
         public string StatusText => _statusText;
         /// <summary>The thing under the mouse in the view (what a click would select), or null.</summary>
@@ -199,7 +205,11 @@ namespace JamKit.VisitingHours
             UnlockCursor();
             UnhookText();
             RemoveUi();
-            if (_stage != null) _stage.editorCamera = false;
+            if (_stage != null)
+            {
+                _stage.editorCamera = false;
+                _stage.workLight = 0f;
+            }
             if (_opening != null && _opening.Running)
             {
                 _opening.blackScale = 1f;
@@ -263,6 +273,7 @@ namespace JamKit.VisitingHours
             _typed.Clear();
             Fly(kb);
             ApplyFreeCamera();
+            _stage.workLight = _workLight ? 1f : 0f;
             if (_playing && _opening != null && !_opening.Running) _playing = false;
             RefreshUi();
             PlaceTags();
@@ -348,14 +359,34 @@ namespace JamKit.VisitingHours
             bool tableBefore = _stage.Pose == "table";
             _playing = false;
             _opening.Paused = true;
+            _opening.blackScale = 0.2f;
             _opening.Seek(Mathf.Clamp(t, 0f, _opening.Length));
             _setMoved = tableBefore != (_stage.Pose == "table");
             if (_setMoved && _free) CameraToCurrentShot();
+            // A selection in the set that's gone from view now: let go of it (the panel would show a thing you can't see).
+            _dropped = null;
+            if (_setMoved && _sel != null && _sel.target != null && !_sel.target.gameObject.activeInHierarchy)
+            {
+                _dropped = Short(_sel);
+                _sel = null;
+                RefreshSelectionPanel();
+            }
             if (!_free) _stage.RefreshPose();
             ShowFields();
         }
 
         bool _setMoved;
+
+        /// <summary>What a jump to the other set did, for the status line.</summary>
+        string SetNote()
+        {
+            if (!_setMoved) return "";
+            bool bed = _stage.Pose != "table";
+            string s = " The camera went to " + (bed ? "the bedroom." : "the title table.");
+            if (_dropped != null) s += " (" + _dropped + " isn't in this set: nothing is selected now.)";
+            if (bed && !_workLight) s += " Too dark to see? L turns on a work light (only while editing).";
+            return s;
+        }
 
         /// <summary>Jumps to a beat by its name (see <see cref="BeatNames"/>); false if there's none.</summary>
         public bool SeekBeat(string name)
@@ -373,7 +404,7 @@ namespace JamKit.VisitingHours
         {
             if (i < 0 || i >= _beats.Count) return;
             SeekTo(_beats[i].time);
-            Status("At \"" + _beats[i].name + "\" (" + Clock(_beats[i].time) + ")." + (_setMoved ? " The camera went to " + (_stage.Pose == "table" ? "the title table." : "the bedroom.") : ""));
+            Status("At \"" + _beats[i].name + "\" (" + Clock(_beats[i].time) + ")." + SetNote());
         }
 
         /// <summary>The time a beat starts at (0 when there's no such beat).</summary>
@@ -416,6 +447,7 @@ namespace JamKit.VisitingHours
             {
                 _playing = false;
                 _opening.Paused = true;
+                _opening.blackScale = 0.2f;
                 foreach (var a in _stage.Sounds()) a.Pause();
                 Status("Paused at " + Clock(_opening.Time) + " (" + BeatAt(_opening.Time) + "). Space plays on.");
                 return;
@@ -424,6 +456,7 @@ namespace JamKit.VisitingHours
             if (_opening.Time >= _opening.Length - 0.05f) SeekTo(0f);
             _playing = true;
             SetFree(false, false);
+            _opening.blackScale = 1f; // as it plays: the real blacks
             _opening.PlayFromHere();
             Status("Playing from " + Clock(_opening.Time) + " through the shot cameras. Space pauses; C flies the free camera.");
         }
@@ -703,8 +736,14 @@ namespace JamKit.VisitingHours
             if (kb.dKey.isPressed) move += Vector3.right;
             if (kb.eKey.isPressed) move += Vector3.up;
             if (kb.qKey.isPressed) move += Vector3.down;
-            if (move == Vector3.zero) return;
-            float speed = _flySpeed * (kb.shiftKey.isPressed ? 4f : 1f);
+            if (move == Vector3.zero)
+            {
+                _flyHeld = 0f;
+                return;
+            }
+            // Held over a second, it speeds up (to 3x after three seconds): short taps stay precise, long holds cross the room.
+            _flyHeld += Time.unscaledDeltaTime;
+            float speed = _flySpeed * (kb.shiftKey.isPressed ? 4f : 1f) * (1f + 2f * Mathf.Clamp01((_flyHeld - 1f) / 2f));
             // Up and down are the world's (Q E), the rest the view's.
             Vector3 world = CamRot * new Vector3(move.x, 0f, move.z) + Vector3.up * move.y;
             _camPos += world * (speed * Time.unscaledDeltaTime);
@@ -884,6 +923,8 @@ namespace JamKit.VisitingHours
             else if (kb.xKey.wasPressedThisFrame) SetSnap(!_snap);
             else if (kb.cKey.wasPressedThisFrame) SetFree(!_free, true);
             else if (kb.fKey.wasPressedThisFrame) FrameSelected();
+            else if (kb.lKey.wasPressedThisFrame) SetWorkLight(!_workLight);
+            else if (kb.tabKey.wasPressedThisFrame) SetPanelsHidden(!_panelsHidden);
             else if (kb.rightArrowKey.wasPressedThisFrame) StepBeat(1);
             else if (kb.leftArrowKey.wasPressedThisFrame) StepBeat(-1);
         }
@@ -901,6 +942,21 @@ namespace JamKit.VisitingHours
                            (_sel != null && (!_sel.canScale || _sel.isShot) ? " " + _sel.label + " can't be sized." : ""));
                     break;
             }
+        }
+
+        void SetWorkLight(bool on)
+        {
+            _workLight = on;
+            _stage.workLight = on ? 1f : 0f;
+            Status(on ? "Work light on: an even light so you can see the set (only while editing; L turns it off to judge the real lighting)."
+                : "Work light off: the lighting as it plays.");
+        }
+
+        void SetPanelsHidden(bool hidden)
+        {
+            _panelsHidden = hidden;
+            ApplyPanelPlaces();
+            Status(hidden ? "Panels hidden: a clean view (Tab brings them back)." : "Panels back (Tab hides them).");
         }
 
         void SetSnap(bool on)
@@ -982,6 +1038,10 @@ namespace JamKit.VisitingHours
                     if (!m.leftButton.isPressed) NumberRelease();
                     else NumberDrag(shift);
                     break;
+                case Drag.ListScroll:
+                    if (!m.leftButton.isPressed) _drag = Drag.None;
+                    else ScrollListTo(_mouse.y);
+                    break;
                 case Drag.Ui:
                     if (!m.leftButton.isPressed)
                     {
@@ -1027,6 +1087,12 @@ namespace JamKit.VisitingHours
                 {
                     _drag = Drag.Scrub;
                     ScrubTo(_mouse.x);
+                    return;
+                }
+                if (ctl.scrollbar)
+                {
+                    _drag = Drag.ListScroll;
+                    ScrollListTo(_mouse.y);
                     return;
                 }
                 _drag = Drag.Ui;
@@ -1280,7 +1346,7 @@ namespace JamKit.VisitingHours
             float t = k * _opening.Length;
             if (Mathf.Abs(t - _opening.Time) < 0.02f) return;
             SeekTo(t);
-            Status("At " + Clock(_opening.Time) + " (" + BeatAt(_opening.Time) + ")." + (_setMoved ? " The camera went to " + (_stage.Pose == "table" ? "the title table." : "the bedroom.") : ""));
+            Status("At " + Clock(_opening.Time) + " (" + BeatAt(_opening.Time) + ")." + SetNote());
         }
     }
 }

@@ -415,16 +415,13 @@ namespace JamKit.VisitingHours
                 Vector3 sp = _stage.cam.WorldToScreenPoint(_sel.target.position);
                 if (Vector3.Dot(dir, _stage.cam.transform.forward) < 0f) sp = new Vector3(Screen.width - sp.x, Screen.height - sp.y, 0f);
                 var pp = ScreenToPanel(new Vector2(sp.x, sp.y));
-                var area = _root.worldBound;
-                pp.x = Mathf.Clamp(pp.x, area.xMin + LeftWidth + 160f, area.xMax - RightWidth - 160f);
-                pp.y = Mathf.Clamp(pp.y, area.yMin + 170f, area.yMax - BottomSpace - 20f);
-                PlaceTag(_offTag, Short(_sel) + " is out of view: F frames it", pp);
+                PlaceTag(_offTag, Short(_sel) + " is out of view: F frames it", pp + new Vector2(0f, 28f));
             }
         }
 
         bool InView(Vector2 pp)
         {
-            var r = _root.worldBound;
+            var r = ViewArea();
             return pp.x > r.xMin && pp.x < r.xMax && pp.y > r.yMin && pp.y < r.yMax;
         }
 
@@ -433,14 +430,19 @@ namespace JamKit.VisitingHours
             if (l != null && l.style.display != DisplayStyle.None) l.style.display = DisplayStyle.None;
         }
 
-        static void PlaceTag(Label l, string text, Vector2 at)
+        /// <summary>A name tag centred over <paramref name="at"/>, kept inside the part of the view the panels leave free.</summary>
+        void PlaceTag(Label l, string text, Vector2 at)
         {
             if (l == null) return;
             SetText(l, text);
             l.style.display = DisplayStyle.Flex;
-            l.style.left = at.x;
-            l.style.top = at.y - 26f;
-            l.style.translate = new Translate(new Length(-50f, LengthUnit.Percent), new Length(0f, LengthUnit.Pixel));
+            var area = ViewArea();
+            float w = l.worldBound.width;
+            if (float.IsNaN(w) || w < 1f) w = text.Length * 8f;
+            float x = Mathf.Clamp(at.x - w * 0.5f, area.xMin + 4f, Mathf.Max(area.xMin + 4f, area.xMax - w - 4f));
+            float y = Mathf.Clamp(at.y - 28f, area.yMin + 4f, area.yMax - 30f);
+            l.style.left = x;
+            l.style.top = y;
         }
 
         /// <summary>A box round the thing, turned with it (white for hover, orange for the selection); <paramref name="top"/>
@@ -586,7 +588,9 @@ namespace JamKit.VisitingHours
                 }
                 if (!ToPanel(o + a * L, out var pe)) continue;
                 if ((pe - po).sqrMagnitude < 15f * 15f) continue;
-                Line(p, po, pe, col, active == i ? 5f : 3.5f);
+                float shown = (pe - po).magnitude / HandlePixels;
+                if (shown < 0.45f && active != i) col.a = 0.55f;
+                Line(p, po, pe, col, active == i ? 5f : shown < 0.45f ? 2.5f : 3.5f);
                 Vector2 dir = (pe - po).normalized, side = new Vector2(-dir.y, dir.x);
                 if (_tool == Tool.Move)
                 {

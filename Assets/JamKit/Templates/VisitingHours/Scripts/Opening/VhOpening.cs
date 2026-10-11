@@ -43,7 +43,7 @@ namespace JamKit.VisitingHours
         public float speed = 1f;
         /// <summary>The opening editor holds it still (no cues fire, the voices pause).</summary>
         public bool Paused;
-        /// <summary>The opening editor lightens the black so the set shows at dark moments (1 = as played).</summary>
+        /// <summary>The opening editor lightens the black (and the dark under the blanket) so the set shows at dark moments (1 = as played).</summary>
         public float blackScale = 1f;
         bool _seeking;
         public event Action Finished;
@@ -349,7 +349,8 @@ namespace JamKit.VisitingHours
             float t = _timeline != null ? _timeline.Time : 0f;
             _editHint.style.opacity = hint ? Mathf.Clamp01(Mathf.Min(t / 0.5f, (7f - t) / 1.5f)) : 0f;
             _black.style.opacity = _black01 * Mathf.Clamp01(blackScale);
-            _blanket.style.opacity = VhUtil.Ease(_blanket01) * 0.97f;
+            // (The editor lightens the dark under the blanket as it does the black.)
+            _blanket.style.opacity = VhUtil.Ease(_blanket01) * 0.97f * Mathf.Clamp01(blackScale);
         }
 
         /// <summary>The opening's cues with their times (the editor's beats).</summary>

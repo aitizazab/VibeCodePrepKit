@@ -140,9 +140,14 @@ namespace JamKit.VisitingHours
 
         void ApplyAmbient()
         {
-            if (InBedroom) VhWakingStyle.SetAmbient(bedSky * _lights, bedGround * _lights, Color.black, 0f, 0.1f * _lights);
-            else VhWakingStyle.SetAmbient(tableSky, tableGround, Color.black, 0f);
+            // The opening editor's work light (L) adds an even light everywhere, so the set shows at dark moments.
+            Color boost = new Color(0.32f, 0.32f, 0.35f) * workLight;
+            if (InBedroom) VhWakingStyle.SetAmbient(bedSky * _lights + boost, bedGround * _lights + boost, Color.black, 0f, 0.1f * _lights + 0.6f * workLight);
+            else VhWakingStyle.SetAmbient(tableSky + boost, tableGround + boost, Color.black, 0f, 0.15f + 0.6f * workLight);
         }
+
+        /// <summary>The opening editor's work light: 0 off (as played), 1 on. Only while editing; never saved.</summary>
+        public float workLight;
 
         /// <summary>The bedroom's night light (moon, streetlight, ambient) to <paramref name="level"/> over <paramref name="seconds"/>.</summary>
         public void SetLights(float level, float seconds)

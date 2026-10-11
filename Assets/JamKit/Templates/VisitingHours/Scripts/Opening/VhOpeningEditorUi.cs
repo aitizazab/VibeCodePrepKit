@@ -25,7 +25,7 @@ namespace JamKit.VisitingHours
             /// <summary>Also has to be inside this to be hit (the list's scrolled viewport).</summary>
             public VisualElement clip;
             public NumberBox number;
-            public bool track, on, hovered, row;
+            public bool track, scrollbar, on, hovered, row;
         }
 
         sealed class NumberBox
@@ -42,7 +42,7 @@ namespace JamKit.VisitingHours
         static readonly Color Dim = new Color(0.68f, 0.71f, 0.78f);
         static readonly Color Accent = new Color(1f, 0.79f, 0.29f);
         static readonly Color SelColor = new Color(1f, 0.6f, 0.12f);
-        static readonly Color PanelBg = new Color(0.055f, 0.06f, 0.075f, 0.94f);
+        static readonly Color PanelBg = new Color(0.055f, 0.06f, 0.075f, 1f);
         static readonly Color ButtonBg = new Color(0.17f, 0.19f, 0.235f);
         static readonly Color ButtonHover = new Color(0.27f, 0.3f, 0.38f);
         static readonly Color ButtonOn = new Color(0.26f, 0.42f, 0.66f);
@@ -54,8 +54,8 @@ namespace JamKit.VisitingHours
 
         VisualElement _root, _view, _tagLayer, _left, _right, _top, _bottom, _help, _confirm, _changes, _track, _beatRow, _selBox, _scaleBlock, _shotBox, _statusBox;
         ScrollView _list;
-        Label _status, _hint, _modeLabel, _timeLabel, _beatLabel, _selName, _selWhere, _selNote, _noSel, _confirmText, _changesTitle, _scaleNote, _selTag, _hoverTag, _offTag;
-        Ctl _playBtn, _toolMove, _toolTurn, _toolSize, _snapBtn, _camBtn, _saveBtn, _spaceBtn, _leftTab, _rightTab, _hoverCtl, _pressCtl, _lastClickCtl;
+        Label _status, _tip, _modeLabel, _timeLabel, _beatLabel, _selName, _selWhere, _selNote, _noSel, _confirmText, _changesTitle, _scaleNote, _selTag, _hoverTag, _offTag;
+        Ctl _playBtn, _toolMove, _toolTurn, _toolSize, _snapBtn, _camBtn, _lightBtn, _saveBtn, _spaceBtn, _leftTab, _rightTab, _hoverCtl, _pressCtl, _lastClickCtl;
         float _lastClickTime = -10f;
         readonly List<Ctl> _ctls = new List<Ctl>();
         readonly List<Ctl> _listCtls = new List<Ctl>(), _beatCtls = new List<Ctl>(), _changeCtls = new List<Ctl>();
@@ -67,7 +67,7 @@ namespace JamKit.VisitingHours
         bool _editReplace, _numberScrub, _helpShown, _confirmShown, _leftHidden, _rightHidden;
         float _numberStart;
         string _statusText = "";
-        float _statusAge = 99f, _shownTime = -1f;
+        float _statusAge = 99f, _shownTime = -1f, _hoverSince, _shownBottom = -1f;
         int _shownBeat = -2;
 
         public bool HelpShown => _helpShown;
@@ -273,6 +273,8 @@ namespace JamKit.VisitingHours
             _list.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             _left.Add(_list);
             BuildList();
+            // Its scrollbar: drag it (the wheel scrolls the list too).
+            _ctls.Add(new Ctl { id = "scrollbar", el = _list.verticalScroller, scrollbar = true, tip = "Drag to scroll the list (or use the wheel over it)." });
 
             _leftTab = Button(_root, "show:left", "Things >", "Shows the list of everything you can move.", () => SetLeftHidden(false), 14f);
             _leftTab.el.style.position = Position.Absolute;
@@ -363,7 +365,7 @@ namespace JamKit.VisitingHours
             _track.style.height = 26;
             _track.style.marginTop = 6;
             _track.generateVisualContent += DrawTrack;
-            _ctls.Add(new Ctl { id = "track", el = _track, track = true, tip = "Click or drag along the bar to go to any moment (the marks are the beats)." });
+            _ctls.Add(new Ctl { id = "track", el = _track, track = true, tip = "Click or drag along the bar to go to any moment (the marks are the beats; the lit one is where you are)." });
 
             _beatRow = Row(_top, 4);
             BuildBeatChips();
@@ -379,8 +381,10 @@ namespace JamKit.VisitingHours
             {
                 int k = i;
                 var c = Button(_beatRow, "beat:" + _beats[i].name, _beats[i].name, "Jumps to \"" + _beats[i].name + "\" (" + Clock(_beats[i].time) + ").", () => GoToBeat(k), 13f);
-                c.el.style.paddingLeft = c.el.style.paddingRight = 6;
-                c.el.style.paddingTop = c.el.style.paddingBottom = 2;
+                c.el.style.paddingLeft = c.el.style.paddingRight = 5;
+                c.el.style.paddingTop = c.el.style.paddingBottom = 1;
+                c.el.style.marginTop = c.el.style.marginBottom = 1;
+                c.el.style.marginRight = 3;
                 _beatCtls.Add(c);
             }
             _shownBeat = -2;
@@ -393,8 +397,9 @@ namespace JamKit.VisitingHours
             _bottom.style.left = Gap;
             _bottom.style.right = Gap;
             _bottom.style.bottom = Gap;
+            _bottom.style.paddingTop = _bottom.style.paddingBottom = 6;
             var tools = Row(_bottom);
-            _toolMove = Button(tools, "tool:move", "Move (W)", "Move tool: arrows along X, Y, Z; the middle square moves across the view.", () => SetTool(Tool.Move, true));
+            _toolMove = Button(tools, "tool:move", "Move (W)", "Move tool: arrows along X, Y, Z; the middle square moves it across the view.", () => SetTool(Tool.Move, true));
             _toolTurn = Button(tools, "tool:turn", "Turn (E)", "Turn tool: rings around X, Y, Z.", () => SetTool(Tool.Rotate, true));
             _toolSize = Button(tools, "tool:size", "Size (R)", "Size tool: boxes along X, Y, Z; the middle box sizes it all.", () => SetTool(Tool.Scale, true));
             _snapBtn = Button(tools, "button:snap", "Snap: on (X)", "Snapping: moves in 1 cm, turns in 5°, sizes in 5%. Ctrl held while dragging flips it.", () => SetSnap(!_snap));
@@ -403,6 +408,7 @@ namespace JamKit.VisitingHours
             Button(tools, "button:redo", "Redo (Ctrl+Y)", "Redoes what you undid.", () => Redo());
             Spacer(tools);
             _camBtn = Button(tools, "button:camera", "Camera: free (C)", "Switches between the free camera and the opening's own shot camera.", () => SetFree(!_free, true));
+            _lightBtn = Button(tools, "button:light", "Work light (L)", "An even light so you can see the set at dark moments (only while editing; never saved).", () => SetWorkLight(!_workLight));
             Spacer(tools);
             _saveBtn = Button(tools, "button:save", "Save (Ctrl+S)", "Saves your changes (closing the editor saves them too).", Save);
             Button(tools, "button:reset-all", "Reset everything...", "Puts every changed thing back where the scene built it (it asks first).", AskResetAll);
@@ -412,20 +418,30 @@ namespace JamKit.VisitingHours
             Button(tools, "button:close", "Close (F9)", "Closes the editor (it saves your changes); the opening plays on from here.", Close);
 
             _modeLabel = Text(_bottom, "", 14f, Accent, true);
-            _modeLabel.style.marginTop = 4;
+            _modeLabel.style.marginTop = 3;
             _statusBox = Box(_bottom, "status");
-            _statusBox.style.marginTop = 4;
+            _statusBox.style.marginTop = 3;
             _statusBox.style.paddingLeft = 6;
             _statusBox.style.paddingTop = _statusBox.style.paddingBottom = 2;
             _statusBox.style.borderTopLeftRadius = _statusBox.style.borderTopRightRadius = _statusBox.style.borderBottomLeftRadius = _statusBox.style.borderBottomRightRadius = 3;
             _status = Text(_statusBox, "", 16f, Ink);
-            _hint = Text(_bottom, "", 13.5f, new Color(0.75f, 0.85f, 1f));
-            _hint.style.marginTop = 2;
             var keys = Text(_bottom,
                 "Right mouse held + W A S D, Q E: fly    Wheel: in / out    Middle mouse: pan    Alt + left mouse: orbit    F: frame    " +
-                "W E R: move, turn, size    X: snap    C: free or shot camera    Space: play    Ctrl+Z / Ctrl+Y    Ctrl+S: save    H: help    F9: close",
+                "W E R: move, turn, size    X: snap    C: camera    L: work light    Tab: panels    Space: play    Ctrl+Z / Y    Ctrl+S: save    H: help    F9: close",
                 13f, Dim);
-            keys.style.marginTop = 2;
+            keys.style.marginTop = 3;
+
+            // The tip for what's under the mouse (a button, a box, a handle), next to it.
+            _tip = Text(_root, "", 14f, Ink);
+            _tip.style.position = Position.Absolute;
+            _tip.style.maxWidth = 420;
+            _tip.style.backgroundColor = new Color(0.12f, 0.13f, 0.17f, 1f);
+            _tip.style.paddingLeft = _tip.style.paddingRight = 8;
+            _tip.style.paddingTop = _tip.style.paddingBottom = 4;
+            _tip.style.borderTopLeftRadius = _tip.style.borderTopRightRadius = _tip.style.borderBottomLeftRadius = _tip.style.borderBottomRightRadius = 4;
+            _tip.style.borderLeftWidth = _tip.style.borderRightWidth = _tip.style.borderTopWidth = _tip.style.borderBottomWidth = 1;
+            _tip.style.borderLeftColor = _tip.style.borderRightColor = _tip.style.borderTopColor = _tip.style.borderBottomColor = new Color(1f, 1f, 1f, 0.2f);
+            _tip.style.display = DisplayStyle.None;
         }
 
         static void Spacer(VisualElement row)
@@ -463,7 +479,8 @@ namespace JamKit.VisitingHours
                 "Mouse wheel: move in and out.\n" +
                 "Middle mouse drag: pan.\n" +
                 "Alt + left mouse drag: orbit around the selected thing.\n" +
-                "F: frame the selected thing.  C: the free camera or the opening's own shot camera.");
+                "F: frame the selected thing.  C: the free camera or the opening's own shot camera.\n" +
+                "L: a work light, to see the set at dark moments (only while editing).  Tab: hide or show the panels.");
             HelpBlock(a, "Pick a thing",
                 "Click it in the view (a white box shows what a click would pick), or click it in the list on the left. " +
                 "Double-click in the list selects and frames it. Shots and lights show as small marks you can click.\n" +
@@ -521,6 +538,8 @@ namespace JamKit.VisitingHours
         {
             if (_root != null) _root.RemoveFromHierarchy();
             _root = _view = _tagLayer = _left = _right = _top = _bottom = _help = _confirm = _changes = _track = _beatRow = null;
+            _tip = null;
+            _shownBottom = -1f;
             _list = null;
             _ctls.Clear();
             _listCtls.Clear();
@@ -942,8 +961,8 @@ namespace JamKit.VisitingHours
                 return;
             }
             _confirmShown = true;
-            SetText(_confirmText, "Put all " + _changedIds.Count + (_changedIds.Count == 1 ? " changed thing" : " changed things") +
-                                  " back where the scene built them? (Ctrl+Z still undoes it.)");
+            SetText(_confirmText, (_changedIds.Count == 1 ? "Put the 1 changed thing back where the scene built it?" : "Put all " + _changedIds.Count + " changed things back where the scene built them?") +
+                                  " (Ctrl+Z still undoes it.)");
             _confirm.style.display = DisplayStyle.Flex;
         }
 
@@ -970,10 +989,12 @@ namespace JamKit.VisitingHours
         void ApplyPanelPlaces()
         {
             if (_left == null) return;
-            _left.style.display = _leftHidden ? DisplayStyle.None : DisplayStyle.Flex;
-            _leftTab.el.style.display = _leftHidden ? DisplayStyle.Flex : DisplayStyle.None;
-            _right.style.display = _rightHidden ? DisplayStyle.None : DisplayStyle.Flex;
-            _rightTab.el.style.display = _rightHidden ? DisplayStyle.Flex : DisplayStyle.None;
+            bool all = _panelsHidden;
+            _left.style.display = _leftHidden || all ? DisplayStyle.None : DisplayStyle.Flex;
+            _leftTab.el.style.display = _leftHidden && !all ? DisplayStyle.Flex : DisplayStyle.None;
+            _right.style.display = _rightHidden || all ? DisplayStyle.None : DisplayStyle.Flex;
+            _rightTab.el.style.display = _rightHidden && !all ? DisplayStyle.Flex : DisplayStyle.None;
+            _top.style.display = all ? DisplayStyle.None : DisplayStyle.Flex;
             _top.style.left = _leftHidden ? 130f : LeftWidth + Gap * 2f;
             _top.style.right = _rightHidden ? 140f : RightWidth + Gap * 2f;
         }
@@ -1021,6 +1042,7 @@ namespace JamKit.VisitingHours
             SetText(_snapBtn.label, _snap ? "Snap: on (X)" : "Snap: off (X)");
             SetOn(_snapBtn, _snap);
             SetText(_camBtn.label, _free ? "Camera: free (C)" : "Camera: shot (C)");
+            SetOn(_lightBtn, _workLight);
             SetText(_saveBtn.label, _dirty ? "Save (Ctrl+S) *" : "Save (Ctrl+S)");
             SetOn(_saveBtn, _dirty);
 
@@ -1031,13 +1053,23 @@ namespace JamKit.VisitingHours
             if (_drag == Drag.Look) cam += " (flying " + _flySpeed.ToString("0.0") + " m/s)";
             string tool = _tool == Tool.Move ? "MOVE" : _tool == Tool.Rotate ? "TURN" : "SIZE";
             SetText(_modeLabel, (_playing ? "PLAYING" : "PAUSED") + "   |   " + cam + "   |   TOOL: " + tool + "   |   SNAP " + (_snap ? "ON" : "OFF") +
+                                (_workLight ? "   |   WORK LIGHT" : "") + (_panelsHidden ? "   |   PANELS HIDDEN (Tab)" : "") +
                                 "   |   " + (_dirty ? "* UNSAVED CHANGES" : "all saved"));
 
             _statusAge += Time.unscaledDeltaTime;
             float flash = Mathf.Clamp01(1f - _statusAge / 1.5f);
-            _statusBox.style.backgroundColor = new Color(Accent.r, Accent.g, Accent.b, 0.28f * flash);
+            _statusBox.style.backgroundColor = new Color(Accent.r, Accent.g, Accent.b, 0.2f * flash);
 
-            SetText(_hint, HintNow());
+            // The side panels end above the bottom bar, however tall it is.
+            float bh = _bottom.worldBound.height;
+            if (!float.IsNaN(bh) && bh > 10f && Mathf.Abs(bh - _shownBottom) > 0.5f)
+            {
+                _shownBottom = bh;
+                _left.style.bottom = bh + Gap * 2f;
+                _right.style.maxHeight = Mathf.Max(200f, _root.worldBound.height - bh - Gap * 3f);
+            }
+
+            PlaceTip();
         }
 
         string ShotName(string pose)
@@ -1047,25 +1079,67 @@ namespace JamKit.VisitingHours
             return e.label.StartsWith("Shot: ") ? e.label.Substring(6) : e.label;
         }
 
-        string HintNow()
+        /// <summary>What the thing under the mouse does: a button's or box's tip, a handle, a drag in progress. Shown
+        /// next to the mouse (a button's after a moment, so it doesn't flicker as the mouse crosses the bar).</summary>
+        string TipNow()
         {
             if (_editing != null) return "Typing: Enter applies, Tab goes to the next box, Esc cancels.";
             switch (_drag)
             {
-                case Drag.Look: return "Flying: W A S D move, Q E down and up, Shift faster, the wheel sets the speed. Let go of the right button to stop.";
-                case Drag.Pan: return "Panning: move the mouse; let go of the middle button to stop.";
+                case Drag.Look: return "Flying " + _flySpeed.ToString("0.0") + " m/s: W A S D, Q E down and up, Shift 4x; the wheel sets the speed. Let go of the right button to stop.";
+                case Drag.Pan: return "Panning (let go of the middle button to stop).";
                 case Drag.Orbit: return "Orbiting around " + (_sel != null ? Short(_sel) : "the middle of the view") + ".";
-                case Drag.Handle: return "Let go to keep it, Esc to cancel. Ctrl flips snapping.";
+                case Drag.Handle: return "Let go to keep it; Esc cancels; Ctrl flips snapping.";
+                case Drag.Ui:
+                case Drag.Scrub:
+                case Drag.Number:
+                case Drag.ListScroll:
+                    return "";
             }
-            if (_hoverCtl != null && !string.IsNullOrEmpty(_hoverCtl.tip)) return _hoverCtl.tip;
+            if (_hoverCtl != null && !string.IsNullOrEmpty(_hoverCtl.tip)) return Time.unscaledTime - _hoverSince > 0.45f ? _hoverCtl.tip : "";
             if (_hoverHandle >= 0)
             {
                 if (_tool == Tool.Move) return _hoverHandle == 3 ? "Drag to move it across the view." : "Drag to move it along " + AxisNames[_hoverHandle] + ".";
                 if (_tool == Tool.Rotate) return "Drag to turn it around " + AxisNames[_hoverHandle] + ".";
                 return _hoverHandle == 3 ? "Drag to size it all." : "Drag to size it along " + AxisNames[_hoverHandle] + ".";
             }
-            if (_hover != null) return "Click to select " + _hover.label + ".";
             return "";
+        }
+
+        void PlaceTip()
+        {
+            if (_tip == null) return;
+            string t = TipNow();
+            if (string.IsNullOrEmpty(t) || _helpShown || _confirmShown)
+            {
+                if (_tip.style.display != DisplayStyle.None) _tip.style.display = DisplayStyle.None;
+                return;
+            }
+            SetText(_tip, t);
+            _tip.style.display = DisplayStyle.Flex;
+            var area = _root.worldBound;
+            Vector2 at = _drag == Drag.Look ? new Vector2(area.center.x - 200f, ViewArea().yMin + 8f) : _mouse + new Vector2(18f, 22f);
+            float w = _tip.worldBound.width, h = _tip.worldBound.height;
+            if (float.IsNaN(w) || w < 1f) w = 300f;
+            if (float.IsNaN(h) || h < 1f) h = 30f;
+            // Above the mouse near the bottom (the bar's buttons), to the left near the right edge.
+            if (at.y + h > area.yMax - 4f) at.y = _mouse.y - h - 12f;
+            if (at.x + w > area.xMax - 4f) at.x = area.xMax - w - 4f;
+            _tip.style.left = at.x;
+            _tip.style.top = at.y;
+        }
+
+        /// <summary>The part of the screen the panels leave for the view (panel coordinates).</summary>
+        Rect ViewArea()
+        {
+            var r = _root != null ? _root.worldBound : new Rect(0f, 0f, 1920f, 1080f);
+            float x0 = r.xMin, x1 = r.xMax, y0 = r.yMin, y1 = r.yMax;
+            if (Over(_left, _left != null ? _left.worldBound.center : Vector2.zero)) x0 = Mathf.Max(x0, _left.worldBound.xMax);
+            if (Over(_right, _right != null ? _right.worldBound.center : Vector2.zero)) x1 = Mathf.Min(x1, _right.worldBound.xMin);
+            if (Over(_top, _top != null ? _top.worldBound.center : Vector2.zero)) y0 = Mathf.Max(y0, _top.worldBound.yMax);
+            if (Over(_bottom, _bottom != null ? _bottom.worldBound.center : Vector2.zero)) y1 = Mathf.Min(y1, _bottom.worldBound.yMin);
+            if (x1 - x0 < 100f || y1 - y0 < 100f) return r;
+            return new Rect(x0, y0, x1 - x0, y1 - y0);
         }
 
         // ---------- Controls: hit-testing, hover, clicks ----------
@@ -1145,6 +1219,7 @@ namespace JamKit.VisitingHours
                 Paint(_hoverCtl);
             }
             _hoverCtl = c;
+            _hoverSince = Time.unscaledTime;
             if (c != null)
             {
                 c.hovered = true;
@@ -1161,7 +1236,7 @@ namespace JamKit.VisitingHours
 
         static void Paint(Ctl c)
         {
-            if (c == null || c.el == null || c.track) return;
+            if (c == null || c.el == null || c.track || c.scrollbar) return;
             if (c.number != null)
             {
                 bool editing = Instance != null && Instance._editing == c.number;
@@ -1183,6 +1258,19 @@ namespace JamKit.VisitingHours
             _lastClickTime = Time.unscaledTime;
             if (dbl) c.dbl();
             else c.click?.Invoke();
+        }
+
+        // ---------- The list's scrollbar ----------
+
+        void ScrollListTo(float panelY)
+        {
+            if (_list == null) return;
+            var r = _list.verticalScroller.worldBound;
+            if (float.IsNaN(r.height) || r.height < 10f) return;
+            // The arrows at both ends aren't part of the run.
+            float k = Mathf.Clamp01((panelY - r.yMin - 18f) / Mathf.Max(1f, r.height - 36f));
+            float max = Mathf.Max(0f, _list.contentContainer.worldBound.height - _list.contentViewport.worldBound.height);
+            _list.scrollOffset = new Vector2(_list.scrollOffset.x, k * max);
         }
 
         // ---------- The scrub bar ----------

@@ -334,19 +334,30 @@ namespace JamKit.VisitingHours
             yield return VhVirtualInput.Frames(2);
             _in.SetButton(MouseButton.Right, true);
             yield return VhVirtualInput.Frames(2);
+            // A realistic hold: one second of S (backing away), the mouse turning right meanwhile.
             _in.Keys(Key.S);
-            for (int i = 0; i < 20; i++)
+            float flyStart = Time.unscaledTime;
+            var flyFrom = ed.Stage.cam.transform.position;
+            bool shot = false;
+            while (Time.unscaledTime - flyStart < 1f)
             {
-                _in.MoveBy(new Vector2(4f, 0f));
+                _in.MoveBy(new Vector2(2f, 0f));
                 yield return null;
+                if (!shot && Time.unscaledTime - flyStart > 0.5f)
+                {
+                    shot = true;
+                    yield return Shot("flying", "Right mouse held, S held for a second, the mouse moving right: backing away and turning. The bar says FREE CAMERA (flying), the tip says how fast.");
+                }
             }
-            yield return Shot("flying", "Right mouse held, S held, the mouse moved right: backing away and turning right. The bar says FREE CAMERA (flying).");
+            float flew = Time.unscaledTime - flyStart;
+            float dist = Vector3.Distance(ed.Stage.cam.transform.position, flyFrom);
             _in.Keys();
             yield return null;
             _in.SetButton(MouseButton.Right, false);
             yield return VhVirtualInput.Frames(3);
             var c1 = ed.Stage.cam.transform.position;
-            Check(Vector3.Dot(c1 - c0, f0) < -0.05f, "right mouse + S backs the camera away (" + Vector3.Dot(c1 - c0, f0).ToString("F2") + " m)");
+            Line("    fly: " + dist.ToString("F2") + " m in " + flew.ToString("F2") + " s held (" + (dist / Mathf.Max(0.01f, flew)).ToString("F2") + " m/s; the fly speed is " + ed.FlySpeed.ToString("F1") + " m/s, speeding up after a second held)");
+            Check(Vector3.Dot(c1 - c0, f0) < -0.5f, "a second of right mouse + S backs the camera away (" + Vector3.Dot(c1 - c0, f0).ToString("F2") + " m)");
             Check(Vector3.SignedAngle(f0, ed.Stage.cam.transform.forward, Vector3.up) > 5f, "the mouse turned the view right");
 
             var c2 = ed.Stage.cam.transform.position;
@@ -376,7 +387,11 @@ namespace JamKit.VisitingHours
                 Check(Mathf.Abs(ed.Opening.Time - ed.BeatTime("The phone on the nightstand")) < 0.2f, "the beat button jumps to 'The phone on the nightstand'");
                 Check(ed.Stage.Pose != "table", "and the camera went to the bedroom");
             }
-            yield return Shot("bedroom-beat", "Clicked 'The phone on the nightstand': the bedroom (the camera went there).");
+            Check(ed.Selected == null, "the tablet (at the title table) isn't left selected in the bedroom");
+            yield return Shot("bedroom-beat", "Clicked 'The phone on the nightstand': the bedroom (the camera went there; the tablet's selection let go).");
+            yield return _in.Tap(Key.L);
+            Check(ed.WorkLight, "L: the work light");
+            yield return Shot("work-light", "L: the work light on (an even light to see the set; only while editing).");
 
             yield return ClickListRow(ed, "phone");
             Check(ed.Selected != null && ed.Selected.id == "phone", "a click in the list selects the phone");
@@ -385,6 +400,14 @@ namespace JamKit.VisitingHours
             yield return ClickListRow(ed, "shot:nightstand");
             if (ed.TryScreenPointOf("button:look-through", out var look)) yield return _in.Click(look);
             yield return Shot("look-through", "A shot selected, then 'Look through it': the free camera at that shot.");
+            if (ed.TryScreenPointOf("button:set-from-view", out var setView))
+            {
+                _in.MoveTo(setView);
+                yield return VhVirtualInput.Frames(2);
+                float until = Time.unscaledTime + 0.8f;
+                while (Time.unscaledTime < until) yield return null;
+                yield return Shot("tooltip", "The mouse resting on 'Set from my view': its tip shows next to it.");
+            }
 
             if (ed.TryScreenPointOf("button:reset-all", out var resetAll)) yield return _in.Click(resetAll);
             Check(ed.ConfirmShown, "'Reset everything...' asks first");
@@ -416,9 +439,14 @@ namespace JamKit.VisitingHours
 
             if (ed.TryScreenPointOf("hide:left", out var hideLeft)) yield return _in.Click(hideLeft);
             if (ed.TryScreenPointOf("hide:right", out var hideRight)) yield return _in.Click(hideRight);
-            yield return Shot("panels-hidden", "Both side panels hidden (the tabs at the top corners bring them back).");
+            yield return Shot("side-panels-hidden", "Both side panels hidden (the tabs at the top corners bring them back).");
             if (ed.TryScreenPointOf("show:left", out var showLeft)) yield return _in.Click(showLeft);
             if (ed.TryScreenPointOf("show:right", out var showRight)) yield return _in.Click(showRight);
+            yield return _in.Tap(Key.Tab);
+            Check(ed.PanelsHidden, "Tab hides the panels");
+            yield return Shot("tab-clean-view", "Tab: a clean view (only the bar at the bottom).");
+            yield return _in.Tap(Key.Tab);
+            Check(!ed.PanelsHidden, "Tab brings them back");
         }
 
         /// <summary>Clicks a row of the list, scrolling the list with the wheel until it shows.</summary>
