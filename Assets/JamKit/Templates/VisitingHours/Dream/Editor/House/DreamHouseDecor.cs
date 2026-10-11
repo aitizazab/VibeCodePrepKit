@@ -45,7 +45,7 @@ namespace JamKit.DreamEscape.EditorTools
         {
             var t = Group("Living room");
             Rug(t, "rugRounded", new Vector3(6.5f, F, 80.1f), 6.2f, 4.6f, new Color(0.86f, 0.55f, 0.5f));
-            Model(t, "tableCoffee", new Vector3(6.5f, F, 80.4f), Vector3.forward);
+            Model(t, "tableCoffee", new Vector3(6.5f, F, 80.4f), Vector3.zero);   // symmetric: its long side stays along the sofa
             var mug = DreamProps.MeshLook("DecorMug", new Color(0.98f, 0.95f, 0.9f), 0.004f);
             Prim(t, "Mug", PrimitiveType.Cylinder, new Vector3(6.1f, F + 0.47f + 0.05f, 80.3f), new Vector3(0.09f, 0.05f, 0.09f), mug);
             Model(t, "books", new Vector3(6.9f, F + 0.47f, 80.5f), Vector3.forward, 1.6f);
@@ -135,7 +135,7 @@ namespace JamKit.DreamEscape.EditorTools
             Model(t, "loungeChair", new Vector3(11.0f, F, 91.0f), Vector3.left);
             var floorLamp = Model(t, "lampRoundFloor", new Vector3(11.55f, F, 89.85f), Vector3.zero);
             LampGlow(t, floorLamp, 0.3f);
-            foreach (float z in new[] { 93.3f, 94.2f })
+            foreach (float z in new[] { 96.7f, 97.6f })   // clear of the east window (z 93.1..94.9)
             {
                 Model(t, "bookcaseOpen", new Vector3(11.68f, F, z), Vector3.left);
                 Books(t, new Vector3(11.62f, F, z), true, new[] { 0.42f, 0.86f, 1.3f });
@@ -161,6 +161,12 @@ namespace JamKit.DreamEscape.EditorTools
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(DreamHouseDressing.KenneyDir + "/" + name + ".fbx");
             if (prefab == null) { if (!_missing.Contains(name)) _missing.Add(name); return null; }
             float turn = facing == Vector3.zero ? float.NaN : DreamHouseDressing.TurnFor(prefab, facing);
+            if (float.IsNaN(turn) && facing != Vector3.zero)
+            {
+                // No clear back (a cupboard, a box): Kenney's models share one front, so turn it as the chair turns.
+                var chair = AssetDatabase.LoadAssetAtPath<GameObject>(DreamHouseDressing.KenneyDir + "/chair.fbx");
+                if (chair != null) turn = DreamHouseDressing.TurnFor(chair, facing);
+            }
             var pivot = new GameObject(name).transform;
             pivot.SetParent(parent, false);
             var model = Object.Instantiate(prefab);
@@ -248,7 +254,7 @@ namespace JamKit.DreamEscape.EditorTools
             var shade = DreamProps.MeshLook("DecorShade", new Color(0.99f, 0.93f, 0.8f), 0.01f);
             Prim(parent, "Pendant cord", PrimitiveType.Cylinder, floor + new Vector3(0f, 2.75f, 0f), new Vector3(0.02f, 0.25f, 0.02f), cord);
             Prim(parent, "Pendant shade", PrimitiveType.Cylinder, floor + new Vector3(0f, 2.42f, 0f), new Vector3(0.55f, 0.09f, 0.55f), shade);
-            Prim(parent, "Pendant glow", PrimitiveType.Sphere, floor + new Vector3(0f, 2.3f, 0f), Vector3.one * 0.9f,
+            Prim(parent, "Pendant glow", PrimitiveType.Sphere, floor + new Vector3(0f, 2.33f, 0f), Vector3.one * 0.55f,
                 DreamEscapeBuilder.Glow("DecorLampGlow", new Color(1f, 0.86f, 0.6f), 0.55f, 0f, 0.1f));
         }
 
