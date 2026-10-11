@@ -1,0 +1,186 @@
+{
+ "name": "visiting-hours-dream-scenes",
+ "title": "Visiting Hours: the dream scenes, dressed (Night 2's house and the dream escape)",
+ "subtitle": "Stills from the game itself (the capture drive, 2026-10-11), after four art passes over the unchanged gameplay blockout: the whole dream cast as sticker cut-outs, real furniture in the dream's pastel look with a pencil outline, wallpaper and floorboards, the family's photo wall, fridge calendar and Theo's drawing, the front doors, the umbrella, toy vans, Walt's bicycles, house fronts with doors, awnings and shutters, and the rain path. Nothing here changes how either scene plays.",
+ "questions": [
+  "The floorboards: they still look like real wood. Keep them, make them crayon-drawn like everything else, or plain pastel boards?",
+  "The tipped house (the escape after the argument) is still bare slabs in the peach void. My plan: dress it as a house on its side (wallpaper underfoot, sideways furniture and pictures along the edges, a sideways ceiling lamp, the doorframes drawn as doors, a back wall closing off the void), all decoration, the runs unchanged. Go ahead?",
+  "The rooms are very big and sparse (the ground floor is 24 by 28 m), so Theo's room is mostly floor. Fill them with more of the family's things (rugs, shelves, toys, plants) at the same size, or shrink the rooms (that changes the hide-and-seek, so it goes to the gameplay agent)?",
+  "The cast as white-bordered sticker cut-outs in a 3D house: right for the dream, or cut tight without the border?",
+  "The house front (blue clapboard, coral porch and gable): is this the family home you picture?"
+ ],
+ "notes": [
+  "The toy vans on the car roofs were hard to see against the lilac void; they're now painted in the roof colours (9c1bbc5), so their still below is from just before that change.",
+  "Not shown: the argument battle and the stealth overlay (they draw over these scenes at runtime)."
+ ],
+ "sections": [
+  {
+   "title": "Night 2's house: the way in",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-01-front-garden-door.png",
+     "label": "The front garden and the house front",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-02-hallway-from-door.png",
+     "label": "Through the front door: the stretching hallway",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Pancakes",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-03-kitchen-from-slide.png",
+     "label": "The kitchen from the slide's landing",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-04-table-and-lena.png",
+     "label": "The table set for four, the pancakes, Lena at the stove, Theo",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-05-counter-stove-fridge.png",
+     "label": "The counter, the stove and sink, Lena",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-06-fridge-calendar.png",
+     "label": "The fridge calendar (a memory: its halo)",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Hide-and-seek: the rooms, the hiding spots and the memories",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-07-theo.png",
+     "label": "Theo",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-08-sofa.png",
+     "label": "The sofa and the curtains (a hiding spot)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-08b-coats.png",
+     "label": "The coats (a hiding spot)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-09-photo-wall.png",
+     "label": "The photo wall (a memory)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-10-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-11-theos-desk-drawing.png",
+     "label": "Theo's drawing on his desk (a memory)",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The house tips, and the way out",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-12-tipped-hallway.png",
+     "label": "The tipped house: still bare (see the question)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-13-way-out-door.png",
+     "label": "The way out: the front door, the rain beyond",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-14-umbrella-closed.png",
+     "label": "The umbrella by the door, glowing (take it)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/house-15-umbrella-open.png",
+     "label": "The umbrella open over her",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The dream escape",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-11/dream-stills/escape-01-walts-driveway.png",
+     "label": "Walt's driveway (the start)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/escape-02-street-side.png",
+     "label": "The street",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/escape-03-car-roofs.png",
+     "label": "The car roofs over the void",
+     "verdict": "pick",
+     "note": "Before the vans' new paint."
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/escape-04-barbecue.png",
+     "label": "The barbecue",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/escape-05-garage.png",
+     "label": "Walt's garage",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/escape-06-rooftops.png",
+     "label": "The rooftops",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-11/dream-stills/escape-07-front-door-rain.png",
+     "label": "The rain path: puddles and lamp posts",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  }
+ ]
+}
