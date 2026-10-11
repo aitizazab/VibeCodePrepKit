@@ -153,6 +153,9 @@ namespace JamKit.DreamEscape.Tests
             battle.Autopilot = true;
             yield return WaitFor(() => battle == null || battle.Ended, "the battle's autopilot to finish the argument", 150f);
             Assert.That(battle.Ended, Is.True);
+            // The host builds its end card (and the record) on its next frame: Continue on the card, as a player would.
+            yield return Frames(3);
+            Assert.That(JamKit.Argument.ArgumentHost.Current, Is.SameAs(battle), "the end card waits for Continue");
             battle.Continue();
             yield return Frames(3);
             Assert.That(Game.Phase, Is.EqualTo(HousePhase.Escape), "its end card closed: the house kicks her out");

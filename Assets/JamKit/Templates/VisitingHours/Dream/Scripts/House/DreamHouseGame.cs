@@ -345,7 +345,14 @@ namespace JamKit.DreamEscape
         void OnArgumentClosed(ArgumentRecord record)
         {
             _battle = null;
-            if (record == null) return;
+            // Closed before its end card had a record (the battle's Continue the very frame it ended): the house still moves
+            // on, with Lena unsure (it kicks her out either way).
+            if (record == null)
+            {
+                Debug.LogWarning("JAMKIT_HOUSE the argument closed without a record: Lena unsure");
+                Choose(ArgumentOutcome.Unsure);
+                return;
+            }
             Debug.Log("JAMKIT_HOUSE the argument with Lena: " + record.outcome + ", " + record.stance);
             Choose(OutcomeOf(record.stance));
         }
