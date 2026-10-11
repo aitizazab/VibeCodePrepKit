@@ -14,12 +14,19 @@ namespace JamKit.Stealth
     {
         public static float Visibility(StealthDef def, IStealthWorld world, Vector3 eye, float yawDegrees, in StealthTarget target,
             HideKind? hidingKind, out SightZone zone)
+            => Visibility(def, world, eye, yawDegrees, target, hidingKind, out zone, 1f, 1f);
+
+        /// <summary>The same with the cone (and periphery) widened by <paramref name="coneScale"/> (a wary seeker) and
+        /// the sight range stretched by <paramref name="rangeScale"/> (the dream noticing a fast target).</summary>
+        public static float Visibility(StealthDef def, IStealthWorld world, Vector3 eye, float yawDegrees, in StealthTarget target,
+            HideKind? hidingKind, out SightZone zone, float coneScale, float rangeScale)
         {
             zone = SightZone.None;
             if (!target.present) return 0f;
             Vector3 chest = target.feet + new Vector3(0f, target.height * def.sampleMid, 0f);
             float dist = FlatDistance(eye, chest);
-            if (dist > def.sightRange) return 0f;
+            float range = def.sightRange * Math.Max(0.1f, rangeScale);
+            if (dist > range) return 0f;
 
             // Cone, periphery, or the close sense.
             float zoneScale;
@@ -29,8 +36,8 @@ namespace JamKit.Stealth
             bool vertical = def.verticalHalfAngle >= 90f
                 || Math.Abs(Math.Atan2(chest.Y - eye.Y, Math.Max(dist, 1e-3f)) * 180.0 / Math.PI) <= def.verticalHalfAngle;
             if (!vertical) { if (dist > def.closeRange) return 0f; zone = SightZone.Close; zoneScale = 1f; }
-            else if (angle <= def.coneHalfAngle) { zone = SightZone.Cone; zoneScale = 1f; }
-            else if (angle <= def.peripheralHalfAngle) { zone = SightZone.Peripheral; zoneScale = def.peripheralScale; }
+            else if (angle <= Math.Min(170f, def.coneHalfAngle * coneScale)) { zone = SightZone.Cone; zoneScale = 1f; }
+            else if (angle <= Math.Min(178f, def.peripheralHalfAngle * coneScale)) { zone = SightZone.Peripheral; zoneScale = def.peripheralScale; }
             else if (dist <= def.closeRange) { zone = SightZone.Close; zoneScale = 1f; }
             else return 0f;
 
@@ -51,7 +58,7 @@ namespace JamKit.Stealth
             if (clear == 0) { zone = SightZone.None; return 0f; }
             float losScale = clear / 3f;
 
-            float distScale = dist <= def.nearRange ? 1f : Lerp(1f, def.farScale, (dist - def.nearRange) / Math.Max(0.01f, def.sightRange - def.nearRange));
+            float distScale = dist <= def.nearRange ? 1f : Lerp(1f, def.farScale, (dist - def.nearRange) / Math.Max(0.01f, range - def.nearRange));
 
             float posture = 1f;
             if (target.sliding) posture = def.slideScale;
@@ -93,7 +100,7 @@ namespace JamKit.Stealth
         }
 
         /// <summary>Raises the meter to at least <paramref name="level"/> (a noise, a scripted alarm).</summary>
-        public void Bump(float level) { if (_value < level) _value = Math.Min(1f, level); }
+        public void Bump(float level) { if (_value < level) { _value = Math.Min(1f, level); _unseen = 0f; } }
 
         public void Set(float value) { _value = Clamp01(value); if (_value > 0f) _unseen = 0f; }
 

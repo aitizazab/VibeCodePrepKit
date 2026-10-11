@@ -1,4 +1,5 @@
 using System.Collections;
+using JamKit.Movement;
 using JamKit.Presenting;
 using JamKit.Shell;
 using JamKit.Stealth;
@@ -85,6 +86,63 @@ namespace JamKit.StealthLab.Tests
             Game.seeker.Found += s => openedIt = s.Brain.Events.foundInSpot >= 0;
             yield return WaitFor(() => Game.seeker.State == AlertState.Found, "the seeker's sweep reaching the closet", 60f);
             Assert.That(openedIt, Is.True, "found by checking the closet, not by sight");
+        }
+
+        // ---------- The answers to fast movement ----------
+
+        static Vector3 Behind(SeekerAgent g, float metres) => g.transform.position - g.transform.forward * metres;
+
+        [UnityTest]
+        public IEnumerator WithLoudMovementADoubleJumpOutOfSightMakesTheGuardWary()
+        {
+            yield return StartLab();
+            Game.Try(true, false, false, false, false);
+            yield return Frames(3);
+            var guard = Game.seeker;
+            guard.Frozen = true; // hold him still: only his senses run in Tick, so unfreeze below
+            var at = Behind(guard, 14f);
+            Game.player.Teleport(new Vector3(at.x, 0.02f, at.z), 0f, Vector3.zero);
+            yield return Frames(3);
+            guard.Frozen = false;
+            Assert.That(guard.Brain.Wary, Is.False);
+            // Jump, then jump again in the air: a double jump, heard 24 m off.
+            int frame = 0;
+            Game.player.Autopilot = sim => { frame++; return new MoveInput { yaw = sim.Yaw, jumpPressed = frame == 1 || frame == 20, jumpHeld = frame == 1 || frame == 20 }; };
+            yield return WaitFor(() => guard.Brain.Wary, "the guard turning wary at the double jump", 3f);
+            Game.player.Autopilot = null;
+            Assert.That(guard.State, Is.Not.EqualTo(AlertState.Found), "wary, not found");
+            Assert.That(Game.Heard, Is.GreaterThan(0));
+            Assert.That(Game.player.GetComponent<NoiseRings>().LastRadius, Is.GreaterThan(guard.Def.sightRange), "the ring showed a noise past his sight");
+        }
+
+        [UnityTest]
+        public IEnumerator WithLucidityTheDreamPowersFadeNearAGuardAndComeBackAway()
+        {
+            yield return StartLab();
+            Game.Try(false, false, false, true, false);
+            yield return Frames(3);
+            var guard = Game.seeker;
+            var near = Behind(guard, 6f);
+            Game.player.Teleport(new Vector3(near.x, 0.02f, near.z), 0f, Vector3.zero);
+            yield return WaitFor(() => Game.player.Sim.Profile != null && !Game.player.Sim.Profile.doubleJump, "the powers fading near the guard", 3f);
+            Assert.That(Game.player.Sim.MaxSpeed, Is.EqualTo(guard.Def.watchedSpeedCap).Within(0.01f));
+            yield return WaitFor(() => Game.Hud.LucidText.StartsWith("Watched"), "the HUD saying so", 2f);
+            Game.player.Teleport(Game.playerStart, Game.playerYaw, Vector3.zero);
+            yield return WaitFor(() => Game.player.Sim.Profile == null, "the powers back away from him", 4f);
+        }
+
+        [UnityTest]
+        public IEnumerator ADaytimeSectionUsesTheDaytimeProfileAndThreeGuardsPatrol()
+        {
+            yield return StartLab();
+            Game.Try(false, false, true, false, true);
+            yield return WaitFor(() => Game.player.Profile == MoveProfileKind.Daytime, "the daytime profile", 2f);
+            Assert.That(Game.player.Sim.Profile.doubleJump, Is.False);
+            foreach (var g in Game.extraGuards) Assert.That(g.gameObject.activeSelf, Is.True, g.name + " patrols");
+            Assert.That(SeekerAgent.All.Count, Is.EqualTo(3));
+            Game.Try(false, false, false, false, false);
+            yield return WaitFor(() => Game.player.Profile == MoveProfileKind.Dream, "the dream's movement again", 2f);
+            foreach (var g in Game.extraGuards) Assert.That(g.gameObject.activeSelf, Is.False);
         }
 
         [UnityTest]

@@ -88,6 +88,12 @@ namespace JamKit.Movement
             if (_sim != null) _sim.SetProfile(ProfileFor(kind));
         }
 
+        /// <summary>A profile from outside for now (the stealth kit's lucidity fade); null goes back to <see cref="Profile"/>'s.</summary>
+        public void OverrideProfile(MoveProfile p)
+        {
+            if (_sim != null) _sim.SetProfile(p ?? ProfileFor(profile));
+        }
+
         MoveProfile ProfileFor(MoveProfileKind kind)
         {
             if (kind == MoveProfileKind.Dream) return null;

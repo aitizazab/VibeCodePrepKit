@@ -13,8 +13,9 @@ namespace JamKit.Stealth
     /// </summary>
     public sealed class StealthHud
     {
-        readonly VisualElement _root, _bar, _fill;
-        readonly Label _word, _items;
+        readonly VisualElement _root, _bar, _fill, _dim;
+        readonly Label _word, _items, _lucid;
+        float _dimShown = -1f;
         float _textT;
         string _lastWord = "";
 
@@ -29,6 +30,14 @@ namespace JamKit.Stealth
             _root.style.position = Position.Absolute;
             _root.style.left = 0; _root.style.right = 0; _root.style.top = 0; _root.style.bottom = 0;
             parent.Add(_root);
+
+            // Being watched dims her lucidity (answer C2): the screen darkens at its edges as the powers fade.
+            _dim = new VisualElement { name = "stealth-dim", pickingMode = PickingMode.Ignore };
+            _dim.style.position = Position.Absolute;
+            _dim.style.left = 0; _dim.style.right = 0; _dim.style.top = 0; _dim.style.bottom = 0;
+            _dim.style.borderLeftWidth = 90; _dim.style.borderRightWidth = 90; _dim.style.borderTopWidth = 60; _dim.style.borderBottomWidth = 60;
+            _dim.style.display = DisplayStyle.None;
+            _root.Add(_dim);
 
             var top = new VisualElement { pickingMode = PickingMode.Ignore };
             top.style.position = Position.Absolute;
@@ -62,7 +71,18 @@ namespace JamKit.Stealth
             _items.style.color = new Color(1f, 0.92f, 0.62f);
             _items.style.unityFontStyleAndWeight = FontStyle.Bold;
             _root.Add(_items);
+
+            _lucid = new Label("") { pickingMode = PickingMode.Ignore };
+            _lucid.style.position = Position.Absolute;
+            _lucid.style.top = 78; _lucid.style.left = Length.Percent(50);
+            _lucid.style.width = 360; _lucid.style.marginLeft = -180;
+            _lucid.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _lucid.style.fontSize = 15;
+            _lucid.style.color = new Color(0.82f, 0.78f, 1f);
+            _root.Add(_lucid);
         }
+
+        public string LucidText => _lucid.text;
 
         static void Round(VisualElement e, float r)
         {
@@ -101,9 +121,23 @@ namespace JamKit.Stealth
             }
             _fill.style.backgroundColor = color;
 
+            // The lucidity fade (answer C2) and the daytime section (C1).
+            var pr = StealthPlayerRules.Current;
+            float dim = pr != null ? 1f - pr.Lucidity : 0f;
+            if (Mathf.Abs(dim - _dimShown) > 0.01f)
+            {
+                _dimShown = dim;
+                _dim.style.display = dim > 0.01f ? DisplayStyle.Flex : DisplayStyle.None;
+                var c = new Color(0.12f, 0.08f, 0.22f, 0.55f * dim);
+                _dim.style.borderLeftColor = c; _dim.style.borderRightColor = c; _dim.style.borderTopColor = c; _dim.style.borderBottomColor = c;
+            }
+
             _textT -= Time.unscaledDeltaTime;
             if (_textT > 0f) return;
             _textT = 0.1f;
+            string lucid = pr == null ? "" : pr.Daytime ? "Daytime: no dream powers (just a nurse on a ward)"
+                : StealthRules.Shared.lucidityFade ? (pr.Faded ? "Watched: the dream's powers fade" : pr.Lucidity < 0.99f ? "Lucid again..." : "Lucid") : "";
+            if (_lucid.text != lucid) _lucid.text = lucid;
             string word = WordFor(top);
             if (word != _lastWord) { _lastWord = word; _word.text = word; }
             _word.style.color = top != null && top.State != AlertState.Unaware ? color : Color.white;

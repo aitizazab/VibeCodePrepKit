@@ -42,6 +42,10 @@ namespace JamKit.Stealth
         public event Action<SeekerAgent> Found;
         /// <summary>(this, from, to) on every alert-state change.</summary>
         public event Action<SeekerAgent, AlertState, AlertState> StateChanged;
+        /// <summary>(this) when it hears a noise.</summary>
+        public event Action<SeekerAgent> Heard;
+        /// <summary>(caller, how many came) when it calls the others (answer B).</summary>
+        public event Action<SeekerAgent, int> Called;
 
         static readonly List<SeekerAgent> _all = new List<SeekerAgent>();
         readonly StealthDef _fallback = new StealthDef();
@@ -86,7 +90,7 @@ namespace JamKit.Stealth
             _graph.AutoConnect(_world, connectDistance);
             _home = transform.position;
             _homeYaw = transform.eulerAngles.y;
-            _brain = new SeekerBrain(Def, _world, _graph, HidingSpotView.Spots, ToN(_home), _homeYaw);
+            _brain = new SeekerBrain(Def, _world, _graph, HidingSpotView.Spots, ToN(_home), _homeYaw) { rules = StealthRules.Shared };
             _brain.SetPatrol(patrol);
             if (lookout != null)
             {
@@ -124,8 +128,23 @@ namespace JamKit.Stealth
             var noise = player != null ? player.Noise : default;
             _brain.Tick(Time.deltaTime, target, noise);
             Apply();
+            _brain.rules = StealthRules.Shared;
             var ev = _brain.Events;
             if (ev.stateChanged) StateChanged?.Invoke(this, ev.from, ev.to);
+            if (ev.heard) Heard?.Invoke(this);
+            if (ev.called && _brain.rules != null && _brain.rules.dreamPushesBack)
+            {
+                // The call (answer B): every other guard within earshot of it turns wary and comes.
+                int came = 0;
+                for (int i = 0; i < _all.Count; i++)
+                {
+                    var other = _all[i];
+                    if (other == this || other == null || other._brain == null || other._frozen || !other.isActiveAndEnabled) continue;
+                    if ((other.transform.position - transform.position).magnitude > Def.callRadius) continue;
+                    if (other._brain.HearCall(_brain.CallSpot)) came++;
+                }
+                Called?.Invoke(this, came);
+            }
             if (ev.found)
             {
                 Found?.Invoke(this);

@@ -30,6 +30,9 @@ namespace JamKit.Movement
         public float jumpFatigueStep = 0.25f;
         public float jumpFatigueMin = 0.5f;
         public float jumpFatigueRecover = 0.8f;
+        /// <summary>A lower horizontal speed cap while this profile is on (0: the def's). Used by the stealth kit's
+        /// lucidity fade (watched: no dream powers, slower).</summary>
+        public float speedCap;
 
         public static MoveProfile Dream() => new MoveProfile();
 

@@ -65,7 +65,7 @@ namespace JamKit.Stealth
             _target.sliding = sim.Mode == MoveMode.Slide;
             _target.crouched = sim.Crouched;
             _target.hidingSpot = HidingSpotView.IndexAt(p);
-            _noise = _noiseRules.Tick(Def, sim.Mode, body.FrameEvents, _target.feet, Time.deltaTime);
+            _noise = _noiseRules.Tick(Def, sim.Mode, body.FrameEvents, _target.feet, Time.deltaTime, _target.speed, _target.crouched, StealthRules.Shared.loudMovement);
         }
     }
 }

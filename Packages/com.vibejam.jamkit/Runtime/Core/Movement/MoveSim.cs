@@ -137,6 +137,8 @@ namespace JamKit.Movement
         bool AllowWallrun => _profile == null || _profile.wallrun;
         bool AllowSlide => _profile == null || _profile.slide;
         float AirStrafeScale => _profile == null ? 1f : _profile.airStrafeScale;
+        /// <summary>The horizontal speed cap: the def's, or the profile's if it sets a lower one.</summary>
+        public float MaxSpeed => _profile != null && _profile.speedCap > 0f ? Math.Min(def.maxHorizontalSpeed, _profile.speedCap) : def.maxHorizontalSpeed;
 
         /// <summary>Puts the body somewhere (spawn, respawn, tests), with a velocity, in the air until it finds ground.</summary>
         public void Teleport(Vector3 feet, float yaw, Vector3 velocity)
@@ -298,7 +300,7 @@ namespace JamKit.Movement
             }
             else vH = Friction(vH, def.friction, def.stopSpeed, h);
             if (stick > 0f) vH = Accelerate(vH, wishDir, wishSpeed, def.groundAccel, h);
-            _vel = CapFlat(new Vector3(vH.X, 0f, vH.Z), def.maxHorizontalSpeed);
+            _vel = CapFlat(new Vector3(vH.X, 0f, vH.Z), MaxSpeed);
             _mode = sprint && HorizontalSpeed > def.walkSpeed + 0.5f ? MoveMode.Sprint : MoveMode.Grounded;
         }
 
@@ -318,7 +320,7 @@ namespace JamKit.Movement
             var n = _groundNormal;
             if (n.Y < 0.999f && n.Y > 0.1f)
                 vH += new Vector3(n.X, 0f, n.Z) * (def.gravity * n.Y * def.slideSlopeScale * h);
-            _vel = CapFlat(new Vector3(vH.X, 0f, vH.Z), def.maxHorizontalSpeed);
+            _vel = CapFlat(new Vector3(vH.X, 0f, vH.Z), MaxSpeed);
 
             if (!input.crouchHeld || HorizontalSpeed < def.slideExitSpeed)
             {
@@ -425,7 +427,7 @@ namespace JamKit.Movement
                 vH = LimitGain(Accelerate(vH, wishDir, def.airControlSpeed * stick, def.airControlAccel, h), Math.Max(s1, def.airControlSpeed), share * def.airControlStrafeGain);
             }
             float vy = Math.Max(_vel.Y - def.gravity * h, -def.terminalFall);
-            _vel = CapFlat(new Vector3(vH.X, vy, vH.Z), def.maxHorizontalSpeed);
+            _vel = CapFlat(new Vector3(vH.X, vy, vH.Z), MaxSpeed);
 
             // Stand up in the air when there's room (after a slide jump).
             if (_crouched && !input.crouchHeld) SetCrouched(false);
@@ -699,7 +701,7 @@ namespace JamKit.Movement
             }
             if (input.crouchHeld) outward += def.wallJumpCrouchKick;
             vH += n * outward;
-            _vel = CapFlat(new Vector3(vH.X, def.wallJumpUp, vH.Z), def.maxHorizontalSpeed);
+            _vel = CapFlat(new Vector3(vH.X, def.wallJumpUp, vH.Z), MaxSpeed);
             _mode = MoveMode.Air;
             _grounded = false;
             _lastWallLeaveY = Math.Min(_lastWallLeaveY, _pos.Y);

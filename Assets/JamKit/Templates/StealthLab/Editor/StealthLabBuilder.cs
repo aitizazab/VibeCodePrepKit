@@ -124,7 +124,7 @@ namespace JamKit.StealthLab.EditorTools
         public sealed class Materials
         {
             public Material ground, fence, wall, runWall, cover, ledge, roof, bar, post, bush, canopy, curtain, house, shed;
-            public Material sleeve, skin, legs, shoes, seekerBody, seekerHead, visor, collectible, cone, meter;
+            public Material sleeve, skin, legs, shoes, seekerBody, seekerHead, visor, collectible, cone, meter, ring, guardBody;
         }
 
         static Materials MakeMaterials()
@@ -154,6 +154,8 @@ namespace JamKit.StealthLab.EditorTools
                 visor = Lit("Seeker_Visor", new Color(0.12f, 0.12f, 0.16f)),
                 collectible = Lit("Collectible", new Color(1f, 0.8f, 0.3f), 0.6f),
                 cone = Overlay("Seeker_Cone", 4f),
+                ring = Overlay("Noise_Ring", 4f),
+                guardBody = Lit("Guard_Body", new Color(0.36f, 0.42f, 0.7f)),
                 meter = Overlay("Seeker_Meter", 8f),
             };
         }
@@ -324,6 +326,13 @@ namespace JamKit.StealthLab.EditorTools
             var sp = playerGo.AddComponent<StealthPlayer>();
             sp.body = body;
             sp.tuning = AssetDatabase.LoadAssetAtPath<StealthTuning>(StealthTuningPath);
+            // The answers to fast movement: the noise made visible (A), the daytime section and the lucidity fade (C).
+            var rings = playerGo.AddComponent<NoiseRings>();
+            rings.player = sp;
+            rings.material = m.ring;
+            var pr = playerGo.AddComponent<StealthPlayerRules>();
+            pr.body = body;
+            pr.tuning = sp.tuning;
 
             // The seeker: a figure (no colliders), its waypoints and overlay.
             var seekerGo = new GameObject("Seeker");
@@ -353,9 +362,35 @@ namespace JamKit.StealthLab.EditorTools
             overlay.coneMaterial = m.cone;
             overlay.meterMaterial = m.meter;
 
+            // Two more guards for the three-guard option: overlapping patrols of the west and east halves (off until chosen).
+            var extra = new List<SeekerAgent>();
+            foreach (var (name, start, loop) in new[] { ("Guard 2 (west)", yard.guard2Start, yard.patrol2), ("Guard 3 (east)", yard.guard3Start, yard.patrol3) })
+            {
+                var go = new GameObject(name);
+                go.transform.position = U(start);
+                Capsule("Body", go.transform, new Vector3(0f, 0.85f, 0f), new Vector3(0.7f, 0.85f, 0.7f), m.guardBody);
+                Sphere("Head", go.transform, new Vector3(0f, 1.62f, 0f), 0.42f, m.seekerHead);
+                var eyes = Box("Eyes", go.transform, Vector3.zero, new Vector3(0.34f, 0.1f, 0.1f), m.visor, false);
+                eyes.transform.SetParent(go.transform, false);
+                eyes.transform.localPosition = new Vector3(0f, 1.66f, 0.19f);
+                var g = go.AddComponent<SeekerAgent>();
+                g.tuning = sp.tuning;
+                g.mode = SeekerMode.Patrol;
+                g.connectDistance = yard.connectDistance;
+                g.waypoints = wps;
+                g.patrol = new List<int>(loop);
+                var o = go.AddComponent<SeekerOverlay>();
+                o.seeker = g;
+                o.coneMaterial = m.cone;
+                o.meterMaterial = m.meter;
+                go.SetActive(false);
+                extra.Add(g);
+            }
+
             var game = new GameObject("Stealth Lab").AddComponent<StealthLabGame>();
             game.player = body;
             game.seeker = agent;
+            game.extraGuards = extra;
             game.collectibles = counter;
             game.playerStart = U(yard.playerStart);
             game.playerYaw = yard.playerYaw;

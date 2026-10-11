@@ -72,6 +72,38 @@ namespace JamKit.StealthLab.Tests
         }
 
         [Test]
+        public void TheAnswersToFastMovementAreWired()
+        {
+            var yard = StealthYard.Build();
+            var scene = EditorSceneManager.OpenScene(StealthLabBuilder.ScenePath, OpenSceneMode.Additive);
+            try
+            {
+                StealthLabGame game = null;
+                foreach (var go in scene.GetRootGameObjects()) if (game == null) game = go.GetComponentInChildren<StealthLabGame>(true);
+                Assert.That(game, Is.Not.Null);
+                Assert.That(game.extraGuards.Count, Is.EqualTo(2), "guards 2 and 3");
+                Assert.That(game.extraGuards[0].patrol, Is.EqualTo(yard.patrol2));
+                Assert.That(game.extraGuards[1].patrol, Is.EqualTo(yard.patrol3));
+                foreach (var g in game.extraGuards)
+                {
+                    Assert.That(g.gameObject.activeSelf, Is.False, "off until the three-guard option");
+                    Assert.That(g.mode, Is.EqualTo(SeekerMode.Patrol));
+                    Assert.That(g.waypoints, Is.SameAs(game.seeker.waypoints), "the same walking map");
+                    Assert.That(g.GetComponent<SeekerOverlay>(), Is.Not.Null);
+                    Assert.That(g.GetComponentsInChildren<Collider>(true), Is.Empty);
+                }
+                var rings = game.player.GetComponent<NoiseRings>();
+                Assert.That(rings, Is.Not.Null, "the noise made visible");
+                Assert.That(rings.material.shader.name, Is.EqualTo(StealthLabBuilder.OverlayShader));
+                Assert.That(game.player.GetComponent<StealthPlayerRules>(), Is.Not.Null, "the daytime section and the lucidity fade");
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Test]
         public void TheOverlayShaderCompilesAndTheLabIsInBuildSettings()
         {
             var shader = Shader.Find(StealthLabBuilder.OverlayShader);

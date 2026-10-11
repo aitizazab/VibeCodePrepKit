@@ -104,6 +104,89 @@ route: the shed roof (mantle), the lookout (wallrun), under the deck (slide), th
   being found: you win.
 - **Patrol**: a guard walks a loop. Get the five without being found.
 
+## When the movement outruns the guards (2026-10-11)
+
+**The problem.** The creator, in the Stealth Lab: "the movement completely trivializes Stealth, because I move so
+fast, one single guard can only be in one place, and his range is limited on top of that too. I'm literally running
+circles behind him." At sprint (9.5 m/s), let alone 13-22 m/s, you cross a guard's 18 m sight in two seconds; his
+turn (200°/s) and his meter (0.8 s at best) never catch up; and the original kit hears only sprint steps (7 m),
+wallruns (9 m) and hard landings (12 m), while a double jump is silent.
+
+The answers are **rules** in the kit (`StealthRules`, `StealthRules.Shared` for a scene), each off by default, each
+switchable live in the Stealth Lab (keys **1-5**, or LB + d-pad up / right / down / left and LB + Y; a presenter
+chapter each; the panel bottom left shows which are on), and they combine.
+
+### A. Loud movement (`loudMovement`)
+
+- Noise scales with what you do (`StealthNoiseRules`, StealthDef's "loud" numbers):
+
+| Move | Radius |
+|---|---|
+| Walking | 2.5 m a step |
+| Crouch-walking | silent |
+| Sprinting | 5 + 0.8 × speed: 12.6 m at 9.5 m/s, 21 m at 20 |
+| A slide's start | 11 m |
+| A hard landing | 17-30 m |
+| A double jump | **24 m** |
+| A wallrun step or a wall kick | **22 m** |
+
+  The last two are well beyond sight range.
+- **A guard who hears turns wary, not alert.**
+  - He goes to look (suspicious, then searching).
+  - For 20 s, even back on his patrol, his cone is 40% wider (±56° instead of ±40°), he turns 60% faster, and his
+    meter fills 30% faster.
+  - His meter and cone show a pale yellow while he's wary.
+- **Repeated noise escalates:** three noises within 8 s and he is alert. He searches the last spot at once, the meter
+  already at 0.6.
+- **Readable:**
+  - Every noise you make draws a ring on the ground (`NoiseRings`), growing to its radius: you learn what carries how
+    far.
+  - The movement kit's footsteps and landings play as before, and a wary guard gives a little "blip".
+- **Counterplay:** walk, crouch, hide, and spend the dream powers where nobody hears.
+
+### B. The dream pushes back (`dreamPushesBack`)
+
+Of the options, I picked the two that feel fair but scary, because both are readable and in your control:
+1. **The guards call each other** (`SeekerSquad` in core; in Unity each `SeekerAgent` passes it on).
+   - What happens: when a guard grows more alert (suspicious, searching or found), every other guard within 26 m turns
+     wary and comes to the spot.
+   - Why it's fair: one guard can't be everywhere, but a seen player draws the area, and you can watch it happen (the
+     message, the cones turning).
+2. **The faster you move, the more the dream notices you.**
+   - What happens: the guards' sight range and meter rate grow with your speed, by ×1 + 0.06 per m/s over 5. That's
+     ×1.27 at sprint (23 m) and ×2 at 22 m/s (36 m).
+   - Why it's fair: speed has a cost you choose. Slow down near guards and they're as they were.
+- **Rejected:** blinking a new watcher in, and a guard snap-turning to your noise. Both feel like the game cheating
+  rather than the dream answering, and snap turns are what makes stealth "feel judged" (DENSE-STREET's Arkane notes).
+
+### C. Movement crippled, with a reason
+
+1. **C1, a daytime section** (`daytimeSection`): the movement's daytime profile (`docs/MOVEMENT.md`: no double jump,
+   wallrun or slide, the air strafe down, jump fatigue). The reason is that she's awake: Nadia is just a nurse
+   sneaking through St. Brigid's. The HUD says "Daytime: no dream powers".
+2. **C2, being watched dims her lucidity** (`lucidityFade`; core `LucidityFade`, Unity `StealthPlayerRules`).
+   - **When it fades:** within 10 m of any guard, or 20 m of a wary or alert one.
+   - **What fades:** her dream powers, over 0.4 s: no double jump, wallrun or slide, and a 6.5 m/s speed cap.
+   - **Coming back:** away from the guards the powers return over 1.5 s.
+   - **On screen:** the edges darken as it fades, and the HUD says "Watched: the dream's powers fade".
+   - **What it achieves:** you can't run circles behind him, but you're free away from guards. The movement is still
+     the way across the yard; it just isn't a way round a guard.
+
+### Three guards
+
+The lab's fifth option puts two more guards on overlapping patrols of the yard's west and east halves (patrol rounds).
+One guard can't hold a space against this movement however he's tuned.
+
+### My recommendation
+
+**A + C2, with three guards** (the presenter chapter "Recommended"):
+- A makes the dream powers a choice with a cost (they're loud), not a free escape.
+- C2 stops the one thing that breaks stealth, circling a guard, while leaving the movement for getting around.
+- Three guards make the yard a space to read rather than one man to dodge.
+- B's call is the next lever if that's still too easy; its speed-noticing is the strongest single nerf, but it
+  punishes the movement everywhere, which is why it isn't in the base set.
+- C1 is for the waking world, where the story already takes the powers away.
+
 ## Every tunable number
 
 All in `StealthDef` (a `StealthTuning` asset; the lab's is `Templates/StealthLab/Data/StealthLabStealth.asset`).
@@ -128,6 +211,11 @@ All in `StealthDef` (a `StealthTuning` asset; the lab's is `Templates/StealthLab
 | arriveRadius / patrolPause | 0.35 / 1.2 | |
 | hearingScale / occludedHearing | 1 / 0.5 | |
 | hardLandingSpeed / landingNoiseRadius / sprintNoiseRadius / footstepEvery / wallrunNoiseRadius / slideNoiseRadius | 7 / 12 / 7 / 0.35 / 9 / 5 | Noise. |
+| loudWalkRadius / loudSprintBase / loudSprintPerSpeed / loudDoubleJumpRadius / loudWallrunRadius / loudSlideRadius / loudLandingScale | 2.5 / 5 / 0.8 / 24 / 22 / 11 / 1.4 | Answer A's noise. |
+| waryTime / waryConeScale / waryTurnScale / waryFillScale | 20 / 1.4 / 1.6 / 1.3 | A wary guard (answers A and B). |
+| escalateNoises / escalateWindow / escalateMeter | 3 / 8 / 0.6 | Repeated noise escalates to alert. |
+| callRadius / noticePerSpeed / noticeFromSpeed | 26 / 0.06 / 5 | Answer B. |
+| lucidityRadius / lucidityAlertRadius / lucidityFadeTime / lucidityRecoverTime / watchedSpeedCap | 10 / 20 / 0.4 / 1.5 / 6.5 | Answer C2. |
 
 ## Tests
 
@@ -135,6 +223,7 @@ All in `StealthDef` (a `StealthTuning` asset; the lab's is `Templates/StealthLab
 |---|---|
 | `core-tests/Stealth` (`StealthSenseTests`) | the cone, periphery and close sense; distance; low cover hides a crouched body, shows a standing head; posture, light, bush, closet; the meter fills over 0.8 s (never at once) and drains after its delay; the box world's line of sight; noise from hard landings, sprint, wallrun, slide, not walking |
 | `core-tests/Stealth` (`SeekerTests`) | a glimpse: suspicious, searching, unaware again; steady sight: found in about a second, lost: searching; a noise behind turns it and sends it there; a search opens the closet you're in; in the yard: a stationary player in the open is found, one in the closet is found by the sweep, the dark alley and under the deck are reached, the seeker never walks through a wall; a patrol walks its whole loop; the counter (remaining, any left, the last announced once, reset) |
+| `core-tests/Stealth` (`StealthAnswersTests`) | loud movement is heard beyond sight, walking slowly stays quiet, the original kit stays silent; a heard noise makes a guard wary (not found) with a wider cone that calms after 20 s; repeated noise escalates; a suspicious guard calls the near guard, not the far one; the faster you move the farther the dream notices; near a guard the powers fade and away they come back, a wary guard watches from farther; the watched speed cap holds |
 | `core-tests/Stealth` (`StealthYardTests`) | the graph is one piece and reaches every spot; nothing inside a solid box; the routes fit the movement kit (mantle heights, the 1.15 m underside, the wall's length, the lookout past the wall); light and shade |
 | Unity EditMode (`StealthLabEditorTests`) | the scene is wired from the yard; solid vs see-through boxes; the overlay shader compiles; the lab is in Build Settings |
 | Unity PlayMode (`StealthLabPlayTests`) | the physics graph is one piece; a seeker finds a player standing still in the open (and the HUD says so); the closet hides you until the sweep opens it; the five collectibles count down and announce the last; the restart |

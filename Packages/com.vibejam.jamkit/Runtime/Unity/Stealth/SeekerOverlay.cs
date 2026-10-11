@@ -25,6 +25,8 @@ namespace JamKit.Stealth
         public static readonly Color Suspicious = new Color(1f, 0.8f, 0.25f);
         public static readonly Color Searching = new Color(1f, 0.55f, 0.15f);
         public static readonly Color FoundColor = new Color(1f, 0.22f, 0.2f);
+        /// <summary>Calm but wary (it heard something a while ago).</summary>
+        public static readonly Color WaryColor = new Color(1f, 0.92f, 0.45f);
 
         Mesh _cone, _meter;
         Transform _coneT, _meterT;
@@ -91,7 +93,7 @@ namespace JamKit.Stealth
             if (seeker == null || seeker.Brain == null) return;
             var b = seeker.Brain;
             var def = seeker.Def;
-            var color = ColorOf(b.State);
+            var color = b.State == AlertState.Unaware && b.Wary ? WaryColor : ColorOf(b.State);
             bool counting = b.Counting;
 
             // The cone, in world space under an unrotated child.
@@ -103,7 +105,8 @@ namespace JamKit.Stealth
                 var eye = transform.position + Vector3.up * rayHeight;
                 _coneV[0] = origin;
                 _coneC[0] = new Color(color.r, color.g, color.b, 0.4f);
-                float half = def.peripheralHalfAngle;
+                float widen = b.Wary ? def.waryConeScale : 1f; // a wary guard looks wider
+                float half = Mathf.Min(178f, def.peripheralHalfAngle * widen);
                 for (int i = 0; i <= segments; i++)
                 {
                     float a = -half + 2f * half * i / segments;
@@ -117,7 +120,7 @@ namespace JamKit.Stealth
                         if (StealthPlayer.Current != null && t.IsChildOf(StealthPlayer.Current.transform)) continue;
                         if (_hits[k].distance < len) len = _hits[k].distance;
                     }
-                    bool inCone = Mathf.Abs(a) <= def.coneHalfAngle;
+                    bool inCone = Mathf.Abs(a) <= def.coneHalfAngle * widen;
                     _coneV[i + 1] = origin + dir * len;
                     _coneC[i + 1] = new Color(color.r, color.g, color.b, inCone ? 0.16f : 0.06f);
                 }
@@ -128,7 +131,7 @@ namespace JamKit.Stealth
 
             // The meter above the head, facing the camera.
             float fill = counting ? Mathf.Clamp01(b.CountLeft / Mathf.Max(0.1f, def.countTime)) : b.Meter;
-            bool show = counting || fill > 0.01f || b.State != AlertState.Unaware;
+            bool show = counting || fill > 0.01f || b.State != AlertState.Unaware || b.Wary;
             _meterT.gameObject.SetActive(show);
             if (!show) return;
             var cam = Camera.main;

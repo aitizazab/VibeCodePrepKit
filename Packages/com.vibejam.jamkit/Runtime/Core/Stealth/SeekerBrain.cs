@@ -71,6 +71,17 @@ namespace JamKit.Stealth
         int _lookoutEvery;
         float _eyeLift;
 
+        // Wariness, escalation and calls (StealthRules; docs/STEALTH.md "When the movement outruns the guards").
+        float _waryLeft;
+        readonly float[] _noiseTimes = new float[8];
+        int _noiseHead;
+        float _clock;
+        bool _suppressCall;
+        Vector3 _callSpot;
+
+        /// <summary>The answers in play (null: none, the original kit). The Unity seeker sets <see cref="StealthRules.Shared"/>.</summary>
+        public StealthRules rules;
+
         public SeekerBrain(StealthDef def, IStealthWorld world, WaypointGraph graph, List<HidingSpot> spots, Vector3 feet, float yaw)
         {
             this.def = def ?? new StealthDef();
@@ -86,6 +97,28 @@ namespace JamKit.Stealth
         public Vector3 Position => _pos;
         public float Yaw => _yaw;
         public Vector3 Eye => _pos + new Vector3(0f, def.eyeHeight + _eyeLift, 0f);
+        /// <summary>Wary: it heard something (or was called) and for <see cref="StealthDef.waryTime"/> s looks wider, turns
+        /// quicker and fills its meter faster, even back on its patrol.</summary>
+        public bool Wary => _waryLeft > 0f;
+        public float WaryLeft => Math.Max(0f, _waryLeft);
+        /// <summary>Where its last call pointed (answer B).</summary>
+        public Vector3 CallSpot => _callSpot;
+        float TurnRate => def.turnRate * (Wary ? def.waryTurnScale : 1f);
+        /// <summary>Wariness and escalation are part of answers A and B (off: the original kit).</summary>
+        bool WaryOn => rules != null && (rules.loudMovement || rules.dreamPushesBack);
+
+        /// <summary>Another guard's call (answer B): turn wary and, if calm, come to <paramref name="spot"/>. True if it reacted.</summary>
+        public bool HearCall(Vector3 spot)
+        {
+            if (_counting || _state == AlertState.Found) return false;
+            _waryLeft = def.waryTime;
+            if (_state != AlertState.Unaware) return false;
+            _suppressCall = true;
+            BecomeSuspicious(spot);
+            _suppressCall = false;
+            return true;
+        }
+
         /// <summary>How far the seeker stands above its floor right now (on the lookout, bouncing); the body follows it.</summary>
         public float EyeLift => _eyeLift;
         /// <summary>On the lookout (bouncing, looking over things).</summary>
@@ -119,6 +152,8 @@ namespace JamKit.Stealth
         /// <summary>Puts the seeker somewhere, unaware, meter empty, patrolling (or idle with no patrol).</summary>
         public void Place(Vector3 feet, float yaw)
         {
+            _waryLeft = 0f;
+            for (int i = 0; i < _noiseTimes.Length; i++) _noiseTimes[i] = -999f;
             _pos = feet;
             _floorY = feet.Y;
             _yaw = yaw;
@@ -186,15 +221,19 @@ namespace JamKit.Stealth
             if (!(dt > 0f)) return;
             _stateTime += dt;
             _targetSpot = target.present ? target.hidingSpot : -1;
+            _clock += dt;
+            if (_waryLeft > 0f) _waryLeft -= dt;
             _bounceT += dt;
             _eyeLift = _task == Task.Lookout || (_counting && AtLookout) ? Bounce(_bounceT) : (AtLookout && _hasLookout ? _lookoutBase : 0f);
 
             // Senses.
             HideKind? hide = null;
             if (target.present && target.hidingSpot >= 0 && target.hidingSpot < _spots.Count) hide = _spots[target.hidingSpot].kind;
-            _visibility = _counting ? 0f : StealthSight.Visibility(def, _world, Eye, _yaw, target, hide, out _zone);
+            float notice = rules != null && target.present ? rules.NoticeScale(def, target.speed) : 1f;
+            _visibility = _counting ? 0f : StealthSight.Visibility(def, _world, Eye, _yaw, target, hide, out _zone, Wary ? def.waryConeScale : 1f, notice);
             if (_counting) _zone = SightZone.None;
-            float rate = _visibility * def.fillRate * (_state == AlertState.Suspicious || _state == AlertState.Searching ? def.alertFillScale : 1f);
+            float rate = _visibility * def.fillRate * notice * (Wary ? def.waryFillScale : 1f)
+                * (_state == AlertState.Suspicious || _state == AlertState.Searching ? def.alertFillScale : 1f);
             _meter.Tick(def, rate, dt);
             if (_visibility > 0f)
             {
@@ -205,11 +244,27 @@ namespace JamKit.Stealth
             else _sinceSeen += dt;
             bool heard = !_counting && _state != AlertState.Found && Hears(noise);
             if (heard) _events.heard = true;
+            if (heard && WaryOn)
+            {
+                if (!Wary) _events.becameWary = true;
+                _waryLeft = def.waryTime;
+                _noiseTimes[_noiseHead] = _clock;
+                _noiseHead = (_noiseHead + 1) % _noiseTimes.Length;
+                if (HeardRecently() >= Math.Max(1, def.escalateNoises) && _state != AlertState.Searching)
+                {
+                    // Repeated noise: alert. Search the spot at once, the meter part full.
+                    _events.escalated = true;
+                    _meter.Bump(def.escalateMeter);
+                    for (int i = 0; i < _noiseTimes.Length; i++) _noiseTimes[i] = -999f;
+                    BeginSearch(Flat(noise.position), _mode == SeekerMode.HideAndSeek);
+                    heard = false; // handled
+                }
+            }
 
             if (_counting)
             {
                 _countLeft -= dt;
-                _yaw = MoveTowardsAngle(_yaw, _countYaw, def.turnRate * dt);
+                _yaw = MoveTowardsAngle(_yaw, _countYaw, TurnRate * dt);
                 if (_countLeft <= 0f)
                 {
                     _counting = false;
@@ -302,6 +357,12 @@ namespace JamKit.Stealth
             _events.stateChanged = true;
             _events.from = _state;
             _events.to = s;
+            // A guard who grows more alert calls out (answer B; SeekerSquad passes it on).
+            if (!_suppressCall && (int)s > (int)_state && s != AlertState.Unaware)
+            {
+                _events.called = true;
+                _callSpot = _hasLastKnown ? _lastKnown : _pos;
+            }
             _state = s;
             _stateTime = 0f;
         }
@@ -517,7 +578,7 @@ namespace JamKit.Stealth
                 case Task.LookAround:
                     _taskTime += dt;
                     float k = _taskTime / Math.Max(0.1f, def.lookAroundTime);
-                    _yaw = MoveTowardsAngle(_yaw, _lookCenter + def.lookAroundAngle * (float)Math.Sin(k * Math.PI * 2.0), def.turnRate * dt);
+                    _yaw = MoveTowardsAngle(_yaw, _lookCenter + def.lookAroundAngle * (float)Math.Sin(k * Math.PI * 2.0), TurnRate * dt);
                     if (_taskTime >= def.lookAroundTime) { _stopIndex++; StartStop(); }
                     return;
                 case Task.Lookout:
@@ -618,7 +679,15 @@ namespace JamKit.Stealth
             _pos += d / len * step;
         }
 
-        void Face(float yaw, float dt) => _yaw = MoveTowardsAngle(_yaw, yaw, def.turnRate * dt);
+        void Face(float yaw, float dt) => _yaw = MoveTowardsAngle(_yaw, yaw, TurnRate * dt);
+
+        int HeardRecently()
+        {
+            int n = 0;
+            for (int i = 0; i < _noiseTimes.Length; i++)
+                if (_clock - _noiseTimes[i] <= def.escalateWindow) n++;
+            return n;
+        }
 
         float YawTo(Vector3 p)
         {

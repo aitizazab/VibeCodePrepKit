@@ -109,5 +109,50 @@ namespace JamKit.Stealth
         public float footstepEvery = 0.35f;
         public float wallrunNoiseRadius = 9f;
         public float slideNoiseRadius = 5f;
+
+        // ---------- Answer A: loud movement (StealthRules.loudMovement) ----------
+        /// <summary>Loud movement: walking (at 1 m/s or more) makes a small noise each step...</summary>
+        public float loudWalkRadius = 2.5f;
+        /// <summary>...sprinting a noise of base + perSpeed x speed (12.6 m at 9.5 m/s, 21 m at 20)...</summary>
+        public float loudSprintBase = 5f;
+        public float loudSprintPerSpeed = 0.8f;
+        /// <summary>...a double jump and every wallrun step well beyond sight range...</summary>
+        public float loudDoubleJumpRadius = 24f;
+        public float loudWallrunRadius = 22f;
+        /// <summary>...a slide's start, and hard landings scaled up.</summary>
+        public float loudSlideRadius = 11f;
+        public float loudLandingScale = 1.4f;
+
+        // ---------- Wariness (any noise heard) ----------
+        /// <summary>A seeker that hears something stays wary this long: a wider cone, a quicker turn, a faster meter.</summary>
+        public float waryTime = 20f;
+        public float waryConeScale = 1.4f;
+        public float waryTurnScale = 1.6f;
+        public float waryFillScale = 1.3f;
+        /// <summary>This many noises heard within <see cref="escalateWindow"/> s escalate to alert: it searches the last
+        /// one's spot at once, the meter at <see cref="escalateMeter"/>.</summary>
+        public int escalateNoises = 3;
+        public float escalateWindow = 8f;
+        public float escalateMeter = 0.6f;
+
+        // ---------- Answer B: the dream pushes back (StealthRules.dreamPushesBack) ----------
+        /// <summary>A guard who becomes suspicious, searches or finds you calls out: guards within this distance turn
+        /// wary and come to the spot.</summary>
+        public float callRadius = 26f;
+        /// <summary>The faster you move, the more the dream notices you: sight range and the meter's rate grow by this
+        /// share per m/s above <see cref="noticeFromSpeed"/> (x1.27 at sprint, x2 at 22 m/s).</summary>
+        public float noticePerSpeed = 0.06f;
+        public float noticeFromSpeed = 5f;
+
+        // ---------- Answer C2: being watched dims her lucidity (StealthRules.lucidityFade) ----------
+        /// <summary>Within this distance of any guard her dream powers fade...</summary>
+        public float lucidityRadius = 10f;
+        /// <summary>...or within this distance of a guard who is wary, suspicious, searching or has found her.</summary>
+        public float lucidityAlertRadius = 20f;
+        /// <summary>Seconds to fade out when watched, and to come back once free.</summary>
+        public float lucidityFadeTime = 0.4f;
+        public float lucidityRecoverTime = 1.5f;
+        /// <summary>Her speed cap while the powers are gone (sprint is 9.5).</summary>
+        public float watchedSpeedCap = 6.5f;
     }
 }

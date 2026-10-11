@@ -96,6 +96,12 @@ namespace JamKit.Stealth
         public int checkedSpot;
         public bool heard;
         public bool countingDone;
+        /// <summary>It heard something and turned wary this tick (it wasn't before).</summary>
+        public bool becameWary;
+        /// <summary>Repeated noise escalated it to alert (searching) this tick.</summary>
+        public bool escalated;
+        /// <summary>It grew more alert this tick and called out (answer B: <see cref="SeekerSquad"/> passes it on).</summary>
+        public bool called;
 
         public static SeekerEvents None => new SeekerEvents { foundInSpot = -1, checkedSpot = -1 };
     }

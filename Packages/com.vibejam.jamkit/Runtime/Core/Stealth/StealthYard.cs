@@ -46,6 +46,9 @@ namespace JamKit.Stealth
         public readonly List<YardCollectible> collectibles = new List<YardCollectible>();
         public readonly List<Vector3> nodes = new List<Vector3>();
         public readonly List<int> patrol = new List<int>();
+        /// <summary>Two more guards (the lab's three-guard option): overlapping loops of the west and east halves.</summary>
+        public readonly List<int> patrol2 = new List<int>(), patrol3 = new List<int>();
+        public Vector3 guard2Start, guard3Start;
         public float ambientLight = 0.75f;
         public Vector3 playerStart, seekerStart, lampPosition;
         public float playerYaw, seekerYaw, countYaw;
@@ -157,10 +160,14 @@ namespace JamKit.Stealth
             nodes.Add(V(1f, 0f, -9f));      // 17 between the garden fence and the run wall
             nodes.Add(V(-23.5f, 0f, 18f));  // 18 the west gap's north end, into the alley
             patrol.AddRange(new[] { 0, 17, 11, 2, 3, 4, 5, 6, 8, 9, 1, 17 });
+            patrol2.AddRange(new[] { 8, 9, 10, 1, 17, 0, 6 });
+            patrol3.AddRange(new[] { 3, 12, 11, 2, 0, 5, 4, 13 });
 
             playerStart = V(-20f, 0f, -16f);
             playerYaw = 45f;
             seekerStart = V(0f, 0f, -2f);
+            guard2Start = V(-19f, 0f, 4f);
+            guard3Start = V(21f, 0f, 5f);
             seekerYaw = 0f;
             countYaw = 180f;
         }
