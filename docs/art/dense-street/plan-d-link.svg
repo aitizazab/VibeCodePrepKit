@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1288" height="730" viewBox="0 0 1288 730" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="1288" height="730" fill="#f6f1e7"/>
+<text x="60" y="42" font-size="24" font-weight="700" fill="#2b2b33">D. (For comparison) Link to a second, dense place</text>
+<text x="60" y="68" font-size="14" fill="#7d7a86">The street stays as the slice has it; Walt&#x27;s back door opens on the Yards behind the high street, built dense. Not recommended: it spends the density away from where the story is.</text>
+<line x1="60.0" y1="130.0" x2="60.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="130.0" y1="130.0" x2="130.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="200.0" y1="130.0" x2="200.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="270.0" y1="130.0" x2="270.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="340.0" y1="130.0" x2="340.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="410.0" y1="130.0" x2="410.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="480.0" y1="130.0" x2="480.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="550.0" y1="130.0" x2="550.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="620.0" y1="130.0" x2="620.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="690.0" y1="130.0" x2="690.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="760.0" y1="130.0" x2="760.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="830.0" y1="130.0" x2="830.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="900.0" y1="130.0" x2="900.0" y2="620.0" stroke="#e4dccb"/>
+<line x1="60.0" y1="130.0" x2="928.0" y2="130.0" stroke="#e4dccb"/>
+<line x1="60.0" y1="200.0" x2="928.0" y2="200.0" stroke="#e4dccb"/>
+<line x1="60.0" y1="270.0" x2="928.0" y2="270.0" stroke="#e4dccb"/>
+<line x1="60.0" y1="340.0" x2="928.0" y2="340.0" stroke="#e4dccb"/>
+<line x1="60.0" y1="410.0" x2="928.0" y2="410.0" stroke="#e4dccb"/>
+<line x1="60.0" y1="480.0" x2="928.0" y2="480.0" stroke="#e4dccb"/>
+<line x1="60.0" y1="550.0" x2="928.0" y2="550.0" stroke="#e4dccb"/>
+<line x1="60.0" y1="620.0" x2="928.0" y2="620.0" stroke="#e4dccb"/>
+<rect x="60.0" y="340.0" width="868.0" height="70.0" rx="0" fill="#cfc9c0" stroke="#6d6458" stroke-width="1" opacity="1.0"/>
+<rect x="158.0" y="256.0" width="98.0" height="70.0" rx="0" fill="#f2c9a8" stroke="#6d6458" stroke-width="1" opacity="1.0"/>
+<rect x="382.0" y="256.0" width="98.0" height="70.0" rx="0" fill="#f2c9a8" stroke="#6d6458" stroke-width="1" opacity="1.0"/>
+<rect x="606.0" y="256.0" width="98.0" height="70.0" rx="0" fill="#f2c9a8" stroke="#6d6458" stroke-width="1" opacity="1.0"/>
+<rect x="340.0" y="424.0" width="98.0" height="70.0" rx="0" fill="#f2c9a8" stroke="#6d6458" stroke-width="1" opacity="1.0"/>
+<rect x="564.0" y="424.0" width="98.0" height="70.0" rx="0" fill="#f2c9a8" stroke="#6d6458" stroke-width="1" opacity="1.0"/>
+<rect x="74.0" y="424.0" width="98.0" height="84.0" rx="0" fill="#e8a989" stroke="#6d6458" stroke-width="1" opacity="1.0"/>
+<rect x="60.0" y="550.0" width="420.0" height="70.0" rx="0" fill="#c9c0d6" stroke="#6d6458" stroke-width="1" opacity="1.0"/>
+<polyline points="123.0,508.0 123.0,564.0" fill="none" stroke="#2f7fc0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4"/>
+<text x="480.0" y="379.2" font-size="12" font-weight="700" text-anchor="middle" fill="#2b2b33">LARCH STREET (as now: 120 m, five houses, open lawns)</text>
+<text x="123.0" y="466.0" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="middle" fill="#2b2b33">Walt&#x27;s shop</text>
+<text x="270.0" y="585.0" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="middle" fill="#2b2b33">THE YARDS (a second, dense place): sheds, roofs, yards, the canal</text>
+<rect x="60.0" y="646.0" width="70.0" height="6" fill="#2b2b33"/>
+<rect x="130.0" y="646.0" width="70.0" height="6" fill="#fff" stroke="#2b2b33"/>
+<text x="60.0" y="666.0" font-size="11" fill="#2b2b33">0</text>
+<text x="130.0" y="666.0" font-size="11" text-anchor="middle" fill="#2b2b33">10</text>
+<text x="200.0" y="666.0" font-size="11" text-anchor="middle" fill="#2b2b33">20 m</text>
+<text x="228.0" y="653.0" font-size="11" fill="#7d7a86">grid 10 m; heights in metres above the street</text>
+<text x="958.0" y="130" font-size="15" font-weight="700" fill="#2b2b33">Legend</text>
+<line x1="958.0" y1="148" x2="992.0" y2="148" stroke="#8a8a96" stroke-width="4.5"/>
+<text x="1000.0" y="152" font-size="12" fill="#2b2b33">Street route (public, watched)</text>
+<line x1="958.0" y1="168" x2="992.0" y2="168" stroke="#3f9a52" stroke-width="4.5"/>
+<text x="1000.0" y="172" font-size="12" fill="#2b2b33">Back route (gardens, fences, the lane)</text>
+<line x1="958.0" y1="188" x2="992.0" y2="188" stroke="#d19a1c" stroke-width="4.5"/>
+<text x="1000.0" y="192" font-size="12" fill="#2b2b33">Roof route (gold: fast, unseen on back pitches)</text>
+<line x1="958.0" y1="208" x2="992.0" y2="208" stroke="#2f7fc0" stroke-width="4.5"/>
+<text x="1000.0" y="212" font-size="12" fill="#2b2b33">Under route (creek bed, culvert, crawl spaces)</text>
+<line x1="958.0" y1="228" x2="992.0" y2="228" stroke="#5a4a3a" stroke-width="2.4"/>
+<text x="1000.0" y="232" font-size="12" fill="#2b2b33">Fence or wall 1.8 m: mantle from the ground</text>
+<line x1="958.0" y1="248" x2="992.0" y2="248" stroke="#8c7a64" stroke-width="1.6" stroke-dasharray="4 3"/>
+<text x="1000.0" y="252" font-size="12" fill="#2b2b33">Picket fence 0.85 m: hop</text>
+<line x1="958.0" y1="268" x2="992.0" y2="268" stroke="#4f8a3c" stroke-width="4.5"/>
+<text x="1000.0" y="272" font-size="12" fill="#2b2b33">Hedge 1.2 m: hides a crouched Nadia</text>
+<line x1="958.0" y1="288" x2="992.0" y2="288" stroke="#d19a1c" stroke-width="4.0"/>
+<text x="1000.0" y="292" font-size="12" fill="#2b2b33">Runnable wall, 3 m+ (gold stripe)</text>
+<rect x="962.0" y="300" width="16" height="16" rx="3" fill="#7b4bb5" stroke="#fff" stroke-width="1.5"/>
+<text x="970.0" y="308.5" font-size="9.5" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="#fff">H</text>
+<text x="1000.0" y="312" font-size="12" fill="#2b2b33">Hiding place (hide-and-seek, stealth)</text>
+<polygon points="970.0,322.0 972.6,328.4 979.5,328.9 974.3,333.4 975.9,340.1 970.0,336.5 964.1,340.1 965.7,333.4 960.5,328.9 967.4,328.4" fill="#e0457b" stroke="#fff" stroke-width="1.2"/>
+<text x="970.0" y="332.5" font-size="9.5" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="#fff"></text>
+<text x="1000.0" y="336" font-size="12" fill="#2b2b33">Memory slot</text>
+<circle cx="970.0" cy="356" r="9" fill="#1d8f8f" stroke="#fff" stroke-width="1.5"/>
+<text x="970.0" y="356.5" font-size="9.5" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="#fff">T</text>
+<text x="1000.0" y="360" font-size="12" fill="#2b2b33">Theo counts here (home base)</text>
+<circle cx="970.0" cy="380" r="7" fill="#c0392b" stroke="#fff" stroke-width="1.5"/>
+<text x="970.0" y="380.5" font-size="9.5" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="#fff"></text>
+<text x="1000.0" y="384" font-size="12" fill="#2b2b33">Watcher and sight cone</text>
+<polygon points="970.0,395 979.0,404 970.0,413 961.0,404" fill="#fff" stroke="#555" stroke-width="2"/>
+<text x="970.0" y="404.5" font-size="9.5" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="#555">S</text>
+<text x="1000.0" y="408" font-size="12" fill="#2b2b33">Switch: open or shut per night</text>
+<text x="958.0" y="438" font-size="12" fill="#2b2b33" font-weight="600">Linking keeps the street easy to build</text>
+<text x="958.0" y="454" font-size="12" fill="#2b2b33" font-weight="400">but the dense place has no reason to</text>
+<text x="958.0" y="470" font-size="12" fill="#2b2b33" font-weight="400">be in Elias&#x27;s Saturday, and the street</text>
+<text x="958.0" y="486" font-size="12" fill="#2b2b33" font-weight="400">stays empty: the creator&#x27;s objection.</text>
+</svg>

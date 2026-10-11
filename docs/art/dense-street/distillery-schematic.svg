@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="760" viewBox="0 0 1180 760" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="1180" height="760" fill="#f6f1e7"/>
+<text x="40" y="44" font-size="24" font-weight="700" fill="#2b2b33">How the Distillery District stacks its routes (schematic, not to scale)</text>
+<text x="40" y="68" font-size="13" fill="#7d7a86">From the Dishonored wiki's pages for High Overseer Campbell and House of Pleasure (sources in DENSE-STREET.md). Left: the river; right: the two goals.</text>
+<rect x="30" y="95" width="1120" height="80" rx="8" fill="#f7ebc9"/>
+<text x="44" y="115" font-size="13" font-weight="700" fill="#7d7a86">ROOFS AND LEDGES (Blink 10-15 m)</text>
+<rect x="30" y="185" width="1120" height="270" rx="8" fill="#ece6da"/>
+<text x="44" y="205" font-size="13" font-weight="700" fill="#7d7a86">STREETS (the boulevard is watched)</text>
+<rect x="30" y="465" width="1120" height="80" rx="8" fill="#dbe8f2"/>
+<text x="44" y="485" font-size="13" font-weight="700" fill="#7d7a86">UNDER (the lower street, sewers, rat tunnels)</text>
+<rect x="50" y="300" width="140" height="64" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="120.0" y="318" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Endoria Street</text>
+<text x="120.0" y="334" font-size="10.5" text-anchor="middle" fill="#2b2b33">waterfront, Samuel&#x27;s drop-off</text>
+<text x="120.0" y="348" font-size="10.5" text-anchor="middle" fill="#2b2b33">Granny Rags&#x27; apartment</text>
+<rect x="230" y="210" width="150" height="64" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="305.0" y="228" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Bottle Street</text>
+<text x="305.0" y="244" font-size="10.5" text-anchor="middle" fill="#2b2b33">gang territory (neutral in</text>
+<text x="305.0" y="258" font-size="10.5" text-anchor="middle" fill="#2b2b33">mission 3); the distillery yard</text>
+<rect x="230" y="360" width="150" height="70" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="305.0" y="378" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Dunwall Distillery</text>
+<text x="305.0" y="394" font-size="10.5" text-anchor="middle" fill="#2b2b33">Slackjaw; planks overhead</text>
+<text x="305.0" y="408" font-size="10.5" text-anchor="middle" fill="#2b2b33">-&gt; roof -&gt; pipes -&gt; inside</text>
+<rect x="420" y="300" width="140" height="64" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="490.0" y="318" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Bloodox Way</text>
+<text x="490.0" y="334" font-size="10.5" text-anchor="middle" fill="#2b2b33">dead end: Griff&#x27;s shop</text>
+<text x="490.0" y="348" font-size="10.5" text-anchor="middle" fill="#2b2b33">(rescue = a merchant)</text>
+<rect x="600" y="205" width="210" height="64" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="705.0" y="223" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">John Clavering Boulevard</text>
+<text x="705.0" y="239" font-size="10.5" text-anchor="middle" fill="#2b2b33">the main street; 2 walls of light;</text>
+<text x="705.0" y="253" font-size="10.5" text-anchor="middle" fill="#2b2b33">watchtower (mission 3)</text>
+<rect x="600" y="300" width="100" height="60" rx="7" fill="#fdf3e6" stroke="#6d6458" stroke-width="1.6"/>
+<text x="650.0" y="318" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Galvani&#x27;s</text>
+<text x="650.0" y="334" font-size="10.5" text-anchor="middle" fill="#2b2b33">offices: a side</text>
+<text x="650.0" y="348" font-size="10.5" text-anchor="middle" fill="#2b2b33">quest twice</text>
+<rect x="710" y="300" width="100" height="60" rx="7" fill="#fdf3e6" stroke="#6d6458" stroke-width="1.6"/>
+<text x="760.0" y="318" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Art dealer</text>
+<text x="760.0" y="334" font-size="10.5" text-anchor="middle" fill="#2b2b33">faces Galvani&#x27;s;</text>
+<text x="760.0" y="348" font-size="10.5" text-anchor="middle" fill="#2b2b33">2 ways in</text>
+<rect x="600" y="380" width="210" height="56" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="705.0" y="398" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Gaff Street</text>
+<text x="705.0" y="414" font-size="10.5" text-anchor="middle" fill="#2b2b33">alley off Bottle St&#x27;s lower half:</text>
+<text x="705.0" y="428" font-size="10.5" text-anchor="middle" fill="#2b2b33">walk round the 2nd wall of light</text>
+<rect x="900" y="200" width="250" height="92" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="1025.0" y="218" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Holger Square: the Office</text>
+<text x="1025.0" y="234" font-size="10.5" text-anchor="middle" fill="#2b2b33">4 ways in: high window,</text>
+<text x="1025.0" y="248" font-size="10.5" text-anchor="middle" fill="#2b2b33">sewer + kennels, front door,</text>
+<text x="1025.0" y="262" font-size="10.5" text-anchor="middle" fill="#2b2b33">the back yard</text>
+<rect x="900" y="330" width="250" height="110" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="1025.0" y="348" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">The Golden Cat</text>
+<text x="1025.0" y="364" font-size="10.5" text-anchor="middle" fill="#2b2b33">front door; rooftop via the hotel:</text>
+<text x="1025.0" y="378" font-size="10.5" text-anchor="middle" fill="#2b2b33">left (sign, gazebo, window) or right</text>
+<text x="1025.0" y="392" font-size="10.5" text-anchor="middle" fill="#2b2b33">(balcony, hole, vent, then rat tunnel</text>
+<text x="1025.0" y="406" font-size="10.5" text-anchor="middle" fill="#2b2b33">or ledge); VIP exit at the back</text>
+<rect x="380" y="110" width="200" height="52" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="480.0" y="128" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Rooftops and balconies</text>
+<text x="480.0" y="144" font-size="10.5" text-anchor="middle" fill="#2b2b33">Blink across, over the walls of light</text>
+<rect x="860" y="110" width="170" height="52" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="945.0" y="128" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Captain&#x27;s Chair Hotel</text>
+<text x="945.0" y="144" font-size="10.5" text-anchor="middle" fill="#2b2b33">roof access (key from Slackjaw)</text>
+<rect x="230" y="478" width="260" height="52" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="360.0" y="496" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Bottle Street, lower section</text>
+<text x="360.0" y="512" font-size="10.5" text-anchor="middle" fill="#2b2b33">runs underneath Clavering Boulevard</text>
+<rect x="640" y="478" width="170" height="52" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="725.0" y="496" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Sewers</text>
+<text x="725.0" y="512" font-size="10.5" text-anchor="middle" fill="#2b2b33">under the Office courtyard</text>
+<rect x="900" y="478" width="250" height="52" rx="7" fill="#fff" stroke="#6d6458" stroke-width="1.6"/>
+<text x="1025.0" y="496" font-size="12.5" font-weight="700" text-anchor="middle" fill="#2b2b33">Rat tunnel</text>
+<text x="1025.0" y="512" font-size="10.5" text-anchor="middle" fill="#2b2b33">into the Golden Cat&#x27;s washroom</text>
+<polyline points="190,332 230,242" fill="none" stroke="#8a8a96" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="380,242 600,237" fill="none" stroke="#8a8a96" stroke-width="3" stroke-linejoin="round"/>
+<text x="490" y="230" font-size="10.5" fill="#8a8a96" font-weight="600" text-anchor="middle">through the walls of light</text>
+<polyline points="810,237 900,246" fill="none" stroke="#8a8a96" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="810,237 900,360" fill="none" stroke="#8a8a96" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="305,274 305,360" fill="none" stroke="#3f9a52" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="380,268 420,320" fill="none" stroke="#3f9a52" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="305,430 305,478" fill="none" stroke="#2f7fc0" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="490,504 600,504 705,436" fill="none" stroke="#2f7fc0" stroke-width="3" stroke-linejoin="round"/>
+<text x="560" y="498" font-size="10.5" fill="#2f7fc0" font-weight="600" text-anchor="middle">Gaff Street bypass</text>
+<polyline points="705,436 705,360" fill="none" stroke="#3f9a52" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="305,210 420,162" fill="none" stroke="#d19a1c" stroke-width="3" stroke-linejoin="round"/>
+<text x="350" y="180" font-size="10.5" fill="#d19a1c" font-weight="600" text-anchor="middle">climb</text>
+<polyline points="580,136 860,136" fill="none" stroke="#d19a1c" stroke-width="3" stroke-linejoin="round"/>
+<text x="720" y="130" font-size="10.5" fill="#d19a1c" font-weight="600" text-anchor="middle">roof to roof (Blink)</text>
+<polyline points="1030,136 1100,136 1100,330" fill="none" stroke="#d19a1c" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="580,150 1000,200" fill="none" stroke="#d19a1c" stroke-width="3" stroke-linejoin="round" stroke-dasharray="6 4"/>
+<text x="800" y="168" font-size="10.5" fill="#d19a1c" font-weight="600" text-anchor="middle">high window</text>
+<polyline points="810,504 900,504" fill="none" stroke="#2f7fc0" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="725,478 960,292" fill="none" stroke="#2f7fc0" stroke-width="3" stroke-linejoin="round" stroke-dasharray="6 4"/>
+<text x="860" y="400" font-size="10.5" fill="#2f7fc0" font-weight="600" text-anchor="middle">sewer + kennels</text>
+<polyline points="1025,478 1025,440" fill="none" stroke="#2f7fc0" stroke-width="3" stroke-linejoin="round"/>
+<text x="40" y="585" font-size="15" font-weight="700" fill="#2b2b33">What to notice</text>
+<text x="40" y="612" font-size="13" fill="#2b2b33">1. Three stacked layers along one corridor: the watched boulevard, the gang street that runs UNDER it, and the roofs over it.</text>
+<text x="40" y="636" font-size="13" fill="#2b2b33">2. Every goal has 3-4 ways in (the Office: 4; the Golden Cat: front, two rooftop lines, a rat tunnel, the VIP exit).</text>
+<text x="40" y="660" font-size="13" fill="#2b2b33">3. Side content pays out in routes: Slackjaw&#x27;s errand gives the hotel key (the rooftop way in); saving a woman gives a back-door key.</text>
+<text x="40" y="684" font-size="13" fill="#2b2b33">4. Side content sits ON the alternative routes (Granny Rags on Endoria, Griff at Bloodox&#x27;s dead end, Galvani on the boulevard).</text>
+<text x="40" y="708" font-size="13" fill="#2b2b33">5. The same district is played twice, changed: a new watchtower, a gate shut, Granny&#x27;s door locked, weepers below, assassins on the roofs.</text>
+</svg>
