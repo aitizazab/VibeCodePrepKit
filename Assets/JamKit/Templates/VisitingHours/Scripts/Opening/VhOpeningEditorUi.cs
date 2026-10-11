@@ -1049,7 +1049,7 @@ namespace JamKit.VisitingHours
             string cam;
             if (!_free) cam = "SHOT CAMERA: " + ShotName(_stage.Pose);
             else if (_throughShot != null) cam = "FREE CAMERA, looking through " + Short(_throughShot);
-            else cam = "FREE CAMERA";
+            else cam = _camAuto ? "FREE CAMERA (on the shot until you move it)" : "FREE CAMERA";
             if (_drag == Drag.Look) cam += " (flying " + _flySpeed.ToString("0.0") + " m/s)";
             string tool = _tool == Tool.Move ? "MOVE" : _tool == Tool.Rotate ? "TURN" : "SIZE";
             SetText(_modeLabel, (_playing ? "PLAYING" : "PAUSED") + "   |   " + cam + "   |   TOOL: " + tool + "   |   SNAP " + (_snap ? "ON" : "OFF") +

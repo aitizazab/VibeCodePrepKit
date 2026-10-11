@@ -407,8 +407,13 @@ namespace JamKit.VisitingHours
             }
             if (_sel == null || _sel.target == null || !_sel.target.gameObject.activeInHierarchy) return;
             Outline(null, _sel, SelColor, 0f, out var selTop);
-            if (selTop.HasValue && InView(selTop.Value)) PlaceTag(_selTag, _sel.label, selTop.Value);
-            else if (_sel != _throughShot)
+            var camT = _stage.cam.transform;
+            // A shot the camera sits on (looked through, or the shot camera): it's this view, not out of it.
+            if (_sel.isShot && Vector3.Distance(camT.position, _sel.target.position) < 0.05f) return;
+            bool onScreen = ToPanel(BoundsOf(_sel).center, out var centre) && OnScreen(centre);
+            if (selTop.HasValue && OnScreen(selTop.Value)) PlaceTag(_selTag, _sel.label, selTop.Value);
+            else if (onScreen) PlaceTag(_selTag, _sel.label, centre);
+            else
             {
                 // Out of view (or behind the camera): say so at the edge, nearest where it is.
                 var dir = _sel.target.position - _stage.cam.transform.position;
@@ -419,9 +424,17 @@ namespace JamKit.VisitingHours
             }
         }
 
+        /// <summary>In the part of the view the panels leave free.</summary>
         bool InView(Vector2 pp)
         {
             var r = ViewArea();
+            return pp.x > r.xMin && pp.x < r.xMax && pp.y > r.yMin && pp.y < r.yMax;
+        }
+
+        /// <summary>Anywhere on the screen (under a panel too).</summary>
+        bool OnScreen(Vector2 pp)
+        {
+            var r = _root.worldBound;
             return pp.x > r.xMin && pp.x < r.xMax && pp.y > r.yMin && pp.y < r.yMax;
         }
 

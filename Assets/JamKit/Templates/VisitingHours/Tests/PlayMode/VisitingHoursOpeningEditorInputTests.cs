@@ -429,6 +429,19 @@ namespace JamKit.VisitingHours.Tests
             yield return _in.Tap(Key.LeftArrow);
             Assert.That(Ed.Opening.Time, Is.EqualTo(Ed.BeatTime("The grab")).Within(0.05f), "the left arrow: back");
 
+            // The free camera, untouched since the jump put it on the shot, follows the shots as you go.
+            Assert.That(Ed.CameraFollowsShots, Is.True, "the free camera is on the shot");
+            int pose = Ed.Stage.PoseIndex(Ed.Stage.Pose);
+            Assert.That(Vector3.Distance(Cam.position, Ed.Stage.posePositions[pose]), Is.LessThan(1e-3f), "at this beat's shot");
+            _in.MoveTo(Ed.ViewScreenPoint());
+            yield return null;
+            _in.Scroll(1f);
+            yield return Frames(3);
+            Assert.That(Ed.CameraFollowsShots, Is.False, "moving it (the wheel) stops it following");
+            var parked = Cam.position;
+            yield return _in.Tap(Key.RightArrow);
+            Assert.That(Vector3.Distance(Cam.position, parked), Is.LessThan(1e-4f), "a moved free camera stays where you put it");
+
             float len = Ed.Opening.Length;
             Assert.That(Ed.TryTrackScreenPoint(len * 0.1f, out var a), Is.True, "the scrub bar");
             Assert.That(Ed.TryTrackScreenPoint(len * 0.5f, out var b), Is.True);

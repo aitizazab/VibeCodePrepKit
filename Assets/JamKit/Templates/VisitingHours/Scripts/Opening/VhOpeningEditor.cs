@@ -60,6 +60,9 @@ namespace JamKit.VisitingHours
         VhOpening _opening;
         bool _open, _openWhenReady, _playing, _free = true, _snap = true, _dirty, _world, _workLight, _panelsHidden;
         float _flyHeld;
+        /// <summary>The free camera sits where a shot put it and hasn't been moved since: it follows the shots as you
+        /// jump and scrub (so each beat shows its shot), until you move it.</summary>
+        bool _camAuto;
         string _dropped;
         Tool _tool = Tool.Move;
         VhEditable _sel, _hover, _throughShot;
@@ -109,6 +112,8 @@ namespace JamKit.VisitingHours
         public bool WorkLight => _workLight;
         /// <summary>Tab hid the panels (a clean view).</summary>
         public bool PanelsHidden => _panelsHidden;
+        /// <summary>The free camera follows the shots (it hasn't been moved since a shot placed it).</summary>
+        public bool CameraFollowsShots => _free && _camAuto;
         /// <summary>What the status line says (what just happened).</summary>
         public string StatusText => _statusText;
         /// <summary>The thing under the mouse in the view (what a click would select), or null.</summary>
@@ -365,7 +370,7 @@ namespace JamKit.VisitingHours
             _opening.blackScale = 0.2f;
             _opening.Seek(Mathf.Clamp(t, 0f, _opening.Length));
             _setMoved = tableBefore != (_stage.Pose == "table");
-            if (_setMoved && _free) CameraToCurrentShot();
+            if (_free && (_setMoved || _camAuto)) CameraToCurrentShot();
             // A selection in the set that's gone from view now: let go of it (the panel would show a thing you can't see).
             _dropped = null;
             if (_setMoved && _sel != null && _sel.target != null && !_sel.target.gameObject.activeInHierarchy)
@@ -664,6 +669,7 @@ namespace JamKit.VisitingHours
             _camPos = c.position;
             SetRot(c.rotation);
             _fov = _stage.cam.fieldOfView;
+            _camAuto = true;
         }
 
         /// <summary>The free camera jumps to the shot the opening is on now (after a jump to the other set).</summary>
@@ -675,6 +681,7 @@ namespace JamKit.VisitingHours
             SetRot(_stage.poseRotations[i]);
             _fov = _stage.poseFov[i];
             _throughShot = null;
+            _camAuto = true;
         }
 
         void SetFree(bool free, bool say)
@@ -747,6 +754,7 @@ namespace JamKit.VisitingHours
             // Held over a second, it speeds up (to 3x after three seconds): short taps stay precise, long holds cross the room.
             _flyHeld += Time.unscaledDeltaTime;
             float speed = _flySpeed * (kb.shiftKey.isPressed ? 4f : 1f) * (1f + 2f * Mathf.Clamp01((_flyHeld - 1f) / 2f));
+            _camAuto = false;
             // Up and down are the world's (Q E), the rest the view's.
             Vector3 world = CamRot * new Vector3(move.x, 0f, move.z) + Vector3.up * move.y;
             _camPos += world * (speed * Time.unscaledDeltaTime);
@@ -765,12 +773,14 @@ namespace JamKit.VisitingHours
 
         void Look(Vector2 d)
         {
+            if (d.sqrMagnitude > 0f) _camAuto = false;
             _yaw += d.x * LookDegreesPerPixel;
             _pitch = Mathf.Clamp(_pitch - d.y * LookDegreesPerPixel, -89f, 89f);
         }
 
         void Orbit(Vector2 d)
         {
+            if (d.sqrMagnitude > 0f) _camAuto = false;
             Vector3 pivot = _orbitPivot;
             var rot = CamRot;
             var right = rot * Vector3.right;
@@ -789,6 +799,7 @@ namespace JamKit.VisitingHours
 
         void Pan(Vector2 d)
         {
+            if (d.sqrMagnitude > 0f) _camAuto = false;
             var rot = CamRot;
             float dist = Vector3.Dot(OrbitPivot() - _camPos, rot * Vector3.forward);
             float k = WorldPerScreenPixel(dist);
@@ -798,6 +809,7 @@ namespace JamKit.VisitingHours
 
         void Dolly(float notches)
         {
+            _camAuto = false;
             var fwd = CamRot * Vector3.forward;
             float dist = Mathf.Max(0.05f, Vector3.Dot(OrbitPivot() - _camPos, fwd));
             float step = Mathf.Max(0.02f, dist * 0.15f) * notches;
@@ -819,6 +831,7 @@ namespace JamKit.VisitingHours
             var fwd = CamRot * Vector3.forward;
             _camPos = b.center - fwd * dist;
             _pivotDist = dist;
+            _camAuto = false;
             _throughShot = null;
             ApplyFreeCamera();
             Status("Framed " + _sel.label + ". Alt + left mouse orbits around it; the wheel moves in and out.");
@@ -832,6 +845,7 @@ namespace JamKit.VisitingHours
             SetRot(_sel.target.rotation);
             _fov = _sel.fov;
             _throughShot = _sel;
+            _camAuto = false;
             ApplyFreeCamera();
             Status("Looking through " + _sel.label + ". Fly to where it should be (right mouse + W A S D), then press \"Set from my view\".");
         }

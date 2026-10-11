@@ -49,8 +49,11 @@ built.
   - The **beat buttons** jump straight to a beat (the current one is lit): the room from her pillow, the phone on the
     nightstand, she reaches, the grab, holding it (the voicemail), she puts it down, falling asleep, the phone from
     above, G'night, the news report, the pieces arrive, the title.
-  - A jump to the other set (the bedroom or the title table) takes the free camera to that moment's shot, so there's
-    something to see, and lets go of a selection that isn't in that set; the status line says both.
+  - Until you move it, the free camera sits on each moment's shot as you jump and scrub (the mode strip says "on the
+    shot until you move it"), so every beat shows what the opening shows. Once you've moved it (fly, pan, orbit, the
+    wheel, F, Look through it), it stays where you put it while you scrub.
+  - A jump to the other set (the bedroom or the title table) always takes the free camera to that moment's shot, so
+    there's something to see, and lets go of a selection that isn't in that set; the status line says both.
 - **Right: the selected thing.** **Hide** folds it away; selecting something brings it back.
   - Its name, where it is (in the bedroom or at the title table), and a note on what follows it or what can't.
   - **Numbers:** the button switches between its parent's space (the room, the bed, the table: what's saved) and
