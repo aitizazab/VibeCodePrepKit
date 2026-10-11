@@ -1086,3 +1086,25 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
     1. The Night 4 truth (A, B or C).
     2. Is Lena dead, missing or taken, and what made her worth Nadia's guilt?
     3. Does Theo stay, and what is his one job apart from Lena's?
+- **Sound (90085cf):** the news report is cut from 38.9 s to 18.45 s.
+  - Three clauses were cut and nothing was rewritten; `script/opening-script.md` still has the full text.
+  - A Kokoro af_heart newsreader replaces Nicole, and the tablet speaker no longer distorts.
+  - The alternate voices are in `out/vh-news/`.
+  - The voicemail's phone effect is a runtime filter, so no new file was needed. The sound agent then moved on to the music sketches.
+- **Creator's controller test of 8454370:**
+  - The dream tool course took 33 s, against their 28.17 best.
+  - Air control was not felt as much; the hop bleed-off was "insane" ("might need to revert").
+  - Sent to the movement agent: in-game hop-cost presets, Off / Mild (the default; only mistimed hops cost) / Current, switched from the F3 HUD and kept in the save. Air control is kept.
+- **Umbrella and rain (8c44f54, dream tool agent):**
+  - There's no house escape yet, so they're at the end of the current Dream Escape. The dream tool picks the umbrella up beside the door, followed by a 32 m rain path.
+  - Without it she soaks over 5 s: 72% speed, 80% jump height, and a cold vignette.
+  - Going more than 8 m without it sets the persistent `vh_despair` flag.
+  - The dotnet tests pass; nothing has run in Unity yet.
+  - Open for the creator: the real cost of going without it, and whether the Despair choice is signalled to the player.
+- **Opening (ab83669, opening agent):**
+  - The phone overhangs the nightstand edge, and she takes it back-to-palm with no flip.
+  - Falling asleep: she rolls away, the voice fades over 3 s, then two blinks to black. It cuts to the view from above, where his voice is clean. About 2 s of the voicemail is lost in the fade.
+  - The fade-ins hang off percentages of the report, so they re-pace to any take (about every 2.4 s).
+  - The title got one framing-only try: the camera is further back, the props moved in, and the lanyard is a smooth loop.
+  - The risk: the wrist may sink into the mattress during the grab. Nothing has run in Unity yet.
+- **Unity runs** wait until the creator stops playing the Movement Lab.
