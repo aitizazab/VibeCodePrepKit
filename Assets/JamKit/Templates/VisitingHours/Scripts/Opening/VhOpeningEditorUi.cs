@@ -681,6 +681,8 @@ namespace JamKit.VisitingHours
             if (_rightHidden) SetRightHidden(false);
             string where = e.bedroom ? "In the bedroom." : "At the title table.";
             if (e.isShot) where += " A camera: one shot of the opening.";
+            if (e.id == "phone-held") where = "In the bedroom, in her hand: from when she lifts it to when she puts it down.";
+            else if (e.id == "phone") where = "In the bedroom, on the nightstand: before she picks it up and after she puts it down.";
             SetText(_selWhere, where);
             SetText(_selNote, e.note);
             _selNote.style.display = string.IsNullOrEmpty(e.note) ? DisplayStyle.None : DisplayStyle.Flex;
@@ -940,7 +942,7 @@ namespace JamKit.VisitingHours
             PushUndo(what);
             SetValue(b, v);
             Finished();
-            Status(char.ToUpperInvariant(what[0]) + what.Substring(1) + ". (Ctrl+Z undoes.)");
+            Status(char.ToUpperInvariant(what[0]) + what.Substring(1) + ". (Ctrl+Z undoes.)" + ReachNote());
         }
 
         // ---------- Help, the question, the panels ----------

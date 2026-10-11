@@ -401,7 +401,7 @@ namespace JamKit.VisitingHours
             if (nadiaHandle != null)
             {
                 var eN = r.Add("nadia", "Nadia", Bedroom, nadiaHandle, true,
-                    "Moving her moves her eyes: the 'on her pillow', 'looking at the nightstand' and 'rolling away' shots follow. The blanket reshapes over her when you let go.",
+                    "Moving her moves her eyes: the 'on her pillow', 'looking at the nightstand' and 'rolling away' shots follow. The blanket reshapes over her when you let go. Her arm and hand follow the phone: to change where her hand goes, move The phone (resting) or The phone (held in her hand).",
                     "shot:pillow", "shot:nightstand", "shot:away");
                 if (eN != null)
                 {
@@ -419,8 +419,8 @@ namespace JamKit.VisitingHours
             var lampPart = Child(b, "lamp") ?? Child(b, "Lamp base");
             if (lampPart != null) r.Add("lamp", "The lamp", Bedroom, Handle(b, "Edit: the lamp", lampPart.localPosition, "lamp", "Lamp base", "Lamp stem", "Lamp shade"), true);
             var rest = Child(b, VhStageBuilder.PhoneRestName);
-            var ePhone = r.Add("phone", "The phone (where it rests)", Bedroom, rest, true,
-                "Where it lies on the nightstand. She takes it by its bottom end, back to her palm: keep that end a few centimetres over the nightstand's edge so her fingers fit under it. Where she holds it up follows the 'looking at the nightstand' shot.");
+            var ePhone = r.Add("phone", "The phone (resting)", Bedroom, rest, true,
+                "Where it lies on the nightstand (before she picks it up and after she puts it down). She takes it by its bottom end, back to her palm: keep that end a few centimetres over the nightstand's edge so her fingers fit under it. Where she holds it up is 'The phone (held in her hand)'.");
             if (ePhone != null)
             {
                 ePhone.canScale = false;
@@ -459,7 +459,31 @@ namespace JamKit.VisitingHours
             AddShot(r, s, "away", "Shot: rolling away", b, FollowNote);
             AddShot(r, s, "overhead", "Shot: the phone from above", b, FollowNote + " Its slow push-in starts from here.");
             AddShot(r, s, "table", "Shot: the title table", t, FollowNote);
+            AddHeldPhone(r, s);
             return r;
+        }
+
+        /// <summary>Where she holds the phone up: a handle in the "looking at the nightstand" shot's frame (so it follows that
+        /// shot, and the bed and Nadia that carry it), which the stage's held pose reads. Listed after the resting phone.</summary>
+        static void AddHeldPhone(VhSceneEdits r, VhStage s)
+        {
+            var shot = r.Find("shot:nightstand");
+            var resting = r.Find("phone");
+            if (shot == null || s.phone == null) return;
+            var h = new GameObject("Edit: the phone held").transform;
+            h.SetParent(shot.target, false);
+            h.localPosition = VhStage.HeldOffset;
+            h.localRotation = VhStage.HeldTurn;
+            s.heldPhone = h;
+            var e = r.Add("phone-held", "The phone (held in her hand)", Bedroom, h, true,
+                "Where she holds it up in front of her, from when she lifts it to when she puts it down (one place for all those beats). It's kept relative to her eyes: it moves with the 'looking at the nightstand' shot, the bed and Nadia. Her hand follows it, but her arm reaches only so far: past that the phone stops at her reach, and the status line says so.");
+            if (e == null) return;
+            e.canScale = false;
+            if (resting != null)
+            {
+                r._all.Remove(e);
+                r._all.Insert(r._all.IndexOf(resting) + 1, e);
+            }
         }
 
         static void AddPiece(VhSceneEdits r, VhStage s, string id, string label, string piece, string note, params string[] carries)

@@ -46,6 +46,7 @@ namespace JamKit.VisitingHours
             foreach (var e in _stage.edits.All)
                 if (!e.isShot && e.target != null) owners[e.target] = e;
             var phone = _stage.edits.Find("phone");
+            // (The phone's own parts belong to "phone"; a pick turns that into the held phone while she holds it.)
             foreach (var r in _stage.GetComponentsInChildren<Renderer>(true))
             {
                 if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
@@ -68,7 +69,7 @@ namespace JamKit.VisitingHours
         {
             if (!_renderers.TryGetValue(e, out var r) || r == null)
             {
-                Transform root = e.id == "phone" && _stage != null && _stage.phone != null ? _stage.phone : e.target;
+                Transform root = IsPhone(e) && _stage != null && _stage.phone != null ? _stage.phone : e.target;
                 r = root != null && !e.isShot ? root.GetComponentsInChildren<Renderer>(true) : new Renderer[0];
                 _renderers[e] = r;
             }
@@ -76,6 +77,9 @@ namespace JamKit.VisitingHours
         }
 
         static bool Drawn(Renderer r) => r != null && r.enabled && r.gameObject.activeInHierarchy;
+
+        /// <summary>The resting phone or the held one: both are drawn by the phone itself.</summary>
+        static bool IsPhone(VhEditable e) => e != null && (e.id == "phone" || e.id == "phone-held");
 
         /// <summary>Shots and lights (nothing drawn): shown as marks you can click.</summary>
         bool IsMark(VhEditable e)
@@ -133,6 +137,12 @@ namespace JamKit.VisitingHours
                 }
             }
             PickedSomething = any && owner == null;
+            // The phone in her hand is the held phone (its resting place is elsewhere at this moment).
+            if (owner != null && owner.id == "phone" && _stage.PhoneInHand)
+            {
+                var held = _stage.edits.Find("phone-held");
+                if (held != null) owner = held;
+            }
             return owner;
         }
 
@@ -472,7 +482,7 @@ namespace JamKit.VisitingHours
                 }
                 return;
             }
-            Transform frame = e.id == "phone" && _stage.phone != null ? _stage.phone : e.target;
+            Transform frame = IsPhone(e) && _stage.phone != null ? _stage.phone : e.target;
             var toFrame = frame.worldToLocalMatrix;
             Bounds local = default;
             bool any = false;

@@ -107,10 +107,18 @@ built.
   rolling away. Her rest pose and her arm's reach follow it.
 - **Nadia** (a handle at her eyes) carries those same three shots. When you let go, her blanket reshapes over her.
 - **The nightstand** carries the lamp, the phone, the photo and the shot from above.
-- **The phone** is where it rests (its handles sit there; its box is round the phone itself, which is in her hand at
-  some beats). Her hand follows it: she takes it by its bottom end, back to her palm, with no turn-over. Keep that end
-  a few centimetres over the nightstand's edge so her fingers fit under it.
-- **Where she holds the phone up** follows the "looking at the nightstand" shot. Her arm keeps it within her reach.
+- **The phone has two places, and the editor edits the one in use at that moment:**
+  - **The phone (resting):** where it lies on the nightstand, before she picks it up and after she puts it down. Her
+    hand follows it: she takes it by its bottom end, back to her palm, with no turn-over. Keep that end a few
+    centimetres over the nightstand's edge so her fingers fit under it.
+  - **The phone (held in her hand):** where she holds it up, from the lift to the drop (one place for all those
+    beats). It's kept relative to her eyes, so it moves with the "looking at the nightstand" shot, the bed and Nadia.
+    Her hand follows it. Her arm reaches only so far: past that the phone stops at her reach and the status line says
+    so (the arrows stay where you put them).
+  - A click on the phone picks whichever one is in use at that moment, and the panel and status line say which.
+    Picking the other one in the list jumps to a beat where it's in use ("The phone on the nightstand" or "Holding it:
+    the voicemail"). Scrubbing or pausing on a moment where the other one is in use switches to it, and the status line
+    says so.
 - **The table** carries the tablet, the mug, the notepad, the pen and the badge. The tablet doesn't turn by itself to
   face a moved title camera: turn it.
 - **The streetlight's blind stripes** are worked out when the sets are built. Press **Rebuild with my edits** to see
@@ -123,7 +131,7 @@ built.
 **Ctrl+S**, or the Save button. Closing the editor also saves any unsaved edits.
 
 **What's saved:** `VisitingHoursOpeningEdits.json`. It holds only what differs from the built scene, keyed by stable
-ids such as `phone`, `nightstand`, `bed`, `title-tablet`, `sun` and `shot:table`. The format hasn't changed since the
+ids such as `phone`, `phone-held`, `nightstand`, `bed`, `title-tablet`, `sun` and `shot:table`. The format hasn't changed since the
 first version of the editor, so files saved then still load.
 
 **Where it's saved:**

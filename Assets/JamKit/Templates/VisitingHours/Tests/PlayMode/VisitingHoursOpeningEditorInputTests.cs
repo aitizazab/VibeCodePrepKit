@@ -487,6 +487,84 @@ namespace JamKit.VisitingHours.Tests
             Assert.That(Ed.StatusText, Does.Contain("Only this shot changed"));
         }
 
+        // ---------- The phone in her hand ----------
+
+        /// <summary>The creator: "I can't seem to move the phone when it's held in front of Nadia." While she holds it, the
+        /// phone is where the held pose puts it every frame; the editable is the held pose itself ("phone-held").</summary>
+        [UnityTest]
+        public IEnumerator TheHeldPhoneMovesWhereSheHoldsIt()
+        {
+            yield return OpenWithF9();
+            yield return _in.Click(Point("beat:Holding it: the voicemail"));
+            var stage = Ed.Stage;
+            Assert.That(stage.PhoneInHand, Is.True, "she holds the phone up at this beat");
+            yield return _in.Tap(Key.L);
+
+            // In the view: a click on the phone in her hand selects the held phone.
+            Assert.That(Ed.TryThingScreenPoint("phone-held", out var p), Is.True, "the phone in her hand shows in the view");
+            yield return _in.Click(p);
+            Assert.That(Ed.Selected != null && Ed.Selected.id == "phone-held", Is.True, "a click on it selects the held phone (" + Ed.LastPress + ")");
+            Assert.That(Ed.StatusText, Does.Contain("held in her hand"), "the status line says which phone");
+            var held = Ed.Selected.target;
+            var phone = stage.phone;
+
+            // An arrow moves it, and the phone in her hand follows (or the status line says her reach stops it).
+            Vector3 handle0 = held.position, phone0 = phone.position;
+            Assert.That(Ed.TryHandleScreenPoint(0, out var x), Is.True, "its X arrow shows");
+            var cam = stage.cam;
+            Vector2 dir = ((Vector2)cam.WorldToScreenPoint(handle0 + Vector3.right * 0.03f) - (Vector2)cam.WorldToScreenPoint(handle0)).normalized;
+            yield return _in.DragTo(x, x + dir * 50f, 8);
+            yield return Frames(2);
+            Vector3 d = held.position - handle0;
+            Assert.That(d.x, Is.GreaterThan(0.004f), "the X arrow moved where she holds it (" + Ed.LastPress + ")");
+            Assert.That(Mathf.Abs(d.y) + Mathf.Abs(d.z), Is.LessThan(1e-4f), "only along X");
+            bool follows = Vector3.Distance(phone.position, held.position) < 1e-3f;
+            Assert.That(follows || (stage.HoldClamped && Ed.StatusText.Contains("can't reach")), Is.True,
+                "the phone in her hand follows, or the status line says her reach stops it (" + Ed.StatusText + ")");
+            Assert.That(Vector3.Distance(phone.position, phone0) > 0.001f || Ed.StatusText.Contains("can't reach"), Is.True, "never a drag that silently does nothing");
+
+            // A typed number.
+            yield return _in.Click(Point("field:pos.z"));
+            _in.Type("23");
+            yield return Frames(2);
+            yield return _in.Tap(Key.Enter);
+            Assert.That(held.localPosition.z, Is.EqualTo(0.23f).Within(1e-4f), "23 cm in front of her eyes");
+
+            // It stays there while the opening plays through the beat.
+            Vector3 set = held.position;
+            yield return _in.Tap(Key.Space);
+            Assert.That(Ed.Playing, Is.True);
+            float end = Time.realtimeSinceStartup + 0.4f;
+            while (Time.realtimeSinceStartup < end) yield return null;
+            Assert.That(stage.PhoneInHand, Is.True, "still holding it");
+            Assert.That(Vector3.Distance(held.position, set), Is.LessThan(1e-4f), "the held place isn't overwritten while it plays");
+            Assert.That(Vector3.Distance(phone.position, held.position) < 1e-3f || stage.HoldClamped, Is.True, "the phone is there while it plays");
+            yield return _in.Tap(Key.Space);
+
+            // Saved.
+            yield return _in.Tap(Key.LeftCtrl, Key.S);
+            Assert.That(File.Exists(_file), Is.True);
+            Assert.That(VhSceneEditsData.FromJson(File.ReadAllText(_file)).Object("phone-held"), Is.Not.Null, "the held place is saved");
+
+            // The list: the resting phone goes to where it rests, the held one to where she holds it.
+            yield return _in.Tap(Key.Escape);
+            yield return ClickListRow("phone");
+            Assert.That(Ed.Selected != null && Ed.Selected.id == "phone", Is.True, "the resting phone, from the list");
+            Assert.That(stage.PhoneInHand, Is.False, "it jumped to a beat where the phone rests");
+            Assert.That(Ed.StatusText, Does.Contain("resting"));
+            yield return ClickListRow("phone-held");
+            Assert.That(Ed.Selected != null && Ed.Selected.id == "phone-held", Is.True, "the held phone, from the list");
+            Assert.That(stage.PhoneInHand, Is.True, "it jumped to a beat where she holds it");
+
+            // Built again with the save: she holds it there.
+            yield return _in.Tap(Key.F9);
+            var runner = GameRoot.Instance.GetComponent<VhTitleRunner>();
+            runner.DestroyStage();
+            Assert.That(runner.TryBuildStage(), Is.True);
+            yield return Frames(2);
+            Assert.That(runner.stage.heldPhone.localPosition.z, Is.EqualTo(0.23f).Within(1e-4f), "the saved held place applies when the sets are built");
+        }
+
         // ---------- Saving ----------
 
         [UnityTest]

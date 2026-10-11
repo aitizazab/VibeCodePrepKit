@@ -82,6 +82,18 @@ namespace JamKit.VisitingHours
         public bool InBedroom => _pose != "table";
         public string Arm => _arm;
         public bool PhoneHeld => _held;
+        /// <summary>The phone is up in her hand (lifted or held): its place is the held pose, not where it rests.</summary>
+        public bool PhoneInHand => _arm == "lift" || _arm == "tap";
+        /// <summary>The last held pose was pulled back to stay within her reach (the editor says so).</summary>
+        public bool HoldClamped => _holdClamped;
+        bool _holdClamped;
+
+        /// <summary>Where she holds the phone up, as a place in the "looking at the nightstand" shot's frame (the opening
+        /// editor's "phone-held", a child of that shot's handle, so it follows the shot). Null: the built default.</summary>
+        public Transform heldPhone;
+        /// <summary>The built held pose in that shot's frame: close in front of her eyes, a little right and down, screen to her.</summary>
+        public static readonly Vector3 HeldOffset = new Vector3(-0.10f, -0.03f, 0.20f);
+        public static readonly Quaternion HeldTurn = Quaternion.LookRotation(Vector3.up, Vector3.back) * Quaternion.Euler(-12f, 0f, 0f);
         public float ScreenBrightness => _screen;
         public float LightsLevel => _lights;
         public bool Breathing => _breathing;
@@ -358,19 +370,31 @@ namespace JamKit.VisitingHours
         /// nightstand pose). Her hand under it and her wrist stay in view.</summary>
         void HoldPose(out Vector3 pos, out Quaternion rot)
         {
-            int i = PoseIndex("nightstand");
-            Vector3 p = i >= 0 ? posePositions[i] : cam.transform.position;
-            Quaternion r = i >= 0 ? poseRotations[i] : cam.transform.rotation;
-            Vector3 fwd = r * Vector3.forward, up = r * Vector3.up, right = r * Vector3.right;
-            pos = p + fwd * 0.20f - right * 0.10f - up * 0.03f;
-            rot = Quaternion.LookRotation(up, -fwd) * Quaternion.Euler(-12f, 0f, 0f);
+            if (heldPhone != null)
+            {
+                pos = heldPhone.position;
+                rot = heldPhone.rotation;
+            }
+            else
+            {
+                int i = PoseIndex("nightstand");
+                Vector3 p = i >= 0 ? posePositions[i] : cam.transform.position;
+                Quaternion r = i >= 0 ? poseRotations[i] : cam.transform.rotation;
+                pos = p + r * HeldOffset;
+                rot = r * HeldTurn;
+            }
+            _holdClamped = false;
             // Within her reach: her wrist sits about 12 cm under the phone's middle, and the grip may slide it a few
             // centimetres more; keep that point inside 80% of her arm's length (bring the phone towards her shoulder).
             if (nadia != null && nadia.ArmReach(out var shoulderNow, out var arm))
             {
                 Vector3 wristNear = pos - (rot * Vector3.forward) * 0.12f;
                 float d = Vector3.Distance(wristNear, shoulderNow), keep = arm * 0.8f;
-                if (d > keep) pos += (shoulderNow - wristNear).normalized * (d - keep);
+                if (d > keep)
+                {
+                    pos += (shoulderNow - wristNear).normalized * (d - keep);
+                    _holdClamped = d - keep > 0.003f;
+                }
             }
         }
 

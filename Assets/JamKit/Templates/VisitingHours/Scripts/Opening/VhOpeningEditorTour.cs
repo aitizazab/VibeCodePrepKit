@@ -397,6 +397,32 @@ namespace JamKit.VisitingHours
             Check(ed.Selected != null && ed.Selected.id == "phone", "a click in the list selects the phone");
             yield return Shot("select-phone", "Clicked 'The phone' in the list: selected, with its note on what follows it.");
 
+            // The phone in her hand (the creator: "I can't seem to move the phone when it's held in front of Nadia").
+            if (ed.TryScreenPointOf("beat:Holding it: the voicemail", out var holdChip)) yield return _in.Click(holdChip);
+            Check(ed.Stage.PhoneInHand, "'Holding it: the voicemail': she holds the phone up");
+            if (ed.TryThingScreenPoint("phone-held", out var heldAt))
+            {
+                yield return _in.Click(heldAt);
+                Check(ed.Selected != null && ed.Selected.id == "phone-held", "a click on the phone in her hand selects The phone (held in her hand)");
+                yield return Shot("held-phone-selected", "At 'Holding it', the phone in her hand clicked: The phone (held in her hand), its arrows in front of her eyes.");
+                var heldT = ed.Selected != null ? ed.Selected.target : null;
+                if (heldT != null && ed.TryHandleScreenPoint(0, out var hx))
+                {
+                    Vector3 h0 = heldT.position, p0 = ed.Stage.phone.position;
+                    var cam = ed.Stage.cam;
+                    Vector2 dir = ((Vector2)cam.WorldToScreenPoint(h0 + Vector3.right * 0.03f) - (Vector2)cam.WorldToScreenPoint(h0)).normalized;
+                    yield return _in.DragTo(hx, hx + dir * 80f, 10);
+                    yield return VhVirtualInput.Frames(3);
+                    float moved = Vector3.Distance(ed.Stage.phone.position, p0);
+                    Check(heldT.position.x - h0.x > 0.004f, "the X arrow moved where she holds it (" + ((heldT.position - h0) * 100f).ToString("F1") + " cm)");
+                    Check(moved > 0.002f || ed.StatusText.Contains("can't reach"), "the phone in her hand moved " + (moved * 100f).ToString("F1") + " cm (or the status line says her reach stops it)");
+                    yield return Shot("held-phone-moved", "Dragged its X arrow: the phone in her hand moved, her hand with it.");
+                    yield return _in.Tap(Key.LeftCtrl, Key.Z);
+                }
+                else Check(false, "the held phone's X arrow is on screen");
+            }
+            else Check(false, "the phone in her hand is visible to click");
+
             yield return ClickListRow(ed, "shot:nightstand");
             if (ed.TryScreenPointOf("button:look-through", out var look)) yield return _in.Click(look);
             yield return Shot("look-through", "A shot selected, then 'Look through it': the free camera at that shot.");

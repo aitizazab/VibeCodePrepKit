@@ -379,20 +379,42 @@ namespace JamKit.VisitingHours
                 _sel = null;
                 RefreshSelectionPanel();
             }
+            SyncPhone();
             if (!_free) _stage.RefreshPose();
             ShowFields();
         }
 
         bool _setMoved;
+        string _phoneSwap;
+
+        /// <summary>The phone selected, but the other phone is the one in use at this moment (she holds it, or it rests):
+        /// select that one, so a drag always moves what you see.</summary>
+        void SyncPhone()
+        {
+            _phoneSwap = null;
+            if (_sel == null || _stage == null || _stage.edits == null) return;
+            string want = _sel.id == "phone" && _stage.PhoneInHand ? "phone-held" : _sel.id == "phone-held" && !_stage.PhoneInHand ? "phone" : null;
+            var other = want != null ? _stage.edits.Find(want) : null;
+            if (other == null) return;
+            _sel = other;
+            _phoneSwap = want == "phone-held" ? "She holds the phone at this moment: now editing The phone (held in her hand)." : "The phone rests on the nightstand at this moment: now editing The phone (resting).";
+            RefreshSelectionPanel();
+        }
+
+        /// <summary>The held phone was pulled back to her reach: say so (the handle shows where you put it).</summary>
+        string ReachNote() => _sel != null && _sel.id == "phone-held" && _stage.HoldClamped
+            ? " Her arm can't reach that far: the phone stops at her reach (the arrows show where you put it)."
+            : "";
 
         /// <summary>What a jump to the other set did, for the status line.</summary>
         string SetNote()
         {
-            if (!_setMoved) return "";
+            if (!_setMoved) return _phoneSwap != null ? " " + _phoneSwap : "";
             bool bed = _stage.Pose != "table";
             string s = " The camera went to " + (bed ? "the bedroom." : "the title table.");
             if (_dropped != null) s += " (" + _dropped + " isn't in this set: nothing is selected now.)";
             if (bed && !_workLight) s += " Too dark to see? L turns on a work light (only while editing).";
+            if (_phoneSwap != null) s += " " + _phoneSwap;
             return s;
         }
 
@@ -457,7 +479,8 @@ namespace JamKit.VisitingHours
                 _opening.Paused = true;
                 _opening.blackScale = 0.2f;
                 foreach (var a in _stage.Sounds()) a.Pause();
-                Status("Paused at " + Clock(_opening.Time) + " (" + BeatAt(_opening.Time) + "). Space plays on.");
+                SyncPhone();
+                Status("Paused at " + Clock(_opening.Time) + " (" + BeatAt(_opening.Time) + "). Space plays on." + (_phoneSwap != null ? " " + _phoneSwap : ""));
                 return;
             }
             if (_drag == Drag.Handle) EndHandleDrag(true);
@@ -491,7 +514,17 @@ namespace JamKit.VisitingHours
             if (e != null && _stage != null && !_playing)
             {
                 bool atTable = _stage.Pose == "table";
-                if (e.bedroom == atTable)
+                if (e.id == "phone-held" && (atTable || !_stage.PhoneInHand))
+                {
+                    SeekTo(BeatTime("Holding it: the voicemail"));
+                    moved = " (Jumped to \"Holding it: the voicemail\", where she holds it.)";
+                }
+                else if (e.id == "phone" && (atTable || _stage.PhoneInHand))
+                {
+                    SeekTo(BeatTime("The phone on the nightstand"));
+                    moved = " (Jumped to \"The phone on the nightstand\", where it rests.)";
+                }
+                else if (e.bedroom == atTable)
                 {
                     float t = e.bedroom ? BeatTime("The phone on the nightstand") : TitleTime();
                     SeekTo(t);
@@ -1250,7 +1283,7 @@ namespace JamKit.VisitingHours
                     shift = hit - _dragPlane0;
                     if (snap) shift = new Vector3(Round(shift.x, SnapMove), Round(shift.y, SnapMove), Round(shift.z, SnapMove));
                     _dragAmount = shift.magnitude;
-                    Status("Moving " + name + " across the view: " + Cm(shift.magnitude) + (snap ? " (snapping)" : ""));
+                    Status("Moving " + name + " across the view: " + Cm(shift.magnitude) + (snap ? " (snapping)" : "") + ReachNote());
                 }
                 else
                 {
@@ -1260,7 +1293,7 @@ namespace JamKit.VisitingHours
                     if (snap) along = Round(along, SnapMove);
                     shift = _dragAxis * along;
                     _dragAmount = along;
-                    Status("Moving " + name + " along " + AxisNames[_dragHandle] + ": " + SignedCm(along) + (snap ? " (snapping)" : ""));
+                    Status("Moving " + name + " along " + AxisNames[_dragHandle] + ": " + SignedCm(along) + (snap ? " (snapping)" : "") + ReachNote());
                 }
                 var target = Matrix4x4.Translate(shift) * _dragWorld0;
                 _stage.edits.MoveBy(e, target * e.target.localToWorldMatrix.inverse);
@@ -1334,7 +1367,7 @@ namespace JamKit.VisitingHours
                 _undo[_undo.Count - 1] = top;
             }
             Finished();
-            Status(char.ToUpperInvariant(what[0]) + what.Substring(1) + ". (Ctrl+Z undoes.)");
+            Status(char.ToUpperInvariant(what[0]) + what.Substring(1) + ". (Ctrl+Z undoes.)" + ReachNote());
         }
 
         void CancelHandleDrag()
