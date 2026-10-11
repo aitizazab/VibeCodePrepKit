@@ -1259,3 +1259,16 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - Flow was locked by the Lena sprite run, so nothing was generated.
   - Pass 2 approved: Kenney Furniture Kit (CC0), wallpaper and floor textures in the Pastel shader, then the door and umbrella, the escape's fronts and cars, and the rain path.
 - **Movement goes universal; the daytime profile (movement agent):** one shared tuning (`Runtime/Unity/Movement/Resources/JamKitMovementTuning.asset`, the lab's asset moved, now with the 2026-10-10 wall feel it had missed) for the Movement Lab, the dream escape and house, the Stealth Lab and the Deep Block; Mild hops by default, F6 still switches. A daytime profile (no double jump, wallrun or slide; air strafe x0.3; jump fatigue ON, to confirm), F7 / LB + d-pad right in the lab. Visiting Hours' waking sections walk on the DOOM-like controller, so nothing there changes yet. Deep Block route times unchanged (14.2 / 18.4 / 14.9 / 22.1 s). docs/MOVEMENT.md.
+- **Opening editor fix (eadb720):** the cause was the morning sun's starting position, recorded before the lighting moved it. At 3a40dde: Scenes OK, **EditMode 840/840**. PlayMode is running.
+- **Movement goes universal (3a40dde, abd54a5):**
+  - One shared tuning, `JamKitMovementTuning.asset`, with Mild hops.
+  - The lab's asset still had the walls from before 2026-10-10; it now matches: wallRunFriction 2 to 1.2, probe 0.5 to 0.6, toward -0.1 to -0.2, away 0.5 to 0.8. Walls keep more speed than in the 26.45 run.
+  - Daytime profile: F7 or LB + d-pad right. No double jump, wall-run or slide; air strafe x0.3, about 9% of the gain left. Jump fatigue is on, to confirm: -25% per quick jump, down to half height, reset after 0.8 s standing.
+  - Visiting Hours' waking scenes use the DOOM-like walk, so nothing changes there yet.
+- **Stealth playtest:** "the movement completely trivializes Stealth ... I'm literally running circles behind him."
+  - Switchable answers sent to abd54a5:
+    - A, loud movement: double jumps and wall-runs heard beyond sight; guards turn wary and investigate.
+    - B, the dream pushes back: guards share alerts, sight grows with her speed, another watcher blinks in.
+    - C1, the daytime profile for waking stealth.
+    - C2, "being watched dims her lucidity": her dream powers fade near a guard.
+  - Also 2-3 guards with overlapping patrols.
