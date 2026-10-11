@@ -1045,3 +1045,27 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **Visiting Hours build (88a5f61):** PlayMode 108/108, smoke PASS, in `Builds/Play/VisitingHours`. EditMode is 708/709: only the hand test above fails.
 - **Memory:** a build was killed once for low system memory (Firefox and Discord). It was re-run per the creator's standing rule.
 - **The held grip is clean (50e5669):** the screen is clear, the thumb is along the right edge, and the hand is behind the phone. EditMode 709/709, PlayMode 108/108, smoke PASS. In `Builds/Play/VisitingHours`. The full run was killed twice for low system memory (Firefox at about 2.8 GB), so the build and the PlayMode suite were split. Waiting on the creator: Visiting Hours notes, the movement test, and the DESIGN-DECISIONS answers.
+
+## 2026-10-11 night: the creator's notes on the 50e5669 opening build, and the overnight plan
+
+- **Their notes on the opening build:**
+  - Elias's lines aren't clear through the phone-speaker effect. In the new top-down view after she falls asleep, his voice is normal.
+  - The phone flips in her hand twice, on pick-up and on put-down, because she grabs it screen-to-palm. It must be back-to-palm.
+  - The title is still not right. One last try tonight, otherwise their sketch (labelled polygons) tomorrow morning.
+  - The news report must be shorter so the fade-ins don't pause too long, and re-voiced: a reporter-like voice instead of Nicole.
+  - The falling-asleep change: her eyes close, the voicemail fades to 0, then the cut to the top-down phone where the rest plays.
+- **Story notes** in STORY-PROSE and STORY-BIBLE committed at the creator's say-so (732485f).
+- **Overnight, by agent:**
+  - Opening a40885a: grip, sleep fade, fade pacing, title.
+  - Sound a7eac08:
+    - the report re-voiced and shortened;
+    - a clean Elias voicemail;
+    - example music sketches for each piece (Dream, chase, Daytime, opening, argument battle, Lena, Elias, ending reprise) in `docs/MUSIC-SKETCHES.md` and `out/vh-music-sketches/`. These are starting points; composing stays joint.
+  - Digest a62c317: `docs/STORY-TALK.md` (answers and options for every note; the Night 4 truth first), then `docs/STORY-FACTS.md` (the fact catalogue).
+  - Feel research af7faaf: `docs/DENSE-STREET.md` (a Distillery District study and 2–3 layouts sized to our movement, with drawn maps).
+  - Movement abd54a5: a reusable stealth kit and a Stealth Lab.
+  - Dream tool aa8de10: the umbrella pickup and rain in the house escape, plus the Despair flag.
+- **Still waiting on the creator:**
+  - testing Movement Lab and Dream Escape (air control on controller and KBM, hop costs, the Gauntlet against 31.42);
+  - DESIGN-DECISIONS answers;
+  - composing the music.
