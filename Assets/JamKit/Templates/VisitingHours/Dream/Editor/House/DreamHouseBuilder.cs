@@ -102,11 +102,11 @@ namespace JamKit.DreamEscape.EditorTools
             {
                 case HouseLook.Lawn: return DreamEscapeBuilder.Pastel("HouseLawn", new Color(0.7f, 0.86f, 0.66f));
                 case HouseLook.Facade: return DreamEscapeBuilder.Pastel("HouseFront", P[1], 0.05f);
-                case HouseLook.Hallway: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseHallwayFloor", Wood, 0.04f), DreamHouseDressing.PatternFloorboards, 2f, 0.45f);
+                case HouseLook.Hallway: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseHallwayFloor", Wood, 0.04f), DreamHouseDressing.PatternFloorboards, 2.4f, 0.28f);
                 case HouseLook.RunWall: return DreamEscapeBuilder.Pastel("HouseHallwayRunWall", P[6], 0.05f);
                 case HouseLook.Lintel: return DreamEscapeBuilder.Pastel("HouseDoor", P[0], 0.05f);
                 case HouseLook.Stairs: return DreamEscapeBuilder.Pastel("HouseStairs", new Color(0.8f, 0.62f, 0.5f), 0.05f);
-                case HouseLook.Floor: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseFloor", Wood, 0.03f), DreamHouseDressing.PatternFloorboards, 2f, 0.45f);
+                case HouseLook.Floor: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseFloor", Wood, 0.03f), DreamHouseDressing.PatternFloorboards, 2.4f, 0.28f);
                 case HouseLook.Wall: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseWallpaper", Wallpaper, 0.04f), DreamHouseDressing.PatternWallpaper, 1.2f, 0.35f);
                 case HouseLook.Ceiling: return DreamEscapeBuilder.Pastel("HouseCeiling", P[0], 0.02f);
                 case HouseLook.Counter: return DreamEscapeBuilder.Pastel("HouseCounter", P[4], 0.05f);
@@ -118,7 +118,7 @@ namespace JamKit.DreamEscape.EditorTools
                 case HouseLook.Desk: return DreamEscapeBuilder.Pastel("HouseDesk", P[11], 0.05f);
                 case HouseLook.Closet: return DreamEscapeBuilder.Pastel("HouseCloset", P[5], 0.05f);
                 case HouseLook.Curtain: return DreamEscapeBuilder.Pastel("HouseCurtain", P[8], 0.03f);
-                case HouseLook.TippedFloor: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseTippedFloor", Wood, 0.05f), DreamHouseDressing.PatternFloorboards, 2f, 0.45f);
+                case HouseLook.TippedFloor: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseTippedFloor", Wood, 0.05f), DreamHouseDressing.PatternFloorboards, 2.4f, 0.28f);
                 case HouseLook.TippedWall: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseTippedWall", WallpaperTipped, 0.04f), DreamHouseDressing.PatternWallpaper, 1.2f, 0.35f);
                 case HouseLook.Porch: return DreamEscapeBuilder.Pastel("HouseHall", P[10], 0.04f);
                 default: return DreamEscapeBuilder.Pastel("HouseRainPath", new Color(0.7f, 0.72f, 0.82f), 0.03f);
@@ -252,10 +252,23 @@ namespace JamKit.DreamEscape.EditorTools
             t.SetParent(root, false);
             var white = DreamEscapeBuilder.Pastel("HouseTrim", DreamEscapeBuilder.Palette[0], 0.03f);
             var plum = DreamEscapeBuilder.Pastel("HouseInk", new Color(0.36f, 0.3f, 0.46f), 0.02f);
-            var window = DreamEscapeBuilder.Glow("HouseWindow", new Color(0.86f, 0.9f, 1f), 0.7f, 0f, 0f);
-            // The house front: two windows either side of the door, and a warm doorway.
+            // The house front (art pass 4): framed windows either side of the door, clapboard lines, a porch roof on two
+            // posts over the door, and a wide painted gable on top (the front is a flat: nothing stands behind it).
             foreach (float x in new[] { -8f, -4.5f, 4.5f, 8f })
-                DreamEscapeBuilder.Quad("Front window", t, new Vector3(x, 3.2f, -0.02f), Vector3.back, 1.6f, 1.8f, window);
+            {
+                FramedWindow("Front window", t, new Vector3(x, 3.2f, -0.02f), Vector3.back, 1.6f, 1.8f);
+                FramedWindow("Front window (upstairs)", t, new Vector3(x, 5.6f, -0.02f), Vector3.back, 1.4f, 1.3f);
+            }
+            var board = DreamEscapeBuilder.Pastel("HouseClapboard", Color.Lerp(DreamEscapeBuilder.Palette[1], new Color(0.3f, 0.25f, 0.45f), 0.18f), 0f);
+            for (float y = 0.45f; y < 6.9f; y += 0.45f)
+                foreach (float side in new[] { -1f, 1f })
+                    DreamEscapeBuilder.Box("Clapboard line", t, new Vector3(side * 7.75f, y, -0.012f), new Vector3(12.5f, 0.035f, 0.02f), board);
+            var gableMesh = DreamEscapeBuilder.EnsureGableMesh();
+            var roofMat = DreamEscapeBuilder.Pastel("HouseFrontRoof", new Color(0.93f, 0.52f, 0.5f), 0.05f, 0f, 1f);
+            DreamEscapeBuilder.GableOn(t, gableMesh, new Vector3(0f, 7f + 1.6f, 0.25f), new Vector3(28.6f, 3.2f, 0.7f), roofMat).name = "House front gable";
+            DreamEscapeBuilder.GableOn(t, gableMesh, new Vector3(0f, 3.25f, -0.85f), new Vector3(4.4f, 0.9f, 1.7f), roofMat).name = "Porch roof";
+            foreach (float x in new[] { -2.05f, 2.05f })
+                DreamEscapeBuilder.Box("Porch post", t, new Vector3(x, 1.4f, -1.55f), new Vector3(0.16f, 2.8f, 0.16f), white);
             // The door half open onto the slide: its leaf swung in.
             var leaf = DreamEscapeBuilder.Box("The door, half open", t, new Vector3(-1.1f, 0.5f, 56.9f), new Vector3(0.08f, 3f, 0.9f), white);
             leaf.transform.rotation = Quaternion.Euler(0f, 35f, 0f);
@@ -263,8 +276,8 @@ namespace JamKit.DreamEscape.EditorTools
             // Ground-floor windows (the light coming in) on the outer walls.
             foreach (float z in new[] { 75f, 82f, 94f })
             {
-                DreamEscapeBuilder.Quad("Window (west)", t, new Vector3(DreamHouse.HubX0 + 0.02f, F + 1.6f, z), Vector3.right, 1.8f, 1.4f, window);
-                DreamEscapeBuilder.Quad("Window (east)", t, new Vector3(DreamHouse.HubX1 - 0.02f, F + 1.6f, z), Vector3.left, 1.8f, 1.4f, window);
+                FramedWindow("Window (west)", t, new Vector3(DreamHouse.HubX0 + 0.02f, F + 1.6f, z), Vector3.right, 1.8f, 1.4f);
+                FramedWindow("Window (east)", t, new Vector3(DreamHouse.HubX1 - 0.02f, F + 1.6f, z), Vector3.left, 1.8f, 1.4f);
             }
             // The table set for four: plates, and a stack of pancakes in the middle.
             var plate = DreamEscapeBuilder.Pastel("HousePlate", DreamEscapeBuilder.Palette[0], 0.02f);
@@ -392,6 +405,27 @@ namespace JamKit.DreamEscape.EditorTools
             mat.SetTexture("_MainTex", tex);
             mat.SetFloat("_Cutoff", 0.1f);
             return mat;
+        }
+
+        /// <summary>A window (art pass 4): a bright pane, a white frame and cross bars, a sill. On a wall facing
+        /// <paramref name="normal"/> (an axis); decoration, no colliders.</summary>
+        static void FramedWindow(string name, Transform parent, Vector3 centre, Vector3 normal, float width, float height)
+        {
+            var pane = DreamEscapeBuilder.Pastel("HouseWindowPane", new Color(0.8f, 0.88f, 1f), 0f, 0.55f);
+            var frame = DreamEscapeBuilder.Pastel("HouseWindowFrame", DreamEscapeBuilder.Palette[0], 0.02f);
+            DreamEscapeBuilder.Quad(name, parent, centre, normal, width, height, pane);
+            bool alongZ = Mathf.Abs(normal.x) > 0.5f;   // the wall runs along z (a side wall) or x (the front)
+            Vector3 across = alongZ ? Vector3.forward : Vector3.right;
+            Vector3 Size(float along, float up) => alongZ ? new Vector3(0.08f, up, along) : new Vector3(along, up, 0.08f);
+            Vector3 c = centre + normal * 0.03f;
+            const float bar = 0.1f;
+            DreamEscapeBuilder.Box(name + " frame", parent, c + Vector3.up * (height * 0.5f), Size(width + bar, bar), frame);
+            DreamEscapeBuilder.Box(name + " frame", parent, c - Vector3.up * (height * 0.5f), Size(width + bar, bar), frame);
+            DreamEscapeBuilder.Box(name + " frame", parent, c + across * (width * 0.5f), Size(bar, height + bar), frame);
+            DreamEscapeBuilder.Box(name + " frame", parent, c - across * (width * 0.5f), Size(bar, height + bar), frame);
+            DreamEscapeBuilder.Box(name + " bar", parent, c, Size(width, 0.05f), frame);
+            DreamEscapeBuilder.Box(name + " bar", parent, c, Size(0.05f, height), frame);
+            DreamEscapeBuilder.Box(name + " sill", parent, c + normal * 0.06f - Vector3.up * (height * 0.5f + 0.06f), Size(width + 0.3f, 0.07f) + new Vector3(Mathf.Abs(normal.x), 0f, Mathf.Abs(normal.z)) * 0.1f, frame);
         }
 
         /// <summary>A front door in the 3 m gap of a house-front wall centred on <paramref name="z"/> (decoration, no

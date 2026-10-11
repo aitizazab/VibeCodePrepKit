@@ -55,14 +55,15 @@ namespace JamKit.DreamEscape.EditorTools
                 new Spot("house-02-hallway-from-door", new Vector3(0f, 1.7f, -1.5f), new Vector3(0f, 1.2f, 20f)),
                 new Spot("house-03-kitchen-from-slide", new Vector3(0f, F + 1.65f, 72.5f), new Vector3(-6.5f, F + 0.8f, 78f)),
                 new Spot("house-04-table-and-lena", new Vector3(-3f, F + 1.6f, 74f), new Vector3(-9f, F + 1.0f, 77f)),
-                new Spot("house-05-counter-stove-fridge", new Vector3(-6.5f, F + 1.6f, 77f), new Vector3(-11.5f, F + 0.9f, 79f)),
+                new Spot("house-05-counter-stove-fridge", new Vector3(-8.6f, F + 1.6f, 80.6f), new Vector3(-11.6f, F + 0.8f, 76.5f)),
                 new Spot("house-06-fridge-calendar", new Vector3(-8.6f, F + 1.5f, 81.7f), new Vector3(-11.1f, F + 1.4f, 81.7f)),
                 new Spot("house-07-theo", new Vector3(-2.5f, F + 1.5f, 85f), new Vector3(-6f, F + 0.8f, 81f)),
                 new Spot("house-08-sofa", new Vector3(6.5f, F + 1.6f, 84f), new Vector3(6.5f, F + 0.5f, 77.5f)),
+                new Spot("house-08b-coats", new Vector3(7f, F + 1.6f, 87.6f), new Vector3(11.3f, F + 1.4f, 87.6f)),
                 new Spot("house-09-photo-wall", new Vector3(6.7f, F + 1.75f, 94.6f), new Vector3(6.7f, F + 1.7f, 100f)),
                 new Spot("house-10-theos-room", new Vector3(-4.5f, F + 1.6f, 90.8f), new Vector3(-9.5f, F + 0.5f, 96.5f)),
                 new Spot("house-11-theos-desk-drawing", new Vector3(-7f, F + 1.5f, 91.4f), new Vector3(-7f, F + 0.77f, 89.9f)),
-                new Spot("house-12-tipped-hallway", new Vector3(0f, 1.6f, 188f), new Vector3(0f, 0.5f, 215f)),
+                new Spot("house-12-tipped-hallway", new Vector3(-2f, 3f, 178f), new Vector3(2f, -1f, 215f)),
                 new Spot("house-13-way-out-door", new Vector3(0f, -3.3f, 311.5f), new Vector3(0f, -3.6f, 319f)),
                 new Spot("house-14-umbrella-closed", new Vector3(1.2f, -3.75f, 315.6f), new Vector3(2.4f, -4.45f, 317.6f)),
                 new Spot("house-15-umbrella-open", Vector3.zero, Vector3.zero, "umbrella-open"),
@@ -73,11 +74,11 @@ namespace JamKit.DreamEscape.EditorTools
             {
                 new Spot("escape-01-walts-driveway", new Vector3(-9f, 1.7f, -5f), new Vector3(-5f, 1.0f, 30f)),
                 new Spot("escape-02-street-side", new Vector3(6f, 3f, 10f), new Vector3(-6f, 1.0f, 35f)),
-                new Spot("escape-03-car-roofs", new Vector3(-4f, 1.2f, 88f), new Vector3(0f, 0.2f, 112f)),
-                new Spot("escape-04-barbecue", new Vector3(-4f, 0.6f, 118f), new Vector3(3f, -0.2f, 142f)),
-                new Spot("escape-05-garage", new Vector3(0f, -0.4f, 168f), new Vector3(0f, -1f, 195f)),
+                new Spot("escape-03-car-roofs", new Vector3(-2f, 1.6f, 92f), new Vector3(0f, -0.6f, 108f)),
+                new Spot("escape-04-barbecue", new Vector3(-4f, 1.7f, 121f), new Vector3(3f, 0f, 140f)),
+                new Spot("escape-05-garage", new Vector3(0f, -0.6f, 183f), new Vector3(-7f, -0.4f, 189f)),
                 new Spot("escape-06-rooftops", new Vector3(0f, 4.5f, 238f), new Vector3(0f, 2f, 270f)),
-                new Spot("escape-07-front-door-rain", new Vector3(0f, -2f, 452f), new Vector3(0f, -3f, 470f)),
+                new Spot("escape-07-front-door-rain", new Vector3(1.5f, -2.2f, 464f), new Vector3(0f, -3.6f, 486f)),
             };
             Scene(DreamEscapeBuilder.ScenePath, escape, dir);
             return dir;
@@ -88,6 +89,8 @@ namespace JamKit.DreamEscape.EditorTools
             if (!File.Exists(path)) { Debug.LogError("JAMKIT_DREAM_CAPTURE missing scene (rebuild the shell scenes first): " + path); return; }
             EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
             var main = Camera.main;
+            var body = new List<Renderer>();
+            if (main != null) body.AddRange(main.transform.root.GetComponentsInChildren<Renderer>(true));
             var go = new GameObject("Capture camera");
             var cam = go.AddComponent<Camera>();
             if (main != null) { cam.CopyFrom(main); main.enabled = false; }
@@ -102,6 +105,7 @@ namespace JamKit.DreamEscape.EditorTools
                 foreach (var s in spots)
                 {
                     Vector3 eye = s.eye, look = s.look;
+                    foreach (var r in body) if (r != null) r.enabled = s.show == "umbrella-open";
                     if (s.show == "umbrella-open")
                     {
                         var open = FindByName("Umbrella (open, over her)");

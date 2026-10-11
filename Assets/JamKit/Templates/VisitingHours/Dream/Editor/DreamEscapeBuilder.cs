@@ -536,8 +536,11 @@ namespace JamKit.DreamEscape.EditorTools
                     var road = Pastel("Road", Road, 0.06f);
                     var pave = Pastel("Pavement", Pavement, 0.05f);
                     Quad("Road", t, new Vector3(0f, y + 0.02f, c.z), Vector3.up, 8f, size.z, road);
-                    Quad("Pavement (left)", t, new Vector3(-4.75f, y + 0.03f, c.z), Vector3.up, 1.5f, size.z, pave);
-                    Quad("Pavement (right)", t, new Vector3(4.75f, y + 0.03f, c.z), Vector3.up, 1.5f, size.z, pave);
+                    if (min.x <= -5.4f && max.x >= 5.4f)   // the 8 m garden path into the rain has no pavements over the void
+                    {
+                        Quad("Pavement (left)", t, new Vector3(-4.75f, y + 0.03f, c.z), Vector3.up, 1.5f, size.z, pave);
+                        Quad("Pavement (right)", t, new Vector3(4.75f, y + 0.03f, c.z), Vector3.up, 1.5f, size.z, pave);
+                    }
                     var dash = Pastel("Dash", new Color(1f, 0.95f, 0.7f), 0f);
                     for (float z = min.z + 2f; z < max.z - 1f; z += 5f)
                         Quad("Dash", t, new Vector3(0f, y + 0.04f, z), Vector3.up, 0.18f, 2f, dash);
@@ -753,7 +756,7 @@ namespace JamKit.DreamEscape.EditorTools
         static void Ledge(Transform t, Vector3 at, float width) =>
             Box("Ledge lip", t, at, new Vector3(width - 0.4f, 0.06f, 0.2f), Pastel("GoStripe", GoColor, 0.03f, 0.75f));
 
-        static GameObject GableOn(Transform t, Mesh gable, Vector3 center, Vector3 size, Material mat)
+        internal static GameObject GableOn(Transform t, Mesh gable, Vector3 center, Vector3 size, Material mat)
         {
             var go = new GameObject("Gable roof");
             go.transform.SetParent(t, false);
@@ -827,7 +830,7 @@ namespace JamKit.DreamEscape.EditorTools
                 }
         }
 
-        static Mesh EnsureGableMesh()
+        internal static Mesh EnsureGableMesh()
         {
             var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(GablePath);
             if (mesh != null) return mesh;
@@ -968,8 +971,10 @@ namespace JamKit.DreamEscape.EditorTools
                 lamp.position = new Vector3(side * 2.4f, spot.floorY, spot.rainEndS - 2f);
                 lamp.rotation = Quaternion.Euler(0f, side > 0 ? 180f : 0f, 0f);   // the hooks lean over the path
                 DreamProps.Show("Post", postMesh, post, lamp, Vector3.zero, Quaternion.identity);
-                var bulb = Part("Lamp", PrimitiveType.Sphere, lamp, Vector3.zero, Vector3.one * 0.32f, lampGlow);
-                bulb.transform.localPosition = new Vector3(0.7f, 2.9f - 0.12f, 0f);
+                var lantern = Part("Lantern", PrimitiveType.Cube, lamp, Vector3.zero, new Vector3(0.3f, 0.42f, 0.3f), Pastel("Lantern", new Color(1f, 0.88f, 0.62f), 0.03f, 0.9f));
+                lantern.transform.localPosition = new Vector3(0.68f, 2.9f - 0.36f, 0f);
+                var bulb = Part("Lamp", PrimitiveType.Sphere, lamp, Vector3.zero, Vector3.one * 0.9f, lampGlow);
+                bulb.transform.localPosition = new Vector3(0.68f, 2.9f - 0.36f, 0f);
             }
 
             // The dream tool's beam (the same pulse of light as in the Movement Lab).

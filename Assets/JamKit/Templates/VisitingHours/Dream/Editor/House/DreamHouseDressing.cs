@@ -63,6 +63,8 @@ namespace JamKit.DreamEscape.EditorTools
         /// <summary>Puts real furniture in a gameplay box when the plan has some for it. The box keeps its collider.</summary>
         public static void Furnish(string pieceName, GameObject box, Transform root)
         {
+            if (pieceName.StartsWith("Curtains") || pieceName.StartsWith("Pantry curtain")) { Pleats(box); return; }
+            if (pieceName.StartsWith("Coats")) { Coats(box); return; }
             Dress dress = null;
             foreach (var (prefix, d) in Plan)
                 if (pieceName.StartsWith(prefix)) { dress = d; break; }
@@ -104,6 +106,55 @@ namespace JamKit.DreamEscape.EditorTools
                 Fit(prefabs[i], parent, new Bounds(centre, size), float.IsNaN(rowTurn) ? 0f : rowTurn, dress.height);
                 if (!_used.Contains(prefabs[i].name)) _used.Add(prefabs[i].name);
             }
+            box.GetComponent<MeshRenderer>().enabled = false;
+        }
+
+        /// <summary>A curtain hung in soft folds (art pass 4): the box hidden, its colour drawn as pleats along its long side.</summary>
+        static void Pleats(GameObject box)
+        {
+            var b = new Bounds(box.transform.position, box.transform.lossyScale);
+            var mat = box.GetComponent<MeshRenderer>().sharedMaterial;
+            var parent = new GameObject(box.name + " (folds)").transform;
+            parent.SetParent(box.transform.parent, false);
+            bool alongZ = b.size.z >= b.size.x;
+            float len = alongZ ? b.size.z : b.size.x, depth = alongZ ? b.size.x : b.size.z;
+            int n = Mathf.Max(3, Mathf.RoundToInt(len / 0.32f));
+            float w = len / n;
+            for (int i = 0; i < n; i++)
+            {
+                float along = (alongZ ? b.min.z : b.min.x) + w * (i + 0.5f);
+                float push = (i % 2 == 0 ? 0.25f : -0.25f) * Mathf.Min(depth, 0.3f);
+                var c = alongZ ? new Vector3(b.center.x + push, b.center.y, along) : new Vector3(along, b.center.y, b.center.z + push);
+                var s = alongZ ? new Vector3(Mathf.Min(depth, 0.3f) * 0.6f, b.size.y, w * 1.05f) : new Vector3(w * 1.05f, b.size.y, Mathf.Min(depth, 0.3f) * 0.6f);
+                DreamEscapeBuilder.Box("Fold", parent, c, s, mat);
+            }
+            DreamEscapeBuilder.Box("Curtain rail", parent, new Vector3(b.center.x, b.max.y + 0.04f, b.center.z), alongZ ? new Vector3(0.06f, 0.06f, b.size.z + 0.2f) : new Vector3(b.size.x + 0.2f, 0.06f, 0.06f),
+                DreamEscapeBuilder.Pastel("HouseRail", new Color(0.62f, 0.46f, 0.38f), 0.01f));
+            box.GetComponent<MeshRenderer>().enabled = false;
+        }
+
+        /// <summary>Coats on a row of hooks (art pass 4): soft rounded coats in the family's colours, the box hidden.</summary>
+        static void Coats(GameObject box)
+        {
+            var b = new Bounds(box.transform.position, box.transform.lossyScale);
+            var parent = new GameObject(box.name + " (coats)").transform;
+            parent.SetParent(box.transform.parent, false);
+            bool alongZ = b.size.z >= b.size.x;
+            float len = alongZ ? b.size.z : b.size.x;
+            var colours = new[] { new Color(0.32f, 0.33f, 0.38f), new Color(0.6f, 0.17f, 0.2f), new Color(0.88f, 0.7f, 0.3f), new Color(0.85f, 0.45f, 0.42f) };
+            int n = Mathf.Max(2, Mathf.FloorToInt(len / 0.55f));
+            float w = len / n;
+            var coat = DreamProps.RoundedBox("Coat", new Vector3(0.24f, 1.15f, 0.48f), 0.1f);
+            for (int i = 0; i < n; i++)
+            {
+                float along = (alongZ ? b.min.z : b.min.x) + w * (i + 0.5f);
+                var c = alongZ ? new Vector3(b.center.x, b.max.y - 0.75f, along) : new Vector3(along, b.max.y - 0.75f, b.center.z);
+                var rot = alongZ ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f);
+                var go = DreamProps.Show("Coat", coat, DreamProps.MeshLook("Coat" + (i % colours.Length), colours[i % colours.Length], 0.01f), parent, Vector3.zero, rot);
+                go.transform.position = c;
+            }
+            DreamEscapeBuilder.Box("Coat rail", parent, new Vector3(b.center.x, b.max.y - 0.12f, b.center.z), alongZ ? new Vector3(0.06f, 0.06f, b.size.z) : new Vector3(b.size.x, 0.06f, 0.06f),
+                DreamEscapeBuilder.Pastel("HouseRail", new Color(0.62f, 0.46f, 0.38f), 0.01f));
             box.GetComponent<MeshRenderer>().enabled = false;
         }
 
@@ -207,7 +258,7 @@ namespace JamKit.DreamEscape.EditorTools
             }
             key += "_" + ColorUtility.ToHtmlStringRGB(c);   // the same name can come in more than one colour
             Color.RGBToHSV(c, out float h, out float s, out float v);
-            var pastel = Color.HSVToRGB(h, s * 0.62f, Mathf.Lerp(v, 1f, 0.38f));
+            var pastel = Color.HSVToRGB(h, s * 0.85f, Mathf.Lerp(v, 1f, 0.15f));   // softened, not washed out
             var m = DreamEscapeBuilder.Mat("Mesh_" + key, "JamKit/Dream/PastelMesh");
             m.SetColor("_Color", pastel);
             m.SetVector("_SunDir", DreamEscapeBuilder.SunDir);
