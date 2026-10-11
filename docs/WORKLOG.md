@@ -1226,3 +1226,20 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - The animation follows the objects (the grab follows the phone).
   - Edits save as an overrides JSON that both the runtime and the scene generator apply, so they survive rebuilds.
   - The title shot is editable too. The creator's title sketch comes separately.
+- **Music round 2 done (67b67af):** every looping piece now rises out of a beat, plays its body and falls back into the same beat, with seamless loops.
+  - Lengths: Opening 30 s, played once; Ending 60 s, once; the character pieces 69-84 s; the argument 111 s; the chase 90 s.
+  - Motif families: one family motif for the Dream, Elias, Lena and the new Nadia piece; a waking motif for the Opening and Ending; Daytime gets its own melody.
+  - The chase is in speed stems: base, then drive from 8 m/s, then peak from 13 m/s. There's a grounded variant and an airy one, plus a slow-to-fast-to-slow preview.
+  - Page: `out/vh-music-sketches/index.html`. The decisions are at the end of `docs/MUSIC-SKETCHES.md`.
+- **Argument battle playtest:** the creator called it "a disaster". Problems:
+  - The menus don't navigate consistently on a controller.
+  - No art, and no audio from the fight; the previous scene's ambience keeps playing.
+  - No transition from the dodge box to the claims screen.
+  - The claims screen is plain text boxes in a default font.
+  - The prose is ambiguous.
+
+  Wanted: a mostly black background with the opponent's sprite, and more room for the text.
+  - Fixes sent to a385c22.
+  - Lena's sprite to a097a2a.
+  - Art for the house and the Dream Escape to a953eef.
+  - The prose is the creator's. Their brief: `docs/ARGUMENT-PROSE-BRIEF.md` (be7932a: the flow, and every line with what it must say).
