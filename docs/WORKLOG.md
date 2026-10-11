@@ -1108,3 +1108,15 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - The title got one framing-only try: the camera is further back, the props moved in, and the lanyard is a smooth loop.
   - The risk: the wrist may sink into the mattress during the grab. Nothing has run in Unity yet.
 - **Unity runs** wait until the creator stops playing the Movement Lab.
+- **Hop-cost presets (ffa233c, movement agent):**
+  - Off, Mild (the default) and Current, switched with F6 or LB + d-pad up and shown on the F3 HUD. The choice is saved as `movement_hop_cost`.
+  - Mild means:
+    - clean hops and slide hops are free;
+    - a late hop fades at half the normal rate;
+    - a double jump after a hop is free for the first 45° of turn.
+  - The sim, 10 clean hops from 20 m/s: Off 20.00, Mild 20.00, Current 14.06. Each hop 0.08 s late: 20.00 / 15.83 / 11.16.
+  - The movement agent is still on the stealth kit, uncommitted. Its earlier commits 52ae6d3 and 8454370 carry the author email aarash.ab@gmail.com instead of the repo's; they weren't rewritten.
+- **Music sketches (5636afc, sound agent):** eight sketches of 38–49 s each, in `out/vh-music-sketches/index.html` (opened in Firefox), with notes in `docs/MUSIC-SKETCHES.md`.
+  - They share one leitmotif (A–D–E–F) over Dm–Bb–F–C.
+  - The pieces: Dream (D minor, 104), Chase (128), Daytime (F major, 92), Opening (72, half the motif), Argument (138, the motif inverted), Lena (a Bb waltz), Elias (66, unresolved), Ending reprise (D minor to D major).
+- **Overnight Unity run ready:** `scratchpad/overnight-1011.ps1`. It covers VH verify, the capture, the VH build, then the Movement Lab and Dream Escape builds. It waits for the creator to close the Movement Lab.
