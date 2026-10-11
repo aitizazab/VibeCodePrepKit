@@ -64,7 +64,7 @@ namespace JamKit.DreamEscape
         VisualElement _white;
         float _whiteAlpha;
         int _checkpoint;
-        bool _chasing, _respawning, _finishing;
+        bool _chasing, _respawning, _finishing, _leaving;
         float _runTime, _best, _lastTime, _s, _topSpeed, _waitAtStart, _launchSpeed;
         bool _timing;
         int _respawns, _caught, _falls, _finishes, _collapsesFired;
@@ -97,6 +97,11 @@ namespace JamKit.DreamEscape
         /// <summary>True from the moment a fall or a catch is noticed until the player is back and the white-out is gone.</summary>
         public bool Respawning => _respawning;
         public bool Finishing => _finishing;
+        /// <summary>True from the end of the rain path until the scene leaves (the light swells).</summary>
+        public bool Leaving => _leaving;
+        /// <summary>The Despair route: Nadia went on into the rain without the umbrella (kept in the save, across runs;
+        /// nothing reads it yet but the debug HUD). Set by <see cref="DreamUmbrella"/>.</summary>
+        public static bool Despair => GameRoot.Exists && GameRoot.Save.Data.HasFlag(DreamRain.DespairFlag);
         public IReadOnlyList<DreamPieceView> Pieces => _pieces;
         public IReadOnlyList<string> Trace => _trace;
         public string TraceText => string.Join(Newline, _trace);
@@ -261,7 +266,10 @@ namespace JamKit.DreamEscape
             }
 
             if (!_finishing && _s >= _course.finishS && player.Sim.Grounded)
-                StartCoroutine(Finish());
+                Finish();
+            // Out of the front door and down the rain path: she leaves the dream.
+            if (_finishing && !_leaving && _s >= _dream.rainEndS && player.Sim.Grounded)
+                StartCoroutine(Leave());
         }
 
         void StartChase()
@@ -329,7 +337,9 @@ namespace JamKit.DreamEscape
             _respawning = false;
         }
 
-        IEnumerator Finish()
+        /// <summary>Out of the static (the chase ends on the lit porch): the time, the chime. The front door and the rain
+        /// path come next (<see cref="DreamUmbrella"/>); <see cref="Leave"/> ends the scene at the end of the path.</summary>
+        void Finish()
         {
             _finishing = true;
             _finishes++;
@@ -342,8 +352,14 @@ namespace JamKit.DreamEscape
             var inv = CultureInfo.InvariantCulture;
             GameRoot.Run.Set("Best escape", _best.ToString("0.0", inv) + " s");
             GameRoot.Audio.Play("chime", 0.7f);
-            GameRoot.Hud.Message("Out. The light holds.   " + _runTime.ToString("0.0", inv) + " s" + (record ? " (best)" : ""), 3.5f);
+            GameRoot.Hud.Message("Out. The light holds.   " + _runTime.ToString("0.0", inv) + " s" + (record ? " (best)" : "") + "   It's raining past the door.", 3.5f);
             Debug.Log("JAMKIT_DREAM escaped in " + _runTime.ToString("0.0", inv) + " s, top speed " + _topSpeed.ToString("0.0", inv) + " m/s, respawns " + _respawns);
+        }
+
+        /// <summary>The end of the rain path: the light swells, then the story takes over (<see cref="Escaped"/>) or the escape loops.</summary>
+        IEnumerator Leave()
+        {
+            _leaving = true;
             // The light swells.
             for (float t = 0f; t < 1.2f && _finishing && GameRoot.Flow.InRun; t += Time.unscaledDeltaTime) { SetWhite(0.8f * t / 1.2f); yield return null; }
             if (!_finishing || !GameRoot.Flow.InRun) { SetWhite(0f); yield break; }
@@ -369,6 +385,7 @@ namespace JamKit.DreamEscape
             var cp = _course.checkpoints[index];
             _checkpoint = index;
             _finishing = false;
+            _leaving = false;
             Vector3 pos = new Vector3(cp.position.X, cp.position.Y, cp.position.Z);
             Vector3 fwd = Quaternion.Euler(0f, cp.yaw, 0f) * Vector3.forward;
             _launchSpeed = running ? player.Def.sprintSpeed : 0f;

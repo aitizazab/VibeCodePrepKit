@@ -48,7 +48,8 @@ player is slower and slips once or twice.
 | 340-370 | **The alley** | Two walls over the void, 5 m apart: kick off the left, run the right, kick and double jump to the next roof (a metre lower). | left 12 m, right 18 m | 36.0-39.0 s |
 | 370-404 (checkpoint at 374, chapter *Final run*) | **Final run** | Slide down the roof slope (speeds you up). | 16 m, 3 m drop | 40.0-41.3 s (15.8 m/s) |
 | 404-440 | **The last wall** | Jump at the long wall on the left, run it, kick off and double jump down into the light. | wall 21 m; the lit porch 1 m below | 42.2-44.7 s |
-| 446 | **The light** (finish) | A pillar of warm light and an open doorway. The dog waits by it. | | 45.1 s |
+| 446 | **The light** (the chase ends) | A pillar of warm light and an open doorway. The dog waits by it. | | 45.1 s |
+| 461-494 | **The front door, into the rain** | A closed umbrella glows by the door: take it with the dream tool and it opens over her. Past the door it rains; without the umbrella she soaks (heavier, darker), and going on past s 469.6 is the Despair route. The light swells at the end of the path. See "The umbrella and the rain". | path 32 m | about 49 s |
 
 Floor heights: the street is 0 at the start, -1 after the first wall, -2 after the garden wall; roofs
 +2.2, then +1.2, +0.2, the low roof -2.8 and the lit porch -3.8. **Every wall jump lands down onto the next
@@ -82,6 +83,61 @@ mantle that rescues it costs the speed.
 - **The exit is the brightest thing**: the sun sits low ahead, and the light at the end is a pillar.
 - Space: the street is 60 m wide, the roofs 12 m; nothing decorative stands within 1.2 m of the lane
   (tested).
+
+## The umbrella and the rain (the front door)
+
+**The creator's note (2026-10-11):** "highlight a closed umbrella sitting next to the exit so that the player picks it
+up, with the same Dream Tool they've learnt to use, that lets her stand in the rain and continue normally. If she
+doesn't have the umbrella and chooses to continue anyways, it allows her to continue the Despair route (despair route
+ends with the Long Night)."
+
+**Where it lives.** It belongs to Night 2's house escape, which ends with her going out the front door into the rain.
+That escape isn't built yet, so the front door and the rain sit at the end of this escape for now. When the house
+escape is built, the umbrella, the rain path and their component move there unchanged.
+
+**What happens, in order:**
+1. At s 446 on the lit porch, the chase ends: the time, the chime, and "It's raining past the door."
+2. The doorway in the house front past the light, at s 461.6, is the front door.
+3. A closed coral umbrella leans beside it, on the right (x 2.75). It glows gold, with a gold pool at its foot.
+4. **Taking it** uses the dream tool from the Movement Lab:
+   - the same Fire action (left mouse, RT), rebindable;
+   - the same aim assist (6° on a mouse, 8° on a pad, measured from its edge, 40 m range);
+   - the glow swells and a tick sounds when the aim locks;
+   - the same pulse and sounds on the shot.
+   It opens over her: a canopy on her body, its rim in the top of the view.
+5. **Past the door it rains.** Rain falls over a 32 m garden path; you hear it from the porch.
+   - **Under the umbrella** she continues normally, and the rain drums softer.
+   - **Without it** the rain soaks her over 5 s. Soaked through, she runs at 72 % of her speed and jumps 80 % as
+     high, and a cold blue-grey vignette closes in from the edges. Back indoors, it dries off.
+6. **The Despair route:** going on more than 8 m into the rain (s 469.6) without the umbrella is the choice. Stepping
+   out and back first is fine.
+   - It sets the save's flag `vh_despair` (`DreamRain.DespairFlag`). The getter is `DreamEscapeGame.Despair`.
+   - The flag stays across runs. Nothing reads it yet: only the debug line (bottom left, toggled with F3 along with
+     the lab HUD) shows Despair, the umbrella and the soak.
+   - Taking the umbrella later doesn't undo the choice.
+7. At the end of the path (s 494) the light swells, then the story takes over (`Escaped`) or the escape loops back to
+   the driveway.
+8. Placed before the porch (a new run, a respawn, a chapter), the umbrella is back by the door.
+
+**For the creator to decide:**
+- **The cost of going on without it.** It's a modest placeholder: heavier and darker. It could be a slower,
+  greyer world, the pursuer returning, or no cost at all beyond the route.
+- **Whether the Despair choice should be signalled** when she makes it. Now it's silent, apart from the debug line.
+
+**Where things are:**
+- `Runtime/Core/DreamEscape/DreamRain.cs`: the umbrella, the soak and the Despair choice, pure and dotnet-tested.
+- `DreamEscapeCourse`: `umbrella`, `rainStartS`, `despairS`, `rainEndS`, and the rain path.
+- `Dream/Scripts/DreamUmbrella.cs`: the aim, the pickup, the rain, the heavier movement and the vignette. The heavier
+  movement uses a runtime copy of the tuning; the asset is never touched.
+- `DreamEscapeBuilder.BuildUmbrella`: the prop, the glow, the open canopy, the rain particles and the beam.
+- Tests:
+  - `core-tests/DreamEscape`, `DreamRainTests`: the umbrella by the door, beside the lane; the tool's aim locks it;
+    dry with it, no Despair; soaked without it, Despair once; the reset; the path runs to the end.
+  - EditMode, `DreamUmbrellaEditorTests`: the wiring.
+  - PlayMode, `DreamUmbrellaPlayTests`:
+    - looking at it and Fire takes it;
+    - the autopilot takes it and walks the rain dry;
+    - going on without it is heavier and sets the persistent flag.
 
 ## The look
 - `JamKit/Dream/Pastel`: flat pastel colour lit in three soft steps by a low golden-hour sun with a cool

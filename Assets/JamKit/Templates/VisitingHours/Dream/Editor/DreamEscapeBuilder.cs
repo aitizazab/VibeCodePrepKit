@@ -302,6 +302,7 @@ namespace JamKit.DreamEscape.EditorTools
             game.courseRoot = root;
             game.skyDome = sky.transform;
             game.exitLight = exit;
+            BuildUmbrella(dream, root, game, body);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             return ScenePath;
@@ -830,6 +831,102 @@ namespace JamKit.DreamEscape.EditorTools
                 if (!dream.FloorTopAt(x, s, 100f, out float top)) continue;
                 Quad("Pool", parent, new Vector3(x, top + 0.05f, s), Vector3.up, 3.2f, 3.2f, mat);
             }
+        }
+
+        /// <summary>The front door into the rain: the closed umbrella leaning by the door with its gold glow (the dream
+        /// tool takes it), the open umbrella over her head (shown once she has it), the rain over the path, the tool's
+        /// beam, and the <see cref="DreamUmbrella"/> that runs it (docs/DREAM-ESCAPE.md "The umbrella and the rain").</summary>
+        static void BuildUmbrella(DreamEscapeCourse dream, Transform root, DreamEscapeGame game, MovementController body)
+        {
+            var parent = new GameObject("The front door (umbrella and rain)").transform;
+            parent.SetParent(root, false);
+            var at = U(dream.umbrella);
+            var cloth = Pastel("Umbrella", new Color(0.98f, 0.55f, 0.62f), 0.03f, 0.15f);
+            var wood = Pastel("UmbrellaHandle", new Color(0.55f, 0.36f, 0.3f), 0.02f);
+
+            // Closed, leaning on the house front beside the door: a furled canopy on a shaft, a hooked handle.
+            var prop = new GameObject("Umbrella (closed, by the door)").transform;
+            prop.SetParent(parent, false);
+            prop.position = at;
+            prop.rotation = Quaternion.Euler(-12f, 0f, 8f);
+            Part("Furled canopy", PrimitiveType.Capsule, prop, new Vector3(0f, -0.05f, 0f), new Vector3(0.16f, 0.36f, 0.16f), cloth);
+            Part("Shaft", PrimitiveType.Cylinder, prop, new Vector3(0f, 0.05f, 0f), new Vector3(0.03f, 0.5f, 0.03f), wood);
+            Part("Handle", PrimitiveType.Cube, prop, new Vector3(0.05f, 0.55f, 0f), new Vector3(0.13f, 0.05f, 0.05f), wood);
+
+            // The highlight: a breathing gold glow around it and a gold pool at its foot ("use this").
+            var glow = Part("Umbrella glow (highlight)", PrimitiveType.Sphere, parent, Vector3.zero, Vector3.one * 1.5f, Glow("UmbrellaHalo", GoColor, 0.7f, 0f, 0.3f));
+            glow.transform.position = at;
+            Quad("Umbrella pool", glow.transform, at + new Vector3(0f, -0.5f, 0f), Vector3.up, 1.6f, 1.6f, Glow("UmbrellaPool", GoColor, 1f, 0f, 0.3f));
+
+            // Open, over her head: a shallow dome on the body (it turns with her, not with her look); its rim shows in the
+            // top of the view, and looking up shows its underside.
+            var canopy = new GameObject("Umbrella (open, over her)");
+            canopy.transform.SetParent(body.transform, false);
+            canopy.transform.localPosition = new Vector3(0.05f, body.Def.eyeHeight + 0.5f, 0.12f);
+            Part("Canopy", PrimitiveType.Sphere, canopy.transform, Vector3.zero, new Vector3(1.9f, 0.45f, 1.9f), cloth);
+            Part("Shaft", PrimitiveType.Cylinder, canopy.transform, new Vector3(0.1f, -0.45f, 0.05f), new Vector3(0.025f, 0.45f, 0.025f), wood);
+            foreach (var t in canopy.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 2;
+            canopy.SetActive(false);
+
+            // The rain: pale streaks falling over the path past the door (and a little over the porch's end).
+            var rainGo = new GameObject("Rain (past the door)");
+            rainGo.transform.SetParent(parent, false);
+            float z0 = dream.rainStartS - 6f, z1 = dream.rainEndS + 8f;
+            rainGo.transform.position = new Vector3(0f, dream.ExitTop + 12f, (z0 + z1) * 0.5f);
+            rainGo.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            var ps = rainGo.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.playOnAwake = false;
+            main.loop = true;
+            main.startLifetime = 1f;
+            main.startSpeed = 15f;
+            main.startSize = 0.035f;
+            main.startColor = new Color(0.8f, 0.86f, 1f, 0.55f);
+            main.maxParticles = 3000;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            var emission = ps.emission;
+            emission.rateOverTime = 1800f;
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(16f, z1 - z0, 0.1f);
+            var pr = rainGo.GetComponent<ParticleSystemRenderer>();
+            pr.renderMode = ParticleSystemRenderMode.Stretch;
+            pr.velocityScale = 0.04f;
+            pr.lengthScale = 2f;
+            pr.sharedMaterial = Glow("Rain", new Color(0.82f, 0.88f, 1f), 0.6f, 0f, 0f);
+            pr.shadowCastingMode = ShadowCastingMode.Off;
+            pr.receiveShadows = false;
+
+            // The dream tool's beam (the same pulse of light as in the Movement Lab).
+            var beam = Part("Dream tool beam", PrimitiveType.Cube, parent, Vector3.zero, Vector3.one, Glow("ToolBeam", new Color(1f, 0.95f, 0.8f), 1.2f, 0f, 0f));
+            beam.SetActive(false);
+
+            var u = game.gameObject.AddComponent<DreamUmbrella>();
+            u.game = game;
+            u.prop = prop;
+            u.glow = glow.transform;
+            u.canopy = canopy;
+            u.rainFx = ps;
+            u.beam = beam.transform;
+            u.beamRenderer = beam.GetComponent<MeshRenderer>();
+        }
+
+        /// <summary>A primitive with no collider and no shadows, placed in its parent's space.</summary>
+        static GameObject Part(string name, PrimitiveType type, Transform parent, Vector3 localPos, Vector3 localScale, Material mat)
+        {
+            var go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            Object.DestroyImmediate(go.GetComponent<Collider>());
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localScale = localScale;
+            var r = go.GetComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            GameObjectUtility.SetStaticEditorFlags(go, 0);
+            return go;
         }
 
         static Light BuildExit(DreamEscapeCourse dream, Transform root)

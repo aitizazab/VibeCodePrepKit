@@ -74,6 +74,17 @@ namespace JamKit.DreamEscape
         public readonly List<CourseBeat> beats = new List<CourseBeat>();
         /// <summary>The safe light at the end (the exit), at floor level.</summary>
         public Vector3 exitLight;
+        /// <summary>The front door: the doorway in the house front past the light (rain from here on).</summary>
+        public float rainStartS;
+        /// <summary>Going on past this into the rain without the umbrella is the Despair choice.</summary>
+        public float despairS;
+        /// <summary>The end of the rain path: she leaves the dream here.</summary>
+        public float rainEndS;
+        /// <summary>The closed umbrella leaning by the front door (its middle), and its size for the dream tool's aim.</summary>
+        public Vector3 umbrella;
+        public float umbrellaRadius = 0.6f;
+        /// <summary>Placed before this (a respawn, a chapter, a new run) and the umbrella is back by the door.</summary>
+        public float umbrellaResetS;
         /// <summary>Seconds a player may stand at the start before the static moves anyway.</summary>
         public float wakeAfter = 2.5f;
         /// <summary>After this many catches or falls at one checkpoint, the static quietly gives more room.</summary>
@@ -441,6 +452,17 @@ namespace JamKit.DreamEscape
             c.finishS = 446f;
             c.chaseEndS = 446f;
 
+            // ===== J. The front door, into the rain (Night 2's house escape ends this way; there is no house escape yet, so
+            // its ending lives here). A closed umbrella leans by the door: the dream tool takes it. Outside, the rain soaks
+            // her unless it's open; going on without it, past the point of no return, is the Despair route.
+            umbrellaResetS = 440f;
+            rainStartS = exitLight.Z + 9.6f;
+            umbrella = new Vector3(2.75f, exit + 0.55f, rainStartS - 0.6f);
+            Section(rainStartS, "The rain");
+            Add("The garden path (rain)", LabPieceKind.Floor, DreamLook.Street, new Vector3(-4f, exit - 2f, 462f), new Vector3(4f, exit, 500f), tint: 0);
+            despairS = rainStartS + 8f;
+            rainEndS = 494f;
+
             // Houses standing in the void on both sides of the rooftops and the final run.
             for (float z = 236f; z < 470f; z += 15f)
             {
@@ -451,7 +473,7 @@ namespace JamKit.DreamEscape
 
             c.pursuer = new Pursuer { targetGap = 12f, k = 0.6f, minSpeed = 6f, maxSpeed = 11.5f };
             // s = z (the first segment extends straight back past 0, so Walt's driveway reads as negative s).
-            c.route = new PathLine(new[] { new Vector3(0f, 0f, 0f), new Vector3(0f, 0f, 480f) });
+            c.route = new PathLine(new[] { new Vector3(0f, 0f, 0f), new Vector3(0f, 0f, 520f) });
         }
     }
 }
