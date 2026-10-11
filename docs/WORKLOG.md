@@ -1357,3 +1357,5 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   4. sticker borders on the cast;
   5. the house front.
 - **22:40:** the game guard is holding Unity jobs while Valorant runs. They resume 10 min after it closes.
+
+- 2026-10-12 00:18: the creator lifted the Valorant hold for this run. The detached verify had died while waiting on the game guard; it was relaunched with `--no-game-guard` as Edit + Play + a VisitingHours build at e8fbfd1. Next: the round-3 editor tour on that build, then the dream capture for the vans.
