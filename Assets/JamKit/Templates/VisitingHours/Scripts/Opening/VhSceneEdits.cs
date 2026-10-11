@@ -491,12 +491,23 @@ namespace JamKit.VisitingHours
         /// <summary>The lamps the lighting adds itself (after it ran): each one by its name.</summary>
         public void RegisterLights()
         {
+            // What the lighting places itself (the morning sun) is as built where the lighting left it: that's its default.
+            foreach (var e in _all)
+                if (e.afterLighting && e.target != null)
+                {
+                    e.defaultPosition = e.target.localPosition;
+                    e.defaultRotation = e.target.localRotation;
+                    e.defaultScale = e.target.localScale;
+                }
             var seen = new HashSet<Transform>();
             foreach (var e in _all) if (e.target != null) seen.Add(e.target);
             foreach (var l in _stage.GetComponentsInChildren<Light>(true))
             {
                 var t = l.transform;
                 if (seen.Contains(t) || (_stage.phone != null && t.IsChildOf(_stage.phone))) continue;
+                // The tablet's glow follows the tablet every frame (the lighting rig): not placed by hand.
+                var rig = _stage.GetComponent<VhLightingRig>();
+                if (rig != null && rig.tabletGlow != null && t == rig.tabletGlow.transform) continue;
                 bool inside = false;
                 foreach (var e in _all)
                     if (e.target != null && t.IsChildOf(e.target)) inside = true;

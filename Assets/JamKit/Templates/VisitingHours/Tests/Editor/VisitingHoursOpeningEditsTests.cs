@@ -42,6 +42,15 @@ namespace JamKit.VisitingHours.Tests
             _built.Clear();
         }
 
+        /// <summary>Which ids differ, and how (for the messages).</summary>
+        static string Describe(VhSceneEditsData d)
+        {
+            var parts = new List<string>();
+            foreach (var o in d.objects) parts.Add(o.id + " (position " + o.position.ToString("F4") + ", turn " + o.rotation.ToString("F2") + ", size " + o.scale.ToString("F3") + ")");
+            foreach (var o in d.shots) parts.Add(o.id + " (position " + o.position.ToString("F4") + ", turn " + o.rotation.ToString("F2") + ", fov " + o.fov.ToString("F2") + ")");
+            return parts.Count == 0 ? "none" : string.Join("; ", parts);
+        }
+
         [Test]
         public void EditsRoundTripThroughJson()
         {
@@ -61,7 +70,8 @@ namespace JamKit.VisitingHours.Tests
         {
             var s = Build(new VhSceneEditsData());
             Assert.That(s.edits, Is.Not.Null);
-            Assert.That(s.edits.Capture().IsEmpty, Is.True, "nothing differs from the built scene");
+            var differs = s.edits.Capture();
+            Assert.That(differs.IsEmpty, Is.True, "nothing differs from the built scene, but these do: " + Describe(differs));
             var ids = new HashSet<string>();
             foreach (var e in s.edits.All)
             {
@@ -100,7 +110,7 @@ namespace JamKit.VisitingHours.Tests
             Assert.That(s.posePositions[t].y - plain.posePositions[plain.PoseIndex("table")].y, Is.EqualTo(0.1f).Within(1e-3f), "the title shot moved up");
             // What it saves is what it was given (the unknown id dropped).
             var back = s.edits.Capture();
-            Assert.That(back.objects.Count, Is.EqualTo(1));
+            Assert.That(back.objects.Count, Is.EqualTo(1), "only the phone differs: " + Describe(back));
             Assert.That(Vector3.Distance(back.Object("phone").position, d.Object("phone").position), Is.LessThan(1e-4f));
             Assert.That(back.Shot("shot:table").fov, Is.EqualTo(40f).Within(1e-3f));
         }
