@@ -31,6 +31,30 @@ It's a standalone scene in the dream escape's folder and assemblies:
 
   Still boxes: the walls, stairs, closets, curtains, the house front and the tipped house's rooms.
 
+## Interior notes (art pass 5, 2026-10-12: a lived-in home)
+The creator: "it's not at all furnished... for the space Elias spent most of his life in, his memories of it are rather
+bland." The house is now decorated as a home (`Dream/Editor/House/DreamHouseDecor.cs`), decoration only: no colliders,
+nothing on Theo's walking paths, the hiding spots, the routes or the run walls.
+
+The rules used, from feng shui and ordinary interior-design advice (guidelines, not tested findings):
+- **A focal point per room**, and the main seat facing it with a solid back: the sofa faces the new fireplace; the table,
+  the bed and the desk anchor the others. (Feng shui's "command position": the main seat backed by a wall, seeing the
+  room. [livingetc](https://www.livingetc.com/advice/feng-shui-command-position),
+  [Homes & Gardens](https://homesandgardens.com/interior-design/feng-shui-furniture-placement))
+- **Furniture in groups, each anchored by a rug** (at least the front legs on it): the sofa, coffee table and armchair;
+  the dining table; Theo's room; the desk. ([Planner 5D](https://planner5d.com/blog/how-to-decorate-a-living-room/),
+  [Castlery](https://www.castlery.com/ca/blog/guide-to-layering-rugs))
+- **Clear walkways of about a metre** where people walk: here, Theo's walking graph and the player's routes.
+  ([livingetc](https://www.livingetc.com/advice/living-room-feng-shui))
+- **Light in layers**: a pendant over each room's group, table and floor lamps lower down, the fire and candles.
+  ([Planner 5D](https://planner5d.com/blog/how-to-decorate-a-living-room/))
+- **Soft and round against the hard edges, and things at different heights**: rugs, a teddy, plants, fruit, a mirror
+  over the mantel, shelves of books.
+
+What a memory of this home holds: the fireplace (mantel clock, candles, the siblings' photo, a mirror), an armchair with its
+lamp, bookcases, plants, the fridge with the children's drawings and notes, the counter's kettle, toaster, mugs and fruit,
+a clock, a long hallway runner with the brother's and sister's childhood photos, Theo's teddy, toy chest and toys.
+
 ## The sequence
 
 | Part | What happens | How it plays |

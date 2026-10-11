@@ -158,6 +158,7 @@ namespace JamKit.DreamEscape.EditorTools
             DreamHouseDressing.Report();
             var hallwayEnd = HallwayEnd(h, root);
             Details(h, root);
+            DreamHouseDecor.Decorate(root);   // art pass 5: a lived-in home (decoration only)
             BuildStealth(h, root, out var theo, out var counter);
             var lena = CutOut("Lena (at the stove)", DreamArt.Lena, root, U(h.lenaAt), 1.72f);
             var fold = Fold(root);
@@ -412,7 +413,7 @@ namespace JamKit.DreamEscape.EditorTools
 
         /// <summary>A story picture (the photo wall, the fridge calendar, Theo's drawing) when its style-E file exists in
         /// <c>Art/Dream/</c>, else <paramref name="fallback"/> (the plain card). Visual only: the quads have no colliders.</summary>
-        static Material Picture(string art, Material fallback)
+        internal static Material Picture(string art, Material fallback)
         {
             if (DreamArt.RealPath(art) == null) return fallback;
             var tex = DreamArt.Get(art, out _);

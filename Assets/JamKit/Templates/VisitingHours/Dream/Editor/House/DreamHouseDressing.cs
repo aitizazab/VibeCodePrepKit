@@ -168,7 +168,7 @@ namespace JamKit.DreamEscape.EditorTools
         /// <summary>The quarter turn (degrees) that makes the model's front face <paramref name="facing"/>, or NaN when the
         /// model has no clear back. The front is found from the mesh: the tallest part (a chair's back, a sofa's back, a
         /// bed's headboard, a stove's panel) is at the back.</summary>
-        static float TurnFor(GameObject prefab, Vector3 facing)
+        internal static float TurnFor(GameObject prefab, Vector3 facing)
         {
             var probe = Object.Instantiate(prefab);
             probe.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
@@ -236,7 +236,7 @@ namespace JamKit.DreamEscape.EditorTools
             return FlatDir(d);
         }
 
-        static Bounds WorldBounds(GameObject go)
+        internal static Bounds WorldBounds(GameObject go)
         {
             var rs = go.GetComponentsInChildren<Renderer>(true);
             if (rs.Length == 0) return new Bounds(go.transform.position, Vector3.zero);
@@ -246,7 +246,7 @@ namespace JamKit.DreamEscape.EditorTools
         }
 
         /// <summary>The model's own material colour, made pastel, in the dream's mesh look (one material per colour name).</summary>
-        static Material Pastelise(Material src)
+        internal static Material Pastelise(Material src)
         {
             Color c = Color.white;
             string key = "Kenney";
