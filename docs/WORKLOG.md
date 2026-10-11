@@ -1134,3 +1134,12 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
     - C: a close;
     - D: the link to a second place, for comparison.
   - **Open:** the stealth kit's final numbers, and where hide-and-seek happens (the house on Night 2 or a street intro).
+- **Stealth kit and Stealth Lab (f10b08d, movement agent):** all new files; `docs/STEALTH.md` explains how to use it in any game.
+  - **Sight:** a ±40° cone with a peripheral band, line of sight checked to three body points, and a detection meter of about 0.8 s at best.
+  - **Alert states:** unaware → suspicious → searching → found.
+  - **Also:** noise from landings, sprints and wallruns; hiding spots (bush, under, closet); a collectible counter with an `AllFound` event; patrol and hide-and-seek seekers.
+  - **The Stealth Lab:** a dusk yard with five collectibles, each reached a different way.
+  - Core tests 603/603 pass; Unity hasn't run it yet.
+- **Overnight Unity run started:** `scratchpad/overnight-1011.ps1` at f10b08d. The creator closed the Movement Lab. It runs:
+  - the VH verify (Scenes → PlayMode), the lighting capture and the VH build;
+  - then the Movement Lab, Dream Escape and Stealth Lab builds, each to `Builds/Play/`.
