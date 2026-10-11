@@ -26,6 +26,7 @@ namespace JamKit.DreamEscape.EditorTools
         public static void Decorate(Transform root)
         {
             _missing.Clear();
+            _unit = 0f;
             _root = new GameObject("Home (decoration)").transform;
             _root.SetParent(root, false);
             Living();
@@ -169,11 +170,31 @@ namespace JamKit.DreamEscape.EditorTools
             model.transform.localRotation = Quaternion.Euler(0f, float.IsNaN(turn) ? 0f : turn, 0f);
             foreach (var c in model.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
             foreach (var a in model.GetComponentsInChildren<Animator>(true)) Object.DestroyImmediate(a);
-            pivot.localScale = Vector3.one * scale;
+            pivot.localScale = Vector3.one * scale * UnitFactor();
             var b = DreamHouseDressing.WorldBounds(model);
             pivot.position += new Vector3(at.x - b.center.x, at.y - b.min.y, at.z - b.center.z);
             Restyle(model, tint);
             return model;
+        }
+
+        static float _unit;
+
+        /// <summary>Kenney's sizes in this file are the kit's own units (its chair is 0.47 tall); the imported FBX can come in
+        /// at another scale (the first capture showed every piece many times too big). Measured once from the chair.</summary>
+        static float UnitFactor()
+        {
+            if (_unit > 0f) return _unit;
+            _unit = 1f;
+            var chair = AssetDatabase.LoadAssetAtPath<GameObject>(DreamHouseDressing.KenneyDir + "/chair.fbx");
+            if (chair == null) return _unit;
+            var probe = Object.Instantiate(chair);
+            probe.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            probe.transform.localScale = Vector3.one;
+            float h = DreamHouseDressing.WorldBounds(probe).size.y;
+            Object.DestroyImmediate(probe);
+            if (h > 1e-4f) _unit = 0.47f / h;
+            Debug.Log("JAMKIT_HOUSE art: Kenney unit factor " + _unit.ToString("0.####") + " (the chair imports " + h.ToString("0.###") + " tall)");
+            return _unit;
         }
 
         /// <summary>A rug: Kenney's rug squeezed to <paramref name="width"/> (x) by <paramref name="depth"/> (z), a hair above
@@ -184,7 +205,7 @@ namespace JamKit.DreamEscape.EditorTools
             if (rug == null) return;
             var pivot = rug.transform.parent;
             var b = DreamHouseDressing.WorldBounds(rug);
-            pivot.localScale = new Vector3(width / Mathf.Max(b.size.x, 1e-3f), 1.5f, depth / Mathf.Max(b.size.z, 1e-3f));
+            pivot.localScale = Vector3.Scale(pivot.localScale, new Vector3(width / Mathf.Max(b.size.x, 1e-3f), 1.5f, depth / Mathf.Max(b.size.z, 1e-3f)));
             b = DreamHouseDressing.WorldBounds(rug);
             pivot.position += new Vector3(centre.x - b.center.x, centre.y + 0.006f - b.min.y, centre.z - b.center.z);
         }
