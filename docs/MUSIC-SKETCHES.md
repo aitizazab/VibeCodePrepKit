@@ -13,11 +13,98 @@ step.
   - `NN-piece.wav` is a piece that plays once;
   - `02-chase-<variant>.<stem>.loop.wav` are the chase's speed stems.
 
-  `loops.txt` lists every loop point and section with sample counts. Round 1's files are in `round1/`.
-- **Rebuild or change one:** `uv run --with numpy python tools/audio/make-music-sketches.py [piece ...]` (for example
-  `... make-music-sketches.py chase lena`). Every piece is one function in that file, with its notes written out.
+  `loops.txt` (round 2) and `loops-round3.txt` list every loop point and section with sample counts. Round 1's
+  files are in `round1/`, and round 2's versions of what round 3 changed are in `round2/`.
+- **Rebuild:** `uv run --with numpy python tools/audio/make-music-sketches.py` renders round 3's new and changed
+  pieces; add `all` to render everything, or name pieces (`chase`, `opening`, `colours`, `lena`...). Every piece is one
+  function in that file, with its notes written out.
 - **Every sound is synthesised in code.** There are no samples and no borrowed melodies; the chords are common
   progressions (see `SPEED-MUSIC-BREAKDOWN.md`, section 5).
+
+## Round 3: the creator's notes on round 2 (2026-10-11)
+
+> "The running theme's grounded variation's base stems are too unnoticeable. They should mimic the base and drone for
+> the Opening sequence, since those work pretty well. And the peak stem is also kind of muted compared to the drive
+> stem, just by volume. Fix that. The opening music sounds fine, but doesn't it play during the news report, and loops
+> for the title screen? It doesn't just play once. Elias' Theme needs its outro reworked, because it just drones
+> unpleasantly, not pleasantly, and then almost completely quiets for about 9 seconds before the tune starts up again.
+> Otherwise, Lena's Theme is perfect, and Nadia's Theme is pretty good too. The argument battle sound is good too, but
+> it feels like it drags on a bit, like the build-up section could happen in half the bars it does, and then the empty
+> space is filled by another section entirely. [...] Now, a few last things I want to add; the hope motif, and the
+> Despair motif, that can be overlaid on any of these songs and fit, making each of them lighter or drearier in turn.
+> [...] the Despair motif will be especially important for the Long Night Ending, and it's going to need its own track
+> later as well. If you happen to have an idea of unsettling eerieness and despair, you can try it out for me to hear."
+
+| Note | What changed |
+|---|---|
+| **The chase's grounded base** | Rebuilt on the Opening's bed: a low drone on each chord's root and the fifth below it, under the Opening's soft held chords (and the sub). It sits low, so it stays heard even muffled at a standstill. |
+| **Peak quieter than drive** | Every stem is now balanced on its own before mixing: base -21, drive -20, peak -19 LUFS, so each tier steps **up** in presence. One gain is then set for the three together, so they still add up to exactly the mix. Both variants (grounded and airy) are balanced this way; there are two variants, not three. |
+| **The opening loops for the title** | It's now an **intro** for the black and the news report, then the **title loop**. Details in "4. The opening and the title screen" below. |
+| **Elias's outro** | The low held cello E is gone. A soft broken-chord pulse on felt piano now runs right round the loop, stronger in the intro and outro, so it never goes quiet. The outro plays his figure's opening softly on piano, and a short cello answer leads back to the intro. |
+| **The argument drags** | The build is halved (8 bars to 4). In the freed space there's a new section, **C, the duel**: a march (kick on 1 and 3, rolling snares) where the strings and brass trade the conflict line phrase by phrase over new chords (F C Dm A). A and A' also tightened from 16 to 12 bars. It's now a 97 s loop (was 111 s). |
+| **Lena, Nadia** | Untouched. |
+| **Hope and despair** | Two overlay motifs, designed to sit over any piece (the integration is below), with demos over three pieces. |
+| **The Long Night** | A first despair track (below). |
+
+### Hope and despair: how they can sit over any piece
+
+**The problem.** The pieces are in different keys (D minor, F major, Bb major, D dorian), metres (4/4 and Lena's
+3/4) and tempos (66 to 138 bpm). A fixed melody laid over all of them would clash somewhere.
+
+**The options weighed:**
+
+| Option | How | Good | Bad |
+|---|---|---|---|
+| 1. One fixed recording, transposed by the game | The game pitch-shifts one hope clip to each piece's key | One asset | Pitch-shifting changes the tempo and the timbre; it can't follow a piece's chords, so it clashes on chord changes; nothing fits 3/4 |
+| 2. **A motif defined by its shape, rendered per piece as an extra stem** (chosen) | The motif is a rhythm and a contour (where it goes) whose notes are taken from **each bar's own chord**. Each piece gets its own hope and despair stem, in its key, tempo and metre, the same length as its loop | Always fits, because every note is a chord tone or resolves to one. It loops with the piece, and it uses the stem system we already have | One more stem per piece (small) |
+| 3. Changing the mix only | Filters, detune, ducking, no new line | Free | Lighter or darker, but no motif to recognise |
+
+**So it's option 2, plus a little of option 3 for despair:**
+- **Hope:** every two bars, a rising figure high up, built from that bar's chord: its fifth, the root above, the ninth,
+  then the next chord's third, held.
+  - A soft halo (root, fifth, ninth) sits over each bar on high strings.
+  - The figure is on celesta doubled by strings: bright and rising, an open "add9" sound that lifts any chord without
+    changing it.
+- **Despair:**
+  - A **pedal** on the piece's own tonic, low and dark, slowly beating (two tones a few cents apart).
+  - Every two bars, a **falling sigh** in the cellos: a half step above the chord's fifth sinking onto it, then the
+    **flattened second** sinking onto the root (the oldest sound of grief there is).
+  - Every four bars, a music box **out of tune** plays the flattened second high.
+  - It also changes the piece itself: while despair is there the piece is **half muffled**, so its brightness goes.
+    The game can also lower the peak stem.
+- **Recognisable everywhere:** the two motifs keep their shapes in every piece, a rising lift and a falling sigh. Only
+  the notes change with the chords, the way a leitmotif sounds in a new key.
+- **How the game would bring them in** (the stem system already does this: `MovementMusic`'s tension slot works the
+  same way):
+  - A fifth slot, the **colour stem**, per piece: `<piece>.hope` and `<piece>.despair`, the same length as the loop.
+  - It comes in **on the next bar line** and fades in over 2 s, out over 3 s.
+  - For despair, the muffle and a slight drop of the peak stem come in with it.
+- **When** (for the creator to decide; suggestions):
+  - Hope: Nadia wins a truth in an argument, a kind memory, the ending's good routes.
+  - Despair: the Despair route, Nadia's anger, a lost argument, the Long Night.
+  - Both can rise and fall with a value (for example the argument's balance) instead of switching on and off.
+- **The demos** lay hope, then despair, over three pieces (from bar 5 to four bars before the end, so the intro and
+  outro stay plain): the Dream theme (D minor, 4/4, 104 bpm), Daytime (F major, 92 bpm) and Lena (Bb major, **3/4**,
+  84 bpm: the figure fits the waltz because it takes its rhythm from the bar). Listen to each against the plain piece
+  on the page. Lena's own loop is unchanged; only the demo has the overlay.
+
+### The Long Night: a first despair track (`10-long-night.loop.wav`, 71 s loop, 54 bpm)
+**What I went for:** something that feels wrong slowly rather than scary all at once. Grief that has stopped
+expecting anything.
+- **The ground:** a pedal of low sines on D, a few cents apart, so they beat slowly like a held breath. Dark chords
+  where the second is flattened: Dm, then Eb over the D pedal (the flattened second, the despair motif's own note),
+  then Dm, then Bb minor.
+- **The despair motif** in the cellos every two bars: Eb sinking to D, Bb to A; the second time round, Eb to D, D to C#
+  and back to D (turning in place).
+- **The memory going wrong:**
+  - The **family motif played backwards** (F E D A) on a music box. Each time it drifts further out of tune (15, 35, 55,
+    75 cents flat): the family's tune, unwinding.
+  - **Reversed swells** (a D, Eb, A cluster played backwards) rise and stop dead on the bar lines.
+  - A slow **heartbeat** under it all skips three times.
+  - A thin high **G#** (the tritone against D) trembles twice and never resolves.
+  - Dark, breath-like air drifts across.
+- **To make it worse:** take the heartbeat away near the end of the loop; detune the pedal further; let the music box
+  stop mid-phrase. **To make it bearable:** drop the G#, and let the chords end on D major once (a grey sliver of hope).
 
 ## Round 2: the creator's notes (2026-10-11) and what changed
 
@@ -88,7 +175,7 @@ Bars are counted from 1. Times are from the start of the loop file.
 
   | Stem | Heard when | What's in it |
   |---|---|---|
-  | **base** | always (muffled when slow, opening with speed) | sub, the chords, a soft pulse |
+  | **base** | always (muffled when slow, opening with speed) | sub and the chords; grounded: the Opening's drone (root and the fifth below) under its soft held chords; airy: choir and pad with a soft pulse |
   | **drive** | fast and up | drums, the galloping off-beat bass, toms into each section, the street's song at double speed |
   | **peak** | flying | the sixteenth arpeggio; the music box or bells on the full melody in B; air and the family motif in the breakdown |
 
@@ -102,11 +189,11 @@ Bars are counted from 1. Times are from the start of the loop file.
   - It goes running → fast at 21 s → flying at 41 s → fast at 66 s → running at 80 s.
   - Stems switch only on bar lines, fade in over 1 s and out over 2 s, and the base opens from muffled with speed.
 - **The variants** use the same stems, the same notes and the same structure; only the instruments and the space differ:
-  - **grounded:** dry and close (a 1 s room). Felt piano chords, a plucked bass, a kit with a real snare, a piano-and-pluck lead, plucked arpeggio, music box. For chases on the ground (the street, the hospital).
+  - **grounded:** dry and close (a 1 s room). The Opening's drone and soft chords as the base, a plucked bass, a kit with a real snare, a piano-and-pluck lead, plucked arpeggio, music box. For chases on the ground (the street, the hospital).
   - **airy:** wide and spacious (a 4.5 s room, echoes). A choir and soft pad, a soft kick and clap, a celesta lead with echoes, bell arpeggios. For chases in the air, at night, or anywhere dreamlike.
   - **A new variant** (spacey, underwater, music-box-only and so on) is one more entry in `CHASE_VARIANTS` in the script.
-- **Level:** the airy set reaches -16 LUFS. The grounded set peaks first (its kick and snare are punchy) and sits at
-  -18 LUFS. The game sets the music level anyway.
+- **Level (round 3):** each stem is balanced on its own first (base -21, drive -20, peak -19 LUFS), so every tier
+  steps up; then one gain for all three. Before balancing, the peak was 11 dB quieter than the drive in the grounded set (and the base 1 dB above it); now the grounded stems alone are base -24.4, drive -23.4, peak -22.4 LUFS, and all together -19.0 LUFS (its punchy kick and snare reach the peak ceiling first, so it's quieter as a whole); the airy stems are -21.4, -20.4, -19.4, and -16.0 together. The game sets the music level anyway.
 
 ### 3. The Daytime theme: `03-daytime.loop.wav`, 83.5 s loop (92 bpm, 32 bars)
 - **Sections:** intro, bars 1–4 (the groove: piano comping, shakers, a soft kick); A, bars 5–12 (the daylight melody on
@@ -117,26 +204,45 @@ Bars are counted from 1. Times are from the start of the loop file.
 - **Darker:** start the loop on Dm. **Brighter:** a glockenspiel an octave up. **Faster:** 100 bpm with the shaker in
   sixteenths.
 
-### 4. The opening: `04-opening.wav`, 30 s and a 4 s ring-out, plays once (72 bpm)
-- A drone on D and A, soft chords (Dm Bb Dm Bb F C, then held), felt piano and two high glass notes. It starts
-  muffled and opens.
-- **The waking motif** (A G F E), then D E F E: both stop on E and don't go home, and the motif comes back once more.
-  It's built to sit under the ring and the voicemail.
-- **Darker:** no glass. **Brighter:** let the last phrase land on D. **Longer or shorter:** add or remove a bar of the
-  held chord at the end.
+### 4. The opening and the title screen: `04-opening.intro.wav` then `04-opening.loop.wav` (72 bpm)
+- **Where it plays:** the music cue comes 3 s after the voicemail ends (`SliceContent`: `voicemail:end` + 3 s, with a
+  5 s fade-in). The news report starts 3 s later and runs 18.45 s. Then the title screen waits on the tablet's Play.
+- **So it's in two parts:**
 
-### 5. An argument battle: `05-argument-battle.loop.wav`, 111 s loop (138 bpm, 64 bars)
+  | Part | File | Length | Plays |
+  |---|---|---|---|
+  | **Intro** | `04-opening.intro.wav` | 7 bars, 23.3 s (1,029,000 samples), then a 6 s ring-out | Once: the black, then under the news report (0–21.45 s) |
+  | **Title loop** | `04-opening.loop.wav` | 12 bars, 40 s (1,764,000 samples) | From the intro's end, round and round until Play |
+
+  `04-opening.wav` is the two together, as the game would play them: the intro, then the title loop twice.
+- **How the game should enter the loop:** play the intro, then start the title loop exactly **23.333 s** (1,029,000
+  samples at 44.1 kHz) after the intro started, on its bar line. Mix the intro's ring-out over the loop's first
+  seconds: let the intro clip play on while the loop starts. Then loop the title file whole (sample 0 to its end).
+  - In Unity: two sources with `PlayScheduled`, the second at the first's start + 23.333 s.
+  - Or one clip with loop points, if the music system gets them.
+- **The intro:** the drone on D and A, the soft chords (Dm Bb Dm Bb F C C), the waking motif once (A G F E, then
+  D E F E, unresolved) on felt piano, a little quieter and in the gaps of the news voice, and one glass note. It
+  opens from muffled over the first two bars.
+- **The title loop:** the drone held right round the loop, the dream's chords three times. The waking motif twice
+  (the second time an octave up, with low strings under it), then four bars of just the chords and two glass notes,
+  back to where it began.
+- **Darker:** no glass. **Brighter:** let the last phrase land on D. **If the news timing changes:** the intro's length
+  is one number (7 bars); a bar is 3.33 s.
+
+### 5. An argument battle: `05-argument-battle.loop.wav`, 97.4 s loop (138 bpm, 56 bars; round 3)
 - **Sections:**
 
   | Section | Bars | Time | What happens |
   |---|---|---|---|
-  | Intro | 1–4 | 0–7 s | The staccato ostinato, toms joining |
-  | A | 5–20 | 7–34.8 s | Full: toms, snare, sub, brass stabs, the conflict line on strings |
-  | B | 21–36 | 34.8–62.6 s | New chords Bb C Gm A, a new ostinato rhythm, hats, the conflict line on brass and strings |
-  | Breakdown | 37–44 | 62.6–76.5 s | Half time, low strings, the family motif upside down on solo cello, a riser |
-  | A' | 45–60 | 76.5–104.3 s | Full again, with brass under the strings and the inverted family motif on brass |
-  | Outro | 61–64 | 104.3–111.3 s | Back to the ostinato and toms |
-- **Darker:** no brass, a low drone on D. **Brighter:** major-key stabs. **Faster:** 150 bpm.
+  | Intro | 1–4 | 0–7.0 s | The staccato ostinato, toms joining |
+  | A | 5–16 | 7.0–27.8 s | Full: toms, snare, sub, brass stabs, the conflict line on strings |
+  | B | 17–28 | 27.8–48.7 s | New chords Bb C Gm A, a new ostinato rhythm, hats, the line on brass then strings |
+  | **C, the duel** (new) | 29–36 | 48.7–62.6 s | A march (kick on 1 and 3, rolling snares, pizzicato chords) over F C Dm A. The strings call and the brass answers an octave down, then both together |
+  | The build (halved) | 37–40 | 62.6–69.6 s | Half time, low strings, the family motif upside down on solo cello, a riser |
+  | A' | 41–52 | 69.6–90.4 s | Full again, brass under the strings, the inverted family motif on brass |
+  | Outro | 53–56 | 90.4–97.4 s | Back to the ostinato and toms |
+- **Darker:** no brass, a low drone on D. **Brighter:** major-key stabs. **Faster:** 150 bpm. **Shorter still:** A and
+  A' can drop to 8 bars each (83 s).
 
 ### 6. Lena's motif: `06-lena.loop.wav`, 68.6 s loop (84 bpm, 3/4, 32 bars)
 - **Sections:** intro, bars 1–4 (the waltz plucks and pad); A, bars 5–12 (her melody on celesta); B, bars 13–20 (new
@@ -145,9 +251,12 @@ Bars are counted from 1. Times are from the start of the loop file.
 - **Darker:** G minor (the same notes from Gm). **Brighter:** a music box doubling. **Faster:** 96 bpm.
 
 ### 7. Elias's motif: `07-elias.loop.wav`, 72.7 s loop (66 bpm, 20 bars)
-- **Sections:** intro, bars 1–2 (piano bass and strings); A, bars 3–10 (his falling figure on cello, twice, the second
-  time with piano); B, bars 11–16 (the **family motif**, slow and high on strings, the dream's melody faint on a music
-  box, his figure answering low); outro, bars 17–20 (a low E held, back to the piano bass).
+- **Sections:** intro, bars 1–2 (the broken-chord pulse, piano bass and strings); A, bars 3–10 (his falling figure on
+  cello, twice, the second time with piano); B, bars 11–16 (the **family motif**, slow and high on strings, the dream's
+  melody faint on a music box, his figure answering low); outro, bars 17–20 (round 3: his figure's opening, softly on
+  piano, and a short cello answer, A G F E, leading back round; the pulse carries it).
+- **The pulse (round 3):** a felt piano playing each chord in broken eighths, right round the loop (louder in the intro
+  and outro), so the loop never goes quiet before the tune comes back.
 - **Darker:** end on C# instead of E. **Brighter:** let his figure rise to F at the end. **Faster:** 76 bpm at most.
 
 ### 8. The ending reprise: `08-ending.wav`, 60 s and a 6 s ring-out, plays once (80 bpm)
@@ -173,6 +282,17 @@ Bars are counted from 1. Times are from the start of the loop file.
   tempo, if her piece ever joins the movement).
 
 ## For the creator to decide
+**Round 3:**
+- **Hope and despair:** do the overlays fit and change the mood enough? Should despair also slow or detune the piece,
+  or is the half-muffle enough?
+- **When they come in:** which events bring hope, and which bring despair? Switched on and off, or rising and falling
+  with a value (an argument's balance)?
+- **The Long Night:** is this the right kind of despair (slow and wrong) or should it be harsher? It's the seed of
+  its own track.
+- **The title loop:** 40 s before it repeats on the title screen; long enough?
+- **The duel section:** keep it as the argument's new middle, or make it a separate "turning point" cue?
+
+**From round 2:**
 - **The family motif itself** (A D E F): keep it, or change notes one at a time? It now carries four pieces.
 - **The waking motif** (A G F E, then D E F#... A at the end): does it feel like waking?
 - **Nadia's colour:** dorian (hopeful-stubborn), or plain minor?

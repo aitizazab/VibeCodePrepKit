@@ -1,6 +1,7 @@
 # Visiting Hours: example music sketches, made in code, as starting points to react to. The real pieces are
 # composed with the creator, step by step (docs/MUSIC-SKETCHES.md explains each sketch and how to change it).
 #   uv run --with numpy python tools/audio/make-music-sketches.py [piece ...]
+# With no arguments it renders round 3's new and changed pieces; "all" renders everything; or name pieces.
 # Writes out/vh-music-sketches/: each looping piece as <nn>-<piece>.loop.wav (its end runs into its start
 # sample-accurately: everything ringing past the end is wrapped onto the start) and <nn>-<piece>.twice.wav (the
 # loop heard twice, to hear the seam); one-shots as <nn>-<piece>.wav; the chase as speed stems (base, drive, peak) in
@@ -494,6 +495,7 @@ def dream_theme():
     outro (back to the beat, the music closing)."""
     mix = Mix(32, 104)
     prog = DREAM_CHORDS
+    mix.prog, mix.tonic = prog, 62
     for name, a, b in (("intro", 0, 4), ("A", 4, 12), ("B (the lift)", 12, 20), ("breakdown", 20, 24), ("A'", 24, 28), ("outro", 28, 32)):
         mix.section(name, a, b)
     # The beat that ends the outro and starts the intro: a soft kick, hats and the sub.
@@ -537,19 +539,23 @@ def chase_prog(b):
 
 
 CHASE_VARIANTS = {
-    # Grounded: dry, close, real-ish instruments (piano, plucked bass, a kit with a snare, brass).
-    "grounded": dict(rt60=1.0, verb=0.6, pad=lambda m, d: lay(felt_piano(m, d, 0.5) * 1.4, warm_pad(m - 12, d) * 0.6),
-                     pulse=lambda m, d: pluck(m, d, 10, 9), kick=(0.95, 1.1), back=snare, back_level=0.5, hats=0.55,
+    # Grounded: dry and close (piano, plucked bass, a kit with a snare). Its base is the Opening's (round 3): a low
+    # drone on the chord's root and fifth under soft held chords, so slow running is clearly heard.
+    "grounded": dict(rt60=1.0, verb=0.6, pad=lambda m, d: warm_pad(m, d, 1.2, 2.0), drone=True, pulse=None,
+                     kick=(0.95, 1.1), back=snare, back_level=0.5, hats=0.55,
                      lead=lambda m, d: lay(piano(m, d, 0.85) * 1.2, pluck(m, d, 12, 6) * 0.5), echo=0.0,
                      arp=lambda m: pluck(m, 0.2, 10, 9), top=lambda m, d: music_box(m, 1.0),
                      air=lambda m, d: strings(m, d, 0.4, 0.8, 12)),
     # Airy: space and air (choir and soft pads, bells, echoes, a soft kick, a long reverb).
-    "airy": dict(rt60=4.5, verb=1.8, pad=lambda m, d: lay(choir(m, d) * 1.2, pad(m, d, 6, 14) * 0.6),
+    "airy": dict(rt60=4.5, verb=1.8, pad=lambda m, d: lay(choir(m, d) * 1.2, pad(m, d, 6, 14) * 0.6), drone=False,
                  pulse=lambda m, d: pluck(m, d, 3, 4), kick=(0.6, 0.6), back=clap, back_level=0.28, hats=0.3,
                  lead=lambda m, d: celesta(m, 1.4), echo=0.45,
                  arp=lambda m: bell(m, 0.8), top=lambda m, d: bell(m, 2.0),
                  air=lambda m, d: choir(m, d, 1.0, 1.5)),
 }
+# Each stem's loudness on its own (round 3): every tier steps up in presence, so the peak is never quieter than the
+# drive. One gain is then set for all three together, so the stems still add up to exactly the mix.
+STEM_LUFS = {"base": -21.0, "drive": -20.0, "peak": -19.0}
 
 
 def chase_stems(variant):
@@ -563,11 +569,20 @@ def chase_stems(variant):
             m.section(name, a, b)
     base, drive, peak = mixes["base"], mixes["drive"], mixes["peak"]
     vs = v["verb"]
-    # BASE: the bed you hear even standing still: sub, chords, a soft pulse (out in the breakdown).
+    # BASE: the bed you hear even standing still.
     subline(base, chase_prog, 0, bars, 0.36, pump=False)
-    chords(base, chase_prog, 0, bars, v["pad"], 0.07, 0.35 * vs)
-    bassline(base, chase_prog, 0, 32, v["pulse"], (0, 1, 2, 3), 0, 0.12, 0.4)
-    bassline(base, chase_prog, 40, 8, v["pulse"], (0, 1, 2, 3), 0, 0.12, 0.4)
+    if v["drone"]:
+        # The Opening's drone: the root and the fifth below it, low, a long note per bar overlapping the next.
+        for b in range(bars):
+            r = chord_at(chase_prog, b)[0]
+            d = base.sec(base.bpb)
+            base.add(lay(warm_pad(r - 12, d, 0.8, 1.6), warm_pad(r - 17, d, 0.8, 1.6)), base.bar(b), 0, 0.2, 0.4 * vs)
+        chords(base, chase_prog, 0, bars, v["pad"], 0.09, 0.6 * vs)
+    else:
+        chords(base, chase_prog, 0, bars, v["pad"], 0.07, 0.35 * vs)
+    if v["pulse"]:
+        bassline(base, chase_prog, 0, 32, v["pulse"], (0, 1, 2, 3), 0, 0.12, 0.4)
+        bassline(base, chase_prog, 40, 8, v["pulse"], (0, 1, 2, 3), 0, 0.12, 0.4)
     # DRIVE (fast): drums, the off-beat bass, toms into each section, and the street's song at double speed.
     kl, kp = v["kick"]
     for a, n in ((0, 16), (16, 16), (40, 8)):
@@ -601,6 +616,7 @@ def daytime():
     prog_a = [[53, 57, 60, 64], [48, 52, 55, 62], [50, 53, 57, 64], [46, 50, 53, 57]]   # Fmaj7 Cadd9 Dm(add9) Bbmaj7
     prog_b = [[46, 50, 53, 57], [48, 52, 55, 58], [45, 48, 52, 55], [50, 53, 57, 60]]   # Bbmaj7 C7 Am7 Dm7
     prog = lambda b: prog_b[b % 4] if 12 <= b < 20 else prog_a[b % 4]
+    mix.prog, mix.tonic = prog, 65
     for name, a, b in (("intro", 0, 4), ("A", 4, 12), ("B", 12, 20), ("A'", 20, 28), ("outro", 28, 32)):
         mix.section(name, a, b)
     for b in range(32):
@@ -629,72 +645,114 @@ def daytime():
     return mix, mix.render(1.4, 0.0)
 
 
-def opening():
-    """The opening. D minor, 72 bpm, about 30 s, plays once under the phone call (no loop). The waking motif, left
-    unresolved twice: drone, felt piano, glass."""
-    mix = Mix(9, 72, loop=False, tail=4.0)
-    prog = [DREAM_CHORDS[0], DREAM_CHORDS[1], DREAM_CHORDS[0], DREAM_CHORDS[1], DREAM_CHORDS[2], DREAM_CHORDS[3],
-            DREAM_CHORDS[3], DREAM_CHORDS[3], DREAM_CHORDS[3]]
-    mix.section("the waking motif, twice, unresolved", 0, 9)
-    mix.add(warm_pad(38, mix.sec(36), 3, 4) + warm_pad(45, mix.sec(36), 3, 4), 0, 0, 0.18, 0.4)
-    chords(mix, prog, 0, 7, lambda m, d: warm_pad(m, d, 1.2, 2.0), 0.09, 0.6)
-    melody(mix, seq(WAKING, mix.bar(1)) + seq(WAKING_STAY, mix.bar(3)) + seq(WAKING, mix.bar(5), 0, 1.0),
-           lambda m, d: felt_piano(m, d + 2, 0.6), 0.6, 0.0, 0.7, 1.0)
-    for b, m in ((2.5, 88), (6.5, 86)):
-        mix.add(partials(hz(m), 5, [1, .1], [0.5, 1.5], 1.0, 2.0), mix.bar(b), 0.4, 0.05, 0.8)
-    x = mix.render(3.5, 0.0)
-    x = muffle(x, mix, [(0, 0.1), (3, 1.0), (13, 1.0)], 700)
-    return mix, ends(x, 1.5, 4.0)
+def opening_title():
+    """The opening and the title screen. D minor, 72 bpm. An intro of 7 bars (23.3 s) for the black and the news report
+    (the music starts 3 s before the report, which runs 18.45 s), then the title screen's loop (12 bars, 40 s), entered
+    at the intro's end. The waking motif, left unresolved: drone, felt piano, glass."""
+    bpm = 72
+    intro = Mix(7, bpm, loop=False, tail=6.0)
+    body = Mix(12, bpm)
+    intro.section("intro: the black, then the news report", 0, 7)
+    body.section("the title loop", 0, 12)
+    ip = [DREAM_CHORDS[0], DREAM_CHORDS[1], DREAM_CHORDS[0], DREAM_CHORDS[1], DREAM_CHORDS[2], DREAM_CHORDS[3], DREAM_CHORDS[3]]
+    d_all = intro.sec(intro.bpb * 7)
+    intro.add(lay(warm_pad(38, d_all, 3, 3), warm_pad(45, d_all, 3, 3)), 0, 0, 0.18, 0.4)
+    chords(intro, ip, 0, 7, lambda m, d: warm_pad(m, d, 1.2, 2.0), 0.09, 0.6)
+    # Under the news the piano is sparse and a little quieter, in the gaps of the voice.
+    melody(intro, seq(WAKING, intro.bar(1)) + seq(WAKING_STAY, intro.bar(3)), lambda m, d: felt_piano(m, d + 2, 0.55), 0.48, 0.0, 0.7, 1.0)
+    intro.add(partials(hz(88), 5, [1, .1], [0.5, 1.5], 1.0, 2.0), intro.bar(5.5), 0.4, 0.05, 0.8)
+    # The title loop: the drone held right round the loop, the dream's chords, the waking motif twice (the second time
+    # an octave up with low strings), then four bars of just the chords and glass, back to where it started.
+    d_loop = body.sec(body.bpb * 12)
+    body.add(lay(warm_pad(38, d_loop, 3, 3), warm_pad(45, d_loop, 3, 3)), 0, 0, 0.18, 0.4)
+    chords(body, DREAM_CHORDS, 0, 12, lambda m, d: warm_pad(m, d, 1.2, 2.0), 0.09, 0.6)
+    melody(body, seq(WAKING, body.bar(0)) + seq(WAKING_STAY, body.bar(2)), lambda m, d: felt_piano(m, d + 2, 0.6), 0.55, 0.0, 0.7, 1.0)
+    melody(body, seq(WAKING, body.bar(4), 12) + seq(WAKING_STAY, body.bar(6), 12), lambda m, d: felt_piano(m, d + 2, 0.5), 0.36, 0.15, 0.7, 1.0)
+    melody(body, seq(WAKING, body.bar(4), -12) + seq(WAKING_STAY, body.bar(6), -12), lambda m, d: strings(m, d, 0.6, 1.5, 10), 0.1, -0.2, 0.5)
+    for b, m in ((8.5, 88), (10.5, 86)):
+        body.add(partials(hz(m), 5, [1, .1], [0.5, 1.5], 1.0, 2.0), body.bar(b), 0.4, 0.05, 0.8)
+    xi = muffle(intro.render(3.5, 0.0), intro, [(0, 0.1), (2, 1.0), (13, 1.0)], 700)
+    return intro, ends(xi, 1.5, 0.0), body, body.render(3.5, 0.0)
 
 
 def argument():
-    """An argument battle. D minor, 138 bpm, 111 s loop. Its own line ("conflict"), and the family motif upside down
-    in the breakdown (the arguments in this game are inside one family). Loop: intro (the ostinato and toms building)
-    - A - B (new chords) - breakdown (half time) - A' - outro (back to the ostinato and toms)."""
-    mix = Mix(64, 138)
+    """An argument battle. D minor, 138 bpm, a 97 s loop. Its own line ("conflict"), and the family motif upside down
+    in the build (the arguments in this game are inside one family). Loop: intro (the ostinato and toms) - A - B (new
+    chords) - C, the duel (strings and brass trade the line over a march) - the build (4 bars, half time) - A' - outro
+    (back to the ostinato and toms)."""
+    mix = Mix(56, 138)
     pa = [[50, 53, 57], [46, 50, 53], [43, 46, 50], [45, 49, 52]]      # Dm Bb Gm A
     pb = [[46, 50, 53], [48, 52, 55], [43, 46, 50], [45, 49, 52]]      # Bb C Gm A
-    pd = [[50, 53, 57], [50, 53, 57], [46, 50, 53], [45, 49, 52]]      # Dm Dm Bb A
-    prog = lambda b: pb[b % 4] if 20 <= b < 36 else pd[b % 4] if 36 <= b < 44 else pa[b % 4]
-    for name, a, b in (("intro", 0, 4), ("A", 4, 20), ("B", 20, 36), ("breakdown", 36, 44), ("A'", 44, 60), ("outro", 60, 64)):
+    pc = [[41, 45, 48], [48, 52, 55], [50, 53, 57], [45, 49, 52]]      # F C Dm A (the duel)
+    pd = [[50, 53, 57], [50, 53, 57], [46, 50, 53], [45, 49, 52]]      # Dm Dm Bb A (the build)
+    sec = [("intro", 0, 4), ("A", 4, 16), ("B", 16, 28), ("C, the duel", 28, 36), ("the build", 36, 40), ("A'", 40, 52), ("outro", 52, 56)]
+    for name, a, b in sec:
         mix.section(name, a, b)
-    for b in range(64):
+
+    def part(b):
+        return next(name for name, a, e in sec if a <= b < e)
+
+    prog = lambda b: {"B": pb, "C, the duel": pc, "the build": pd}.get(part(b), pa)[b % 4]
+    for b in range(56):
+        p = part(b)
         r = prog(b)[0]
-        quiet = 36 <= b < 44
-        pat = [r, r + 12, r + 7, r + 12] * 4 if not (20 <= b < 36) else [r, r + 7, r + 12, r + 7, r + 10, r + 12, r + 7, r + 12] * 2
+        ch = prog(b)
+        if p == "C, the duel":
+            # The duel: a march (kick on 1 and 3, a snare roll building through each pair of bars), pizzicato chords.
+            for beat in range(4):
+                if beat % 2 == 0:
+                    mix.add(kick(0.7, 0.9), mix.bar(b) + beat, 0, 1, 0.1)
+                for s in range(4):
+                    acc = 1.0 if s == 0 else 0.45
+                    mix.add(snare(0.18 * acc * (1 + 0.5 * (b % 2))), mix.bar(b) + beat + s * 0.25, 0.05, 1, 0.2)
+            for s, j in enumerate((0, 1, 2, 1, 0, 2, 1, 2)):
+                mix.add(staccato(ch[j] + 12, 0.07), mix.bar(b) + s * 0.5, -0.3 if s % 2 else 0.3, 0.11, 0.2)
+            mix.add(sub(r - 12, mix.sec(3.9)), mix.bar(b), 0, 0.3, 0)
+            continue
+        quiet = p == "the build"
+        pat = [r, r + 12, r + 7, r + 12] * 4 if p != "B" else [r, r + 7, r + 12, r + 7, r + 10, r + 12, r + 7, r + 12] * 2
         for s, m in enumerate(pat):
             if quiet and s % 2:
                 continue
             g = (0.16 if not quiet else 0.08) * (1.0 if s % 4 == 0 else 0.7)
             mix.add(staccato(m, 0.09), mix.bar(b) + s * 0.25, -0.35 if s % 2 else 0.35, g, 0.15)
-        intro_out = b < 4 or b >= 60
+        edge = p in ("intro", "outro")
         if not quiet:
             for beat in range(4):
-                if not intro_out or b in (2, 3, 60, 61):
+                if not edge or b in (2, 3, 52, 53):
                     mix.add(tom(38 if beat % 2 == 0 else 43, 0.7), mix.bar(b) + beat, 0, 1, 0.2)
-        if not intro_out and not quiet:
+        if not edge and not quiet:
             mix.add(snare(0.5), mix.bar(b) + 1, 0, 1, 0.3)
             mix.add(snare(0.5), mix.bar(b) + 3, 0, 1, 0.3)
             mix.add(sub(r - 12, mix.sec(3.9)), mix.bar(b), 0, 0.33, 0)
             if b % 2 == 0:
-                for m in prog(b):
+                for m in ch:
                     mix.add(brass(m + 12, mix.sec(0.6)), mix.bar(b), 0, 0.13, 0.3)
                     mix.add(brass(m + 12, mix.sec(0.3)), mix.bar(b) + 2.5, 0, 0.11, 0.3)
-            if 20 <= b < 36:
+            if p == "B":
                 mix.add(hat(0.4), mix.bar(b) + 0.5, 0.2, 1, 0.05)
                 mix.add(hat(0.4), mix.bar(b) + 2.5, 0.2, 1, 0.05)
         if quiet:
             mix.add(sub(r - 12, mix.sec(3.9)), mix.bar(b), 0, 0.3, 0)
             mix.add(snare(0.35), mix.bar(b) + 2, 0, 1, 0.5)
-    melody(mix, seq(CONFLICT, mix.bar(8), 0) + seq(CONFLICT, mix.bar(12), 12), lambda m, d: strings(m, d, 0.05, 0.3, 14), 0.2, 0.1, 0.35)
-    melody(mix, seq(CONFLICT, mix.bar(24), -12), lambda m, d: brass(m, d), 0.14, -0.1, 0.3)
-    melody(mix, seq(CONFLICT, mix.bar(28), 12), lambda m, d: strings(m, d, 0.05, 0.3, 14), 0.2, 0.1, 0.35)
-    chords(mix, prog, 36, 8, lambda m, d: strings(m - 12, d, 0.8, 1.0, 10), 0.06, 0.4)
-    melody(mix, seq(FAMILY_INVERTED, mix.bar(37), -12, 2.0) + seq(FAMILY_INVERTED, mix.bar(41), -12, 2.0), lambda m, d: cello(m, d), 0.4, -0.1, 0.4)
-    mix.add(riser(mix.sec(8), 0.3), mix.bar(42), 0, 1, 0.2)
-    melody(mix, seq(CONFLICT, mix.bar(48), 12) + seq(CONFLICT, mix.bar(52), 12), lambda m, d: strings(m, d, 0.05, 0.3, 14), 0.2, 0.1, 0.35)
-    melody(mix, seq(CONFLICT, mix.bar(52), 0), lambda m, d: brass(m, d), 0.12, -0.1, 0.3)
-    melody(mix, seq(FAMILY_INVERTED, mix.bar(56), 12, 1.0), lambda m, d: brass(m, d), 0.12, 0.1, 0.3)
+    strings_line = lambda m, d: strings(m, d, 0.05, 0.3, 14)
+    melody(mix, seq(CONFLICT, mix.bar(8), 0) + seq(CONFLICT, mix.bar(12), 12), strings_line, 0.2, 0.1, 0.35)
+    melody(mix, seq(CONFLICT, mix.bar(20), -12), lambda m, d: brass(m, d), 0.14, -0.1, 0.3)
+    melody(mix, seq(CONFLICT, mix.bar(24), 12), strings_line, 0.2, 0.1, 0.35)
+    # The duel: strings call, brass answers an octave down, strings again higher, then both together.
+    half = CONFLICT[:9]
+    melody(mix, seq(half, mix.bar(28), 12), strings_line, 0.22, 0.3, 0.35)
+    melody(mix, seq(half, mix.bar(30), -12), lambda m, d: brass(m, d), 0.16, -0.3, 0.3)
+    melody(mix, seq(CONFLICT[9:], mix.bar(32), 12), strings_line, 0.22, 0.3, 0.35)
+    melody(mix, seq(CONFLICT[9:], mix.bar(34), 0), lambda m, d: brass(m, d), 0.15, -0.3, 0.3)
+    melody(mix, seq(CONFLICT[9:], mix.bar(34), 12), strings_line, 0.18, 0.3, 0.35)
+    # The build: half time, low strings, the family motif upside down on solo cello, a riser.
+    chords(mix, prog, 36, 4, lambda m, d: strings(m - 12, d, 0.8, 1.0, 10), 0.06, 0.4)
+    melody(mix, seq(FAMILY_INVERTED, mix.bar(36), -12, 2.0), lambda m, d: cello(m, d), 0.4, -0.1, 0.4)
+    mix.add(riser(mix.sec(8), 0.3), mix.bar(38), 0, 1, 0.2)
+    melody(mix, seq(CONFLICT, mix.bar(40), 12) + seq(CONFLICT, mix.bar(44), 12), strings_line, 0.2, 0.1, 0.35)
+    melody(mix, seq(CONFLICT, mix.bar(44), 0), lambda m, d: brass(m, d), 0.12, -0.1, 0.3)
+    melody(mix, seq(FAMILY_INVERTED, mix.bar(48), 12, 1.0), lambda m, d: brass(m, d), 0.12, 0.1, 0.3)
     return mix, mix.render(1.6, 0.0)
 
 
@@ -705,6 +763,7 @@ def lena():
     pa = [[46, 50, 53, 57], [43, 46, 50, 53], [39, 43, 46, 50], [41, 45, 48, 53]]   # Bbmaj7 Gm7 Ebmaj7 F
     pb = [[39, 43, 46, 50], [41, 45, 48, 51], [38, 41, 45, 48], [43, 46, 50, 53]]   # Ebmaj7 F7 Dm7 Gm7
     prog = lambda b: pb[b % 4] if 12 <= b < 20 else pa[b % 4]
+    mix.prog, mix.tonic = prog, 58
     for name, a, b in (("intro", 0, 4), ("A", 4, 12), ("B (the family motif)", 12, 20), ("A'", 20, 28), ("outro", 28, 32)):
         mix.section(name, a, b)
     chords(mix, prog, 0, 32, lambda m, d: warm_pad(m, d, 0.6, 1.0), 0.09, 0.4)
@@ -725,22 +784,30 @@ def lena():
 
 def elias():
     """Elias's motif. D minor, 66 bpm, 73 s loop. His own falling figure, stopping on an unresolved E; then the family
-    motif, slow and high (the dream's material is his). Loop: intro (piano bass and pad) - A (his figure, twice) - B
-    (the family motif) - outro (back to the piano bass)."""
+    motif, slow and high (the dream's material is his). Under it all, a gentle broken-chord pulse on felt piano, so the
+    loop never goes quiet. Loop: intro (the pulse, piano bass and strings) - A (his figure, twice) - B (the family motif)
+    - outro (his figure's opening, softly, falling back to the pulse)."""
     mix = Mix(20, 66)
     prog = [[50, 53, 57], [46, 50, 53], [43, 46, 50], [45, 49, 52, 55]]   # Dm Bb Gm A7
     for name, a, b in (("intro", 0, 2), ("A (his figure)", 2, 10), ("B (the family motif)", 10, 16), ("outro", 16, 20)):
         mix.section(name, a, b)
-    chords(mix, prog, 0, 20, lambda m, d: strings(m - 12, d, 0.8, 1.0, 10), 0.07, 0.4)
+    chords(mix, prog, 0, 20, lambda m, d: strings(m - 12, d, 0.8, 1.0, 10), 0.08, 0.4)
     for b in range(20):
-        mix.add(piano(prog[b % 4][0] - 12, mix.sec(3.5), 0.5), mix.bar(b), -0.2, 0.22, 0.4)
+        ch = prog[b % 4]
+        mix.add(piano(ch[0] - 12, mix.sec(3.5), 0.5), mix.bar(b), -0.2, 0.22, 0.4)
+        edge = b < 2 or b >= 16
+        for s, j in enumerate((0, 1, 2, 1, 0, 2, 1, 2)):
+            mix.add(felt_piano(ch[j % len(ch)] + 12, mix.sec(1.2), 0.45), mix.bar(b) + s * 0.5, 0.25 if s % 2 else -0.05,
+                    0.16 if edge else 0.1, 0.45)
     melody(mix, seq(ELIAS, mix.bar(2), -12), lambda m, d: cello(m, d), 0.4, -0.15, 0.35)
     melody(mix, seq(ELIAS, mix.bar(6), -12), lambda m, d: cello(m, d), 0.4, -0.15, 0.35)
     melody(mix, seq(ELIAS, mix.bar(6), 0), lambda m, d: piano(m, d, 0.5), 0.2, 0.2, 0.45)
     melody(mix, seq(FAMILY, mix.bar(10), 0, 2.0), lambda m, d: strings(m, d, 0.5, 1.0, 12), 0.2, 0.1, 0.5)
     melody(mix, seq(STREET[:7], mix.bar(13), 12), lambda m, d: music_box(m, 1.6), 0.12, 0.35, 0.7)
     melody(mix, seq(ELIAS[:6], mix.bar(12), -12), lambda m, d: cello(m, d), 0.3, -0.15, 0.4)
-    mix.add(cello(40, mix.sec(12)), mix.bar(16), -0.1, 0.32, 0.4)
+    # Outro: his figure's opening on piano, softly, and a short cello answer that leads back round to the intro.
+    melody(mix, seq(ELIAS[:4], mix.bar(16)), lambda m, d: piano(m, d, 0.45), 0.2, 0.2, 0.45)
+    melody(mix, seq([(57, 2), (55, 1), (53, 1), (52, 3)], mix.bar(18), -12), lambda m, d: cello(m, d), 0.26, -0.15, 0.4)
     return mix, mix.render(3.0, 0.0)
 
 
@@ -809,18 +876,146 @@ def ending():
     return mix, ends(x, 0.3, 6.0)
 
 
+# ---------------------------------------------------------------- round 3: hope and despair, overlaid on any piece
+
+def into(m, lo, hi):
+    """The pitch class of m moved by octaves into lo..hi."""
+    while m < lo:
+        m += 12
+    while m > hi:
+        m -= 12
+    return m
+
+
+def hope_stem(like, prog, start, end):
+    """HOPE, as an extra stem for any piece (its key, tempo and metre come from the piece's own chords): every two bars
+    a rising figure, high, built from that bar's chord (its fifth, the root above, the ninth; then the third above,
+    held), over a soft halo (root, fifth, ninth) on high strings. Built from the chords, so it always fits."""
+    mix = Mix(like.bars, like.bpm, like.bpb)
+    bpb = like.bpb
+    for b in range(start, end, 2):
+        ch, ch2 = chord_at(prog, b), chord_at(prog, b + 1)
+        r, third, fifth = ch[0], ch[1], ch[2]
+        k = 1.0 if b > start else 0.6
+        notes = [(into(fifth, 72, 84), 0, 1), (into(r, 74, 86), 1, 1), (into(r + 14, 76, 88), 2, bpb - 2),
+                 (into(ch2[1], 77, 89), bpb, bpb)]
+        for m, at, d in notes:
+            mix.add(celesta(m, mix.sec(d) + 0.8), mix.bar(b) + at, 0.2, 0.3 * k, 0.5)
+            mix.add(strings(m, mix.sec(d), 0.15, 0.8, 10), mix.bar(b) + at, -0.2, 0.08 * k, 0.5)
+    for b in range(start, end):
+        ch = chord_at(prog, b)
+        for m in (into(ch[0], 79, 90), into(ch[2], 79, 91), into(ch[0] + 14, 80, 92)):
+            mix.add(strings(m, mix.sec(bpb), 0.8, 1.2, 8), mix.bar(b), 0.0, 0.03, 0.6)
+    return mix, mix.render(2.6, 0.0)
+
+
+def despair_stem(like, prog, tonic, start, end):
+    """DESPAIR, as an extra stem for any piece: a pedal on the piece's own tonic (low, dark, slowly beating), and every
+    two bars a falling sigh in the cellos: a half step above the chord's fifth sinking onto it, then the flattened
+    second sinking onto the root. Every four bars a music box, out of tune, plays that flattened second high."""
+    mix = Mix(like.bars, like.bpm, like.bpb)
+    bpb = like.bpb
+    for b in range(start, end):
+        d = mix.sec(bpb)
+        k = 0.6 if b == start else 1.0
+        mix.add(lowpass(lay(warm_pad(into(tonic, 26, 37), d, 1.0, 1.6), partials(hz(into(tonic, 26, 37)), d, [1], [0], 1.0, 1.6, cents=7)), 300),
+                mix.bar(b), 0, 0.5 * k, 0.3)
+    for b in range(start, end, 2):
+        ch = chord_at(prog, b + 1)
+        r, fifth = into(chord_at(prog, b)[0], 45, 56), into(chord_at(prog, b)[2], 45, 57)
+        r2 = into(ch[0], 45, 56)
+        sigh = [(fifth + 1, 0, bpb / 2), (fifth, bpb / 2, bpb / 2), (r2 + 1, bpb, bpb / 2), (r2, bpb * 1.5, bpb / 2)]
+        for m, at, dd in sigh:
+            x = lowpass(strings(m, mix.sec(dd) * 1.05, 0.25, 0.9, 12, vib=0.008), 1800, 1)
+            mix.add(x, mix.bar(b) + at, -0.15, 0.22, 0.5)
+    for b in range(start + 2, end, 4):
+        mix.add(music_box(into(tonic + 1, 74, 85), 2.0, cents=-35), mix.bar(b) + 1, 0.35, 0.1, 0.8)
+    return mix, mix.render(3.4, 0.0)
+
+
+def with_colour(piece, colour):
+    """A piece with hope or despair laid over it after its intro (and gone for its outro). Despair also darkens the
+    piece itself: it's partly muffled while the despair is there."""
+    mix, x = piece()
+    start, end = 4, mix.bars - 4
+    if colour == "hope":
+        _, y = hope_stem(mix, mix.prog, start, end)
+        return mix, x + y
+    _, y = despair_stem(mix, mix.prog, mix.tonic, start, end)
+    x = muffle(x, mix, [(0, 1.0), (start, 1.0), (start + 1, 0.55), (end, 0.55), (end + 1, 1.0), (mix.bars, 1.0)], 900)
+    return mix, x + y
+
+
+def long_night():
+    """DESPAIR, a first sketch for the Long Night ending: unsettling eeriness and despair. D phrygian, 54 bpm, a 71 s
+    loop. A pedal of slowly beating low sines on D; dark chords where the second is flattened (Eb over the D pedal,
+    then Bb minor); the despair sigh in the cellos (Eb sinking to D, Bb to A); the family motif played backwards on a
+    music box that drifts further out of tune each time (a memory going wrong); reversed swells that pull in and stop
+    dead; a slow heartbeat that sometimes skips; a high G# (the tritone) that never resolves; breath-like air."""
+    mix = Mix(16, 54)
+    for name, a, b in (("the pedal and the sighs", 0, 8), ("the memory goes wrong", 8, 16)):
+        mix.section(name, a, b)
+    bar_s = mix.sec(4)
+    d_loop = mix.sec(64)
+    pedal = lay(partials(hz(26), d_loop, [1, .35, .12], [0, 0, 0], 4, 4, cents=4),
+                partials(hz(26), d_loop, [1, .35, .12], [0, 0, 0], 4, 4, cents=-4),
+                partials(hz(38), d_loop, [1, .2], [0, 0], 4, 4, cents=2))
+    mix.add(lowpass(pedal, 400), 0, 0, 0.5, 0.3)
+    prog = [[50, 53, 57], [51, 55, 58], [50, 53, 57], [46, 49, 53]]   # Dm, Eb (over the D pedal), Dm, Bbm
+    chords(mix, prog, 0, 16, lambda m, d: lowpass(strings(m - 12, d * 1.1, 1.5, 2.0, 10, vib=0.006), 1500, 1), 0.07, 0.6)
+    # The despair sigh, in the cellos, every two bars.
+    for b in range(0, 16, 2):
+        pair = [(63, 2), (62, 2), (58, 2), (57, 2)] if b % 4 == 0 else [(63, 2), (62, 2), (61, 2), (62, 2)]
+        melody(mix, seq(pair, mix.bar(b), -12), lambda m, d: lowpass(strings(m, d * 1.05, 0.4, 1.2, 12, vib=0.01), 1600, 1), 0.3, -0.15, 0.5)
+    # The family motif backwards, on a music box drifting out of tune.
+    backwards = [(77, 1), (76, 1), (74, .5), (69, 2.5)]
+    for k, b in enumerate((2, 6, 10, 14)):
+        for beat, m, d in seq(backwards, mix.bar(b), 12):
+            mix.add(music_box(m, 2.5, cents=-15 - 20 * k + 6 * np.sin(beat)), beat, 0.35, 0.12, 0.9)
+    # Reversed swells: a cluster (D, Eb, A) played backwards, ending dead on a bar line.
+    for b in (4, 8, 12, 16):
+        sw = lay(pad(62, 2.5, 8, 10, 0.05, 2.0), pad(63, 2.5, 8, 10, 0.05, 2.0), pad(69, 2.5, 8, 10, 0.05, 2.0))[::-1]
+        mix.add(sw, mix.bar(b) - mix.bpm / 60 * len(sw) / SR, 0, 0.12, 0.2)
+    # A slow heartbeat (lub-dub on each beat), skipping now and then.
+    for beat in range(64):
+        if beat in (27, 46, 47):
+            continue
+        for off, lvl in ((0, 0.5), (0.22, 0.32)):
+            n = int(0.25 * SR)
+            t = np.arange(n) / SR
+            thump = np.sin(2 * np.pi * np.cumsum(48 + 20 * np.exp(-t / 0.03)) / SR) * np.exp(-t / 0.07) * lvl
+            mix.add(lowpass(thump, 200), beat + off, 0, 0.5, 0.05)
+    # The tritone: a high G#, thin, trembling, never resolving.
+    for b in (5, 13):
+        n = int(bar_s * 2 * SR)
+        t = np.arange(n) / SR
+        g = partials(hz(80), bar_s * 2, [1], [0], 1.5, 1.5)
+        g = g * (0.6 + 0.4 * np.sin(2 * np.pi * 5.5 * np.arange(len(g)) / SR))
+        mix.add(g, mix.bar(b), 0.4, 0.02, 0.7)
+    # Air: dark breath-like noise swells.
+    for b in range(0, 16, 2):
+        n = int(bar_s * 2 * SR)
+        e = np.sin(np.pi * np.arange(n) / n) ** 2
+        mix.add(lowpass(highpass(RNG.standard_normal(n), 300), 1200) * e * 0.06, mix.bar(b) + 1, -0.4 + 0.2 * (b % 4), 1, 0.6)
+    return mix, mix.render(5.0, 0.0)
+
+
 LOOPS = [
     ("01", "dream-theme", "The Dream theme", dream_theme),
     ("03", "daytime", "The Daytime theme", daytime),
     ("05", "argument-battle", "An argument battle", argument),
     ("06", "lena", "Lena's motif", lena),
     ("07", "elias", "Elias's motif", elias),
-    ("09", "nadia", "Nadia's motif (new)", nadia),
+    ("09", "nadia", "Nadia's motif", nadia),
+    ("10", "long-night", "The Long Night (despair, a first sketch)", long_night),
 ]
 ONESHOTS = [
-    ("04", "opening", "The opening", opening),
     ("08", "ending", "The ending reprise", ending),
 ]
+# Round 3's hope and despair demos: (number, slug, title, piece).
+COLOURED = [("01", "dream-theme", "The Dream theme", dream_theme), ("03", "daytime", "The Daytime theme", daytime),
+            ("06", "lena", "Lena's motif (3/4, Bb major)", lena)]
+ROUND3 = {"chase", "opening", "argument-battle", "elias", "colours", "long-night"}
 
 
 # ---------------------------------------------------------------- mastering, files, the page
@@ -841,20 +1036,21 @@ def measure(x):
 LIMIT = "alimiter=limit=0.84:attack=3:release=60:level=false"
 
 
-def master(x, loop, lufs=-16.0):
+def master(x, loop, lufs=-16.0, gain=None):
     """Gain to -16 LUFS and a limiter; a loop is processed tiled three times and the middle kept, so the limiter's
-    state at the start is what the end leaves (the seam stays seamless)."""
+    state at the start is what the end leaves (the seam stays seamless). gain= reuses another file's gain."""
     n = x.shape[1]
     work = np.concatenate([x, x, x], axis=1) if loop else x
-    gain = 0.0
-    for _ in range(3):
-        got, peak = measure(ffmpeg_pipe(work * 10 ** (gain / 20), LIMIT))
-        gain += lufs - got
+    if gain is None:
+        gain = 0.0
+        for _ in range(3):
+            got, peak = measure(ffmpeg_pipe(work * 10 ** (gain / 20), LIMIT))
+            gain += lufs - got
     y = ffmpeg_pipe(work * 10 ** (gain / 20), LIMIT)
     if loop:
         y = y[:, n:2 * n]
     got, peak = measure(np.concatenate([y, y], axis=1) if loop else y)
-    return y, got, peak
+    return y, got, peak, gain
 
 
 def seam(y):
@@ -876,6 +1072,10 @@ def write(path, y):
 def timeline(mix):
     bar_s = mix.sec(mix.bpb)
     return "; ".join(f"{name} bars {a + 1}-{b} ({a * bar_s:.1f}-{b * bar_s:.1f} s)" for name, a, b in mix.sections)
+
+
+def tiled_lufs(x):
+    return measure(np.concatenate([x, x, x], axis=1))[0]
 
 
 def run_preview(stems, mix, muffled_base, seconds=96.0):
@@ -922,57 +1122,83 @@ def run_preview(stems, mix, muffled_base, seconds=96.0):
     return ends(out, 0.0, 3.0), cues
 
 
+def note(lines, text):
+    print(text, flush=True)
+    lines.append(text)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
-    notes = []
-    want = lambda slug: not ONLY or slug in ONLY
+    lines = []
+    want = lambda slug: (not ONLY and slug in ROUND3) or slug in ONLY or "all" in ONLY
     for num, slug, title, fn in LOOPS:
         if not want(slug):
             continue
         mix, x = fn()
-        y, got, peak = master(x, True)
+        y, got, peak, _ = master(x, True)
         write(os.path.join(OUT, f"{num}-{slug}.loop.wav"), y)
         write(os.path.join(OUT, f"{num}-{slug}.twice.wav"), np.concatenate([y, y], axis=1))
-        line = (f"{num}-{slug}.loop.wav: {y.shape[1] / SR:.2f} s, loop 0 to {y.shape[1]} samples (the whole file), "
-                f"{mix.bpm} bpm, {mix.bars} bars of {mix.bpb}; {got:.1f} LUFS, true peak {peak:.1f} dBFS, seam {seam(y):.2f} | {timeline(mix)}")
-        print(line, flush=True)
-        notes.append(line)
+        note(lines, f"{num}-{slug}.loop.wav: {y.shape[1] / SR:.2f} s, loop 0 to {y.shape[1]} samples (the whole file), "
+                    f"{mix.bpm} bpm, {mix.bars} bars of {mix.bpb}; {got:.1f} LUFS, true peak {peak:.1f} dBFS, seam {seam(y):.2f} | {timeline(mix)}")
     for num, slug, title, fn in ONESHOTS:
         if not want(slug):
             continue
         mix, x = fn()
-        y, got, peak = master(x, False)
+        y, got, peak, _ = master(x, False)
         write(os.path.join(OUT, f"{num}-{slug}.wav"), y)
-        line = f"{num}-{slug}.wav: {y.shape[1] / SR:.1f} s, plays once, {mix.bpm} bpm; {got:.1f} LUFS, true peak {peak:.1f} dBFS | {timeline(mix)}"
-        print(line, flush=True)
-        notes.append(line)
-    for variant in CHASE_VARIANTS:
-        if not want("chase") and not want("chase-" + variant):
-            continue
-        stems = chase_stems(variant)
-        mix = stems["base"][0]
-        raw = {k: v[1] for k, v in stems.items()}
-        full = raw["base"] + raw["drive"] + raw["peak"]
-        # One gain for every stem (no limiter), so the stems add up to exactly the mix.
-        got, peak = measure(np.concatenate([full, full, full], axis=1))
-        gain = min(-16.0 - got, -1.5 - peak)
-        k = 10 ** (gain / 20)
-        for name in raw:
-            raw[name] = raw[name] * k
-            write(os.path.join(OUT, f"02-chase-{variant}.{name}.loop.wav"), raw[name])
-        full = full * k
-        write(os.path.join(OUT, f"02-chase-{variant}.all.loop.wav"), full)
-        muffled = np.vstack([tile_apply(raw["base"][c], lambda z: lowpass(z, 700), True) for c in range(2)])
-        run, cues = run_preview(raw, mix, muffled)
-        write(os.path.join(OUT, f"02-chase-{variant}.run.wav"), run)
-        line = (f"02-chase-{variant}: stems base/drive/peak .loop.wav, each {full.shape[1] / SR:.2f} s ({full.shape[1]} samples), "
-                f"{mix.bpm} bpm, {mix.bars} bars; all stems together {got + gain:.1f} LUFS, true peak {peak + gain:.1f} dBFS, "
-                f"seam {seam(full):.2f} | {timeline(mix)} | run: " + ", ".join(cues))
-        print(line, flush=True)
-        notes.append(line)
-    if notes:
-        with open(os.path.join(OUT, "loops.txt"), "a" if ONLY else "w", encoding="utf-8") as f:
-            f.write("\n".join(notes) + "\n")
+        note(lines, f"{num}-{slug}.wav: {y.shape[1] / SR:.1f} s, plays once, {mix.bpm} bpm; {got:.1f} LUFS, true peak {peak:.1f} dBFS | {timeline(mix)}")
+    if want("opening"):
+        intro, xi, body, xb = opening_title()
+        yb, got, peak, gain = master(xb, True)
+        yi, _, _, _ = master(xi, False, gain=gain)
+        entry = int(round(intro.length * SR))
+        write(os.path.join(OUT, "04-opening.loop.wav"), yb)
+        write(os.path.join(OUT, "04-opening.intro.wav"), yi)
+        game = np.concatenate([yi[:, :entry], yb, yb], axis=1)
+        tail = yi[:, entry:]
+        game[:, entry:entry + tail.shape[1]] += tail
+        write(os.path.join(OUT, "04-opening.wav"), game)
+        note(lines, f"04-opening: intro 04-opening.intro.wav (the first {entry} samples, {entry / SR:.2f} s, then its "
+                    f"{tail.shape[1] / SR:.1f} s ring-out mixed over the loop's start), then the title loop 04-opening.loop.wav "
+                    f"({yb.shape[1] / SR:.2f} s, loop 0 to {yb.shape[1]} samples, seam {seam(yb):.2f}); 72 bpm; the loop "
+                    f"{got:.1f} LUFS, true peak {peak:.1f} dBFS; 04-opening.wav is intro + loop twice, as the game would play it")
+    if want("chase"):
+        for variant in CHASE_VARIANTS:
+            stems = chase_stems(variant)
+            mix = stems["base"][0]
+            raw = {k: v[1] for k, v in stems.items()}
+            before = {k: tiled_lufs(v) for k, v in raw.items()}
+            for k in raw:
+                raw[k] = raw[k] * 10 ** ((STEM_LUFS[k] - before[k]) / 20)
+            full = raw["base"] + raw["drive"] + raw["peak"]
+            # One gain for every stem (no limiter), so the stems add up to exactly the mix.
+            got, peak = measure(np.concatenate([full, full, full], axis=1))
+            gain = min(-16.0 - got, -1.5 - peak)
+            k = 10 ** (gain / 20)
+            after = {}
+            for name in raw:
+                raw[name] = raw[name] * k
+                after[name] = STEM_LUFS[name] + gain
+                write(os.path.join(OUT, f"02-chase-{variant}.{name}.loop.wav"), raw[name])
+            full = full * k
+            write(os.path.join(OUT, f"02-chase-{variant}.all.loop.wav"), full)
+            muffled = np.vstack([tile_apply(raw["base"][c], lambda z: lowpass(z, 700), True) for c in range(2)])
+            run, cues = run_preview(raw, mix, muffled)
+            write(os.path.join(OUT, f"02-chase-{variant}.run.wav"), run)
+            note(lines, f"02-chase-{variant}: stems base/drive/peak .loop.wav, each {full.shape[1] / SR:.2f} s ({full.shape[1]} samples), "
+                        f"{mix.bpm} bpm, {mix.bars} bars; each stem alone: " + ", ".join(f"{n} {after[n]:.1f} LUFS (was {before[n] + gain:.1f} before balancing at this gain)" for n in raw)
+                        + f"; all together {got + gain:.1f} LUFS, true peak {peak + gain:.1f} dBFS, seam {seam(full):.2f} | {timeline(mix)} | run: " + ", ".join(cues))
+    if want("colours"):
+        for num, slug, title, fn in COLOURED:
+            for colour in ("hope", "despair"):
+                mix, x = with_colour(fn, colour)
+                y, got, peak, _ = master(x, True)
+                write(os.path.join(OUT, f"{num}-{slug}.{colour}.loop.wav"), y)
+                note(lines, f"{num}-{slug}.{colour}.loop.wav: {y.shape[1] / SR:.2f} s; {colour} from bar 5 to bar {mix.bars - 4}; "
+                            f"{got:.1f} LUFS, true peak {peak:.1f} dBFS, seam {seam(y):.2f}")
+    if lines:
+        with open(os.path.join(OUT, "loops-round3.txt"), "a", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
     page()
 
 
@@ -984,16 +1210,23 @@ PAGE = """<!doctype html>
 @media (prefers-color-scheme: dark) {{ :root {{ --bg:#17181b; --fg:#e8e6e1; --muted:#9a978f; --card:#212227; --line:#33343a; }} }}
 body {{ background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif; margin:0; padding:24px 16px; }}
 main {{ max-width:780px; margin:0 auto; }}
-h1 {{ font-size:1.5rem; margin:0 0 4px; }} p.lede {{ color:var(--muted); margin:0 0 20px; }}
+h1 {{ font-size:1.5rem; margin:0 0 4px; }} h2.round {{ font-size:1.2rem; margin:28px 0 10px; }}
+p.lede {{ color:var(--muted); margin:0 0 20px; }}
 .card {{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:0 0 14px; }}
-.card h2 {{ font-size:1.1rem; margin:0 0 2px; }} .card .meta {{ color:var(--muted); font-size:.9rem; margin:0 0 8px; }}
-.row {{ display:grid; grid-template-columns: 8.5em 1fr; gap:8px; align-items:center; margin:4px 0; font-size:.9rem; }}
+.card h3 {{ font-size:1.05rem; margin:0 0 2px; }} .card .meta {{ color:var(--muted); font-size:.9rem; margin:0 0 8px; }}
+.row {{ display:grid; grid-template-columns: 9.5em 1fr; gap:8px; align-items:center; margin:4px 0; font-size:.9rem; }}
+@media (max-width: 520px) {{ .row {{ grid-template-columns: 1fr; gap:2px; }} }}
 audio {{ width:100%; }} a {{ color:inherit; }}
 </style></head><body><main>
-<h1>Visiting Hours: music sketches, round 2</h1>
+<h1>Visiting Hours: music sketches</h1>
 <p class="lede">Example drafts made in code, to react to; the real pieces are composed together, step by step. Looping
-pieces play twice so you can hear the seam. Notes: docs/MUSIC-SKETCHES.md.</p>
-{cards}
+pieces play twice so you can hear the seam. Notes: docs/MUSIC-SKETCHES.md. Round 3 first; round 2 below to compare.</p>
+<h2 class="round">Round 3</h2>
+{round3}
+<h2 class="round">Unchanged since round 2</h2>
+{same}
+<h2 class="round">Round 2's versions of what changed (to compare)</h2>
+{old}
 </main>
 <script>
 for (const a of document.querySelectorAll("audio")) {{ a.volume = 0.5; a.autoplay = false; }}
@@ -1006,35 +1239,52 @@ def row(label, src):
     return f'<div class="row"><span>{label}</span><audio controls preload="none" src="{src}"></audio></div>'
 
 
+def card(title, meta, rows):
+    return f'<section class="card"><h3>{title}</h3><p class="meta">{meta}</p>{rows}</section>'
+
+
 def page():
-    def doc(fn):
-        return re.sub(r"\s+", " ", (fn.__doc__ or "").strip())
-    items = []
-    for num, slug, title, fn in sorted(LOOPS + ONESHOTS):
-        if num == "02":
-            continue
-        loop = (num, slug, title, fn) in LOOPS
-        f = f"{num}-{slug}.twice.wav" if loop else f"{num}-{slug}.wav"
-        if not os.path.exists(os.path.join(OUT, f)):
-            continue
-        rows = row("heard twice" if loop else "plays once", f)
-        if loop:
-            rows += f'<div class="row"><span>the loop file</span><a href="{num}-{slug}.loop.wav">{num}-{slug}.loop.wav</a></div>'
-        items.append((num, f'<section class="card"><h2>{int(num)}. {title}</h2><p class="meta">{doc(fn)}</p>{rows}</section>'))
+    have = lambda f: os.path.exists(os.path.join(OUT, f))
+    doc = lambda fn: re.sub(r"\s+", " ", (fn.__doc__ or "").strip())
+    r3 = []
     rows = ""
     for variant in CHASE_VARIANTS:
-        if not os.path.exists(os.path.join(OUT, f"02-chase-{variant}.run.wav")):
-            continue
-        rows += f"<p class=\"meta\"><b>{variant}</b></p>"
-        rows += row("a run: slow, fast, flying, slow", f"02-chase-{variant}.run.wav")
-        rows += row("all stems", f"02-chase-{variant}.all.loop.wav")
-        for k in ("base", "drive", "peak"):
-            rows += row(f"{k} stem", f"02-chase-{variant}.{k}.loop.wav")
+        if have(f"02-chase-{variant}.run.wav"):
+            rows += f"<p class=\"meta\"><b>{variant}</b></p>" + row("a run: slow, fast, flying, slow", f"02-chase-{variant}.run.wav")
+            rows += row("all stems", f"02-chase-{variant}.all.loop.wav")
+            rows += "".join(row(f"{k} stem", f"02-chase-{variant}.{k}.loop.wav") for k in ("base", "drive", "peak"))
     if rows:
-        items.append(("02", f'<section class="card"><h2>2. The chase, as speed stems</h2><p class="meta">{doc(chase_stems)} '
-                            f'Two variants: grounded (dry, close, real instruments) and airy (space, choir, bells, echoes).</p>{rows}</section>'))
-    with open(os.path.join(OUT, "index.html"), "w", encoding="utf-8") as f:
-        f.write(PAGE.format(cards="\n".join(c for _, c in sorted(items))))
+        r3.append(card("The chase, as speed stems (rebalanced)", doc(chase_stems) + " Round 3: the grounded base is the "
+                       "Opening's drone and soft chords; each stem steps up in loudness (base, drive, peak), and they still add up to the mix.", rows))
+    if have("04-opening.wav"):
+        r3.append(card("The opening and the title screen", doc(opening_title),
+                       row("as the game plays it", "04-opening.wav") + row("the title loop alone", "04-opening.loop.wav")))
+    for num, slug, title, fn in LOOPS:
+        if slug in ("argument-battle", "elias", "long-night") and have(f"{num}-{slug}.twice.wav"):
+            r3.append(card(title + (" (reworked)" if slug != "long-night" else ""), doc(fn), row("heard twice", f"{num}-{slug}.twice.wav")))
+    rows = ""
+    for num, slug, title, fn in COLOURED:
+        if have(f"{num}-{slug}.hope.loop.wav"):
+            rows += f"<p class=\"meta\"><b>{title}</b></p>" + row("plain", f"{num}-{slug}.loop.wav")
+            rows += row("with hope", f"{num}-{slug}.hope.loop.wav") + row("with despair", f"{num}-{slug}.despair.loop.wav")
+    if rows:
+        r3.append(card("Hope and despair, laid over three pieces", "The same two overlays, built from each piece's own chords, "
+                       "key and metre. They come in after the intro and leave before the outro. " + doc(hope_stem) + " " + doc(despair_stem), rows))
+    same = []
+    for num, slug, title, fn in sorted(LOOPS + ONESHOTS):
+        if slug in ("argument-battle", "elias", "long-night"):
+            continue
+        f = f"{num}-{slug}.twice.wav" if (num, slug, title, fn) in LOOPS else f"{num}-{slug}.wav"
+        if have(f):
+            same.append(card(title, doc(fn), row("heard twice" if f.endswith("twice.wav") else "plays once", f)))
+    old = []
+    for label, f in (("The chase, grounded: a run", "round2/02-chase-grounded.run.wav"), ("The chase, airy: a run", "round2/02-chase-airy.run.wav"),
+                     ("The opening (played once)", "round2/04-opening.wav"), ("Elias's motif", "round2/07-elias.twice.wav"),
+                     ("An argument battle (111 s)", "round2/05-argument-battle.twice.wav")):
+        if have(f):
+            old.append(card(label, "Round 2.", row("round 2", f)))
+    with open(os.path.join(OUT, "index.html"), "w", encoding="utf-8") as fh:
+        fh.write(PAGE.format(round3="\n".join(r3), same="\n".join(same), old="\n".join(old)))
     print("page", os.path.join(OUT, "index.html"))
 
 
