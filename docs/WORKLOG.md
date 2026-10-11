@@ -1120,3 +1120,17 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - They share one leitmotif (A–D–E–F) over Dm–Bb–F–C.
   - The pieces: Dream (D minor, 104), Chase (128), Daytime (F major, 92), Opening (72, half the motif), Argument (138, the motif inverted), Lena (a Bb waltz), Elias (66, unresolved), Ending reprise (D minor to D major).
 - **Overnight Unity run ready:** `scratchpad/overnight-1011.ps1`. It covers VH verify, the capture, the VH build, then the Movement Lab and Dream Escape builds. It waits for the creator to close the Movement Lab.
+- **Dense street (695d972, feel research agent):**
+  - `docs/DENSE-STREET.md`, five SVG maps, and the review page `FableAnimationTests/art/review/2026-10-11/dense-street.html` (opened).
+  - **Sources:** Arkane's "Creators Play Dishonored" parts 1–3, Steve Lee's critique of the Campbell mission, and the wiki.
+  - **The Distillery lessons:**
+    - three stacked routes along one corridor;
+    - 3–5 ways into every goal;
+    - side quests pay out in routes;
+    - the revisit changes the place by blocking paths.
+  - **The layouts:**
+    - A, the recommendation: a deep block with four routes (street, gardens and rear lane, roofs, a creek culvert you slide under), Theo's hide-and-seek in a 42 × 29 m garden zone, and eight per-night switches;
+    - B: the hill;
+    - C: a close;
+    - D: the link to a second place, for comparison.
+  - **Open:** the stealth kit's final numbers, and where hide-and-seek happens (the house on Night 2 or a street intro).
