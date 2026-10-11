@@ -1,0 +1,19 @@
+Aspect ratio: 16:9 landscape (wide), exactly like Image 1.
+
+Image 1 is the creator's layout sketch for the game's title screen. Copy its COMPOSITION EXACTLY: the same objects in the same places, at the same sizes and angles, cropped by the frame edges in the same way. Do not recompose, do not centre anything, do not add margins, do not zoom out. The camera looks down at a wooden table from high above (a steep, almost top-down view), as in the sketch.
+The objects, as placed in Image 1:
+1. A LARGE TABLET lying flat on the table, slightly rotated: it fills the upper-left two-thirds of the frame and runs off the LEFT edge and the TOP edge; its top edge rises gently from the left towards the right, its right edge is a near-vertical line about 70% across the frame (from the top edge down to about 60% of the height), and its bottom edge slopes up from the lower left (about 87% down at the left edge) to that corner. Its SCREEN IS OFF: plain, empty dark glass with only a soft faint reflection of the lamp, nothing displayed on it, a thin dark bezel around it.
+2. A COFFEE MUG at the upper right, seen from above at the same angle as in the sketch (its round rim near the top, its body below), its handle pointing to the right and CUT OFF by the right edge of the frame.
+3. A small NOTEPAD at the bottom centre, tilted slightly, CUT OFF by the bottom edge of the frame, with a binding strip across its top as in the sketch.
+4. A hospital ID BADGE at the bottom right, a portrait card in a clear holder, CUT OFF by the bottom and right edges; a lanyard clip at its top left, its strap curling up and to the left and ending in a small loop, exactly as in the sketch.
+
+MOST IMPORTANT: the placement. Trace Image 1: the tablet's outline must be where the sketch's tablet is (filling the upper-left two-thirds, running off the left and top edges), the mug where the sketch's mug is with its handle cut by the right edge, the notepad cut by the bottom edge at the bottom centre, the badge cut by the bottom-right corner.
+
+Image 2 shows the drawing style to match (the game's opening, the same night): its palette, its clean thin line work, its soft flat shading and its quiet mood. Do not copy its content.
+Style: the waking world of a narrative game: grounded but stylised, muted palette, simplified clean shapes with soft flat shading and restrained thin line work, quiet and calm, like a literary graphic novel. NOT gritty, NOT photographic, no grime, no film grain, no heavy texture.
+
+The moment: late at night, after a long hospital shift: a nurse's things left on her kitchen table. Night: the room is dark and cool blue, and one warm lamp off-frame to the upper right throws a soft warm pool of light across the table and the mug, falling off into blue shadow towards the edges. Quiet, tired, still.
+
+Small true details, kept subtle so the picture stays quiet and readable behind a menu: a faint dried coffee ring on the wood near the mug, the coffee in the mug half drunk; a ballpoint pen lying across the notepad; a few light scuffs and worn grain on the table; the badge's photo is the woman in Image 3 (small, head and shoulders), the rest of the card plain with blank coloured bands; the lanyard plain dark navy fabric.
+
+No text, no letters, no numbers, no logos, no watermark, no signature anywhere in the image (the sketch's handwritten labels are only labels: do NOT draw them).
