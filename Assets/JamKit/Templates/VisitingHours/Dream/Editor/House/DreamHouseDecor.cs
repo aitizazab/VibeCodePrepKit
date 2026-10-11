@@ -115,7 +115,7 @@ namespace JamKit.DreamEscape.EditorTools
             Model(t, "cardboardBoxClosed", new Vector3(-10.7f, F, 94.2f), Vector3.back, 2.6f, new Color(0.45f, 0.7f, 0.9f));
             Model(t, "bookcaseOpenLow", new Vector3(-6.9f, F, 99.6f), Vector3.back, 2.2f);
             Books(t, new Vector3(-6.9f, F, 99.55f), false, new[] { 0.42f });
-            Model(t, "chairDesk", new Vector3(-7f, F, 90.8f), Vector3.back);
+            Model(t, "chairDesk", new Vector3(-7f, F, 90.8f), Vector3.back);   // faces the desk (south)
             Picture(t, "dream_pic_kids_drawing_2", new Vector3(-7.4f, F + 1.55f, 89.22f), Vector3.forward, 0.36f, 0.48f, null);
             Toys(t, new Vector3(-11.3f, F, 90.0f));
             Pendant(t, new Vector3(-6.5f, F, 95.0f));
@@ -127,7 +127,7 @@ namespace JamKit.DreamEscape.EditorTools
         {
             var t = Group("Study");
             Rug(t, "rugRectangle", new Vector3(7.5f, F, 95.9f), 4.2f, 2.6f, new Color(0.6f, 0.78f, 0.62f));
-            Model(t, "chairDesk", new Vector3(7.5f, F, 96.65f), Vector3.back);
+            Model(t, "chairDesk", new Vector3(7.5f, F, 96.65f), Vector3.back);   // faces the desk (south)
             Model(t, "radio", new Vector3(8.5f, F + 0.75f, 95.35f), Vector3.back, 1.2f);
             var lamp = Model(t, "lampRoundTable", new Vector3(6.35f, F + 0.75f, 95.35f), Vector3.zero, 1.6f);
             LampGlow(t, lamp, 0.22f);
