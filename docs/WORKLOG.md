@@ -1243,3 +1243,9 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - Lena's sprite to a097a2a.
   - Art for the house and the Dream Escape to a953eef.
   - The prose is the creator's. Their brief: `docs/ARGUMENT-PROSE-BRIEF.md` (be7932a: the flow, and every line with what it must say).
+- **The opening editor** (the creator: "the positioning of objects in the opening keeps breaking the immersion"): F9 on the title, or the presenter panel's "Edit the opening". Pause, scrub and jump between the beats; pick things by plain names or click; move/turn/size handles and numbers, snapping, undo/redo, reset; a free camera, and each shot's camera set from your view (one key each). Moving the phone moves her grab; the bed and Nadia carry her eyes' shots; the nightstand carries what's on it. Saves `VisitingHoursOpeningEdits.json` (the build's StreamingAssets and the repo's `Assets/JamKit/Templates/VisitingHours/Resources/JamKit/`); the builder applies it every build. How-to: `docs/OPENING-EDITOR.md`.
+- **Movement result:** the Mild hop preset landed. The DT portion took **26.45 s** on controller (best before: 28.17).
+  - The creator will check it on KBM. If it isn't too easy, this movement becomes the universal default.
+  - Daytime profile requested: no double jump, wall-run or slide, and the air strafe turned well down.
+  - Jump fatigue in daytime is ambiguous ("can't ... have jump fatigue"). It's ON by default as a flag, to confirm.
+  - Sent to the movement agent (abd54a5).
