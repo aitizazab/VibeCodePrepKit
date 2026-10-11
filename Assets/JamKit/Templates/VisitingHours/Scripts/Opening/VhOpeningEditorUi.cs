@@ -1188,16 +1188,39 @@ namespace JamKit.VisitingHours
         Ctl HitControl(Vector2 p)
         {
             if (_root == null || _root.panel == null || _helpShown) return null;
+            var top = _confirmShown ? _confirm : TopPanelAt(p);
+            if (top == null) return null;
             for (int i = _ctls.Count - 1; i >= 0; i--)
             {
                 var c = _ctls[i];
-                if (_confirmShown != IsInside(c.el, _confirm)) continue;
+                // Only the panel on top at that point takes the click (one panel may overlap another on a small screen).
+                if (!IsInside(c.el, top)) continue;
                 if (!Contains(c.el.worldBound, p)) continue;
                 if (c.clip != null && !Contains(c.clip.worldBound, p)) continue;
                 if (!Shown(c.el)) continue;
                 return c;
             }
             return null;
+        }
+
+        /// <summary>The panels, bottom to top (the order they were added in).</summary>
+        IEnumerable<VisualElement> Panels()
+        {
+            yield return _left;
+            if (_leftTab != null) yield return _leftTab.el;
+            yield return _right;
+            if (_rightTab != null) yield return _rightTab.el;
+            yield return _top;
+            yield return _bottom;
+        }
+
+        /// <summary>The panel on top at panel point <paramref name="p"/>, or null (the view).</summary>
+        VisualElement TopPanelAt(Vector2 p)
+        {
+            VisualElement top = null;
+            foreach (var e in Panels())
+                if (Over(e, p)) top = e;
+            return top;
         }
 
         /// <summary>The mouse is over one of the editor's panels (or a modal is up): the view doesn't take it.</summary>
@@ -1335,11 +1358,8 @@ namespace JamKit.VisitingHours
                 var r = c.el.worldBound;
                 if (float.IsNaN(r.width) || r.width <= 0f) return false;
                 var mid = r.center;
-                if (c.clip != null)
-                {
-                    var clip = c.clip.worldBound;
-                    if (!clip.Contains(mid)) return false;
-                }
+                // Only where a click really reaches it (not clipped by the list, not under another panel).
+                if (HitControl(mid) != c) return false;
                 screen = PanelToScreen(mid);
                 return true;
             }
@@ -1365,9 +1385,16 @@ namespace JamKit.VisitingHours
             if (e == null || !Shown(e)) return false;
             var r = e.worldBound;
             if (float.IsNaN(r.width) || r.width <= 0f) return false;
-            // A spot on the panel's own background, clear of its controls where possible: near its lower edge.
-            screen = PanelToScreen(new Vector2(r.center.x, r.yMax - 6f));
-            return true;
+            // A spot on the panel's own background: on top there, and on none of its controls.
+            for (int j = 0; j < 12; j++)
+                for (int i = 0; i < 12; i++)
+                {
+                    var q = new Vector2(r.xMin + 4f + (r.width - 8f) * i / 11f, r.yMax - 4f - (r.height - 8f) * j / 11f);
+                    if (TopPanelAt(q) != e || HitControl(q) != null) continue;
+                    screen = PanelToScreen(q);
+                    return true;
+                }
+            return false;
         }
 
         /// <summary>True when the screen point is over one of the editor's panels.</summary>

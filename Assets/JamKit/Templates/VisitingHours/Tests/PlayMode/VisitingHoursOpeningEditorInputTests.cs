@@ -79,6 +79,12 @@ namespace JamKit.VisitingHours.Tests
             yield return Frames(6); // its panels laid out
             _in.MoveTo(Ed.ViewScreenPoint());
             yield return Frames(2);
+            // The editor lives on the GameRoot and keeps its tool and snapping from one opening to the next (as the
+            // Scene view does): start each test from the move tool with snapping on, by the keys.
+            if (Ed.CurrentTool != VhOpeningEditor.Tool.Move) yield return _in.Tap(Key.W);
+            if (!Ed.Snap) yield return _in.Tap(Key.X);
+            Assert.That(Ed.CurrentTool, Is.EqualTo(VhOpeningEditor.Tool.Move), "W: the move tool");
+            Assert.That(Ed.Snap, Is.True, "X: snapping on");
         }
 
         Vector2 Point(string id)
@@ -304,13 +310,15 @@ namespace JamKit.VisitingHours.Tests
             {
                 Assert.That(Ed.TryPanelScreenPoint(panel, out var p), Is.True, "the " + panel + " panel");
                 yield return _in.Click(p);
-                Assert.That(Ed.Selected != null && Ed.Selected.id == "title-tablet", Is.True, "a click on the " + panel + " panel doesn't reach the view");
+                Assert.That(Ed.Selected != null && Ed.Selected.id == "title-tablet", Is.True, "a click on the " + panel + " panel doesn't reach the view (" + Ed.LastPress + ")");
+                Assert.That(Ed.CurrentTool, Is.EqualTo(VhOpeningEditor.Tool.Move), "a click on the " + panel + " panel's background presses nothing (" + Ed.LastPress + ")");
+                Assert.That(Ed.ConfirmShown || Ed.HelpShown, Is.False, "nothing opened (" + Ed.LastPress + ")");
             }
             yield return _in.Tap(Key.Escape);
             Assert.That(Ed.Selected, Is.Null, "Esc selects nothing");
 
             yield return ClickListRow("title-mug");
-            Assert.That(Ed.Selected != null && Ed.Selected.id == "title-mug", Is.True, "a click in the list selects");
+            Assert.That(Ed.Selected != null && Ed.Selected.id == "title-mug", Is.True, "a click in the list selects (" + Ed.LastPress + ")");
         }
 
         [UnityTest]
@@ -326,7 +334,7 @@ namespace JamKit.VisitingHours.Tests
             Vector2 dir = ((Vector2)cam.WorldToScreenPoint(start + Vector3.right * 0.1f) - (Vector2)cam.WorldToScreenPoint(start)).normalized;
             yield return _in.DragTo(x, x + dir * 80f, 10);
             Vector3 d = t.position - start;
-            Assert.That(d.x, Is.GreaterThan(0.005f), "dragging the X arrow moves along X");
+            Assert.That(d.x, Is.GreaterThan(0.005f), "dragging the X arrow moves along X (" + Ed.LastPress + ")");
             Assert.That(Mathf.Abs(d.y) + Mathf.Abs(d.z), Is.LessThan(1e-4f), "and only along X");
             Assert.That(Mathf.Abs(d.x * 100f - Mathf.Round(d.x * 100f)), Is.LessThan(1e-3f), "in whole centimetres (snapping)");
             Assert.That(Ed.StatusText, Does.Contain("along X"), "the status line says what moved");
@@ -475,7 +483,7 @@ namespace JamKit.VisitingHours.Tests
             Vector2 dir = ((Vector2)cam.WorldToScreenPoint(start + Vector3.right * 0.1f) - (Vector2)cam.WorldToScreenPoint(start)).normalized;
             yield return _in.DragTo(x, x + dir * 60f, 8);
             Vector3 moved = t.position;
-            Assert.That(moved.x - start.x, Is.GreaterThan(0.005f));
+            Assert.That(moved.x - start.x, Is.GreaterThan(0.005f), "the drag moved it (" + Ed.LastPress + ")");
             yield return _in.Tap(Key.LeftCtrl, Key.S);
             Assert.That(Ed.Dirty, Is.False, "saved");
             Assert.That(Ed.StatusText, Does.Contain("Saved 1 change"));

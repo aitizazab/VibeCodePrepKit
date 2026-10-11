@@ -102,6 +102,9 @@ namespace JamKit.VisitingHours
         public bool Dirty => _dirty;
         public bool Playing => _playing;
         public float FlySpeed => _flySpeed;
+        /// <summary>What the last left press hit (a control, a panel, a handle, a thing in the view): for test messages.</summary>
+        public string LastPress => _lastPress;
+        string _lastPress = "";
         /// <summary>The work light (L) is on: an even light so the set shows at dark moments (only while editing).</summary>
         public bool WorkLight => _workLight;
         /// <summary>Tab hid the panels (a clean view).</summary>
@@ -1064,6 +1067,8 @@ namespace JamKit.VisitingHours
 
         void LeftDown(Ctl ctl, bool overUi, bool alt)
         {
+            _lastPress = "at panel " + _mouse.ToString("F0") + " (screen " + _screen.ToString("F0") + ", " + Screen.width + "x" + Screen.height + "): " +
+                         (ctl != null ? "control " + ctl.id : overUi ? "a panel" : "the view") + ", tool " + _tool + ", drag " + _drag;
             if (_editing != null && (ctl == null || ctl.number != _editing)) CommitNumber();
             if (_helpShown)
             {
@@ -1120,12 +1125,14 @@ namespace JamKit.VisitingHours
                 return;
             }
             int h = HitHandle(_mouse, out var ring);
+            _lastPress += ", handle " + h;
             if (h >= 0)
             {
                 BeginHandleDrag(h, ring);
                 return;
             }
             var picked = PickThing(_mouse);
+            _lastPress += ", picked " + (picked != null ? picked.id : "nothing");
             bool wall = PickedSomething;
             if (picked == null && _sel == null)
             {
