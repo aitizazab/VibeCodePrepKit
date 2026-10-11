@@ -3,8 +3,10 @@ using JamKit.Movement;
 using JamKit.Presenting;
 using JamKit.Shell;
 using JamKit.Stealth;
+using JamKit.Tests.Play;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using static JamKit.Tests.Play.ShellTestUtil;
@@ -13,15 +15,20 @@ namespace JamKit.StealthLab.Tests
 {
     /// <summary>The Stealth Lab on Unity's physics: the seeker's walking map is one piece; a seeker finds a player standing
     /// still in the open; hiding in the closet only delays it (its sweep opens the closet); the HUD reads the meter and the
-    /// state; the five collectibles count down and announce the last; the restart puts everything back.</summary>
+    /// state; the five collectibles count down and announce the last; the restart puts everything back; key 5 spawns the
+    /// three guards from the opening round; a catch in a patrol restarts at the last checkpoint, or fails the subquest.</summary>
     public class StealthLabPlayTests
     {
+        TestInput _keys;
+
         [UnitySetUp]
         public IEnumerator SetUp() => BootToTitle();
 
         [UnityTearDown]
         public IEnumerator TearDown()
         {
+            _keys?.Dispose();
+            _keys = null;
             DebugMenu.TimeScale = 1f;
             PresenterMode.Close();
             yield return null;
@@ -143,6 +150,107 @@ namespace JamKit.StealthLab.Tests
             Game.Try(false, false, false, false, false);
             yield return WaitFor(() => Game.player.Profile == MoveProfileKind.Dream, "the dream's movement again", 2f);
             foreach (var g in Game.extraGuards) Assert.That(g.gameObject.activeSelf, Is.False);
+        }
+
+        static int LiveGuards()
+        {
+            int n = 0;
+            foreach (var g in SeekerAgent.All) if (g != null && g.isActiveAndEnabled) n++;
+            return n;
+        }
+
+        [UnityTest]
+        public IEnumerator KeyFiveFromTheOpeningRoundSpawnsTheThreeGuards()
+        {
+            yield return StartLab();
+            Assert.That(Game.CurrentRound, Is.EqualTo(StealthLabGame.Round.HideAndSeek), "the lab opens in hide and seek");
+            Assert.That(LiveGuards(), Is.EqualTo(1));
+            _keys = new TestInput("StealthLabTestKeyboard");
+            yield return null;
+            // The creator's bug (2026-10-12): pressed here, the option said [on] but only took effect at the next patrol round.
+            yield return _keys.Press(Key.Digit5);
+            yield return _keys.Press();
+            Assert.That(Game.ThreeGuards, Is.True);
+            Assert.That(Game.CurrentRound, Is.EqualTo(StealthLabGame.Round.Patrol), "it starts a patrol round");
+            Assert.That(LiveGuards(), Is.EqualTo(3), "three live guards at once");
+            foreach (var g in SeekerAgent.All) Assert.That(g.mode, Is.EqualTo(SeekerMode.Patrol), g.name);
+            Assert.That(Game.PanelText, Does.Contain("[on]  5"));
+            yield return _keys.Press(Key.Digit5);
+            yield return _keys.Press();
+            Assert.That(Game.ThreeGuards, Is.False);
+            Assert.That(LiveGuards(), Is.EqualTo(1), "and back to one");
+        }
+
+        /// <summary>Puts her in the open right in front of the guard (lamp-lit, 2.5 m off) and lets him look.</summary>
+        static IEnumerator GetCaughtBy(SeekerAgent guard)
+        {
+            var at = guard.transform.position + guard.transform.forward * 2.5f;
+            Game.player.Teleport(new Vector3(at.x, 0.02f, at.z), guard.transform.eulerAngles.y + 180f, Vector3.zero);
+            guard.Frozen = false;
+            yield return WaitFor(() => Game.Caughts > 0, "the guard catching her", 10f);
+        }
+
+        [UnityTest]
+        public IEnumerator ACatchRestartsAtTheLastCheckpointAndDropsWhatWasPickedUpSince()
+        {
+            yield return StartLab();
+            DebugMenu.TimeScale = 2f;
+            Game.Try(false, false, false, false, false, CaughtOutcome.RestartCheckpoint);
+            yield return Frames(2);
+            var guard = Game.seeker;
+            guard.Frozen = true;
+            var yard = StealthYard.Build();
+            Assert.That(Game.checkpoints.Count, Is.EqualTo(yard.checkpoints.Count));
+
+            // Pick one up, then reach the alley's checkpoint (it banks that one), then pick up another.
+            var lookout = yard.collectibles.Find(c => c.id == "lookout");
+            Game.player.Teleport(new Vector3(lookout.position.X, lookout.position.Y - 0.5f, lookout.position.Z), 0f, Vector3.zero);
+            yield return Frames(4);
+            Assert.That(Game.collectibles.Remaining, Is.EqualTo(4));
+            var alley = yard.checkpoints[2];
+            Game.player.Teleport(new Vector3(alley.spawn.X, alley.spawn.Y, alley.spawn.Z), 0f, Vector3.zero);
+            yield return WaitFor(() => Game.Checkpoints.Current == 2, "the alley's checkpoint", 2f);
+            var closet = yard.collectibles.Find(c => c.id == "closet");
+            Game.player.Teleport(new Vector3(closet.position.X, 0f, closet.position.Z), 0f, Vector3.zero);
+            yield return Frames(4);
+            Assert.That(Game.collectibles.Remaining, Is.EqualTo(3));
+
+            yield return GetCaughtBy(guard);
+            Assert.That(Game.CaughtBeatActive, Is.True, "the caught moment");
+            Assert.That(Game.player.Autopilot, Is.Not.Null, "she's held during it");
+            Assert.That(guard.Frozen, Is.True, "and so is he");
+            Assert.That(Game.RoundOver, Is.False, "a catch is a restart, not the end");
+            yield return WaitFor(() => GameRoot.Ui.FadeAlpha > 0.5f, "the fade out", 3f);
+            yield return WaitFor(() => !Game.CaughtBeatActive, "the restart and the fade back in", 5f);
+            Assert.That(Game.Restarts, Is.EqualTo(1));
+            Assert.That(GameRoot.Ui.FadeAlpha, Is.EqualTo(0f));
+            Assert.That(Game.player.Autopilot, Is.Null, "control back");
+            var p = Game.player.transform.position;
+            Assert.That(Vector2.Distance(new Vector2(p.x, p.z), new Vector2(alley.spawn.X, alley.spawn.Z)), Is.LessThan(1f), "back at the alley");
+            Assert.That(Game.Dropped, Is.EqualTo(1), "the closet's find, picked up after the checkpoint, is dropped");
+            Assert.That(Game.collectibles.Remaining, Is.EqualTo(4), "the lookout's, banked, is kept");
+            Assert.That(Game.collectibles.Set.IsCollected(Game.collectibles.Set.IndexOf("closet")), Is.False);
+            Assert.That(guard.Frozen, Is.False, "the guard is back on his round");
+            Assert.That(guard.State, Is.Not.EqualTo(AlertState.Found));
+        }
+
+        [UnityTest]
+        public IEnumerator WhenTheEncounterFailsTheSubquestACatchEndsIt()
+        {
+            yield return StartLab();
+            DebugMenu.TimeScale = 2f;
+            Game.Try(false, false, false, false, false, CaughtOutcome.FailSubquest);
+            yield return Frames(2);
+            var guard = Game.seeker;
+            guard.Frozen = true;
+            yield return GetCaughtBy(guard);
+            yield return WaitFor(() => Game.SubquestFailed, "the subquest failing", 3f);
+            Assert.That(Game.RoundOver, Is.True);
+            Assert.That(Game.Restarts, Is.EqualTo(0), "no restart");
+            Assert.That(GameRoot.Ui.FadeAlpha, Is.EqualTo(0f), "no fade: the fail message");
+            Assert.That(Game.player.Autopilot, Is.Null, "control back");
+            Assert.That(guard.Frozen, Is.True);
+            Assert.That(Game.PanelText, Does.Contain("when caught: the subquest fails"));
         }
 
         [UnityTest]

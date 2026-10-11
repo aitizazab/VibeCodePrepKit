@@ -124,7 +124,7 @@ namespace JamKit.StealthLab.EditorTools
         public sealed class Materials
         {
             public Material ground, fence, wall, runWall, cover, ledge, roof, bar, post, bush, canopy, curtain, house, shed;
-            public Material sleeve, skin, legs, shoes, seekerBody, seekerHead, visor, collectible, cone, meter, ring, guardBody;
+            public Material sleeve, skin, legs, shoes, seekerBody, seekerHead, visor, collectible, cone, meter, ring, guardBody, checkpoint;
         }
 
         static Materials MakeMaterials()
@@ -156,6 +156,7 @@ namespace JamKit.StealthLab.EditorTools
                 cone = Overlay("Seeker_Cone", 4f),
                 ring = Overlay("Noise_Ring", 4f),
                 guardBody = Lit("Guard_Body", new Color(0.36f, 0.42f, 0.7f)),
+                checkpoint = Lit("Checkpoint", new Color(0.3f, 0.95f, 0.75f), 0.5f),
                 meter = Overlay("Seeker_Meter", 8f),
             };
         }
@@ -284,6 +285,22 @@ namespace JamKit.StealthLab.EditorTools
                 item.visual = holder;
             }
 
+            // The checkpoints: a glowing pad on the ground at each (no collider; the game checks the box).
+            var cps = new GameObject("Checkpoints").transform;
+            var zonesList = new List<StealthCheckpointZone>();
+            foreach (var c in yard.checkpoints)
+            {
+                var z = new GameObject("Checkpoint: " + c.name).AddComponent<StealthCheckpointZone>();
+                z.transform.SetParent(cps, false);
+                z.transform.position = U(c.spawn);
+                z.label = c.name;
+                z.size = U(c.size);
+                z.yaw = c.yaw;
+                var pad = Box("Pad", z.transform, U(c.spawn) + new Vector3(0f, 0.02f, 0f), new Vector3(c.size.X, 0.04f, c.size.Z), m.checkpoint, false);
+                pad.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+                zonesList.Add(z);
+            }
+
             // The player: body (yaw) > head (pitch) > rig (bob, roll) > camera.
             var playerGo = new GameObject("Player");
             playerGo.transform.position = U(yard.playerStart);
@@ -392,6 +409,7 @@ namespace JamKit.StealthLab.EditorTools
             game.seeker = agent;
             game.extraGuards = extra;
             game.collectibles = counter;
+            game.checkpoints = zonesList;
             game.playerStart = U(yard.playerStart);
             game.playerYaw = yard.playerYaw;
             game.ambientLight = yard.ambientLight;

@@ -72,6 +72,14 @@ namespace JamKit.Stealth
 
         internal bool Collect(int index) => _set.Collect(index);
 
+        /// <summary>Puts one collectible back where it was (dropped). True if it had been collected.</summary>
+        public bool Uncollect(int index)
+        {
+            if (!_set.Uncollect(index)) return false;
+            if (index < _items.Count && _items[index] != null) _items[index].Show(true);
+            return true;
+        }
+
         /// <summary>Every collectible back in place (a restart).</summary>
         public void ResetAll()
         {

@@ -49,6 +49,9 @@ namespace JamKit.Stealth
         /// <summary>Two more guards (the lab's three-guard option): overlapping loops of the west and east halves.</summary>
         public readonly List<int> patrol2 = new List<int>(), patrol3 = new List<int>();
         public Vector3 guard2Start, guard3Start;
+        /// <summary>The checkpoints (docs/STEALTH.md "Being caught"): the start, the dark corner under the canopy and the
+        /// alley behind the house. A patrol round's catch sends her back to the last one she reached.</summary>
+        public readonly List<StealthCheckpoint> checkpoints = new List<StealthCheckpoint>();
         public float ambientLight = 0.75f;
         public Vector3 playerStart, seekerStart, lampPosition;
         public float playerYaw, seekerYaw, countYaw;
@@ -170,7 +173,14 @@ namespace JamKit.Stealth
             guard3Start = V(21f, 0f, 5f);
             seekerYaw = 0f;
             countYaw = 180f;
+
+            Checkpoint("The start", playerStart, V(5f, 3f, 5f), playerYaw);
+            Checkpoint("Under the canopy", V(21f, 0f, -14f), V(5f, 3f, 5f), -90f);
+            Checkpoint("The alley", V(-12f, 0f, 18f), V(6f, 3f, 2f), 90f);
         }
+
+        void Checkpoint(string name, Vector3 feet, Vector3 size, float yaw)
+            => checkpoints.Add(new StealthCheckpoint { name = name, center = feet + V(0f, size.Y * 0.5f, 0f), size = size, spawn = feet, yaw = yaw });
 
         /// <summary>The yard as a <see cref="StealthBoxWorld"/>: every solid piece blocks sight; the light boxes.</summary>
         public StealthBoxWorld World()

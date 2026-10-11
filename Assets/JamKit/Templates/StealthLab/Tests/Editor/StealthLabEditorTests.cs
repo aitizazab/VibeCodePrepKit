@@ -96,6 +96,16 @@ namespace JamKit.StealthLab.Tests
                 Assert.That(rings, Is.Not.Null, "the noise made visible");
                 Assert.That(rings.material.shader.name, Is.EqualTo(StealthLabBuilder.OverlayShader));
                 Assert.That(game.player.GetComponent<StealthPlayerRules>(), Is.Not.Null, "the daytime section and the lucidity fade");
+                Assert.That(game.onCaught, Is.EqualTo(CaughtOutcome.RestartCheckpoint), "a catch restarts at the checkpoint");
+                Assert.That(game.checkpoints.Count, Is.EqualTo(yard.checkpoints.Count), "the checkpoints");
+                for (int i = 0; i < yard.checkpoints.Count; i++)
+                {
+                    var z = game.checkpoints[i];
+                    Assert.That(z, Is.Not.Null);
+                    Assert.That(z.label, Is.EqualTo(yard.checkpoints[i].name));
+                    Assert.That(Vector3.Distance(z.transform.position, new Vector3(yard.checkpoints[i].spawn.X, yard.checkpoints[i].spawn.Y, yard.checkpoints[i].spawn.Z)), Is.LessThan(0.01f));
+                    Assert.That(z.GetComponentsInChildren<Collider>(true), Is.Empty, "a pad, not an obstacle");
+                }
             }
             finally
             {

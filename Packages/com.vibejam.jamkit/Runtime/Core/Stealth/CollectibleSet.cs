@@ -64,6 +64,16 @@ namespace JamKit.Stealth
 
         public bool Collect(string id) => Collect(IndexOf(id));
 
+        /// <summary>Puts one back, not found (a checkpoint restart drops what was picked up since). True if it was collected.</summary>
+        public bool Uncollect(int index)
+        {
+            if (index < 0 || index >= _got.Count || !_got[index]) return false;
+            _got[index] = false;
+            _collected--;
+            _allFired = false;
+            return true;
+        }
+
         /// <summary>Everything back to not found (a restart). Registrations stay.</summary>
         public void ResetFound()
         {
