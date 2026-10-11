@@ -1159,3 +1159,19 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
     
     The notes go in `docs/ARGUMENT-PROTOTYPE.md`.
   - **Asked of the creator:** Elias's real surname. The news report says "Lasname".
+- **Night 2 house (111dc28, dream tool agent):** the "DreamHouse" scene, with chapters The house, Hide and seek, The argument, The house tips, The front door.
+  - **The way in:** the hallway stretches, she wallruns, then a slide door drops her into the kitchen.
+  - **Pancakes:** placeholder lines.
+  - **Hide-and-seek:** Theo is the stealth-kit seeker. There are five memories: the height marks, the fridge calendar, the fourth chair, Theo's drawing and the photo wall. The last one plays the line from `AllFound`.
+  - **The argument:** a debug choice of unsure or condemns. Condemns sets `vh_lena_condemns`, which brings the Despair point to 3 m and the soak to 3 s.
+  - **The house tips:** about 15 s, shorter than the design's 75 s. It's a white-out cut rather than a visible rotation.
+  - **The front door:** the umbrella and rain, made reusable as `DreamRainSpot`.
+  - **Open for the creator:** which line is Despair (the data has the "not even real" line, while STORY-TALK suggests the "smile" line), what else condemns changes, the memories' content, and Lena at the window.
+  - Notes in `docs/DREAM-HOUSE.md`.
+- **First overnight run (at f10b08d):**
+  - Scenes OK, EditMode 742/742.
+  - PlayMode 112/114: two StealthLab tests failed, and went back to the movement agent.
+  - The capture is in `out/vh-lighting/20261011-070230`.
+  - VisitingHours, MovementLab (hop presets), DreamEscape (umbrella) and StealthLab built, passed smoke, and were copied to `Builds/Play/`.
+  - capped-run's retry re-ran everything on an older commit, so it was stopped. The script no longer fails on test failures.
+- **Second run started:** the verify at 111dc28, plus the DreamHouse build.
