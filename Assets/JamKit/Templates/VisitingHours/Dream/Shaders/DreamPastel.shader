@@ -3,7 +3,8 @@
 // and a wobbly doodle outline drawn along the edges of each box (from the object-space position of Unity's
 // cube or quad, so a scaled box keeps 5 cm lines). Below the street the colour sinks into the lilac void.
 // Unlit (its own sun), opaque, URP fog; it receives the sun's shadow map, so Nadia (the only thing that casts one)
-// leaves a lilac shadow on the street. _Shape 1 is the gable prism (ridge and gable lines).
+// leaves a lilac shadow on the street. _Shape 1 is the gable prism (ridge and gable lines). An optional pattern
+// (_MainTex, projected from world space, _TexStrength 0 by default) adds wallpaper or floorboards as brightness.
 Shader "JamKit/Dream/Pastel"
 {
     Properties
@@ -17,6 +18,10 @@ Shader "JamKit/Dream/Pastel"
         _SunDir ("Direction to the sun", Vector) = (-0.35, 0.42, 0.84, 0)
         _VoidColor ("Void colour", Color) = (0.62, 0.58, 0.88, 1)
         _Shape ("Shape (0 box or quad, 1 gable prism)", Float) = 0
+        _MainTex ("Pattern (wallpaper, floorboards; world-projected)", 2D) = "white" {}
+        _TexScale ("Pattern tile size (m)", Float) = 1
+        _TexMean ("Pattern mean brightness", Float) = 1
+        _TexStrength ("Pattern strength (0 = plain colour)", Range(0, 1)) = 0
     }
 
     SubShader
@@ -48,7 +53,12 @@ Shader "JamKit/Dream/Pastel"
                 float4 _SunDir;
                 half4 _VoidColor;
                 float _Shape;
+                float4 _MainTex_ST;
+                float _TexScale;
+                float _TexMean;
+                half _TexStrength;
             CBUFFER_END
+            TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);
 
             struct Attributes
             {
@@ -118,6 +128,15 @@ Shader "JamKit/Dream/Pastel"
                 float band = l * steps;
                 float lq = (floor(band) + smoothstep(0.42, 0.58, frac(band))) / steps;
                 half3 baseCol = _Color.rgb;
+                if (_TexStrength > 0.001)
+                {
+                    // A pattern projected from world space along the face's main axis (boxes of any size keep the
+                    // same tile size), as a brightness variation on the pastel colour, so the palette stays.
+                    float3 wn = abs(normalize(i.normalWS));
+                    float2 uv = wn.y > 0.6 ? i.positionWS.xz : (wn.x > 0.6 ? i.positionWS.zy : i.positionWS.xy);
+                    half3 pat = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv / max(_TexScale, 0.01)).rgb;
+                    baseCol *= lerp(half3(1, 1, 1), pat / max(_TexMean, 0.05), _TexStrength);
+                }
                 half3 shade = baseCol * _ShadeColor.rgb;
                 half3 col = lerp(shade, baseCol * half3(1.04, 1.0, 0.94), lq);
                 col += half3(0.05, 0.035, 0.0) * saturate(n.y);                  // warm sky on top faces

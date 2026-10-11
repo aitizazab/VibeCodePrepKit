@@ -47,3 +47,15 @@ def cutout(src, name, x0=0.0, x1=1.0, tol=34, border_frac=0.012):
 if __name__ == "__main__":
     a = sys.argv[1:]
     cutout(a[0], a[1], *(float(v) for v in a[2:4]))
+
+
+def pattern(src, name, contrast=0.22, size=512):
+    """A tileable texture -> a grey pattern with mean brightness 0.5 for the Pastel shader's _MainTex (it varies the
+    pastel colour's brightness, so the dream palette stays). `src` must already tile (the opening's textures do)."""
+    im = Image.open(src).convert("L").resize((size, size), Image.LANCZOS)
+    a = np.asarray(im, dtype=np.float32) / 255.0
+    a = 0.5 + (a - a.mean()) / max(a.std(), 1e-3) * contrast
+    img = Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8), "L")
+    os.makedirs(OUT, exist_ok=True)
+    dst = os.path.join(OUT, name + ".png"); img.save(dst + ".tmp", format="PNG", optimize=True); os.replace(dst + ".tmp", dst)
+    print(name, img.size, "mean 0.5")

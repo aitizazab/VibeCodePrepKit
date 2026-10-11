@@ -20,6 +20,15 @@ Everything downloaded for Visiting Hours is listed here with its source and lice
 | `Kenney/FurnitureKit/bookcaseOpenLow.fbx` | the low bookcase |
 | `Kenney/FurnitureKit/books.fbx` | the books on it |
 | `Kenney/FurnitureKit/pottedPlant.fbx` | the plant |
+| `Kenney/FurnitureKit/chair.fbx` (again) | Night 2's house: the four dining chairs |
+| `Kenney/FurnitureKit/table.fbx` | Night 2's house: the dining table (also restyled in code: `JamKit/Dream/PastelMesh`, `DreamHouseDressing`) |
+| `Kenney/FurnitureKit/kitchenCabinet.fbx`, `kitchenStove.fbx`, `kitchenSink.fbx` | Night 2's house: the counter and stove |
+| `Kenney/FurnitureKit/kitchenFridgeLarge.fbx` | Night 2's house: the fridge |
+| `Kenney/FurnitureKit/loungeSofa.fbx` | Night 2's house: the sofa |
+| `Kenney/FurnitureKit/bedSingle.fbx` | Night 2's house: Theo's bed |
+| `Kenney/FurnitureKit/desk.fbx` | Night 2's house: Theo's desk and the study desk |
+
+The dream's models (2026-10-11) came from the same kit and zip (re-downloaded, `License.txt` checked: CC0).
 
 ## Kenney: Impact Sounds, RPG Audio, Sci-Fi Sounds (the dream escape's movement sounds)
 - **Licence:** CC0 1.0. They ship with JamKit's movement, so they are recorded with it:

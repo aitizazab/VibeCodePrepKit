@@ -17,7 +17,19 @@ It's a standalone scene in the dream escape's folder and assemblies:
   and `dream_theo.png` (Lena is the creator's pick, round 4-a), with a white sticker border made by
   `tools/art/vh_dream_cutout.py`. The story pictures are drop-ins too, used when present (the plain cards stay otherwise):
   the photo wall `dream_pic_photo_1` to `_6` (top row 1 to 3, left to right), `dream_pic_calendar` (the fridge) and
-  `dream_pic_theo_drawing` (his desk). The rooms themselves are still pastel boxes.
+  `dream_pic_theo_drawing` (his desk).
+- **Art pass 2 (2026-10-11), all visual over the unchanged blockout** (colliders, names and routes as they were):
+  - real furniture (Kenney's Furniture Kit, CC0) fitted into the gameplay boxes, whose renderers are switched off: the
+    counter, stove and sink, the fridge, the dining table and four chairs (facing the table), the sofa, Theo's bed and
+    desk, the study desk (`Dream/Editor/House/DreamHouseDressing.cs`), drawn in the new `JamKit/Dream/PastelMesh`
+    shader (the dream's pastel steps and crayon grain with a pencil outline);
+  - wallpaper and floorboards: an optional world-projected pattern in `JamKit/Dream/Pastel` (`_TexStrength`, 0 by
+    default, so nothing else changes), from `Art/Dream/dream_pattern_wallpaper.png` and `dream_pattern_floorboards.png`;
+  - the two front doors: white frames, a doorstep, coral panelled double doors swung open the way she goes;
+  - the umbrella as real meshes (`Dream/Editor/DreamProps.cs`): a furled canopy and a J-hook handle by the door, an
+    open canopy of eight scalloped panels over her (shared with the dream escape).
+
+  Still boxes: the walls, stairs, closets, curtains, the house front and the tipped house's rooms.
 
 ## The sequence
 

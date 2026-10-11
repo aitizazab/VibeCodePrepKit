@@ -1,0 +1,8 @@
+{"name":"visiting-hours-dream-art-pass2","title":"Visiting Hours: the dream scenes' art, pass 2 (code side)",
+ "subtitle":"Night 2's house, dressed over its unchanged blockout: real furniture from Kenney's Furniture Kit (CC0) drawn in the dream's pastel look with a pencil outline, wallpaper and floorboards, both front doors, and the umbrella as real meshes. These need a Unity rebuild to see; the in-game captures go here after main's verify run.",
+ "questions":["Furniture: the counter, stove and sink, the fridge, the table and four chairs, the sofa, Theo's bed and desk, and the study desk. Does Kenney's chunky low-poly read right in the dream, or should the house be stranger (too big, too tidy, slightly wrong)?","Wallpaper and floorboards are a soft pattern on the existing pastel colours. Stronger, or a crayon-drawn dream pattern instead (a Flow job once the lock is free)?"],
+ "notes":["Not built or seen in Unity yet: please judge the captures, not this page, when they're added.","Next pass: the escape's house fronts, toy cars and the garage, then the rain path; and the Flow batch (neighbours, dog, photo wall, calendar, Theo's drawing)."],
+ "sections":[{"title":"What goes in","cols":3,"items":[
+   {"file":"art/review/2026-10-11/kenney-furniture-kit-preview.png","label":"Kenney's Furniture Kit (the source models; only the ones listed are used)","verdict":"pick"},
+   {"file":"art/review/2026-10-11/dream-pattern-wall.jpg","label":"The wallpaper pattern on the house's cream (tiled 2x2)","verdict":"pick"},
+   {"file":"art/review/2026-10-11/dream-pattern-floor.jpg","label":"The floorboards on the house's wood colour (tiled 2x2)","verdict":"pick"}]}]}

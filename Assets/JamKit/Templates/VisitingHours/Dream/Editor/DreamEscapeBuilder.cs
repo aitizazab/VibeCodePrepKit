@@ -853,9 +853,11 @@ namespace JamKit.DreamEscape.EditorTools
             prop.SetParent(parent, false);
             prop.position = at;
             prop.rotation = Quaternion.Euler(-12f, 0f, 8f);
-            Part("Furled canopy", PrimitiveType.Capsule, prop, new Vector3(0f, -0.05f, 0f), new Vector3(0.16f, 0.36f, 0.16f), cloth);
-            Part("Shaft", PrimitiveType.Cylinder, prop, new Vector3(0f, 0.05f, 0f), new Vector3(0.03f, 0.5f, 0.03f), wood);
-            Part("Handle", PrimitiveType.Cube, prop, new Vector3(0.05f, 0.55f, 0f), new Vector3(0.13f, 0.05f, 0.05f), wood);
+            // Real meshes (DreamProps, art pass 2): furled folds around the shaft, a ferrule below, a J-hook handle.
+            var clothMesh = DreamProps.MeshLook("UmbrellaCloth", new Color(0.98f, 0.55f, 0.62f), 0.008f);
+            var woodMesh = DreamProps.MeshLook("UmbrellaHandle", new Color(0.55f, 0.36f, 0.3f), 0.004f);
+            DreamProps.Show("Furled canopy", DreamProps.FurledCanopy(), clothMesh, prop, new Vector3(0f, -0.42f, 0f), Quaternion.identity);
+            DreamProps.Show("Shaft and handle", DreamProps.ShaftWithHook(1.02f), woodMesh, prop, new Vector3(0f, -0.47f, 0f), Quaternion.identity);
 
             // The highlight: a breathing gold glow around it and a gold pool at its foot ("use this").
             var glow = Part("Umbrella glow (highlight)", PrimitiveType.Sphere, parent, Vector3.zero, Vector3.one * 1.5f, Glow("UmbrellaHalo", GoColor, 0.7f, 0f, 0.3f));
@@ -867,8 +869,8 @@ namespace JamKit.DreamEscape.EditorTools
             var canopy = new GameObject("Umbrella (open, over her)");
             canopy.transform.SetParent(body.transform, false);
             canopy.transform.localPosition = new Vector3(0.05f, body.Def.eyeHeight + 0.5f, 0.12f);
-            Part("Canopy", PrimitiveType.Sphere, canopy.transform, Vector3.zero, new Vector3(1.9f, 0.45f, 1.9f), cloth);
-            Part("Shaft", PrimitiveType.Cylinder, canopy.transform, new Vector3(0.1f, -0.45f, 0.05f), new Vector3(0.025f, 0.45f, 0.025f), wood);
+            DreamProps.Show("Canopy", DreamProps.OpenCanopy(0.95f, 0.42f), clothMesh, canopy.transform, new Vector3(0f, -0.2f, 0f), Quaternion.identity);
+            DreamProps.Show("Shaft", DreamProps.ShaftWithHook(1.0f), woodMesh, canopy.transform, new Vector3(0f, 0.22f, 0f), Quaternion.Euler(180f, 0f, 0f));
             foreach (var t in canopy.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 2;
             canopy.SetActive(false);
 
