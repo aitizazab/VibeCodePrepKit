@@ -1318,3 +1318,11 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - The antagonistic pose: arms folded, head tipped back. It's installed in colour.
   - Page: `art/review/2026-10-11/visiting-hours-lena-battle-look.html`.
 - **The dream Flow batch (267d4d6, a953eef):** the neighbours and the dog as cut-outs, the six-photo wall, the fridge calendar and Theo's drawing. Page: `art/review/2026-10-11/visiting-hours-dream-art-flow-batch.html`.
+- **Music round 3 (9080984, a7eac08):**
+  - The grounded chase now has the Opening's bed in its base; its stems step up: base -24.4, drive -23.4, peak -22.4 LUFS.
+  - The Opening is an intro (23.3 s) plus a 40 s title loop, entered at 1,029,000 samples.
+  - Elias's outro is reworked, with no drone or silence.
+  - The argument is a 97 s loop: build-up halved, plus a new duel section C.
+  - Hope and despair overlays are built from each bar's chord, per piece. Demos on the Dream theme, Daytime and Lena.
+  - The Long Night's first try: D phrygian, 54 bpm, a 71 s loop.
+  - Page: `out/vh-music-sketches/index.html`. The decisions are at the end of `docs/MUSIC-SKETCHES.md`.
