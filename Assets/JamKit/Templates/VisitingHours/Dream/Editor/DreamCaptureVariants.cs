@@ -53,7 +53,7 @@ namespace JamKit.DreamEscape.EditorTools
         {
             new Spot("living", new Vector3(3.2f, F + Eye, 72.9f), new Vector3(7.4f, F + 1.0f, 76.4f)),
             new Spot("hall", new Vector3(-5.0f, F + Eye, 79.4f), new Vector3(8f, F + 1.2f, 79.3f)),
-            new Spot("theos-room", new Vector3(3.4f, F + Eye, 81.1f), new Vector3(7.0f, F + 0.8f, 83.5f)),
+            new Spot("theos-room", new Vector3(3.4f, F + Eye, 83.4f), new Vector3(7.6f, F + 1.2f, 82.6f)),
         };
 
         // Looking a little up, so the ceiling shows.
@@ -61,13 +61,13 @@ namespace JamKit.DreamEscape.EditorTools
         {
             new Spot("living", new Vector3(3.0f, F + Eye, 72.8f), new Vector3(7.0f, F + 2.0f, 76.6f)),
             new Spot("hall", new Vector3(-5.0f, F + Eye, 79.4f), new Vector3(8f, F + 1.75f, 79.3f)),
-            new Spot("theos-room", new Vector3(3.4f, F + Eye, 81.1f), new Vector3(7.0f, F + 1.8f, 83.5f)),
+            new Spot("theos-room", new Vector3(3.4f, F + Eye, 83.4f), new Vector3(7.6f, F + 1.9f, 82.6f)),
         };
 
         static List<Spot> CorniceSpots() => new List<Spot>
         {
-            new Spot("living-corner", new Vector3(5.2f, F + Eye, 74.4f), new Vector3(7.9f, F + 2.8f, 77.9f)),
-            new Spot("kitchen-corner", new Vector3(-3.0f, F + Eye, 74.8f), new Vector3(-7f, F + 2.6f, 72.1f)),
+            new Spot("living-corner", new Vector3(5.6f, F + Eye, 75.8f), new Vector3(2.9f, F + 2.8f, 72.1f)),
+            new Spot("kitchen-corner", new Vector3(-3.6f, F + Eye, 76.6f), new Vector3(-6.9f, F + 2.6f, 72.1f)),
         };
 
         static List<Spot> AtticSpots() => new List<Spot>
@@ -235,7 +235,7 @@ namespace JamKit.DreamEscape.EditorTools
                     m.SetTexture("_MainTex", tex);
                     m.SetFloat("_TexScale", tin ? 0.6f : 0.55f);
                     m.SetFloat("_TexMean", 0.5f);
-                    m.SetFloat("_TexStrength", tex != null ? (tin ? 0.7f : 0.45f) : 0f);
+                    m.SetFloat("_TexStrength", tex != null ? (tin ? 0.7f : 1f) : 0f);
                     return m;
                 });
                 return;
@@ -309,6 +309,8 @@ namespace JamKit.DreamEscape.EditorTools
             _variantRoot = null;
             if (option == "current") return;
             var trim = Trim();
+            var cove = Coloured(trim, new Color(0.99f, 0.97f, 0.94f));
+            cove.SetFloat("_OutlineWidth", 0f);
             foreach (var r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
             {
                 if (!r.name.StartsWith("Cornice (")) continue;
@@ -325,9 +327,11 @@ namespace JamKit.DreamEscape.EditorTools
                 switch (option)
                 {
                     case "cove":
-                        // A big rounded cove filling the corner, a small fillet under it.
-                        Part(PrimitiveType.Cylinder, At(0f, top, along), new Vector3(0.26f, len * 0.5f, 0.26f), trim, alongZ ? Quaternion.Euler(90f, 0f, 0f) : Quaternion.Euler(0f, 0f, 90f));
-                        Part(PrimitiveType.Cube, At(0.012f, top - 0.145f, along), Size(len, 0.03f, 0.024f), trim);
+                        // A big rounded cove filling the corner (no ink line on its curve, so it reads as one soft
+                        // surface), a fillet along each edge.
+                        Part(PrimitiveType.Cylinder, At(0f, top, along), new Vector3(0.3f, len * 0.5f, 0.3f), cove, alongZ ? Quaternion.Euler(90f, 0f, 0f) : Quaternion.Euler(0f, 0f, 90f));
+                        Part(PrimitiveType.Cube, At(0.012f, top - 0.165f, along), Size(len, 0.03f, 0.024f), trim);
+                        Part(PrimitiveType.Cube, At(0.165f, top - 0.012f, along), Size(len, 0.024f, 0.03f), trim);
                         break;
                     case "stepped":
                         foreach (var (proj, h) in new[] { (0.035f, 0.22f), (0.075f, 0.13f), (0.115f, 0.06f) })

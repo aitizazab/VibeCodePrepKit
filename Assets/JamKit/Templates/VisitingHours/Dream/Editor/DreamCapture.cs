@@ -71,7 +71,7 @@ namespace JamKit.DreamEscape.EditorTools
                 new Spot("house-09c-hatch-from-below", new Vector3(0.8f, F + Eye, 78.7f), new Vector3(-0.7f, F + 2.7f, 79.4f)),
                 new Spot("house-10-parents-room", new Vector3(-2.0f, F + Eye, 81.2f), new Vector3(-5.2f, F + 0.8f, 83.4f)),
                 new Spot("house-10b-bath", new Vector3(-0.8f, F + Eye, 81.2f), new Vector3(0.9f, F + 0.8f, 83.2f)),
-                new Spot("house-11-theos-room", new Vector3(3.4f, F + Eye, 81.1f), new Vector3(7.0f, F + 0.8f, 83.5f)),
+                new Spot("house-11-theos-room", new Vector3(3.4f, F + Eye, 83.4f), new Vector3(7.6f, F + 1.2f, 82.6f)),
                 new Spot("house-11b-theos-desk-bookcase", new Vector3(5.6f, F + Eye, 82.6f), new Vector3(7.7f, F + 1.7f, 82.0f)),
                 new Spot("house-11c-attic-stairs-door", new Vector3(5.2f, F + Eye, 82.2f), new Vector3(2.9f, F + 1.0f, 83.5f)),
                 new Spot("house-12-attic-stairs-up", new Vector3(2.2f, F + Eye, 83.8f), new Vector3(2.2f, F + 3.6f, 80.6f)),

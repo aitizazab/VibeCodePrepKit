@@ -212,7 +212,7 @@ def ceiling_paper():
                         r = 22 if k % 2 == 0 else 9
                         a = k * math.pi / 5 + rnd.random() * 0.0
                         pts.append((ox + x + math.cos(a) * r, oy + y + math.sin(a) * r))
-                    d.polygon(pts, fill=150)
+                    d.polygon(pts, fill=200)
     return img.resize((OUT, OUT), Image.LANCZOS)
 
 
