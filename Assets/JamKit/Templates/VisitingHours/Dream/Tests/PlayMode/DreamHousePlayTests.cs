@@ -36,6 +36,7 @@ namespace JamKit.DreamEscape.Tests
 
         static void ClearFlags()
         {
+            GameRoot.Save.Data.SetEntry("vh_arguments", null);
             GameRoot.Save.Data.ClearFlag(DreamRain.DespairFlag);
             GameRoot.Save.Data.ClearFlag(DreamHouseStory.CondemnsFlag);
         }
@@ -123,8 +124,13 @@ namespace JamKit.DreamEscape.Tests
             Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterArgument), Is.EqualTo(JumpResult.Jumped));
             yield return Frames(3);
             Assert.That(Game.Phase, Is.EqualTo(HousePhase.Argument));
-            Assert.That(Game.WaitingForChoice, Is.True, "the debug choice is up");
+            Assert.That(Game.WaitingForChoice, Is.True, "the argument is up");
+            Assert.That(Game.ArgumentRunning, Is.True, "the argument battle runs over the house");
+            Assert.That(JamKit.Argument.ArgumentHost.Running, Is.True);
+            // The debug skip (what F8 does): Lena condemns; the battle closes.
             Game.Choose(ArgumentOutcome.Condemns);
+            Assert.That(Game.ArgumentRunning, Is.False, "the skip closed the battle");
+            Assert.That(JamKit.Argument.ArgumentHost.Running, Is.False);
             Assert.That(DreamHouseGame.LenaCondemned, Is.True, "kept in the save");
             Assert.That(Game.LineText, Does.Contain(DreamHouseLines.Lena));
             Game.SkipLines();
@@ -133,6 +139,26 @@ namespace JamKit.DreamEscape.Tests
             Assert.That(Game.Chasing, Is.True, "the house folds shut behind her");
             Assert.That(Game.RainSpot.despairS, Is.LessThan(normal), "the point of no return is nearer");
             Assert.That(Game.umbrella.Rain.Spot.despairS, Is.EqualTo(Game.RainSpot.despairS), "the umbrella's rain follows");
+        }
+
+        [UnityTest]
+        public IEnumerator TheArgumentBattlePlayedThroughDecidesTheOutcome()
+        {
+            yield return StartHouse();
+            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterArgument), Is.EqualTo(JumpResult.Jumped));
+            yield return Frames(3);
+            var battle = JamKit.Argument.ArgumentHost.Current;
+            Assert.That(battle, Is.Not.Null, "the battle is up");
+            Assert.That(GameRoot.Input.GameplayAllowed, Is.False, "the house waits while it runs");
+            battle.Autopilot = true;
+            yield return WaitFor(() => battle == null || battle.Ended, "the battle's autopilot to finish the argument", 150f);
+            Assert.That(battle.Ended, Is.True);
+            battle.Continue();
+            yield return Frames(3);
+            Assert.That(Game.Phase, Is.EqualTo(HousePhase.Escape), "its end card closed: the house kicks her out");
+            var stance = JamKit.Argument.ArgumentHost.LoadLedger().StanceOf(JamKit.Argument.DreamLenaDemo.Id);
+            TestContext.Out.WriteLine("the battle ended with Lena " + stance + "; the house: " + Game.Story.Outcome);
+            Assert.That(Game.Story.Outcome, Is.EqualTo(DreamHouseGame.OutcomeOf(stance)), "the stance decides");
         }
 
         [UnityTest]

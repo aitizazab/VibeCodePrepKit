@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using JamKit.Argument;
 using JamKit.Flow;
 using JamKit.Movement;
 using JamKit.Presenting;
@@ -24,8 +25,9 @@ namespace JamKit.DreamEscape
     /// counted on screen (<see cref="StealthHud"/>). Found before the last memory: he counts again. The last memory:
     /// Nadia's line, hooked to <see cref="CollectibleCounter.AllFound"/>, its ending by route. The next time he finds
     /// her, the game is over and Elias hasn't come.</item>
-    /// <item><b>The argument.</b> She questions Lena. The battle isn't built: a debug choice (1 unsure, 2 condemns) ends
-    /// it. Condemns is kept in the save (<see cref="LenaCondemned"/>) and makes the Despair route easier.</item>
+    /// <item><b>The argument.</b> She questions Lena: the argument battle prototype (<see cref="ArgumentHost"/>,
+    /// <see cref="DreamLenaDemo"/>); its stance decides (Condemns: condemns; Amenable or Unsure: unsure). A debug skip
+    /// ends it at once (F7 unsure, F8 condemns; the autopilot skips it as unsure). Condemns is kept in the save (<see cref="LenaCondemned"/>) and makes the Despair route easier.</item>
     /// <item><b>The house tips.</b> It kicks her out: she runs the house on its side (the floor a wall, the doorframes,
     /// the staircase a slide) with the house folding shut behind her (a rubber-banded <see cref="Pursuer"/>), out of
     /// the front door into the rain, where <see cref="DreamUmbrella"/> and its Despair choice wait.</item>
@@ -43,6 +45,8 @@ namespace JamKit.DreamEscape
         /// <summary>The house folding shut behind her in the escape (placed at the pursuer).</summary>
         public Transform fold;
         public DreamUmbrella umbrella;
+        /// <summary>Play the argument battle with Lena (the prototype, <see cref="ArgumentHost"/>). Off: the debug choice only.</summary>
+        public bool useArgumentBattle = true;
 
         static DreamHouseGame _current;
         static Action _escaped;
@@ -155,6 +159,7 @@ namespace JamKit.DreamEscape
         {
             if (_current == this) _current = null;
             if (memories != null) memories.AllFound -= OnAllMemoriesFound;
+            if (ArgumentRunning) { var b = _battle; _battle = null; b.Close(false); }
             if (theo != null) theo.Found -= OnTheoFound;
             if (!GameRoot.Exists) return;
             PresenterMode.Unregister(this);
@@ -181,6 +186,7 @@ namespace JamKit.DreamEscape
 
         void ResetHouse()
         {
+            if (ArgumentRunning) { var b = _battle; _battle = null; b.Close(false); }
             _lines.Clear();
             _lineText = "";
             _lineLeft = 0f;
@@ -318,28 +324,56 @@ namespace JamKit.DreamEscape
 
         // ---------- The argument (a placeholder) ----------
 
+        /// <summary>The argument with Lena: the battle prototype runs over the house (the world waits while it's up); its
+        /// stance decides the outcome. Without the battle (or under the autopilot) the debug choice decides.</summary>
         void BeginArgument()
         {
             _waitingForChoice = true;
-            _prompt.text = DreamHouseLines.ArgumentPrompt;
+            bool battle = useArgumentBattle && !AutopilotOn;
+            _prompt.text = battle ? DebugSkipHint : DreamHouseLines.ArgumentPrompt;
             _prompt.style.display = DisplayStyle.Flex;
+            if (battle) _battle = ArgumentHost.Begin(DreamLenaDemo.Build(), new ArgumentSetup { allEvidence = true }, OnArgumentClosed);
         }
+
+        const string DebugSkipHint = "Debug: F7 skips the argument (Lena unsure), F8 skips it (Lena condemns).";
+        ArgumentHost _battle;
+
+        /// <summary>The argument battle (or its prototype) is on screen.</summary>
+        public bool ArgumentRunning => _battle != null && ArgumentHost.Current == _battle;
+
+        /// <summary>The battle's end card was closed: its stance decides.</summary>
+        void OnArgumentClosed(ArgumentRecord record)
+        {
+            _battle = null;
+            if (record == null) return;
+            Debug.Log("JAMKIT_HOUSE the argument with Lena: " + record.outcome + ", " + record.stance);
+            Choose(OutcomeOf(record.stance));
+        }
+
+        /// <summary>Lena condemns Nadia only on the battle's Condemns stance; Amenable and Unsure leave her unsure.</summary>
+        public static ArgumentOutcome OutcomeOf(ArgumentStance stance) => stance == ArgumentStance.Condemns ? ArgumentOutcome.Condemns : ArgumentOutcome.Unsure;
 
         void ReadChoice()
         {
-            if (!GameRoot.Input.GameplayAllowed) return;
             var kb = Keyboard.current;
+            // The debug skip works over the battle too (it blocks gameplay input while it's up).
+            if (kb != null && kb.f7Key.wasPressedThisFrame) { Choose(ArgumentOutcome.Unsure); return; }
+            if (kb != null && kb.f8Key.wasPressedThisFrame) { Choose(ArgumentOutcome.Condemns); return; }
+            if (ArgumentRunning) return;
+            if (!GameRoot.Input.GameplayAllowed) return;
             var pad = Gamepad.current;
             if ((kb != null && (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame)) || (pad != null && pad.buttonWest.wasPressedThisFrame)) Choose(ArgumentOutcome.Unsure);
             else if ((kb != null && (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame)) || (pad != null && pad.buttonNorth.wasPressedThisFrame)) Choose(ArgumentOutcome.Condemns);
             else if (AutopilotOn) Choose(ArgumentOutcome.Unsure);
         }
 
-        /// <summary>How the argument ends (the debug choice; tests and attract call it): Lena's line, then the house kicks her out.</summary>
+        /// <summary>How the argument ends (the battle's stance, the debug skip; tests and attract call it): Lena's line, then
+        /// the house kicks her out. A battle still up is closed.</summary>
         public void Choose(ArgumentOutcome outcome)
         {
             if (!_story.Choose(outcome)) return;
             _waitingForChoice = false;
+            if (ArgumentRunning) { var b = _battle; _battle = null; b.Close(false); }
             _prompt.style.display = DisplayStyle.None;
             if (outcome == ArgumentOutcome.Condemns)
             {

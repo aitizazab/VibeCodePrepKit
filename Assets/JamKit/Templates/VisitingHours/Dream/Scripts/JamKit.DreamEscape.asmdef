@@ -5,6 +5,7 @@
         "JamKit.Core",
         "JamKit.Unity",
         "JamKit.MovementLab",
+        "JamKit.Argument",
         "Unity.InputSystem"
     ],
     "includePlatforms": [],

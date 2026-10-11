@@ -24,7 +24,7 @@ It's a standalone scene in the dream escape's folder and assemblies:
 | **2. Pancakes** | Lena at the stove, Theo at the table set for four (placeholder lines). | Lines, then the game begins. |
 | **3. Hide-and-seek** (chapter *Hide and seek*) | Theo counts to ten at the table, then seeks. She hides and finds **five memories**: the height marks on his door frame, the fridge calendar, the fourth chair, his drawing, the photo wall. | The stealth kit (`docs/STEALTH.md`): his cone and meter, the screen bar and word, and the memory count at the top. Hiding spots: the pantry and his wardrobe (closets), the curtains and the coats (bush-like), low cover, shade. Found before the last memory: "Found you!", and he counts again; the memories she found stay found. |
 | **The last memory** | Nadia's line, from the creator's notes: "I'm not sure if there's anything left to find. I could let Theo find me here..." | Hooked to `CollectibleCounter.AllFound`. Its ending depends on the route (below). |
-| **4. The argument** (chapter *The argument*) | The next time Theo finds her, the game is over and Elias hasn't come. She questions Lena. | The battle isn't built. A placeholder prompt is the debug choice: **1** (pad X) Lena is unsure, **2** (pad Y) Lena condemns Nadia. |
+| **4. The argument** (chapter *The argument*) | The next time Theo finds her, the game is over and Elias hasn't come. She questions Lena. | **The argument battle prototype** (`ArgumentHost`, `DreamLenaDemo`, `docs/ARGUMENT-PROTOTYPE.md`) runs over the house while the house waits. When its end card closes, its stance decides: **Condemns** means Lena condemns Nadia; **Amenable** or **Unsure** means she's unsure. **Debug skip:** F7 ends it with Lena unsure, F8 with Lena condemning Nadia. The autopilot (smoke, attract, tests) skips the battle as unsure, and with `useArgumentBattle` off the old prompt's 1 / 2 (pad X / Y) choose. |
 | **5. The house tips** (chapter *The house tips*) | The house kicks her out either way. She runs the house on its side: the hallway's floor is a wall to run, the doorframes are walls to kick between (5 m apart), the staircase is a slide. | The house **folds shut behind her** (a rubber-banded pursuer: 12 m gap, catches only after 0.75 s under 2 m). Caught or fallen, she's back at the last checkpoint, running. |
 | **6. The front door** (chapter *The front door*) | The closed umbrella glows beside the door. Out of the door it rains. | The same as the dream escape's (`docs/DREAM-ESCAPE.md` "The umbrella and the rain"). The dream tool takes the umbrella. Without it the rain soaks her, and going on is the **Despair** choice (`vh_despair`). |
 | **Out** | At the end of the rain path the light swells. | The story takes over (`DreamHouseGame.Escaped`), or the visit loops back to the front garden. |
@@ -52,8 +52,8 @@ The autopilot clears the escape, from the tip-over to the end of the rain, in ab
 
 1. **The two endings of the last-memory line:** which is Despair's.
 2. **What "condemns" should change** beyond the rain. Now it only brings the point of no return nearer and soaks faster.
-3. **The argument battle itself** (`ARGUMENT-BATTLES.md`). It replaces the debug prompt; the outcome goes to
-   `DreamHouseGame.Choose`.
+3. **The argument battle's Night 2 content.** Wired in: the prototype's Lena battle plays here, and its stance maps to
+   the house's two outcomes in `DreamHouseGame.OutcomeOf`.
 4. **All the dialogue.**
 5. **The memories' contents:** what each shows. The fridge calendar's keys are the open question from the notes.
 6. **Whether the doors should also lead back to the kitchen** (the house playing harder). Now the house plays by stretching
@@ -76,7 +76,7 @@ The autopilot clears the escape, from the tip-over to the end of the rain, in ab
 |---|---|
 | `core-tests/DreamEscape` (`DreamHouseTests`) | The autopilot gets through the way in at 20 to 300 fps and with jitter. It escapes the tipping house into the rain at 20 to 300 fps and with jitter, never caught. Every escape checkpoint runs to the next. The route fits the reach. Theo's graph reaches every room, spot and memory. Theo finds a player standing still (in three rooms) and one in the pantry. Every memory can be picked up. The story's phases. Both endings, and every line marked a placeholder. Condemns makes Despair easier. The umbrella sits beside the front door. |
 | Unity EditMode (`DreamHouseEditorTests`) | The chapters and attract script; the scene, the preset and Build Settings; the wiring (Theo, the spots, light, the five memories, the hallway end, the fold, the umbrella, Lena); the route fits the real tuning and controller. |
-| Unity PlayMode (`DreamHousePlayTests`) | The way in leads to pancakes, then hide-and-seek. Theo finds a player standing in the open and counts again. The memories count down and the last one speaks. Condemns is kept and brings the point of no return nearer. The autopilot escapes under the umbrella. |
+| Unity PlayMode (`DreamHousePlayTests`) | The way in leads to pancakes, then hide-and-seek. Theo finds a player standing in the open and counts again. The memories count down and the last one speaks. Condemns is kept and brings the point of no return nearer. The argument battle, played through by its own autopilot, decides the outcome by its stance. The autopilot escapes under the umbrella. |
 
 ## Known gaps
 

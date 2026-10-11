@@ -118,6 +118,15 @@ namespace JamKit.DreamEscape.Tests
         }
 
         [Test]
+        public void OnlyTheBattlesCondemnsStanceIsCondemns()
+        {
+            Assert.That(DreamHouseGame.OutcomeOf(JamKit.Argument.ArgumentStance.Condemns), Is.EqualTo(ArgumentOutcome.Condemns));
+            Assert.That(DreamHouseGame.OutcomeOf(JamKit.Argument.ArgumentStance.Unsure), Is.EqualTo(ArgumentOutcome.Unsure));
+            Assert.That(DreamHouseGame.OutcomeOf(JamKit.Argument.ArgumentStance.Amenable), Is.EqualTo(ArgumentOutcome.Unsure));
+            Assert.That(DreamHouseGame.OutcomeOf(JamKit.Argument.ArgumentStance.None), Is.EqualTo(ArgumentOutcome.Unsure));
+        }
+
+        [Test]
         public void TheRouteFitsTheHousesTuningAndController()
         {
             var tuning = AssetDatabase.LoadAssetAtPath<MovementTuning>(DreamEscapeBuilder.TuningPath);

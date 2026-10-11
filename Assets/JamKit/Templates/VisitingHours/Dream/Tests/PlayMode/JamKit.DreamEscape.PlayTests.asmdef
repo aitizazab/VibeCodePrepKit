@@ -5,6 +5,7 @@
         "JamKit.Core",
         "JamKit.Unity",
         "JamKit.DreamEscape",
+        "JamKit.Argument",
         "JamKit.MovementLab",
         "JamKit.Unity.PlayTests",
         "Unity.InputSystem",
