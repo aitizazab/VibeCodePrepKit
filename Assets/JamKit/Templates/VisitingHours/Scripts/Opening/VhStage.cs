@@ -35,6 +35,15 @@ namespace JamKit.VisitingHours
         public VhMeshKit meshes;
         public VhTextures textures;
         public readonly List<string> missingArt = new List<string>();
+        /// <summary>What the opening editor can move (made by the builder; see <see cref="VhSceneEdits"/>).</summary>
+        public VhSceneEdits edits;
+        /// <summary>The opening editor flies the camera itself (the shots stay as they are).</summary>
+        public bool editorCamera;
+        /// <summary>The blanket needs reshaping over her (she was moved); the editor does it when a drag ends.</summary>
+        public bool blanketDirty;
+        /// <summary>Where the blanket's grid sits in the default bedroom (its parent's place there): see VhStageBuilder.ReshapeBlanket.</summary>
+        public Vector3 blanketOrigin;
+        public Material blanketMaterial;
 
         // The camera's poses (made by the builder).
         public readonly List<string> poseNames = new List<string>();
@@ -162,6 +171,41 @@ namespace JamKit.VisitingHours
             if (_screenSpeed <= 0f) _screenSpeed = 1f;
         }
 
+        /// <summary>A shot was edited: if the camera is on it, it takes the new place now.</summary>
+        public void RefreshPose()
+        {
+            int i = PoseIndex(_pose);
+            if (i < 0) return;
+            _toPos = posePositions[i];
+            _toRot = poseRotations[i];
+            _toFov = poseFov[i];
+            _fromPos = _toPos;
+            _fromRot = _toRot;
+            _fromFov = _toFov;
+            _camT = 1f;
+            ApplyCamera(0f);
+        }
+
+        /// <summary>Where the phone rests on the nightstand (the opening editor moved it): it goes there now unless she holds it.</summary>
+        public void SetPhoneRest(Vector3 pos, Quaternion rot)
+        {
+            phoneRestPos = pos;
+            phoneRestRot = rot;
+            if (phone != null && (_arm == "rest" || _arm == "reach" || _arm == "grab" || _arm == "hide"))
+                phone.SetPositionAndRotation(pos, rot);
+        }
+
+        /// <summary>Every sound the stage plays (the editor pauses and stops them).</summary>
+        public IEnumerable<AudioSource> Sounds()
+        {
+            if (ring != null) yield return ring;
+            if (vibrate != null) yield return vibrate;
+            if (voiceClean != null) yield return voiceClean;
+            if (voicePhone != null) yield return voicePhone;
+            if (news != null) yield return news;
+            if (_breath != null) yield return _breath;
+        }
+
         public void SetSpeaker(bool on)
         {
             if (phoneUi != null) phoneUi.SetSpeaker(on);
@@ -280,7 +324,7 @@ namespace JamKit.VisitingHours
 
         void ApplyCamera(float dt)
         {
-            if (cam == null) return;
+            if (cam == null || editorCamera) return;
             float e = VhUtil.Ease(_camT);
             Vector3 pos = Vector3.Lerp(_fromPos, _toPos, e);
             Quaternion rot = Quaternion.Slerp(_fromRot, _toRot, e);

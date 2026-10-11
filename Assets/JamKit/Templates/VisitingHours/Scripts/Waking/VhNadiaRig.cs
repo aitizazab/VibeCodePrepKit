@@ -29,6 +29,9 @@ namespace JamKit.VisitingHours
         public abstract void SetBreath(float amount01);
         public abstract void ShowArm(bool shown);
 
+        /// <summary>The bed (or she) moved by <paramref name="delta"/> (world): her eyes, shoulder and rest pose move with it.</summary>
+        public virtual void Carry(Matrix4x4 delta) { }
+
         /// <summary>
         /// Her fingers round the phone: <paramref name="curl"/> 0 open .. 1 closed round its edges, the thumb free, or pressing
         /// the screen by <paramref name="thumbPress"/>. <paramref name="phoneCentre"/>, <paramref name="phoneRotation"/> (+Y the
@@ -80,6 +83,14 @@ namespace JamKit.VisitingHours
         bool _armShown = true;
 
         public override bool IsModel => false;
+
+        public override void Carry(Matrix4x4 delta)
+        {
+            shoulder = delta.MultiplyPoint3x4(shoulder);
+            restWrist = delta.MultiplyPoint3x4(restWrist);
+            pole = delta.MultiplyPoint3x4(pole);
+            restPalm = delta.rotation * restPalm;
+        }
 
         public override void SetMode(Mode mode)
         {
@@ -169,6 +180,17 @@ namespace JamKit.VisitingHours
         bool _armShown = true;
 
         public override bool IsModel => true;
+
+        public override void Carry(Matrix4x4 delta)
+        {
+            eyes = delta.MultiplyPoint3x4(eyes);
+            pole = delta.MultiplyPoint3x4(pole);
+            restWrist = delta.MultiplyPoint3x4(restWrist);
+            facingFirstPerson = delta.MultiplyVector(facingFirstPerson).normalized;
+            facingAsleep = delta.MultiplyVector(facingAsleep).normalized;
+            bodyUp = delta.MultiplyVector(bodyUp).normalized;
+            SetMode(_mode);
+        }
 
         /// <summary>Finds the Mixamo bones under <paramref name="root"/>; false if the arm isn't there (use the stand-in).</summary>
         public bool Bind(Transform root)

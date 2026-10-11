@@ -63,7 +63,16 @@ namespace JamKit.VisitingHours
             BuildBedroom(s);
             BuildTable(s);
             Poses(s);
+            // The creator's edits (the opening editor's saved overrides, by stable ids): everything but the lights the
+            // lighting places itself goes before the lighting (so the blinds' stripes follow a moved streetlight)...
+            var edits = VhSceneEdits.Load();
+            s.edits = VhSceneEdits.Register(s);
+            s.edits.Apply(edits, false);
             VhLighting.Apply(s);
+            // ...and the rest after it (the morning sun and the lighting's own lamps, which it places).
+            s.edits.RegisterLights();
+            s.edits.Apply(edits, true);
+            if (s.blanketDirty) ReshapeBlanket(s);
             Sounds(s);
             if (screens) Screens(s);
             else
@@ -260,6 +269,7 @@ namespace JamKit.VisitingHours
             VhMeshKit.Show(b, "Pillow (hers)", pillow, pillowMat, new Vector3(-0.22f, 0.6f, 1.36f), Quaternion.Euler(0f, 4f, 0f));
             VhMeshKit.Show(b, "Pillow", pillow, pillowMat, new Vector3(0.64f, 0.6f, 1.38f), Quaternion.Euler(0f, -3f, 0f));
             var blanketMat = st.Mat(VhWakingStyle.Blanket, knit, -1f);
+            s.blanketMaterial = blanketMat;
 
             // The nightstand, the phone on it, the lamp (off), a framed photo.
             var nightstand = PlaceModel(s, "nightstand", b, new Vector3(-0.9f, 0f, 1.36f), 180f, 0.52f);
@@ -319,7 +329,25 @@ namespace JamKit.VisitingHours
 
             BuildNadia(s, b);
             // The blanket last: over her real body when the model is there (so nothing of her pokes through it).
-            BuildBlanket(s, b, blanketMat);
+            BuildBlanket(s, b, blanketMat, Vector3.zero);
+        }
+
+        /// <summary>
+        /// Shapes the blanket again over Nadia where she is now (the opening editor moved her), under its parent (the bed):
+        /// <see cref="VhStage.blanketOrigin"/> is where that parent stands in the bedroom when nothing is moved.
+        /// </summary>
+        public static void ReshapeBlanket(VhStage s)
+        {
+            s.blanketDirty = false;
+            if (s.blanket == null) return;
+            var parent = s.blanket.transform.parent;
+            var mat = s.blanketMaterial != null ? s.blanketMaterial : s.blanket.sharedMaterial;
+            var old = s.blanket.gameObject;
+            old.SetActive(false);
+            VhUtil.Kill(old);
+            string pose = s.Pose;
+            BuildBlanket(s, parent, mat, s.blanketOrigin);
+            if (s.nadia != null) s.nadia.SetMode(pose == "overhead" ? VhNadiaRig.Mode.Asleep : VhNadiaRig.Mode.FirstPerson);
         }
 
         static float SMax(float a, float b, float k)
@@ -353,12 +381,12 @@ namespace JamKit.VisitingHours
             return SMax(h, body, 0.05f);
         }
 
-        static void BuildBlanket(VhStage s, Transform b, Material mat)
+        static void BuildBlanket(VhStage s, Transform b, Material mat, Vector3 origin)
         {
             Vector3 center = new Vector3(0.2f, 0f, 0.26f);
             const float W = 1.76f, D = 1.72f;
             const int N = 70;
-            var body = BakeBody(s, b, center, W, D, N);
+            var body = BakeBody(s, b, center, W, D, N, origin);
             Func<float, float, float> height = body == null
                 ? (x, z) => BlanketHeight(x + center.x, z + center.z)
                 : (Func<float, float, float>)((x, z) => DrapeOver(body, x, z, W, D, N, center));
@@ -372,7 +400,7 @@ namespace JamKit.VisitingHours
             });
             var go = new GameObject("Blanket");
             go.transform.SetParent(b, false);
-            go.transform.localPosition = center;
+            go.transform.localPosition = center - origin;
             var smr = go.AddComponent<SkinnedMeshRenderer>();
             smr.sharedMesh = mesh;
             smr.sharedMaterial = mat;
@@ -409,7 +437,7 @@ namespace JamKit.VisitingHours
         /// her head and neck left out (they stay above the blanket's edge), widened and blurred a little, plus 3 cm of
         /// blanket. Null without the model (the stand-in's analytic shape is used).
         /// </summary>
-        static float[] BakeBody(VhStage s, Transform b, Vector3 center, float w, float d, int n)
+        static float[] BakeBody(VhStage s, Transform b, Vector3 center, float w, float d, int n, Vector3 origin)
         {
             var model = s.nadia as VhModelNadia;
             if (model == null || model.model == null) return null;
@@ -432,7 +460,7 @@ namespace JamKit.VisitingHours
                     var m = Matrix4x4.TRS(smr.transform.position, smr.transform.rotation, Vector3.one);
                     for (int i = 0; i < verts.Count; i++)
                     {
-                        Vector3 p = b.InverseTransformPoint(m.MultiplyPoint3x4(verts[i]));
+                        Vector3 p = b.InverseTransformPoint(m.MultiplyPoint3x4(verts[i])) + origin;
                         if (p.z > headEdge) continue;
                         int ix = Mathf.RoundToInt((p.x - x0) / w * n), iz = Mathf.RoundToInt((p.z - z0) / d * n);
                         if (ix < 0 || iz < 0 || ix > n || iz > n) continue;
@@ -474,6 +502,9 @@ namespace JamKit.VisitingHours
         /// <summary>How far the phone's bottom end reaches past the nightstand's edge, towards the bed.</summary>
         public const float PhoneOverhang = 0.04f;
 
+        /// <summary>The marker of where the phone rests (the opening editor's "phone").</summary>
+        public const string PhoneRestName = "Phone (where it rests)";
+
         static void BuildPhone(VhStage s, Transform b, Vector3 rest)
         {
             var phone = new GameObject("Phone").transform;
@@ -482,6 +513,10 @@ namespace JamKit.VisitingHours
             const float bump = 0.0014f; // she lies on her camera bump
             s.phoneRestPos = b.TransformPoint(rest + new Vector3(0f, bump, 0f));
             s.phoneRestRot = Quaternion.LookRotation(topDir, Vector3.up);
+            // Where it rests (the opening editor moves this; the phone itself is the arm's while she holds it).
+            var restMark = new GameObject(PhoneRestName).transform;
+            restMark.SetParent(b, false);
+            restMark.SetPositionAndRotation(s.phoneRestPos, s.phoneRestRot);
             phone.SetPositionAndRotation(s.phoneRestPos, s.phoneRestRot);
             s.phoneSize = PhoneSize;
             BuildDevice(s, phone, PhoneSize.x, PhoneSize.z, PhoneSize.y, 0.0095f, 0.0028f, 0.0036f, out var screenMat, out var screen);

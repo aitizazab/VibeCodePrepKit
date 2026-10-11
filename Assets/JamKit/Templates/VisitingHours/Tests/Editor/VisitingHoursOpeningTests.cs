@@ -120,7 +120,10 @@ namespace JamKit.VisitingHours.Tests
                 Assert.That(stage.table.Find("table").action, Is.EqualTo(VhTitleAction.None));
                 Assert.That(stage.table.Find("room").action, Is.EqualTo(VhTitleAction.None));
                 // The framed photo and the phone stand on the nightstand: on its top, inside its edges.
-                var stand = stage.bedroom.Find("nightstand") ?? stage.bedroom.Find("Nightstand");
+                // (Under the opening editor's handle, "Edit: the nightstand".)
+                Transform stand = null;
+                foreach (var t in stage.bedroom.GetComponentsInChildren<Transform>(true))
+                    if (stand == null && (t.name == "nightstand" || t.name == "Nightstand")) stand = t;
                 Assert.That(stand, Is.Not.Null);
                 var sb = RendererBounds(stand);
                 foreach (var name in new[] { "Framed photo", "Phone" })

@@ -45,6 +45,15 @@ namespace JamKit.VisitingHours
         }
 
         /// <summary>Fades to <paramref name="target"/> (0 hidden, 1 shown) over <paramref name="seconds"/> (0 = at once).</summary>
+        /// <summary>The piece was moved (the opening editor): where it is now is where it rests and lifts from.</summary>
+        public void Rebase()
+        {
+            _based = true;
+            _glow = _glowTarget = 0f;
+            _basePos = transform.localPosition;
+            _baseRot = transform.localRotation;
+        }
+
         public void FadeTo(float target, float seconds)
         {
             _fadeTarget = Mathf.Clamp01(target);

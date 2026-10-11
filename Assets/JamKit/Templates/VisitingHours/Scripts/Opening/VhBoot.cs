@@ -54,6 +54,8 @@ namespace JamKit.VisitingHours
             _runner = root.gameObject.GetComponent<VhTitleRunner>();
             if (_runner == null) _runner = root.gameObject.AddComponent<VhTitleRunner>();
             _runner.boot = _boot;
+            // The opening editor (F9 on the title, or the presenter panel's "Edit the opening").
+            if (root.gameObject.GetComponent<VhOpeningEditor>() == null) root.gameObject.AddComponent<VhOpeningEditor>();
             GameRoot.Ui.Title.Shown -= OnTitleShown;
             GameRoot.Ui.Title.Shown += OnTitleShown;
             VhPresenter.RegisterOpening(PresenterMode.Chapters);

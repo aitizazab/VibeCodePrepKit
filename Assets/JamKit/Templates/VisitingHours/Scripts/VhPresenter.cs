@@ -14,6 +14,7 @@ namespace JamKit.VisitingHours
         public const string Scene = "VisitingHours";
 
         public const string Opening = "Opening";
+        public const string EditOpening = "Edit the opening";
         public const string Day1 = "Day 1";
         public const string Booth = "The booth";
         public const string Street = "The street";
@@ -23,7 +24,7 @@ namespace JamKit.VisitingHours
         public const string EndPressed = "End card: Pressed";
         public const string EndLost = "End card: Composure lost";
 
-        public static readonly string[] Chapters = { Opening, Day1, Booth, Street, Argument, EndConvinced, EndHeardOut, EndPressed, EndLost };
+        public static readonly string[] Chapters = { Opening, EditOpening, Day1, Booth, Street, Argument, EndConvinced, EndHeardOut, EndPressed, EndLost };
 
         /// <summary>Attract-mode segments VisitingHoursGame.AttractDrive plays.</summary>
         public static readonly string[] Segments = { "walk", "argument" };
@@ -45,8 +46,12 @@ namespace JamKit.VisitingHours
         }
 
         /// <summary>The opening (works from any state: it goes back to the title and plays it there).</summary>
-        public static void RegisterOpening(ChapterRegistry chapters) =>
+        public static void RegisterOpening(ChapterRegistry chapters)
+        {
             chapters.Register(Scene, Opening, VhBoot.PresenterOpening, PresenterMode.AnyTime);
+            // The opening editor (docs/OPENING-EDITOR.md): goes to the title and opens it there.
+            chapters.Register(Scene, EditOpening, VhOpeningEditor.OpenFromAnywhere, PresenterMode.AnyTime);
+        }
 
         /// <summary>Everything else, live while the slice's scene runs.</summary>
         public static void Register(ChapterRegistry chapters, VisitingHoursGame game, object owner)

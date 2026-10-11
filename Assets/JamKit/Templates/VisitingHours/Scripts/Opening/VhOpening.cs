@@ -26,7 +26,8 @@ namespace JamKit.VisitingHours
         readonly VisitingHoursBoot _boot;
         readonly VhStage _stage;
         readonly TitleScreen _title;
-        readonly OpeningTimeline _timeline;
+        OpeningTimeline _timeline;
+        readonly List<OpeningCue> _resolved;
         readonly List<OpeningCue> _fired = new List<OpeningCue>(16);
         readonly VisualElement _root, _black, _blanket;
         readonly Label _subtitle, _skipHint, _retime;
@@ -40,6 +41,11 @@ namespace JamKit.VisitingHours
 
         /// <summary>Time multiplier (tests and the smoke run play it fast; voices are silent above 1.5x).</summary>
         public float speed = 1f;
+        /// <summary>The opening editor holds it still (no cues fire, the voices pause).</summary>
+        public bool Paused;
+        /// <summary>The opening editor lightens the black so the set shows at dark moments (1 = as played).</summary>
+        public float blackScale = 1f;
+        bool _seeking;
         public event Action Finished;
         public bool Running => _running && !_done;
         public float Time => _timeline.Time;
@@ -61,7 +67,8 @@ namespace JamKit.VisitingHours
             _boot = boot;
             _stage = stage;
             _title = title;
-            _timeline = new OpeningTimeline(boot.Resolve(Notes));
+            _resolved = boot.Resolve(Notes);
+            _timeline = new OpeningTimeline(_resolved);
             foreach (var n in Notes) Debug.Log("JAMKIT_VH opening: " + n);
             _voicemail = boot.Track("voicemail");
 
@@ -113,6 +120,11 @@ namespace JamKit.VisitingHours
         public void Tick(float udt)
         {
             if (!Running) return;
+            if (Paused)
+            {
+                Apply();
+                return;
+            }
             if (_stage == null)
             {
                 Finish(false);
@@ -185,8 +197,8 @@ namespace JamKit.VisitingHours
         void Do(OpeningCue c)
         {
             Seen.Add(c.kind);
-            // Durations run at the opening's speed (tests and the smoke run play it fast).
-            float secs = Mathf.Max(0f, c.seconds) / Mathf.Max(0.01f, speed);
+            // Durations run at the opening's speed (tests and the smoke run play it fast); a seek lands on each cue's end.
+            float secs = _seeking ? 0f : Mathf.Max(0f, c.seconds) / Mathf.Max(0.01f, speed);
             switch (c.kind)
             {
                 case OpeningCueKind.Fade:
@@ -198,6 +210,7 @@ namespace JamKit.VisitingHours
                     _stage.MoveCamera(c.text, secs);
                     break;
                 case OpeningCueKind.Ring:
+                    if (_seeking) break;
                     PlayLoop(_stage.ring, 0.55f);
                     PlayLoop(_stage.vibrate, 0.8f);
                     break;
@@ -212,9 +225,14 @@ namespace JamKit.VisitingHours
                     _stage.PlayArm(c.text, secs);
                     break;
                 case OpeningCueKind.Sfx:
-                    if (_audible && GameRoot.Exists) GameRoot.Audio.Play(c.text, c.value);
+                    if (_audible && !_seeking && GameRoot.Exists) GameRoot.Audio.Play(c.text, c.value);
                     break;
                 case OpeningCueKind.Voice:
+                    if (_seeking)
+                    {
+                        if (c.text == "voicemail") _vmStart = c.at;
+                        break;
+                    }
                     StartVoice(c.text);
                     break;
                 case OpeningCueKind.Speaker:
@@ -240,6 +258,7 @@ namespace JamKit.VisitingHours
                     _stage.SetLights(c.value, secs);
                     break;
                 case OpeningCueKind.Music:
+                    if (_seeking) break;
                     _musicStarted = true;
                     if (GameRoot.Exists)
                     {
@@ -261,6 +280,7 @@ namespace JamKit.VisitingHours
                     _subtitle.text = "";
                     break;
                 case OpeningCueKind.End:
+                    if (_seeking) break;
                     Finish(false);
                     break;
             }
@@ -313,8 +333,88 @@ namespace JamKit.VisitingHours
 
         void Apply()
         {
-            _black.style.opacity = _black01;
+            _black.style.opacity = _black01 * Mathf.Clamp01(blackScale);
             _blanket.style.opacity = VhUtil.Ease(_blanket01) * 0.97f;
+        }
+
+        /// <summary>The opening's cues with their times (the editor's beats).</summary>
+        public IReadOnlyList<OpeningCue> Cues => _resolved;
+
+        /// <summary>
+        /// Jumps to <paramref name="time"/> (the opening editor): the set starts over and every cue up to then lands at once,
+        /// at its end state; sounds stop. Stays paused when it was; <see cref="PlayFromHere"/> starts the sounds where they'd be.
+        /// </summary>
+        public void Seek(float time)
+        {
+            if (_done) return;
+            foreach (var a in _stage.Sounds()) a.Stop();
+            _stage.ResetForOpening();
+            _black01 = _blackTarget = 1f;
+            _blanket01 = _blanketTarget = 0f;
+            _vmStart = -1f;
+            _speakerMix = _speakerTarget = 0f;
+            _voiceLevel = _voiceLevelTarget = 1f;
+            _subtitle.text = "";
+            _timeline = new OpeningTimeline(_resolved);
+            _fired.Clear();
+            _timeline.Advance(Mathf.Max(0f, time), _fired);
+            _seeking = true;
+            try
+            {
+                for (int i = 0; i < _fired.Count; i++) Do(_fired[i]);
+            }
+            finally
+            {
+                _seeking = false;
+            }
+            if (_vmStart >= 0f) _stage.SetPlayback(_timeline.Time - _vmStart + (_voicemail != null ? _voicemail.trimStart : 0f));
+            Apply();
+        }
+
+        /// <summary>Plays on from where it is (the editor's "Play from here"): the ring, the voicemail and the report pick up mid-way.</summary>
+        public void PlayFromHere()
+        {
+            Paused = false;
+            if (!_audible) return;
+            float t = _timeline.Time;
+            var ring = _timeline.First(OpeningCueKind.Ring);
+            var stop = _timeline.First(OpeningCueKind.RingStop);
+            if (ring != null && ring.at <= t && (stop == null || stop.at > t))
+            {
+                PlayLoop(_stage.ring, 0.55f);
+                PlayLoop(_stage.vibrate, 0.8f);
+            }
+            ResumeVoice("voicemail", t);
+            ResumeVoice("news", t);
+        }
+
+        void ResumeVoice(string track, float t)
+        {
+            var cue = _timeline.First(OpeningCueKind.Voice, track);
+            var tr = _boot.Track(track);
+            var clip = tr != null ? _boot.Clip(tr.clip) : null;
+            if (cue == null || clip == null || cue.at > t) return;
+            float into = t - cue.at + (track == "voicemail" ? tr.trimStart : 0f);
+            if (into >= clip.length - 0.05f) return;
+            if (track == "voicemail")
+            {
+                foreach (var a in new[] { _stage.voiceClean, _stage.voicePhone })
+                {
+                    if (a == null) continue;
+                    a.clip = clip;
+                    a.mute = Muted;
+                    a.time = into;
+                    a.Play();
+                }
+            }
+            else if (_stage.news != null)
+            {
+                _stage.news.clip = clip;
+                _stage.news.mute = Muted;
+                _stage.news.volume = Volume(_boot.newsVolume);
+                _stage.news.time = into;
+                _stage.news.Play();
+            }
         }
 
         /// <summary>Ends the opening on the title, ready to play. <paramref name="skipped"/> stops the voices.</summary>

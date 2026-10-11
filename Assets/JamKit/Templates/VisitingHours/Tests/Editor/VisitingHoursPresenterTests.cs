@@ -59,7 +59,8 @@ namespace JamKit.VisitingHours.Tests
             VhPresenter.RegisterOpening(r);
             VhPresenter.Register(r, null, owner);
             Assert.That(r.OwnerAt(r.IndexOf(VhPresenter.Scene, VhPresenter.Opening)), Is.SameAs(JamKit.Shell.PresenterMode.AnyTime));
-            Assert.That(r.Unregister(owner), Is.EqualTo(VhPresenter.Chapters.Length - 1), "leaving the slice takes its jumps away, not the opening's");
+            Assert.That(r.Unregister(owner), Is.EqualTo(VhPresenter.Chapters.Length - 2), "leaving the slice takes its jumps away, not the opening's (or its editor)");
+            Assert.That(r.IsLive(VhPresenter.Scene, VhPresenter.EditOpening), Is.True);
             Assert.That(r.IsLive(VhPresenter.Scene, VhPresenter.Opening), Is.True);
         }
     }
