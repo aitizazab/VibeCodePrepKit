@@ -1359,3 +1359,4 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **22:40:** the game guard is holding Unity jobs while Valorant runs. They resume 10 min after it closes.
 
 - 2026-10-12 00:18: the creator lifted the Valorant hold for this run. The detached verify had died while waiting on the game guard; it was relaunched with `--no-game-guard` as Edit + Play + a VisitingHours build at e8fbfd1. Next: the round-3 editor tour on that build, then the dream capture for the vans.
+- 2026-10-12 00:45: Claude Code crashed around 00:40 and took the detached run with it (EditMode had passed 854/854 at e8fbfd1; PlayMode was cut off). Relaunched through WMI (Win32_Process.Create) so the run is outside the Claude process tree: Edit + Play + a VisitingHours build, game guard off. The creator picked Lena version A; the art agent is deciding blush per pose, then installing it.
