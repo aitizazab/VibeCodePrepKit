@@ -21,5 +21,7 @@ framing and scale, so they swap without a jump.
 5. Battle looks (exploration, 2026-10-11): `FableAnimationTests/art-tools/sprite-treat.py <mode>`:
    graphite, accent (graphite + the defining colour), screentone, screentone-red, torn (paper cut-out).
    Image processing on the cut-out, so all expressions stay pixel-aligned.
+   Round 2 (the creator liked the screentone; a lone red patch looked odd; push the hair too):
+   `FableAnimationTests/art-tools/sprite-ink.py <inkhair|whitehair|duo|pattern>`. Not installed until picked.
 
 Attach only the character's own chosen sheets; never another design (it gets copied).
