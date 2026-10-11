@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared + Stealth (the stealth kit: sight, the detection meter, the seeker, noise, collectibles, the Stealth
+       Lab's yard) + Movement (noise reads the movement kit's events); the rest comes from Directory.Build.props. -->
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\Stealth\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Movement\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Stealth\**\*.cs" />
+  </ItemGroup>
+</Project>

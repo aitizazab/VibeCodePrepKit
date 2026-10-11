@@ -1,0 +1,29 @@
+{
+    "name": "JamKit.StealthLab.EditorTests",
+    "rootNamespace": "JamKit.StealthLab.Tests",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "JamKit.Editor",
+        "JamKit.StealthLab",
+        "JamKit.StealthLab.Editor",
+        "Unity.InputSystem",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
