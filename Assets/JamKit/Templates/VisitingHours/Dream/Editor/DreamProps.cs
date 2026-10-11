@@ -139,6 +139,112 @@ namespace JamKit.DreamEscape.EditorTools
             return Tube("Umbrella shaft and handle", path, radius);
         }
 
+        /// <summary>A box of <paramref name="size"/> (centred on the origin) with every edge and corner rounded by
+        /// <paramref name="radius"/>: a toy's soft shape. Normals are exact, so the pencil outline runs unbroken.</summary>
+        public static Mesh RoundedBox(string name, Vector3 size, float radius, int steps = 10)
+        {
+            Vector3 h = size * 0.5f;
+            radius = Mathf.Min(radius, Mathf.Min(h.x, Mathf.Min(h.y, h.z)) - 0.001f);
+            Vector3 inner = h - Vector3.one * radius;
+            var v = new List<Vector3>();
+            var n = new List<Vector3>();
+            var tris = new List<int>();
+            // Six faces, each a grid over the face of the box, pushed onto the rounded surface.
+            Vector3[] normals = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
+            foreach (var fn in normals)
+            {
+                Vector3 u = Mathf.Abs(fn.y) > 0.5f ? Vector3.right : Vector3.up;
+                Vector3 w = Vector3.Cross(fn, u);
+                int start = v.Count;
+                for (int i = 0; i <= steps; i++)
+                    for (int j = 0; j <= steps; j++)
+                    {
+                        float a = i / (float)steps * 2f - 1f, b = j / (float)steps * 2f - 1f;
+                        Vector3 p = Vector3.Scale(fn + u * a + w * b, h);   // on the box's face
+                        Vector3 core = new Vector3(Mathf.Clamp(p.x, -inner.x, inner.x), Mathf.Clamp(p.y, -inner.y, inner.y), Mathf.Clamp(p.z, -inner.z, inner.z));
+                        Vector3 dir = (p - core).normalized;
+                        v.Add(core + dir * radius);
+                        n.Add(dir);
+                    }
+                for (int i = 0; i < steps; i++)
+                    for (int j = 0; j < steps; j++)
+                    {
+                        int a = start + i * (steps + 1) + j, b = a + 1, c = a + steps + 1, d = c + 1;
+                        tris.AddRange(new[] { a, b, c, b, d, c });
+                    }
+            }
+            // Make every triangle face outward (the grid's winding depends on the face's axes).
+            for (int t = 0; t < tris.Count; t += 3)
+            {
+                Vector3 p0 = v[tris[t]], p1 = v[tris[t + 1]], p2 = v[tris[t + 2]];
+                if (Vector3.Dot(Vector3.Cross(p1 - p0, p2 - p0), n[tris[t]] + n[tris[t + 1]] + n[tris[t + 2]]) < 0f)
+                    (tris[t + 1], tris[t + 2]) = (tris[t + 2], tris[t + 1]);
+            }
+            var m = new Mesh { name = name };
+            m.SetVertices(v);
+            m.SetNormals(n);
+            m.SetTriangles(tris, 0);
+            m.RecalculateBounds();
+            return m;
+        }
+
+        /// <summary>A ring (a tyre, a wheel rim) of <paramref name="radius"/> round the X axis, its tube
+        /// <paramref name="tube"/> thick.</summary>
+        public static Mesh Ring(string name, float radius, float tube, int segments = 28)
+        {
+            var path = new List<Vector3>();
+            for (int i = 0; i <= segments; i++)
+            {
+                float a = i / (float)segments * Mathf.PI * 2f;
+                path.Add(new Vector3(0f, Mathf.Sin(a) * radius, Mathf.Cos(a) * radius));
+            }
+            return Tube(name, path, tube, 8);
+        }
+
+        /// <summary>A bicycle's frame, fork, bars, cranks and spokes as one mesh of tubes (its wheels are two
+        /// <see cref="Ring"/>s): the bike stands in the YZ plane, front wheel at +Z, wheel centres
+        /// <paramref name="wheelbase"/> apart at height 0.</summary>
+        public static Mesh BikeFrame(float wheelbase = 1.1f, float wheel = 0.35f, float tube = 0.022f)
+        {
+            float r = wheelbase * 0.5f;
+            Vector3 back = new Vector3(0f, 0f, -r), front = new Vector3(0f, 0f, r);
+            Vector3 crank = new Vector3(0f, -0.02f, -0.05f), seat = new Vector3(0f, 0.55f, -0.22f), head = new Vector3(0f, 0.55f, 0.38f);
+            Vector3 headTop = head + new Vector3(0f, 0.12f, -0.04f), bars = headTop + new Vector3(0f, 0.04f, -0.08f);
+            var meshes = new List<CombineInstance>();
+            void Bar(Vector3 a, Vector3 b, float rad) => meshes.Add(new CombineInstance { mesh = Tube("tube", new List<Vector3> { a, b }, rad, 8), transform = Matrix4x4.identity });
+            Bar(back, crank, tube); Bar(back, seat, tube); Bar(crank, seat, tube); Bar(crank, head, tube); Bar(seat, head, tube);
+            Bar(head, front, tube); Bar(head, headTop, tube);
+            Bar(bars + new Vector3(-0.24f, 0f, 0f), bars + new Vector3(0.24f, 0f, 0f), tube * 0.9f);
+            Bar(seat, seat + new Vector3(0f, 0.08f, 0f), tube);
+            Bar(crank + new Vector3(0f, 0.09f, 0.03f), crank + new Vector3(0f, -0.09f, -0.03f), tube * 0.8f);
+            for (int k = 0; k < 8; k++)                                   // spokes
+            {
+                float a = k / 8f * Mathf.PI;
+                var d = new Vector3(0f, Mathf.Sin(a), Mathf.Cos(a)) * (wheel - 0.02f);
+                Bar(back - d, back + d, 0.004f); Bar(front - d, front + d, 0.004f);
+            }
+            var m = new Mesh { name = "Bike frame" };
+            m.CombineMeshes(meshes.ToArray(), true, true);
+            m.RecalculateBounds();
+            foreach (var c in meshes) Object.DestroyImmediate(c.mesh);
+            return m;
+        }
+
+        /// <summary>A flat disc of diameter 1 in the XZ plane (a puddle; scale it), both sides drawn.</summary>
+        public static Mesh Disc(string name, int segments = 28)
+        {
+            var v = new List<Vector3> { Vector3.zero };
+            var tris = new List<int>();
+            for (int i = 0; i <= segments; i++)
+            {
+                float a = i / (float)segments * Mathf.PI * 2f;
+                float wob = 1f + 0.08f * Mathf.Sin(a * 3f) + 0.05f * Mathf.Sin(a * 5f + 1f);   // a puddle, not a coin
+                v.Add(new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 0.5f * wob);
+                if (i > 0) tris.AddRange(new[] { 0, i, i + 1 });
+            }
+            return DoubleSided(name, v, tris);
+        }
+
         static Mesh DoubleSided(string name, List<Vector3> v, List<int> tris)
         {
             int n = v.Count;

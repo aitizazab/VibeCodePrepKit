@@ -600,19 +600,33 @@ namespace JamKit.DreamEscape.EditorTools
                 }
                 case DreamLook.Car:
                 {
+                    // A soft toy van (art pass 3, real meshes: DreamProps): a rounded body whose top is the roof you land
+                    // on (the collider's top), a wrap of window glass, a cream roof cap, fat round tyres with white hubs.
                     boxGo.GetComponent<MeshRenderer>().enabled = false;
                     float street = max.y - DreamEscapeCourse.CarRoof;
-                    var paint = Pastel("Car" + (tint % Palette.Length), tintColor, 0.05f);
-                    Box("Car body", t, new Vector3(c.x, street + 0.5f * (DreamEscapeCourse.CarRoof - 0.1f) + 0.05f, c.z), new Vector3(size.x, DreamEscapeCourse.CarRoof - 0.1f, size.z), paint);
-                    Box("Roof", t, new Vector3(c.x, max.y - 0.05f, c.z), new Vector3(size.x - 0.2f, 0.12f, size.z - 0.5f), Pastel("CarRoof", new Color(0.99f, 0.96f, 0.9f), 0.04f));
-                    var glass = Pastel("CarGlass", WindowDark, 0.03f);
-                    for (int side = -1; side <= 1; side += 2)
-                        Quad("Window", t, new Vector3(c.x + side * (size.x * 0.5f + 0.01f), street + 0.72f, c.z), new Vector3(side, 0f, 0f), size.z - 1.2f, 0.36f, glass);
-                    Quad("Windscreen", t, new Vector3(c.x, street + 0.72f, min.z - 0.01f), Vector3.back, size.x - 0.5f, 0.36f, glass);
-                    var tyre = Pastel("Tyre", Plum, 0.02f);
+                    const float lift = 0.28f;   // under the body: the wheels show
+                    float bodyH = DreamEscapeCourse.CarRoof - lift;
+                    var paint = DreamProps.MeshLook("Car" + (tint % Palette.Length), tintColor, 0.03f);
+                    var glass = DreamProps.MeshLook("CarGlass", WindowDark, 0.008f);
+                    var tyre = DreamProps.MeshLook("Tyre", Plum, 0.01f);
+                    var hub = DreamProps.MeshLook("CarHub", new Color(0.99f, 0.97f, 0.93f), 0.006f);
+                    DreamProps.Show("Car body", DreamProps.RoundedBox("Toy van body", new Vector3(size.x, bodyH, size.z), 0.34f), paint, t,
+                        new Vector3(c.x, street + lift + bodyH * 0.5f, c.z), Quaternion.identity);
+                    DreamProps.Show("Roof", DreamProps.RoundedBox("Toy van roof", new Vector3(size.x - 0.25f, 0.1f, size.z - 0.6f), 0.05f),
+                        DreamProps.MeshLook("CarRoofCap", new Color(0.99f, 0.96f, 0.9f), 0.008f), t, new Vector3(c.x, max.y - 0.035f, c.z), Quaternion.identity);
+                    DreamProps.Show("Windows", DreamProps.RoundedBox("Toy van windows", new Vector3(size.x + 0.04f, 0.34f, size.z - 1.3f), 0.1f), glass, t,
+                        new Vector3(c.x, max.y - 0.33f, c.z + 0.15f), Quaternion.identity);
+                    DreamProps.Show("Windscreen", DreamProps.RoundedBox("Toy van windscreen", new Vector3(size.x - 0.5f, 0.32f, 0.08f), 0.03f), glass, t,
+                        new Vector3(c.x, max.y - 0.33f, min.z + 0.01f), Quaternion.identity);
+                    var tyreMesh = DreamProps.RoundedBox("Toy tyre", new Vector3(0.26f, 0.64f, 0.64f), 0.3f);
+                    var hubMesh = DreamProps.RoundedBox("Toy hub", new Vector3(0.28f, 0.26f, 0.26f), 0.12f);
                     for (int sx = -1; sx <= 1; sx += 2)
                         for (int sz = -1; sz <= 1; sz += 2)
-                            Box("Wheel", t, new Vector3(c.x + sx * (size.x * 0.5f), street + 0.05f, c.z + sz * (size.z * 0.5f - 0.8f)), new Vector3(0.3f, 0.6f, 0.6f), tyre);
+                        {
+                            var at = new Vector3(c.x + sx * (size.x * 0.5f - 0.08f), street + 0.32f, c.z + sz * (size.z * 0.5f - 0.85f));
+                            DreamProps.Show("Wheel", tyreMesh, tyre, t, at, Quaternion.identity);
+                            DreamProps.Show("Hub", hubMesh, hub, t, at + new Vector3(sx * 0.02f, 0f, 0f), Quaternion.identity);
+                        }
                     var lamp = Pastel("Headlamp", new Color(1f, 0.96f, 0.8f), 0.02f, 0.9f);
                     for (int sx = -1; sx <= 1; sx += 2)
                         Box("Headlamp", t, new Vector3(c.x + sx * (size.x * 0.32f), street + 0.45f, min.z - 0.02f), new Vector3(0.36f, 0.2f, 0.06f), lamp);
@@ -633,17 +647,25 @@ namespace JamKit.DreamEscape.EditorTools
                 {
                     if (p.name != "Garage roof") break;
                     // Inside Walt's garage: bikes hanging from the roof, and a warm bulb or two.
-                    var frame = Pastel("BikeFrame", new Color(0.93f, 0.5f, 0.55f), 0.02f);
+                    // Real bicycles (art pass 3, DreamProps): tube frames with spokes, round tyres, each its own colour.
                     var wheel = Pastel("Tyre", Plum, 0.02f);
+                    var tyreMat = DreamProps.MeshLook("Tyre", Plum, 0.008f);
+                    var bikeColors = new[] { new Color(0.93f, 0.5f, 0.55f), new Color(0.45f, 0.72f, 0.86f), new Color(0.98f, 0.78f, 0.4f),
+                        new Color(0.6f, 0.82f, 0.6f), new Color(0.78f, 0.6f, 0.9f), new Color(0.98f, 0.62f, 0.45f) };
+                    var bikeFrame = DreamProps.BikeFrame();
+                    var bikeTyre = DreamProps.Ring("Bike tyre", 0.33f, 0.028f);
                     for (int k = 0; k < 6; k++)
                     {
                         float x = -11f + k * 4.4f + (k >= 3 ? 1f : 0f);
                         if (Mathf.Abs(x) < 2.5f) continue;
                         float z = min.z + 4f + (k % 3) * 3.5f;
                         float y = min.y - 1.3f;
-                        Box("Bike wheel", t, new Vector3(x, y, z - 0.55f), new Vector3(0.06f, 0.7f, 0.7f), wheel);
-                        Box("Bike wheel", t, new Vector3(x, y, z + 0.55f), new Vector3(0.06f, 0.7f, 0.7f), wheel);
-                        Box("Bike frame", t, new Vector3(x, y + 0.2f, z), new Vector3(0.06f, 0.08f, 1.1f), frame);
+                        var bike = new GameObject("Bike").transform;
+                        bike.SetParent(t, false);
+                        bike.position = new Vector3(x, y, z);
+                        DreamProps.Show("Bike frame", bikeFrame, DreamProps.MeshLook("BikeFrame" + k, bikeColors[k], 0.006f), bike, Vector3.zero, Quaternion.identity);
+                        DreamProps.Show("Bike wheel", bikeTyre, tyreMat, bike, new Vector3(0f, 0f, -0.55f), Quaternion.identity);
+                        DreamProps.Show("Bike wheel", bikeTyre, tyreMat, bike, new Vector3(0f, 0f, 0.55f), Quaternion.identity);
                         Box("Hook", t, new Vector3(x, (y + min.y) * 0.5f + 0.3f, z), new Vector3(0.03f, min.y - y - 0.2f, 0.03f), wheel);
                     }
                     var bulb = Glow("Bulb", new Color(1f, 0.85f, 0.6f), 1.2f, 0f, 0.1f);
@@ -755,7 +777,20 @@ namespace JamKit.DreamEscape.EditorTools
             float bottom = Mathf.Max(min.y, max.y - 14f);
             Windows(t, faceX + faceSign * 0.03f, new Vector3(faceSign, 0f, 0f), min.z, max.z, bottom + 1.2f, max.y - 0.9f, tint);
             if (min.y > -3f && size.z > 6f)
+            {
+                // The front door (art pass 3): a white door in a frame, a step, and a little gable awning over it.
                 Quad("Door", t, new Vector3(faceX + faceSign * 0.04f, min.y + 1.1f, c.z + 0.3f), new Vector3(faceSign, 0f, 0f), 1.1f, 2.1f, Pastel("Door", new Color(0.99f, 0.97f, 0.94f), 0.04f));
+                var trim = Pastel("DoorTrim" + (tint % RoofColors.Length), RoofColors[tint % RoofColors.Length], 0.03f);
+                foreach (float dz in new[] { -0.65f, 0.65f })
+                    Box("Door frame", t, new Vector3(faceX + faceSign * 0.06f, min.y + 1.12f, c.z + 0.3f + dz), new Vector3(0.12f, 2.24f, 0.16f), trim);
+                Box("Door frame (top)", t, new Vector3(faceX + faceSign * 0.06f, min.y + 2.26f, c.z + 0.3f), new Vector3(0.12f, 0.16f, 1.46f), trim);
+                Box("Step", t, new Vector3(faceX + faceSign * 0.35f, min.y + 0.08f, c.z + 0.3f), new Vector3(0.6f, 0.16f, 1.6f), Pastel("Step", Pavement, 0.03f));
+                var awning = GableOn(t, gable, new Vector3(faceX + faceSign * 0.45f, min.y + 2.62f, c.z + 0.3f), Vector3.one,
+                    Pastel("RoofTiles" + (tint % RoofColors.Length), RoofColors[tint % RoofColors.Length], 0.05f, 0f, 1f));
+                awning.name = "Door awning";
+                awning.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+                awning.transform.localScale = new Vector3(1.8f, 0.55f, 0.9f);
+            }
             if (!roof) return;
             var roofMat = Pastel("RoofTiles" + (tint % RoofColors.Length), RoofColors[tint % RoofColors.Length], 0.05f, 0f, 1f);
             if (size.x > 1.5f)
@@ -775,12 +810,20 @@ namespace JamKit.DreamEscape.EditorTools
         {
             var dark = Pastel("WindowDark", WindowDark, 0.07f);
             var warm = Pastel("WindowWarm", WindowWarm, 0.07f, 0.85f);
+            var shutter = Pastel("Shutter" + (tint % RoofColors.Length), Color.Lerp(RoofColors[tint % RoofColors.Length], Color.white, 0.25f), 0.04f);
+            var sill = Pastel("Sill", Palette[0], 0.03f);
             int k = tint;
             for (float y = y1 - 0.8f; y >= y0; y -= 2.6f)
                 for (float z = z0 + 1.6f; z <= z1 - 1.4f; z += 2.8f)
                 {
                     k = (k * 7 + 3) % 11;
                     Quad("Window", t, new Vector3(x, y, z), normal, 1.1f, 1.2f, k == 2 || k == 7 ? warm : dark);
+                    // Shutters either side and a white sill (art pass 3), on the top two rows only: the rows below run
+                    // down into the void, where nobody looks closely (and the scene stays light for WebGL).
+                    if (y < y1 - 4.5f) continue;
+                    foreach (float dz in new[] { -0.78f, 0.78f })
+                        Quad("Shutter", t, new Vector3(x, y, z + dz), normal, 0.4f, 1.2f, shutter);
+                    Box("Sill", t, new Vector3(x + normal.x * 0.05f, y - 0.66f, z), new Vector3(0.12f, 0.08f, 1.3f), sill);
                 }
         }
 
@@ -903,6 +946,31 @@ namespace JamKit.DreamEscape.EditorTools
             pr.sharedMaterial = Glow("Rain", new Color(0.82f, 0.88f, 1f), 0.6f, 0f, 0f);
             pr.shadowCastingMode = ShadowCastingMode.Off;
             pr.receiveShadows = false;
+
+            // The rain path's dressing (art pass 3): puddles catching the light, and two lamp posts glowing at the end.
+            var puddle = Pastel("Puddle", new Color(0.72f, 0.76f, 0.95f), 0f, 0.35f);
+            var disc = DreamProps.Disc("Puddle");
+            int n = 0;
+            for (float z = spot.rainStartS + 1.5f; z < spot.rainEndS - 1f; z += 3.1f, n++)
+            {
+                float x = (n % 2 == 0 ? -1f : 1f) * (0.5f + (n % 3) * 0.35f);
+                var pd = DreamProps.Show("Puddle", disc, puddle, parent, Vector3.zero, Quaternion.identity);
+                pd.transform.position = new Vector3(x, spot.floorY + 0.015f, z);
+                pd.transform.localScale = new Vector3(1.1f + (n % 3) * 0.3f, 1f, 0.7f + (n % 2) * 0.25f);
+            }
+            var post = DreamProps.MeshLook("LampPost", Plum, 0.008f);
+            var lampGlow = Glow("LampWarm", new Color(1f, 0.86f, 0.6f), 1.1f, 0f, 0.15f);
+            var postMesh = DreamProps.ShaftWithHook(2.9f, 0.05f, 0.35f);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var lamp = new GameObject("Lamp post").transform;
+                lamp.SetParent(parent, false);
+                lamp.position = new Vector3(side * 2.4f, spot.floorY, spot.rainEndS - 2f);
+                lamp.rotation = Quaternion.Euler(0f, side > 0 ? 180f : 0f, 0f);   // the hooks lean over the path
+                DreamProps.Show("Post", postMesh, post, lamp, Vector3.zero, Quaternion.identity);
+                var bulb = Part("Lamp", PrimitiveType.Sphere, lamp, Vector3.zero, Vector3.one * 0.32f, lampGlow);
+                bulb.transform.localPosition = new Vector3(0.7f, 2.9f - 0.12f, 0f);
+            }
 
             // The dream tool's beam (the same pulse of light as in the Movement Lab).
             var beam = Part("Dream tool beam", PrimitiveType.Cube, parent, Vector3.zero, Vector3.one, Glow("ToolBeam", new Color(1f, 0.95f, 0.8f), 1.2f, 0f, 0f));

@@ -1,0 +1,166 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+
+namespace JamKit.DreamEscape.EditorTools
+{
+    /// <summary>
+    /// Stills of the dream scenes' art, for checking it without playing (art passes of 2026-10-11): opens the built
+    /// DreamHouse and DreamEscape scenes, puts a camera at fixed spots (the kitchen from the slide's landing, Lena and
+    /// Theo, Theo's room, the sofa, the photo wall, the fridge, both front doors, the umbrella closed and open, the tipped
+    /// hallway; the escape's street, barbecue, garage and rooftops), turns the cut-outs to face it, renders 1920x1080 through
+    /// URP and writes PNGs to out/dream-captures/&lt;time&gt;/. Needs the scenes built (Rebuild Shell Scenes) and graphics
+    /// (no -nographics): tools/dream-capture.ps1.
+    /// </summary>
+    public static class DreamCapture
+    {
+        public const int Width = 1920, Height = 1080;
+        const float F = DreamHouse.Ground;
+
+        [MenuItem("JamKit/Dream House/Capture Stills")]
+        static void Menu()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            EditorUtility.RevealInFinder(Capture());
+        }
+
+        /// <summary>-executeMethod JamKit.DreamEscape.EditorTools.DreamCapture.CaptureFromCommandLine</summary>
+        public static void CaptureFromCommandLine()
+        {
+            int code = 0;
+            try { Debug.Log("JAMKIT_DREAM_CAPTURE_OK " + Capture()); }
+            catch (Exception e) { Debug.LogException(e); code = 1; }
+            EditorApplication.Exit(code);
+        }
+
+        struct Spot
+        {
+            public string name; public Vector3 eye, look; public string show;
+            public Spot(string name, Vector3 eye, Vector3 look, string show = null) { this.name = name; this.eye = eye; this.look = look; this.show = show; }
+        }
+
+        public static string Capture()
+        {
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "out", "dream-captures", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+            Directory.CreateDirectory(dir);
+
+            var house = new List<Spot>
+            {
+                new Spot("house-01-front-garden-door", new Vector3(0f, 1.7f, -9f), new Vector3(0f, 1.6f, 0.5f)),
+                new Spot("house-02-hallway-from-door", new Vector3(0f, 1.7f, -1.5f), new Vector3(0f, 1.2f, 20f)),
+                new Spot("house-03-kitchen-from-slide", new Vector3(0f, F + 1.65f, 72.5f), new Vector3(-6.5f, F + 0.8f, 78f)),
+                new Spot("house-04-table-and-lena", new Vector3(-3f, F + 1.6f, 74f), new Vector3(-9f, F + 1.0f, 77f)),
+                new Spot("house-05-counter-stove-fridge", new Vector3(-6.5f, F + 1.6f, 77f), new Vector3(-11.5f, F + 0.9f, 79f)),
+                new Spot("house-06-fridge-calendar", new Vector3(-8.6f, F + 1.5f, 81.7f), new Vector3(-11.1f, F + 1.4f, 81.7f)),
+                new Spot("house-07-theo", new Vector3(-2.5f, F + 1.5f, 85f), new Vector3(-6f, F + 0.8f, 81f)),
+                new Spot("house-08-sofa", new Vector3(6.5f, F + 1.6f, 84f), new Vector3(6.5f, F + 0.5f, 77.5f)),
+                new Spot("house-09-photo-wall", new Vector3(6.7f, F + 1.75f, 94.6f), new Vector3(6.7f, F + 1.7f, 100f)),
+                new Spot("house-10-theos-room", new Vector3(-4.5f, F + 1.6f, 90.8f), new Vector3(-9.5f, F + 0.5f, 96.5f)),
+                new Spot("house-11-theos-desk-drawing", new Vector3(-7f, F + 1.5f, 91.4f), new Vector3(-7f, F + 0.77f, 89.9f)),
+                new Spot("house-12-tipped-hallway", new Vector3(0f, 1.6f, 188f), new Vector3(0f, 0.5f, 215f)),
+                new Spot("house-13-way-out-door", new Vector3(0f, -3.3f, 311.5f), new Vector3(0f, -3.6f, 319f)),
+                new Spot("house-14-umbrella-closed", new Vector3(1.2f, -3.75f, 315.6f), new Vector3(2.4f, -4.45f, 317.6f)),
+                new Spot("house-15-umbrella-open", Vector3.zero, Vector3.zero, "umbrella-open"),
+            };
+            Scene(DreamHouseBuilder.ScenePath, house, dir);
+
+            var escape = new List<Spot>
+            {
+                new Spot("escape-01-walts-driveway", new Vector3(-9f, 1.7f, -5f), new Vector3(-5f, 1.0f, 30f)),
+                new Spot("escape-02-street-side", new Vector3(6f, 3f, 10f), new Vector3(-6f, 1.0f, 35f)),
+                new Spot("escape-03-car-roofs", new Vector3(-4f, 1.2f, 88f), new Vector3(0f, 0.2f, 112f)),
+                new Spot("escape-04-barbecue", new Vector3(-4f, 0.6f, 118f), new Vector3(3f, -0.2f, 142f)),
+                new Spot("escape-05-garage", new Vector3(0f, -0.4f, 168f), new Vector3(0f, -1f, 195f)),
+                new Spot("escape-06-rooftops", new Vector3(0f, 4.5f, 238f), new Vector3(0f, 2f, 270f)),
+                new Spot("escape-07-front-door-rain", new Vector3(0f, -2f, 452f), new Vector3(0f, -3f, 470f)),
+            };
+            Scene(DreamEscapeBuilder.ScenePath, escape, dir);
+            return dir;
+        }
+
+        static void Scene(string path, List<Spot> spots, string dir)
+        {
+            if (!File.Exists(path)) { Debug.LogError("JAMKIT_DREAM_CAPTURE missing scene (rebuild the shell scenes first): " + path); return; }
+            EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+            var main = Camera.main;
+            var go = new GameObject("Capture camera");
+            var cam = go.AddComponent<Camera>();
+            if (main != null) { cam.CopyFrom(main); main.enabled = false; }
+            cam.fieldOfView = 70f;
+            cam.nearClipPlane = 0.05f;
+            var data = go.AddComponent<UniversalAdditionalCameraData>();
+            data.renderPostProcessing = main != null && main.GetComponent<UniversalAdditionalCameraData>() is { } md && md.renderPostProcessing;
+            var rt = new RenderTexture(new RenderTextureDescriptor(Width, Height, RenderTextureFormat.ARGB32, 24) { sRGB = true, msaaSamples = 1 });
+            try
+            {
+                Shot(cam, rt, null, dir);   // warm-up
+                foreach (var s in spots)
+                {
+                    Vector3 eye = s.eye, look = s.look;
+                    if (s.show == "umbrella-open")
+                    {
+                        var open = FindByName("Umbrella (open, over her)");
+                        if (open == null) { Debug.LogWarning("JAMKIT_DREAM_CAPTURE no open umbrella"); continue; }
+                        open.SetActive(true);
+                        look = open.transform.position;
+                        eye = look + new Vector3(2.4f, -0.4f, -2.4f);
+                    }
+                    go.transform.position = eye;
+                    go.transform.rotation = Quaternion.LookRotation(look - eye, Vector3.up);
+                    FaceCutOuts(eye);
+                    Shot(cam, rt, s.name, dir);
+                }
+            }
+            finally
+            {
+                rt.Release();
+                UnityEngine.Object.DestroyImmediate(rt);
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        static GameObject FindByName(string name)
+        {
+            foreach (var t in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (t.name == name) return t.gameObject;
+            return null;
+        }
+
+        /// <summary>The cut-outs turn to the player's camera at runtime; in the editor they're turned here.</summary>
+        static void FaceCutOuts(Vector3 eye)
+        {
+            var turners = new List<Transform>();
+            foreach (var f in UnityEngine.Object.FindObjectsByType<DreamFaceCamera>(FindObjectsSortMode.None)) turners.Add(f.transform);
+            foreach (var c in UnityEngine.Object.FindObjectsByType<DreamCutoutView>(FindObjectsSortMode.None)) turners.Add(c.transform);
+            foreach (var t in turners)
+            {
+                var d = eye - t.position;
+                d.y = 0f;
+                if (d.sqrMagnitude > 1e-4f) t.rotation = Quaternion.Euler(0f, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg, 0f);
+            }
+        }
+
+        static void Shot(Camera cam, RenderTexture rt, string name, string dir)
+        {
+            var request = new UniversalRenderPipeline.SingleCameraRequest { destination = rt };
+            if (RenderPipeline.SupportsRenderRequest(cam, request)) RenderPipeline.SubmitRenderRequest(cam, request);
+            else { cam.targetTexture = rt; cam.Render(); cam.targetTexture = null; }
+            if (name == null) return;
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(Width, Height, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = prev;
+            string path = Path.Combine(dir, name + ".png");
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(tex);
+            Debug.Log("JAMKIT_DREAM_CAPTURE " + path);
+        }
+    }
+}

@@ -164,7 +164,17 @@ transparency, any size (the cut-out keeps its aspect), and run Rebuild Shell Sce
 
 Until then each is a code-drawn PLACEHOLDER cut-out (big round head, dot eyes, tiny mouth, plum outline, a
 white paper border). The build log says which: `JAMKIT_DREAM art: style-E files used: ...; placeholders
-drawn: ...`.
+drawn: ...`. Since 2026-10-11 Walt, both neighbours and the dog are style-E cut-outs (only the wasp mask is still drawn).
+
+**Art pass 3 (2026-10-11), visual only** (colliders, routes and timings unchanged):
+- the cars are soft toy vans built as real meshes (`Dream/Editor/DreamProps.cs`, `JamKit/Dream/PastelMesh`): a rounded
+  body whose top is the roof you land on, a wrap of window glass, a cream roof cap, round tyres with white hubs;
+- Walt's garage holds real bicycles (tube frames with spokes, round tyres, each its own colour);
+- the house fronts get a framed door with a step and a little gable awning, and shutters and sills on the top two rows
+  of windows;
+- the rain path: puddles catching the light and two hooked lamp posts glowing at its end (shared with Night 2's house).
+
+Stills of both dream scenes: `tools/dream-capture.ps1` (`DreamCapture`), written to `out/dream-captures/<time>/`.
 
 ## Tuning it
 
