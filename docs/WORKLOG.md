@@ -1309,3 +1309,12 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - New: **hope and despair motifs** that overlay any piece. The despair motif is key for the Long Night ending and needs its own track later; an eerie first try was requested.
   - Round 3 sent to a7eac08.
 - **The cursor stays visible during controller use**, everywhere. Sent to a385c22 for one global fix.
+- **The opening editor failed in use.** "I can't do anything I want ... I can't even move the fucking free camera ... don't deliver half-baked tools like this." The cause was that it shipped without anyone operating it.
+  - A new usability agent is reworking it to work like Unity's Scene view and Blender, with visible feedback for every action.
+  - It must be proven through simulated input in PlayMode tests and checked in screenshots from a capture drive before it comes back. Several rounds are expected.
+- **PlayMode at 45d0a50: 134/134.** The next Edit run (fceb7e0 cursor + antagonistic, e838997, f79820f) is waiting for memory.
+- **Lena battle looks + the antagonistic pose (98f02e0, a097a2a):**
+  - Looks 0-5 are colour, graphite, graphite + red, screentone, **screentone + red ink (the agent's pick)** and torn paper.
+  - The antagonistic pose: arms folded, head tipped back. It's installed in colour.
+  - Page: `art/review/2026-10-11/visiting-hours-lena-battle-look.html`.
+- **The dream Flow batch (267d4d6, a953eef):** the neighbours and the dog as cut-outs, the six-photo wall, the fridge calendar and Theo's drawing. Page: `art/review/2026-10-11/visiting-hours-dream-art-flow-batch.html`.
