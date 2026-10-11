@@ -1200,3 +1200,13 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - The house is wired to the argument battle in 00004d4, with the 1/2 skip kept.
   - Re-run in stages: Edit/Play/Build each in its own call, so test failures never trigger a full re-run.
 - **16:32, at 00004d4:** Scenes OK, EditMode 819/819. PlayMode is running.
+- **Verified, 2026-10-11 afternoon:**
+  - **At b90fcc1:** Scenes OK, EditMode 819/819, PlayMode **127/127**. The house's battle test was fixed in 18b9dcf; the ArgumentHost root cause in b90fcc1.
+  - **At c9f56aa (the house smoke drive starts at the stairs):** EditMode 820/820. PlayMode wasn't re-run, since only the smoke drive and the chapter jump entry changed.
+  - **Builds, all smoke PASS, in `VibeJamKit-play/Builds/Play/`:**
+    - VisitingHours (c9f56aa), with the argument prototype in its presenter panel;
+    - MovementLab (00004d4, hop presets);
+    - DreamEscape, StealthLab and DeepBlock (b90fcc1);
+    - DreamHouse (c9f56aa).
+  - **The capture** with the title's last framing try: `out/vh-lighting/20261011-164506/pc-7-title-rest.png`.
+  - **stay-awake** now runs in its own minimized window, out of the harness's reach.
