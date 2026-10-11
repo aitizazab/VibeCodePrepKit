@@ -51,7 +51,8 @@ the stick, the d-pad, WASD or the arrows.
 
 ## The screen
 - **Mostly black.** The scene behind is hidden. Lena's sprite stands large on the left, and her expression follows
-  the last thing she said (neutral, angry, rattled, softened, hurt, pleading). Her name and expression sit above it, the heart
+  the last thing she said (neutral, angry, rattled, softened, hurt, pleading). She **starts in her antagonistic
+  pose**, which holds until a reply changes her expression. Her name and expression sit above it, the heart
   rate, heat and anger beside it.
 - **The claim** is the centrepiece: a paper card in the display font, saying how many key premises still hold it up.
 - **Premises** are designed cards in two columns: the label (L1, L1' ...), FACT or LINK, KEY, the status, and the
@@ -105,7 +106,11 @@ played nothing of its own. So the previous scene's ambience went on.
 
 ## Art: the sprite slot (a drop-in)
 - **Files:** `Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentArt/lena_<expression>.png`:
-  `lena_neutral`, `lena_angry`, `lena_rattled`, `lena_softened`, `lena_hurt`, `lena_pleading` (all six landed in 104f4ea; the code-drawn placeholder only shows if a file goes missing).
+  `lena_antagonistic` (the opening pose; until it lands, `lena_neutral` stands in), `lena_neutral`, `lena_angry`,
+  `lena_rattled`, `lena_softened`, `lena_hurt`, `lena_pleading` (these six landed in 104f4ea; the code-drawn
+  placeholder only shows if a file goes missing).
+- **Treatments (a hook, no picker yet):** `ArgumentArt.SetTreatment("bw")` makes the slot look for
+  `lena_bw_<expression>.png` first and fall back to the plain file.
 - **Size:** portrait 2:3, 1024 x 1536 px, transparent background.
 - **Framing:** the figure from the waist (or hips) up, filling most of the height, facing slightly right (towards
   the claims). Default Texture2D import settings are fine.
@@ -191,7 +196,8 @@ var host = ArgumentHost.Begin(DreamLenaDemo.Build(),
 - **While it runs:**
   - world gameplay is blocked (`InputService.BlockWorld`);
   - the world's sound gives way to the battle's;
-  - the cursor is free;
+  - the cursor is unlocked: shown for the mouse, hidden while the pad is in use (the shell's rule, `SHELL.md`), and
+    hover never moves the focus in pad mode;
   - the d-pad is on Move for the dodging;
   - the argument's Controls rows show.
 - **When it ends:** it saves. Continue calls back with the record at once, even on the frame it ended.

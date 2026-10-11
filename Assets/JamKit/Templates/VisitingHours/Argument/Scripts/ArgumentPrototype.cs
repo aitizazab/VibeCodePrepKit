@@ -161,7 +161,7 @@ namespace JamKit.Argument
             b.style.justifyContent = Justify.Center;
             ArgueUi.Text(b, text, ArgumentArt.BodyBold, 26, ArgueUi.Ink).style.unityTextAlign = TextAnchor.MiddleCenter;
             var item = new NavItem { id = name, element = b, activate = action };
-            b.RegisterCallback<PointerEnterEvent>(_ => { if (MenuShown) _nav.Focus(item); });
+            b.RegisterCallback<PointerEnterEvent>(_ => { if (MenuShown && GameRoot.Input.HoverAllowed) _nav.Focus(item); });
             b.RegisterCallback<ClickEvent>(_ => Activate(item));
             _items.Add(item);
         }

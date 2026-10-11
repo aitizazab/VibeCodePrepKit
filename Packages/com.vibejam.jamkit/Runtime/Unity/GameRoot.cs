@@ -144,6 +144,7 @@ namespace JamKit.Shell
             SceneManager.sceneLoaded += OnSceneLoaded;
 
             gameObject.AddComponent<PresenterRunner>();
+            gameObject.AddComponent<PointerCursor>(); // the cursor hides while the pad is in use
             if (smoke) gameObject.AddComponent<SmokeRunner>();
             Ready?.Invoke(this);
         }

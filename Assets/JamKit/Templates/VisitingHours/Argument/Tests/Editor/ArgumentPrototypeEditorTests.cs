@@ -103,6 +103,28 @@ namespace JamKit.Argument.Tests
         }
 
         [Test]
+        public void SheStartsInTheAntagonisticPoseAndTreatmentsFallBack()
+        {
+            Assert.That(ArgumentArt.Opening, Is.EqualTo("antagonistic"));
+            Assert.That(ArgumentArt.Expressions, Does.Contain(ArgumentArt.Opening));
+            var open = ArgumentArt.Sprite("Lena", ArgumentArt.Opening, out bool placeholder);
+            Assert.That(open, Is.Not.Null, "the opening pose has a sprite");
+            bool drawn = Resources.Load<Texture2D>(ArgumentArt.ArtFolder + "lena_antagonistic") != null;
+            if (!drawn && !placeholder) Assert.That(open.name, Is.EqualTo("lena_neutral"), "no lena_antagonistic.png yet: neutral stands in");
+            if (drawn) Assert.That(open.name, Is.EqualTo("lena_antagonistic"));
+
+            ArgumentArt.SetTreatment("bw");
+            try
+            {
+                Assert.That(ArgumentArt.Treatment, Is.EqualTo("bw"));
+                var t = ArgumentArt.Sprite("Lena", "angry", out _);
+                bool bw = Resources.Load<Texture2D>(ArgumentArt.ArtFolder + "lena_bw_angry") != null;
+                Assert.That(t.name, Is.EqualTo(bw ? "lena_bw_angry" : "lena_angry"), "a treatment without files falls back to the plain sprite");
+            }
+            finally { ArgumentArt.SetTreatment(""); }
+        }
+
+        [Test]
         public void TheProseAndTheSoundsLoadFromTheirFiles()
         {
             var def = DreamLenaDemo.Build();

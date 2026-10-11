@@ -715,3 +715,40 @@
     padding: 2px 8px;
     border-radius: 4px;
 }
+
+/* ---------- Pad mode (PointerCursor): the hidden cursor's hover is not a second focus ----------
+   While a gamepad is in use the shell's root carries .jk-pad. Each :hover look goes back to the
+   item's resting look, then :focus is said again (it has to win when the focused item is also
+   under the hidden cursor). Templates' hovered classes are listed here too, so it's one place. */
+
+.jk-pad .jk-button:hover { background-color: var(--jk-button); }
+.jk-pad .jk-option:hover { background-color: rgba(0, 0, 0, 0); }
+.jk-pad .jk-choice:hover { background-color: var(--jk-button); }
+.jk-pad .jk-debug-button:hover { background-color: rgb(40, 40, 40); }
+.jk-pad .jk-difficulty-option:hover .jk-difficulty-desc { color: var(--jk-text-dim); }
+.jk-pad .jk-presenter-button:hover { background-color: rgb(34, 38, 46); }
+.jk-pad .bh-card:hover { background-color: var(--jk-panel); }
+.jk-pad .dl-card:hover { background-color: var(--jk-panel); }
+.jk-pad .st-quick-button:hover { color: var(--jk-text-dim); }
+.jk-pad .st-choice:hover { background-color: rgba(22, 22, 44, 0.94); }
+.jk-pad .st-item:hover { background-color: var(--jk-button); }
+.jk-pad .st-slot:hover { background-color: var(--jk-button); }
+.jk-pad .vh-journal__tab:hover,
+.jk-pad .vh-journal__close:hover,
+.jk-pad .vh-journal__combine:hover { background-color: rgba(120, 96, 64, 0.12); }
+.jk-pad .vh-journal__entry:hover { background-color: rgba(255, 255, 255, 0.25); }
+.jk-pad .vh-journal__scribble:hover { opacity: 0.32; }
+
+.jk-pad .jk-button:focus,
+.jk-pad .jk-option:focus,
+.jk-pad .jk-choice:focus,
+.jk-pad .bh-card:focus,
+.jk-pad .dl-card:focus,
+.jk-pad .st-choice:focus,
+.jk-pad .st-slot:focus { background-color: var(--jk-button-hover); }
+.jk-pad .jk-difficulty-option:focus .jk-difficulty-desc { color: var(--jk-text); }
+.jk-pad .jk-presenter-button:focus { background-color: rgb(52, 58, 70); }
+.jk-pad .vh-journal__tab:focus,
+.jk-pad .vh-journal__close:focus,
+.jk-pad .vh-journal__combine:focus { background-color: rgba(120, 96, 64, 0.28); }
+.jk-pad .vh-journal__entry:focus { background-color: rgba(255, 255, 255, 0.5); }

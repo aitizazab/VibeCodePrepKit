@@ -154,6 +154,19 @@ The default bindings are in `Assets/JamKit/Input/JamKitControls.inputactions` (e
 player changes them in **Settings > Controls** (below). Mouse sensitivity and invert Y are applied by
 `GameRoot.Input.LookDelta(GameRoot.Settings)`.
 
+**The cursor follows the device in use**, in every scene and menu, with no per-scene code: the moment a
+gamepad is used (a button, the d-pad, a stick or trigger past half way), the mouse cursor hides; it comes back
+when the mouse really moves (more than 2 px), clicks or scrolls. `GameRoot.Input.PadMode` says which one is in
+use (`InputService`), and `PointerCursor` (added by GameRoot, runs after every scene script) applies it.
+- A cursor a scene **locked** for mouse-look is left alone, never unlocked; the scene shows it again itself when
+  it unlocks, and then the shell hides it at once if the pad is in use (a pause opened with Start).
+- In pad mode the shell's UI root has the class `jk-pad`, which turns off every `:hover` look (the end of
+  `Shell.uss`, which also lists the templates' hovered classes), so the spot under the hidden cursor doesn't look
+  like a second focus. A new `:hover` rule needs its pad-mode line there.
+- Code that moves focus on hover checks `GameRoot.Input.HoverAllowed` first (the argument battle and its menu do),
+  so a list moving under the hidden cursor can't take the focus.
+- Keyboard use doesn't change it. Tests: `CursorPlayTests` (PlayMode).
+
 ### Settings > Controls (rebinding)
 
 Every template's Settings has a **Controls** button (shown with the action settings, so not in the

@@ -223,8 +223,64 @@ namespace JamKit.Shell
             return _synthetic != null ? _synthetic.IsHeld(action) : action.IsPressed();
         }
 
-        /// <summary>GameRoot calls this first thing each frame: synthetic taps become visible for one frame.</summary>
-        public void BeginFrame() => _synthetic?.BeginFrame();
+        /// <summary>GameRoot calls this first thing each frame: synthetic taps become visible for one frame, and the
+        /// last pointing device is tracked (<see cref="PadMode"/>).</summary>
+        public void BeginFrame()
+        {
+            _synthetic?.BeginFrame();
+            TrackPointerDevice();
+        }
+
+        // ---------- Pad mode: which device the player is using to point ----------
+
+        bool _padMode;
+
+        /// <summary>True from the moment any gamepad is used (a button, the d-pad, a stick or trigger pushed past
+        /// half) until the mouse really moves, clicks or scrolls. While it's true the shell hides the cursor
+        /// (<see cref="PointerCursor"/>) and mouse hover mustn't move focus: hover handlers check
+        /// <see cref="HoverAllowed"/>. Keyboard input doesn't change it.</summary>
+        public bool PadMode => _padMode;
+
+        /// <summary>False in pad mode: the hidden cursor's hover (a list scrolling under it) mustn't take focus.</summary>
+        public bool HoverAllowed => !_padMode;
+
+        /// <summary>Puts pad mode on or off by hand (tests; a scene that knows better).</summary>
+        public void SetPadMode(bool on) => _padMode = on;
+
+        /// <summary>A mouse must travel this far in a frame (pixels) to count as "moved": a nudged desk isn't a choice.</summary>
+        public const float MouseMovePixels = 2f;
+
+        void TrackPointerDevice()
+        {
+            if (!_padMode) { if (AnyPadUsed()) _padMode = true; }
+            else if (MouseUsed()) _padMode = false;
+        }
+
+        static bool AnyPadUsed()
+        {
+            var pads = Gamepad.all;
+            for (int i = 0; i < pads.Count; i++)
+            {
+                var p = pads[i];
+                if (p.buttonSouth.wasPressedThisFrame || p.buttonEast.wasPressedThisFrame || p.buttonWest.wasPressedThisFrame
+                    || p.buttonNorth.wasPressedThisFrame || p.leftShoulder.wasPressedThisFrame || p.rightShoulder.wasPressedThisFrame
+                    || p.startButton.wasPressedThisFrame || p.selectButton.wasPressedThisFrame
+                    || p.leftStickButton.wasPressedThisFrame || p.rightStickButton.wasPressedThisFrame) return true;
+                if (p.dpad.ReadValue().sqrMagnitude > 0.25f) return true;
+                if (p.leftStick.ReadValue().sqrMagnitude > 0.25f || p.rightStick.ReadValue().sqrMagnitude > 0.25f) return true;
+                if (p.leftTrigger.ReadValue() > 0.5f || p.rightTrigger.ReadValue() > 0.5f) return true;
+            }
+            return false;
+        }
+
+        static bool MouseUsed()
+        {
+            var m = Mouse.current;
+            if (m == null) return false;
+            if (m.leftButton.wasPressedThisFrame || m.rightButton.wasPressedThisFrame || m.middleButton.wasPressedThisFrame) return true;
+            if (m.scroll.ReadValue().sqrMagnitude > 0f) return true;
+            return m.delta.ReadValue().sqrMagnitude > MouseMovePixels * MouseMovePixels;
+        }
 
         public void Dispose()
         {

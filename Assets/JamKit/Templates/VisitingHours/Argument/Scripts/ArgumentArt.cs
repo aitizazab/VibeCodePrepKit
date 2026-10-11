@@ -9,11 +9,15 @@ namespace JamKit.Argument
     /// The opponent's sprite and the screen's fonts (docs/ARGUMENT-PROTOTYPE.md, "Art").
     ///
     /// SPRITES (a drop-in): Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentArt/&lt;who&gt;_&lt;expression&gt;.png,
-    /// for Lena: lena_neutral, lena_angry, lena_rattled, lena_softened, lena_hurt, lena_pleading. Portrait 2:3, 1024 x 1536 px,
+    /// for Lena: lena_antagonistic (the pose she starts the battle in, <see cref="Opening"/>), lena_neutral, lena_angry,
+    /// lena_rattled, lena_softened, lena_hurt, lena_pleading. Portrait 2:3, 1024 x 1536 px,
     /// transparent background, the figure from the waist (or hips) up filling most of the height, facing slightly
     /// right (towards the claims). Import as Texture2D (the defaults are fine). A missing expression falls back to
     /// &lt;who&gt;_neutral; with no file at all, a sketch-style silhouette is drawn in code, a different face per
     /// expression.
+    ///
+    /// TREATMENTS (a hook, no picker yet): with <see cref="SetTreatment"/>("bw") the slot first looks for
+    /// &lt;who&gt;_bw_&lt;expression&gt;.png and falls back to the plain files above.
     ///
     /// FONTS (open licence, OFL; licences in Argument/Licenses): DM Serif Display for the claim, headings and names;
     /// Crimson Text (regular, italic, bold) for everything else. In Resources/ArgumentFonts/.
@@ -22,7 +26,21 @@ namespace JamKit.Argument
     {
         public const string ArtFolder = "ArgumentArt/";
         public const string FontFolder = "ArgumentFonts/";
-        public static readonly string[] Expressions = { "neutral", "angry", "rattled", "softened", "hurt", "pleading" };
+        public static readonly string[] Expressions = { "antagonistic", "neutral", "angry", "rattled", "softened", "hurt", "pleading" };
+        /// <summary>Every opponent starts the battle in this pose, until a reply changes her expression (no file: neutral).</summary>
+        public const string Opening = "antagonistic";
+
+        static string _treatment = "";
+        /// <summary>The sprite treatment in use ("" for the plain files).</summary>
+        public static string Treatment => _treatment;
+        /// <summary>Uses &lt;who&gt;_&lt;treatment&gt;_&lt;expression&gt; files where they exist ("" or null: the plain ones).</summary>
+        public static void SetTreatment(string treatment)
+        {
+            treatment = (treatment ?? "").ToLowerInvariant();
+            if (treatment == _treatment) return;
+            _treatment = treatment;
+            _sprites.Clear();
+        }
         public const int PlaceholderWidth = 384, PlaceholderHeight = 576;
 
         static readonly Dictionary<string, Texture2D> _sprites = new Dictionary<string, Texture2D>();
@@ -33,6 +51,7 @@ namespace JamKit.Argument
         {
             _sprites.Clear();
             _fonts.Clear();
+            _treatment = "";
         }
 
         /// <summary>The sprite for <paramref name="who"/> in <paramref name="expression"/> (a file, else neutral's file, else the placeholder).</summary>
@@ -47,7 +66,10 @@ namespace JamKit.Argument
                 placeholder = t.name.StartsWith("placeholder", StringComparison.Ordinal);
                 return t;
             }
-            t = Resources.Load<Texture2D>(ArtFolder + key) ?? Resources.Load<Texture2D>(ArtFolder + who + "_neutral");
+            if (_treatment.Length > 0) t = Resources.Load<Texture2D>(ArtFolder + who + "_" + _treatment + "_" + expression);
+            if (t == null) t = Resources.Load<Texture2D>(ArtFolder + key);
+            if (t == null && _treatment.Length > 0) t = Resources.Load<Texture2D>(ArtFolder + who + "_" + _treatment + "_neutral");
+            if (t == null) t = Resources.Load<Texture2D>(ArtFolder + who + "_neutral");
             if (t == null)
             {
                 t = Placeholder(expression);
@@ -138,6 +160,7 @@ namespace JamKit.Argument
             float browTilt, browLift, mouthCurve, eyeOpen;
             switch (expression)
             {
+                case "antagonistic": browTilt = 0.25f; browLift = -0.02f; mouthCurve = 0.2f; eyeOpen = 0.55f; break;
                 case "angry": browTilt = 0.35f; browLift = 0.0f; mouthCurve = -0.5f; eyeOpen = 0.5f; break;
                 case "rattled": browTilt = -0.3f; browLift = 0.12f; mouthCurve = -0.15f; eyeOpen = 1.2f; break;
                 case "softened": browTilt = -0.12f; browLift = 0.05f; mouthCurve = 0.45f; eyeOpen = 0.6f; break;

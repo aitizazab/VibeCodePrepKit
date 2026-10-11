@@ -236,10 +236,11 @@ namespace JamKit.Argument
 
         void LateUpdate()
         {
-            // The cursor is hers while she argues (a scene's own pointer lock waits).
+            // The cursor is freed while she argues (a scene's own pointer lock waits). Shown for the mouse; on the pad
+            // the shell keeps it hidden (PointerCursor), so it isn't shown here then.
             if (_closed || !InputAllowed) return;
             if (UnityEngine.Cursor.lockState != CursorLockMode.None) UnityEngine.Cursor.lockState = CursorLockMode.None;
-            if (!UnityEngine.Cursor.visible) UnityEngine.Cursor.visible = true;
+            if (!UnityEngine.Cursor.visible && GameRoot.Input.HoverAllowed) UnityEngine.Cursor.visible = true;
         }
 
         void TickPressure(InputService input, bool allowed, float dt)
@@ -569,7 +570,8 @@ namespace JamKit.Argument
 
         void OnHover(VisualElement e)
         {
-            if (_view == null || _view.Busy || _autopilot) return;
+            // On the pad the hidden cursor's hover mustn't take focus (a list moving under it).
+            if (_view == null || _view.Busy || _autopilot || !GameRoot.Input.HoverAllowed) return;
             var item = _nav.Find(e);
             if (item == null || !item.enabled || _nav.Focused == item) return;
             _nav.Focus(item);
@@ -658,8 +660,8 @@ namespace JamKit.Argument
             var def = e.Def;
             var style = ControlNames.DetectPadStyle();
 
-            // The opponent: name, expression (the last one they showed), sprite.
-            string expression = "neutral";
+            // The opponent: name, expression (the last one they showed; the antagonistic opening pose before any), sprite.
+            string expression = ArgumentArt.Opening;
             for (int i = e.Transcript.Count - 1; i >= 0; i--)
                 if (e.Transcript[i].speaker == Speaker.Opponent && e.Transcript[i].expression.Length > 0) { expression = e.Transcript[i].expression; break; }
             _view.SetOpponent(def.opponent, expression, expression, S["screen.placeholder"]);
