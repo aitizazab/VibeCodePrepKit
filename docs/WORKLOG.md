@@ -1381,3 +1381,4 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - 2026-10-12 02:52: house architecture 4daf242: EditMode 874/874, capture OK (VibeJamKit-play/out/dream-captures/20261012-024902), sent to the art agent; its metas committed. PlayMode running. The attic as Lena's observatory is the agent's proposal (from the creator's note in STORY-PROSE), awaiting the creator.
 - 2026-10-12 03:02: PlayMode 153/153 at 4daf242 (house architecture).
 - 2026-10-12 03:15: house architecture round 2 (1073fd0) is clean; review page art/review/2026-10-12/visiting-hours-house-architecture.html (spec a39167b) has the plans, before/after per room, six attic stills and questions (the observatory proposal, hide-and-seek on the main floor, tightness). DreamHouse + VisitingHours builds started with it.
+- 2026-10-12 ~03:22: DreamHouse + VisitingHours builds with the house architecture PLAYABLE (a3951af, EditMode 874/874).
