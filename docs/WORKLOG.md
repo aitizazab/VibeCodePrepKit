@@ -1069,3 +1069,20 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - testing Movement Lab and Dream Escape (air control on controller and KBM, hop costs, the Gauntlet against 31.42);
   - DESIGN-DECISIONS answers;
   - composing the music.
+- **Story docs done (digest agent):**
+  - `docs/STORY-TALK.md` (00b9c19):
+    - Direct answers to the creator's questions, each marked as what the docs say, an extrapolation, or unwritten. The 0:09 is a real contradiction; three fixes are given.
+    - Options per open problem, starting with the Night 4 truth:
+      - A: Lena pulled Elias out, then went back for Theo.
+      - B: Lena asked him to turn back, and he overruled her.
+      - C: LeBaget was the side at the car.
+    - Recommended for the Despair route's closing line: "it would be nice to see his smile again".
+  - `docs/STORY-FACTS.md` (ebd6f64), the fact catalogue. Its findings:
+    - guilt has no release left;
+    - Night 3 rests on rejected material;
+    - Night 4 lost its only new fact;
+    - Day 5 has no facts.
+  - Questions for the creator to answer first:
+    1. The Night 4 truth (A, B or C).
+    2. Is Lena dead, missing or taken, and what made her worth Nadia's guilt?
+    3. Does Theo stay, and what is his one job apart from Lena's?
