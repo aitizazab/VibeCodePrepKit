@@ -32,9 +32,10 @@ namespace JamKit.VisitingHours
         /// <summary>
         /// Her fingers round the phone: <paramref name="curl"/> 0 open .. 1 closed round its edges, the thumb free, or pressing
         /// the screen by <paramref name="thumbPress"/>. <paramref name="phoneCentre"/>, <paramref name="phoneRotation"/> (+Y the
-        /// screen, +Z its top) and <paramref name="phoneSize"/> describe the phone. Called after <see cref="SetHand"/>.
+        /// screen, +Z its top) and <paramref name="phoneSize"/> describe the phone; <paramref name="held"/> 0 = taking it by its end
+        /// on the nightstand, 1 = up in her hand. Her palm is always on its back. Called after <see cref="SetHand"/>.
         /// </summary>
-        public virtual void SetGrip(Vector3 phoneCentre, Quaternion phoneRotation, Vector3 phoneSize, float curl, float thumbPress) { }
+        public virtual void SetGrip(Vector3 phoneCentre, Quaternion phoneRotation, Vector3 phoneSize, float curl, float thumbPress, float held) { }
 
         /// <summary>Her right shoulder (world) and her arm's full length, so what she holds can be kept within reach.
         /// False when the body doesn't know them.</summary>
@@ -389,7 +390,7 @@ namespace JamKit.VisitingHours
         /// as far as <paramref name="curl"/> allows), so the fingers close round its edges; the thumb's tip rests at the
         /// screen's lower right edge, or presses the screen.
         /// </summary>
-        public override void SetGrip(Vector3 phoneCentre, Quaternion phoneRotation, Vector3 phoneSize, float curl, float thumbPress)
+        public override void SetGrip(Vector3 phoneCentre, Quaternion phoneRotation, Vector3 phoneSize, float curl, float thumbPress, float held)
         {
             for (int i = 0; i < _fingers.Length; i++) if (_fingers[i] != null) _fingers[i].localRotation = _fingerBase[i];
             for (int i = 0; i < _thumb.Length; i++) if (_thumb[i] != null) _thumb[i].localRotation = _thumbBones[i];
@@ -402,21 +403,25 @@ namespace JamKit.VisitingHours
             // The palm off the phone, on the side the grip puts it (behind it once held, over the screen while it lies
             // there), and, when held, slid across its back so the knuckles line up with its far (left) edge: her hand is
             // bigger than the phone, and only the fingers should come round that edge.
-            float side = Vector3.Dot(_lastWrist - phoneCentre, up) >= 0f ? 1f : -1f;
+            // Her palm is always on the phone's back (its +Y is the screen): never turned over onto the screen.
+            const float side = -1f;
+            float heldNow = Mathf.Clamp01(held);
             Vector3 wrist = _lastWrist;
             for (int pass = 0; pass < 4; pass++)
             {
                 float need = PalmShortfall(side);
                 Vector3 shift = need > 0.001f ? up * (side * (need + 0.002f)) : Vector3.zero;
-                if (side < 0f && _fingerTips[1] != null)
+                if (heldNow > 0.01f && _fingerTips[1] != null)
                 {
                     // The fingers nearly straight along its back: slide the hand so the middle fingertip ends 1.5 cm past
                     // the far (left) edge, the rest of the hand behind the phone.
                     Vector3 d = _fingerTips[1].position - phoneCentre;
                     float slide = Mathf.Clamp(-(_phoneHalf.x + 0.015f) - Vector3.Dot(d, right), -0.08f, 0.08f);
+                    slide *= heldNow;
                     if (Mathf.Abs(slide) > 0.003f) shift += right * slide;
                     // ...at about the middle of its height (not over the top corner).
                     float drop = Mathf.Clamp(-Vector3.Dot(d, top), -0.08f, 0.08f);
+                    drop *= heldNow;
                     if (Mathf.Abs(drop) > 0.005f) shift += top * drop;
                 }
                 if (shift.sqrMagnitude < 1e-6f) break;
@@ -462,25 +467,32 @@ namespace JamKit.VisitingHours
             // behind it if that can't be reached; pressing the screen near its lower right corner only while it taps.
             // Lying on the nightstand (the hand over it) the thumb just stays out of the phone.
             if (_thumb[0] == null || _thumbTip == null) return;
-            bool held = side < 0f;
+            bool pinching = heldNow < 0.5f;
             bool pressing = thumbPress > 0.3f;
             _thumbTargets[0] = phoneCentre + up * (_phoneHalf.y + 0.003f) + right * (_phoneHalf.x * 0.5f) - top * (_phoneHalf.z * 0.55f);
             _thumbTargets[1] = phoneCentre + right * (_phoneHalf.x + 0.010f) - top * (_phoneHalf.z * 0.25f);
             _thumbTargets[2] = phoneCentre - up * (_phoneHalf.y + 0.012f) + right * (_phoneHalf.x * 0.5f) - top * (_phoneHalf.z * 0.2f);
+            // Taking it by its end: the thumb on its face just above the bottom edge (a pinch).
+            _thumbTargets[3] = phoneCentre + up * (_phoneHalf.y + 0.006f) + right * (_phoneHalf.x * 0.35f) - top * (_phoneHalf.z - 0.015f);
             float w = Mathf.Clamp01(curl) * _lastWeight;
             for (int i = 0; i < 3; i++) _thumbStart[i] = _thumb[i] != null ? _thumb[i].localRotation : Quaternion.identity;
             bool done = false;
-            for (int c = pressing ? 0 : 1; c < 3 && !done; c++)
+            for (int n = 0; n < 4 && !done; n++)
+            {
+                // The order to try: pressing the screen, or the pinch on its face, then beside the edge, then behind.
+                int c = n == 0 ? (pressing ? 0 : pinching ? 3 : -1) : n;
+                if (c < 0 || c > 3 || (n == 3 && c == 3)) continue;
                 for (float k2 = 1f; k2 > 0.4f && !done; k2 -= 0.25f)
                 {
                     AimThumb(_thumbTargets[c], w * k2);
-                    done = ThumbClear(!held || c == 0);
+                    done = ThumbClear(c == 0 || c == 3);
                 }
+            }
             if (!done) AimThumb(_thumbTargets[2], 1f);
         }
 
         readonly Quaternion[] _thumbStart = new Quaternion[3];
-        readonly Vector3[] _thumbTargets = new Vector3[3];
+        readonly Vector3[] _thumbTargets = new Vector3[4];
 
         void AimThumb(Vector3 target, float weight)
         {

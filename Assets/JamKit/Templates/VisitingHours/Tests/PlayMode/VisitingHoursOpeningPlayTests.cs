@@ -68,14 +68,14 @@ namespace JamKit.VisitingHours.Tests
             Assert.That(stage.table.Find("tablet").Fade, Is.EqualTo(0f), "the table comes later");
 
             yield return WaitFor(() => stage.Pose == "overhead", "the cut to the phone from above", 10f);
-            Assert.That(opening.SpeakerOn, Is.True, "the voicemail is on the phone's speaker after the drop");
+            Assert.That(opening.SpeakerOn, Is.False, "from above his voice is clear, not through the phone's speaker");
             Assert.That(stage.PhoneHeld, Is.False, "she dropped the phone");
             Assert.That(stage.Breathing, Is.True, "asleep, breathing");
             Assert.That(stage.nadia, Is.Not.Null);
 
             yield return WaitFor(() => !opening.Running, "the opening to end", 15f);
             foreach (var kind in new[] { OpeningCueKind.Ring, OpeningCueKind.RingStop, OpeningCueKind.Arm, OpeningCueKind.Voice, OpeningCueKind.Speaker,
-                         OpeningCueKind.Blanket, OpeningCueKind.Lights, OpeningCueKind.Music, OpeningCueKind.Show, OpeningCueKind.Interactive, OpeningCueKind.End })
+                         OpeningCueKind.VoiceLevel, OpeningCueKind.Fade, OpeningCueKind.Lights, OpeningCueKind.Music, OpeningCueKind.Show, OpeningCueKind.Interactive, OpeningCueKind.End })
                 Assert.That(opening.Seen, Does.Contain(kind), kind.ToString());
             Assert.That(opening.Skipped, Is.False);
             Assert.That(GameRoot.Ui.Title.Root.enabledSelf, Is.True, "the title takes input again");

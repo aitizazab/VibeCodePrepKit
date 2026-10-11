@@ -35,6 +35,7 @@ namespace JamKit.VisitingHours
         float _black01 = 1f, _blackTarget = 1f, _blackSpeed = 1f;
         float _blanket01, _blanketTarget, _blanketSpeed = 1f;
         float _holdSkip, _vmStart = -1f, _speakerMix, _speakerTarget, _speakerSpeed = 4f;
+        float _voiceLevel = 1f, _voiceLevelTarget = 1f, _voiceLevelSpeed = 1f;
         bool _running, _done, _musicStarted, _audible, _retimeReported;
 
         /// <summary>Time multiplier (tests and the smoke run play it fast; voices are silent above 1.5x).</summary>
@@ -48,6 +49,8 @@ namespace JamKit.VisitingHours
         public float Black => _black01;
         public float UnderBlanket => _blanket01;
         public bool SpeakerOn => _speakerTarget > 0.5f;
+        /// <summary>How loud the voicemail is now (0..1 of its volume): it fades as she drifts off.</summary>
+        public float VoiceLevel => _voiceLevel;
         public bool Skipped;
         /// <summary>Cue kinds seen so far, in order (tests).</summary>
         public readonly List<OpeningCueKind> Seen = new List<OpeningCueKind>();
@@ -144,7 +147,8 @@ namespace JamKit.VisitingHours
                 float t = _timeline.Time - _vmStart;
                 _stage.SetPlayback(t + (_voicemail != null ? _voicemail.trimStart : 0f));
                 _speakerMix = Mathf.MoveTowards(_speakerMix, _speakerTarget, udt * _speakerSpeed);
-                float vol = Volume(_boot.voicemailVolume);
+                _voiceLevel = Mathf.MoveTowards(_voiceLevel, _voiceLevelTarget, dt * _voiceLevelSpeed);
+                float vol = Volume(_boot.voicemailVolume) * _voiceLevel;
                 if (_stage.voiceClean != null) _stage.voiceClean.volume = vol * (1f - _speakerMix);
                 if (_stage.voicePhone != null) _stage.voicePhone.volume = vol * _boot.speaker.volume * _speakerMix;
                 if (RetimeMode) TickRetime(t);
@@ -214,9 +218,15 @@ namespace JamKit.VisitingHours
                     StartVoice(c.text);
                     break;
                 case OpeningCueKind.Speaker:
-                    _speakerTarget = 1f;
+                    _speakerTarget = Mathf.Clamp01(c.value);
                     _speakerSpeed = 1f / Mathf.Max(0.02f, _boot.speaker.blend);
+                    // The phone is on speaker either way (its screen says so); value only sets how much we hear it through it.
                     _stage.SetSpeaker(true);
+                    break;
+                case OpeningCueKind.VoiceLevel:
+                    _voiceLevelTarget = Mathf.Clamp01(c.value);
+                    if (secs <= 0f) _voiceLevel = _voiceLevelTarget;
+                    else _voiceLevelSpeed = Mathf.Abs(_voiceLevelTarget - _voiceLevel) / secs + 1e-4f;
                     break;
                 case OpeningCueKind.Breathing:
                     _stage.SetBreathing(c.text != "off");
@@ -288,6 +298,7 @@ namespace JamKit.VisitingHours
                 }
                 _speakerMix = 0f;
                 _speakerTarget = 0f;
+                _voiceLevel = _voiceLevelTarget = 1f;
                 if (_stage.voiceClean != null) _stage.voiceClean.volume = Volume(_boot.voicemailVolume);
                 if (_stage.voicePhone != null) _stage.voicePhone.volume = 0f;
             }

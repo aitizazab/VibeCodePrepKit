@@ -129,7 +129,10 @@ namespace JamKit.VisitingHours.Tests
                     Assert.That(thing, Is.Not.Null, name);
                     var tb = RendererBounds(thing);
                     Assert.That(tb.min.y, Is.EqualTo(sb.max.y).Within(0.006f), name + " sits on the nightstand's top");
-                    Assert.That(tb.min.x >= sb.min.x && tb.max.x <= sb.max.x && tb.min.z >= sb.min.z && tb.max.z <= sb.max.z, Is.True, name + " is all on the nightstand");
+                    // The photo all on it; the phone mostly (its end over the bed-side edge, to be taken by it).
+                    float allow = name == "Phone" ? VhStageBuilder.PhoneOverhang + 0.01f : 0f;
+                    Assert.That(tb.min.x >= sb.min.x && tb.max.x <= sb.max.x + allow && tb.min.z >= sb.min.z && tb.max.z <= sb.max.z, Is.True, name + " is on the nightstand");
+                    Assert.That(tb.center.x < sb.max.x - 0.02f, Is.True, name + " rests on it (its middle over the wood)");
                 }
                 // The photo faces her pillow (not its back).
                 var photo = stage.bedroom.Find("Framed photo/Photo");

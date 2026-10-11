@@ -65,10 +65,22 @@ namespace JamKit.Tests.VisitingHours
             Assert.That(At(cues, OpeningCueKind.Phone, "missed"), Is.LessThan(At(cues, OpeningCueKind.Arm, "tap")));
             Assert.That(At(cues, OpeningCueKind.Arm, "tap"), Is.LessThan(voice), "her thumb plays it");
             Assert.That(At(cues, OpeningCueKind.Arm, "drop"), Is.EqualTo(drop).Within(0.01f), "she drops the phone at \"three in the morning\"");
-            Assert.That(At(cues, OpeningCueKind.Speaker), Is.InRange(drop, drop + 1f), "the phone's speaker after the drop");
-            Assert.That(At(cues, OpeningCueKind.Camera, "overhead"), Is.InRange(drop + 1f, drop + 3f), "the cut to the phone from above");
-            Assert.That(At(cues, OpeningCueKind.Fade, "out"), Is.InRange(night, night + 4f), "to black on \"G'night\"");
-            Assert.That(At(cues, OpeningCueKind.Phone, "off"), Is.LessThan(At(cues, OpeningCueKind.Fade, "out")), "the screen goes out last, then black");
+            // She drifts off: his voice fades, her eyes close (a blink, then shut), then the cut to the phone from above,
+            // where his voice is back and clear (never through the phone's speaker).
+            float overhead = At(cues, OpeningCueKind.Camera, "overhead");
+            Assert.That(overhead, Is.InRange(drop + 2f, drop + 6f), "the cut to the phone from above");
+            var fadeVoice = cues.Find(c => c.kind == OpeningCueKind.VoiceLevel && c.value < 0.01f);
+            Assert.That(fadeVoice, Is.Not.Null, "his voice fades as she drifts off");
+            Assert.That(fadeVoice.at + fadeVoice.seconds, Is.LessThanOrEqualTo(overhead + 0.01f), "faded out before the cut");
+            Assert.That(cues.Exists(c => c.kind == OpeningCueKind.VoiceLevel && c.value > 0.99f && System.Math.Abs(c.at - overhead) < 0.01f), Is.True, "back at the cut");
+            var closes = cues.FindAll(c => c.kind == OpeningCueKind.Fade && c.text == "out" && c.at > drop && c.at < overhead);
+            Assert.That(closes.Count, Is.GreaterThanOrEqualTo(2), "her eyes close: a slow blink, then shut");
+            Assert.That(cues.Exists(c => c.kind == OpeningCueKind.Fade && c.text == "in" && System.Math.Abs(c.at - overhead) < 0.01f), Is.True, "the view from above fades up");
+            foreach (var c in cues)
+                if (c.kind == OpeningCueKind.Speaker) Assert.That(c.value, Is.LessThan(0.01f), "no phone-speaker filter on his voice");
+            float goodnightBlack = cues.FindLast(c => c.kind == OpeningCueKind.Fade && c.text == "out").at;
+            Assert.That(goodnightBlack, Is.InRange(night, night + 4f), "to black on \"G'night\"");
+            Assert.That(At(cues, OpeningCueKind.Phone, "off"), Is.LessThan(goodnightBlack), "the screen goes out last, then black");
             Assert.That(At(cues, OpeningCueKind.Phone, "off"), Is.GreaterThan(night), "the room goes before the screen");
             float music = At(cues, OpeningCueKind.Music);
             float news = At(cues, OpeningCueKind.Voice, "news");
@@ -84,8 +96,32 @@ namespace JamKit.Tests.VisitingHours
                 prev = t;
             }
             Assert.That(prev, Is.LessThan(news + SliceContent.NewsTrack().recordedLength - 3f), "the room is up before the report ends");
+            Assert.That(prev - At(cues, OpeningCueKind.Show, "mug"), Is.LessThan(SliceContent.NewsTrack().recordedLength * 0.7f), "no long gaps: paced by the report");
             Assert.That(At(cues, OpeningCueKind.Interactive), Is.EqualTo(news + SliceContent.NewsTrack().recordedLength).Within(0.01f), "interactive at the end of the report");
             Assert.That(voice + vm.Find("hey").at - vm.trimStart - At(cues, OpeningCueKind.Arm, "tap"), Is.InRange(0.3f, 2f), "Elias starts soon after her thumb");
+        }
+
+        [Test]
+        public void TheTablePiecesArePacedByTheReportsLength()
+        {
+            // A shorter report (the new take) brings the pieces closer together, in the same order, all up before it ends.
+            float shortLen = 18f;
+            var cues = OpeningScript.Resolve(SliceContent.OpeningCues(), Tracks(), clip => clip == "vo_news_anchor" ? shortLen : 0f, false, null);
+            float news = At(cues, OpeningCueKind.Voice, "news");
+            float prev = news, first = -1f;
+            foreach (var piece in new[] { "mug", "badge", "notepad", "tablet", "table", "room" })
+            {
+                float t = At(cues, OpeningCueKind.Show, piece);
+                Assert.That(t, Is.GreaterThan(prev), piece);
+                if (first < 0f) first = t;
+                prev = t;
+            }
+            Assert.That(prev, Is.LessThan(news + shortLen - 2f), "all up before the report ends");
+            Assert.That(prev - first, Is.LessThan(shortLen * 0.7f));
+            Assert.That(At(cues, OpeningCueKind.Interactive), Is.EqualTo(news + shortLen).Within(0.01f));
+            float share;
+            Assert.That(OpeningScript.Percent("40%", out share) && System.Math.Abs(share - 0.4f) < 1e-4f, Is.True);
+            Assert.That(OpeningScript.Percent("drop", out share), Is.False);
         }
 
         [Test]

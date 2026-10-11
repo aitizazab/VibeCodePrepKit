@@ -98,26 +98,30 @@ table presses them), so Play, Settings, Credits and Quit behave exactly as befor
 2. Fade up from her pillow: the ceiling, the streetlight's stripes through the blinds (a spot light below the
    window, the blinds' slats casting the stripes), cold moonlight. She turns to the nightstand; the phone glows,
    "Elias", the call rings pulsing.
-3. Her hand comes out from under the blanket, takes the phone as the ringing stops (missed call, then the voicemail
-   card), brings it close, her thumb taps play; the voicemail plays clean.
-4. At "Well, it's three in the morning..." she sets it back down (a clunk), the voice moves to the phone's small
-   speaker (Unity's high-pass, low-pass and distortion filters, crossfaded), she rolls away and the view goes dark
-   under the blanket.
+3. Her hand comes out from under the blanket and takes the phone by its end as the ringing stops (it lies with its
+   bottom end 4 cm over the nightstand's edge: her fingers go under that end, her thumb on its face, her palm on its
+   back from the start, so it never turns over in her hand). Missed call, then the voicemail card; she brings it
+   close, her thumb taps play; the voicemail plays clean.
+4. At "Well, it's three in the morning..." she sets it back down (a clunk) the same way, and rolls away. She drifts
+   off: his voice fades to nothing over 3 s, her eyes close in a slow blink (to black, open again, heavy) and then
+   stay shut.
 5. Cut: the phone from above on the nightstand, still playing, its glow on the wood; the edge of the bed, Nadia a
    shape under the blanket with her hair on the pillow, breathing slowly (the blanket rises with each breath).
+   His voice comes back here, clear: the phone-speaker filter is no longer used (his lines must be understood).
    A slow push in; the screen dims.
 6. "G'night": the room's light goes, the phone's screen last, then black. Silence; the music blooms.
-7. The table: out of the black as the news report starts, the pieces arrive one after another: the coffee
-   (+0.5 s), the badge (+6 s), the notepad and its pen (+11.5 s), the tablet (+17 s), the table under them (+23 s),
-   the room, its floor and wall (+29 s); the report runs 38.9 s. The tablet's video drifts and crossfades its frames, the emergency lights pulse, the LIVE tag and its
+7. The table: out of the black as the news report starts, the pieces arrive one after another, paced by the
+   report's own length (cues anchored to shares of it, "news:14%"): the coffee (2%), the badge (14%), the notepad and
+   its pen (27%), the tablet (41%), the table under them (54%), the room, its floor and wall (67%). On the 18.45 s
+   report (a clear newsreader) that's every 2.4 s or so, all up by about 15 s. The tablet's video drifts and crossfades its frames, the emergency lights pulse, the LIVE tag and its
    own headline scrolls along the bottom of the video. When the report ends the video pauses and its play button
    comes up: the title takes input.
 
-**The title table:** seen from a seat at its near edge (the camera at 1.10 m, 0.40 m in front of the tablet's
+**The title table:** seen from a seat at its near edge (the camera at 1.17 m, 0.58 m in front of the tablet's
 foot, looking down at it, 50 degrees field of view). A big tablet (46 x 30 cm, a 16:10 screen in a thin bezel, a
-front camera) stands on its folio in the middle and fills most of the frame (about half its width, 60% of its
-height); the mug stands at the front right with the badge beside it (its lanyard looped towards the middle); the
-notepad lies at the front left with the pen across it. The badge's card has a gear and "Settings" on its lower
+front camera) stands on its folio in the middle (about 40% of the frame's width, half its height); the mug stands
+at its right, handle out; the badge lies in front of it, its lanyard in a loop towards the middle; the notepad
+lies at the left with the pen across it. Everything is in the frame with room round it (nothing cut by its edges). The badge's card has a gear and "Settings" on its lower
 band, the notepad's page "Credits" (underlined) with handwritten names under it: both are written onto the
 pictures in code (`VhTextures.BadgeSettings`, `NotepadCredits`; the builder imports `op-badge` and `op-notepad`
 readable for it). The tablet is Play, the mug Quit (inert and never highlighted in the web build), the ID badge
@@ -156,9 +160,9 @@ the power and volume buttons; the tablet the same way. Everything on the nightst
 top: the lamp at the back by the wall, the phone on the bed's side within her reach, the framed photo at the front
 corner, leaning back on its strut, turned towards her pillow. **Nadia** is her Tripo model (`Models/Nadia/`,
 imported at scale 1.69 by `VhNadiaImport`): lying on her side, head hidden in first person, her right arm posed
-by two-bone IK to the phone, her palm kept off the phone and each finger closing until it touches it, so the fingers wrap its edges (`SetGrip`: from above while it lies on the
-nightstand, then cradled from below once it's up at eye height, her wrist and hand in view under its lower edge, the fingers up its
-back, the thumb free over the screen to tap); turned away for the overhead shot with her hair on the pillow. The
+by two-bone IK to the phone, her palm always on the phone's back and kept off it, the fingers nearly straight and stopped where they touch it (`SetGrip`: by its end while it lies on the
+nightstand, fingers under it and thumb on its face, then cradled from behind once it's up, her wrist under its lower edge, the fingers along its
+back to just past its far edge, the thumb beside its near edge and onto the screen only to tap); turned away for the overhead shot with her hair on the pillow. The
 blanket is shaped over her real body: the builder poses her both ways, bakes her skinned mesh and drapes the
 blanket over the highest points (widened, smoothed, plus its thickness), so nothing of her pokes through and
 there's no ridge round her outline. Without the model (or without Mixamo arm bones) a stand-in arm and

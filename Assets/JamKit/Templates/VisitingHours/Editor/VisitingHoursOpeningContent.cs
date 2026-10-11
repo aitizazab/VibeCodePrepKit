@@ -17,8 +17,8 @@ namespace JamKit.VisitingHours.EditorTools
     public static class VisitingHoursOpeningContent
     {
         /// <summary>Bump to reset the defaults on the next Rebuild (when they change shape): the cues from any older
-        /// version, the voice tracks (and their markers) only from before version 2 (3 re-timed the title's pieces only).</summary>
-        public const int DataVersion = 3;
+        /// version, the voice tracks (and their markers) only from before version 2 (3 re-timed the title's pieces; 4 her falling asleep and the pieces paced by the report).</summary>
+        public const int DataVersion = 4;
 
         public const string Root = VisitingHoursBuilder.Root;
         public const string KenneyDir = Root + "/ThirdParty/Kenney/FurnitureKit";
@@ -81,6 +81,13 @@ namespace JamKit.VisitingHours.EditorTools
             if (reset || fresh || b.cues == null || b.cues.Count == 0) b.cues = SliceContent.OpeningCues();
             if (reset || b.dataVersion < 2 || b.tracks == null || b.tracks.Count == 0)
                 b.tracks = new List<VoiceTrack> { SliceContent.VoicemailTrack(), SliceContent.NewsTrack() };
+            else if (b.dataVersion < 4)
+            {
+                // The new, shorter news report: its track only (the voicemail keeps any re-timed markers).
+                int i = b.tracks.FindIndex(t => t != null && t.name == "news");
+                if (i >= 0) b.tracks[i] = SliceContent.NewsTrack();
+                else b.tracks.Add(SliceContent.NewsTrack());
+            }
             b.dataVersion = DataVersion;
             b.headline = SliceContent.Headline(ReadHeadline());
             b.wakingMaterial = EnsureMaterial();

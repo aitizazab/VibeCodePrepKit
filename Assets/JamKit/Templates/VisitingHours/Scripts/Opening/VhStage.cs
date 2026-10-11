@@ -378,7 +378,7 @@ namespace JamKit.VisitingHours
             GripPose(held, out var wrist, out var palm);
             nadia.SetHand(wrist, palm, _handWeight);
             Vector3 centre = phone.position + phone.rotation * new Vector3(0f, phoneSize.y * 0.5f, 0f);
-            nadia.SetGrip(centre, phone.rotation, phoneSize, curl, _thumb);
+            nadia.SetGrip(centre, phone.rotation, phoneSize, curl, _thumb, held);
             nadia.SetThumb(_thumb);
         }
 
@@ -386,8 +386,8 @@ namespace JamKit.VisitingHours
         public Vector3 phoneSize = new Vector3(0.071f, 0.0082f, 0.147f);
 
         /// <summary>
-        /// Where her right wrist goes and how her hand is turned for a grip on the phone. <paramref name="held"/> 0: from above
-        /// as it lies on the nightstand (the palm over the screen, the fingers along it from its bottom edge); 1: up in her
+        /// Where her right wrist goes and how her hand is turned for a grip on the phone. <paramref name="held"/> 0: by its end
+        /// as it lies on the nightstand (the end overhangs the edge: the fingers under it, the thumb on its face); 1: up in her
         /// hand (cradled from below: the wrist just under its bottom edge towards the right, the palm against its lower back,
         /// the fingers up and across it to wrap the left edge, the thumb free in front). The hand and wrist show below the
         /// phone instead of hiding behind it. The two share the bottom edge, so the change turns round it, not through it.
@@ -400,13 +400,17 @@ namespace JamKit.VisitingHours
             // "Behind" in world terms: the side of the phone away from her eyes (the camera), whichever way it's turned.
             Vector3 front = cam != null && Vector3.Dot(up, cam.transform.position - centre) < 0f ? -up : up;
             Vector3 behindDir = -front;
-            Vector3 aboveWrist = centre - top * (hl + 0.03f) + up * (th * 0.5f + 0.024f);
-            Quaternion above = Quaternion.LookRotation(top, up);
+            // On the nightstand she takes it by its end, back to her palm: the phone's bottom end overhangs the edge, her
+            // hand comes over the bed's edge from above it, the fingers hook under that end and the thumb on its face.
+            Vector3 pinchWrist = centre - top * (hl + 0.06f) + front * 0.05f;
+            Vector3 pinchFingers = (top * 0.65f + behindDir * 0.76f).normalized, pinchPalm = (top * 0.76f + front * 0.65f).normalized;
+            Quaternion pinch = Quaternion.LookRotation(pinchFingers, -pinchPalm);
             Vector3 behindWrist = centre - top * (hl + 0.025f) + right * (hw * 0.45f) + behindDir * (th * 0.5f + 0.012f);
             Quaternion behind = Quaternion.LookRotation((top * 0.8f - right * 0.6f).normalized, behindDir);
             float k = VhUtil.Ease(held);
-            wrist = Vector3.Lerp(aboveWrist, behindWrist, k) + up * (Mathf.Sin(k * Mathf.PI) * 0.03f);
-            palm = Quaternion.Slerp(above, behind, k);
+            // From the end to the back: the palm stays on the phone's back all the way (no turn over).
+            wrist = Vector3.Lerp(pinchWrist, behindWrist, k);
+            palm = Quaternion.Slerp(pinch, behind, k);
         }
 
         static Vector3 Arc(Vector3 a, Vector3 b, float t, float height) => Vector3.Lerp(a, b, t) + Vector3.up * (Mathf.Sin(t * Mathf.PI) * height);

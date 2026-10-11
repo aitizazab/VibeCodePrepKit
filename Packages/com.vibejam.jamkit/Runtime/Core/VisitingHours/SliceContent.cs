@@ -251,20 +251,25 @@ namespace JamKit.VisitingHours
             At(8.45f, OpeningCueKind.Phone, "playing");
             At(8.6f, OpeningCueKind.Voice, "voicemail", note: "close and clear while she holds it");
 
-            // "Well, it's three in the morning. You're probably asleep...": she drops the phone, rolls away,
-            // the blanket goes over her head.
+            // "Well, it's three in the morning. You're probably asleep...": she sets the phone down and rolls away;
+            // her eyes close (a slow blink, then they stay shut) and his voice fades as she drifts off.
             On("voicemail:drop", 0f, OpeningCueKind.Arm, "drop", 0.55f);
             On("voicemail:drop", 0.5f, OpeningCueKind.Sfx, "vh_clunk", 0f, 0.9f);
-            On("voicemail:drop", 0.5f, OpeningCueKind.Speaker, note: "from here the voicemail comes out of the phone's small speaker");
             On("voicemail:drop", 0.6f, OpeningCueKind.Arm, "hide", 0.3f);
             On("voicemail:drop", 0.7f, OpeningCueKind.Camera, "away", 1.0f);
             On("voicemail:drop", 0.75f, OpeningCueKind.Sfx, "vh_rustle_big", 0f, 1f);
-            On("voicemail:drop", 1.15f, OpeningCueKind.Blanket, "", 0.7f, 1f);
-            // Cut: the phone from above, still playing on speaker; Nadia a shape under the blanket, asleep.
-            On("voicemail:drop", 2.3f, OpeningCueKind.Camera, "overhead", 0f);
-            On("voicemail:drop", 2.3f, OpeningCueKind.Blanket, "", 0f, 0f);
-            On("voicemail:drop", 2.3f, OpeningCueKind.Breathing, "on");
-            On("voicemail:drop", 2.4f, OpeningCueKind.Phone, "dim", 22f, 0.45f, note: "the screen slowly dims");
+            On("voicemail:drop", 1.0f, OpeningCueKind.VoiceLevel, "", 3.0f, 0f, note: "his voice fades as she drifts off");
+            On("voicemail:drop", 1.6f, OpeningCueKind.Fade, "out", 0.7f, note: "her eyes close...");
+            On("voicemail:drop", 2.4f, OpeningCueKind.Fade, "in", 0.6f, note: "...open, heavy...");
+            On("voicemail:drop", 3.2f, OpeningCueKind.Fade, "out", 1.2f, note: "...and stay shut");
+            // Cut: the phone from above, still playing; Nadia a shape under the blanket, asleep. His voice back, clear
+            // (not through the phone's speaker: his lines must be understood).
+            On("voicemail:drop", 4.6f, OpeningCueKind.Camera, "overhead", 0f);
+            On("voicemail:drop", 4.6f, OpeningCueKind.Speaker, "", 0f, 0f, note: "his own voice, clear");
+            On("voicemail:drop", 4.6f, OpeningCueKind.Breathing, "on");
+            On("voicemail:drop", 4.6f, OpeningCueKind.VoiceLevel, "", 0.8f, 1f);
+            On("voicemail:drop", 4.6f, OpeningCueKind.Fade, "in", 1.5f);
+            On("voicemail:drop", 4.7f, OpeningCueKind.Phone, "dim", 20f, 0.45f, note: "the screen slowly dims");
             // "G'night": the room goes, the phone's screen goes out last.
             On("voicemail:goodnight", 0.2f, OpeningCueKind.Lights, "", 2.0f, 0f);
             On("voicemail:goodnight", 2.4f, OpeningCueKind.Phone, "off", 0.6f);
@@ -277,13 +282,14 @@ namespace JamKit.VisitingHours
             On("voicemail:end", 6.0f, OpeningCueKind.Camera, "table", 0f);
             On("voicemail:end", 6.0f, OpeningCueKind.Voice, "news");
             On("news:start", 0f, OpeningCueKind.Fade, "in", 2.0f);
-            On("news:start", 0.5f, OpeningCueKind.Show, "mug", 1.8f);
-            On("news:start", 6f, OpeningCueKind.Show, "badge", 1.8f);
-            On("news:start", 11.5f, OpeningCueKind.Show, "notepad", 1.8f);
-            On("news:start", 12.1f, OpeningCueKind.Show, "pen", 1.8f);
-            On("news:start", 17f, OpeningCueKind.Show, "tablet", 2.0f);
-            On("news:start", 23f, OpeningCueKind.Show, "table", 2.2f);
-            On("news:start", 29f, OpeningCueKind.Show, "room", 2.5f);
+            // Paced by the report's own length (a shorter or longer take re-paces them): one after another, no long gaps.
+            On("news:2%", 0f, OpeningCueKind.Show, "mug", 1.8f);
+            On("news:14%", 0f, OpeningCueKind.Show, "badge", 1.8f);
+            On("news:27%", 0f, OpeningCueKind.Show, "notepad", 1.8f);
+            On("news:27%", 0.6f, OpeningCueKind.Show, "pen", 1.8f);
+            On("news:41%", 0f, OpeningCueKind.Show, "tablet", 2.0f);
+            On("news:54%", 0f, OpeningCueKind.Show, "table", 2.2f);
+            On("news:67%", 0f, OpeningCueKind.Show, "room", 2.5f);
             // The end of the report: the tablet's play button is Play.
             On("news:end", 0f, OpeningCueKind.Interactive);
             On("news:end", 0.2f, OpeningCueKind.End);
@@ -315,13 +321,14 @@ namespace JamKit.VisitingHours
             },
         };
 
-        /// <summary>Nicole's news report (38.9 s). No markers needed: the table's pieces hang off its start and end.</summary>
+        /// <summary>The news report (18.45 s: a clear newsreader, cut by clauses). No markers needed: the table's pieces
+        /// hang off shares of its length ("news:40%"), its start and its end, so another take re-paces them.</summary>
         public static VoiceTrack NewsTrack() => new VoiceTrack
         {
             name = "news",
             clip = "vo_news_anchor",
             speaker = "News",
-            recordedLength = 38.87f,
+            recordedLength = 18.45f,
             markers = new List<VoiceMarker>(),
         };
 

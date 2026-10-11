@@ -21,7 +21,8 @@ namespace JamKit.VisitingHours
         Sfx,
         /// <summary>Starts the voice track named <c>text</c> (voicemail, news): its markers count from this moment.</summary>
         Voice,
-        /// <summary>The voicemail moves to the phone's small speaker (thin, a little distorted).</summary>
+        /// <summary>The voicemail moves to the phone's small speaker (thin, a little distorted) by <c>value</c> (1 = all
+        /// through the speaker, 0 = back to his clear voice).</summary>
         Speaker,
         /// <summary>Nadia's slow breathing: <c>text</c> on or off.</summary>
         Breathing,
@@ -40,14 +41,18 @@ namespace JamKit.VisitingHours
         ClearSubtitle,
         /// <summary>The opening is over.</summary>
         End,
+        /// <summary>How loud the voicemail is (0..1 of its volume, <c>value</c>) over <c>seconds</c>: it fades as she
+        /// drifts off and comes back for the view from above. (Added last: the boot asset stores kinds by number.)</summary>
+        VoiceLevel,
     }
 
     /// <summary>
     /// One cue of the opening. Its time is either <see cref="at"/> (seconds from the start) or, when
     /// <see cref="anchor"/> is set, a voice track's marker plus <see cref="offset"/>:
     /// "voicemail:drop" is the voicemail's "drop" marker, "news:end" the end of the news report,
-    /// "voicemail:start" the moment it starts. Re-timing a recording means moving its markers only:
-    /// every cue anchored to them follows.
+    /// "voicemail:start" the moment it starts, "news:40%" 40% of the way through it (paced by the recording's
+    /// own length, whatever take is in). Re-timing a recording means moving its markers only: every cue
+    /// anchored to them follows.
     /// </summary>
     [Serializable]
     public class OpeningCue
@@ -193,6 +198,16 @@ namespace JamKit.VisitingHours
             return true;
         }
 
+        /// <summary>"40%" -> 0.4 (clamped to 0..1); false for anything else.</summary>
+        public static bool Percent(string marker, out float share)
+        {
+            share = 0f;
+            if (string.IsNullOrEmpty(marker) || marker[marker.Length - 1] != '%') return false;
+            if (!float.TryParse(marker.Substring(0, marker.Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float p)) return false;
+            share = Math.Max(0f, Math.Min(1f, p / 100f));
+            return true;
+        }
+
         /// <summary>"voicemail:drop" -> ("voicemail", "drop").</summary>
         public static bool SplitAnchor(string anchor, out string track, out string marker)
         {
@@ -232,8 +247,8 @@ namespace JamKit.VisitingHours
             return real / track.recordedLength;
         }
 
-        /// <summary>A marker's time from the moment the track starts playing ("start" = 0, "end" = when it finishes;
-        /// a marker's own time less the trimmed lead-in).</summary>
+        /// <summary>A marker's time from the moment the track starts playing ("start" = 0, "end" = when it finishes,
+        /// "40%" that share of how long it plays; a named marker's own time less the trimmed lead-in).</summary>
         public static bool MarkerTime(VoiceTrack track, string marker, Func<string, float> clipLength, out float seconds)
         {
             seconds = 0f;
@@ -241,6 +256,11 @@ namespace JamKit.VisitingHours
             if (marker == "end")
             {
                 seconds = Playing(track, clipLength);
+                return true;
+            }
+            if (Percent(marker, out float share))
+            {
+                seconds = Playing(track, clipLength) * share;
                 return true;
             }
             var m = track.Find(marker);
