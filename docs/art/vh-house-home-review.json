@@ -1,0 +1,162 @@
+{
+ "name": "visiting-hours-house-home",
+ "title": "Visiting Hours: Night 2's house as Elias's home (before and after)",
+ "subtitle": "Your note: \"it's not at all furnished... for the space Elias spent most of his life in, his memories of it are rather bland.\" The house is now dressed as a lived-in home, room by room, following a few interior-design and feng shui rules (a focal point per room, the main seat facing it, a rug under each furniture group, clear walkways, light in layers, soft things against hard ones; sources in docs/DREAM-HOUSE.md, 'Interior notes'). All decoration: the routes, the hiding spots and Theo's paths are unchanged, and the tests pass. Grey = before (2026-10-11), green = after (2026-10-12), stills from the game.",
+ "questions": [
+  "Living room: the fireplace is now the room's heart (the sofa faces it, the siblings' photo on the mantel). Does this feel like the room Elias grew up in?",
+  "Kitchen: pancakes on a set table, a cluttered counter, the children's drawings on the fridge. Warm enough, or more mess (a radio, a calendar of chores, school bags)?",
+  "Hallway: four childhood photos of the brother and sister (Christmas, the swing, a blanket fort, the first bike). Are these the right memories for him to keep on the wall?",
+  "Theo's room: a teddy, a toy chest, toys in the corner, his drawing over the desk. Is it a ten-year-old's room, or does it need posters, a night light, more of him?",
+  "Study: a desk, a reading corner, the photo wall. Should it say more about Elias himself (medical books, a bike part, something of Walt's)?",
+  "Still open from before: the floorboards (realistic wood, crayon-drawn, or plain pastel?); dressing the tipped house as a house on its side; the cast's white sticker borders (keep or cut tight?); the house front (blue clapboard, coral porch: is this their home?)."
+ ],
+ "notes": [
+  "The rooms keep their size (shrinking them would change the hide-and-seek): they're filled with furniture groups instead, which answers the earlier 'fill or shrink' question.",
+  "New pictures (made with Flow, 0 credits): the childhood photos and the two children's drawings. The mantel photo is the opening's drawing of Nadia and Elias.",
+  "Furniture is Kenney's free Furniture Kit in the dream's pastel look with a pencil outline; the fireplace, pendants, clocks, fruit and toys are built for the dream."
+ ],
+ "sections": [
+  {
+   "title": "The living room",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-before/house-08-sofa.png",
+     "label": "Before: the sofa and the curtains",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-08-sofa.png",
+     "label": "After: the sofa group on its rug, facing the fireplace",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-08c-fireplace.png",
+     "label": "After: the fireplace: mantel, clock, candles, the siblings' photo, the mirror",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-08d-armchair-corner.png",
+     "label": "After: the armchair corner: side table, lamps, bookcase",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The kitchen",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-before/house-04-table-and-lena.png",
+     "label": "Before: the table, Lena, Theo",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-04-table-and-lena.png",
+     "label": "After: the table on its rug under a pendant",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-before/house-05-counter-stove-fridge.png",
+     "label": "Before: the counter",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-05-counter-stove-fridge.png",
+     "label": "After: the counter's clutter, the cupboards",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-before/house-06-fridge-calendar.png",
+     "label": "Before: the fridge",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-06-fridge-calendar.png",
+     "label": "After: the fridge: the calendar, the drawings, notes",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The hallway",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-before/house-08b-coats.png",
+     "label": "Before: the hallway's end (the coats)",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-08e-hallway.png",
+     "label": "After: the runner and the childhood photos",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Theo's room",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-before/house-10-theos-room.png",
+     "label": "Before: Theo's room",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-10-theos-room.png",
+     "label": "After: the rug, bed, toy chest, bookcase, pendant",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-before/house-11-theos-desk-drawing.png",
+     "label": "Before: his desk",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-11-theos-desk-drawing.png",
+     "label": "After: his desk, chair and drawing; toys in the corner",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-10b-theos-bed.png",
+     "label": "After: the bed, the teddy, the bedside lamp",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The study",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-before/house-09-photo-wall.png",
+     "label": "Before: the photo wall",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-09-photo-wall.png",
+     "label": "After: the photo wall and the bookcases",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-after/house-10c-study-corner.png",
+     "label": "After: the reading corner",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  }
+ ]
+}
