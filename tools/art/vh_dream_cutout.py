@@ -59,3 +59,47 @@ def pattern(src, name, contrast=0.22, size=512):
     os.makedirs(OUT, exist_ok=True)
     dst = os.path.join(OUT, name + ".png"); img.save(dst + ".tmp", format="PNG", optimize=True); os.replace(dst + ".tmp", dst)
     print(name, img.size, "mean 0.5")
+
+
+def _save_rgb(img, name):
+    os.makedirs(OUT, exist_ok=True)
+    if max(img.size) > 1024: img.thumbnail((1024, 1024), Image.LANCZOS)
+    dst = os.path.join(OUT, name + ".png"); img.save(dst + ".tmp", format="PNG", optimize=True); os.replace(dst + ".tmp", dst)
+    print(name, img.size)
+
+
+def _centre_crop(img, aspect):
+    w, h = img.size
+    if w / h > aspect: nw = int(round(h * aspect)); return img.crop(((w - nw) // 2, 0, (w - nw) // 2 + nw, h))
+    nh = int(round(w / aspect)); return img.crop((0, (h - nh) // 2, w, (h - nh) // 2 + nh))
+
+
+def photo_grid(src, prefix, aspect, count=6, tol=34, inset=0.0):
+    """A sheet of separate pictures on plain paper (a grid) -> one file per picture, reading order (rows top to bottom,
+    left to right): <prefix>1 ... <prefix>N, each centre-cropped to `aspect` (width / height)."""
+    im = Image.open(os.path.join(INC, src)).convert("RGB"); a = np.asarray(im, dtype=np.int16)
+    edge = np.concatenate([a[:6].reshape(-1, 3), a[-6:].reshape(-1, 3), a[:, :6].reshape(-1, 3), a[:, -6:].reshape(-1, 3)])
+    fig = np.abs(a - np.median(edge, axis=0)).max(-1) > tol
+    fig = ndimage.binary_closing(fig, iterations=4)
+    lab, n = ndimage.label(fig)
+    boxes = sorted(ndimage.find_objects(lab), key=lambda s: (s[0].stop - s[0].start) * (s[1].stop - s[1].start), reverse=True)[:count]
+    if len(boxes) < count: raise SystemExit(f"found {len(boxes)} pictures, not {count}")
+    rows = sorted(boxes, key=lambda s: s[0].start)
+    rowh = np.median([s[0].stop - s[0].start for s in rows])
+    ordered = sorted(boxes, key=lambda s: (round(s[0].start / rowh), s[1].start))
+    for i, s in enumerate(ordered, 1):
+        y0, y1, x0, x1 = s[0].start, s[0].stop, s[1].start, s[1].stop
+        dx, dy = int((x1 - x0) * inset), int((y1 - y0) * inset)
+        _save_rgb(_centre_crop(im.crop((x0 + dx, y0 + dy, x1 - dx, y1 - dy)), aspect), f"{prefix}{i}")
+
+
+def picture(src, name, aspect, box=None, erase=()):
+    """One picture: optional fractional `box` (x0, y0, x1, y1) to crop to first, `erase` rectangles (fractions of the
+    source) painted over with the paper colour (stray lettering), then centre-cropped to `aspect`."""
+    im = Image.open(os.path.join(INC, src)).convert("RGB"); W, H = im.size
+    if erase:
+        a = np.asarray(im).copy(); paper = np.median(np.concatenate([a[:6].reshape(-1, 3), a[-6:].reshape(-1, 3)]), axis=0)
+        for x0, y0, x1, y1 in erase: a[int(y0 * H):int(y1 * H), int(x0 * W):int(x1 * W)] = paper
+        im = Image.fromarray(a)
+    if box: im = im.crop((int(box[0] * W), int(box[1] * H), int(box[2] * W), int(box[3] * H)))
+    _save_rgb(_centre_crop(im, aspect), name)
