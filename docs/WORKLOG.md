@@ -1221,3 +1221,8 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - The chase is built around the speed thresholds (stems for slow and fast), ready for grounded, spacey and airy variants per scene.
   - Round 2 went to the sound agent (a7eac08).
 - **Playtest:** the creator is playing the whole Visiting Hours build (c9f56aa): the opening, then the argument prototype.
+- **The opening editor (requested):** "The positioning of objects and the like in the opening sequence keeps on breaking the immersion, so create an editor so I can customize that scene myself." Sent to the opening agent (a40885a).
+  - It works in the build: F9 or the presenter panel, a beat timeline to scrub, picking objects by click or by name, gizmos, undo, and shot cameras set from the view (edits stay per key).
+  - The animation follows the objects (the grab follows the phone).
+  - Edits save as an overrides JSON that both the runtime and the scene generator apply, so they survive rebuilds.
+  - The title shot is editable too. The creator's title sketch comes separately.
