@@ -68,6 +68,20 @@ namespace JamKit.Tests.DreamEscape
         }
 
         [Test]
+        public void TheSmokeRunsLegFromTheStairsFitsItsBudget()
+        {
+            // DreamHouseGame's smoke drive runs from "The stairs" (the whole smoke run, credits included, has 20 s).
+            var h = Build();
+            int stairs = h.course.checkpoints.FindIndex(c => c.name == "The stairs");
+            Assert.That(stairs, Is.GreaterThan(h.escapeCheckpoint));
+            var r = LabCourseTests.Drive(h.course, stairs, h.rain.rainEndS, 20f, 60, true);
+            TestContext.Out.WriteLine("the stairs to the end of the rain: " + r.seconds.ToString("0.0") + " s");
+            Assert.That(r.finished, Is.True);
+            Assert.That(r.falls + r.caught, Is.EqualTo(0));
+            Assert.That(r.seconds, Is.LessThan(9f), "leaves room in the 20 s smoke budget");
+        }
+
+        [Test]
         public void TheRouteFitsTheMovementsReach()
         {
             var h = Build();

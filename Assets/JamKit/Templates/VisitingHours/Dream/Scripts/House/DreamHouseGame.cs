@@ -600,12 +600,24 @@ namespace JamKit.DreamEscape
                     break;
                 case DreamHouse.ChapterTips:
                 case DreamHouse.ChapterFrontDoor:
-                    _story.JumpTo(HousePhase.Escape);
-                    ResetHouse();
-                    _stretched = true;
-                    BeginEscape(chapter == DreamHouse.ChapterTips ? _h.escapeCheckpoint : _h.frontDoorCheckpoint);
+                    JumpToEscape(chapter == DreamHouse.ChapterTips ? _h.escapeCheckpoint : _h.frontDoorCheckpoint);
                     break;
             }
+        }
+
+        /// <summary>The smoke run starts here (an escape checkpoint).</summary>
+        public const string SmokeCheckpoint = "The stairs";
+
+        /// <summary>Straight into the escape at one of its checkpoints, running (chapters, the smoke run).</summary>
+        void JumpToEscape(int checkpoint)
+        {
+            StopAllCoroutines();
+            _respawning = false;
+            SetWhite(0f);
+            _story.JumpTo(HousePhase.Escape);
+            ResetHouse();
+            _stretched = true;
+            BeginEscape(checkpoint < 0 ? _h.escapeCheckpoint : checkpoint);
         }
 
         bool SkipToNextCheckpoint()
@@ -637,14 +649,16 @@ namespace JamKit.DreamEscape
             input.Clear();
         }
 
-        /// <summary>The smoke run: the house tipping, driven by the autopilot from its start out of the front door to the
-        /// end of the rain. It must get out with no respawn; otherwise it logs an error, which fails the smoke run.</summary>
+        /// <summary>The smoke run: the end of the house tipping, driven by the autopilot from the staircase (now a slide) out of
+        /// the front door, past the umbrella, to the end of the rain: about 7 s, because the whole smoke run, credits and the
+        /// way back to the title included, has 20 s (the full escape from the tip-over takes about 15 s and didn't fit). It
+        /// must get out with no respawn; otherwise it logs an error, which fails the smoke run.</summary>
         IEnumerator SmokeDrive()
         {
-            JumpToChapter(DreamHouse.ChapterTips);
+            JumpToEscape(_course.checkpoints.FindIndex(c => c.name == SmokeCheckpoint));
             int respawns = _respawns, finishes = _finishes;
             SetAutopilot(true);
-            float end = Time.realtimeSinceStartup + 30f;
+            float end = Time.realtimeSinceStartup + 11f;
             while (Time.realtimeSinceStartup < end && GameRoot.Flow.InRun && _finishes == finishes) yield return null;
             SetAutopilot(false);
             bool out_ = _finishes > finishes;
