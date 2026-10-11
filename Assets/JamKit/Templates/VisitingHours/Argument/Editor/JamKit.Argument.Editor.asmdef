@@ -1,0 +1,22 @@
+{
+    "name": "JamKit.Argument.Editor",
+    "rootNamespace": "JamKit.Argument.EditorTools",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "JamKit.Editor",
+        "JamKit.Argument",
+        "Unity.RenderPipelines.Universal.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

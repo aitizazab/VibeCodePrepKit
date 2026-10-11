@@ -22,6 +22,10 @@ namespace JamKit.Shell
         /// <summary>Restart a timed run (R, View / Share) and show or hide the best run's ghost (G, d-pad left):
         /// the Movement Lab's Gauntlet. Their Controls rows are hidden unless a scene shows them.</summary>
         public readonly InputAction Restart, Ghost;
+        /// <summary>The argument battle's verbs (docs/ARGUMENT-PROTOTYPE.md): Ask (1, X / Square), Challenge (2, A / Cross),
+        /// Concede (3, Y / Triangle), Press (hold 4, B / Circle), Let it rest (5, View / Share). Their Controls rows show
+        /// while a battle runs; they never clash with walking-around keys (a separate context).</summary>
+        public readonly InputAction ArgueAsk, ArgueChallenge, ArgueConcede, ArguePress, ArgueRest;
         public readonly InputAction Navigate, Submit, Cancel, Point, Click, ScrollWheel;
 
         /// <summary>Rebinding: the Controls screen's rows, conflicts, resets, the stick clicks' Hold / Toggle
@@ -105,6 +109,11 @@ namespace JamKit.Shell
                 AddFixed(Ghost, "<Keyboard>/g", 0);
                 AddFixed(Ghost, "<Gamepad>/dpad/left", 1);
             }
+            ArgueAsk = Ensure("ArgueAsk", "<Keyboard>/1", "<Gamepad>/buttonWest");
+            ArgueChallenge = Ensure("ArgueChallenge", "<Keyboard>/2", "<Gamepad>/buttonSouth");
+            ArgueConcede = Ensure("ArgueConcede", "<Keyboard>/3", "<Gamepad>/buttonNorth");
+            ArguePress = Ensure("ArguePress", "<Keyboard>/4", "<Gamepad>/buttonEast");
+            ArgueRest = Ensure("ArgueRest", "<Keyboard>/5", "<Gamepad>/select");
             Navigate = Ui.FindAction("Navigate", true);
             Submit = Ui.FindAction("Submit", true);
             Cancel = Ui.FindAction("Cancel", true);
@@ -114,6 +123,17 @@ namespace JamKit.Shell
             // Before Enable: it adds the empty slots and the stick-click bindings.
             Bindings = new ControlBindings(this);
             Asset.Enable();
+        }
+
+        /// <summary>The asset's action, or a new one with these bindings (fixed ids) when an older asset lacks it.</summary>
+        InputAction Ensure(string name, string key, string pad)
+        {
+            var a = Gameplay.FindAction(name, false);
+            if (a != null) return a;
+            a = Gameplay.AddAction(name, InputActionType.Button);
+            AddFixed(a, key, 0);
+            AddFixed(a, pad, 1);
+            return a;
         }
 
         static void AddFixed(InputAction action, string path, int n)
@@ -139,7 +159,29 @@ namespace JamKit.Shell
 
         /// <summary>True while the player is in control: Playing, no scene load running, and presenter
         /// mode isn't holding the game (its panel open, a freeze frame).</summary>
-        public bool GameplayAllowed => _flow.Current == GameState.Playing && !GameRoot.IsLoadingScene && !PresenterMode.BlocksGameplay;
+        public bool GameplayAllowed => _flow.Current == GameState.Playing && !GameRoot.IsLoadingScene && !PresenterMode.BlocksGameplay && !WorldBlocked;
+
+        readonly System.Collections.Generic.List<object> _worldBlockers = new System.Collections.Generic.List<object>(2);
+
+        /// <summary>Something modal is running in the world (an argument battle: ArgumentHost): world gameplay
+        /// stops (GameplayAllowed is false) while any owner blocks it. A destroyed owner stops counting.</summary>
+        public void BlockWorld(object owner, bool blocked)
+        {
+            if (owner == null) return;
+            if (!blocked) { _worldBlockers.Remove(owner); return; }
+            if (!_worldBlockers.Contains(owner)) _worldBlockers.Add(owner);
+        }
+
+        /// <summary>True while an owner blocks world gameplay (see <see cref="BlockWorld"/>).</summary>
+        public bool WorldBlocked
+        {
+            get
+            {
+                for (int i = _worldBlockers.Count - 1; i >= 0; i--)
+                    if (_worldBlockers[i] is Object o && o == null) _worldBlockers.RemoveAt(i);
+                return _worldBlockers.Count > 0;
+            }
+        }
 
         /// <summary>Move as a vector (zero when gameplay isn't allowed).</summary>
         public Vector2 MoveVector
@@ -283,6 +325,11 @@ namespace JamKit.Shell
             Button(g, "Pause", "<Keyboard>/escape", "<Keyboard>/p", "<Gamepad>/start");
             Button(g, "Restart", "<Keyboard>/r", "<Gamepad>/select");
             Button(g, "Ghost", "<Keyboard>/g", "<Gamepad>/dpad/left");
+            Button(g, "ArgueAsk", "<Keyboard>/1", "<Gamepad>/buttonWest");
+            Button(g, "ArgueChallenge", "<Keyboard>/2", "<Gamepad>/buttonSouth");
+            Button(g, "ArgueConcede", "<Keyboard>/3", "<Gamepad>/buttonNorth");
+            Button(g, "ArguePress", "<Keyboard>/4", "<Gamepad>/buttonEast");
+            Button(g, "ArgueRest", "<Keyboard>/5", "<Gamepad>/select");
 
             var ui = asset.AddActionMap("UI");
             var nav = ui.AddAction("Navigate", InputActionType.PassThrough, expectedControlLayout: "Vector2");

@@ -33,14 +33,20 @@ namespace JamKit.Shell
         /// Worked out once, from the paths the asset shipped with.</summary>
         internal int[] columns;
         bool _shown;
+        readonly string _context;
 
-        internal ControlRow(string id, string label, InputAction action, bool shown)
+        internal ControlRow(string id, string label, InputAction action, bool shown, string context)
         {
             _id = id;
             _label = label;
             _action = action;
             _shown = shown;
+            _context = context ?? ControlBindings.ContextPlay;
         }
+
+        /// <summary>When the row's keys are in use: walking around ("play"), in an argument ("argument"), or both
+        /// ("any": Pause). Rows only clash with rows they're used alongside.</summary>
+        public string Context => _context;
 
         /// <summary>Stable short id ("move", "crouch-toggle"): button names and tests use it.</summary>
         public string Id => _id;
@@ -145,9 +151,14 @@ namespace JamKit.Shell
             AddRow("interact", "Interact", input.Interact);
             AddRow("fire", "Fire", input.Fire);
             AddRow("alt-fire", "Alt Fire", input.AltFire);
-            AddRow("pause", "Pause", input.Pause);
+            AddRow("pause", "Pause", input.Pause, true, ContextAny);
             AddRow("restart", "Restart run", input.Restart, false);
             AddRow("ghost", "Show ghost", input.Ghost, false);
+            AddRow("argue-ask", "Argue: Ask", input.ArgueAsk, false, ContextArgument);
+            AddRow("argue-challenge", "Argue: Challenge", input.ArgueChallenge, false, ContextArgument);
+            AddRow("argue-concede", "Argue: Concede", input.ArgueConcede, false, ContextArgument);
+            AddRow("argue-press", "Argue: Press (hold)", input.ArguePress, false, ContextArgument);
+            AddRow("argue-rest", "Argue: Let it rest", input.ArgueRest, false, ContextArgument);
 
             SetUpStick(StickClick.Crouch, input.CrouchToggle, input.Crouch, R3);
             SetUpStick(StickClick.Sprint, input.SprintToggle, input.Sprint, L3);
@@ -174,10 +185,20 @@ namespace JamKit.Shell
             return null;
         }
 
-        void AddRow(string id, string label, InputAction action, bool shown = true)
+        public const string ContextPlay = "play";
+        public const string ContextArgument = "argument";
+        public const string ContextAny = "any";
+
+        /// <summary>The argument battle's rows (shown while one runs: ArgumentHost).</summary>
+        public static readonly string[] ArgumentRows = { "argue-ask", "argue-challenge", "argue-concede", "argue-press", "argue-rest" };
+
+        void AddRow(string id, string label, InputAction action, bool shown = true, string context = ContextPlay)
         {
-            if (action != null) _rows.Add(new ControlRow(id, label, action, shown));
+            if (action != null) _rows.Add(new ControlRow(id, label, action, shown, context));
         }
+
+        static bool SameContext(ControlRow a, ControlRow b) =>
+            a.Context == ContextAny || b.Context == ContextAny || a.Context == b.Context;
 
         int _version;
 
@@ -376,7 +397,7 @@ namespace JamKit.Shell
             for (int r = 0; r < _rows.Count; r++)
             {
                 var row = _rows[r];
-                if (row.Action == action || !row.Shown) continue;
+                if (row.Action == action || !row.Shown || !SameContext(mine, row)) continue;
                 var bs = row.Action.bindings;
                 for (int j = 0; j < bs.Count; j++)
                 {

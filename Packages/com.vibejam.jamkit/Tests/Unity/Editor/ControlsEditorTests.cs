@@ -15,7 +15,8 @@ namespace JamKit.Tests.Editor
     public class ControlsEditorTests
     {
         static readonly string[] RowIds =
-            { "move", "look", "jump", "crouch", "crouch-toggle", "sprint", "sprint-toggle", "interact", "fire", "alt-fire", "pause", "restart", "ghost" };
+            { "move", "look", "jump", "crouch", "crouch-toggle", "sprint", "sprint-toggle", "interact", "fire", "alt-fire", "pause", "restart", "ghost",
+              "argue-ask", "argue-challenge", "argue-concede", "argue-press", "argue-rest" };
 
         readonly List<InputService> _made = new List<InputService>();
 
@@ -352,6 +353,36 @@ namespace JamKit.Tests.Editor
             Assert.That(m.FindConflict(s.Restart, Pad(s, "restart")).Exists, Is.False, "View is free");
             Assert.That(m.FindConflict(s.Restart, Kbm(s, "restart")).Exists, Is.False, "R is free");
             Assert.That(m.FindConflict(s.Ghost, Kbm(s, "ghost")).Exists, Is.False, "G is free");
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ArgumentVerbsOnlyClashWithinAnArgument(bool projectAsset)
+        {
+            var s = Make(projectAsset);
+            var m = s.Bindings;
+            foreach (var id in ControlBindings.ArgumentRows)
+            {
+                var row = m.FindRow(id);
+                Assert.That(row, Is.Not.Null, id);
+                Assert.That(row.Shown, Is.False, id + " shows only while a battle runs");
+                Assert.That(row.Context, Is.EqualTo(ControlBindings.ContextArgument));
+                row.Shown = true;
+            }
+            Assert.That(HasEffective(s.ArgueChallenge, "<Gamepad>/buttonSouth") && HasEffective(s.ArgueChallenge, "<Keyboard>/2"), Is.True, "2 / A challenges");
+            Assert.That(HasEffective(s.ArguePress, "<Gamepad>/buttonEast"), Is.True, "hold B / Circle presses");
+            // A is Jump and Challenge, B is Crouch and Press, X is Interact and Ask: different moments, no clash.
+            foreach (var row in m.Rows)
+                for (int i = 0; i < row.Action.bindings.Count; i++)
+                    Assert.That(m.FindConflict(row.Action, i).Exists, Is.False, row.Id + " " + i);
+            // Within an argument they clash as usual; Pause clashes with everything.
+            int ask = Kbm(s, "argue-ask");
+            m.SetPath(s.ArgueAsk, ask, "<Keyboard>/2");
+            Assert.That(m.FindConflict(s.ArgueAsk, ask).Row.Id, Is.EqualTo("argue-challenge"));
+            m.SetPath(s.ArgueAsk, ask, "<Keyboard>/p");
+            Assert.That(m.FindConflict(s.ArgueAsk, ask).Row.Id, Is.EqualTo("pause"));
+            m.SetPath(s.ArgueAsk, ask, "<Keyboard>/e");
+            Assert.That(m.FindConflict(s.ArgueAsk, ask).Exists, Is.False, "E is Interact's, but walking around");
         }
 
         [Test]

@@ -25,6 +25,8 @@
     <Compile Include="$(ProjectAssets)Templates\*\Scripts\**\*.cs" />
     <!-- A template nested one level deeper: Visiting Hours' dream escape. -->
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Dream\Scripts\**\*.cs" />
+    <!-- The argument battle prototype's own assembly (JamKit.Argument), also one level deeper. -->
+    <Compile Include="$(ProjectAssets)Templates\VisitingHours\Argument\Scripts\**\*.cs" />
     <EngineDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEngine*.dll" />
     <Reference Include="@(EngineDll)" Private="false" />
     <PkgDll Include="$(ScriptAssemblies)Unity.InputSystem.dll;$(ScriptAssemblies)UnityEngine.UI.dll;$(ScriptAssemblies)Ink.dll;$(ScriptAssemblies)Ink-Libraries.dll;$(ScriptAssemblies)Unity.RenderPipelines.Universal.Runtime.dll;$(ScriptAssemblies)Unity.RenderPipelines.Core.Runtime.dll;$(ScriptAssemblies)Unity.AI.Navigation.dll" />
