@@ -20,6 +20,28 @@ namespace JamKit.DreamEscape
         public float soakedVignette = 0.75f;
     }
 
+    /// <summary>Where the umbrella and the rain are: a front door with a closed umbrella beside it and a path in the rain
+    /// past it, along a route (s). The dream escape's end and the Night 2 house's front door each make one.</summary>
+    [Serializable]
+    public sealed class DreamRainSpot
+    {
+        /// <summary>The closed umbrella (its middle) and its size for the dream tool's aim.</summary>
+        public Vector3 umbrella;
+        public float umbrellaRadius = 0.6f;
+        /// <summary>The front door: rain from here on.</summary>
+        public float rainStartS;
+        /// <summary>Going on past this into the rain without the umbrella is the Despair choice.</summary>
+        public float despairS;
+        /// <summary>The end of the rain path.</summary>
+        public float rainEndS;
+        /// <summary>Placed before this, the umbrella is back by the door.</summary>
+        public float resetS;
+        /// <summary>The floor at the door (the rain falls onto it).</summary>
+        public float floorY;
+
+        public DreamRainSpot Copy() => (DreamRainSpot)MemberwiseClone();
+    }
+
     /// <summary>What happened in one <see cref="DreamRain.Tick"/>.</summary>
     public struct DreamRainEvents
     {
@@ -31,7 +53,7 @@ namespace JamKit.DreamEscape
     /// <summary>
     /// The umbrella and the rain at the escape's front door, pure: the umbrella waits by the door until she takes it
     /// with the dream tool (<see cref="PickUp"/>); outside, rain soaks her unless it's open (the soak slows her and
-    /// darkens the view); going on past <see cref="DreamEscapeCourse.despairS"/> without it is the Despair choice, made
+    /// darkens the view); going on past <see cref="DreamRainSpot.despairS"/> without it is the Despair choice, made
     /// once per run (the game keeps it in the save). <see cref="Reset"/> puts the umbrella back (a new run, or a place
     /// before the porch). No allocation per tick.
     /// </summary>
@@ -39,12 +61,15 @@ namespace JamKit.DreamEscape
     {
         public const string DespairFlag = "vh_despair";
 
-        readonly DreamEscapeCourse _d;
+        readonly DreamRainSpot _d;
         public DreamRainDef def = new DreamRainDef();
         bool _has, _inRain, _despair;
         float _soak;
 
-        public DreamRain(DreamEscapeCourse course) { _d = course; }
+        public DreamRain(DreamRainSpot spot) { _d = spot; }
+        public DreamRain(DreamEscapeCourse course) : this(course.RainSpot) { }
+
+        public DreamRainSpot Spot => _d;
 
         public bool HasUmbrella => _has;
         public bool InRain => _inRain;
@@ -58,7 +83,7 @@ namespace JamKit.DreamEscape
         public float JumpScale => 1f + (def.soakedJump - 1f) * _soak;
         public float Vignette => def.soakedVignette * _soak;
 
-        public static bool IsRain(DreamEscapeCourse d, float s) => s >= d.rainStartS;
+        public static bool IsRain(DreamRainSpot d, float s) => s >= d.rainStartS;
 
         /// <summary>Takes the umbrella (the dream tool hit it). False if she already has it.</summary>
         public bool PickUp()

@@ -92,8 +92,9 @@ doesn't have the umbrella and chooses to continue anyways, it allows her to cont
 ends with the Long Night)."
 
 **Where it lives.** It belongs to Night 2's house escape, which ends with her going out the front door into the rain.
-That escape isn't built yet, so the front door and the rain sit at the end of this escape for now. When the house
-escape is built, the umbrella, the rain path and their component move there unchanged.
+The house is now built (`docs/DREAM-HOUSE.md`) and has its own front door, umbrella and rain, from the same parts
+(`DreamRain` and `DreamUmbrella` on any `IDreamRainHost`, each with its own `DreamRainSpot`). This escape keeps its copy.
+The Despair flag is shared.
 
 **What happens, in order:**
 1. At s 446 on the lit porch, the chase ends: the time, the chime, and "It's raining past the door."

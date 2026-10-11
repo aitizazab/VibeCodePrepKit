@@ -42,7 +42,7 @@ namespace JamKit.DreamEscape.EditorTools
         // The golden hour.
         public static readonly Color Horizon = new Color(1f, 0.83f, 0.7f);
         public static readonly Color GoColor = new Color(1f, 0.8f, 0.46f);
-        static readonly Vector4 SunDir = new Vector4(-0.35f, 0.42f, 0.84f, 0f);
+        internal static readonly Vector4 SunDir = new Vector4(-0.35f, 0.42f, 0.84f, 0f);
 
         public static readonly Color[] Palette =
         {
@@ -108,7 +108,7 @@ namespace JamKit.DreamEscape.EditorTools
             AssetDatabase.CreateFolder(parent, Path.GetFileName(path));
         }
 
-        static MovementTuning EnsureTuning()
+        internal static MovementTuning EnsureTuning()
         {
             var t = AssetDatabase.LoadAssetAtPath<MovementTuning>(TuningPath);
             if (t != null)
@@ -174,7 +174,10 @@ namespace JamKit.DreamEscape.EditorTools
 
         static readonly Dictionary<string, Material> _mats = new Dictionary<string, Material>();
 
-        static Material Mat(string name, string shaderName)
+        /// <summary>Forgets the materials made so far (a new build).</summary>
+        internal static void ClearMaterials() => _mats.Clear();
+
+        internal static Material Mat(string name, string shaderName)
         {
             if (_mats.TryGetValue(name, out var cached)) return cached;
             string path = MaterialsDir + "/" + name + ".mat";
@@ -197,7 +200,7 @@ namespace JamKit.DreamEscape.EditorTools
         }
 
         /// <summary>The pastel doodle surface in a colour (one material per name).</summary>
-        static Material Pastel(string name, Color color, float outline = 0.05f, float glow = 0f, float shape = 0f)
+        internal static Material Pastel(string name, Color color, float outline = 0.05f, float glow = 0f, float shape = 0f)
         {
             var m = Mat("Pastel_" + name + (shape > 0.5f ? "_Gable" : ""), "JamKit/Dream/Pastel");
             m.SetColor("_Color", color);
@@ -208,7 +211,7 @@ namespace JamKit.DreamEscape.EditorTools
             return m;
         }
 
-        static Material Glow(string name, Color color, float intensity, float mode, float pulse = 0.25f)
+        internal static Material Glow(string name, Color color, float intensity, float mode, float pulse = 0.25f)
         {
             var m = Mat("Glow_" + name, "JamKit/Dream/Glow");
             m.SetColor("_Color", color);
@@ -302,13 +305,13 @@ namespace JamKit.DreamEscape.EditorTools
             game.courseRoot = root;
             game.skyDome = sky.transform;
             game.exitLight = exit;
-            BuildUmbrella(dream, root, game, body);
+            BuildUmbrella(dream.RainSpot, root, game, body);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             return ScenePath;
         }
 
-        static MovementController BuildPlayer(Camera cam, LabCheckpoint first)
+        internal static MovementController BuildPlayer(Camera cam, LabCheckpoint first)
         {
             // The body (yaw) > head (pitch, eye height, interpolation) > rig (bob, roll, dip) > camera:
             // docs/MOVEMENT.md "Using the movement in a scene", as the Movement Lab does.
@@ -415,7 +418,7 @@ namespace JamKit.DreamEscape.EditorTools
 
         static Vector3 U(NVec3 v) => new Vector3(v.X, v.Y, v.Z);
 
-        static GameObject Box(string name, Transform parent, Vector3 worldCenter, Vector3 size, Material mat, bool collider = false)
+        internal static GameObject Box(string name, Transform parent, Vector3 worldCenter, Vector3 size, Material mat, bool collider = false)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = name;
@@ -432,7 +435,7 @@ namespace JamKit.DreamEscape.EditorTools
         }
 
         /// <summary>A flat quad on a face: <paramref name="normal"/> is the way it faces.</summary>
-        static GameObject Quad(string name, Transform parent, Vector3 worldCenter, Vector3 normal, float width, float height, Material mat)
+        internal static GameObject Quad(string name, Transform parent, Vector3 worldCenter, Vector3 normal, float width, float height, Material mat)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
             go.name = name;
@@ -836,11 +839,11 @@ namespace JamKit.DreamEscape.EditorTools
         /// <summary>The front door into the rain: the closed umbrella leaning by the door with its gold glow (the dream
         /// tool takes it), the open umbrella over her head (shown once she has it), the rain over the path, the tool's
         /// beam, and the <see cref="DreamUmbrella"/> that runs it (docs/DREAM-ESCAPE.md "The umbrella and the rain").</summary>
-        static void BuildUmbrella(DreamEscapeCourse dream, Transform root, DreamEscapeGame game, MovementController body)
+        internal static DreamUmbrella BuildUmbrella(DreamRainSpot spot, Transform root, MonoBehaviour host, MovementController body)
         {
             var parent = new GameObject("The front door (umbrella and rain)").transform;
             parent.SetParent(root, false);
-            var at = U(dream.umbrella);
+            var at = U(spot.umbrella);
             var cloth = Pastel("Umbrella", new Color(0.98f, 0.55f, 0.62f), 0.03f, 0.15f);
             var wood = Pastel("UmbrellaHandle", new Color(0.55f, 0.36f, 0.3f), 0.02f);
 
@@ -871,8 +874,8 @@ namespace JamKit.DreamEscape.EditorTools
             // The rain: pale streaks falling over the path past the door (and a little over the porch's end).
             var rainGo = new GameObject("Rain (past the door)");
             rainGo.transform.SetParent(parent, false);
-            float z0 = dream.rainStartS - 6f, z1 = dream.rainEndS + 8f;
-            rainGo.transform.position = new Vector3(0f, dream.ExitTop + 12f, (z0 + z1) * 0.5f);
+            float z0 = spot.rainStartS - 6f, z1 = spot.rainEndS + 8f;
+            rainGo.transform.position = new Vector3(0f, spot.floorY + 12f, (z0 + z1) * 0.5f);
             rainGo.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             var ps = rainGo.AddComponent<ParticleSystem>();
             ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -902,18 +905,19 @@ namespace JamKit.DreamEscape.EditorTools
             var beam = Part("Dream tool beam", PrimitiveType.Cube, parent, Vector3.zero, Vector3.one, Glow("ToolBeam", new Color(1f, 0.95f, 0.8f), 1.2f, 0f, 0f));
             beam.SetActive(false);
 
-            var u = game.gameObject.AddComponent<DreamUmbrella>();
-            u.game = game;
+            var u = host.gameObject.AddComponent<DreamUmbrella>();
+            u.host = host;
             u.prop = prop;
             u.glow = glow.transform;
             u.canopy = canopy;
             u.rainFx = ps;
             u.beam = beam.transform;
             u.beamRenderer = beam.GetComponent<MeshRenderer>();
+            return u;
         }
 
         /// <summary>A primitive with no collider and no shadows, placed in its parent's space.</summary>
-        static GameObject Part(string name, PrimitiveType type, Transform parent, Vector3 localPos, Vector3 localScale, Material mat)
+        internal static GameObject Part(string name, PrimitiveType type, Transform parent, Vector3 localPos, Vector3 localScale, Material mat)
         {
             var go = GameObject.CreatePrimitive(type);
             go.name = name;

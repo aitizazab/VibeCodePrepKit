@@ -23,6 +23,9 @@ namespace JamKit.DreamEscape.EditorTools
         public const string NeighbourRoses = "dream_neighbour_roses";
         public const string NeighbourGrill = "dream_neighbour_grill";
         public const string Dog = "dream_dog";
+        /// <summary>Night 2's house: Lena and Theo (PLACEHOLDER doodles until style-E dream art is dropped in under these names).</summary>
+        public const string Lena = "dream_lena";
+        public const string Theo = "dream_theo";
         public const string WaspMask = "dream_wasp_mask";
 
         public static string NameOf(DreamCast who)
@@ -95,6 +98,8 @@ namespace JamKit.DreamEscape.EditorTools
                 case NeighbourRoses: return Finish(DrawRoses());
                 case NeighbourGrill: return Finish(DrawGrill());
                 case Dog: return Finish(DrawDog());
+                case Lena: return Finish(DrawLena());
+                case Theo: return Finish(DrawTheo());
                 default: return DrawWasp();
             }
         }
@@ -260,6 +265,55 @@ namespace JamKit.DreamEscape.EditorTools
             c.Ellipse(142, 240, 16, 16, new Color(0.96f, 0.45f, 0.52f, 1f));
             c.Ellipse(128, 256, 16, 16, new Color(0.9f, 0.3f, 0.4f, 1f));
             c.Ellipse(128, 186, 20, 12, Skin);
+            return c;
+        }
+
+        /// <summary>Lena (PLACEHOLDER): blonde, long loose waves, a soft cardigan over a dress, an apron from the pancakes.</summary>
+        static Canvas DrawLena()
+        {
+            var c = new Canvas(256, 540);
+            var cardigan = new Color(0.8f, 0.74f, 0.96f, 1f);
+            var dress = new Color(0.98f, 0.9f, 0.82f, 1f);
+            var apron = new Color(1f, 0.99f, 0.97f, 1f);
+            var hair = new Color(0.98f, 0.86f, 0.55f, 1f);
+            c.Capsule(112, 26, 112, 120, 12, Skin);
+            c.Capsule(144, 26, 144, 120, 12, Skin);
+            c.Dress(128, 300, 92, 46, 96, dress);
+            c.Box(92, 150, 164, 300, 14, apron);
+            c.Capsule(84, 300, 66, 196, 13, cardigan);
+            c.Capsule(172, 300, 190, 196, 13, cardigan);
+            c.Ellipse(66, 190, 13, 13, Skin);
+            c.Ellipse(190, 190, 13, 13, Skin);
+            // Long loose waves, falling past the shoulders.
+            c.Ellipse(128, 380, 86, 92, hair);
+            c.Capsule(62, 380, 70, 270, 22, hair);
+            c.Capsule(194, 380, 186, 270, 22, hair);
+            c.Ellipse(128, 372, 64, 68, Skin);
+            c.Face(128, 366, 68, true);
+            return c;
+        }
+
+        /// <summary>Theo (PLACEHOLDER): ten, a striped T-shirt, shorts, scruffy brown hair; smaller than the grown-ups.</summary>
+        static Canvas DrawTheo()
+        {
+            var c = new Canvas(256, 420);
+            var shirt = new Color(0.62f, 0.8f, 0.98f, 1f);
+            var stripe = new Color(0.98f, 0.98f, 1f, 1f);
+            var shorts = new Color(0.98f, 0.72f, 0.5f, 1f);
+            var hair = new Color(0.5f, 0.36f, 0.3f, 1f);
+            c.Capsule(108, 24, 108, 100, 13, Skin);
+            c.Capsule(148, 24, 148, 100, 13, Skin);
+            c.Box(84, 96, 172, 150, 18, shorts);
+            c.Box(78, 140, 178, 250, 26, shirt);
+            c.Box(80, 176, 176, 190, 2, stripe);
+            c.Box(80, 212, 176, 226, 2, stripe);
+            c.Capsule(80, 236, 58, 160, 12, shirt);
+            c.Capsule(176, 236, 198, 160, 12, shirt);
+            c.Ellipse(58, 154, 12, 12, Skin);
+            c.Ellipse(198, 154, 12, 12, Skin);
+            c.Ellipse(128, 316, 74, 72, hair);
+            c.Ellipse(128, 306, 62, 62, Skin);
+            c.Face(128, 300, 64, false);
             return c;
         }
 

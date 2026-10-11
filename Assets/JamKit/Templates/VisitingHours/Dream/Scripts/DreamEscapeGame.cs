@@ -25,7 +25,7 @@ namespace JamKit.DreamEscape
     /// For the story: <see cref="Escaped"/> fires when Nadia reaches the light; with no listener the escape shows
     /// its time and starts again from the driveway (standalone play).
     /// </summary>
-    public sealed class DreamEscapeGame : MonoBehaviour
+    public sealed class DreamEscapeGame : MonoBehaviour, IDreamRainHost
     {
         public MovementController player;
         public DreamStaticView staticView;
@@ -102,6 +102,9 @@ namespace JamKit.DreamEscape
         /// <summary>The Despair route: Nadia went on into the rain without the umbrella (kept in the save, across runs;
         /// nothing reads it yet but the debug HUD). Set by <see cref="DreamUmbrella"/>.</summary>
         public static bool Despair => GameRoot.Exists && GameRoot.Save.Data.HasFlag(DreamRain.DespairFlag);
+        MovementController IDreamRainHost.Player => player;
+        DreamRainSpot IDreamRainHost.RainSpot => _rainSpot ?? (_dream != null ? _rainSpot = _dream.RainSpot : null);
+        DreamRainSpot _rainSpot;
         public IReadOnlyList<DreamPieceView> Pieces => _pieces;
         public IReadOnlyList<string> Trace => _trace;
         public string TraceText => string.Join(Newline, _trace);

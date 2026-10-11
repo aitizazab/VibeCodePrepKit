@@ -85,6 +85,9 @@ namespace JamKit.DreamEscape
         public float umbrellaRadius = 0.6f;
         /// <summary>Placed before this (a respawn, a chapter, a new run) and the umbrella is back by the door.</summary>
         public float umbrellaResetS;
+
+        /// <summary>The front door's umbrella and rain as a <see cref="DreamRainSpot"/> (a new copy each time).</summary>
+        public DreamRainSpot RainSpot => new DreamRainSpot { umbrella = umbrella, umbrellaRadius = umbrellaRadius, rainStartS = rainStartS, despairS = despairS, rainEndS = rainEndS, resetS = umbrellaResetS, floorY = ExitTop };
         /// <summary>Seconds a player may stand at the start before the static moves anyway.</summary>
         public float wakeAfter = 2.5f;
         /// <summary>After this many catches or falls at one checkpoint, the static quietly gives more room.</summary>

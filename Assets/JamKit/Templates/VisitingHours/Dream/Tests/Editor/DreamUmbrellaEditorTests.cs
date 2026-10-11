@@ -27,8 +27,8 @@ namespace JamKit.DreamEscape.Tests
                     if (body == null) body = go.GetComponentInChildren<MovementController>(true);
                 }
                 Assert.That(u, Is.Not.Null, "the umbrella's run");
-                Assert.That(u.game, Is.Not.Null);
-                Assert.That(u.game.player, Is.SameAs(body));
+                Assert.That(u.host, Is.SameAs(u.GetComponent<DreamEscapeGame>()), "the escape is its host");
+                Assert.That(((IDreamRainHost)u.host).Player, Is.SameAs(body));
                 Assert.That(u.autoFire, Is.True);
                 Assert.That(u.tool.conePad, Is.GreaterThan(u.tool.coneMouse), "the dream tool's aim, stronger on a pad");
                 Assert.That(u.rainDef.soakedSpeed, Is.InRange(0.6f, 0.9f), "a modest cost");

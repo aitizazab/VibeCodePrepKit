@@ -5,6 +5,8 @@
   <ItemGroup>
     <Compile Include="$(PkgRoot)Runtime\Core\Movement\**\*.cs" />
     <Compile Include="$(PkgRoot)Runtime\Core\DreamEscape\**\*.cs" />
+    <!-- Night 2's house (DreamHouse) uses the stealth kit: Theo's hide-and-seek. -->
+    <Compile Include="$(PkgRoot)Runtime\Core\Stealth\**\*.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\Movement\BoxWorld.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\Movement\LabCourseTests.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\DreamEscape\**\*.cs" />

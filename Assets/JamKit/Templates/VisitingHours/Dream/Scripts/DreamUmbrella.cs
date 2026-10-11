@@ -20,7 +20,8 @@ namespace JamKit.DreamEscape
     /// </summary>
     public sealed class DreamUmbrella : MonoBehaviour
     {
-        public DreamEscapeGame game;
+        /// <summary>The scene's run (the dream escape, the Night 2 house): an <see cref="IDreamRainHost"/>.</summary>
+        public MonoBehaviour host;
         /// <summary>The closed umbrella by the door, and its gold glow (shown while it waits; bigger when locked).</summary>
         public Transform prop;
         public Transform glow;
@@ -43,7 +44,8 @@ namespace JamKit.DreamEscape
 
         public static DreamUmbrella Current => _current;
 
-        DreamEscapeCourse _d;
+        DreamRainSpot _d;
+        IDreamRainHost _host;
         DreamRain _rain;
         MovementTuning _tuning, _heavyTuning;
         MoveDef _base, _baseDef, _heavy;
@@ -65,9 +67,22 @@ namespace JamKit.DreamEscape
         /// <summary>The movement is the heavier, soaked copy of the tuning right now.</summary>
         public bool Heavy => _heavyOn;
 
+        /// <summary>A new door and rain for this run (the Night 2 house: Lena condemning Nadia brings the point of no return
+        /// nearer and soaks faster). Puts the umbrella back by the door.</summary>
+        public void UseSpot(DreamRainSpot spot, DreamRainDef def)
+        {
+            if (!TryInit()) return;
+            SetHeavy(false);
+            _d = spot;
+            rainDef = def;
+            _rain = new DreamRain(spot) { def = def };
+            Show();
+        }
+
         void Start()
         {
-            if (game == null || !GameRoot.Exists) { enabled = false; return; }
+            _host = host as IDreamRainHost;
+            if (_host == null || !GameRoot.Exists) { enabled = false; return; }
             _current = this;
             _block = new MaterialPropertyBlock();
             _voice = gameObject.AddComponent<AudioSource>();
@@ -99,14 +114,15 @@ namespace JamKit.DreamEscape
         bool TryInit()
         {
             if (_rain != null) return true;
-            if (game.Dream == null || game.player == null) return false;
-            _d = game.Dream;
+            if (_host == null) _host = host as IDreamRainHost;
+            if (_host == null || _host.RainSpot == null || _host.Player == null) return false;
+            _d = _host.RainSpot;
             _rain = new DreamRain(_d) { def = rainDef };
             // The soaked movement is a runtime copy of the tuning (the asset is never touched), so everything else it holds
             // (the body's feel) stays the same.
-            _tuning = game.player.tuning;
-            _baseDef = game.player.def;
-            _base = game.player.Def;
+            _tuning = _host.Player.tuning;
+            _baseDef = _host.Player.def;
+            _base = _host.Player.Def;
             _heavyTuning = _tuning != null ? Instantiate(_tuning) : null;
             if (_heavyTuning != null) _heavyTuning.name = _tuning.name + " (soaked, runtime copy)";
             _heavy = _heavyTuning != null ? _heavyTuning.def : _base.Clone();
@@ -160,14 +176,14 @@ namespace JamKit.DreamEscape
         {
             if (!TryInit()) return;
             float dt = Time.deltaTime;
-            float s = game.S;
+            float s = _host.S;
             // Placed before the porch (a new run, a respawn, a chapter jump): the umbrella is back by the door.
-            if (s < _d.umbrellaResetS && (_rain.HasUmbrella || _rain.InRain || _rain.Soak > 0f || _rain.DespairThisRun))
+            if (s < _d.resetS && (_rain.HasUmbrella || _rain.InRain || _rain.Soak > 0f || _rain.DespairThisRun))
             {
                 _rain.Reset();
                 Show();
             }
-            bool playing = GameRoot.Flow.Current == JamKit.Flow.GameState.Playing && !game.Respawning;
+            bool playing = GameRoot.Flow.Current == JamKit.Flow.GameState.Playing && !_host.Respawning;
             if (playing)
             {
                 var ev = _rain.Tick(dt, s);
@@ -190,15 +206,15 @@ namespace JamKit.DreamEscape
 
         void Aim(float s)
         {
-            if (_rain.HasUmbrella || s < _d.umbrellaResetS - 10f) { SetLock(false); return; }
-            var cam = game.player.cam;
+            if (_rain.HasUmbrella || s < _d.resetS - 10f) { SetLock(false); return; }
+            var cam = _host.Player.cam;
             if (cam == null) return;
             var eye = cam.transform.position;
             var fwd = cam.transform.forward;
             var e = new System.Numerics.Vector3(eye.x, eye.y, eye.z);
             bool locks = _rain.Locks(e, new System.Numerics.Vector3(fwd.x, fwd.y, fwd.z), UsingPad ? tool.conePad : tool.coneMouse, tool.range) && InSight(eye);
             SetLock(locks);
-            if (game.AutopilotOn)
+            if (_host.AutopilotOn)
             {
                 if (autoFire && Vector3.Distance(eye, Prop()) < 14f) Take();
                 return;
@@ -229,7 +245,7 @@ namespace JamKit.DreamEscape
         public bool Take()
         {
             if (!TryInit() || !_rain.PickUp()) return false;
-            var cam = game.player.cam != null ? game.player.cam.transform : transform;
+            var cam = _host.Player.cam != null ? _host.Player.cam.transform : transform;
             Pulse(Prop(), cam.position + cam.right * 0.25f - cam.up * 0.25f + cam.forward * 0.3f);
             Play(_fire, 0.7f);
             Play(_take, 0.85f);
@@ -267,17 +283,17 @@ namespace JamKit.DreamEscape
 
         void SetHeavy(bool on)
         {
-            if (game == null || game.player == null || on == _heavyOn) return;
+            if (_host == null || _host.Player == null || on == _heavyOn) return;
             _heavyOn = on;
             if (on)
             {
-                if (_heavyTuning != null) game.player.tuning = _heavyTuning;
-                else game.player.def = _heavy;
+                if (_heavyTuning != null) _host.Player.tuning = _heavyTuning;
+                else _host.Player.def = _heavy;
             }
             else
             {
-                game.player.tuning = _tuning;
-                game.player.def = _baseDef;
+                _host.Player.tuning = _tuning;
+                _host.Player.def = _baseDef;
             }
         }
 
@@ -346,7 +362,7 @@ namespace JamKit.DreamEscape
             bool toggle = (Keyboard.current != null && Keyboard.current.f3Key.wasPressedThisFrame)
                 || (Gamepad.current != null && Gamepad.current.selectButton.wasPressedThisFrame);
             if (toggle && GameRoot.Input.GameplayAllowed) _debugShown = !_debugShown;
-            bool show = _debugShown && game.S > _d.umbrellaResetS - 30f;
+            bool show = _debugShown && _host.S > _d.resetS - 30f;
             var want = show ? DisplayStyle.Flex : DisplayStyle.None;
             if (_debug.style.display != want) _debug.style.display = want;
             if (!show) return;
