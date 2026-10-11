@@ -958,7 +958,7 @@ namespace JamKit.DreamEscape.EditorTools
             {
                 float x = (n % 2 == 0 ? -1f : 1f) * (0.5f + (n % 3) * 0.35f);
                 var pd = DreamProps.Show("Puddle", disc, puddle, parent, Vector3.zero, Quaternion.identity);
-                pd.transform.position = new Vector3(x, spot.floorY + 0.015f, z);
+                pd.transform.position = new Vector3(x, spot.floorY + 0.045f, z);   // above the street's road quad (+0.02)
                 pd.transform.localScale = new Vector3(1.1f + (n % 3) * 0.3f, 1f, 0.7f + (n % 2) * 0.25f);
             }
             var post = DreamProps.MeshLook("LampPost", Plum, 0.008f);

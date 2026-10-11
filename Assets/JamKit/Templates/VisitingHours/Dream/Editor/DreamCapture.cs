@@ -63,7 +63,7 @@ namespace JamKit.DreamEscape.EditorTools
                 new Spot("house-09-photo-wall", new Vector3(6.7f, F + 1.75f, 94.6f), new Vector3(6.7f, F + 1.7f, 100f)),
                 new Spot("house-10-theos-room", new Vector3(-4.5f, F + 1.6f, 90.8f), new Vector3(-9.5f, F + 0.5f, 96.5f)),
                 new Spot("house-11-theos-desk-drawing", new Vector3(-7f, F + 1.5f, 91.4f), new Vector3(-7f, F + 0.77f, 89.9f)),
-                new Spot("house-12-tipped-hallway", new Vector3(-2f, 3f, 178f), new Vector3(2f, -1f, 215f)),
+                new Spot("house-12-tipped-hallway", new Vector3(0f, 1.7f, 190f), new Vector3(1.5f, 1.2f, 214f)),
                 new Spot("house-13-way-out-door", new Vector3(0f, -3.3f, 311.5f), new Vector3(0f, -3.6f, 319f)),
                 new Spot("house-14-umbrella-closed", new Vector3(1.2f, -3.75f, 315.6f), new Vector3(2.4f, -4.45f, 317.6f)),
                 new Spot("house-15-umbrella-open", Vector3.zero, Vector3.zero, "umbrella-open"),
@@ -74,9 +74,9 @@ namespace JamKit.DreamEscape.EditorTools
             {
                 new Spot("escape-01-walts-driveway", new Vector3(-9f, 1.7f, -5f), new Vector3(-5f, 1.0f, 30f)),
                 new Spot("escape-02-street-side", new Vector3(6f, 3f, 10f), new Vector3(-6f, 1.0f, 35f)),
-                new Spot("escape-03-car-roofs", new Vector3(-2f, 1.6f, 92f), new Vector3(0f, -0.6f, 108f)),
+                new Spot("escape-03-car-roofs", new Vector3(-3f, 2.5f, 94f), new Vector3(0f, -1.2f, 108f)),
                 new Spot("escape-04-barbecue", new Vector3(-4f, 1.7f, 121f), new Vector3(3f, 0f, 140f)),
-                new Spot("escape-05-garage", new Vector3(0f, -0.6f, 183f), new Vector3(-7f, -0.4f, 189f)),
+                new Spot("escape-05-garage", new Vector3(0f, -1.0f, 200f), new Vector3(-8f, -0.6f, 205f)),
                 new Spot("escape-06-rooftops", new Vector3(0f, 4.5f, 238f), new Vector3(0f, 2f, 270f)),
                 new Spot("escape-07-front-door-rain", new Vector3(1.5f, -2.2f, 464f), new Vector3(0f, -3.6f, 486f)),
             };
