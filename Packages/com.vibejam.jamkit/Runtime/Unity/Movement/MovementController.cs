@@ -28,6 +28,8 @@ namespace JamKit.Movement
         [Tooltip("Shared numbers. Empty: the Def below is used.")]
         public MovementTuning tuning;
         public MoveDef def = new MoveDef();
+        [Tooltip("Dream: everything. Daytime: the waking world's grounded movement (the tuning's daytime profile: no double jump, wallrun or slide, the air strafe down, jump fatigue).")]
+        public MoveProfileKind profile = MoveProfileKind.Dream;
 
         [Header("Look")]
         public float mouseDegreesPerPixel = 0.09f;
@@ -74,7 +76,24 @@ namespace JamKit.Movement
 
         public MoveSim Sim => _sim;
         public MoveDriver Driver => _driver;
-        public MoveDef Def => tuning != null ? tuning.def : def;
+        /// <summary>The tuning in use: this controller's, else the shared one (<see cref="MovementTuning.Shared"/>).</summary>
+        public MovementTuning Tuning => tuning != null ? tuning : MovementTuning.Shared;
+        public MoveDef Def => Tuning != null ? Tuning.def : def;
+        public MoveProfileKind Profile => profile;
+
+        /// <summary>Switches the movement profile (a daytime section, a dream). Takes effect at once.</summary>
+        public void SetProfile(MoveProfileKind kind)
+        {
+            profile = kind;
+            if (_sim != null) _sim.SetProfile(ProfileFor(kind));
+        }
+
+        MoveProfile ProfileFor(MoveProfileKind kind)
+        {
+            if (kind == MoveProfileKind.Dream) return null;
+            var t = Tuning;
+            return t != null && t.daytime != null ? t.daytime : MoveProfile.Daytime();
+        }
         public MoveMode Mode => _sim != null ? _sim.Mode : MoveMode.Air;
         public Vector3 Velocity => _sim != null ? ToU(_sim.Velocity) : Vector3.zero;
         public float Speed => _sim != null ? _sim.HorizontalSpeed : 0f;
@@ -112,6 +131,7 @@ namespace JamKit.Movement
             controller.skinWidth = skinWidth;
             controller.minMoveDistance = 0f;
             _sim = new MoveSim(this, d);
+            _sim.SetProfile(ProfileFor(profile));
             _driver = new MoveDriver(_sim);
             _yaw = transform.eulerAngles.y;
             _eye = d.eyeHeight;

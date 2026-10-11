@@ -28,7 +28,7 @@ namespace JamKit.DeepBlockLab.EditorTools
         public const string SceneName = "DeepBlock";
         public const string ScenePath = Root + "/Scenes/" + SceneName + ".unity";
         public const string PresetPath = Root + "/DeepBlockGameConfig.asset";
-        public const string MovementTuningPath = Root + "/Data/DeepBlockMovement.asset";
+        public const string MovementTuningPath = MovementTuning.SharedAssetPath; // the shared movement tuning
         public const string TheoTuningPath = Root + "/Data/TheoStealth.asset";
         public const string PrismPath = Root + "/Meshes/RoofPrism.asset";
         const string Mats = Root + "/Materials";

@@ -220,10 +220,75 @@ switch (another game, the core tests) a sim uses its def, whose defaults are Mil
 as before; W alone should steer but never speed you up; a hop chain should bleed a little unless you slide-hop
 or strafe it back; a late hop should sting. All of it is in the tuning asset to adjust.
 
+## One shared tuning (2026-10-11)
+
+The creator, after the Mild preset (a dream tool run of 26.45 s on a controller, best before 28.17): "this movement
+is good enough to implement universally". So every game that uses the movement now shares **one** tuning asset:
+`Packages/com.vibejam.jamkit/Runtime/Unity/Movement/Resources/JamKitMovementTuning.asset`
+(`MovementTuning.SharedAssetPath`, loaded at runtime as `MovementTuning.Shared`).
+- **Who uses it:** the Movement Lab, the dream escape and the dream house, the Stealth Lab and the Deep Block. Their
+  builders all point at it (`MovementLabBuilder.TuningPath`, `DreamEscapeBuilder.TuningPath`,
+  `StealthLabBuilder.MovementTuningPath`, `DeepBlockBuilder.MovementTuningPath`).
+- **No tuning set:** a `MovementController` with no tuning of its own uses it too.
+- **The hop cost:** the Mild preset is the default, and F6 / LB + d-pad up still switches it in the lab and the dream
+  escape, for the keyboard-and-mouse check.
+- **It's the lab's asset, moved:** it is the Movement Lab's own tuning asset moved into the package (same GUID, so the
+  lab's scene still points at it). One fix came with it:
+  - **What was wrong:** the lab's asset was made before the 2026-10-10 wall-feel change (the creator's controller
+    notes), so it still had the old wall values: `wallRunFriction` 2, `wallProbeReach` 0.5, `wallMinTowardDot` -0.1,
+    `wallAwayDot` 0.5. Every other scene, and every test, used the new ones (1.2, 0.6, -0.2, 0.8).
+  - **The fix:** the asset upgrade (`MovementTuning.defaultsVersion` 2) gives it the new wall values.
+  - **The result:** the shared asset now equals `MoveDef`'s defaults (`SharedTuningTests`), so every dotnet course
+    test and autopilot pin is what the scenes play.
+  - **What changes in the lab:** walls keep more speed on entry and catch a little more easily than the lab had
+    before. To put any of the four back, edit the shared asset.
+- **Route times (the Deep Block's, in the sim) are unchanged:** street 14.2 s, back 18.4 s, roofs 14.9 s, under
+  22.1 s. They ran on the defaults before, and the shared asset equals them now.
+- **The dream umbrella's "soaked" movement** still makes its runtime copy of whatever tuning the player has, which is
+  now the shared one.
+
+## Profiles: dream and daytime (2026-10-11)
+
+The creator: "in the daytime sections, Nadia can't double jump, wallrun, slide, have jump fatigue, and the air
+strafing coefficient should be turned down as well". A **movement profile** (core `MoveProfile`) sits on top of the
+shared tuning:
+
+| | Dream (default) | Daytime |
+|---|---|---|
+| Double jump | yes | no |
+| Wallrun | yes | no |
+| Slide | yes | no: crouch at speed only crouches (no slide boost, no slide hop) |
+| Air strafe | ×1 | **×0.3** (`airStrafeScale`) on both the per-tick cap and the acceleration |
+| Jump fatigue | off | **on** (`jumpFatigue`): a jump within 0.8 s of landing from the last is lower, 25% of the height per jump in the chain, down to 50%; standing 0.8 s resets it |
+
+- **Why 0.3 for the air strafe:** the speed gained per tick goes with the square of the cap, so 0.3 keeps about 9% of
+  the dream's gain.
+  - Measured: the best strafe in a second from 9.5 m/s gains 3.96 m/s in the dream and 0.60 in daytime
+    (`TheDaytimeAirStrafeIsWellDown`).
+  - A daytime jump still bends a little toward the stick, but strafing can't build speed.
+  - The slow-jump air control (below 5 m/s) is untouched, so a standing jump can still be aimed.
+- **Jump fatigue: to confirm.** The creator's sentence was ambiguous ("can't ... have jump fatigue"). Daytime has it
+  **on** by default, since the rest of the list makes daytime grounded and fatigue stops bunny-hopping round a
+  hospital. It is one flag in the shared asset's `daytime` profile.
+  - Measured: three quick hops reach 1.22, 0.91 and 0.60 m, and after 1.5 s standing it's 1.22 again.
+- **Where the values live:** the daytime values are in the shared asset (`MovementTuning.daytime`), so they are edited
+  in one place.
+- **In code:** a controller picks its profile with `MovementController.profile` (`MoveProfileKind.Dream` or
+  `Daytime`), or `SetProfile(...)` at runtime. A `MoveSim` with no profile allows everything.
+- **Where it applies:**
+  - Every scene built on the movement today is a dream or a lab, and uses Dream.
+  - Visiting Hours' daytime (waking-world) sections, St. Brigid's and the booth, don't use the movement kit at all.
+    They walk on the DOOM-like's controller (`DoomPlayer`), which has no jump, double jump, slide or wallrun.
+  - When a waking section moves onto the movement kit, set its controller's `profile` to `Daytime`.
+- **Try it in the Movement Lab (or the dream escape):** **F7** or **LB + d-pad right** switches the player between
+  the two profiles (`MovementProfileSwitch`). The F3 / d-pad-down panel shows "Movement: Daytime" or "Dream". It
+  isn't saved: each scene starts in its own profile.
+
 ## Every tunable number
 
 All numbers live in one `MoveDef` (core), held by a **MovementTuning** asset
-(`Assets/JamKit/Templates/MovementLab/Data/MovementLabTuning.asset` for the lab; create more with
+(the shared one, `Packages/com.vibejam.jamkit/Runtime/Unity/Movement/Resources/JamKitMovementTuning.asset`, which
+every game uses; create more with
 Assets > Create > JamKit > Movement Tuning). Edit it in Play mode: changes apply at once.
 Metres, seconds, m/s, degrees.
 
@@ -517,7 +582,8 @@ only fires on collapses.
 
 ## Using the movement in a scene (Visiting Hours dream sequences)
 
-1. A body GameObject with **CharacterController** + **MovementController** (assign a MovementTuning).
+1. A body GameObject with **CharacterController** + **MovementController** (assign the shared MovementTuning,
+   `MovementTuning.SharedAssetPath`, or leave it empty to use it; set `profile` to Daytime for a waking-world section).
    Children: **Head** (assign to `head`) > **Rig** (add **MovementCamera**) > **Camera** (add
    **MovementBody** and **SpeedLines**; assign `cam`). Add **MovementAudio** to the body. Point each
    component's `body` at the controller. `MovementLabBuilder.BuildScene` does exactly this.

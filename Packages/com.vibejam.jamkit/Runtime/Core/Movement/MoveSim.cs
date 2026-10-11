@@ -37,6 +37,9 @@ namespace JamKit.Movement
         float _landGrace;
         float _sinceJump = 999f;
         float _sinceHop = 999f;
+        float _groundedFor = 999f;
+        int _jumpChain;
+        MoveProfile _profile;
         bool _doubleJump;
 
         // Slide
@@ -125,6 +128,16 @@ namespace JamKit.Movement
         /// <summary>The events of the last step.</summary>
         public MoveEvents Events => _events;
 
+        /// <summary>The section's movement profile (abilities, the air strafe, jump fatigue); null allows everything (the dream).</summary>
+        public MoveProfile Profile => _profile;
+        public void SetProfile(MoveProfile profile) => _profile = profile;
+        /// <summary>How many fatigued jumps in a row (0: a fresh jump).</summary>
+        public int JumpChain => _jumpChain;
+        bool AllowDoubleJump => _profile == null || _profile.doubleJump;
+        bool AllowWallrun => _profile == null || _profile.wallrun;
+        bool AllowSlide => _profile == null || _profile.slide;
+        float AirStrafeScale => _profile == null ? 1f : _profile.airStrafeScale;
+
         /// <summary>Puts the body somewhere (spawn, respawn, tests), with a velocity, in the air until it finds ground.</summary>
         public void Teleport(Vector3 feet, float yaw, Vector3 velocity)
         {
@@ -142,6 +155,8 @@ namespace JamKit.Movement
             _jumpedSinceGround = true;
             _sinceGrounded = 999f;
             _sinceHop = 999f;
+            _groundedFor = 999f;
+            _jumpChain = 0;
             _sinceWall = 999f;
             _wallCoyote = false;
             _hasLastWall = false;
@@ -191,6 +206,7 @@ namespace JamKit.Movement
             _sinceHop += h;
             _sinceWall += h;
             if (!_grounded) _sinceGrounded += h;
+            else _groundedFor += h;
             if (_mode != MoveMode.Slide) _slideFatigue = Math.Max(0f, _slideFatigue - h);
             // The sprint toggle: a click turns it on (clicking again keeps it on); crouching ends it.
             if (input.sprintTogglePressed) _sprintToggled = true;
@@ -227,7 +243,7 @@ namespace JamKit.Movement
             }
 
             float speed = HorizontalSpeed;
-            if (_mode != MoveMode.Slide && input.crouchPressed && speed >= def.slideMinSpeed)
+            if (_mode != MoveMode.Slide && input.crouchPressed && speed >= def.slideMinSpeed && AllowSlide)
             {
                 EnterSlide();
                 speed = HorizontalSpeed;
@@ -336,6 +352,16 @@ namespace JamKit.Movement
             }
         }
 
+        /// <summary>Jump fatigue (the profile's): a jump soon after landing from the last one is lower; the vertical speed
+        /// goes with the square root of the height share. Updates the chain.</summary>
+        float FatigueScale()
+        {
+            if (_profile == null || !_profile.jumpFatigue) { _jumpChain = 0; return 1f; }
+            // _groundedFor is the time on the ground before this jump (it holds its value in the air: a coyote jump too).
+            _jumpChain = _groundedFor <= _profile.jumpFatigueRecover ? _jumpChain + 1 : 0;
+            return (float)Math.Sqrt(_profile.FatigueHeight(_jumpChain));
+        }
+
         void GroundJump(bool fromSlide)
         {
             // The bunny-hop cost: a share of the speed above sprint (smaller out of a slide, so slide hops beat plain hops).
@@ -349,7 +375,7 @@ namespace JamKit.Movement
                 _events.hopSpeedLost = s - ns;
             }
             _sinceHop = 0f;
-            _vel.Y = def.JumpSpeed * (fromSlide ? def.slideJumpScale : 1f);
+            _vel.Y = def.JumpSpeed * (fromSlide ? def.slideJumpScale : 1f) * FatigueScale();
             if (fromSlide) _events.slideEnded = true;
             LeaveGround(true);
             _jumpBuffer = 0f;
@@ -382,8 +408,8 @@ namespace JamKit.Movement
             if (_jumpBuffer > 0f)
             {
                 if (_wallCoyote && _sinceWall <= def.wallCoyote) { WallJump(input, wishDir, stick, true); }
-                else if (!_jumpedSinceGround && _sinceGrounded <= def.coyoteTime) { _vel.Y = def.JumpSpeed; LeaveGround(true); _jumpBuffer = 0f; _events.jumped = true; }
-                else if (_doubleJump && _sinceJump >= def.doubleJumpLockout) DoubleJump(wishDir, stick, fwd);
+                else if (!_jumpedSinceGround && _sinceGrounded <= def.coyoteTime) { _vel.Y = def.JumpSpeed * FatigueScale(); LeaveGround(true); _jumpBuffer = 0f; _events.jumped = true; }
+                else if (_doubleJump && _sinceJump >= def.doubleJumpLockout && AllowDoubleJump) DoubleJump(wishDir, stick, fwd);
             }
 
             Vector3 vH = Flat(_vel);
@@ -393,7 +419,8 @@ namespace JamKit.Movement
                 // the gain of each push is scaled by how far sideways the move input points (airStrafeSideShare).
                 float share = StrafeShare(input.move);
                 float s0 = FlatLength(vH);
-                vH = LimitGain(AirAccelerate(vH, wishDir, def.sprintSpeed, def.airAccel, def.airCap, h), Math.Max(s0, def.airControlSpeed), share);
+                float strafe = AirStrafeScale;
+                vH = LimitGain(AirAccelerate(vH, wishDir, def.sprintSpeed, def.airAccel * strafe, def.airCap * strafe, h), Math.Max(s0, def.airControlSpeed), share);
                 float s1 = FlatLength(vH);
                 vH = LimitGain(Accelerate(vH, wishDir, def.airControlSpeed * stick, def.airControlAccel, h), Math.Max(s1, def.airControlSpeed), share * def.airControlStrafeGain);
             }
@@ -499,6 +526,7 @@ namespace JamKit.Movement
 
         void TryAttachWall(in MoveInput input, Vector3 wishDir, float stick)
         {
+            if (!AllowWallrun) return;
             Vector3 vH = Flat(_vel);
             float s = vH.Length();
             if (s < 0.5f) return; // no direction to look along
@@ -817,7 +845,8 @@ namespace JamKit.Movement
             _vel.Y = 0f;
             _events.landed = true;
             _events.landImpact = Math.Max(0f, impact);
-            if ((input.crouchHeld || _crouchBuffer > 0f) && HorizontalSpeed >= def.slideMinSpeed)
+            _groundedFor = 0f;
+            if ((input.crouchHeld || _crouchBuffer > 0f) && HorizontalSpeed >= def.slideMinSpeed && AllowSlide)
             {
                 EnterSlide(); // slide hop: no landing friction, a boost if it's ready
                 return;

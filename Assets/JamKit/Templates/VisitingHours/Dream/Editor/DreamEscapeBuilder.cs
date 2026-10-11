@@ -30,7 +30,8 @@ namespace JamKit.DreamEscape.EditorTools
         public const string SceneName = "DreamEscape";
         public const string ScenePath = Root + "/Scenes/" + SceneName + ".unity";
         public const string PresetPath = Root + "/DreamEscapeGameConfig.asset";
-        public const string TuningPath = Root + "/Data/DreamEscapeTuning.asset";
+        /// <summary>The shared movement tuning (MovementTuning.SharedAssetPath, the Movement Lab's; 2026-10-11).</summary>
+        public const string TuningPath = MovementTuning.SharedAssetPath;
         public const string MaterialsDir = Root + "/Materials";
         public const string GablePath = Root + "/Generated/DreamGable.asset";
         /// <summary>Nadia, the first-person body: the real 3D intruder in a billboard dream (the capsules stay without her).</summary>

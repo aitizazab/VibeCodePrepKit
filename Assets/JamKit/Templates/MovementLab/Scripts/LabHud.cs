@@ -29,6 +29,7 @@ namespace JamKit.MovementLab
         public bool Shown => _shown;
         public string SpeedText => _speed.text;
         public string StateText => _state.text;
+        public string ExtraText => _extra.text;
 
         static readonly Color Ink = new Color(0.95f, 0.96f, 1f);
         static readonly Color Dim = new Color(0.75f, 0.78f, 0.86f);
@@ -128,6 +129,8 @@ namespace JamKit.MovementLab
             if (sim == null) return;
             // The hop-cost preset (F6 / LB + d-pad up), kept in the save.
             if (HopCostSwitch.Tick()) _textT = 0f;
+            // The movement profile (F7 / LB + d-pad right): feel the daytime movement here.
+            if (MovementProfileSwitch.Tick(body)) _textT = 0f;
             float speed = sim.HorizontalSpeed;
             _sampleT += dt;
             while (_sampleT >= SampleEvery)
@@ -155,7 +158,7 @@ namespace JamKit.MovementLab
                 float cd = sim.SlideBoostCooldown;
                 _extra.text = (cd > 0f ? "Slide boost in " + cd.ToString("0.0", inv) + " s" : "Slide boost ready")
                     + "   Double jump " + (sim.DoubleJumpAvailable ? "ready" : "used")
-                    + "\n" + HopCostSwitch.HudLine
+                    + "\n" + HopCostSwitch.HudLine + "\n" + MovementProfileSwitch.HudLine(body)
                     + (sim.LastCatchMiss != WallCatchMiss.None && sim.SinceCatchMiss < 6f
                         ? "\nWall not caught: " + CatchWords(sim.LastCatchMiss) + " (" + sim.SinceCatchMiss.ToString("0.0", inv) + " s ago)" : "");
                 _section.text = section + "   " + runTime.ToString("0.0", inv) + " s" + (best > 0f ? "   best " + best.ToString("0.0", inv) + " s" : "");

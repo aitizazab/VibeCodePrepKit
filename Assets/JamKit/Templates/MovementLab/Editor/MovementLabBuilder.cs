@@ -26,7 +26,8 @@ namespace JamKit.MovementLab.EditorTools
         public const string SceneName = "MovementLab";
         public const string ScenePath = Root + "/Scenes/" + SceneName + ".unity";
         public const string PresetPath = Root + "/MovementLabGameConfig.asset";
-        public const string TuningPath = Root + "/Data/MovementLabTuning.asset";
+        /// <summary>The shared movement tuning (every game using the movement shares it; the lab's since 2026-10-11).</summary>
+        public const string TuningPath = MovementTuning.SharedAssetPath;
         const string Mats = Root + "/Materials";
         /// <summary>Nadia, the first-person body (Visiting Hours' character; the capsules stay when she isn't in the project).</summary>
         public const string NadiaDir = "Assets/JamKit/Templates/VisitingHours/Models/Nadia";

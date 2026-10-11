@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4cac6a4caacf424f83e084c87f63eed6, type: 3}
-  m_Name: MovementLabTuning
+  m_Name: JamKitMovementTuning
   m_EditorClassIdentifier: JamKit.Unity::JamKit.Movement.MovementTuning
   def:
     tickRate: 120
@@ -66,13 +66,13 @@ MonoBehaviour:
     wallMinHeight: 0.6
     wallMaxNormalY: 0.25
     wallMinAlongDot: 0.34
-    wallMinTowardDot: -0.1
+    wallMinTowardDot: -0.2
     wallProbeHeight: 1
     wallProbeRadius: 0.25
-    wallProbeReach: 0.5
+    wallProbeReach: 0.6
     wallRunSpeed: 8.64
     wallRunAccel: 6
-    wallRunFriction: 2
+    wallRunFriction: 1.2
     wallNeutralFriction: 4
     wallForwardDot: 0.3
     wallRunDuration: 1.75
@@ -83,7 +83,7 @@ MonoBehaviour:
     wallStick: 0.5
     wallLostGrace: 0.1
     wallExitSpeed: 4
-    wallAwayDot: 0.5
+    wallAwayDot: 0.8
     wallJumpOut: 5.21
     wallJumpAlong: 1.91
     wallJumpInward: 4.37
@@ -101,4 +101,4 @@ MonoBehaviour:
     mantlePerMetre: 0.07
     mantleSpeedKeep: 0.8
     mantleExitSpeed: 5
-  defaultsVersion: 1
+  defaultsVersion: 2

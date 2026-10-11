@@ -27,7 +27,7 @@ namespace JamKit.StealthLab.EditorTools
         public const string SceneName = "StealthLab";
         public const string ScenePath = Root + "/Scenes/" + SceneName + ".unity";
         public const string PresetPath = Root + "/StealthLabGameConfig.asset";
-        public const string MovementTuningPath = Root + "/Data/StealthLabMovement.asset";
+        public const string MovementTuningPath = MovementTuning.SharedAssetPath; // the shared movement tuning
         public const string StealthTuningPath = Root + "/Data/StealthLabStealth.asset";
         public const string OverlayShader = "JamKit/Stealth/Overlay";
         const string Mats = Root + "/Materials";
