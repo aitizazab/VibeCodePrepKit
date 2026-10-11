@@ -5,7 +5,7 @@ using UnityEngine;
 namespace JamKit.DreamEscape.EditorTools
 {
     /// <summary>
-    /// Night 2's house as a lived-in home (art pass 5, 2026-10-12: the creator found it "not at all furnished... for the
+    /// Night 2's house as a lived-in home (art pass 5, and the architecture pass's new plan, 2026-10-12: the creator found it "not at all furnished... for the
     /// space Elias spent most of his life in, his memories of it are rather bland"). Decoration only: no colliders, nothing
     /// on Theo's walking paths, the hiding spots, the routes or the run walls; the gameplay pieces are unchanged.
     ///
@@ -29,119 +29,246 @@ namespace JamKit.DreamEscape.EditorTools
             _unit = 0f;
             _root = new GameObject("Home (decoration)").transform;
             _root.SetParent(root, false);
-            Living();
             Kitchen();
-            Hallway();
+            Living();
+            Hall();
+            Parents();
+            Bath();
             TheosRoom();
-            Study();
+            Attic();
             Debug.Log("JAMKIT_HOUSE art: home decoration placed" + (_missing.Count > 0 ? "; models missing: " + string.Join(", ", _missing) : ""));
         }
 
-        // ---------- The rooms ----------
+        // ---------- The rooms (the architecture pass of 2026-10-12: the plan is core DreamHouse's) ----------
 
-        /// <summary>The living room (x 1.2..12, z 72..86): the sofa faces the fireplace (the focal point) across a rug and a
-        /// coffee table; an armchair with its lamp and side table closes the group; a bookcase, plants, a mirror.</summary>
+        /// <summary>The kitchen and dining room: the table on its rug under a pendant; the counter's clutter and its
+        /// cupboards; the fridge's drawings and notes; a clock; a plant.</summary>
+        static void Kitchen()
+        {
+            var t = Group("Kitchen and dining");
+            Rug(t, "rugRectangle", new Vector3(-3.4f, F, 75.7f), 4.4f, 3.0f, new Color(0.62f, 0.72f, 0.88f));
+            Pendant(t, new Vector3(-3.4f, F, 75.7f), 2.8f);
+            const float top = F + 0.95f;
+            Model(t, "kitchenCoffeeMachine", new Vector3(-3.95f, top, 72.32f), Vector3.forward);
+            Model(t, "toaster", new Vector3(-6.6f, top, 72.32f), Vector3.forward, 1.5f);
+            var red = DreamProps.MeshLook("DecorMugRed", new Color(0.88f, 0.42f, 0.45f), 0.004f);
+            var cream = DreamProps.MeshLook("DecorMug", new Color(0.98f, 0.95f, 0.9f), 0.004f);
+            Prim(t, "Mug", PrimitiveType.Cylinder, new Vector3(-4.3f, top + 0.05f, 72.4f), new Vector3(0.09f, 0.05f, 0.09f), red);
+            Prim(t, "Mug", PrimitiveType.Cylinder, new Vector3(-4.45f, top + 0.05f, 72.3f), new Vector3(0.09f, 0.05f, 0.09f), cream);
+            // A kettle on the stove (Lena's): a round body, a spout, a handle.
+            var kettle = DreamProps.MeshLook("DecorKettle", new Color(0.55f, 0.75f, 0.72f), 0.006f);
+            Prim(t, "Kettle", PrimitiveType.Sphere, new Vector3(-4.9f, top + 0.1f, 72.32f), new Vector3(0.24f, 0.2f, 0.24f), kettle);
+            Prim(t, "Kettle spout", PrimitiveType.Cylinder, new Vector3(-4.75f, top + 0.13f, 72.32f), new Vector3(0.04f, 0.08f, 0.04f), kettle, Quaternion.Euler(0f, 0f, -50f));
+            FruitBowl(t, new Vector3(-6.68f, top, 74.7f));
+            // Upper cupboards either side of the south window, and one over the west run.
+            Model(t, "kitchenCabinetUpper", new Vector3(-6.58f, F + 1.5f, 72.22f), Vector3.forward);
+            Model(t, "kitchenCabinetUpper", new Vector3(-4.02f, F + 1.5f, 72.22f), Vector3.forward);
+            Model(t, "kitchenCabinetUpper", new Vector3(-6.78f, F + 1.5f, 74.95f), Vector3.right);
+            // The fridge: the calendar (a memory) with the children's drawings and notes round it.
+            const float front = -6.235f;
+            Picture(t, "dream_pic_kids_drawing_1", new Vector3(front, F + 1.85f, 77.48f), Vector3.right, 0.26f, 0.34f, null);
+            Picture(t, "dream_pic_kids_drawing_2", new Vector3(front, F + 0.85f, 76.72f), Vector3.right, 0.26f, 0.34f, null);
+            Note(t, new Vector3(front, F + 0.95f, 77.5f), Vector3.right, new Color(1f, 0.92f, 0.55f));
+            Note(t, new Vector3(front, F + 1.8f, 76.7f), Vector3.right, new Color(0.7f, 0.9f, 0.75f));
+            Clock(t, new Vector3(-0.6f, F + 2.25f, DreamHouse.HallZ0 - 0.01f), Vector3.back);
+            Model(t, "pottedPlant", new Vector3(2.2f, F, 77.6f), Vector3.zero);
+            // A high shelf of plates along the west wall over the fridge's side (a dresser's top row).
+            Books(t, new Vector3(-6.9f, F + 2.2f, 73.0f), true, new[] { 0f });
+        }
+
+        /// <summary>The living room: the fireplace on the east wall is the heart (the sofa faces it across a rug and the
+        /// coffee table); the armchair with its side table and lamp; the floor lamp; books; plants; cushions in the bay.</summary>
         static void Living()
         {
             var t = Group("Living room");
-            Rug(t, "rugRounded", new Vector3(6.5f, F, 80.1f), 6.2f, 4.6f, new Color(0.86f, 0.55f, 0.5f));
-            Model(t, "tableCoffee", new Vector3(6.5f, F, 80.4f), Vector3.zero);   // symmetric: its long side stays along the sofa
+            Rug(t, "rugRounded", new Vector3(5.3f, F, 75.1f), 3.6f, 2.6f, new Color(0.86f, 0.55f, 0.5f));
+            Pendant(t, new Vector3(5.2f, F, 75.0f), 3.0f);
+            Fireplace(t, 7.4f, 75.2f);
             var mug = DreamProps.MeshLook("DecorMug", new Color(0.98f, 0.95f, 0.9f), 0.004f);
-            Prim(t, "Mug", PrimitiveType.Cylinder, new Vector3(6.1f, F + 0.47f + 0.05f, 80.3f), new Vector3(0.09f, 0.05f, 0.09f), mug);
-            Model(t, "books", new Vector3(6.9f, F + 0.47f, 80.5f), Vector3.forward, 1.6f);
-            Model(t, "plantSmall2", new Vector3(6.5f, F + 0.47f, 80.15f), Vector3.zero, 1.6f);
-            Fireplace(t, new Vector3(9.3f, F, 86f));
-            Model(t, "loungeChair", new Vector3(10.65f, F, 81.0f), Vector3.left);
-            Model(t, "sideTable", new Vector3(11.35f, F, 82.6f), Vector3.left, 1.5f);
-            var lamp = Model(t, "lampRoundTable", new Vector3(11.35f, F + 0.58f, 82.45f), Vector3.zero, 1.6f);
+            Prim(t, "Mug", PrimitiveType.Cylinder, new Vector3(5.0f, F + 0.45f + 0.05f, 74.8f), new Vector3(0.09f, 0.05f, 0.09f), mug);
+            Model(t, "books", new Vector3(5.3f, F + 0.45f, 75.3f), Vector3.forward, 1.6f);
+            Model(t, "plantSmall2", new Vector3(5.25f, F + 0.45f, 74.7f), Vector3.zero, 1.6f);
+            Model(t, "sideTable", new Vector3(7.72f, F, 77.3f), Vector3.left, 1.3f);
+            var lamp = Model(t, "lampRoundTable", new Vector3(7.72f, F + 0.5f, 77.3f), Vector3.zero, 1.5f);
             LampGlow(t, lamp, 0.22f);
-            var floorLamp = Model(t, "lampRoundFloor", new Vector3(11.5f, F, 79.6f), Vector3.zero);
+            var floorLamp = Model(t, "lampRoundFloor", new Vector3(3.15f, F, 76.65f), Vector3.zero);
             LampGlow(t, floorLamp, 0.3f);
-            Model(t, "bookcaseOpen", new Vector3(11.68f, F, 84.2f), Vector3.left);
-            Books(t, new Vector3(11.62f, F, 84.2f), true, new[] { 0.42f, 0.86f, 1.3f });
-            Model(t, "pottedPlant", new Vector3(11.4f, F, 72.7f), Vector3.zero);
-            Model(t, "pottedPlant", new Vector3(1.75f, F, 85.4f), Vector3.zero);
-            Pendant(t, new Vector3(6.5f, F, 80.2f));
-        }
-
-        /// <summary>The kitchen (x -12..1, z 72..86): the table on its rug under a pendant; the counter's clutter and its
-        /// upper cupboards; the fridge's notes and the children's drawings; a clock; a plant.</summary>
-        static void Kitchen()
-        {
-            var t = Group("Kitchen");
-            Rug(t, "rugRectangle", new Vector3(-6f, F, 77.5f), 6.6f, 5.6f, new Color(0.62f, 0.72f, 0.88f));
-            Pendant(t, new Vector3(-6f, F, 77.5f));
-            const float top = F + 0.95f, cx = -11.6f;
-            Model(t, "kitchenCoffeeMachine", new Vector3(cx, top, 77.3f), Vector3.right);
-            Model(t, "toaster", new Vector3(cx, top, 78.4f), Vector3.right, 1.5f);
-            var mug = DreamProps.MeshLook("DecorMugRed", new Color(0.88f, 0.42f, 0.45f), 0.004f);
-            Prim(t, "Mug", PrimitiveType.Cylinder, new Vector3(cx + 0.05f, top + 0.05f, 77.85f), new Vector3(0.09f, 0.05f, 0.09f), mug);
-            Prim(t, "Mug", PrimitiveType.Cylinder, new Vector3(cx - 0.12f, top + 0.05f, 77.95f), new Vector3(0.09f, 0.05f, 0.09f), DreamProps.MeshLook("DecorMug", new Color(0.98f, 0.95f, 0.9f), 0.004f));
-            FruitBowl(t, new Vector3(cx, top, 79.35f));
+            Books(t, new Vector3(3.03f, F, 77.6f), true, new[] { 0.42f, 0.86f, 1.3f });
+            Model(t, "pottedPlant", new Vector3(7.65f, F, 72.4f), Vector3.zero);
+            Model(t, "plantSmall1", new Vector3(DreamHouse.BayX1 - 0.3f, F + 0.45f, DreamHouse.BayZ0 + 0.25f), Vector3.zero, 2.4f);
+            // Cushions on the window seat.
+            var cushions = new[] { new Color(0.98f, 0.82f, 0.45f), new Color(0.62f, 0.72f, 0.88f), new Color(0.9f, 0.6f, 0.65f) };
             for (int i = 0; i < 3; i++)
-                Model(t, "kitchenCabinetUpper", new Vector3(-11.78f, F + 1.55f, 77.45f + i * 0.9f), Vector3.right);
-            // The fridge: notes and two children's drawings by the calendar (the calendar is a memory: left as it is).
-            var front = -11.07f;
-            Picture(t, "dream_pic_kids_drawing_1", new Vector3(front, F + 1.3f, 82.15f), Vector3.right, 0.3f, 0.4f, null);
-            Picture(t, "dream_pic_kids_drawing_2", new Vector3(front, F + 0.7f, 81.3f), Vector3.right, 0.28f, 0.37f, null);
-            Note(t, new Vector3(front, F + 0.8f, 82.1f), Vector3.right, new Color(1f, 0.92f, 0.55f));
-            Note(t, new Vector3(front, F + 1.75f, 81.2f), Vector3.right, new Color(0.7f, 0.9f, 0.75f));
-            Clock(t, new Vector3(-6f, F + 2.25f, 72.03f), Vector3.forward);
-            Model(t, "pottedPlant", new Vector3(0.55f, F, 85.45f), Vector3.zero);
+                DreamProps.Show("Cushion", DreamProps.RoundedBox("Cushion", new Vector3(0.42f, 0.36f, 0.14f), 0.06f), DreamProps.MeshLook("DecorCushion" + i, cushions[i], 0.006f),
+                    t, Vector3.zero, Quaternion.Euler(-12f, (i - 1) * 8f, 0f)).transform.position = new Vector3(DreamHouse.BayX0 + 0.5f + i * 0.6f, F + 0.65f, DreamHouse.BayZ0 + 0.18f);
+            // A painting over the sofa, on the half wall's header? No: on the north wall, over the bookcase's side.
+            Picture(t, "dream_pic_photo_4", new Vector3(5.3f, F + 1.75f, DreamHouse.HallZ0 - 0.012f), Vector3.back, 0.9f, 0.7f, null, true);
         }
 
-        /// <summary>The hallway (z 86.2..89): a long runner; the children's photos along its north wall.</summary>
-        static void Hallway()
+        /// <summary>The hall: a long runner, wall lights, the coats (a hiding spot, drawn by the dressing).</summary>
+        static void Hall()
         {
-            var t = Group("Hallway");
-            Rug(t, "rugRectangle", new Vector3(-0.3f, F, 87.6f), 17f, 1.4f, new Color(0.8f, 0.62f, 0.78f));
+            var t = Group("Hall");
+            Rug(t, "rugRectangle", new Vector3(0.9f, F, 79.4f), 11.6f, 1.0f, new Color(0.8f, 0.62f, 0.78f));
+            foreach (float x in new[] { -3.6f, 0.6f, 3.4f })
+            {
+                Prim(t, "Wall light (bracket)", PrimitiveType.Cube, new Vector3(x, F + 1.95f, DreamHouse.HallZ0 + 0.26f), new Vector3(0.08f, 0.16f, 0.12f), DreamProps.MeshLook("DecorBrass", new Color(0.95f, 0.78f, 0.38f), 0.004f));
+                Prim(t, "Wall light", PrimitiveType.Sphere, new Vector3(x, F + 2.0f, DreamHouse.HallZ0 + 0.36f), Vector3.one * 0.5f,
+                    DreamEscapeBuilder.Glow("DecorLampGlow", new Color(1f, 0.86f, 0.6f), 0.55f, 0f, 0.1f));
+            }
+            // The cupboard under the stairs: its little door, ajar.
+            var door = DreamEscapeBuilder.Box("Cupboard door (ajar)", t, Vector3.zero, new Vector3(0.9f, 1.2f, 0.04f), DreamEscapeBuilder.Pastel("StairTread", new Color(0.78f, 0.58f, 0.46f), 0.02f));
+            door.transform.position = new Vector3(DreamHouse.StairX0 + 0.25f, F + 0.62f, DreamHouse.HallZ1 - 0.25f);
+            door.transform.rotation = Quaternion.Euler(0f, 60f, 0f);
+            // The brother's and sister's childhood photos, climbing the wall beside the attic stairs.
             for (int i = 0; i < 4; i++)
             {
-                float x = new[] { -9.4f, -2.2f, 2.2f, 9.2f }[i];
-                Picture(t, "dream_pic_childhood_" + (i + 1), new Vector3(x, F + 1.65f, 88.98f), Vector3.back, 0.64f, 0.5f, null, true);
+                float z = 83.2f - i * 0.6f;
+                float stair = (DreamHouse.AtticFloor - F) * (DreamHouse.StairZ1 - z) / (DreamHouse.StairZ1 - DreamHouse.StairZ0);
+                Picture(t, "dream_pic_childhood_" + (i + 1), new Vector3(DreamHouse.StairX0 + 0.01f, F + stair + 1.45f, z), Vector3.right, 0.5f, 0.4f, null, true);
             }
         }
 
-        /// <summary>Theo's room (x -12..-0.1, z 89.2..100): the bed with its teddy and bedside lamp; a round rug; a toy
-        /// chest; a low bookcase; the desk with its chair and drawings pinned above; toys in the corner.</summary>
+        /// <summary>The parents' room: the bed on its rug, bedside tables and lamps, the wedding photo over the bed.</summary>
+        static void Parents()
+        {
+            var t = Group("Parents' room");
+            Rug(t, "rugRectangle", new Vector3(-5.2f, F, 82.6f), 3.4f, 2.2f, new Color(0.74f, 0.66f, 0.86f));
+            Pendant(t, new Vector3(-4.2f, F, 82.3f), 2.7f);
+            foreach (float x in new[] { -6.55f, -3.85f })
+            {
+                Model(t, "cabinetBedDrawerTable", new Vector3(x, F, 83.7f), Vector3.back);
+                var lamp = Model(t, "lampRoundTable", new Vector3(x, F + 0.53f, 83.7f), Vector3.zero, 1.6f);
+                LampGlow(t, lamp, 0.2f);
+            }
+            Picture(t, "dream_pic_photo_1", new Vector3(-5.2f, F + 1.7f, DreamHouse.HubZ1 - 0.012f), Vector3.back, 0.8f, 0.62f, null, true);
+            Model(t, "pottedPlant", new Vector3(-1.75f, F, 81.1f), Vector3.zero);
+        }
+
+        /// <summary>The bath: the sink and its mirror, the toilet, the tub's curtain on its rail, a bath mat.</summary>
+        static void Bath()
+        {
+            var t = Group("Bath");
+            Model(t, "bathroomSink", new Vector3(1.18f, F, 81.4f), Vector3.left);
+            DreamEscapeBuilder.Quad("Mirror", t, new Vector3(1.395f, F + 1.55f, 81.4f), Vector3.left, 0.5f, 0.6f, DreamEscapeBuilder.Pastel("DecorMirror", new Color(0.82f, 0.9f, 1f), 0f, 0.35f));
+            Model(t, "toilet", new Vector3(1.15f, F, 82.6f), Vector3.left);
+            Rug(t, "rugDoormat", new Vector3(0.1f, F, 82.75f), 1.0f, 0.5f, new Color(0.7f, 0.9f, 0.9f));
+            DreamEscapeBuilder.Box("Curtain rail", t, new Vector3(0.1f, F + 2.05f, 83.2f), new Vector3(2.6f, 0.04f, 0.04f), DreamEscapeBuilder.Pastel("DecorChrome", new Color(0.85f, 0.88f, 0.92f), 0.01f));
+            var curtain = DreamEscapeBuilder.Pastel("DecorShowerCurtain", new Color(0.98f, 0.82f, 0.86f), 0.01f);
+            for (int i = 0; i < 4; i++)   // drawn half across, in folds
+                DreamEscapeBuilder.Box("Curtain fold", t, new Vector3(-1.0f + i * 0.28f, F + 1.15f, 83.2f + (i % 2 == 0 ? 0.05f : -0.05f)), new Vector3(0.28f, 1.8f, 0.06f), curtain);
+        }
+
+        /// <summary>Theo's room: the round rug, the teddy on his bed, the bedside light, his desk's chair and the drawing
+        /// pinned over it, the toy chest, toys under the window, and glow-in-the-dark stars on his ceiling (his mother's).</summary>
         static void TheosRoom()
         {
             var t = Group("Theo's room");
-            Rug(t, "rugRound", new Vector3(-6.9f, F, 95.0f), 3.2f, 3.2f, new Color(0.98f, 0.8f, 0.45f));
-            Model(t, "bear", new Vector3(-10.6f, F + 0.55f, 98.0f), Vector3.back, 1.2f);
-            Model(t, "cabinetBedDrawerTable", new Vector3(-9.15f, F, 99.45f), Vector3.back);
-            var lamp = Model(t, "lampRoundTable", new Vector3(-9.15f, F + 0.53f, 99.45f), Vector3.zero, 1.6f);
-            LampGlow(t, lamp, 0.2f);
-            Model(t, "cardboardBoxClosed", new Vector3(-10.7f, F, 94.2f), Vector3.back, 2.6f, new Color(0.45f, 0.7f, 0.9f));
-            Model(t, "bookcaseOpenLow", new Vector3(-6.9f, F, 99.6f), Vector3.back, 2.2f);
-            Books(t, new Vector3(-6.9f, F, 99.55f), false, new[] { 0.42f });
-            Model(t, "chairDesk", new Vector3(-7f, F, 90.8f), Vector3.back);   // faces the desk (south)
-            Picture(t, "dream_pic_kids_drawing_2", new Vector3(-7.4f, F + 1.55f, 89.22f), Vector3.forward, 0.36f, 0.48f, null);
-            Toys(t, new Vector3(-11.3f, F, 90.0f));
-            Pendant(t, new Vector3(-6.5f, F, 95.0f));
+            Rug(t, "rugRound", new Vector3(4.7f, F, 82.3f), 2.0f, 2.0f, new Color(0.98f, 0.8f, 0.45f));
+            Pendant(t, new Vector3(4.8f, F, 82.2f), 2.6f);
+            Model(t, "bear", new Vector3(6.2f, F + 0.42f, 83.6f), Vector3.back, 1.1f);
+            var nightLight = Model(t, "lampRoundTable", new Vector3(7.7f, F + 0.75f, 82.85f), Vector3.zero, 1.3f);
+            LampGlow(t, nightLight, 0.18f);
+            Model(t, "chairDesk", new Vector3(6.95f, F, 82.65f), Vector3.right);
+            Picture(t, "dream_pic_kids_drawing_2", new Vector3(DreamHouse.HubX1 - 0.012f, F + 1.55f, 82.65f), Vector3.left, 0.36f, 0.48f, null);
+            Model(t, "cardboardBoxClosed", new Vector3(3.4f, F, 81.2f), Vector3.back, 2.6f, new Color(0.45f, 0.7f, 0.9f));
+            Toys(t, new Vector3(3.9f, F, 83.55f));
+            Books(t, new Vector3(7.72f, F, 81.6f), true, new[] { 0.42f, 0.86f, 1.3f });
+            // Glow-in-the-dark stars on the ceiling.
+            var star = DreamEscapeBuilder.Glow("TheoStar", new Color(0.92f, 1f, 0.75f), 0.9f, 0f, 0.25f);
+            var rnd = new System.Random(11);
+            for (int i = 0; i < 22; i++)
+            {
+                float x = 3.3f + 4.5f * (float)rnd.NextDouble(), z = 81.0f + 2.8f * (float)rnd.NextDouble();
+                DreamEscapeBuilder.Quad("Ceiling star", t, new Vector3(x, F + 2.595f, z), Vector3.down, 0.09f, 0.09f, star);
+            }
         }
 
-        /// <summary>The study (x 0.1..12, z 89.2..100): the desk on its rug, its chair, lamp, radio and books; a reading
-        /// corner (armchair, floor lamp, bookcases); a plant. The photo wall stays as it is (a memory).</summary>
-        static void Study()
+        /// <summary>The attic: Lena's observatory at the west end (a proposal: the telescope at the round window, her
+        /// chair, star charts, her notebook), the family's stored life to the east (boxes, Theo's crib, the old bike, a
+        /// rocking horse, the Christmas box).</summary>
+        static void Attic()
         {
-            var t = Group("Study");
-            Rug(t, "rugRectangle", new Vector3(7.5f, F, 95.9f), 4.2f, 2.6f, new Color(0.6f, 0.78f, 0.62f));
-            Model(t, "chairDesk", new Vector3(7.5f, F, 96.65f), Vector3.back);   // faces the desk (south)
-            Model(t, "radio", new Vector3(8.5f, F + 0.75f, 95.35f), Vector3.back, 1.2f);
-            var lamp = Model(t, "lampRoundTable", new Vector3(6.35f, F + 0.75f, 95.35f), Vector3.zero, 1.6f);
-            LampGlow(t, lamp, 0.22f);
-            Model(t, "books", new Vector3(7.3f, F + 0.75f, 95.3f), Vector3.back, 1.8f);
-            Model(t, "loungeChair", new Vector3(11.0f, F, 91.0f), Vector3.left);
-            var floorLamp = Model(t, "lampRoundFloor", new Vector3(11.55f, F, 89.85f), Vector3.zero);
-            LampGlow(t, floorLamp, 0.3f);
-            foreach (float z in new[] { 96.7f, 97.6f })   // clear of the east window (z 93.1..94.9)
+            var t = Group("Attic");
+            float FA = DreamHouse.AtticFloor;
+            // The observatory: a rug on the platform, the telescope on its tripod aimed at the window, her chair and table.
+            Rug(t, "rugRound", new Vector3(-6.3f, FA + 0.3f, 78f), 1.3f, 2.8f, new Color(0.42f, 0.44f, 0.72f));
+            var brass = DreamProps.MeshLook("DecorBrass", new Color(0.95f, 0.78f, 0.38f), 0.004f);
+            var tube = DreamProps.MeshLook("DecorTelescope", new Color(0.3f, 0.32f, 0.55f), 0.006f);
+            var feet = new Vector3(-6.2f, FA + 0.3f, 78f);
+            for (int i = 0; i < 3; i++)
             {
-                Model(t, "bookcaseOpen", new Vector3(11.68f, F, z), Vector3.left);
-                Books(t, new Vector3(11.62f, F, z), true, new[] { 0.42f, 0.86f, 1.3f });
+                float a = i * 120f * Mathf.Deg2Rad;
+                var leg = new Vector3(Mathf.Cos(a) * 0.35f, 0f, Mathf.Sin(a) * 0.35f);
+                var mid = feet + leg * 0.5f + Vector3.up * 0.6f;
+                Prim(t, "Tripod leg", PrimitiveType.Cylinder, mid, new Vector3(0.04f, 0.62f, 0.04f), brass, Quaternion.FromToRotation(Vector3.up, (Vector3.up * 1.2f - leg).normalized));
             }
-            Model(t, "pottedPlant", new Vector3(0.6f, F, 99.4f), Vector3.zero);
-            Pendant(t, new Vector3(6f, F, 94.6f));
+            Prim(t, "Telescope", PrimitiveType.Cylinder, feet + new Vector3(-0.15f, 1.35f, 0f), new Vector3(0.16f, 0.6f, 0.16f), tube, Quaternion.Euler(0f, 0f, 62f));
+            Prim(t, "Telescope eyepiece", PrimitiveType.Cylinder, feet + new Vector3(0.38f, 1.08f, 0f), new Vector3(0.06f, 0.08f, 0.06f), brass, Quaternion.Euler(0f, 0f, 62f));
+            Model(t, "loungeChair", new Vector3(-4.6f, FA, 77.4f), Vector3.left);
+            Model(t, "sideTable", new Vector3(-4.6f, FA, 78.75f), Vector3.left, 1.3f);
+            DreamEscapeBuilder.Box("Lena's notebook", t, new Vector3(-4.6f, FA + 0.52f, 78.75f), new Vector3(0.22f, 0.03f, 0.3f), DreamEscapeBuilder.Pastel("DecorNotebook", new Color(0.36f, 0.26f, 0.22f), 0.004f));
+            var mug = DreamProps.MeshLook("DecorMug", new Color(0.98f, 0.95f, 0.9f), 0.004f);
+            Prim(t, "Mug (cold)", PrimitiveType.Cylinder, new Vector3(-4.45f, FA + 0.56f, 78.6f), new Vector3(0.09f, 0.05f, 0.09f), mug);
+            // Star charts pinned to the gable and the rafters.
+            for (int i = 0; i < 3; i++)
+                StarChart(t, new Vector3(DreamHouse.HubX0 + 0.012f, FA + 1.2f + (i == 1 ? 0.5f : 0f), 75.6f + i * 0.9f + (i == 2 ? 2.6f : 0f)), Vector3.right, 7 + i);
+            StarChart(t, new Vector3(-3.4f, FA + 2.3f, DreamHouse.RidgeZ + 0.09f), Vector3.forward, 21);
+            // The stored life: boxes on and round the crates and the trunk, the old bike, a rocking horse, the Christmas box.
+            Model(t, "cardboardBoxClosed", new Vector3(5.3f, FA + 1.2f, 74.9f), Vector3.back, 2.2f);
+            Model(t, "cardboardBoxOpen", new Vector3(6.4f, FA, 74.4f), Vector3.back, 2.2f);
+            Model(t, "cardboardBoxClosed", new Vector3(2.6f, FA, 74.2f), Vector3.back, 2.0f, new Color(0.86f, 0.42f, 0.45f));
+            var tinsel = DreamEscapeBuilder.Glow("DecorTinsel", new Color(0.6f, 0.95f, 0.65f), 0.8f, 0f, 0.3f);
+            Prim(t, "Tinsel", PrimitiveType.Sphere, new Vector3(2.6f, FA + 0.6f, 74.2f), new Vector3(0.45f, 0.12f, 0.35f), tinsel);
+            // Elias's old bike (Walt fixed it), leaning on the south knee wall.
+            var bike = new GameObject("The old bike").transform;
+            bike.SetParent(t, false);
+            bike.position = new Vector3(0.2f, FA + 0.36f, 72.6f);
+            bike.rotation = Quaternion.Euler(0f, 90f, 8f);
+            DreamProps.Show("Bike frame", DreamProps.BikeFrame(), DreamProps.MeshLook("DecorOldBike", new Color(0.93f, 0.5f, 0.55f), 0.005f), bike, Vector3.zero, Quaternion.identity);
+            var tyre = DreamProps.Ring("Bike tyre", 0.33f, 0.028f);
+            var tyreMat = DreamProps.MeshLook("Tyre", new Color(0.36f, 0.3f, 0.46f), 0.006f);
+            DreamProps.Show("Bike wheel", tyre, tyreMat, bike, new Vector3(0f, 0f, -0.55f), Quaternion.identity);
+            DreamProps.Show("Bike wheel", tyre, tyreMat, bike, new Vector3(0f, 0f, 0.55f), Quaternion.identity);
+            RockingHorse(t, new Vector3(-1.6f, FA, 76.6f));
+            // A stack of old picture frames against the north knee wall, faces to the wall.
+            for (int i = 0; i < 4; i++)
+                DreamEscapeBuilder.Box("Old frame (back)", t, new Vector3(-1.2f + i * 0.08f, FA + 0.45f, 83.5f - i * 0.05f), new Vector3(0.06f, 0.8f - i * 0.1f, 0.7f),
+                    DreamEscapeBuilder.Pastel("AtticStorage", new Color(0.74f, 0.6f, 0.5f), 0.02f)).transform.rotation = Quaternion.Euler(-14f, 90f, 0f);
+            // A dim bulb hanging from the ridge in the middle.
+            Prim(t, "Bulb (attic)", PrimitiveType.Sphere, new Vector3(1.2f, FA + 2.6f, DreamHouse.RidgeZ), Vector3.one * 0.55f,
+                DreamEscapeBuilder.Glow("StairBulb", new Color(1f, 0.86f, 0.6f), 1.0f, 0f, 0.1f));
+        }
+
+        // ---------- Pieces ----------
+
+        /// <summary>A pinned star chart: deep blue paper, white stars joined into a constellation.</summary>
+        static void StarChart(Transform parent, Vector3 at, Vector3 normal, int seed)
+        {
+            var paper = DreamEscapeBuilder.Pastel("DecorChart", new Color(0.24f, 0.28f, 0.52f), 0.01f);
+            DreamEscapeBuilder.Quad("Star chart", parent, at, normal, 0.6f, 0.45f, paper);
+            var star = DreamEscapeBuilder.Glow("AtticStar", new Color(1f, 0.96f, 0.82f), 1.4f, 0f, 0.2f);
+            Vector3 across = Mathf.Abs(normal.x) > 0.5f ? Vector3.forward : Vector3.right;
+            var rnd = new System.Random(seed);
+            for (int i = 0; i < 6; i++)
+            {
+                var p = at + normal * 0.006f + across * (((float)rnd.NextDouble() - 0.5f) * 0.5f) + Vector3.up * (((float)rnd.NextDouble() - 0.5f) * 0.36f);
+                Prim(parent, "Chart star", PrimitiveType.Sphere, p, Vector3.one * 0.025f, star);
+            }
+        }
+
+        /// <summary>A small rocking horse: a body, a head, two rockers.</summary>
+        static void RockingHorse(Transform parent, Vector3 floor)
+        {
+            var wood = DreamProps.MeshLook("DecorHorse", new Color(0.95f, 0.85f, 0.7f), 0.006f);
+            var mane = DreamProps.MeshLook("DecorMane", new Color(0.86f, 0.42f, 0.45f), 0.004f);
+            DreamProps.Show("Horse body", DreamProps.RoundedBox("Horse body", new Vector3(0.22f, 0.24f, 0.6f), 0.1f), wood, parent, Vector3.zero, Quaternion.identity).transform.position = floor + new Vector3(0f, 0.55f, 0f);
+            DreamProps.Show("Horse head", DreamProps.RoundedBox("Horse head", new Vector3(0.16f, 0.3f, 0.22f), 0.07f), wood, parent, Vector3.zero, Quaternion.Euler(-25f, 0f, 0f)).transform.position = floor + new Vector3(0f, 0.78f, 0.32f);
+            Prim(parent, "Mane", PrimitiveType.Cube, floor + new Vector3(0f, 0.86f, 0.24f), new Vector3(0.05f, 0.2f, 0.12f), mane);
+            foreach (float x in new[] { -0.12f, 0.12f })
+                Prim(parent, "Rocker", PrimitiveType.Cylinder, floor + new Vector3(x, 0.1f, 0f), new Vector3(0.05f, 0.42f, 0.05f), wood, Quaternion.Euler(80f, 0f, 0f));
+            foreach (var leg in new[] { new Vector3(-0.1f, 0f, -0.2f), new Vector3(0.1f, 0f, -0.2f), new Vector3(-0.1f, 0f, 0.2f), new Vector3(0.1f, 0f, 0.2f) })
+                Prim(parent, "Horse leg", PrimitiveType.Cylinder, floor + leg + new Vector3(0f, 0.3f, 0f), new Vector3(0.04f, 0.18f, 0.04f), wood);
         }
 
         // ---------- Pieces ----------
@@ -247,57 +374,57 @@ namespace JamKit.DreamEscape.EditorTools
                 DreamEscapeBuilder.Glow("DecorLampGlow", new Color(1f, 0.86f, 0.6f), 0.55f, 0f, 0.1f));
         }
 
-        /// <summary>A pendant lamp hanging from the 3 m ceiling over <paramref name="floor"/>: a cord, a cream shade, a glow.</summary>
-        static void Pendant(Transform parent, Vector3 floor)
+        /// <summary>A pendant lamp hanging from a ceiling <paramref name="ceiling"/> m over <paramref name="floor"/>: a cord,
+        /// a cream shade, a soft glow.</summary>
+        static void Pendant(Transform parent, Vector3 floor, float ceiling)
         {
             var cord = DreamProps.MeshLook("DecorCord", new Color(0.36f, 0.3f, 0.46f), 0f);
             var shade = DreamProps.MeshLook("DecorShade", new Color(0.99f, 0.93f, 0.8f), 0.01f);
-            Prim(parent, "Pendant cord", PrimitiveType.Cylinder, floor + new Vector3(0f, 2.75f, 0f), new Vector3(0.02f, 0.25f, 0.02f), cord);
-            Prim(parent, "Pendant shade", PrimitiveType.Cylinder, floor + new Vector3(0f, 2.42f, 0f), new Vector3(0.55f, 0.09f, 0.55f), shade);
-            Prim(parent, "Pendant glow", PrimitiveType.Sphere, floor + new Vector3(0f, 2.33f, 0f), Vector3.one * 0.55f,
+            Prim(parent, "Pendant cord", PrimitiveType.Cylinder, floor + new Vector3(0f, ceiling - 0.2f, 0f), new Vector3(0.02f, 0.2f, 0.02f), cord);
+            Prim(parent, "Pendant shade", PrimitiveType.Cylinder, floor + new Vector3(0f, ceiling - 0.48f, 0f), new Vector3(0.5f, 0.09f, 0.5f), shade);
+            Prim(parent, "Pendant glow", PrimitiveType.Sphere, floor + new Vector3(0f, ceiling - 0.58f, 0f), Vector3.one * 0.5f,
                 DreamEscapeBuilder.Glow("DecorLampGlow", new Color(1f, 0.86f, 0.6f), 0.55f, 0f, 0.1f));
         }
 
-        /// <summary>The fireplace on the living room's north wall (its back on the wall at z = <paramref name="wall"/>.z):
-        /// a brick chimney breast, a dark firebox with logs and a fire's glow, a hearth, a white mantel with a clock, candles,
-        /// the siblings' photo and a plant, and a mirror above.</summary>
-        static void Fireplace(Transform parent, Vector3 wall)
+        /// <summary>The fireplace in the chimney breast whose west face is at x = <paramref name="faceX"/>, centred on
+        /// <paramref name="z"/> (facing the room, -x): a dark firebox with logs and the fire's glow, a hearth, a white mantel
+        /// with a clock, candles, the siblings' photo and a plant, and a mirror above.</summary>
+        static void Fireplace(Transform parent, float faceX, float z)
         {
             var t = new GameObject("Fireplace").transform;
             t.SetParent(parent, false);
-            float x = wall.x, z = wall.z;
-            var brick = DreamEscapeBuilder.Pastel("DecorBrick", new Color(0.86f, 0.55f, 0.5f), 0.03f);
-            var mortar = DreamEscapeBuilder.Pastel("DecorMortar", new Color(0.93f, 0.78f, 0.72f), 0f);
+            var n = Vector3.left;   // into the room
+            Vector3 P(float out_, float y, float along) => new Vector3(faceX - out_, F + y, z + along);
             var white = DreamEscapeBuilder.Pastel("HouseTrim", DreamEscapeBuilder.Palette[0], 0.03f);
             var soot = DreamEscapeBuilder.Pastel("DecorSoot", new Color(0.3f, 0.25f, 0.36f), 0.02f);
-            DreamEscapeBuilder.Box("Chimney breast", t, new Vector3(x, F + 1.5f, z - 0.25f), new Vector3(2.4f, 3f, 0.5f), brick);
-            for (float y = F + 0.25f; y < F + 3f; y += 0.25f)   // brick courses
-                DreamEscapeBuilder.Box("Brick course", t, new Vector3(x, y, z - 0.505f), new Vector3(2.4f, 0.025f, 0.02f), mortar);
-            DreamEscapeBuilder.Box("Firebox", t, new Vector3(x, F + 0.45f, z - 0.49f), new Vector3(1.2f, 0.9f, 0.04f), soot);
-            DreamEscapeBuilder.Box("Hearth", t, new Vector3(x, F + 0.04f, z - 0.78f), new Vector3(2.8f, 0.08f, 0.6f), white);
+            DreamEscapeBuilder.Quad("Firebox", t, P(0.02f, 0.45f, 0f), n, 1.1f, 0.85f, soot);
+            DreamEscapeBuilder.Box("Hearth", t, P(0.3f, 0.04f, 0f), new Vector3(0.6f, 0.08f, 2.0f), white);
+            // The surround: two pilasters and the mantel shelf.
+            foreach (float a in new[] { -0.7f, 0.7f })
+                DreamEscapeBuilder.Box("Mantel pilaster", t, P(0.06f, 0.6f, a), new Vector3(0.12f, 1.2f, 0.18f), white);
+            float mantel = 1.22f;
+            DreamEscapeBuilder.Box("Mantel", t, P(0.14f, mantel, 0f), new Vector3(0.28f, 0.08f, 1.8f), white);
             var log = DreamProps.MeshLook("DecorLog", new Color(0.55f, 0.36f, 0.3f), 0.006f);
             for (int i = 0; i < 3; i++)
-                Prim(t, "Log", PrimitiveType.Cylinder, new Vector3(x - 0.25f + i * 0.25f, F + 0.14f + (i == 1 ? 0.12f : 0f), z - 0.6f), new Vector3(0.12f, 0.3f, 0.12f), log, Quaternion.Euler(0f, 0f, 90f));
-            Prim(t, "Fire", PrimitiveType.Sphere, new Vector3(x, F + 0.35f, z - 0.62f), new Vector3(0.9f, 0.6f, 0.3f), DreamEscapeBuilder.Glow("DecorFire", new Color(1f, 0.62f, 0.35f), 1.2f, 0f, 0.35f));
-            float mantel = F + 1.25f;
-            DreamEscapeBuilder.Box("Mantel", t, new Vector3(x, mantel, z - 0.62f), new Vector3(2.8f, 0.09f, 0.32f), white);
+                Prim(t, "Log", PrimitiveType.Cylinder, P(0.14f, 0.12f + (i == 1 ? 0.12f : 0f), -0.25f + i * 0.25f), new Vector3(0.12f, 0.28f, 0.12f), log, Quaternion.Euler(90f, 0f, 0f));
+            Prim(t, "Fire", PrimitiveType.Sphere, P(0.15f, 0.34f, 0f), new Vector3(0.28f, 0.55f, 0.85f), DreamEscapeBuilder.Glow("DecorFire", new Color(1f, 0.62f, 0.35f), 1.2f, 0f, 0.35f));
             // On the mantel: a clock in the middle, the siblings' photo, two candles, a little plant.
-            Clock(t, new Vector3(x, mantel + 0.26f, z - 0.66f), Vector3.back, 0.18f, true);
-            Picture(t, "dream_pic_siblings", new Vector3(x - 0.75f, mantel + 0.22f, z - 0.66f), Vector3.back, 0.36f, 0.28f, null, true, standing: true);
+            Clock(t, P(0.18f, mantel + 0.26f, 0f), n, 0.17f, true);
+            Picture(t, "dream_pic_siblings", P(0.18f, mantel + 0.22f, 0.62f), n, 0.34f, 0.26f, null, true, standing: true);
             var wax = DreamProps.MeshLook("DecorCandle", new Color(0.99f, 0.96f, 0.88f), 0.004f);
-            foreach (float dx in new[] { 0.55f, 0.75f })
+            foreach (float a in new[] { -0.45f, -0.62f })
             {
-                Prim(t, "Candle", PrimitiveType.Cylinder, new Vector3(x + dx, mantel + 0.16f, z - 0.62f), new Vector3(0.06f, 0.12f, 0.06f), wax);
-                Prim(t, "Candle flame", PrimitiveType.Sphere, new Vector3(x + dx, mantel + 0.31f, z - 0.62f), Vector3.one * 0.12f, DreamEscapeBuilder.Glow("DecorFlame", new Color(1f, 0.82f, 0.45f), 1.1f, 0f, 0.3f));
+                Prim(t, "Candle", PrimitiveType.Cylinder, P(0.14f, mantel + 0.16f, a), new Vector3(0.06f, 0.12f, 0.06f), wax);
+                Prim(t, "Candle flame", PrimitiveType.Sphere, P(0.14f, mantel + 0.31f, a), Vector3.one * 0.12f, DreamEscapeBuilder.Glow("DecorFlame", new Color(1f, 0.82f, 0.45f), 1.1f, 0f, 0.3f));
             }
-            Model(t, "plantSmall1", new Vector3(x + 1.15f, mantel + 0.045f, z - 0.62f), Vector3.zero, 2.2f);
-            // The mirror above.
+            Model(t, "plantSmall1", P(0.14f, mantel + 0.04f, -0.82f), Vector3.zero, 2.2f);
+            // The mirror above, framed.
             var pane = DreamEscapeBuilder.Pastel("DecorMirror", new Color(0.82f, 0.9f, 1f), 0f, 0.35f);
-            DreamEscapeBuilder.Quad("Mirror", t, new Vector3(x, F + 2.15f, z - 0.515f), Vector3.back, 1.1f, 0.8f, pane);
-            DreamEscapeBuilder.Box("Mirror frame", t, new Vector3(x, F + 2.15f + 0.42f, z - 0.53f), new Vector3(1.24f, 0.06f, 0.04f), white);
-            DreamEscapeBuilder.Box("Mirror frame", t, new Vector3(x, F + 2.15f - 0.42f, z - 0.53f), new Vector3(1.24f, 0.06f, 0.04f), white);
-            DreamEscapeBuilder.Box("Mirror frame", t, new Vector3(x - 0.59f, F + 2.15f, z - 0.53f), new Vector3(0.06f, 0.9f, 0.04f), white);
-            DreamEscapeBuilder.Box("Mirror frame", t, new Vector3(x + 0.59f, F + 2.15f, z - 0.53f), new Vector3(0.06f, 0.9f, 0.04f), white);
+            DreamEscapeBuilder.Quad("Mirror", t, P(0.015f, 2.1f, 0f), n, 1.0f, 0.75f, pane);
+            DreamEscapeBuilder.Box("Mirror frame", t, P(0.03f, 2.1f + 0.4f, 0f), new Vector3(0.04f, 0.06f, 1.12f), white);
+            DreamEscapeBuilder.Box("Mirror frame", t, P(0.03f, 2.1f - 0.4f, 0f), new Vector3(0.04f, 0.06f, 1.12f), white);
+            DreamEscapeBuilder.Box("Mirror frame", t, P(0.03f, 2.1f, 0.53f), new Vector3(0.04f, 0.86f, 0.06f), white);
+            DreamEscapeBuilder.Box("Mirror frame", t, P(0.03f, 2.1f, -0.53f), new Vector3(0.04f, 0.86f, 0.06f), white);
         }
 
         /// <summary>A round wall clock (or a standing mantel clock) facing <paramref name="normal"/>.</summary>

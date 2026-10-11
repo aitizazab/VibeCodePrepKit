@@ -121,6 +121,17 @@ namespace JamKit.DreamEscape.EditorTools
                 case HouseLook.TippedFloor: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseTippedFloor", Wood, 0.05f), DreamHouseDressing.PatternFloorboards, 2.4f, 0.28f);
                 case HouseLook.TippedWall: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseTippedWall", WallpaperTipped, 0.04f), DreamHouseDressing.PatternWallpaper, 1.2f, 0.35f);
                 case HouseLook.Porch: return DreamEscapeBuilder.Pastel("HouseHall", P[10], 0.04f);
+                case HouseLook.Header: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseWallpaper", Wallpaper, 0.04f), DreamHouseDressing.PatternWallpaper, 1.2f, 0.35f);
+                case HouseLook.Chimney: return DreamEscapeBuilder.Pastel("DecorBrick", new Color(0.86f, 0.55f, 0.5f), 0.03f);
+                case HouseLook.Bookcase: return DreamEscapeBuilder.Pastel("HouseBookcase", new Color(0.78f, 0.6f, 0.46f), 0.04f);
+                case HouseLook.WindowSeat: return DreamEscapeBuilder.Pastel("HouseWindowSeat", new Color(0.95f, 0.72f, 0.7f), 0.04f);
+                case HouseLook.Bath: return DreamEscapeBuilder.Pastel("HouseBath", P[0], 0.04f);
+                case HouseLook.Railing: return DreamEscapeBuilder.Pastel("StairRail", new Color(0.62f, 0.46f, 0.38f), 0.03f);
+                case HouseLook.KneeWall:
+                case HouseLook.Gable:
+                case HouseLook.Roof: return DreamEscapeBuilder.Pastel("AtticBoards", new Color(0.84f, 0.7f, 0.58f), 0.03f);
+                case HouseLook.RoofStep: return DreamEscapeBuilder.Pastel("AtticBoards", new Color(0.84f, 0.7f, 0.58f), 0.03f);
+                case HouseLook.Storage: return DreamEscapeBuilder.Pastel("AtticStorage", new Color(0.74f, 0.6f, 0.5f), 0.04f);
                 default: return DreamEscapeBuilder.Pastel("HouseRainPath", new Color(0.7f, 0.72f, 0.82f), 0.03f);
             }
         }
@@ -158,6 +169,7 @@ namespace JamKit.DreamEscape.EditorTools
             DreamHouseDressing.Report();
             var hallwayEnd = HallwayEnd(h, root);
             Details(h, root);
+            DreamHouseRooms.Build(h, root);   // the architecture pass: walls with character, windows, stairs, hatch, attic
             DreamHouseDecor.Decorate(root);   // art pass 5: a lived-in home (decoration only)
             BuildStealth(h, root, out var theo, out var counter);
             var lena = CutOut("Lena (at the stove)", DreamArt.Lena, root, U(h.lenaAt), 1.72f);
@@ -204,6 +216,7 @@ namespace JamKit.DreamEscape.EditorTools
                 go.transform.localScale = U(p.size);
             }
             if (!p.runnable && p.kind != LabPieceKind.Ramp) DreamHouseDressing.Furnish(p.name, go, root);   // visual only
+            if (look == HouseLook.RoofStep || (look == HouseLook.Stairs && p.Min.Z >= DreamHouse.HubZ0)) r.enabled = false;   // behind the roof; the stairs are drawn as steps
             if (!p.solid) Object.DestroyImmediate(go.GetComponent<Collider>());
             else go.AddComponent<MovementSurface>().runnable = p.runnable;
             GameObjectUtility.SetStaticEditorFlags(go, 0);
@@ -274,48 +287,46 @@ namespace JamKit.DreamEscape.EditorTools
             var leaf = DreamEscapeBuilder.Box("The door, half open", t, new Vector3(-1.1f, 0.5f, 56.9f), new Vector3(0.08f, 3f, 0.9f), white);
             leaf.transform.rotation = Quaternion.Euler(0f, 35f, 0f);
             DreamEscapeBuilder.Quad("Glow under the door", t, new Vector3(0f, -0.95f, 55.2f), Vector3.up, 3f, 2f, DreamEscapeBuilder.Glow("HouseUnderDoor", DreamEscapeBuilder.GoColor, 0.9f, 0f, 0.35f));
-            // Ground-floor windows (the light coming in) on the outer walls.
-            foreach (float z in new[] { 75f, 82f, 94f })
-            {
-                if (z != 82f)   // the west wall at 82 m is behind the fridge
-                    FramedWindow("Window (west)", t, new Vector3(DreamHouse.HubX0 + 0.02f, F + 1.6f, z), Vector3.right, 1.8f, 1.4f);
-                FramedWindow("Window (east)", t, new Vector3(DreamHouse.HubX1 - 0.02f, F + 1.6f, z), Vector3.left, 1.8f, 1.4f);
-            }
+            // The house's own windows, walls, stairs, hatch and attic: DreamHouseRooms (the architecture pass, 2026-10-12).
             // The table set for four: plates, and a stack of pancakes in the middle.
             // Art pass 4: round plates, and a real stack of pancakes with butter and a drip of syrup ("Sunday pancakes").
             var plate = DreamProps.MeshLook("HousePlate", DreamEscapeBuilder.Palette[0], 0.006f);
-            foreach (var pz in new[] { new Vector2(-7.4f, 77.5f), new Vector2(-4.6f, 77.5f), new Vector2(-6f, 76.5f), new Vector2(-6f, 78.5f) })
-                MeshPart("Plate", PrimitiveType.Cylinder, t, new Vector3(pz.x, F + 0.795f, pz.y), new Vector3(0.42f, 0.012f, 0.42f), plate);
-            MeshPart("Plate", PrimitiveType.Cylinder, t, new Vector3(-6f, F + 0.795f, 77.5f), new Vector3(0.5f, 0.012f, 0.5f), plate);
+            var tc = new Vector3(h.table.X, F, h.table.Z);
+            foreach (var off in new[] { new Vector2(-1.1f, 0f), new Vector2(1.1f, 0f), new Vector2(0f, -0.48f), new Vector2(0f, 0.48f) })
+                MeshPart("Plate", PrimitiveType.Cylinder, t, tc + new Vector3(off.x, 0.795f, off.y), new Vector3(0.36f, 0.012f, 0.36f), plate);
+            MeshPart("Plate", PrimitiveType.Cylinder, t, tc + new Vector3(0f, 0.795f, 0f), new Vector3(0.44f, 0.012f, 0.44f), plate);
             var pancake = DreamProps.MeshLook("HousePancake", new Color(0.93f, 0.7f, 0.4f), 0.006f);
             for (int k = 0; k < 6; k++)
-                MeshPart("Pancake", PrimitiveType.Cylinder, t, new Vector3(-6f + 0.012f * Mathf.Sin(k * 2.1f), F + 0.825f + k * 0.034f, 77.5f + 0.012f * Mathf.Cos(k * 1.7f)),
-                    new Vector3(0.36f - k * 0.006f, 0.016f, 0.36f - k * 0.006f), pancake);
-            MeshPart("Butter", PrimitiveType.Cube, t, new Vector3(-6f, F + 0.825f + 6 * 0.034f + 0.005f, 77.5f), new Vector3(0.07f, 0.04f, 0.06f),
+                MeshPart("Pancake", PrimitiveType.Cylinder, t, tc + new Vector3(0.012f * Mathf.Sin(k * 2.1f), 0.825f + k * 0.034f, 0.012f * Mathf.Cos(k * 1.7f)),
+                    new Vector3(0.32f - k * 0.006f, 0.016f, 0.32f - k * 0.006f), pancake);
+            MeshPart("Butter", PrimitiveType.Cube, t, tc + new Vector3(0f, 0.825f + 6 * 0.034f + 0.005f, 0f), new Vector3(0.07f, 0.04f, 0.06f),
                 DreamProps.MeshLook("HouseButter", new Color(1f, 0.93f, 0.62f), 0.004f));
-            MeshPart("Syrup", PrimitiveType.Cylinder, t, new Vector3(-6f, F + 0.825f + 5 * 0.034f + 0.018f, 77.5f), new Vector3(0.24f, 0.004f, 0.22f),
+            MeshPart("Syrup", PrimitiveType.Cylinder, t, tc + new Vector3(0f, 0.825f + 5 * 0.034f + 0.018f, 0f), new Vector3(0.22f, 0.004f, 0.2f),
                 DreamProps.MeshLook("HouseSyrup", new Color(0.72f, 0.42f, 0.2f), 0f));
-            // The fridge calendar (its keys on Thursdays are the creator's; a blank grid here).
-            DreamEscapeBuilder.Quad("Fridge calendar", t, new Vector3(-11.08f, F + 1.4f, 81.7f), Vector3.right, 0.6f, 0.8f, Picture(DreamArt.PicCalendar, white));
-            // The height marks on Theo's door frame: they stop at ten.
+            // The fridge calendar (its keys on Thursdays are the creator's; a blank grid here), on the fridge's front.
+            var cal = h.memories.Find(m => m.id == "memory_calendar").position;
+            DreamEscapeBuilder.Quad("Fridge calendar", t, new Vector3(-6.23f, cal.Y, cal.Z), Vector3.right, 0.5f, 0.66f, Picture(DreamArt.PicCalendar, white));
+            // The height marks on the dining room's door frame (the way to the hall): they stop at ten.
+            var marks = h.memories.Find(m => m.id == "memory_height_marks").position;
             for (int i = 0; i < 7; i++)
-                DreamEscapeBuilder.Box("Height mark", t, new Vector3(-6.02f, F + 0.9f + i * 0.09f, 89.1f), new Vector3(0.03f, 0.015f, 0.18f), plum);
-            // Theo's drawings on his desk, and the photo wall in the study.
-            DreamEscapeBuilder.Box("Theo's drawings", t, new Vector3(-7f, F + 0.77f, 89.9f), new Vector3(0.6f, 0.01f, 0.45f), white);
-            var drawing = Picture(DreamArt.PicTheoDrawing, null);
-            if (drawing != null)
-                DreamEscapeBuilder.Quad("Theo's drawing (picture)", t, new Vector3(-7f, F + 0.782f, 89.9f), Vector3.up, 0.6f, 0.45f, drawing);
+                DreamEscapeBuilder.Box("Height mark", t, new Vector3(marks.X + 0.06f, F + 0.9f + i * 0.09f, marks.Z), new Vector3(0.015f, 0.015f, 0.16f), plum);
+            // Theo's drawing, up on top of his bookcase (climb his desk to see it).
+            var drawn = h.memories.Find(m => m.id == "memory_drawing").position;
+            var drawing = Picture(DreamArt.PicTheoDrawing, white);
+            DreamEscapeBuilder.Quad("Theo's drawing (on top of the bookcase)", t, new Vector3(drawn.X, F + 2.012f, drawn.Z), Vector3.up, 0.44f, 0.33f, drawing);
+            // The photo wall: the hall's north wall, between the parents' door and the cupboard under the stairs.
+            var photos = h.memories.Find(m => m.id == "memory_photos").position;
+            var wood = DreamEscapeBuilder.Pastel("HousePhotoFrame", new Color(0.62f, 0.46f, 0.38f), 0.01f);
+            float face = DreamHouse.HallZ1 - 0.015f;
             for (int i = 0; i < 6; i++)
             {
                 int pic = (i / 3 == 1 ? 1 : 4) + i % 3;   // the top row is photos 1 to 3, left to right; the bottom row 4 to 6
-                var at = new Vector3(5.5f + (i % 3) * 1.2f, F + 1.3f + (i / 3) * 0.8f, DreamHouse.HubZ1 - 0.02f);
-                DreamEscapeBuilder.Quad("Photo", t, at, Vector3.back, 0.7f, 0.55f, Picture(DreamArt.PicPhoto + pic, white));
-                // A thin wooden frame round each photo (art pass 4).
-                var wood = DreamEscapeBuilder.Pastel("HousePhotoFrame", new Color(0.62f, 0.46f, 0.38f), 0.01f);
-                DreamEscapeBuilder.Box("Photo frame", t, at + new Vector3(0f, 0.3f, -0.015f), new Vector3(0.8f, 0.05f, 0.03f), wood);
-                DreamEscapeBuilder.Box("Photo frame", t, at + new Vector3(0f, -0.3f, -0.015f), new Vector3(0.8f, 0.05f, 0.03f), wood);
-                DreamEscapeBuilder.Box("Photo frame", t, at + new Vector3(0.375f, 0f, -0.015f), new Vector3(0.05f, 0.65f, 0.03f), wood);
-                DreamEscapeBuilder.Box("Photo frame", t, at + new Vector3(-0.375f, 0f, -0.015f), new Vector3(0.05f, 0.65f, 0.03f), wood);
+                var at = new Vector3(photos.X + 1.05f - (i % 3) * 1.05f, F + 1.3f + (i / 3) * 0.66f, face);
+                DreamEscapeBuilder.Quad("Photo", t, at, Vector3.back, 0.6f, 0.47f, Picture(DreamArt.PicPhoto + pic, white));
+                DreamEscapeBuilder.Box("Photo frame", t, at + new Vector3(0f, 0.255f, -0.015f), new Vector3(0.68f, 0.04f, 0.03f), wood);
+                DreamEscapeBuilder.Box("Photo frame", t, at + new Vector3(0f, -0.255f, -0.015f), new Vector3(0.68f, 0.04f, 0.03f), wood);
+                DreamEscapeBuilder.Box("Photo frame", t, at + new Vector3(0.32f, 0f, -0.015f), new Vector3(0.04f, 0.55f, 0.03f), wood);
+                DreamEscapeBuilder.Box("Photo frame", t, at + new Vector3(-0.32f, 0f, -0.015f), new Vector3(0.04f, 0.55f, 0.03f), wood);
             }
             // The two front doors (art pass 2): the way in from the garden, and the way out onto the rain.
             Doorway("The front door (the way in)", t, 0.25f, 0f, true);

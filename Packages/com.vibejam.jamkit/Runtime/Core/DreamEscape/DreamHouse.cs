@@ -11,6 +11,8 @@ namespace JamKit.DreamEscape
     {
         Lawn, Facade, Hallway, RunWall, Lintel, Stairs, Floor, Wall, Ceiling, Counter, Fridge, Table, Chair, Sofa, Bed,
         Desk, Closet, Curtain, TippedFloor, TippedWall, Porch, RainPath,
+        // The architecture pass (2026-10-12): the house's own parts.
+        Header, Chimney, Bookcase, WindowSeat, Bath, Railing, KneeWall, Gable, Roof, RoofStep, Storage,
     }
 
     /// <summary>A memory to find (the hide-and-seek's collectibles).</summary>
@@ -18,6 +20,16 @@ namespace JamKit.DreamEscape
     {
         public string id, name;
         public Vector3 position;
+        /// <summary>Where she stands (feet) to take it.</summary>
+        public Vector3 standAt;
+    }
+
+    /// <summary>A room of the house: its floor rectangle, floor height and ceiling height (above its floor).</summary>
+    public sealed class HouseRoom
+    {
+        public string name;
+        public float x0, x1, z0, z1, floorY, ceiling;
+        public bool Contains(float x, float z) => x > x0 && x < x1 && z > z0 && z < z1;
     }
 
     /// <summary>A stealth light zone in the house.</summary>
@@ -34,9 +46,11 @@ namespace JamKit.DreamEscape
     /// <list type="number">
     /// <item><b>The way in</b> (the house plays with her): the front door opens onto a hallway that stretches, its floor
     /// gone (run the gold-striped wall), then a door half open onto a slide down into the kitchen.</item>
-    /// <item><b>The ground floor</b> (pancakes and hide-and-seek): kitchen and dining room, living room, hallway, Theo's
-    /// room, the study; hiding spots (the pantry, the curtains, the coats, Theo's wardrobe), light and shade, Theo's
-    /// walking graph, five memories to find.</item>
+    /// <item><b>The house</b> (pancakes and hide-and-seek; the architecture pass of 2026-10-12): a real family home's
+    /// proportions. The main floor: the kitchen and dining room, the living room (bay window, fireplace), a narrow hall, the
+    /// pantry, the parents' room and its bath, Theo's room; and the attic under the roof (Lena's observatory, a proposal,
+    /// and the family's stored life), up steep stairs from Theo's room and down through a hatch into the hall. Hiding spots,
+    /// light and shade, Theo's walking graph (the main floor), five memories to find. <see cref="rooms"/> lists the rooms.</item>
     /// <item><b>The house tips</b> (the escape): the hallway's floor is a wall to run, the doorframes are walls to kick
     /// between, the staircase is a slide; the house folds shut behind her.</item>
     /// <item><b>The front door</b>, into the rain: the umbrella beside it (a <see cref="DreamRainSpot"/>).</item>
@@ -54,8 +68,19 @@ namespace JamKit.DreamEscape
 
         /// <summary>The ground floor's height (the hide-and-seek rooms).</summary>
         public const float Ground = -4f;
-        /// <summary>The ground floor's rooms: x and z bounds.</summary>
-        public const float HubX0 = -12f, HubX1 = 12f, HubZ0 = 72f, HubZ1 = 100f;
+        /// <summary>The house's footprint (the main floor and the attic over it): x and z bounds.</summary>
+        public const float HubX0 = -7f, HubX1 = 8f, HubZ0 = 72f, HubZ1 = 84f;
+        /// <summary>The hall's walls (its south wall at z <see cref="HallZ0"/>, its north wall at <see cref="HallZ1"/>, 0.2 m each).</summary>
+        public const float HallZ0 = 78f, HallZ1 = 80.6f;
+        /// <summary>The living room's bay window.</summary>
+        public const float BayX0 = 4f, BayX1 = 6.4f, BayZ0 = 71f;
+        /// <summary>The attic stairs' slot (they climb south: their top at <see cref="StairZ0"/>, their foot at <see cref="StairZ1"/>).</summary>
+        public const float StairX0 = 1.6f, StairX1 = 2.8f, StairZ0 = 80.8f, StairZ1 = 84f;
+        /// <summary>The hatch in the hall's ceiling (the attic's way down).</summary>
+        public const float HatchX0 = -1.2f, HatchX1 = -0.2f, HatchZ0 = 78.9f, HatchZ1 = 79.9f;
+        /// <summary>The attic: its floor, its knee walls, its ridge (over z <see cref="RidgeZ"/>), its dormer.</summary>
+        public const float AtticFloor = Ground + 3.3f, KneeWall = 0.8f, RidgeHeight = 3.4f, RidgeZ = 78f;
+        public const float DormerX0 = -6.4f, DormerX1 = -4f, DormerZ0 = 80f, DormerHeight = 2.4f;
         public const float VoidBottom = -24f;
 
         public readonly LabCourse course = new LabCourse();
@@ -66,6 +91,9 @@ namespace JamKit.DreamEscape
         public readonly List<Vector3> nodes = new List<Vector3>();
         public readonly List<HouseLight> lights = new List<HouseLight>();
         public readonly List<HouseMemory> memories = new List<HouseMemory>();
+        public readonly List<HouseRoom> rooms = new List<HouseRoom>();
+        /// <summary>Places in the open (one per main room) where Theo can see her.</summary>
+        public readonly List<Vector3> openFloor = new List<Vector3>();
         public float ambientLight = 0.8f;
         public float connectDistance = 9f;
         /// <summary>Theo counts at the table, facing the kitchen's south wall.</summary>
@@ -108,8 +136,9 @@ namespace JamKit.DreamEscape
             for (int i = 0; i < course.pieces.Count; i++)
             {
                 var p = course.pieces[i];
-                if (!p.solid || p.Max.Z < HubZ0 - 1f || p.Min.Z > HubZ1 + 1f || looks[i] == HouseLook.Ceiling) continue;
-                if (looks[i] == HouseLook.Floor) continue; // the floor never blocks (it's under the eyes)
+                if (!p.solid || p.Max.Z < HubZ0 - 1f || p.Min.Z > HubZ1 + 1f) continue;
+                if (looks[i] == HouseLook.Floor || looks[i] == HouseLook.RoofStep) continue; // under the eyes, or over the roof
+                // The ceilings do block: the attic is over them (Theo on the main floor can't see her up there).
                 w.AddBlocker(p.center, p.size);
             }
             foreach (var l in lights) w.AddLight(l.center, l.size, l.level);
@@ -156,9 +185,47 @@ namespace JamKit.DreamEscape
             return Add(name, LabPieceKind.Wall, look, new Vector3(x0, VoidBottom, z0), new Vector3(x0 + 1f, top, z1), true, true);
         }
 
-        /// <summary>An interior wall of the ground floor (3 m, to the ceiling).</summary>
+        /// <summary>A wall of the main floor (from the floor up to the attic's floor), or of any height and look.</summary>
         void Wall(string name, float x0, float x1, float z0, float z1) =>
-            Add(name, LabPieceKind.Wall, HouseLook.Wall, new Vector3(x0, Ground, z0), new Vector3(x1, Ground + 3f, z1));
+            Add(name, LabPieceKind.Wall, HouseLook.Wall, new Vector3(x0, Ground, z0), new Vector3(x1, AtticFloor, z1));
+
+        void Wall(string name, float x0, float x1, float z0, float z1, float y0, float y1, HouseLook look) =>
+            Add(name, LabPieceKind.Wall, look, new Vector3(x0, y0, z0), new Vector3(x1, y1, z1));
+
+        /// <summary>The wall over a doorway (or an archway, a pass-through): from <paramref name="height"/> above the floor up
+        /// to the attic's floor.</summary>
+        void Header(string name, float x0, float x1, float z0, float z1, float height) =>
+            Add(name, LabPieceKind.Bar, HouseLook.Header, new Vector3(x0, Ground + height, z0), new Vector3(x1, AtticFloor, z1));
+
+        /// <summary>A room's ceiling: solid from <paramref name="height"/> above the floor up to the attic's floor.</summary>
+        void Ceiling(string name, float x0, float x1, float z0, float z1, float height) =>
+            Add(name, LabPieceKind.Floor, HouseLook.Ceiling, new Vector3(x0, Ground + height, z0), new Vector3(x1, AtticFloor, z1));
+
+        void Room(string name, float x0, float x1, float z0, float z1, float floorY, float ceiling) =>
+            rooms.Add(new HouseRoom { name = name, x0 = x0, x1 = x1, z0 = z0, z1 = z1, floorY = floorY, ceiling = ceiling });
+
+        /// <summary>The attic roof's height over its floor at <paramref name="z"/> (the gable: knee walls at the eaves, the
+        /// ridge over <see cref="RidgeZ"/>).</summary>
+        public static float RoofAt(float z)
+        {
+            float half = Math.Max(RidgeZ - HubZ0, HubZ1 - RidgeZ);
+            float t = 1f - Math.Min(1f, Math.Abs(z - RidgeZ) / half);
+            return KneeWall + (RidgeHeight - KneeWall) * t;
+        }
+
+        /// <summary>Solid steps just behind one slope of the roof (three, the third the ridge cap), so a jump stays inside.</summary>
+        void RoofSteps(float x0, float x1, bool south, int fromStep)
+        {
+            float half = RidgeZ - HubZ0;
+            for (int i = fromStep; i <= 3; i++)
+            {
+                float h = KneeWall + (RidgeHeight - KneeWall) * i / 3f;
+                float dz = half * i / 3f;
+                float za = south ? HubZ0 : HubZ1 - dz, zb = south ? HubZ0 + dz : HubZ1;
+                Add("Roof (" + (south ? "south" : "north") + ", step " + i + ")", LabPieceKind.Floor, HouseLook.RoofStep,
+                    new Vector3(x0, AtticFloor + h, za), new Vector3(x1, AtticFloor + RidgeHeight + 0.4f, zb));
+            }
+        }
 
         void Furniture(string name, HouseLook look, float x0, float x1, float z0, float z1, float height) =>
             Add(name, LabPieceKind.Ledge, look, new Vector3(x0, Ground, z0), new Vector3(x1, Ground + height, z1));
@@ -183,7 +250,7 @@ namespace JamKit.DreamEscape
 
         void Light(string name, Vector3 center, Vector3 size, float level) => lights.Add(new HouseLight { name = name, center = center, size = size, level = level });
 
-        void Memory(string id, string name, Vector3 at) => memories.Add(new HouseMemory { id = id, name = name, position = at });
+        void Memory(string id, string name, Vector3 at, Vector3 standAt) => memories.Add(new HouseMemory { id = id, name = name, position = at, standAt = standAt });
 
         static Vector3 V(float x, float y, float z) => new Vector3(x, y, z);
 
@@ -226,88 +293,206 @@ namespace JamKit.DreamEscape
             Add("Slide wall (left)", LabPieceKind.Wall, HouseLook.Wall, V(-2.5f, F, 56.5f), V(-2f, 0f, 72f));
             Add("Slide wall (right)", LabPieceKind.Wall, HouseLook.Wall, V(2f, F, 56.5f), V(2.5f, 0f, 72f));
 
-            // ===== 2. The ground floor: pancakes, then hide-and-seek with Theo, five memories to find.
+            // ===== 2. The house itself (architecture pass, 2026-10-12): a real family home's proportions, one main floor and
+            // the attic under the roof. Pancakes, then hide-and-seek with Theo on the main floor, five memories to find.
+            // Plan (z north, x east; walls 0.2 m): the kitchen and dining room (open plan, the slide lands in it) and the
+            // living room (bay window, fireplace) across the south; a narrow hall; the parents' room with its en-suite bath,
+            // the attic stairs' slot and Theo's room across the north; the pantry between the kitchen and the hall (two
+            // doors: a loop). Ceilings differ per room; the attic is the one place the dream exaggerates.
             Section(72f, "The ground floor");
-            Add("Ground floor", LabPieceKind.Floor, HouseLook.Floor, V(HubX0 - 0.5f, F - 2f, HubZ0 - 0.5f), V(HubX1 + 0.5f, F, HubZ1 + 0.5f));
-            Add("Ceiling", LabPieceKind.Floor, HouseLook.Ceiling, V(HubX0 - 0.5f, F + 3f, HubZ0 - 0.5f), V(HubX1 + 0.5f, F + 3.2f, HubZ1 + 0.5f));
-            kitchenStart = V(0f, F, 74f);
-            hubCheckpoint = Checkpoint("The kitchen", 74f, F, ChapterHideAndSeek, 0f);
-            // Outer walls (the south one open where the slide comes in).
-            Wall("Outer wall (west)", HubX0 - 0.5f, HubX0, HubZ0 - 0.5f, HubZ1 + 0.5f);
-            Wall("Outer wall (east)", HubX1, HubX1 + 0.5f, HubZ0 - 0.5f, HubZ1 + 0.5f);
-            Wall("Outer wall (north)", HubX0 - 0.5f, HubX1 + 0.5f, HubZ1, HubZ1 + 0.5f);
-            Wall("Outer wall (south, left)", HubX0 - 0.5f, -2f, HubZ0 - 0.5f, HubZ0);
-            Wall("Outer wall (south, right)", 2f, HubX1 + 0.5f, HubZ0 - 0.5f, HubZ0);
-            // The front rooms | the hallway (doorways at x -8..-6.4 and 5..6.6); kitchen | living (a half wall).
-            Wall("Wall (front rooms, west)", HubX0, -8f, 86f, 86.2f);
-            Wall("Wall (front rooms, middle)", -6.4f, 5f, 86f, 86.2f);
-            Wall("Wall (front rooms, east)", 6.6f, HubX1, 86f, 86.2f);
-            Wall("Wall (kitchen | living)", 1f, 1.2f, 80f, 86f);
-            // The hallway | the back rooms (doorways at x -6..-4.4 to Theo's room, 4.4..6 to the study); Theo's | the study.
-            Wall("Wall (back rooms, west)", HubX0, -6f, 89f, 89.2f);
-            Wall("Wall (back rooms, middle)", -4.4f, 4.4f, 89f, 89.2f);
-            Wall("Wall (back rooms, east)", 6f, HubX1, 89f, 89.2f);
-            Wall("Wall (Theo's room | study)", -0.1f, 0.1f, 89.2f, HubZ1);
-            // The kitchen: the counter and stove, the fridge (the calendar), the pantry (a closet), the table set for four.
-            Furniture("Counter and stove", HouseLook.Counter, HubX0, -11.2f, 72.5f, 80f, 0.95f);
-            Furniture("Fridge", HouseLook.Fridge, HubX0, -11.1f, 81f, 82.4f, 2f);
-            Furniture("Pantry side (south)", HouseLook.Closet, HubX0, -10.4f, 83f, 83.2f, 2.3f);
-            Furniture("Pantry side (north)", HouseLook.Closet, HubX0, -10.4f, 85.2f, 85.4f, 2.3f);
-            Add("Pantry roof", LabPieceKind.Ledge, HouseLook.Closet, V(HubX0, F + 2.3f, 83f), V(-10.4f, F + 2.5f, 85.4f));
-            Add("Pantry curtain", LabPieceKind.Wall, HouseLook.Curtain, V(-10.45f, F, 83.2f), V(-10.4f, F + 2.2f, 85.2f), solid: false);
-            Spot("The pantry", HideKind.Closet, V(-11.2f, F + 1f, 84.2f), V(1.6f, 2f, 1.9f), V(-9.4f, F, 84.2f));
-            Furniture("Dining table", HouseLook.Table, -8f, -4f, 76f, 79f, 0.78f);
-            Furniture("Chair (Lena's)", HouseLook.Chair, -9.3f, -8.7f, 77.2f, 77.8f, 0.5f);
-            Furniture("Chair (Nadia's: the fourth chair)", HouseLook.Chair, -3.3f, -2.7f, 77.2f, 77.8f, 0.5f);
-            Furniture("Chair (Theo's)", HouseLook.Chair, -6.3f, -5.7f, 74.9f, 75.5f, 0.5f);
-            Furniture("Chair (Elias's)", HouseLook.Chair, -6.3f, -5.7f, 79.5f, 80.1f, 0.5f);
-            table = V(-6f, F, 77.5f);
-            lenaAt = V(-10.5f, F, 75.5f);
-            theoStart = V(-6f, F, 81f);
+            Add("Ground floor", LabPieceKind.Floor, HouseLook.Floor, V(HubX0 - 0.4f, F - 2f, HubZ0 - 1.4f), V(HubX1 + 0.4f, F, HubZ1 + 0.4f));
+            kitchenStart = V(0f, F, 73.2f);
+            hubCheckpoint = Checkpoint("The kitchen", 73.2f, F, ChapterHideAndSeek, 0f);
+
+            // --- The outer walls (the south one open where the slide comes in, and pushed out into the bay).
+            Wall("Outer wall (west)", HubX0 - 0.2f, HubX0, HubZ0 - 0.2f, HubZ1 + 0.2f);
+            Wall("Outer wall (east)", HubX1, HubX1 + 0.2f, HubZ0 - 0.2f, HubZ1 + 0.2f);
+            Wall("Outer wall (north)", HubX0 - 0.2f, HubX1 + 0.2f, HubZ1, HubZ1 + 0.2f);
+            Wall("Outer wall (south, kitchen)", HubX0 - 0.2f, -2f, HubZ0 - 0.2f, HubZ0);
+            Wall("Outer wall (south, living)", 2f, BayX0, HubZ0 - 0.2f, HubZ0);
+            Wall("Outer wall (south, east)", BayX1, HubX1 + 0.2f, HubZ0 - 0.2f, HubZ0);
+            Wall("Bay window (west side)", BayX0 - 0.2f, BayX0, BayZ0, HubZ0 - 0.2f);
+            Wall("Bay window (east side)", BayX1, BayX1 + 0.2f, BayZ0, HubZ0 - 0.2f);
+            Wall("Bay window (front)", BayX0 - 0.2f, BayX1 + 0.2f, BayZ0 - 0.2f, BayZ0);
+
+            // --- Kitchen and dining | living room: an archway, then a pass-through over a half wall, then a full wall.
+            Wall("Kitchen | living (south end)", 2.6f, 2.8f, HubZ0, 72.6f);
+            Header("Archway (kitchen | living)", 2.6f, 2.8f, 72.6f, 74.6f, 2.3f);
+            Add("Half wall (the pass-through)", LabPieceKind.Ledge, HouseLook.Wall, V(2.6f, F, 74.6f), V(2.8f, F + 1.05f, 77.2f));
+            Header("Pass-through (over the half wall)", 2.6f, 2.8f, 74.6f, 77.2f, 2.2f);
+            Wall("Kitchen | living (north end)", 2.6f, 2.8f, 77.2f, HallZ0);
+
+            // --- The hall's south wall: the pantry's kitchen door, the dining room's door, the living room's door.
+            Wall("Hall wall (south, pantry)", HubX0, -6.6f, HallZ0, HallZ0 + 0.2f);
+            Header("Pantry door (kitchen side)", -6.6f, -5.8f, HallZ0, HallZ0 + 0.2f, 2.0f);
+            Wall("Hall wall (south, kitchen)", -5.8f, -3f, HallZ0, HallZ0 + 0.2f);
+            Header("Door (dining | hall)", -3f, -2f, HallZ0, HallZ0 + 0.2f, 2.1f);
+            Wall("Hall wall (south, middle)", -2f, 5f, HallZ0, HallZ0 + 0.2f);
+            Header("Door (living | hall)", 5f, 6f, HallZ0, HallZ0 + 0.2f, 2.1f);
+            Wall("Hall wall (south, east)", 6f, HubX1, HallZ0, HallZ0 + 0.2f);
+            // The pantry (x -7..-5.6 in the hall's band): its hall door has a curtain.
+            Wall("Pantry wall (hall side, south)", -5.6f, -5.4f, HallZ0 + 0.2f, 79f);
+            Header("Pantry door (hall side)", -5.6f, -5.4f, 79f, 80f, 2.0f);
+            Wall("Pantry wall (hall side, north)", -5.6f, -5.4f, 80f, HallZ1);
+            Add("Pantry curtain", LabPieceKind.Wall, HouseLook.Curtain, V(-5.45f, F, 79f), V(-5.4f, F + 2f, 80f), solid: false);
+            Furniture("Pantry shelves", HouseLook.Closet, HubX0, -6.6f, HallZ0 + 0.2f, HallZ1, 2.0f);
+            Spot("The pantry", HideKind.Closet, V(-6.1f, F + 1f, 79.4f), V(1.0f, 2f, 2.2f), V(-4.7f, F, 79.4f));
+
+            // --- The hall's north wall: the parents' door, the photo wall, the cupboard under the stairs, Theo's door.
+            Wall("Hall wall (north, west)", HubX0, -5f, HallZ1, HallZ1 + 0.2f);
+            Header("Door (hall | parents)", -5f, -4f, HallZ1, HallZ1 + 0.2f, 2.1f);
+            Wall("Hall wall (north, middle)", -4f, StairX0, HallZ1, HallZ1 + 0.2f);
+            Header("Cupboard under the stairs (its low door)", StairX0, StairX1, HallZ1, HallZ1 + 0.2f, 1.25f);
+            Wall("Hall wall (north, by the stairs)", StairX1, 4f, HallZ1, HallZ1 + 0.2f);
+            Header("Door (hall | Theo)", 4f, 5f, HallZ1, HallZ1 + 0.2f, 2.1f);
+            Wall("Hall wall (north, east)", 5f, HubX1, HallZ1, HallZ1 + 0.2f);
+
+            // --- The north rooms: the parents' room, its bath (en suite), the attic stairs' slot, Theo's room.
+            Wall("Parents | bath", -1.4f, -1.2f, HallZ1 + 0.2f, 82f);
+            Header("Door (parents | bath)", -1.4f, -1.2f, 82f, 83f, 2.1f);
+            Wall("Parents | bath (north end)", -1.4f, -1.2f, 83f, HubZ1);
+            Wall("Bath | attic stairs", 1.4f, StairX0, HallZ1 + 0.2f, HubZ1);
+            Wall("Attic stairs | Theo", StairX1, 3f, HallZ1 + 0.2f, 83f);
+            Header("Door (Theo | the attic stairs)", StairX1, 3f, 83f, HubZ1, 2.1f);
+            // The attic stairs: steep, in their own slot, climbing south from a narrow door in Theo's room to the floor over
+            // the hall; the cupboard under their high end opens from the hall (a low door: crouch in).
+            Ramp("The attic stairs", HouseLook.Stairs, StairX0, StairX1, StairZ0, StairZ1, AtticFloor, F);
+            Spot("The cupboard under the stairs", HideKind.Closet, V((StairX0 + StairX1) * 0.5f, F + 0.6f, StairZ0 + 0.45f), V(StairX1 - StairX0, 1.2f, 0.9f),
+                V((StairX0 + StairX1) * 0.5f, F, 79.4f));
+
+            // --- The ceilings (solid, from each room's height up to the attic's floor; the stairwell and the hatch open).
+            Ceiling("Ceiling (kitchen and dining)", HubX0, 2.6f, HubZ0, HallZ0, 2.8f);
+            Ceiling("Ceiling (living room)", 2.8f, HubX1, HubZ0, HallZ0, 3.0f);
+            Ceiling("Ceiling (bay window)", BayX0, BayX1, BayZ0, HubZ0, 2.5f);
+            Ceiling("Ceiling (pantry)", HubX0, -5.4f, HallZ0, HallZ1, 2.3f);
+            Ceiling("Ceiling (hall, south)", -5.4f, HubX1, HallZ0 + 0.2f, HatchZ0, 2.4f);
+            Ceiling("Ceiling (hall, west of the hatch)", -5.4f, HatchX0, HatchZ0, HatchZ1, 2.4f);
+            Ceiling("Ceiling (hall, east of the hatch)", HatchX1, HubX1, HatchZ0, HatchZ1, 2.4f);
+            Ceiling("Ceiling (hall, north)", -5.4f, HubX1, HatchZ1, HallZ1, 2.4f);
+            Ceiling("Ceiling (parents' room)", HubX0, -1.4f, HallZ1, HubZ1, 2.7f);
+            Ceiling("Ceiling (bath)", -1.4f, StairX0, HallZ1, HubZ1, 2.4f);
+            Ceiling("Ceiling (the foot of the attic stairs)", StairX0, StairX1, 83.4f, HubZ1, 2.6f);
+            Ceiling("Ceiling (Theo's room)", StairX1, HubX1, HallZ1, HubZ1, 2.6f);
+
+            // --- Furniture that counts (it blocks, Theo can't see through it, some of it is climbed).
+            // The kitchen: an L of counter (the stove on its south run), the fridge (the calendar), the table set for four.
+            Furniture("Counter and stove", HouseLook.Counter, HubX0, -3.6f, HubZ0, 72.65f, 0.95f);
+            Furniture("Counter (west)", HouseLook.Counter, HubX0, -6.35f, 72.65f, 75.2f, 0.95f);
+            Furniture("Fridge", HouseLook.Fridge, HubX0, -6.25f, 76.4f, 77.8f, 2f);
+            Furniture("Dining table", HouseLook.Table, -4.8f, -2f, 75f, 76.4f, 0.78f);
+            Furniture("Chair (Lena's)", HouseLook.Chair, -5.4f, -4.9f, 75.4f, 76f, 0.5f);
+            Furniture("Chair (Nadia's: the fourth chair)", HouseLook.Chair, -1.9f, -1.4f, 75.4f, 76f, 0.5f);
+            Furniture("Chair (Theo's)", HouseLook.Chair, -3.7f, -3.1f, 74.2f, 74.7f, 0.5f);
+            Furniture("Chair (Elias's)", HouseLook.Chair, -3.7f, -3.1f, 76.7f, 77.2f, 0.5f);
+            table = V(-3.4f, F, 75.7f);
+            tableRadius = 2.4f;
+            lenaAt = V(-5.2f, F, 73.25f);
+            theoStart = V(-3.4f, F, 73.55f);
             theoYaw = 180f;
             theoCountYaw = 180f; // counting at the table, eyes on the kitchen's south wall
-            // The living room: the sofa (low cover), the curtains (a bush-like spot).
-            Furniture("Sofa", HouseLook.Sofa, 4f, 9f, 77f, 78f, 0.9f);
-            Add("Curtains", LabPieceKind.Wall, HouseLook.Curtain, V(11.2f, F, 73f), V(12f, F + 2.6f, 77f), solid: false);
-            Spot("The curtains", HideKind.Bush, V(11.4f, F + 1.2f, 75f), V(1.2f, 2.4f, 4f), V(9.6f, F, 75f));
-            // The hallway: the coats at its east end (a bush-like spot).
-            Add("Coats", LabPieceKind.Wall, HouseLook.Curtain, V(10.6f, F + 0.4f, 86.4f), V(12f, F + 2.4f, 88.8f), solid: false);
-            Spot("The coats", HideKind.Bush, V(11.1f, F + 1f, 87.6f), V(1.8f, 2f, 2.4f), V(9f, F, 87.6f));
-            // Theo's room: the bed, the desk (his drawings), the wardrobe (a closet).
-            Furniture("Theo's bed", HouseLook.Bed, -11.6f, -9.6f, 95f, 99f, 0.55f);
-            Furniture("Theo's desk", HouseLook.Desk, -8f, -6f, 89.4f, 90.4f, 0.75f);
-            Furniture("Wardrobe side (west)", HouseLook.Closet, -4f, -3.8f, 98.2f, HubZ1, 2.3f);
-            Furniture("Wardrobe side (east)", HouseLook.Closet, -2.6f, -2.4f, 98.2f, HubZ1, 2.3f);
-            Add("Wardrobe roof", LabPieceKind.Ledge, HouseLook.Closet, V(-4f, F + 2.3f, 98.2f), V(-2.4f, F + 2.5f, HubZ1));
-            Spot("Theo's wardrobe", HideKind.Closet, V(-3.2f, F + 1f, 99.1f), V(1.2f, 2f, 1.6f), V(-3.2f, F, 97f));
-            // The study: a desk; the photo wall on its north wall.
-            Furniture("Study desk", HouseLook.Desk, 6f, 9f, 95f, 96f, 0.75f);
+            // The living room: the sofa faces the fireplace across the coffee table; the armchair; the window seat in the bay.
+            Add("Chimney breast", LabPieceKind.Wall, HouseLook.Chimney, V(7.4f, F, 74f), V(HubX1, AtticFloor, 76.4f));
+            Furniture("Sofa", HouseLook.Sofa, 3.4f, 4.3f, 73.8f, 76.2f, 0.9f);
+            Furniture("Coffee table", HouseLook.Table, 4.8f, 5.6f, 74.4f, 75.6f, 0.45f);
+            Furniture("Armchair", HouseLook.Sofa, 6.6f, 7.4f, 76.8f, 77.7f, 0.9f);
+            Furniture("Bookcase (living room)", HouseLook.Bookcase, 2.8f, 3.25f, 77.2f, HallZ0, 1.9f);
+            Furniture("Window seat", HouseLook.WindowSeat, BayX0, BayX1, BayZ0, BayZ0 + 0.55f, 0.45f);
+            Add("Curtains", LabPieceKind.Wall, HouseLook.Curtain, V(BayX0, F, HubZ0 - 0.15f), V(BayX1, F + 2.4f, HubZ0 - 0.05f), solid: false);
+            Spot("The window seat", HideKind.Bush, V((BayX0 + BayX1) * 0.5f, F + 1.2f, (BayZ0 + HubZ0) * 0.5f), V(BayX1 - BayX0, 2.4f, HubZ0 - BayZ0), V(5.2f, F, 73.4f));
+            // The hall: the coats at its east end, on hooks.
+            Add("Coats", LabPieceKind.Wall, HouseLook.Curtain, V(7.3f, F + 0.4f, HallZ0 + 0.3f), V(HubX1, F + 2.2f, 79.9f), solid: false);
+            Spot("The coats", HideKind.Bush, V(7.6f, F + 1f, 79.1f), V(0.8f, 2f, 1.6f), V(6.5f, F, 79.1f));
+            // The parents' room: the bed, head to the north wall. The bath: the tub (its curtain a hiding spot).
+            Furniture("Parents' bed", HouseLook.Bed, -6.2f, -4.2f, 82f, HubZ1, 0.55f);
+            Furniture("Bathtub", HouseLook.Bath, -1.2f, 1.4f, 83.25f, HubZ1, 0.6f);
+            Spot("The bath curtain", HideKind.Bush, V(0.1f, F + 1f, 83.6f), V(2.4f, 2f, 0.8f), V(0.1f, F, 82.2f));
+            // Theo's room: the bunk bed, his wardrobe (a closet) by the door, his tall bookcase with the desk beside it
+            // (climb the desk to see what's on top of the bookcase).
+            Furniture("Theo's bunk bed", HouseLook.Bed, 5.4f, 7.4f, 83.1f, HubZ1, 1.6f);
+            Furniture("Wardrobe side (west)", HouseLook.Closet, 5.4f, 5.6f, HallZ1 + 0.2f, 81.7f, 2.1f);
+            Furniture("Wardrobe side (east)", HouseLook.Closet, 6.6f, 6.8f, HallZ1 + 0.2f, 81.7f, 2.1f);
+            Add("Wardrobe roof", LabPieceKind.Ledge, HouseLook.Closet, V(5.4f, F + 2.1f, HallZ1 + 0.2f), V(6.8f, F + 2.25f, 81.7f));
+            Spot("Theo's wardrobe", HideKind.Closet, V(6.1f, F + 1f, 81.25f), V(1.0f, 2f, 0.9f), V(6.1f, F, 82.4f));
+            Furniture("Bookcase (Theo's room)", HouseLook.Bookcase, 7.4f, HubX1, 81f, 82.2f, 2.0f);
+            Furniture("Theo's desk", HouseLook.Desk, 7.4f, HubX1, 82.3f, 83f, 0.75f);
 
-            // Light and shade: the sunny living room, the kitchen, the dim hallway, Theo's room, the dark study.
-            Light("Kitchen", V(-5.5f, F + 1.5f, 79f), V(13f, 3.2f, 14f), 0.9f);
-            Light("Living room", V(6.5f, F + 1.5f, 79f), V(11f, 3.2f, 14f), 1f);
-            Light("Hallway", V(0f, F + 1.5f, 87.6f), V(24f, 3.2f, 3f), 0.45f);
-            Light("Theo's room", V(-6f, F + 1.5f, 94.6f), V(12f, 3.2f, 11f), 0.55f);
-            Light("Study", V(6f, F + 1.5f, 94.6f), V(12f, 3.2f, 11f), 0.35f);
+            // ===== The attic: Lena's observatory (a proposal: STORY-PROSE's "a small observatory in the attic?") and the
+            // family's stored life. Up the stairs from Theo's room; down through the hatch into the hall (a loop).
+            // Under a gable roof, its ridge running east-west over the middle of the house.
+            // Railings round the stairwell (she arrives at its south end and steps off onto the floor over the hall).
+            Wall("Attic railing (stairwell, west)", StairX0 - 0.2f, StairX0, StairZ0, 83.6f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
+            Wall("Attic railing (stairwell, east)", StairX1, StairX1 + 0.2f, StairZ0, 83.6f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
+            Wall("Attic railing (stairwell, north)", StairX0 - 0.2f, StairX1 + 0.2f, 83.4f, 83.6f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
+            Wall("Attic knee wall (south)", HubX0, HubX1, HubZ0, HubZ0 + 0.3f, AtticFloor, AtticFloor + KneeWall, HouseLook.KneeWall);
+            Wall("Attic knee wall (north)", HubX0, HubX1, HubZ1 - 0.3f, HubZ1, AtticFloor, AtticFloor + KneeWall, HouseLook.KneeWall);
+            Add("Attic gable (west, the observatory window)", LabPieceKind.Wall, HouseLook.Gable, V(HubX0 - 0.3f, AtticFloor, HubZ0), V(HubX0, AtticFloor + RidgeHeight + 0.3f, HubZ1));
+            Add("Attic gable (east)", LabPieceKind.Wall, HouseLook.Gable, V(HubX1, AtticFloor, HubZ0), V(HubX1 + 0.3f, AtticFloor + RidgeHeight + 0.3f, HubZ1));
+            // The roof is drawn by the builder; these solid steps sit just behind its slopes so a jump can't leave the house.
+            RoofSteps(HubX0, HubX1, south: true, fromStep: 1);
+            RoofSteps(HubX0, DormerX0, south: false, fromStep: 1);
+            RoofSteps(DormerX1, HubX1, south: false, fromStep: 1);
+            RoofSteps(DormerX0, DormerX1, south: false, fromStep: 3);   // over the dormer only the ridge cap
+            // The dormer on the north slope, over the observatory: its own walls and roof, a window to the north.
+            Wall("Dormer (west side)", DormerX0 - 0.2f, DormerX0, DormerZ0, HubZ1, AtticFloor, AtticFloor + DormerHeight, HouseLook.KneeWall);
+            Wall("Dormer (east side)", DormerX1, DormerX1 + 0.2f, DormerZ0, HubZ1, AtticFloor, AtticFloor + DormerHeight, HouseLook.KneeWall);
+            Add("Dormer roof", LabPieceKind.Floor, HouseLook.Roof, V(DormerX0 - 0.2f, AtticFloor + DormerHeight, DormerZ0), V(DormerX1 + 0.2f, AtticFloor + DormerHeight + 0.2f, HubZ1));
+            // What's stored up here (things to climb, too): a trunk, crates, Theo's old crib; Lena's observatory to the west.
+            Add("Trunk", LabPieceKind.Ledge, HouseLook.Storage, V(3.2f, AtticFloor, 74.6f), V(4.4f, AtticFloor + 0.6f, 75.4f));
+            Add("Crates", LabPieceKind.Ledge, HouseLook.Storage, V(4.8f, AtticFloor, 74.4f), V(5.8f, AtticFloor + 1.2f, 75.4f));
+            Add("Theo's old crib", LabPieceKind.Ledge, HouseLook.Storage, V(0.6f, AtticFloor, 76f), V(2.0f, AtticFloor + 0.9f, 76.8f));
+            Add("Observatory platform", LabPieceKind.Ledge, HouseLook.Storage, V(HubX0, AtticFloor, 76.4f), V(-5.6f, AtticFloor + 0.3f, 79.6f));
+            Spot("The attic", HideKind.Closet, V((HubX0 + HubX1) * 0.5f, AtticFloor + 1.6f, (HubZ0 + HubZ1) * 0.5f), V(HubX1 - HubX0, 3.2f, HubZ1 - HubZ0),
+                V(3.6f, F, 83.3f));
 
-            // Theo's walking graph: points in every room, every doorway, the hallway.
+            // Light and shade: the sunny living room and kitchen, the dim hall, the bedrooms, the dark attic.
+            Light("Kitchen and dining", V(-2.2f, F + 1.5f, 75.1f), V(9.6f, 3.2f, 6.2f), 0.9f);
+            Light("Living room", V(5.4f, F + 1.5f, 74.6f), V(5.2f, 3.2f, 7.2f), 1f);
+            Light("Hall", V(1.3f, F + 1.5f, 79.4f), V(13.4f, 3.2f, 2.4f), 0.45f);
+            Light("Pantry", V(-6.3f, F + 1.5f, 79.4f), V(1.4f, 3.2f, 2.4f), 0.2f);
+            Light("Parents' room", V(-4.2f, F + 1.5f, 82.4f), V(5.6f, 3.2f, 3.2f), 0.5f);
+            Light("Bath", V(0.1f, F + 1.5f, 82.4f), V(2.6f, 3.2f, 3.2f), 0.6f);
+            Light("Theo's room", V(5.5f, F + 1.5f, 82.4f), V(5f, 3.2f, 3.2f), 0.55f);
+            Light("Attic", V((HubX0 + HubX1) * 0.5f, AtticFloor + 1.6f, 78f), V(HubX1 - HubX0, 3.2f, HubZ1 - HubZ0), 0.3f);
+
+            // Theo's walking graph: points in every room and at every doorway, on the main floor.
             foreach (var p in new[]
             {
-                V(0f, F, 74.5f), V(-2.5f, F, 74f), V(-9.5f, F, 74f), V(-9.5f, F, 81.5f), V(-3f, F, 82f), V(-7.2f, F, 84.4f),
-                V(4f, F, 74f), V(9.4f, F, 75.5f), V(3f, F, 81f), V(8f, F, 82.5f), V(5.8f, F, 84.6f),
-                V(-7.2f, F, 86.1f), V(5.8f, F, 86.1f),
-                V(-9.5f, F, 87.6f), V(-5.2f, F, 87.6f), V(0f, F, 87.6f), V(5.2f, F, 87.6f), V(8.8f, F, 87.6f),
-                V(-5.2f, F, 89.1f), V(5.2f, F, 89.1f),
-                V(-5.2f, F, 91f), V(-8.6f, F, 92.4f), V(-7f, F, 97f), V(-3.2f, F, 96.8f), V(-1.5f, F, 93f),
-                V(5.2f, F, 91f), V(2f, F, 93f), V(9.6f, F, 93f), V(3f, F, 98.4f), V(9f, F, 98.4f),
+                // kitchen and dining
+                V(-5.4f, F, 73.6f), V(-1f, F, 73.4f), V(1.6f, F, 74.4f), V(-0.6f, F, 77.4f), V(-5.3f, F, 77.6f), V(-2.5f, F, 77.5f),
+                // living room
+                V(5.2f, F, 73.4f), V(6.5f, F, 75.1f), V(5.4f, F, 77.1f), V(3.8f, F, 77f), V(4f, F, 73.1f),
+                // the hall and its doorways
+                V(-2.5f, F, 79.0f), V(5.5f, F, 79.1f), V(-4.7f, F, 79.4f), V(-0.7f, F, 79.2f), V(2.2f, F, 79.4f), V(4.5f, F, 79.6f), V(6.5f, F, 79.1f),
+                // the parents' room and the bath
+                V(-4.5f, F, 81.5f), V(-3.0f, F, 82.4f), V(-6.5f, F, 81.4f), V(0.1f, F, 82.2f),
+                // Theo's room
+                V(4.5f, F, 81.6f), V(3.6f, F, 83.3f), V(6.4f, F, 82.5f), V(4.6f, F, 83.1f),
             }) nodes.Add(p);
 
             // The memories (the hide-and-seek's collectibles). Names are plain descriptions; what each shows is the creator's.
-            Memory("memory_height_marks", "The height marks on the door frame", V(-5.2f, F + 1.2f, 89.1f));
-            Memory("memory_calendar", "The fridge calendar", V(-10.9f, F + 1.4f, 81.7f));
-            Memory("memory_fourth_chair", "The fourth chair", V(-3f, F + 0.9f, 77.5f));
-            Memory("memory_drawing", "Theo's drawing", V(-7f, F + 1f, 90.7f));
-            Memory("memory_photos", "The photo wall", V(7.5f, F + 1.6f, 99.6f));
+            // Each has the place she stands to take it (one is on top of Theo's bookcase: climb his desk).
+            Memory("memory_height_marks", "The height marks on the door frame", V(-2.08f, F + 1.2f, HallZ0 + 0.1f), V(-2.5f, F, 77.45f));
+            Memory("memory_calendar", "The fridge calendar", V(-6.1f, F + 1.4f, 77.1f), V(-5.3f, F, 77.1f));
+            Memory("memory_fourth_chair", "The fourth chair", V(-1.65f, F + 0.9f, 75.7f), V(-0.9f, F, 75.7f));
+            Memory("memory_drawing", "Theo's drawing", V(7.72f, F + 2.15f, 81.95f), V(7.6f, F + 0.75f, 82.65f));
+            Memory("memory_photos", "The photo wall", V(-2.0f, F + 1.6f, HallZ1 - 0.15f), V(-2.0f, F, 79.95f));
+
+            // The rooms (for the builder's walls, and the plan).
+            Room("Kitchen and dining", HubX0, 2.6f, HubZ0, HallZ0, F, 2.8f);
+            Room("Living room", 2.8f, HubX1, HubZ0, HallZ0, F, 3.0f);
+            Room("Bay window", BayX0, BayX1, BayZ0, HubZ0, F, 2.5f);
+            Room("Pantry", HubX0, -5.6f, HallZ0 + 0.2f, HallZ1, F, 2.3f);
+            Room("Hall", -5.4f, HubX1, HallZ0 + 0.2f, HallZ1, F, 2.4f);
+            Room("Parents' room", HubX0, -1.4f, HallZ1 + 0.2f, HubZ1, F, 2.7f);
+            Room("Bath", -1.2f, 1.4f, HallZ1 + 0.2f, HubZ1, F, 2.4f);
+            Room("Attic stairs", StairX0, StairX1, StairZ0, HubZ1, F, 2.6f);
+            Room("Theo's room", 3f, HubX1, HallZ1 + 0.2f, HubZ1, F, 2.6f);
+            Room("Attic", HubX0, HubX1, HubZ0, HubZ1, AtticFloor, RidgeHeight);
+
+            // Somewhere to stand in the open in each main room (tests and the PlayMode run use them).
+            openFloor.Add(V(6.5f, F, 75.1f));
+            openFloor.Add(V(-3.0f, F, 82.4f));
+            openFloor.Add(V(4.5f, F, 81.6f));
 
             // ===== 3. The house tips: the hallway's floor is a wall, the doorframes walls to kick between, the stairs a slide.
             const float t0 = 0f, t1 = -1f, t2 = -2f, t3 = -5f;

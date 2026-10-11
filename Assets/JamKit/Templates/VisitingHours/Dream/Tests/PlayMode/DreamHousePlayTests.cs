@@ -83,7 +83,8 @@ namespace JamKit.DreamEscape.Tests
             Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
             yield return Frames(3);
             Assert.That(Game.Phase, Is.EqualTo(HousePhase.HideAndSeek));
-            Game.player.Teleport(new Vector3(7f, DreamHouse.Ground + 0.02f, 82.5f), 0f, Vector3.zero);
+            var open = Game.House.openFloor[0];
+            Game.player.Teleport(new Vector3(open.X, open.Y + 0.02f, open.Z), 0f, Vector3.zero);
             DebugMenu.TimeScale = 3f;
             yield return WaitFor(() => Game.Story.TimesFound > 0, "Theo to find her standing in the living room", 60f);
             Assert.That(Game.Phase, Is.EqualTo(HousePhase.HideAndSeek), "found before every memory: another round");
@@ -105,8 +106,8 @@ namespace JamKit.DreamEscape.Tests
             Assert.That(Game.memories.Remaining, Is.EqualTo(5));
             for (int i = 0; i < h.memories.Count; i++)
             {
-                var m = h.memories[i].position;
-                Game.player.Teleport(new Vector3(m.X, DreamHouse.Ground + 0.02f, m.Z), 0f, Vector3.zero);
+                var m = h.memories[i].standAt;   // where she stands to take it (one is on Theo's desk)
+                Game.player.Teleport(new Vector3(m.X, m.Y + 0.02f, m.Z), 0f, Vector3.zero);
                 int left = 5 - i - 1;
                 yield return WaitFor(() => Game.memories.Remaining == left, h.memories[i].name + " picked up", 5f);
             }

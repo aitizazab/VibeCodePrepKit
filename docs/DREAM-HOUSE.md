@@ -31,6 +31,52 @@ It's a standalone scene in the dream escape's folder and assemblies:
 
   Still boxes: the walls, stairs, closets, curtains, the house front and the tipped house's rooms.
 
+## Architecture and level design (2026-10-12)
+The creator, on the decorated house: "there's simply too much space, and ... the wall design is bad, both as in the walls
+just being an uninteresting box for every single room, and only one floor that we explore (when we need the attic too),
+and the space doesn't feel exciting to explore." So the house was redesigned as architecture, in core `DreamHouse`
+(the plan, the rooms, the pieces, Theo's graph, the spots, the memories), with the finish in
+`Dream/Editor/House/DreamHouseRooms.cs` and the decoration in `DreamHouseDecor.cs`.
+
+**The plan** (15 x 12 m; the old ground floor was 24 x 28 m). Plans: `tools/house-plan` (dotnet, writes JSON from the
+core) and `tools/art/vh_house_plan.py` (draws them).
+- **The main floor:** the kitchen and dining room (open plan; the slide from the way in lands in it), the living room
+  (a bay window with a window seat, a fireplace in a chimney breast), a narrow hall (2.4 m), the pantry between the
+  kitchen and the hall, the parents' room with its en-suite bath, Theo's room. Ceilings 2.3 to 3.0 m by room.
+- **The attic** (under a gable roof, its ridge 3.4 m, the eaves down to 0.8 m): up steep stairs in their own slot,
+  from a narrow door in Theo's room; down through a hatch into the hall. Lena's observatory at the west end (a round
+  window full of stars, her telescope, chair, star charts, notebook: **a proposal**, from the creator's note in
+  STORY-PROSE "maybe a small observatory in the attic?", tying to her Thursdays and the calendar's keys; nothing in the
+  story says so yet), and the family's stored life to the east (Theo's old crib, Elias's old bike, boxes, a rocking
+  horse, the Christmas box). It's always night in Lena's attic: the one place the dream exaggerates.
+- **Walls with character** (no room is a box): the bay; the chimney breast; an archway and a pass-through over a half
+  wall between the kitchen and the living room; doorways of different widths with real headers; the low cupboard
+  under the stairs; each room's own wallpaper over wainscoting (tiles in the kitchen and bath), chair rails, skirting,
+  picture rails and cornices in the taller rooms; the attic's sloped ceilings, rafters, ridge beam, collar ties, dormer.
+
+**The level-design rules used** (from the usual practice: landmarks, loops, gating and teasing, compression and
+release, rewarding curiosity; sources: Totten, *An Architectural Approach to Level Design*
+([Routledge](https://www.routledge.com/An-Architectural-Approach-to-Level-Design/Totten/p/book/9780815361367)); a
+2026 thesis on denial and reward ([SMU Guildhall](https://scholar.smu.edu/guildhall_leveldesign_etds/44));
+[CDM: universal level design techniques](https://blogs.thecdm.ca/techspeak/?p=2488)):
+- **Landmarks:** a focal point per room (the fireplace, the table, the bed, the bunk); the attic's starry window as
+  the house's one big landmark.
+- **Loops:** the kitchen to the living room through the archway, or round by the hall; the pantry's two doors; the
+  vertical loop (up the stairs from Theo's room, along the attic, down the hatch into the hall).
+- **Teasing:** the open hatch in the hall's ceiling shows the attic's starlight from below before she finds the way up;
+  the bulb at the top of the stairs.
+- **Compression and release:** the narrow hall and the steep, narrow stairs open into the long, tall attic.
+- **Rewarding curiosity:** Theo's drawing is on top of his bookcase (climb his desk); the cupboard under the stairs;
+  the attic's storage to climb.
+- **Light leads the eye:** the fireplace, the pendants over each room's group, the stair bulb, the starry windows.
+- **Movement:** designed to the current movement and stealth values (unchanged): the stairs at 46 degrees (the slope
+  limit is 50), the desk a 0.75 m mantle, door headers above standing height, the cupboard's door at crouch height.
+
+**Hide-and-seek** stays on the main floor (Theo's walking graph); the attic is one big hiding spot he checks from the
+foot of its stairs, and its floor blocks his sight (as do the ceilings and walls: `TheosSightStopsAtWallsCeilingsAndTheAttic`).
+Hiding spots: the pantry, the window seat, the coats, the cupboard under the stairs, the bath curtain, Theo's wardrobe,
+the attic.
+
 ## Interior notes (art pass 5, 2026-10-12: a lived-in home)
 The creator: "it's not at all furnished... for the space Elias spent most of his life in, his memories of it are rather
 bland." The house is now decorated as a home (`Dream/Editor/House/DreamHouseDecor.cs`), decoration only: no colliders,

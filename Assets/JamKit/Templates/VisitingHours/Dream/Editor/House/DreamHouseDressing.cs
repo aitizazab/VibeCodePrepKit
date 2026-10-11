@@ -21,6 +21,7 @@ namespace JamKit.DreamEscape.EditorTools
         public const string KenneyDir = "Assets/JamKit/Templates/VisitingHours/ThirdParty/Kenney/FurnitureKit";
         public const string PatternWallpaper = "dream_pattern_wallpaper";
         public const string PatternFloorboards = "dream_pattern_floorboards";
+        public const string PatternTiles = "dream_pattern_tiles";
 
         /// <summary>How a piece is dressed: its models (tiled along its long side when there are several), and which way
         /// the model's front faces (a world direction; zero for "doesn't matter", or a point to face for chairs).</summary>
@@ -34,19 +35,30 @@ namespace JamKit.DreamEscape.EditorTools
             public float height;
         }
 
-        static readonly Vector3 TableCentre = new Vector3(-6f, 0f, 77.5f);
+        static readonly Vector3 TableCentre = new Vector3(-3.4f, 0f, 75.7f);
 
         // Matched by the start of the piece's name (DreamHouse.Build's names).
         static readonly (string prefix, Dress dress)[] Plan =
         {
-            ("Counter and stove", new Dress { models = new[] { "kitchenCabinet", "kitchenStove", "kitchenCabinet", "kitchenSink", "kitchenCabinet", "kitchenCabinet", "kitchenCabinet" }, facing = Vector3.right }),
+            // The kitchen (the architecture pass, 2026-10-12): the south run with the sink under the window and the stove
+            // where Lena stands, the west run, the fridge.
+            ("Counter and stove", new Dress { models = new[] { "kitchenCabinet", "kitchenSink", "kitchenStove", "kitchenCabinet" }, facing = Vector3.forward }),
+            ("Counter (west)", new Dress { models = new[] { "kitchenCabinet", "kitchenCabinet", "kitchenCabinet" }, facing = Vector3.right }),
             ("Fridge", new Dress { models = new[] { "kitchenFridgeLarge" }, facing = Vector3.right }),
             ("Dining table", new Dress { models = new[] { "table" } }),
             ("Chair", new Dress { models = new[] { "chair" }, faceTablePoint = true, height = 0.95f }),
-            ("Sofa", new Dress { models = new[] { "loungeSofa" }, facing = Vector3.forward }),
-            ("Theo's bed", new Dress { models = new[] { "bedSingle" }, facing = Vector3.back }),
-            ("Theo's desk", new Dress { models = new[] { "desk" }, facing = Vector3.back }),
-            ("Study desk", new Dress { models = new[] { "desk" }, facing = Vector3.back }),
+            ("Pantry shelves", new Dress { models = new[] { "bookcaseOpen", "bookcaseOpen", "bookcaseOpen" }, facing = Vector3.right }),
+            // The living room: the sofa faces the fireplace (east); the armchair turned to it; the coffee table; the bookcase.
+            ("Sofa", new Dress { models = new[] { "loungeSofa" }, facing = Vector3.right }),
+            ("Armchair", new Dress { models = new[] { "loungeChair" }, facing = Vector3.back }),
+            ("Coffee table", new Dress { models = new[] { "tableCoffee" } }),
+            ("Bookcase (living room)", new Dress { models = new[] { "bookcaseOpen" }, facing = Vector3.right }),
+            // The bedrooms and the bath.
+            ("Parents' bed", new Dress { models = new[] { "bedDouble" }, facing = Vector3.back }),
+            ("Bathtub", new Dress { models = new[] { "bathtub" }, facing = Vector3.back }),
+            ("Theo's bunk bed", new Dress { models = new[] { "bedBunk" }, facing = Vector3.back }),
+            ("Theo's desk", new Dress { models = new[] { "desk" }, facing = Vector3.left }),
+            ("Bookcase (Theo's room)", new Dress { models = new[] { "bookcaseOpen" }, facing = Vector3.left }),
         };
 
         static readonly List<string> _missing = new List<string>();

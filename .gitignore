@@ -40,3 +40,5 @@ core-tests/**/TestResults/
 /out/
 /test-results/
 *.log
+tools/house-plan/bin/
+tools/house-plan/obj/
