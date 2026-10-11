@@ -1,0 +1,620 @@
+{
+ "name": "visiting-hours-house-finish",
+ "title": "Visiting Hours: the house's finish options (wallpapers, ceilings, the bezel, higher ceilings) and the height question",
+ "subtitle": "Your notes: \"a spread of different choices for the wall pattern, poised towards darker colors, and a pattern for the roof, or maybe something like a bezel for the edges of the roof... Maybe higher roofs as well? ...why are we taller than Lena is?\" Each option is shown in the game from the same spots; nothing is the default until you pick. Mix and match: a wallpaper, a ceiling, a bezel and a height are separate choices (the wallpaper can also differ by room).",
+ "questions": [
+  "Which wallpaper (1-8), and should every room share it or each room get its own (e.g. damask in the living room, stripe in the hall, sprig in Theo's room)?",
+  "Which ceiling: plain, pressed tin, plaster roses, beams, coffers or the starry paper? (Different rooms can differ here too.)",
+  "Which bezel where the walls meet the ceiling: the plain strip, a cove, a stepped crown or dentils?",
+  "Higher ceilings: as now, +0.4 m or +0.8 m? Higher means she can jump in more rooms, and the attic stairs get longer (or gain a landing).",
+  "The attic's underside: plain, painted or dark boards?",
+  "Heights: Lena now stands a little taller than Nadia (her eyes 10 cm above Nadia's) and Theo comes to about Nadia's shoulder. Right, or should Lena be taller still (her escape billboard reads about 6'2\")?"
+ ],
+ "notes": [
+  "Why we looked taller than Lena: the stills were taken from 1.6-1.65 m, but Nadia's eye in the game is at 1.5 m (her capsule is 1.7 m). And the cut-outs were sized feet to hair, but the drawings have big heads: Lena's eyes sit 18.6% down her card, so on a 1.72 m card they were at 1.40 m, under Nadia's eye even in the game. Now the stills use 1.5 m and the cut-outs are sized by their eyes: Lena's at 1.60 m (a 1.72 m woman's; her card is 1.97 m), Theo's at 1.20 m (a ten-year-old's; card 1.63 m).",
+  "Higher ceilings are a preview (everything from the ceilings up moves up, the walls grow). The movement and stealth values stay; Theo's sightlines don't change (the doorways keep their height). Details in docs/DREAM-HOUSE.md, 'Finish options'.",
+  "The wallpaper tiles are drawn by tools/art/vh_house_patterns.py; any of them can be redrawn or recoloured."
+ ],
+ "sections": [
+  {
+   "title": "Why we looked taller than Lena (fixed): before and after",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/height-before-table-and-lena.png",
+     "label": "Before: camera at 1.6 m, Lena's card 1.72 m (her eyes at 1.40 m: we looked down on her)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/height-after-table-and-lena.png",
+     "label": "After: camera at Nadia's eye (1.5 m), Lena's eyes at 1.60 m (she's a little taller than Nadia), Theo's at 1.20 m",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/height-before-theo.png",
+     "label": "Before: Theo counting (his eyes at 1.02 m)",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/height-after-theo.png",
+     "label": "After: Theo counting (his eyes at 1.20 m, a ten-year-old's)",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The wallpapers at a glance (each with its wainscot below it)",
+   "cols": 1,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/wallpaper-swatches.png",
+     "label": "Eight options: six dark, two mid-tone",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Wallpaper Current (pastel papers, a different one per room)",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-0-current-living.png",
+     "label": "the living room",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-0-current-hall.png",
+     "label": "the hall",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-0-current-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Wallpaper 1. Forest damask, cream wainscot",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-1-forest-damask-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-1-forest-damask-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-1-forest-damask-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Wallpaper 2. Oxblood regency stripe, walnut wainscot",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-2-oxblood-stripe-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-2-oxblood-stripe-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-2-oxblood-stripe-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Wallpaper 3. Navy sprig (small floral), white wainscot",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-3-navy-sprig-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-3-navy-sprig-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-3-navy-sprig-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Wallpaper 4. Plum trellis (geometric), lilac-grey wainscot",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-4-plum-trellis-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-4-plum-trellis-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-4-plum-trellis-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Wallpaper 5. Teal botanical (Morris-like), ochre wainscot",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-5-teal-botanical-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-5-teal-botanical-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-5-teal-botanical-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Wallpaper 6. Umber fans (deco geometric), deep green wainscot",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-6-umber-fans-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-6-umber-fans-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-6-umber-fans-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Wallpaper 7. Sage pinstripe (mid-tone), deep green wainscot",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-7-sage-stripe-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-7-sage-stripe-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-7-sage-stripe-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Wallpaper 8. Dusty rose sprig (mid-tone), oxblood wainscot",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-8-rose-sprig-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-8-rose-sprig-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/wall-8-rose-sprig-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Ceiling: current (plain)",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-0-current-living.png",
+     "label": "the living room",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-0-current-hall.png",
+     "label": "the hall",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-0-current-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Ceiling: pressed tin tiles",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-1-pressed-tin-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-1-pressed-tin-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-1-pressed-tin-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Ceiling: plaster roses round the pendants",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-2-medallions-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-2-medallions-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-2-medallions-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Ceiling: exposed beams",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-3-beams-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-3-beams-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-3-beams-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Ceiling: coffers (a grid of shallow ribs)",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-4-coffers-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-4-coffers-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-4-coffers-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Ceiling: a starry paper",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-5-starry-paper-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-5-starry-paper-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/ceiling-5-starry-paper-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The bezel (cornice): current (a plain strip)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/cornice-0-current-living-corner.png",
+     "label": "a corner of the living room",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/cornice-0-current-kitchen-corner.png",
+     "label": "a corner of the kitchen",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The bezel: a soft cove",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/cornice-1-cove-living-corner.png",
+     "label": "a corner of the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/cornice-1-cove-kitchen-corner.png",
+     "label": "a corner of the kitchen",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The bezel: a stepped crown",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/cornice-2-stepped-living-corner.png",
+     "label": "a corner of the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/cornice-2-stepped-kitchen-corner.png",
+     "label": "a corner of the kitchen",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The bezel: a dentil band",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/cornice-3-dentil-living-corner.png",
+     "label": "a corner of the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/cornice-3-dentil-kitchen-corner.png",
+     "label": "a corner of the kitchen",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Height: Ceilings as now (2.3-3.0 m)",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/height-plus000cm-living.png",
+     "label": "the living room",
+     "verdict": "alt",
+     "note": "Only the living room (3.0 m) clears a jump (her head reaches 2.95 m)."
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/height-plus000cm-hall.png",
+     "label": "the hall",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/height-plus000cm-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Height: Ceilings +0.4 m (2.7-3.4 m)",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/height-plus040cm-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": "A jump clears the kitchen, living room, parents' room and Theo's room. The attic stairs need ~0.4 m more length (or a landing)."
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/height-plus040cm-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/height-plus040cm-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Height: Ceilings +0.8 m (3.1-3.8 m)",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/height-plus080cm-living.png",
+     "label": "the living room",
+     "verdict": "pick",
+     "note": "A jump clears every room; a double jump (3.95 m) still doesn't. The attic stairs need ~0.8 m more (the north rooms deeper, or a landing)."
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/height-plus080cm-hall.png",
+     "label": "the hall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/height-plus080cm-theos-room.png",
+     "label": "Theo's room",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The attic's underside: current (plain boards)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/attic-0-current-arrival.png",
+     "label": "arriving at the top of the stairs",
+     "verdict": "alt",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/attic-0-current-storage.png",
+     "label": "the storage side",
+     "verdict": "alt",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The attic's underside: painted tongue-and-groove",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/attic-1-painted-boards-arrival.png",
+     "label": "arriving at the top of the stairs",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/attic-1-painted-boards-storage.png",
+     "label": "the storage side",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The attic's underside: dark-stained boards",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-finish/attic-2-dark-boards-arrival.png",
+     "label": "arriving at the top of the stairs",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-finish/attic-2-dark-boards-storage.png",
+     "label": "the storage side",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  }
+ ]
+}
