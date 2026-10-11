@@ -23,6 +23,8 @@ namespace JamKit.VisitingHours.Tests
     public class VisitingHoursOpeningEditorInputTests
     {
         TestInput _keys;
+        /// <summary>What the status line said as the editor opened (before a test's own setup keys).</summary>
+        string _openStatus;
         VhVirtualInput _in;
         string _file;
 
@@ -76,7 +78,9 @@ namespace JamKit.VisitingHours.Tests
             Assert.That(Ed.IsOpen, Is.False);
             yield return _in.Tap(Key.F9);
             yield return WaitFor(() => Ed.IsOpen, "F9 to open the editor", 5f);
-            yield return Frames(6); // its panels laid out
+            _openStatus = Ed.StatusText;
+            // Its panels laid out (the list's rows have a size).
+            yield return WaitFor(() => Ed.TryScreenPointOf("button:close", out _), "the editor's panels to lay out", 5f);
             _in.MoveTo(Ed.ViewScreenPoint());
             yield return Frames(2);
             // The editor lives on the GameRoot and keeps its tool and snapping from one opening to the next (as the
@@ -100,12 +104,13 @@ namespace JamKit.VisitingHours.Tests
             yield return _in.Click(p);
         }
 
+        /// <summary>Scrolls the list with the wheel (the mouse over its panel) until the row can be clicked, then clicks it.</summary>
         IEnumerator ClickListRow(string id)
         {
-            for (int i = 0; i < 12 && !Ed.TryScreenPointOf("list:" + id, out _); i++)
+            for (int i = 0; i < 20 && !Ed.TryScreenPointOf("list:" + id, out _); i++)
             {
                 Assert.That(Ed.TryPanelScreenPoint("left", out var left), Is.True, "the list panel");
-                _in.MoveTo(left + new Vector2(0f, 80f));
+                _in.MoveTo(left);
                 yield return null;
                 _in.Scroll(-2f);
                 yield return Frames(3);
@@ -136,7 +141,7 @@ namespace JamKit.VisitingHours.Tests
             float t0 = Ed.Opening.Time;
             yield return Frames(20);
             Assert.That(Ed.Opening.Time, Is.EqualTo(t0).Within(1e-4f), "held");
-            Assert.That(Ed.StatusText, Does.Contain("Editing the opening"), "the status line says what's open");
+            Assert.That(_openStatus, Does.Contain("Editing the opening"), "the status line says what's open");
 
             // Enter (the title's Submit) and a click on the tablet don't press Play under the editor.
             yield return _in.Tap(Key.Enter);

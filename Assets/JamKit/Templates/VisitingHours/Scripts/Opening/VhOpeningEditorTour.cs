@@ -461,7 +461,7 @@ namespace JamKit.VisitingHours
                 }
                 if (ed.TryPanelScreenPoint("left", out var left))
                 {
-                    _in.MoveTo(left + new Vector2(0f, 60f));
+                    _in.MoveTo(left);
                     yield return null;
                     _in.Scroll(-2f);
                     yield return VhVirtualInput.Frames(3);

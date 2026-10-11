@@ -1170,7 +1170,8 @@ namespace JamKit.VisitingHours
             if (Modal) return;
             if (overUi)
             {
-                if (_list != null && Shown(_list) && _list.worldBound.Contains(_mouse)) _list.scrollOffset -= new Vector2(0f, notches * 48f);
+                // Anywhere over the list's panel (its header and edges too), the wheel scrolls the list.
+                if (_list != null && Shown(_list) && Over(_left, _mouse) && TopPanelAt(_mouse) == _left) _list.scrollOffset -= new Vector2(0f, notches * 48f);
                 return;
             }
             if (_drag == Drag.Look)
