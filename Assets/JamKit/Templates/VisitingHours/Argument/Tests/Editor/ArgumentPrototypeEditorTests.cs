@@ -14,7 +14,11 @@ namespace JamKit.Argument.Tests
     public class ArgumentPrototypeEditorTests
     {
         [SetUp]
-        public void Files() => ArgumentContent.Ensure();
+        public void Files()
+        {
+            ArgumentContent.Ensure();
+            ArgumentArt.Forget(); // no sprite (or placeholder) left over from another test
+        }
 
         static void Run(ArgumentView view, float seconds)
         {
@@ -100,6 +104,33 @@ namespace JamKit.Argument.Tests
                 }
             }
             Assert.That(ArgumentArt.Sprite("Lena", "unknown-mood", out _).name, Does.EndWith("neutral"), "an unknown expression falls back to neutral");
+        }
+
+        const string ArtDir = "Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentArt";
+
+        [Test]
+        public void EveryExpressionWithAFileLoadsTheRealArt()
+        {
+            ArgumentArt.Forget();
+            int files = 0;
+            foreach (var e in ArgumentArt.Expressions)
+            {
+                string path = ArtDir + "/lena_" + e + ".png";
+                if (!File.Exists(path)) continue;
+                files++;
+                var ti = AssetImporter.GetAtPath(path) as TextureImporter;
+                Assert.That(ti, Is.Not.Null, path + " is imported as a texture");
+                Assert.That(ti.npotScale, Is.EqualTo(TextureImporterNPOTScale.None), path + ": no power-of-two rescale (it stays 2:3)");
+                Assert.That(ti.mipmapEnabled, Is.False, path + ": no mipmaps");
+                Assert.That(ti.alphaIsTransparency, Is.True, path + ": alpha is transparency");
+                Assert.That(ArgumentArt.HasFile("Lena", e), Is.True, path + " loads from Resources");
+                var t = ArgumentArt.Sprite("Lena", e, out bool placeholder);
+                Assert.That(placeholder, Is.False, path + ": the real art, not the code-drawn placeholder");
+                Assert.That(t.name, Is.EqualTo("lena_" + e), path + ": its own file, not neutral's");
+                Assert.That(t.width, Is.EqualTo(1024), path + " width");
+                Assert.That(t.height, Is.EqualTo(1536), path + " height");
+            }
+            Assert.That(files, Is.GreaterThanOrEqualTo(7), "Lena's seven poses are in " + ArtDir + " (104f4ea, 98f02e0)");
         }
 
         [Test]

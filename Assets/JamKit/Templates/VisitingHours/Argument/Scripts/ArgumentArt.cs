@@ -12,7 +12,8 @@ namespace JamKit.Argument
     /// for Lena: lena_antagonistic (the pose she starts the battle in, <see cref="Opening"/>), lena_neutral, lena_angry,
     /// lena_rattled, lena_softened, lena_hurt, lena_pleading. Portrait 2:3, 1024 x 1536 px,
     /// transparent background, the figure from the waist (or hips) up filling most of the height, facing slightly
-    /// right (towards the claims). Import as Texture2D (the defaults are fine). A missing expression falls back to
+    /// right (towards the claims). The import settings are set for you (ArgumentArtImport: Default texture, no
+    /// mipmaps, no power-of-two rescale, alpha is transparency); a GUID-only .meta is fine. A missing expression falls back to
     /// &lt;who&gt;_neutral; with no file at all, a sketch-style silhouette is drawn in code, a different face per
     /// expression.
     ///
@@ -66,10 +67,10 @@ namespace JamKit.Argument
                 placeholder = t.name.StartsWith("placeholder", StringComparison.Ordinal);
                 return t;
             }
-            if (_treatment.Length > 0) t = Resources.Load<Texture2D>(ArtFolder + who + "_" + _treatment + "_" + expression);
-            if (t == null) t = Resources.Load<Texture2D>(ArtFolder + key);
-            if (t == null && _treatment.Length > 0) t = Resources.Load<Texture2D>(ArtFolder + who + "_" + _treatment + "_neutral");
-            if (t == null) t = Resources.Load<Texture2D>(ArtFolder + who + "_neutral");
+            if (_treatment.Length > 0) t = Load(who + "_" + _treatment + "_" + expression);
+            if (t == null) t = Load(key);
+            if (t == null && _treatment.Length > 0) t = Load(who + "_" + _treatment + "_neutral");
+            if (t == null) t = Load(who + "_neutral");
             if (t == null)
             {
                 t = Placeholder(expression);
@@ -78,6 +79,21 @@ namespace JamKit.Argument
             _sprites[key] = t;
             return t;
         }
+
+        /// <summary>One file from Resources/ArgumentArt: the texture, or (if someone re-imports it as a Sprite) the sprite's texture.</summary>
+        static Texture2D Load(string name)
+        {
+            var t = Resources.Load<Texture2D>(ArtFolder + name);
+            if (t != null) return t;
+            var s = Resources.Load<Sprite>(ArtFolder + name);
+            return s != null ? s.texture : null;
+        }
+
+        /// <summary>Drops the loaded sprites (the next call loads again; tests, and after new files land).</summary>
+        public static void Forget() => _sprites.Clear();
+
+        /// <summary>The real art for an expression is in Resources (no fallback, no placeholder; tests).</summary>
+        public static bool HasFile(string who, string expression) => Load((who ?? "").ToLowerInvariant() + "_" + expression) != null;
 
         static string Known(string expression)
         {

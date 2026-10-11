@@ -113,7 +113,10 @@ played nothing of its own. So the previous scene's ambience went on.
   `lena_bw_<expression>.png` first and fall back to the plain file.
 - **Size:** portrait 2:3, 1024 x 1536 px, transparent background.
 - **Framing:** the figure from the waist (or hips) up, filling most of the height, facing slightly right (towards
-  the claims). Default Texture2D import settings are fine.
+  the claims). The import settings are applied for you (`ArgumentArtImport`: Default texture, no mipmaps, no
+  power-of-two rescale, alpha is transparency, clamp), so a GUID-only `.meta` is fine. (The first sprites came
+  with GUID-only metas that Unity never filled in, and they never loaded: the placeholder showed. Their metas are
+  complete now.)
 - **Missing files:** a missing expression falls back to `lena_neutral`. With no file at all, the screen draws a
   sketch-style pencil silhouette (a different face per expression) and notes that it's a placeholder.
 - The slot is 640 x 860 px on screen, bottom-aligned, scaled to fit.
