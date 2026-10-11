@@ -1281,3 +1281,22 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - **Every word in two text files** the creator edits (`Resources/ArgumentText/lena_night2.txt`, `screen.txt`), with ids matching the prose brief.
   - **Tests:** the whole battle on a gamepad alone, and the ambience silent during and back after. Notes: `docs/ARGUMENT-PROTOTYPE.md`.
 - **Stealth answers to fast movement (movement agent):** switchable in the Stealth Lab (keys 1-5 / LB + d-pad, a chapter each): A loud movement (double jumps 24 m, wallruns 22 m, sprint scales with speed; guards turn wary, repeated noise escalates; noise rings), B the dream pushes back (guards call each other; sight grows with your speed), C1 a daytime section, C2 being watched dims her lucidity (no powers, 6.5 m/s cap near guards), three guards. Recommended: A + C2 with three guards. docs/STEALTH.md.
+- **Verified at 3a40dde:** PlayMode **130/130**.
+  - Builds, smoke PASS, in `VibeJamKit-play/Builds/Play/`: VisitingHours (the opening editor), MovementLab (shared tuning, F7 for the daytime profile) and DreamEscape.
+- **Lena's battle sprite (104f4ea, a097a2a):** six expressions, 1024x1536 with alpha, in `Argument/Resources/ArgumentArt/`.
+  - The round 4-a design. Page: `FableAnimationTests/art/review/2026-10-11/visiting-hours-lena-sprite.html`.
+  - Question: she faces our left. Mirroring her would move the pencil to the wrong ear.
+- **Argument fixes (e94c1e3, 7d2600c, 903b1f4, a385c22):**
+  - Controller: one focus model (ArgueNav), A chooses and B goes back everywhere. On the pad, Challenge moved to RB.
+  - Audio: the world's ambience fades out, the battle has its own loop and 14 sounds, and the world's audio comes back after.
+  - Look: a black screen, the Lena sprite, DM Serif Display and Crimson Text fonts, paper cards, and timed transitions.
+  - Prose: `Argument/Resources/ArgumentText/lena_night2.txt` and `screen.txt`.
+- **Stealth answers (45d0a50, abd54a5):** keys 1-5 in the Stealth Lab:
+  - A, loud movement;
+  - B, guards call each other and speed draws attention;
+  - C1, the daytime profile;
+  - C2, lucidity dims near guards;
+  - three guards.
+
+  The recommendation is A + C2 with three guards, its own "Recommended" chapter.
+- **At 45d0a50:** Scenes OK, EditMode 851/852. The one failure is the argument focus-model test, sent back to a385c22. PlayMode is running.
