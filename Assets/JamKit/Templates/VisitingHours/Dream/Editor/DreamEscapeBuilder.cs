@@ -609,7 +609,7 @@ namespace JamKit.DreamEscape.EditorTools
                     float street = max.y - DreamEscapeCourse.CarRoof;
                     const float lift = 0.28f;   // under the body: the wheels show
                     float bodyH = DreamEscapeCourse.CarRoof - lift;
-                    var paint = DreamProps.MeshLook("Car" + (tint % Palette.Length), tintColor, 0.03f);
+                    var paint = DreamProps.MeshLook("Car" + (tint % RoofColors.Length), RoofColors[tint % RoofColors.Length], 0.03f);   // the roof colours: they stand out against the lilac void
                     var glass = DreamProps.MeshLook("CarGlass", WindowDark, 0.008f);
                     var tyre = DreamProps.MeshLook("Tyre", Plum, 0.01f);
                     var hub = DreamProps.MeshLook("CarHub", new Color(0.99f, 0.97f, 0.93f), 0.006f);

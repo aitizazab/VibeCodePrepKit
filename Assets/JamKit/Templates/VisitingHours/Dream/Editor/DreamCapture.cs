@@ -74,7 +74,7 @@ namespace JamKit.DreamEscape.EditorTools
             {
                 new Spot("escape-01-walts-driveway", new Vector3(-9f, 1.7f, -5f), new Vector3(-5f, 1.0f, 30f)),
                 new Spot("escape-02-street-side", new Vector3(6f, 3f, 10f), new Vector3(-6f, 1.0f, 35f)),
-                new Spot("escape-03-car-roofs", new Vector3(-3f, 2.5f, 94f), new Vector3(0f, -1.2f, 108f)),
+                new Spot("escape-03-car-roofs", new Vector3(-1.5f, 2.4f, 95.5f), new Vector3(-4.3f, -0.3f, 106f)),
                 new Spot("escape-04-barbecue", new Vector3(-4f, 1.7f, 121f), new Vector3(3f, 0f, 140f)),
                 new Spot("escape-05-garage", new Vector3(0f, -1.0f, 200f), new Vector3(-8f, -0.6f, 205f)),
                 new Spot("escape-06-rooftops", new Vector3(0f, 4.5f, 238f), new Vector3(0f, 2f, 270f)),
