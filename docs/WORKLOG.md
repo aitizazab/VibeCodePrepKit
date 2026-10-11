@@ -1210,3 +1210,14 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
     - DreamHouse (c9f56aa).
   - **The capture** with the title's last framing try: `out/vh-lighting/20261011-164506/pc-7-title-rest.png`.
   - **stay-awake** now runs in its own minimized window, out of the harness's reach.
+
+## 2026-10-11 evening
+
+- **Settled:** the battery cap is back on and the mouse is clean. **Lasname is the real surname** (Nadia and Elias Lasname), not a placeholder; the news report stays as it is.
+- **The creator's notes on the music sketches:** good bases, but not built to loop.
+  - Each looping piece needs an intro that rises, the main body, and an outro that falls back into a beat the intro can pick up, with no full stop.
+  - Lengths should fit the role: the Opening shorter; battles and chases up to 2 min so the loop doesn't wear.
+  - More than one shared motif: Daytime drops the dream motif; the Dream, Elias, Lena and Nadia share a family motif; the Opening and Ending share their own.
+  - The chase is built around the speed thresholds (stems for slow and fast), ready for grounded, spacey and airy variants per scene.
+  - Round 2 went to the sound agent (a7eac08).
+- **Playtest:** the creator is playing the whole Visiting Hours build (c9f56aa): the opening, then the argument prototype.
