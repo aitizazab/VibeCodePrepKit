@@ -1175,3 +1175,12 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - VisitingHours, MovementLab (hop presets), DreamEscape (umbrella) and StealthLab built, passed smoke, and were copied to `Builds/Play/`.
   - capped-run's retry re-ran everything on an older commit, so it was stopped. The script no longer fails on test failures.
 - **Second run started:** the verify at 111dc28, plus the DreamHouse build.
+- **Stealth fixes (1815c0f):**
+  - The HUD word timing in the tests.
+  - "Hidden" was outranked by "Searching" in hide-and-seek, a real bug.
+  - Kit additions, all off by default: a vertical sight limit, the trampoline lookout, sight-only blockers.
+- **Deep block greybox (3a592a4, movement agent):** a walkable layout A, Larch Street at golden hour, about 124 × 112 m.
+  - **Four routes, in the sim at 60 fps:** street 14.2 s, back 18.4 s, roofs 14.9 s, under 22.1 s. They're proven in the sim only; PlayMode runs them on the real controller.
+  - **F7** picks the night (eight switches). Those presets are the agent's reading, for the creator to choose.
+  - **Garden hide-and-seek:** Theo bounces on the trampoline, with 8 spots and 6 memories. A full search takes 2–3 minutes.
+  - "JamKit/Use Template/Deep Block". The departures from the doc are listed in `docs/DEEP-BLOCK.md`.
