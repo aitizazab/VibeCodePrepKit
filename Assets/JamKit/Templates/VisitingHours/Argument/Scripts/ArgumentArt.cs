@@ -9,7 +9,7 @@ namespace JamKit.Argument
     /// The opponent's sprite and the screen's fonts (docs/ARGUMENT-PROTOTYPE.md, "Art").
     ///
     /// SPRITES (a drop-in): Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentArt/&lt;who&gt;_&lt;expression&gt;.png,
-    /// for Lena: lena_neutral, lena_angry, lena_rattled, lena_softened, lena_hurt. Portrait 2:3, 1024 x 1536 px,
+    /// for Lena: lena_neutral, lena_angry, lena_rattled, lena_softened, lena_hurt, lena_pleading. Portrait 2:3, 1024 x 1536 px,
     /// transparent background, the figure from the waist (or hips) up filling most of the height, facing slightly
     /// right (towards the claims). Import as Texture2D (the defaults are fine). A missing expression falls back to
     /// &lt;who&gt;_neutral; with no file at all, a sketch-style silhouette is drawn in code, a different face per
@@ -22,7 +22,7 @@ namespace JamKit.Argument
     {
         public const string ArtFolder = "ArgumentArt/";
         public const string FontFolder = "ArgumentFonts/";
-        public static readonly string[] Expressions = { "neutral", "angry", "rattled", "softened", "hurt" };
+        public static readonly string[] Expressions = { "neutral", "angry", "rattled", "softened", "hurt", "pleading" };
         public const int PlaceholderWidth = 384, PlaceholderHeight = 576;
 
         static readonly Dictionary<string, Texture2D> _sprites = new Dictionary<string, Texture2D>();
@@ -142,6 +142,7 @@ namespace JamKit.Argument
                 case "rattled": browTilt = -0.3f; browLift = 0.12f; mouthCurve = -0.15f; eyeOpen = 1.2f; break;
                 case "softened": browTilt = -0.12f; browLift = 0.05f; mouthCurve = 0.45f; eyeOpen = 0.6f; break;
                 case "hurt": browTilt = -0.45f; browLift = 0.08f; mouthCurve = -0.35f; eyeOpen = 0.7f; break;
+                case "pleading": browTilt = -0.5f; browLift = 0.15f; mouthCurve = -0.1f; eyeOpen = 1.05f; break;
                 default: browTilt = 0f; browLift = 0.04f; mouthCurve = 0.05f; eyeOpen = 0.9f; break;
             }
             for (int side = -1; side <= 1; side += 2)

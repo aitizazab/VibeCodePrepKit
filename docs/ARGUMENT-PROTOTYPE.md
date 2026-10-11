@@ -51,7 +51,7 @@ the stick, the d-pad, WASD or the arrows.
 
 ## The screen
 - **Mostly black.** The scene behind is hidden. Lena's sprite stands large on the left, and her expression follows
-  the last thing she said (neutral, angry, rattled, softened, hurt). Her name and expression sit above it, the heart
+  the last thing she said (neutral, angry, rattled, softened, hurt, pleading). Her name and expression sit above it, the heart
   rate, heat and anger beside it.
 - **The claim** is the centrepiece: a paper card in the display font, saying how many key premises still hold it up.
 - **Premises** are designed cards in two columns: the label (L1, L1' ...), FACT or LINK, KEY, the status, and the
@@ -105,7 +105,7 @@ played nothing of its own. So the previous scene's ambience went on.
 
 ## Art: the sprite slot (a drop-in)
 - **Files:** `Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentArt/lena_<expression>.png`:
-  `lena_neutral`, `lena_angry`, `lena_rattled`, `lena_softened`, `lena_hurt`.
+  `lena_neutral`, `lena_angry`, `lena_rattled`, `lena_softened`, `lena_hurt`, `lena_pleading` (all six landed in 104f4ea; the code-drawn placeholder only shows if a file goes missing).
 - **Size:** portrait 2:3, 1024 x 1536 px, transparent background.
 - **Framing:** the figure from the waist (or hips) up, filling most of the height, facing slightly right (towards
   the claims). Default Texture2D import settings are fine.
