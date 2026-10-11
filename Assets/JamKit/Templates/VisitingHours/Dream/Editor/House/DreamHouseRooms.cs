@@ -136,7 +136,7 @@ namespace JamKit.DreamEscape.EditorTools
             if (room.ceiling >= 2.6f && y1 >= ceiling - 0.05f)
                 DreamEscapeBuilder.Box("Picture rail", t, At(ceiling - 0.32f, 0.02f), Size(len, 0.04f, 0.04f), trim);
             if (y1 >= ceiling - 0.05f)
-                DreamEscapeBuilder.Box("Cornice", t, At(ceiling - 0.05f, 0.04f), Size(len, 0.1f, 0.08f), trim);
+                DreamEscapeBuilder.Box($"Cornice ({Mathf.RoundToInt(n.x)},{Mathf.RoundToInt(n.z)})", t, At(ceiling - 0.05f, 0.04f), Size(len, 0.1f, 0.08f), trim);
         }
 
         static string Key(string room) => room.Replace(" ", "").Replace("'", "");

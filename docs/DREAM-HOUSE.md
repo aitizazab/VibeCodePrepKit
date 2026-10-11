@@ -84,6 +84,29 @@ foot of its stairs, and its floor blocks his sight (as do the ceilings and walls
 Hiding spots: the pantry, the window seat, the coats, the cupboard under the stairs, the bath curtain, Theo's wardrobe,
 the attic.
 
+**Finish options (round 3, 2026-10-12; nothing chosen yet).** The creator asked for darker wallpapers, a ceiling
+pattern, a "bezel" where the walls meet the ceiling, and higher ceilings. The options are capture-only
+(`DreamCaptureVariants`, `tools/dream-capture.ps1 -Variants all`): each is applied to the opened scene in memory and
+never saved. Eight wallpapers with matching wainscots (tiles from `tools/art/vh_house_patterns.py`, `Art/Dream/dream_wall_*`):
+forest damask, oxblood regency stripe, navy sprig, plum trellis, teal botanical (Morris-like), umber fans, and two mid-tones
+(sage pinstripe, dusty rose sprig). Ceilings: pressed tin, plaster roses round the pendants, beams, coffers, a starry
+paper. Cornices: a cove, a stepped crown, a dentil band. Ceilings +0.4 m and +0.8 m (a preview: everything from the
+ceilings up moves up, the walls grow). The attic's underside: painted or dark-stained boards.
+
+**Higher ceilings and the movement** (the values stay): a ground jump lifts her head to 2.95 m (1.7 m tall, 1.25 m
+jump), a double jump to 3.95 m. Today only the living room (3.0 m) clears a ground jump; at +0.4 m the kitchen, living
+room, parents' room and Theo's room do (not the hall, bath, pantry or bay); at +0.8 m every room does; no room clears a double jump. Sight: Theo's view between rooms is
+cut by walls, headers and ceilings, and the doorways keep their height (the headers grow upward), so his sightlines
+don't change; only the attic moves further up. The cost is the attic stairs: today they climb 3.3 m over 3.2 m (46
+degrees, the limit for the test is 48); +0.4 m needs about 3.6 m of run, +0.8 m about 4.0 m, so the north rooms get
+deeper or the stairs get a landing. The hatch drop grows by the same amount (it's one-way already).
+
+**Eye heights** (the creator: "why are we taller than Lena?"). Nadia's eye is 1.5 m above her feet (MoveDef.eyeHeight;
+her capsule is 1.7 m). The stills were taken from 1.6-1.65 m until round 3; they now use 1.5 m. The cut-outs are sized by
+their eyes: the drawings have big heads (Lena's eyes 18.6% of the card down from its top, Theo's 26.2%), so at the old
+card heights (1.72 m, 1.38 m) Lena's eyes were at 1.40 m, under Nadia's. Now Lena's eyes are at 1.60 m (a 1.72 m
+woman's; card 1.97 m) and Theo's at 1.20 m (a ten-year-old's; card 1.63 m). `DreamHouseBuilder.LenaEye`/`TheoEye`.
+
 ## Interior notes (art pass 5, 2026-10-12: a lived-in home)
 The creator: "it's not at all furnished... for the space Elias spent most of his life in, his memories of it are rather
 bland." The house is now decorated as a home (`Dream/Editor/House/DreamHouseDecor.cs`), decoration only: no colliders,

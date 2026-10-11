@@ -17,10 +17,13 @@ namespace JamKit.DreamEscape.EditorTools
     /// URP and writes PNGs to out/dream-captures/&lt;time&gt;/. Needs the scenes built (Rebuild Shell Scenes) and graphics
     /// (no -nographics): tools/dream-capture.ps1.
     /// </summary>
-    public static class DreamCapture
+    public static partial class DreamCapture
     {
         public const int Width = 1920, Height = 1080;
         const float F = DreamHouse.Ground;
+        /// <summary>The camera stands where Nadia's eyes are (MoveDef.eyeHeight, 1.5 m above her feet). Until 2026-10-12 the
+        /// house stills were taken from 1.6-1.65 m, which made her look taller than Lena.</summary>
+        const float Eye = DreamHouseBuilder.NadiaEye;
 
         [MenuItem("JamKit/Dream House/Capture Stills")]
         static void Menu()
@@ -51,38 +54,43 @@ namespace JamKit.DreamEscape.EditorTools
 
             var house = new List<Spot>
             {
-                new Spot("house-01-front-garden-door", new Vector3(0f, 1.7f, -9f), new Vector3(0f, 1.6f, 0.5f)),
-                new Spot("house-02-hallway-from-door", new Vector3(0f, 1.7f, -1.5f), new Vector3(0f, 1.2f, 20f)),
+                new Spot("house-01-front-garden-door", new Vector3(0f, Eye, -9f), new Vector3(0f, 1.6f, 0.5f)),
+                new Spot("house-02-hallway-from-door", new Vector3(0f, Eye, -1.5f), new Vector3(0f, 1.2f, 20f)),
                 // The house's rooms (the architecture pass, 2026-10-12).
-                new Spot("house-03-kitchen-from-slide", new Vector3(0f, F + 1.65f, 72.6f), new Vector3(-3.4f, F + 0.8f, 76.5f)),
-                new Spot("house-04-table-and-lena", new Vector3(-0.6f, F + 1.6f, 77.6f), new Vector3(-4.8f, F + 1.0f, 73.8f)),
-                new Spot("house-05-counter-stove", new Vector3(-2.6f, F + 1.6f, 74.2f), new Vector3(-6.6f, F + 1.0f, 73.0f)),
-                new Spot("house-06-fridge-calendar", new Vector3(-4.4f, F + 1.5f, 77.1f), new Vector3(-6.2f, F + 1.3f, 77.1f)),
-                new Spot("house-07-theo-counting", new Vector3(0.8f, F + 1.4f, 76.2f), new Vector3(-3.4f, F + 0.9f, 73.6f)),
-                new Spot("house-08-living-room", new Vector3(3.2f, F + 1.6f, 72.9f), new Vector3(7.4f, F + 1.0f, 76.4f)),
-                new Spot("house-08b-fireplace", new Vector3(4.6f, F + 1.5f, 75.2f), new Vector3(7.4f, F + 1.2f, 75.2f)),
-                new Spot("house-08c-bay-window", new Vector3(5.6f, F + 1.5f, 76.8f), new Vector3(5.2f, F + 0.9f, 71.3f)),
-                new Spot("house-08d-pass-through", new Vector3(-0.8f, F + 1.6f, 76.4f), new Vector3(5.5f, F + 1.2f, 75.3f)),
-                new Spot("house-09-hall", new Vector3(-5.0f, F + 1.6f, 79.4f), new Vector3(8f, F + 1.2f, 79.3f)),
-                new Spot("house-09b-photo-wall", new Vector3(-2.0f, F + 1.5f, 78.55f), new Vector3(-2.0f, F + 1.55f, 80.6f)),
-                new Spot("house-09c-hatch-from-below", new Vector3(0.8f, F + 1.3f, 78.7f), new Vector3(-0.7f, F + 2.7f, 79.4f)),
-                new Spot("house-10-parents-room", new Vector3(-2.0f, F + 1.6f, 81.2f), new Vector3(-5.2f, F + 0.8f, 83.4f)),
-                new Spot("house-10b-bath", new Vector3(-0.8f, F + 1.6f, 81.2f), new Vector3(0.9f, F + 0.8f, 83.2f)),
-                new Spot("house-11-theos-room", new Vector3(3.4f, F + 1.6f, 81.1f), new Vector3(7.0f, F + 0.8f, 83.5f)),
-                new Spot("house-11b-theos-desk-bookcase", new Vector3(5.6f, F + 1.6f, 82.6f), new Vector3(7.7f, F + 1.7f, 82.0f)),
-                new Spot("house-11c-attic-stairs-door", new Vector3(5.2f, F + 1.5f, 82.2f), new Vector3(2.9f, F + 1.0f, 83.5f)),
-                new Spot("house-12-attic-stairs-up", new Vector3(2.2f, F + 1.45f, 83.8f), new Vector3(2.2f, F + 3.6f, 80.6f)),
-                new Spot("house-12b-attic-arrival", new Vector3(2.2f, DreamHouse.AtticFloor + 1.6f, 80.4f), new Vector3(-6.5f, DreamHouse.AtticFloor + 1.5f, 78f)),
-                new Spot("house-12c-attic-observatory", new Vector3(-3.4f, DreamHouse.AtticFloor + 1.6f, 78.4f), new Vector3(-7f, DreamHouse.AtticFloor + 1.6f, 78f)),
-                new Spot("house-12bc-attic-through-the-sheets", new Vector3(0.4f, DreamHouse.AtticFloor + 1.55f, 78.5f), new Vector3(-6.6f, DreamHouse.AtticFloor + 1.6f, 78.3f)),
-                new Spot("house-12d-attic-storage", new Vector3(-0.6f, DreamHouse.AtticFloor + 1.6f, 78.6f), new Vector3(5.0f, DreamHouse.AtticFloor + 0.6f, 75f)),
-                new Spot("house-12e-attic-hatch", new Vector3(1.2f, DreamHouse.AtticFloor + 1.6f, 77.6f), new Vector3(-0.7f, DreamHouse.AtticFloor, 79.4f)),
-                new Spot("house-13-tipped-hallway", new Vector3(0f, 1.7f, 190f), new Vector3(1.5f, 1.2f, 214f)),
+                new Spot("house-03-kitchen-from-slide", new Vector3(0f, F + Eye, 72.6f), new Vector3(-3.4f, F + 0.8f, 76.5f)),
+                new Spot("house-04-table-and-lena", new Vector3(-0.6f, F + Eye, 77.6f), new Vector3(-4.8f, F + 1.0f, 73.8f)),
+                new Spot("house-05-counter-stove", new Vector3(-2.6f, F + Eye, 74.2f), new Vector3(-6.6f, F + 1.0f, 73.0f)),
+                new Spot("house-06-fridge-calendar", new Vector3(-4.4f, F + Eye, 77.1f), new Vector3(-6.2f, F + 1.3f, 77.1f)),
+                new Spot("house-07-theo-counting", new Vector3(0.8f, F + Eye, 76.2f), new Vector3(-3.4f, F + 0.9f, 73.6f)),
+                new Spot("house-08-living-room", new Vector3(3.2f, F + Eye, 72.9f), new Vector3(7.4f, F + 1.0f, 76.4f)),
+                new Spot("house-08b-fireplace", new Vector3(4.6f, F + Eye, 75.2f), new Vector3(7.4f, F + 1.2f, 75.2f)),
+                new Spot("house-08c-bay-window", new Vector3(5.6f, F + Eye, 76.8f), new Vector3(5.2f, F + 0.9f, 71.3f)),
+                new Spot("house-08d-pass-through", new Vector3(-0.8f, F + Eye, 76.4f), new Vector3(5.5f, F + 1.2f, 75.3f)),
+                new Spot("house-09-hall", new Vector3(-5.0f, F + Eye, 79.4f), new Vector3(8f, F + 1.2f, 79.3f)),
+                new Spot("house-09b-photo-wall", new Vector3(-2.0f, F + Eye, 78.55f), new Vector3(-2.0f, F + 1.55f, 80.6f)),
+                new Spot("house-09c-hatch-from-below", new Vector3(0.8f, F + Eye, 78.7f), new Vector3(-0.7f, F + 2.7f, 79.4f)),
+                new Spot("house-10-parents-room", new Vector3(-2.0f, F + Eye, 81.2f), new Vector3(-5.2f, F + 0.8f, 83.4f)),
+                new Spot("house-10b-bath", new Vector3(-0.8f, F + Eye, 81.2f), new Vector3(0.9f, F + 0.8f, 83.2f)),
+                new Spot("house-11-theos-room", new Vector3(3.4f, F + Eye, 81.1f), new Vector3(7.0f, F + 0.8f, 83.5f)),
+                new Spot("house-11b-theos-desk-bookcase", new Vector3(5.6f, F + Eye, 82.6f), new Vector3(7.7f, F + 1.7f, 82.0f)),
+                new Spot("house-11c-attic-stairs-door", new Vector3(5.2f, F + Eye, 82.2f), new Vector3(2.9f, F + 1.0f, 83.5f)),
+                new Spot("house-12-attic-stairs-up", new Vector3(2.2f, F + Eye, 83.8f), new Vector3(2.2f, F + 3.6f, 80.6f)),
+                new Spot("house-12b-attic-arrival", new Vector3(2.2f, DreamHouse.AtticFloor + Eye, 80.4f), new Vector3(-6.5f, DreamHouse.AtticFloor + 1.5f, 78f)),
+                new Spot("house-12c-attic-observatory", new Vector3(-3.4f, DreamHouse.AtticFloor + Eye, 78.4f), new Vector3(-7f, DreamHouse.AtticFloor + 1.6f, 78f)),
+                new Spot("house-12bc-attic-through-the-sheets", new Vector3(0.4f, DreamHouse.AtticFloor + Eye, 78.5f), new Vector3(-6.6f, DreamHouse.AtticFloor + 1.6f, 78.3f)),
+                new Spot("house-12d-attic-storage", new Vector3(-0.6f, DreamHouse.AtticFloor + Eye, 78.6f), new Vector3(5.0f, DreamHouse.AtticFloor + 0.6f, 75f)),
+                new Spot("house-12e-attic-hatch", new Vector3(1.2f, DreamHouse.AtticFloor + Eye, 77.6f), new Vector3(-0.7f, DreamHouse.AtticFloor, 79.4f)),
+                new Spot("house-13-tipped-hallway", new Vector3(0f, Eye, 190f), new Vector3(1.5f, 1.2f, 214f)),
                 new Spot("house-14-way-out-door", new Vector3(0f, -3.3f, 311.5f), new Vector3(0f, -3.6f, 319f)),
                 new Spot("house-15-umbrella-closed", new Vector3(1.2f, -3.75f, 315.6f), new Vector3(2.4f, -4.45f, 317.6f)),
                 new Spot("house-16-umbrella-open", Vector3.zero, Vector3.zero, "umbrella-open"),
             };
+            // -houseVariants all|walls,ceilings,cornices,heights,attic (tools/dream-capture.ps1 -Variants ...): the finish
+            // options for the creator to choose from; "only" captures just those, skipping the usual stills.
+            string variants = VariantsArg();
+            if (variants == "only") { HouseVariants(dir, "all"); return dir; }
             Scene(DreamHouseBuilder.ScenePath, house, dir);
+            if (!string.IsNullOrEmpty(variants)) HouseVariants(dir, variants);
 
             var escape = new List<Spot>
             {
@@ -98,10 +106,11 @@ namespace JamKit.DreamEscape.EditorTools
             return dir;
         }
 
-        static void Scene(string path, List<Spot> spots, string dir)
+        static void Scene(string path, List<Spot> spots, string dir, Action apply = null)
         {
             if (!File.Exists(path)) { Debug.LogError("JAMKIT_DREAM_CAPTURE missing scene (rebuild the shell scenes first): " + path); return; }
             EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+            apply?.Invoke();   // a finish variant (DreamCaptureVariants), applied to the open scene only: never saved
             var main = Camera.main;
             var body = new List<Renderer>();
             if (main != null) body.AddRange(main.transform.root.GetComponentsInChildren<Renderer>(true));

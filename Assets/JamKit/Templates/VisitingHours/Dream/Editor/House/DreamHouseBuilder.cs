@@ -172,7 +172,7 @@ namespace JamKit.DreamEscape.EditorTools
             DreamHouseRooms.Build(h, root);   // the architecture pass: walls with character, windows, stairs, hatch, attic
             DreamHouseDecor.Decorate(root);   // art pass 5: a lived-in home (decoration only)
             BuildStealth(h, root, out var theo, out var counter);
-            var lena = CutOut("Lena (at the stove)", DreamArt.Lena, root, U(h.lenaAt), 1.72f);
+            var lena = CutOut("Lena (at the stove)", DreamArt.Lena, root, U(h.lenaAt), LenaCardHeight);
             var fold = Fold(root);
 
             var game = new GameObject("Dream House").AddComponent<DreamHouseGame>();
@@ -410,7 +410,7 @@ namespace JamKit.DreamEscape.EditorTools
             overlay.coneMaterial = Overlay("HouseSeeker_Cone", 4f);
             overlay.meterMaterial = Overlay("HouseSeeker_Meter", 8f);
             overlay.meterHeight = 1.75f;
-            var cut = CutOut("Theo (cut-out)", DreamArt.Theo, go2.transform, U(h.theoStart), 1.38f);
+            var cut = CutOut("Theo (cut-out)", DreamArt.Theo, go2.transform, U(h.theoStart), TheoCardHeight);
             cut.transform.localPosition = Vector3.zero;
         }
 
@@ -504,6 +504,15 @@ namespace JamKit.DreamEscape.EditorTools
         }
 
         /// <summary>A flat cut-out (the dream's cast) that turns to face the camera.</summary>
+        // The cut-outs are sized by their eyes, not their feet-to-hair (2026-10-12, the creator: "why are we taller than
+        // Lena?"). The drawings have big heads: Lena's eyes are 18.6% of the card down from its top, Theo's 26.2%, so at the
+        // old card heights (1.72 m, 1.38 m) her eyes were at 1.40 m and his at 1.02 m, under Nadia's eye (1.5 m, MoveDef).
+        // Now Lena's eyes sit where a 1.72 m woman's do (1.60 m: she's a little taller than Nadia) and Theo's where a
+        // ten-year-old's do (about 1.20 m).
+        public const float NadiaEye = 1.5f;
+        public const float LenaEye = 1.6f, LenaEyeFromTop = 0.186f, TheoEye = 1.2f, TheoEyeFromTop = 0.262f;
+        public const float LenaCardHeight = LenaEye / (1f - LenaEyeFromTop), TheoCardHeight = TheoEye / (1f - TheoEyeFromTop);
+
         static GameObject CutOut(string name, string art, Transform parent, Vector3 feet, float height)
         {
             var tex = DreamArt.Get(art, out bool placeholder);

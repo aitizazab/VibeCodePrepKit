@@ -3,6 +3,9 @@
 # Renders with the GPU, so Unity runs in batch mode WITH graphics (not Invoke-UnityBatch, which adds -nographics).
 # Run it through the session memory cap:
 #   uv run python ~/.local/bin/capped-run.py --session VibeJamKit -- powershell -NoProfile -ExecutionPolicy Bypass -File tools/dream-capture.ps1
+# -Variants all (or walls,ceilings,cornices,heights,attic; or only) also shoots the house's finish options
+# (DreamCaptureVariants: wallpapers, ceilings, cornices, higher ceilings, the attic's underside), never saved to the scene.
+param([string]$Variants = '')
 . "$PSScriptRoot\unity-env.ps1"
 Assert-ProjectUnlocked
 
@@ -11,6 +14,7 @@ $log = Join-Path $OutDir 'dream-capture.log'
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $unityArgs = @('-batchmode', '-projectPath', "`"$RepoRoot`"", '-logFile', "`"$log`"",
     '-executeMethod', 'JamKit.DreamEscape.EditorTools.DreamCapture.CaptureFromCommandLine')
+if ($Variants) { $unityArgs += @('-houseVariants', $Variants) }
 Write-Host "Unity: $unity"
 $p = Start-Process -FilePath $unity -ArgumentList $unityArgs -PassThru -NoNewWindow
 $null = $p.Handle
