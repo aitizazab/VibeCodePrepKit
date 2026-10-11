@@ -1,0 +1,26 @@
+{
+    "name": "JamKit.DeepBlockLab.PlayTests",
+    "rootNamespace": "JamKit.DeepBlockLab.Tests",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "JamKit.DeepBlockLab",
+        "JamKit.Unity.PlayTests",
+        "Unity.InputSystem",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

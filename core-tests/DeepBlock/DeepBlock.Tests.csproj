@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared + the deep block (layout A of docs/DENSE-STREET.md) + Movement and Stealth, which it is built from, and the
+       movement tests' BoxWorld and kit; the rest comes from Directory.Build.props. -->
+  <ItemGroup>
+    <Compile Include="$(PkgRoot)Runtime\Core\DeepBlock\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Movement\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Stealth\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Movement\BoxWorld.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Movement\MoveTestKit.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\DeepBlock\**\*.cs" />
+  </ItemGroup>
+</Project>

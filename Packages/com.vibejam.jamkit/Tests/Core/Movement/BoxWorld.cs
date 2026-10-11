@@ -7,7 +7,7 @@ namespace JamKit.Tests.Movement
 {
     /// <summary>
     /// A fake world for the movement tests: axis-aligned boxes and ramps (a box whose top slopes
-    /// along Z), with a capsule collide-and-slide by sub-stepped penetration resolution, and the
+    /// along Z, or along X for a roof pitch), with a capsule collide-and-slide by sub-stepped penetration resolution, and the
     /// probes <see cref="IMoveWorld"/> asks for. Close enough to Unity's CharacterController for the
     /// rules (not for exact positions).
     /// </summary>
@@ -20,13 +20,17 @@ namespace JamKit.Tests.Movement
             public bool enabled = true;
             /// <summary>Ramp: the top goes from <see cref="rampTopStart"/> at min.Z to <see cref="rampTopEnd"/> at max.Z (max.Y is the higher one).</summary>
             public bool ramp;
+            /// <summary>The ramp slopes along X instead (from min.X to max.X): a roof pitch beside the route.</summary>
+            public bool rampAlongX;
             public float rampTopStart, rampTopEnd;
             public int id;
 
-            public float TopAt(float z)
+            public float TopAt(float z) => TopAt(0f, z);
+
+            public float TopAt(float x, float z)
             {
                 if (!ramp) return max.Y;
-                float t = (z - min.Z) / Math.Max(1e-4f, max.Z - min.Z);
+                float t = rampAlongX ? (x - min.X) / Math.Max(1e-4f, max.X - min.X) : (z - min.Z) / Math.Max(1e-4f, max.Z - min.Z);
                 t = t < 0f ? 0f : t > 1f ? 1f : t;
                 return rampTopStart + (rampTopEnd - rampTopStart) * t;
             }
@@ -35,6 +39,11 @@ namespace JamKit.Tests.Movement
             {
                 get
                 {
+                    if (rampAlongX)
+                    {
+                        float lx = max.X - min.X;
+                        return Vector3.Normalize(new Vector3(-(rampTopEnd - rampTopStart), lx, 0f));
+                    }
                     float len = max.Z - min.Z;
                     var n = new Vector3(0f, len, -(rampTopEnd - rampTopStart));
                     return Vector3.Normalize(n);
@@ -66,6 +75,14 @@ namespace JamKit.Tests.Movement
                 ramp = true, rampTopStart = topStart, rampTopEnd = topEnd, runnable = false, id = Boxes.Count + 1,
             };
             Boxes.Add(b);
+            return b;
+        }
+
+        /// <summary>A ramp whose top slopes along X, from <paramref name="topStart"/> at x0 to <paramref name="topEnd"/> at x1.</summary>
+        public Box RampX(float x0, float x1, float z0, float z1, float topStart, float topEnd, float bottom)
+        {
+            var b = Ramp(x0, x1, z0, z1, topStart, topEnd, bottom);
+            b.rampAlongX = true;
             return b;
         }
 
@@ -118,7 +135,7 @@ namespace JamKit.Tests.Movement
                 float cx = Clamp(feet.X, b.min.X, b.max.X), cz = Clamp(feet.Z, b.min.Z, b.max.Z);
                 float dx = feet.X - cx, dz = feet.Z - cz;
                 if (dx * dx + dz * dz > radius * radius) continue;
-                float top = b.TopAt(cz);
+                float top = b.TopAt(cx, cz);
                 float d = feet.Y - top;
                 if (d < -0.05f || d > maxDistance) continue;
                 if (d < best)
@@ -159,7 +176,7 @@ namespace JamKit.Tests.Movement
             {
                 if (!b.enabled) continue;
                 if (origin.X < b.min.X || origin.X > b.max.X || origin.Z < b.min.Z || origin.Z > b.max.Z) continue;
-                float top = b.TopAt(origin.Z);
+                float top = b.TopAt(origin.X, origin.Z);
                 if (top > origin.Y || origin.Y - top > maxDistance) continue;
                 if (top > bestTop)
                 {
@@ -190,8 +207,12 @@ namespace JamKit.Tests.Movement
             if (b.ramp)
             {
                 // Solid under a sloped top: only the top surface pushes (up the slope's normal).
-                if (feet.X < b.min.X - r * 0.5f || feet.X > b.max.X + r * 0.5f || feet.Z < b.min.Z || feet.Z > b.max.Z) return false;
-                float surf = b.TopAt(feet.Z);
+                if (b.rampAlongX)
+                {
+                    if (feet.Z < b.min.Z - r * 0.5f || feet.Z > b.max.Z + r * 0.5f || feet.X < b.min.X || feet.X > b.max.X) return false;
+                }
+                else if (feet.X < b.min.X - r * 0.5f || feet.X > b.max.X + r * 0.5f || feet.Z < b.min.Z || feet.Z > b.max.Z) return false;
+                float surf = b.TopAt(feet.X, feet.Z);
                 if (feet.Y >= surf || feet.Y < b.min.Y) return false;
                 n = MoveMath.Up;
                 depth = surf - feet.Y;
