@@ -1249,3 +1249,12 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - Daytime profile requested: no double jump, wall-run or slide, and the air strafe turned well down.
   - Jump fatigue in daytime is ambiguous ("can't ... have jump fatigue"). It's ON by default as a flag, to confirm.
   - Sent to the movement agent (abd54a5).
+- **Opening editor (19ad6e1, a40885a):**
+  - Opened with F9 or the presenter panel's "Edit the opening".
+  - A beat timeline, picking by click or by name, W/E/R handles, snapping, undo, and shot cameras set from the view. The grab follows the phone.
+  - It saves to `Assets/JamKit/Templates/VisitingHours/Resources/JamKit/VisitingHoursOpeningEdits.json`; docs in `docs/OPENING-EDITOR.md`.
+  - At ffa403e: Scenes OK, EditMode 823/825. The 2 failures are its own (ids stable with no edits; edits applied when the sets are built), sent back for a root-cause fix.
+- **Dream art pass 1 (ffa403e, a953eef; pushed by main):**
+  - Lena, Theo and Walt are style-E dream cut-outs; the house picks up story pictures by name. Page: `FableAnimationTests/art/review/2026-10-11/visiting-hours-dream-art-pass1.html`.
+  - Flow was locked by the Lena sprite run, so nothing was generated.
+  - Pass 2 approved: Kenney Furniture Kit (CC0), wallpaper and floor textures in the Pastel shader, then the door and umbrella, the escape's fronts and cars, and the rain path.
