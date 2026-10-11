@@ -1345,3 +1345,15 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - The capture tour passed all checks, 21 pictures: `VibeJamKit-play/out/opening-editor-ux/20261011-221451/`. The agent is judging them for round 2.
 - **Dream art round 2 from the stills (29d909f, a953eef):** framed windows, the house front, curtains, coats, lanterns, and the rain path's pavement fixed.
   - At 29d909f: EditMode 854/854. Stills: `VibeJamKit-play/out/dream-captures/20261011-221715/`, with the agent. PlayMode is running.
+- **Opening editor rounds 2-3 (0d66a9f, 721f3ae, d7c00df, a8256ba):**
+  - Round 2 tour: all checks passed, 24 pictures. The bottom bar no longer covers the shot. L is the work light, Tab the clean view, and flying measured 1.47 m/s.
+  - PlayMode at 486cc04 had 3 input-test failures. The causes were real bugs: clicks went through to the panel underneath, and the tool carried over between openings. Fixed in 721f3ae.
+  - d7c00df: no false "out of view" tags, and the free camera follows the shots until you move it.
+  - PlayMode and a round-3 tour are pending.
+- **Dream scenes are clean after 3 capture rounds (a953eef; 9c1bbc5, 03e8163).** Review page: `art/review/2026-10-11/visiting-hours-dream-scenes.html`, 23 stills. Questions:
+  1. floorboards;
+  2. dressing the tipped house as a house on its side;
+  3. filling or shrinking the sparse rooms;
+  4. sticker borders on the cast;
+  5. the house front.
+- **22:40:** the game guard is holding Unity jobs while Valorant runs. They resume 10 min after it closes.
