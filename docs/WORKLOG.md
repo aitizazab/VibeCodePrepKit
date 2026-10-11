@@ -1184,3 +1184,15 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - **F7** picks the night (eight switches). Those presets are the agent's reading, for the creator to choose.
   - **Garden hide-and-seek:** Theo bounces on the trampoline, with 8 spots and 6 memories. A full search takes 2–3 minutes.
   - "JamKit/Use Template/Deep Block". The departures from the doc are listed in `docs/DEEP-BLOCK.md`.
+- **Argument battle prototype (5c490e2 core, 6d4ee54 Unity, 29f7a32 docs; controls agent):**
+  - **Reaching it:** from the presenter panel, "Argument prototype (Dream-Lena)". Its menu offers Normal, Story, Long Night, without Walt's truth, and Autopilot.
+  - **The verbs:** Ask, Challenge (evidence plus one of three "because..." cards), Concede, Press (a 0.6 s hold) and Let it rest, all rebindable. Lena answers logically, a transcript shows each step as a sentence, and composure is Nadia's heart rate from 70 to 160 bpm.
+  - **The creator's additions:**
+    - Antagonising (a fourth reason card or a Retort) raises her anger one step. Each step makes patterns +30% faster, +40% denser and gives one gap instead of two. Three antagonisms always mean she condemns.
+    - Outcomes (amenable / unsure / condemns) are kept in the save.
+    - The Long Night setting starts at 124 bpm with brutal phases, but stays reachable.
+    - A supporter data slot.
+  - **Content:** placeholders only, in a primitives kitchen.
+  - **Not done:** art, the Tell verb, and an Off setting for pressure.
+  - **Notes:** `docs/ARGUMENT-PROTOTYPE.md`. The 5c490e2 metas were broken and are fixed in 6d4ee54.
+  - **The house** will call `ArgumentHost.Begin` (approved), with the 1/2 debug skip kept.
