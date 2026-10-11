@@ -1338,3 +1338,10 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - **Lena's battle ink, round 2 (a097a2a):**
   - A, ink hair (the agent's pick); B, white hair; C, gold and wine; D, patterns.
   - Page: `art/review/2026-10-11/visiting-hours-lena-battle-ink.html`. Nothing is installed until the creator picks.
+- **Opening editor rework, round 1 (486cc04, a8256ba):**
+  - Why the free camera never moved: the shell's UI input module has no right or middle click, so the editor's look and fly never started.
+  - The fix reads the Input System directly, with Unity/Blender-style flying, panning, orbiting and dollying, triangle picking with hover and selection boxes, constant-size handles, number boxes in cm and degrees, a mode strip, a status line, and a list of what changed.
+  - At 486cc04: EditMode 854/854. VisitingHours-next build smoke PASS.
+  - The capture tour passed all checks, 21 pictures: `VibeJamKit-play/out/opening-editor-ux/20261011-221451/`. The agent is judging them for round 2.
+- **Dream art round 2 from the stills (29d909f, a953eef):** framed windows, the house front, curtains, coats, lanterns, and the rain path's pavement fixed.
+  - At 29d909f: EditMode 854/854. Stills: `VibeJamKit-play/out/dream-captures/20261011-221715/`, with the agent. PlayMode is running.
