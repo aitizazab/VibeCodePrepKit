@@ -124,8 +124,10 @@ namespace JamKit.Argument
         static float Center(NavItem i)
         {
             if (i == null || i.element == null) return 0f;
-            var r = i.element.worldBound;
-            return float.IsNaN(r.x) ? 0f : r.center.x;
+            // Before its first layout pass (or off a panel) an element's width is NaN while its x is 0: guard the
+            // centre itself, or every distance is NaN and moving up / down finds nothing.
+            float c = i.element.worldBound.center.x;
+            return float.IsNaN(c) || float.IsInfinity(c) ? 0f : c;
         }
 
         /// <summary>Draws the focus: the focused item lit, the rest plain (disabled ones dimmed).</summary>

@@ -125,11 +125,11 @@ namespace JamKit.Argument.Tests
             nav.FocusFirst();
             Assert.That(nav.FocusedId, Is.EqualTo("a"));
             Assert.That(nav.Move(-1, 0), Is.False, "no wrap-around");
-            Assert.That(nav.Move(1, 0), Is.True);
+            Assert.That(nav.Move(1, 0), Is.True, "right, past the disabled one");
             Assert.That(nav.FocusedId, Is.EqualTo("c"), "the disabled one is skipped");
-            Assert.That(nav.Move(1, 0), Is.False);
-            Assert.That(nav.Move(0, 1), Is.True);
-            Assert.That(nav.FocusedId, Is.EqualTo("d"));
+            Assert.That(nav.Move(1, 0), Is.False, "no wrap-around at the end of the line");
+            Assert.That(nav.Move(0, 1), Is.True, "down to the next line, even before layout (NaN widths)");
+            Assert.That(nav.FocusedId, Is.EqualTo("d"), "the only item on the line below");
             Assert.That(nav.Move(0, 1), Is.False, "no wrap-around at the bottom");
             Assert.That(ArgueUi.IsFocused(d.element) && !ArgueUi.IsFocused(c.element), Is.True, "one item lit");
             Assert.That(nav.Focus("b"), Is.False, "a disabled item can't take focus");
