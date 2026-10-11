@@ -17,12 +17,14 @@ namespace JamKit.Stealth
     /// </summary>
     public sealed class SeekerBrain
     {
-        enum Task { Idle, Patrol, Turn, GoTo, LookAround, CheckSpot, Chase }
+        enum Task { Idle, Patrol, Turn, GoTo, LookAround, CheckSpot, Chase, Lookout }
+
+        const int LookoutStop = -2;
 
         struct Stop
         {
             public Vector3 point;
-            public int spot; // -1: look around here
+            public int spot; // -1: look around here; -2: the lookout
         }
 
         public readonly StealthDef def;
@@ -60,6 +62,14 @@ namespace JamKit.Stealth
         float _searchLeft, _replan;
         int _sweeps;
         int _targetSpot = -1;
+        float _bounceT;
+
+        // A lookout (a trampoline): counted on, and visited during hide-and-seek sweeps; its eye rises with each bounce.
+        bool _hasLookout;
+        Vector3 _lookout;
+        float _lookoutBase, _lookoutBounce, _lookoutPeriod, _lookoutTime;
+        int _lookoutEvery;
+        float _eyeLift;
 
         public SeekerBrain(StealthDef def, IStealthWorld world, WaypointGraph graph, List<HidingSpot> spots, Vector3 feet, float yaw)
         {
@@ -75,7 +85,11 @@ namespace JamKit.Stealth
         public AlertState State => _state;
         public Vector3 Position => _pos;
         public float Yaw => _yaw;
-        public Vector3 Eye => _pos + new Vector3(0f, def.eyeHeight, 0f);
+        public Vector3 Eye => _pos + new Vector3(0f, def.eyeHeight + _eyeLift, 0f);
+        /// <summary>How far the seeker stands above its floor right now (on the lookout, bouncing); the body follows it.</summary>
+        public float EyeLift => _eyeLift;
+        /// <summary>On the lookout (bouncing, looking over things).</summary>
+        public bool OnLookout => _task == Task.Lookout;
         /// <summary>The detection meter, 0..1 (full: found).</summary>
         public float Meter => _meter.Value;
         /// <summary>Last tick's visibility of the target (0: unseen).</summary>
@@ -133,6 +147,29 @@ namespace JamKit.Stealth
             _sweeps = 0;
         }
 
+        /// <summary>A lookout for hide-and-seek (docs/DENSE-STREET.md 9, rule 4: Theo's trampoline): a point on the floor
+        /// with a platform <paramref name="platform"/> m high that it bounces on, its eye rising up to
+        /// <paramref name="bounce"/> m more at the top of each bounce (every <paramref name="period"/> s), so it sees over
+        /// fences only then. It counts there if it starts there, and its sweeps come back to it every
+        /// <paramref name="everyStops"/> stops for <paramref name="seconds"/> s.</summary>
+        public void SetLookout(Vector3 point, float platform, float bounce, float period, int everyStops, float seconds)
+        {
+            _hasLookout = true;
+            _lookout = point;
+            _lookoutBase = Math.Max(0f, platform);
+            _lookoutBounce = Math.Max(0f, bounce);
+            _lookoutPeriod = Math.Max(0.2f, period);
+            _lookoutEvery = Math.Max(1, everyStops);
+            _lookoutTime = Math.Max(0.5f, seconds);
+        }
+
+        public void ClearLookout() { _hasLookout = false; _eyeLift = 0f; }
+
+        bool AtLookout => _hasLookout && FlatDistance(_pos, _lookout) < 0.6f;
+
+        /// <summary>The eye's lift <paramref name="t"/> s into bouncing: the platform plus |sin| of the bounce.</summary>
+        float Bounce(float t) => _lookoutBase + _lookoutBounce * (float)Math.Abs(Math.Sin(t * Math.PI / _lookoutPeriod));
+
         /// <summary>A scripted alarm: suspicious of a place (a thrown can, a door slam).</summary>
         public void Alert(Vector3 at)
         {
@@ -149,6 +186,8 @@ namespace JamKit.Stealth
             if (!(dt > 0f)) return;
             _stateTime += dt;
             _targetSpot = target.present ? target.hidingSpot : -1;
+            _bounceT += dt;
+            _eyeLift = _task == Task.Lookout || (_counting && AtLookout) ? Bounce(_bounceT) : (AtLookout && _hasLookout ? _lookoutBase : 0f);
 
             // Senses.
             HideKind? hide = null;
@@ -399,6 +438,14 @@ namespace JamKit.Stealth
                 if (a >= 0 && da < def.spotSearchRadius * 1.5f) _stops.Add(new Stop { point = Flat(_graph[a]), spot = -1 });
                 if (b >= 0 && db < def.spotSearchRadius * 1.5f) _stops.Add(new Stop { point = Flat(_graph[b]), spot = -1 });
             }
+            if (sweep && _hasLookout)
+            {
+                // Back to the lookout first and every few stops: bounce and look over everything.
+                var look = new Stop { point = Flat(_lookout), spot = LookoutStop };
+                for (int i = _stops.Count; i > 0; i--)
+                    if (i % _lookoutEvery == 0 && i < _stops.Count) _stops.Insert(i, look);
+                _stops.Insert(0, look);
+            }
             _stopIndex = 0;
             StartStop();
         }
@@ -450,7 +497,13 @@ namespace JamKit.Stealth
                     Walk(dt);
                     if (!_arrived) return;
                     _taskTime = 0f;
-                    if (stop.spot >= 0)
+                    if (stop.spot == LookoutStop)
+                    {
+                        _task = Task.Lookout;
+                        _lookCenter = _yaw;
+                        _bounceT = 0f;
+                    }
+                    else if (stop.spot >= 0)
                     {
                         _task = Task.CheckSpot;
                         _checking = stop.spot;
@@ -466,6 +519,12 @@ namespace JamKit.Stealth
                     float k = _taskTime / Math.Max(0.1f, def.lookAroundTime);
                     _yaw = MoveTowardsAngle(_yaw, _lookCenter + def.lookAroundAngle * (float)Math.Sin(k * Math.PI * 2.0), def.turnRate * dt);
                     if (_taskTime >= def.lookAroundTime) { _stopIndex++; StartStop(); }
+                    return;
+                case Task.Lookout:
+                    // Bouncing: a slow full turn, looking over the fences at the top of each bounce.
+                    _taskTime += dt;
+                    _yaw += 360f / _lookoutTime * dt;
+                    if (_taskTime >= _lookoutTime) { _stopIndex++; StartStop(); }
                     return;
                 case Task.CheckSpot:
                     _taskTime += dt;

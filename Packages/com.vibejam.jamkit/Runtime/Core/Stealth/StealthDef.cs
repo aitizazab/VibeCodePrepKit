@@ -21,6 +21,10 @@ namespace JamKit.Stealth
         public float peripheralHalfAngle = 75f;
         /// <summary>How well the peripheral band sees, against the cone (0..1).</summary>
         public float peripheralScale = 0.3f;
+        /// <summary>How far up or down it looks (degrees from level, to the target's chest). 90 = no limit (the default);
+        /// a child seeker who "doesn't look up" uses about 15, so a roof or a treehouse a few metres off is above its sight
+        /// (docs/DENSE-STREET.md 9, rule 3). The close sense ignores it.</summary>
+        public float verticalHalfAngle = 90f;
         /// <summary>Within this distance the seeker senses you in any direction (a breath on the neck).</summary>
         public float closeRange = 1.4f;
         /// <summary>Full-rate sight up to this distance; beyond it the rate falls toward <see cref="farScale"/> at sightRange.</summary>

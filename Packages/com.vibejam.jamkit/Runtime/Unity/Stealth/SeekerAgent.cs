@@ -30,6 +30,12 @@ namespace JamKit.Stealth
         public float countYaw;
         [Tooltip("What blocks its sight (solid, non-trigger colliders on these layers).")]
         public LayerMask sightMask = ~(1 << 2);
+        [Header("Lookout (optional: a trampoline)")]
+        [Tooltip("Hide-and-seek: a point it counts on and keeps coming back to, bouncing: its eye (and body) rise at the top of each bounce, so it sees over fences only then. Empty: none.")]
+        public Transform lookout;
+        public float lookoutPlatform = 0.9f, lookoutBounce = 1.3f, lookoutPeriod = 0.8f, lookoutSeconds = 4f;
+        [Tooltip("A sweep comes back to the lookout every this many stops.")]
+        public int lookoutEvery = 3;
         public UnityEvent onFound = new UnityEvent();
 
         /// <summary>(this) when it finds the player.</summary>
@@ -82,6 +88,11 @@ namespace JamKit.Stealth
             _homeYaw = transform.eulerAngles.y;
             _brain = new SeekerBrain(Def, _world, _graph, HidingSpotView.Spots, ToN(_home), _homeYaw);
             _brain.SetPatrol(patrol);
+            if (lookout != null)
+            {
+                var l = lookout.position;
+                _brain.SetLookout(new NVec3(l.x, transform.position.y, l.z), lookoutPlatform, lookoutBounce, lookoutPeriod, lookoutEvery, lookoutSeconds);
+            }
             if (mode == SeekerMode.HideAndSeek) _brain.StartHideAndSeek(ToN(_home), countYaw);
         }
 
@@ -125,7 +136,7 @@ namespace JamKit.Stealth
         void Apply()
         {
             var p = _brain.Position;
-            transform.SetPositionAndRotation(new Vector3(p.X, p.Y, p.Z), Quaternion.Euler(0f, _brain.Yaw, 0f));
+            transform.SetPositionAndRotation(new Vector3(p.X, p.Y + _brain.EyeLift, p.Z), Quaternion.Euler(0f, _brain.Yaw, 0f));
         }
 
         static NVec3 ToN(Vector3 v) => new NVec3(v.x, v.y, v.z);

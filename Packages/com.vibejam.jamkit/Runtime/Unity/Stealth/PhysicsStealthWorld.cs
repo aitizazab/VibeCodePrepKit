@@ -5,7 +5,8 @@ namespace JamKit.Stealth
 {
     /// <summary>
     /// The stealth kit's world in a Unity scene: line of sight by physics (solid, non-trigger colliders on
-    /// <see cref="mask"/>; colliders under the ignored roots, such as the player and the seeker, never block) and light
+    /// <see cref="mask"/>; colliders under the ignored roots, such as the player and the seeker, never block; plus every
+    /// <see cref="StealthSightBlocker"/>) and light
     /// from <see cref="StealthLightZone"/>s. Plain C#; no allocation per query.
     /// </summary>
     public sealed class PhysicsStealthWorld : IStealthWorld
@@ -29,6 +30,7 @@ namespace JamKit.Stealth
             var d = new Vector3(to.X - from.X, to.Y - from.Y, to.Z - from.Z);
             float len = d.magnitude;
             if (len < 1e-4f) return true;
+            if (StealthSightBlocker.Blocks(from, to)) return false;
             int n = Physics.RaycastNonAlloc(a, d / len, _hits, len, mask, QueryTriggerInteraction.Ignore);
             for (int i = 0; i < n; i++)
                 if (!Ignored(_hits[i].collider.transform)) return false;

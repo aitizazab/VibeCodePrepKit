@@ -25,7 +25,11 @@ namespace JamKit.Stealth
             float zoneScale;
             Vector3 flat = new Vector3(chest.X - eye.X, 0f, chest.Z - eye.Z);
             float angle = dist > 1e-4f ? Math.Abs(DeltaAngle(yawDegrees, YawOf(flat))) : 0f;
-            if (angle <= def.coneHalfAngle) { zone = SightZone.Cone; zoneScale = 1f; }
+            // Above or below its vertical limit only the close sense works.
+            bool vertical = def.verticalHalfAngle >= 90f
+                || Math.Abs(Math.Atan2(chest.Y - eye.Y, Math.Max(dist, 1e-3f)) * 180.0 / Math.PI) <= def.verticalHalfAngle;
+            if (!vertical) { if (dist > def.closeRange) return 0f; zone = SightZone.Close; zoneScale = 1f; }
+            else if (angle <= def.coneHalfAngle) { zone = SightZone.Cone; zoneScale = 1f; }
             else if (angle <= def.peripheralHalfAngle) { zone = SightZone.Peripheral; zoneScale = def.peripheralScale; }
             else if (dist <= def.closeRange) { zone = SightZone.Close; zoneScale = 1f; }
             else return 0f;

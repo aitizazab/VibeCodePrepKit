@@ -60,8 +60,8 @@ namespace JamKit.StealthLab.Tests
             Assert.That(Game.RoundOver, Is.True);
             Assert.That(Game.Founds, Is.EqualTo(1));
             Assert.That(Game.seeker.Frozen, Is.True, "the round is over");
-            yield return Frames(8);
-            Assert.That(Game.Hud.Word, Is.EqualTo("Found !"));
+            // The HUD's words refresh ten times a second (frames in batch mode take milliseconds).
+            yield return WaitFor(() => Game.Hud.Word == "Found !", "the HUD saying Found !", 2f);
             Assert.That(Game.Hud.FillShown, Is.EqualTo(1f).Within(0.01f));
 
             // The restart: counting again, the meter empty.
@@ -80,8 +80,7 @@ namespace JamKit.StealthLab.Tests
             Game.Begin(StealthLabGame.Round.HideAndSeek, 0f);
             yield return StandStill(new Vector3(-9.2f, 0f, 10.3f));
             Assert.That(StealthPlayer.Current.HiddenKind, Is.EqualTo(HideKind.Closet));
-            yield return Frames(8);
-            StringAssert.StartsWith("Hidden", Game.Hud.Word);
+            yield return WaitFor(() => Game.Hud.Word.StartsWith("Hidden"), "the HUD saying Hidden (while it searches)", 2f);
             bool openedIt = false;
             Game.seeker.Found += s => openedIt = s.Brain.Events.foundInSpot >= 0;
             yield return WaitFor(() => Game.seeker.State == AlertState.Found, "the seeker's sweep reaching the closet", 60f);

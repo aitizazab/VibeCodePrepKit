@@ -8,7 +8,8 @@ namespace JamKit.Stealth
     /// The stealth kit's on-screen detection indicator (docs/STEALTH.md "Readable feedback"), built in code on a UI
     /// Toolkit layer (the shell's HUD root): a bar at the top centre that fills with the most alert seeker's detection
     /// meter, coloured by its state, with a word over it ("Unseen", "Hidden: closet", "Suspicious ?", "Searching",
-    /// "Found !", "Counting 7"), and the collectibles line ("2 / 5 found"). Words refresh ten times a second.
+    /// "Found !", "Counting 7"; being found comes first, then being hidden, then the seeker's state), and the
+    /// collectibles line ("2 / 5 found"). Words refresh ten times a second.
     /// </summary>
     public sealed class StealthHud
     {
@@ -116,17 +117,12 @@ namespace JamKit.Stealth
         static string WordFor(SeekerAgent top)
         {
             var player = StealthPlayer.Current;
-            if (top != null && top.Counting) return "Counting " + Mathf.CeilToInt(top.Brain.CountLeft).ToString(CultureInfo.InvariantCulture);
-            if (top != null)
-            {
-                switch (top.State)
-                {
-                    case AlertState.Found: return "Found !";
-                    case AlertState.Searching: return "Searching";
-                    case AlertState.Suspicious: return "Suspicious ?";
-                }
-            }
+            // Found first; then being hidden (what you most need to know while it searches); then its state.
+            if (top != null && top.State == AlertState.Found) return "Found !";
             if (player != null && player.Hidden) return "Hidden: " + HidingSpotView.Spots[player.HidingSpot].kind.ToString().ToLowerInvariant();
+            if (top != null && top.Counting) return "Counting " + Mathf.CeilToInt(top.Brain.CountLeft).ToString(CultureInfo.InvariantCulture);
+            if (top != null && top.State == AlertState.Searching) return "Searching";
+            if (top != null && top.State == AlertState.Suspicious) return "Suspicious ?";
             return "Unseen";
         }
     }

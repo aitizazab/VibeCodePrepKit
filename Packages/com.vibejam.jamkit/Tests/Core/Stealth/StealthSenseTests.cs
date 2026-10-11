@@ -39,6 +39,22 @@ namespace JamKit.Tests.Stealth
         }
 
         [Test]
+        public void AVerticalLimitHidesWhatsHighAboveAndTheDefaultHasNone()
+        {
+            var def = new StealthDef { verticalHalfAngle = 15f };
+            var w = new StealthBoxWorld();
+            var onRoof = StealthTarget.At(new Vector3(0f, 2.7f, 5f));
+            onRoof.speed = 2f;
+            Assert.That(StealthSight.Visibility(def, w, Eye, 0f, onRoof, null, out var zone), Is.EqualTo(0f), "2.7 m up, 5 m off: above a 15 degree gaze");
+            Assert.That(zone, Is.EqualTo(SightZone.None));
+            Assert.That(StealthSight.Visibility(def, w, Eye, 0f, Walker(0f, 5f), null, out _), Is.GreaterThan(0.9f), "level: seen as before");
+            var far = StealthTarget.At(new Vector3(0f, 2.7f, 16f));
+            far.speed = 2f;
+            Assert.That(StealthSight.Visibility(def, w, Eye, 0f, far, null, out _), Is.GreaterThan(0f), "far enough away it's within the gaze again");
+            Assert.That(StealthSight.Visibility(new StealthDef(), w, Eye, 0f, onRoof, null, out _), Is.GreaterThan(0f), "the default (90) has no limit");
+        }
+
+        [Test]
         public void DistanceFadesSightAndRangeEndsIt()
         {
             var def = new StealthDef();

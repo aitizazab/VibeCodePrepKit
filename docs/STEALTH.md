@@ -30,6 +30,13 @@ hide-and-seek tutorial, the "anything left to find?" line) builds on top. The **
 5. The screen indicator: `new StealthHud(GameRoot.Hud.Root)` and call `Tick()` every frame.
 6. React: `SeekerAgent.Found` / `onFound` (the game decides: caught, restart, a scene), `StateChanged`;
    `SeekerAgent.Restart()`, `SetMode()`, `Frozen`. A scripted alarm: `seeker.Brain.Alert(position)`.
+7. Optional:
+   - **A lookout** (a trampoline): set `SeekerAgent.lookout` (and its platform height, bounce height and period). In
+     hide-and-seek it counts there, and its sweeps come back to it every few stops to bounce for a few seconds,
+     turning; its eye (and body) rise with each bounce, so it sees over fences only near the top
+     (`SeekerBrain.SetLookout`, `EyeLift`, `OnLookout`).
+   - **Sight-only blockers**: **StealthSightBlocker** boxes block sight but not movement (sheets on a washing line,
+     smoke).
 
 The seeker walks on a flat floor (its start height) and moves itself (no NavMesh, no physics body): give it waypoints
 around every obstacle. It thinks only while `GameRoot.Input.GameplayAllowed` (not paused or loading).
@@ -46,6 +53,7 @@ Visibility (0 unseen, up to about 1.3) is the product of:
 | Posture | crouched 0.55, sliding 0.8; at 7 m/s or faster ×1.3, standing still ×0.75 |
 | Light | 0.25 in full shade, 1 lit |
 | Hiding spot | bush 0.12 (1 within 1.5 m of the seeker); under / closet 0 |
+| Vertical limit | `verticalHalfAngle`: 90 (none) by default. A child who "doesn't look up" uses 15: above or below that, only the close sense works (a roof or a treehouse a few metres off is safe) |
 
 The meter fills at `fillRate` 1.25/s × visibility (×1.5 while suspicious or searching): 0.8 s at best up close in the
 open, never instantly. Unseen for 1.2 s, it drains at 0.3/s. At 0.3 an unaware seeker becomes suspicious; full is
@@ -77,6 +85,8 @@ silent. A seeker hears a noise within its radius × `hearingScale`, half that th
   While counting, the cone is hidden and the meter shows the count running down.
 - On screen (`StealthHud`): a bar at the top that fills with the most alert seeker's meter, a word over it ("Unseen",
   "Hidden: closet", "Suspicious ?", "Searching", "Found !", "Counting 7"), and the collectibles ("2 / 5 found").
+  Being found comes first, then being hidden (so a hide-and-seek seeker, always searching, still tells you you're
+  hidden), then the count and the seeker's state.
 
 ## The Stealth Lab
 
