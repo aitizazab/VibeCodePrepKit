@@ -1,7 +1,7 @@
 # Visiting Hours: example music sketches, made in code, as starting points to react to. The real pieces are
 # composed with the creator, step by step (docs/MUSIC-SKETCHES.md explains each sketch and how to change it).
 #   uv run --with numpy python tools/audio/make-music-sketches.py [piece ...]
-# With no arguments it renders round 3's new and changed pieces; "all" renders everything; or name pieces.
+# With no arguments it renders round 4's demos (chase-run, hope, despair); "all" renders everything; or name pieces.
 # Writes out/vh-music-sketches/: each looping piece as <nn>-<piece>.loop.wav (its end runs into its start
 # sample-accurately: everything ringing past the end is wrapped onto the start) and <nn>-<piece>.twice.wav (the
 # loop heard twice, to hear the seam); one-shots as <nn>-<piece>.wav; the chase as speed stems (base, drive, peak) in
@@ -552,6 +552,13 @@ CHASE_VARIANTS = {
                  lead=lambda m, d: celesta(m, 1.4), echo=0.45,
                  arp=lambda m: bell(m, 0.8), top=lambda m, d: bell(m, 2.0),
                  air=lambda m, d: choir(m, d, 1.0, 1.5)),
+    # Spacey (round 4): analog-synth space (bright detuned pads, a synth pulse, a supersaw lead and arpeggio with wide
+    # echoes, a 3 s room).
+    "spacey": dict(rt60=3.0, verb=1.4, pad=lambda m, d: pad(m, d, 14, 20), drone=False,
+                   pulse=lambda m, d: pluck(m, d, 6, 8), kick=(0.8, 1.0), back=clap, back_level=0.38, hats=0.45,
+                   lead=lambda m, d: supersaw(m, d, 3.0), echo=0.4,
+                   arp=lambda m: pluck(m, 0.3, 14, 5), top=lambda m, d: lay(bell(m, 1.5), pluck(m, d, 10, 3) * 0.6),
+                   air=lambda m, d: pad(m, d, 10, 25)),
 }
 # Each stem's loudness on its own (round 3): every tier steps up in presence, so the peak is never quieter than the
 # drive. One gain is then set for all three together, so the stems still add up to exactly the mix.
@@ -933,17 +940,158 @@ def despair_stem(like, prog, tonic, start, end):
     return mix, mix.render(3.4, 0.0)
 
 
-def with_colour(piece, colour):
-    """A piece with hope or despair laid over it after its intro (and gone for its outro). Despair also darkens the
-    piece itself: it's partly muffled while the despair is there."""
-    mix, x = piece()
+DESPAIR_LEVELS = {
+    # Round 4: despair as a feeling that grows. Each level is a stem the game can crossfade into the next; the host's
+    # own changes (the sag and the darkening) scale with the level. Only "full" comes near round 3's despair.
+    #   under: how many LU the level's stem sits under the song (faint is far under); sag: cents of slow pitch sag and recovery (a tape wow) on the host; open: how much of the host's brightness is
+    #   left (the muffled copy does the rest); and what the stem itself plays.
+    "faint": dict(under=17, sag=6, open=0.85, low_every=4, sigh_every=0, box_every=0, pedal=0.0, breath=0.035),
+    "growing": dict(under=11, sag=12, open=0.7, low_every=2, sigh_every=4, box_every=8, pedal=0.0, breath=0.05),
+    "full": dict(under=6, sag=20, open=0.55, low_every=2, sigh_every=2, box_every=4, pedal=0.35, breath=0.06),
+}
+
+
+def despair_level_stem(like, prog, tonic, start, end, level):
+    """DESPAIR at one intensity, as a stem for any piece (its key, tempo and metre come from the piece's own chords).
+    Faint: sparse low tones on the root (a cello, far off) and filtered breath. Growing: the low tones every other
+    bar, and every four bars a falling half-step sigh onto the chord's root. Full: the sighs every two bars, a
+    detuned music box on the flattened second, and a low pedal on the tonic. The host's sag and darkening come with it
+    (sag_and_darken)."""
+    p = DESPAIR_LEVELS[level]
+    mix = Mix(like.bars, like.bpm, like.bpb)
+    bpb = like.bpb
+    bar_s = mix.sec(bpb)
+    for b in range(start, end):
+        k = min(1.0, (b - start + 1) / 2.0) * min(1.0, (end - b) / 2.0)   # in and out over two bars
+        ch = chord_at(prog, b)
+        if (b - start) % p["low_every"] == 0:
+            m = into(ch[0], 38, 49)
+            mix.add(lowpass(cello(m, bar_s * 1.6, 1.2, 1.5), 900, 1), mix.bar(b), -0.1, 0.22 * k, 0.6)
+        if p["sigh_every"] and (b - start) % p["sigh_every"] == 0:
+            r = into(ch[0], 45, 56)
+            for m, at, dd in ((r + 1, 0, bpb / 2), (r, bpb / 2, bpb * 0.75)):
+                mix.add(lowpass(strings(m, mix.sec(dd) * 1.05, 0.35, 1.0, 12, vib=0.008), 1600, 1), mix.bar(b) + at, -0.15, 0.18 * k, 0.55)
+        if p["box_every"] and (b - start) % p["box_every"] == p["box_every"] // 2:
+            mix.add(music_box(into(tonic + 1, 74, 85), 2.0, cents=-35), mix.bar(b) + 1, 0.35, 0.08 * k, 0.8)
+        if p["pedal"]:
+            mix.add(lowpass(lay(warm_pad(into(tonic, 26, 37), bar_s, 1.0, 1.6),
+                                partials(hz(into(tonic, 26, 37)), bar_s, [1], [0], 1.0, 1.6, cents=7)), 300), mix.bar(b), 0, p["pedal"] * k, 0.3)
+        if p["breath"] and (b - start) % 2 == 1:
+            n = int(bar_s * 1.5 * SR)
+            e = np.sin(np.pi * np.arange(n) / n) ** 2
+            mix.add(lowpass(highpass(RNG.standard_normal(n), 250), 900) * e * p["breath"] * k, mix.bar(b), 0.3 - 0.6 * (b % 4 == 1), 1, 0.5)
+    return mix, mix.render(3.4, 0.0)
+
+
+def sag_and_darken(x, mix, depth_cents, open_, start, end, ramp=None):
+    """The host under despair: a slow pitch sag and recovery (a variable delay, so the length and the loop don't
+    change) and a darkening (crossfade to a low-passed copy), both easing in over two bars from `start` and out by
+    `end`. ramp(t_seconds) -> 0..1 overrides that with an intensity curve (the ramp demo)."""
+    n = x.shape[1]
+    t = np.arange(n) / SR
+    bar_s = mix.sec(mix.bpb)
+    if ramp is None:
+        w = np.clip(np.minimum((t / bar_s - start) / 2.0, (end - t / bar_s) / 2.0), 0, 1)
+    else:
+        w = ramp(t)
+    period = mix.length / max(1, round(mix.length / 16.0))          # about 16 s a sag, whole cycles per loop
+    amp = depth_cents * np.log(2) / 1200 * period / (2 * np.pi)
+    d = (amp * w) * np.cos(2 * np.pi * t / period) * SR
+    idx = (np.arange(n) - d) % n
+    y = np.vstack([np.interp(idx, np.arange(n + 1), np.concatenate([x[c], x[c, :1]])) for c in range(2)])
+    lp = np.vstack([tile_apply(y[c], lambda z: lowpass(z, 1100), mix.loop) for c in range(2)])
+    o = 1 - (1 - open_) * w
+    return lp * (1 - o) + y * o
+
+
+def short_term(x):
+    """EBU R128 short-term loudness (3 s window) every 0.1 s, from ffmpeg's ebur128 frame log."""
+    p = subprocess.run(["ffmpeg", "-v", "verbose", "-f", "f32le", "-ar", str(SR), "-ac", "2", "-i", "-", "-af", "ebur128",
+                        "-f", "null", "-"], input=x.T.astype(np.float32).tobytes(), capture_output=True)
+    vals = re.findall(r"t:\s*[\d.]+\s+TARGET:\S+ LUFS\s+M:\s*(-?[\d.]+)\s+S:\s*(-?[\d.]+)", p.stderr.decode("utf-8", "replace"))
+    return np.array([float(s) for _, s in vals])
+
+
+def tiled_short_term(x):
+    s = short_term(np.concatenate([x, x, x], axis=1))
+    k = len(s) // 3
+    return s[k:2 * k]
+
+
+def compare(host, other, region):
+    """Integrated difference and the short-term difference (median and worst, LU) inside and outside a region
+    (start, end in seconds), loop-aware."""
+    sh, so = tiled_short_term(host), tiled_short_term(other)
+    n = min(len(sh), len(so))
+    sh, so = sh[:n], so[:n]
+    t = np.arange(n) / 10.0
+    inside = (t >= region[0]) & (t < region[1])
+    d = so - sh
+    ih, io = tiled_lufs(host), tiled_lufs(other)
+    return dict(integrated=io - ih, in_med=float(np.median(d[inside])), in_max=float(np.max(np.abs(d[inside]))),
+                in_p95=float(np.percentile(np.abs(d[inside]), 95)),
+                out_med=float(np.median(d[~inside])), out_max=float(np.max(np.abs(d[~inside]))),
+                out_p95=float(np.percentile(np.abs(d[~inside]), 95)))
+
+
+def neutral_hope(fn):
+    """HOPE laid over a piece without changing its loudness (round 4): the host gets the same gain as when it plays
+    alone, and the whole mix rides a smooth gain (a light duck) so its short-term loudness follows the host's."""
+    mix, x = fn()
     start, end = 4, mix.bars - 4
-    if colour == "hope":
-        _, y = hope_stem(mix, mix.prog, start, end)
-        return mix, x + y
-    _, y = despair_stem(mix, mix.prog, mix.tonic, start, end)
-    x = muffle(x, mix, [(0, 1.0), (start, 1.0), (start + 1, 0.55), (end, 0.55), (end + 1, 1.0), (mix.bars, 1.0)], 900)
-    return mix, x + y
+    _, o = hope_stem(mix, mix.prog, start, end)
+    host, _, _, g = master(x, True)
+    k = 10 ** (g / 20)
+    h_raw, o_raw = x * k, o * k
+    sh = tiled_short_term(host)
+    env = np.ones(x.shape[1])
+    t10 = np.arange(len(sh)) / 10.0
+    t = np.arange(x.shape[1]) / SR
+    # Ride only where hope plays (plus a second either side for the 3 s loudness window), damped, smoothed over 1.5 s.
+    a, b = mix.sec(mix.bar(start)) - 1.0, mix.sec(mix.bar(end)) + 1.0
+    zone = ((t10 >= a) & (t10 < b)).astype(float)
+    for _ in range(5):
+        m = h_raw * env + o_raw * env
+        mm = ffmpeg_pipe(np.concatenate([m, m, m], axis=1), LIMIT)[:, m.shape[1]:2 * m.shape[1]]
+        sm = tiled_short_term(mm)
+        n = min(len(sh), len(sm))
+        dd = np.zeros(len(sh))
+        dd[:n] = (sm[:n] - sh[:n]) * zone[:n] * 0.7
+        kern = np.ones(15) / 15
+        dd = np.convolve(np.concatenate([dd[-7:], dd, dd[:7]]), kern, "valid")
+        env = env * 10 ** (-np.interp(t, t10, dd[: len(t10)]) / 20)
+    m = h_raw * env + o_raw * env
+    y = ffmpeg_pipe(np.concatenate([m, m, m], axis=1), LIMIT)[:, m.shape[1]:2 * m.shape[1]]
+    region = (mix.sec(mix.bar(start)), mix.sec(mix.bar(end)))
+    return mix, host, y, region
+
+
+def under(o, host, lu):
+    """Scales a stem so its own loudness sits `lu` below its host's (loop-aware)."""
+    return o * 10 ** ((tiled_lufs(host) - lu - tiled_lufs(o)) / 20)
+
+
+def despair_version(fn, level=None, ramp=None, gain=None):
+    """A piece with despair at one level (bars 5 to four before the end), or ramping by intensity over time."""
+    mix, x = fn()
+    start, end = 4, mix.bars - 4
+    if ramp is None:
+        p = DESPAIR_LEVELS[level]
+        _, o = despair_level_stem(mix, mix.prog, mix.tonic, start, end, level)
+        o = under(o, x, p["under"])
+        xh = sag_and_darken(x, mix, p["sag"], p["open"], start, end)
+        return mix, x, xh + o
+    stems = {lv: under(despair_level_stem(mix, mix.prog, mix.tonic, start, mix.bars, lv)[1], x, DESPAIR_LEVELS[lv]["under"])
+             for lv in DESPAIR_LEVELS}
+    t = np.arange(x.shape[1]) / SR
+    i = ramp(t)                                                         # 0 faint .. 1 full
+    wf = np.clip(1 - np.abs(i - 0.0) / 0.5, 0, 1)
+    wg = np.clip(1 - np.abs(i - 0.5) / 0.5, 0, 1)
+    wu = np.clip((i - 0.5) / 0.5, 0, 1)
+    on = np.clip(t - mix.sec(mix.bar(start)), 0, 1)
+    o = (stems["faint"] * wf + stems["growing"] * wg + stems["full"] * wu) * on
+    xh = sag_and_darken(x, mix, 20 * 1.0, 0.55, start, mix.bars, ramp=lambda tt: np.clip(ramp(tt), 0, 1) * np.clip(tt - mix.sec(mix.bar(start)), 0, 1))
+    return mix, x, xh + o
 
 
 def long_night():
@@ -1015,7 +1163,7 @@ ONESHOTS = [
 # Round 3's hope and despair demos: (number, slug, title, piece).
 COLOURED = [("01", "dream-theme", "The Dream theme", dream_theme), ("03", "daytime", "The Daytime theme", daytime),
             ("06", "lena", "Lena's motif (3/4, Bb major)", lena)]
-ROUND3 = {"chase", "opening", "argument-battle", "elias", "colours", "long-night"}
+ROUND4 = {"chase-run", "hope", "despair"}
 
 
 # ---------------------------------------------------------------- mastering, files, the page
@@ -1078,10 +1226,10 @@ def tiled_lufs(x):
     return measure(np.concatenate([x, x, x], axis=1))[0]
 
 
-def run_preview(stems, mix, muffled_base, seconds=96.0):
+def run_preview(stems, mix, muffled_base, seconds=96.0, keys=None):
     """A run going slow -> fast -> flying -> fast -> slow, mixed by the game's rules (StemMixer): drive from fast (8 m/s),
     peak from flying (13 m/s), switched only on bar lines, 1 s in and 2 s out, the base muffled when slow."""
-    keys = [(0, 2), (6, 5), (20, 5), (22, 10), (40, 10), (42, 15), (64, 15), (66, 10), (78, 10), (80, 4), (92, 3), (96, 0)]
+    keys = keys or [(0, 2), (6, 5), (20, 5), (22, 10), (40, 10), (42, 15), (64, 15), (66, 10), (78, 10), (80, 4), (92, 3), (96, 0)]
     n = int(seconds * SR)
     L = stems["base"].shape[1]
     out = np.zeros((2, n))
@@ -1127,77 +1275,96 @@ def note(lines, text):
     lines.append(text)
 
 
+def read_wav(path):
+    import wave
+    with wave.open(path) as w:
+        x = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float64) / 32767
+        return x.reshape(-1, w.getnchannels()).T
+
+
+# The run demo (round 4): through every threshold and back in 30 s (it took 96 s): running, fast at 4 s, flying at
+# 11.5 s, back to fast at 19 s, running at 25 s. The game's rules are unchanged; the demo's run is just quicker.
+RUN_KEYS = [(0, 3), (3.5, 3), (4, 10), (11, 10), (11.5, 15), (18.5, 15), (19, 10), (24, 10), (24.5, 4), (30, 2)]
+
+
+def chase_files(variant, lines):
+    """Renders, balances and writes a chase variant's stems (see STEM_LUFS)."""
+    stems = chase_stems(variant)
+    mix = stems["base"][0]
+    raw = {k: v[1] for k, v in stems.items()}
+    before = {k: tiled_lufs(v) for k, v in raw.items()}
+    for k in raw:
+        raw[k] = raw[k] * 10 ** ((STEM_LUFS[k] - before[k]) / 20)
+    full = raw["base"] + raw["drive"] + raw["peak"]
+    got, peak = measure(np.concatenate([full, full, full], axis=1))
+    gain = min(-16.0 - got, -1.5 - peak)
+    k = 10 ** (gain / 20)
+    for name in raw:
+        raw[name] = raw[name] * k
+        write(os.path.join(OUT, f"02-chase-{variant}.{name}.loop.wav"), raw[name])
+    write(os.path.join(OUT, f"02-chase-{variant}.all.loop.wav"), full * k)
+    note(lines, f"02-chase-{variant}: stems written; each alone " + ", ".join(f"{n} {STEM_LUFS[n] + gain:.1f} LUFS" for n in raw)
+         + f"; all together {got + gain:.1f} LUFS, true peak {peak + gain:.1f} dBFS, seam {seam(full * k):.2f}")
+    return mix, raw
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     lines = []
-    want = lambda slug: (not ONLY and slug in ROUND3) or slug in ONLY or "all" in ONLY
+    want = lambda slug: (not ONLY and slug in ROUND4) or slug in ONLY or "all" in ONLY
     for num, slug, title, fn in LOOPS:
-        if not want(slug):
-            continue
-        mix, x = fn()
-        y, got, peak, _ = master(x, True)
-        write(os.path.join(OUT, f"{num}-{slug}.loop.wav"), y)
-        write(os.path.join(OUT, f"{num}-{slug}.twice.wav"), np.concatenate([y, y], axis=1))
-        note(lines, f"{num}-{slug}.loop.wav: {y.shape[1] / SR:.2f} s, loop 0 to {y.shape[1]} samples (the whole file), "
-                    f"{mix.bpm} bpm, {mix.bars} bars of {mix.bpb}; {got:.1f} LUFS, true peak {peak:.1f} dBFS, seam {seam(y):.2f} | {timeline(mix)}")
-    for num, slug, title, fn in ONESHOTS:
-        if not want(slug):
-            continue
-        mix, x = fn()
-        y, got, peak, _ = master(x, False)
-        write(os.path.join(OUT, f"{num}-{slug}.wav"), y)
-        note(lines, f"{num}-{slug}.wav: {y.shape[1] / SR:.1f} s, plays once, {mix.bpm} bpm; {got:.1f} LUFS, true peak {peak:.1f} dBFS | {timeline(mix)}")
-    if want("opening"):
-        intro, xi, body, xb = opening_title()
-        yb, got, peak, gain = master(xb, True)
-        yi, _, _, _ = master(xi, False, gain=gain)
-        entry = int(round(intro.length * SR))
-        write(os.path.join(OUT, "04-opening.loop.wav"), yb)
-        write(os.path.join(OUT, "04-opening.intro.wav"), yi)
-        game = np.concatenate([yi[:, :entry], yb, yb], axis=1)
-        tail = yi[:, entry:]
-        game[:, entry:entry + tail.shape[1]] += tail
-        write(os.path.join(OUT, "04-opening.wav"), game)
-        note(lines, f"04-opening: intro 04-opening.intro.wav (the first {entry} samples, {entry / SR:.2f} s, then its "
-                    f"{tail.shape[1] / SR:.1f} s ring-out mixed over the loop's start), then the title loop 04-opening.loop.wav "
-                    f"({yb.shape[1] / SR:.2f} s, loop 0 to {yb.shape[1]} samples, seam {seam(yb):.2f}); 72 bpm; the loop "
-                    f"{got:.1f} LUFS, true peak {peak:.1f} dBFS; 04-opening.wav is intro + loop twice, as the game would play it")
-    if want("chase"):
+        if slug in ONLY or "all" in ONLY:
+            mix, x = fn()
+            y, got, peak, _ = master(x, True)
+            write(os.path.join(OUT, f"{num}-{slug}.loop.wav"), y)
+            write(os.path.join(OUT, f"{num}-{slug}.twice.wav"), np.concatenate([y, y], axis=1))
+            note(lines, f"{num}-{slug}.loop.wav: {y.shape[1] / SR:.2f} s, {mix.bpm} bpm; {got:.1f} LUFS, true peak {peak:.1f} dBFS, "
+                        f"seam {seam(y):.2f} | {timeline(mix)}")
+    if want("chase-run"):
         for variant in CHASE_VARIANTS:
-            stems = chase_stems(variant)
-            mix = stems["base"][0]
-            raw = {k: v[1] for k, v in stems.items()}
-            before = {k: tiled_lufs(v) for k, v in raw.items()}
-            for k in raw:
-                raw[k] = raw[k] * 10 ** ((STEM_LUFS[k] - before[k]) / 20)
-            full = raw["base"] + raw["drive"] + raw["peak"]
-            # One gain for every stem (no limiter), so the stems add up to exactly the mix.
-            got, peak = measure(np.concatenate([full, full, full], axis=1))
-            gain = min(-16.0 - got, -1.5 - peak)
-            k = 10 ** (gain / 20)
-            after = {}
-            for name in raw:
-                raw[name] = raw[name] * k
-                after[name] = STEM_LUFS[name] + gain
-                write(os.path.join(OUT, f"02-chase-{variant}.{name}.loop.wav"), raw[name])
-            full = full * k
-            write(os.path.join(OUT, f"02-chase-{variant}.all.loop.wav"), full)
+            files = {k: os.path.join(OUT, f"02-chase-{variant}.{k}.loop.wav") for k in ("base", "drive", "peak")}
+            if variant in ONLY or not all(os.path.exists(f) for f in files.values()):
+                mix, raw = chase_files(variant, lines)
+            else:
+                mix = Mix(48, 128)
+                raw = {k: read_wav(f) for k, f in files.items()}
             muffled = np.vstack([tile_apply(raw["base"][c], lambda z: lowpass(z, 700), True) for c in range(2)])
-            run, cues = run_preview(raw, mix, muffled)
+            run, cues = run_preview(raw, mix, muffled, 30.0, RUN_KEYS)
             write(os.path.join(OUT, f"02-chase-{variant}.run.wav"), run)
-            note(lines, f"02-chase-{variant}: stems base/drive/peak .loop.wav, each {full.shape[1] / SR:.2f} s ({full.shape[1]} samples), "
-                        f"{mix.bpm} bpm, {mix.bars} bars; each stem alone: " + ", ".join(f"{n} {after[n]:.1f} LUFS (was {before[n] + gain:.1f} before balancing at this gain)" for n in raw)
-                        + f"; all together {got + gain:.1f} LUFS, true peak {peak + gain:.1f} dBFS, seam {seam(full):.2f} | {timeline(mix)} | run: " + ", ".join(cues))
-    if want("colours"):
+            note(lines, f"02-chase-{variant}.run.wav: 30 s run; " + ", ".join(cues))
+    if want("hope"):
         for num, slug, title, fn in COLOURED:
-            for colour in ("hope", "despair"):
-                mix, x = with_colour(fn, colour)
-                y, got, peak, _ = master(x, True)
-                write(os.path.join(OUT, f"{num}-{slug}.{colour}.loop.wav"), y)
-                note(lines, f"{num}-{slug}.{colour}.loop.wav: {y.shape[1] / SR:.2f} s; {colour} from bar 5 to bar {mix.bars - 4}; "
-                            f"{got:.1f} LUFS, true peak {peak:.1f} dBFS, seam {seam(y):.2f}")
+            mix, host, y, region = neutral_hope(fn)
+            write(os.path.join(OUT, f"{num}-{slug}.hope.loop.wav"), y)
+            after = compare(host, y, region)
+            old_plain, old_hope = os.path.join(OUT, f"{num}-{slug}.loop.wav"), os.path.join(OUT, "round3", f"{num}-{slug}.hope.loop.wav")
+            before = compare(read_wav(old_plain), read_wav(old_hope), region) if os.path.exists(old_hope) else None
+            fmt = lambda c: (f"integrated {c['integrated']:+.1f} LU; while hope plays {c['in_med']:+.1f} LU typical, {c['in_p95']:.1f} at the 95th "
+                             f"percentile, {c['in_max']:.1f} worst; elsewhere {c['out_med']:+.1f} typical, {c['out_p95']:.1f} p95, {c['out_max']:.1f} worst")
+            note(lines, f"{num}-{slug}.hope.loop.wav: against the plain song, BEFORE (round 3): {fmt(before) if before else 'n/a'} | "
+                        f"AFTER (round 4): {fmt(after)}")
+    if want("despair"):
+        for num, slug, title, fn in COLOURED:
+            for level in DESPAIR_LEVELS:
+                mix, x, xd = despair_version(fn, level)
+                _, _, _, g = master(x, True)
+                y, got, peak, _ = master(xd, True, gain=g)
+                write(os.path.join(OUT, f"{num}-{slug}.despair-{level}.loop.wav"), y)
+                plain, _, _, _ = master(x, True)
+                c = compare(plain, y, (mix.sec(mix.bar(4)), mix.sec(mix.bar(mix.bars - 4))))
+                note(lines, f"{num}-{slug}.despair-{level}.loop.wav: {level}, bars 5 to {mix.bars - 4}, at the plain song's gain; "
+                            f"{got:.1f} LUFS (the plain song -16.0), {c['in_med']:+.1f} LU while despair plays, true peak {peak:.1f} dBFS, seam {seam(y):.2f}")
+        mix0, _ = dream_theme()
+        t0 = mix0.sec(mix0.bar(4))
+        ramp = lambda t: np.clip((t - t0) / 30.0, 0, 1)
+        mix, x, xd = despair_version(dream_theme, ramp=ramp)
+        _, _, _, g = master(x, True)
+        y, _, peak, _ = master(xd, True, gain=g)
+        a, b = int((t0 - 5) * SR), int((t0 + 35) * SR)
+        write(os.path.join(OUT, "01-dream-theme.despair-ramp.wav"), ends(y[:, a:b].copy(), 0.5, 2.0))
+        note(lines, f"01-dream-theme.despair-ramp.wav: 40 s, plain for 5 s, then faint to full over 30 s ({t0 - 5:.1f}-{t0 + 35:.1f} s of the loop)")
     if lines:
-        with open(os.path.join(OUT, "loops-round3.txt"), "a", encoding="utf-8") as f:
+        with open(os.path.join(OUT, "loops-round4.txt"), "a", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")
     page()
 
@@ -1220,12 +1387,12 @@ audio {{ width:100%; }} a {{ color:inherit; }}
 </style></head><body><main>
 <h1>Visiting Hours: music sketches</h1>
 <p class="lede">Example drafts made in code, to react to; the real pieces are composed together, step by step. Looping
-pieces play twice so you can hear the seam. Notes: docs/MUSIC-SKETCHES.md. Round 3 first; round 2 below to compare.</p>
-<h2 class="round">Round 3</h2>
-{round3}
-<h2 class="round">Unchanged since round 2</h2>
+pieces play twice so you can hear the seam. Notes: docs/MUSIC-SKETCHES.md. Round 4 first, then everything else.</p>
+<h2 class="round">Round 4</h2>
+{round4}
+<h2 class="round">The pieces (approved or unchanged)</h2>
 {same}
-<h2 class="round">Round 2's versions of what changed (to compare)</h2>
+<h2 class="round">Earlier versions (to compare)</h2>
 {old}
 </main>
 <script>
@@ -1246,45 +1413,61 @@ def card(title, meta, rows):
 def page():
     have = lambda f: os.path.exists(os.path.join(OUT, f))
     doc = lambda fn: re.sub(r"\s+", " ", (fn.__doc__ or "").strip())
-    r3 = []
+    r4 = []
     rows = ""
     for variant in CHASE_VARIANTS:
         if have(f"02-chase-{variant}.run.wav"):
-            rows += f"<p class=\"meta\"><b>{variant}</b></p>" + row("a run: slow, fast, flying, slow", f"02-chase-{variant}.run.wav")
-            rows += row("all stems", f"02-chase-{variant}.all.loop.wav")
-            rows += "".join(row(f"{k} stem", f"02-chase-{variant}.{k}.loop.wav") for k in ("base", "drive", "peak"))
+            rows += row(f"{variant}: a 30 s run", f"02-chase-{variant}.run.wav")
     if rows:
-        r3.append(card("The chase, as speed stems (rebalanced)", doc(chase_stems) + " Round 3: the grounded base is the "
-                       "Opening's drone and soft chords; each stem steps up in loudness (base, drive, peak), and they still add up to the mix.", rows))
-    if have("04-opening.wav"):
-        r3.append(card("The opening and the title screen", doc(opening_title),
-                       row("as the game plays it", "04-opening.wav") + row("the title loop alone", "04-opening.loop.wav")))
-    for num, slug, title, fn in LOOPS:
-        if slug in ("argument-battle", "elias", "long-night") and have(f"{num}-{slug}.twice.wav"):
-            r3.append(card(title + (" (reworked)" if slug != "long-night" else ""), doc(fn), row("heard twice", f"{num}-{slug}.twice.wav")))
+        r4.append(card("The chase: a quick run through the speed thresholds",
+                       "30 s each: running, fast at 4 s (the drive comes in on the next bar), flying at 11.5 s (the peak), "
+                       "back to fast at 19 s, running at 25 s. The stems and the game's rules are unchanged; only the "
+                       "demo's run is quicker. Spacey is new (analog synths, wide echoes).", rows))
     rows = ""
     for num, slug, title, fn in COLOURED:
         if have(f"{num}-{slug}.hope.loop.wav"):
-            rows += f"<p class=\"meta\"><b>{title}</b></p>" + row("plain", f"{num}-{slug}.loop.wav")
-            rows += row("with hope", f"{num}-{slug}.hope.loop.wav") + row("with despair", f"{num}-{slug}.despair.loop.wav")
+            rows += f"<p class=\"meta\"><b>{title}</b></p>" + row("plain", f"{num}-{slug}.loop.wav") + row("with hope", f"{num}-{slug}.hope.loop.wav")
     if rows:
-        r3.append(card("Hope and despair, laid over three pieces", "The same two overlays, built from each piece's own chords, "
-                       "key and metre. They come in after the intro and leave before the outro. " + doc(hope_stem) + " " + doc(despair_stem), rows))
+        r4.append(card("Hope, without changing the loudness",
+                       "The song keeps the level it has alone; while hope plays, the mix rides a smooth gain so it's no "
+                       "louder than the plain song (within about 1 LU; the numbers are in the doc).", rows))
+    rows = ""
+    if have("01-dream-theme.despair-ramp.wav"):
+        rows += row("the ramp: faint to full in 30 s", "01-dream-theme.despair-ramp.wav")
+    for num, slug, title, fn in COLOURED:
+        if have(f"{num}-{slug}.despair-faint.loop.wav"):
+            rows += f"<p class=\"meta\"><b>{title}</b></p>" + row("plain", f"{num}-{slug}.loop.wav")
+            rows += "".join(row(lv, f"{num}-{slug}.despair-{lv}.loop.wav") for lv in DESPAIR_LEVELS)
+    if rows:
+        r4.append(card("Despair, as a feeling that grows (three levels)",
+                       "Faint: the song sags slowly in pitch and darkens a little; far-off low tones; breath. Growing: the "
+                       "low tones closer, a sigh every four bars, a detuned music box now and then. Full: sighs every two "
+                       "bars and a low pedal (close to round 3's). The game crossfades between the levels. " + doc(despair_level_stem), rows))
     same = []
+    if have("04-opening.wav"):
+        same.append(card("The opening and the title screen", doc(opening_title) + " Unchanged since round 3; what changed from round 2 is in the doc.",
+                         row("as the game plays it", "04-opening.wav") + row("the title loop alone", "04-opening.loop.wav")))
     for num, slug, title, fn in sorted(LOOPS + ONESHOTS):
-        if slug in ("argument-battle", "elias", "long-night"):
-            continue
         f = f"{num}-{slug}.twice.wav" if (num, slug, title, fn) in LOOPS else f"{num}-{slug}.wav"
         if have(f):
             same.append(card(title, doc(fn), row("heard twice" if f.endswith("twice.wav") else "plays once", f)))
+    rows = ""
+    for variant in CHASE_VARIANTS:
+        if have(f"02-chase-{variant}.base.loop.wav"):
+            rows += f"<p class=\"meta\"><b>{variant}</b></p>" + row("all stems", f"02-chase-{variant}.all.loop.wav")
+            rows += "".join(row(f"{k} stem", f"02-chase-{variant}.{k}.loop.wav") for k in ("base", "drive", "peak"))
+    if rows:
+        same.insert(0, card("The chase's stems", doc(chase_stems), rows))
     old = []
-    for label, f in (("The chase, grounded: a run", "round2/02-chase-grounded.run.wav"), ("The chase, airy: a run", "round2/02-chase-airy.run.wav"),
-                     ("The opening (played once)", "round2/04-opening.wav"), ("Elias's motif", "round2/07-elias.twice.wav"),
-                     ("An argument battle (111 s)", "round2/05-argument-battle.twice.wav")):
+    for label, f in (("Round 3: the chase run, grounded (96 s)", "round3/02-chase-grounded.run.wav"),
+                     ("Round 3: despair over the Dream theme", "round3/01-dream-theme.despair.loop.wav"),
+                     ("Round 3: hope over the Dream theme", "round3/01-dream-theme.hope.loop.wav"),
+                     ("Round 2: the opening (played once)", "round2/04-opening.wav"), ("Round 2: Elias's motif", "round2/07-elias.twice.wav"),
+                     ("Round 2: an argument battle (111 s)", "round2/05-argument-battle.twice.wav")):
         if have(f):
-            old.append(card(label, "Round 2.", row("round 2", f)))
+            old.append(card(label, "", row("listen", f)))
     with open(os.path.join(OUT, "index.html"), "w", encoding="utf-8") as fh:
-        fh.write(PAGE.format(round3="\n".join(r3), same="\n".join(same), old="\n".join(old)))
+        fh.write(PAGE.format(round4="\n".join(r4), same="\n".join(same), old="\n".join(old)))
     print("page", os.path.join(OUT, "index.html"))
 
 

@@ -21,6 +21,76 @@ step.
 - **Every sound is synthesised in code.** There are no samples and no borrowed melodies; the chords are common
   progressions (see `SPEED-MUSIC-BREAKDOWN.md`, section 5).
 
+## Round 4: the creator's notes on round 3 (2026-10-12)
+
+> "For the chase songs, please make the track that ramps up and down through the speed thresholds do so faster.
+> Sitting through a minute and 20 seconds to listen to what should be 30 seconds is not my cup of tea. Other than the
+> chase things, the opening is good, but I can't quite tell what changed. Did the main instrument swap? The new battle
+> music sounds good, Elias' music now ends right, and the hope overlays sound well, though they do seem to mess with
+> the volume a bit? Anyways, the Despair overlay is too obvious. It needs to be a subtler feeling, that can ramp up, not
+> starting at this obvious drone over every single song."
+
+| Note | What changed |
+|---|---|
+| **The chase run takes too long** | The run demo is now **30 s** for each variant. It goes running → fast at 4 s → flying at 11.5 s → fast at 19 s → running at 25 s. The stems and the game's rules (bar-line switches, 1 s in, 2 s out) are unchanged; only the demo's run is quicker. A third variant, **spacey** (analog synths, wide echoes), is new, so there are three: grounded, spacey, airy. |
+| **"Did the main instrument swap?"** | No. Answer below. The music is unchanged. |
+| **Hope changes the volume** | It did: each round-3 version was normalised as a whole, so when hope came in the song got louder, and the parts without hope came out quieter than the plain song. Now the song keeps exactly the level it has alone, and while hope plays the mix rides a smooth gain (a light duck), so its short-term loudness follows the plain song's. Measured before and after, below. |
+| **Despair is too obvious** | Rebuilt as **three levels** (faint, growing, full) that the game crossfades between. Faint is barely felt: no drone. Only full comes near round 3's. There's a ramp demo, faint to full over 30 s. |
+| **Battle, Elias, Lena, Nadia** | Approved; untouched. |
+| **The Long Night** | Kept as it is. It already is despair at full (the flattened-second sigh, the pedal, the music box), so the new levels lead into it rather than replace it. If it should also share the new levels' slow pitch sag, that's a one-line change. |
+
+### The opening: what changed from round 2 to round 3
+**The main instrument didn't change.** It's the same felt piano playing the waking motif, over the same drone on D
+and A, the same soft chords and the same glass notes. What changed is the **shape**, not the sound:
+- **Round 2** was one 30 s piece that played once and ended: the waking motif three times, then a held chord.
+- **Round 3** split it in two:
+  - An **intro** (23.3 s, for the black and the news report): the piano a little quieter, sitting in the gaps of the
+    news voice, the motif once.
+  - A **title loop** (40 s) that repeats until Play. In it the motif comes twice, the second time an octave higher
+    with **low strings** doubling it underneath (the one new sound), then four bars of just the chords and glass.
+- So the first 20 s sound much the same. The difference is that it now carries on and loops instead of stopping.
+
+### Hope without the volume change: before and after
+Measured with EBU R128 short-term loudness (a 3 s window, every 0.1 s), comparing each hope version with the plain
+song, loop-aware. "Typical" is the median difference; "95 %" means 95 % of the time the difference is smaller than this.
+
+| Song | | Whole song | While hope plays: typical / 95 % | Where hope isn't: typical / 95 % |
+|---|---|---|---|---|
+| Dream theme | round 3 | 0.0 LU | +1.3 / 2.9 LU | **-2.2** / 3.8 LU |
+| | **round 4** | 0.0 LU | **+0.1** / 1.0 LU | **0.0** / 0.2 LU |
+| Daytime | round 3 | 0.0 LU | -0.5 / 2.7 LU | **-6.9** / 7.2 LU |
+| | **round 4** | +0.1 LU | **+0.2** / 2.5 LU | **0.0** / 0.8 LU |
+| Lena | round 3 | 0.0 LU | +0.1 / 1.7 LU | **-1.7** / 3.1 LU |
+| | **round 4** | +0.1 LU | **+0.1** / 1.3 LU | **0.0** / 2.0 LU |
+
+- **What was wrong:** round 3 normalised each hope version as a whole, so the parts without hope came out 1.7–6.9 LU
+  quieter than the plain song. That was the "volume messing".
+- **Now:** the song keeps its own level (0.0 LU where hope isn't). While hope plays, the typical level is within 0.2 LU
+  of the plain song, and the whole song within 0.1 LU.
+- **What's left:** brief swings of 1–2.5 LU (the 95 % column) right as hope's rising figures land. They're short
+  (under a second or two), and the ride smooths over 1.5 s so it never pumps.
+- **In the game:** the same idea is a fixed duck of the music by the hope stem's level, plus the stem itself mixed a
+  set distance under the song.
+
+### Despair as a feeling that grows
+Despair now has **three levels**, each a stem in the piece's own key, tempo and metre. The game crossfades between them
+and scales the song's own changes with the level. Each level's stem is set a fixed distance under its song (faint 17 LU under, growing 11,
+full 6), so despair never makes a song louder: measured over the three songs, faint and growing stay within 0.1 LU
+of the plain song, and full within 0.7 LU.
+
+| Level | The song itself | What the stem adds |
+|---|---|---|
+| **Faint** (barely felt) | A slow pitch sag and recovery of 6 cents, about one every 16 s; slightly darker (85 % of its brightness) | A far-off low cello on the chord's root every four bars; filtered breath now and then |
+| **Growing** | A 12-cent sag; 70 % of its brightness | The low tones every other bar; every four bars a falling half-step sigh onto the root; now and then a detuned music box on the flattened second |
+| **Full** (near round 3's) | A 20-cent sag; 55 % of its brightness | Sighs every two bars, the music box every four, and a low pedal on the tonic (lighter than round 3's) |
+
+- **The sag** is a slow wow, like a tape slowing and recovering. It's done with a moving delay, so the loop's length
+  and seam don't change. In the game the same thing is a slow pitch wobble on the music's sources.
+- **The darkening** is the speed music's muffled copy, already in the game.
+- **Ramping:** the demo (`01-dream-theme.despair-ramp.wav`) goes from faint to full over 30 s. The game would do
+  the same: crossfade the level stems by an intensity value and scale the sag and darkening with it.
+- Each level is on the page over three songs (the Dream theme, Daytime, Lena), against the plain song.
+
 ## Round 3: the creator's notes on round 2 (2026-10-11)
 
 > "The running theme's grounded variation's base stems are too unnoticeable. They should mimic the base and drone for
@@ -185,13 +255,14 @@ Bars are counted from 1. Times are from the start of the loop file.
 - **Sections:** A, bars 1–16 (Dm Bb C A); B, bars 17–32 (new chords Gm Bb F A, the melody's answer); breakdown, bars
   33–40 (half time, Dm and Bb); A', bars 41–48 (the melody in octaves). A tom fill leads into every section and back
   round to A.
-- **The run preview** (`.run.wav`, 96 s) mixes the stems by the game's rules:
-  - It goes running → fast at 21 s → flying at 41 s → fast at 66 s → running at 80 s.
+- **The run preview** (`.run.wav`, 30 s since round 4) mixes the stems by the game's rules:
+  - It goes running → fast at 4 s → flying at 11.5 s → fast at 19 s → running at 25 s.
   - Stems switch only on bar lines, fade in over 1 s and out over 2 s, and the base opens from muffled with speed.
 - **The variants** use the same stems, the same notes and the same structure; only the instruments and the space differ:
   - **grounded:** dry and close (a 1 s room). The Opening's drone and soft chords as the base, a plucked bass, a kit with a real snare, a piano-and-pluck lead, plucked arpeggio, music box. For chases on the ground (the street, the hospital).
   - **airy:** wide and spacious (a 4.5 s room, echoes). A choir and soft pad, a soft kick and clap, a celesta lead with echoes, bell arpeggios. For chases in the air, at night, or anywhere dreamlike.
-  - **A new variant** (spacey, underwater, music-box-only and so on) is one more entry in `CHASE_VARIANTS` in the script.
+  - **spacey** (round 4): analog-synth space (a 3 s room). Bright detuned synth pads, a synth pulse, a supersaw lead and arpeggio with wide echoes, bells. For chases that should feel like flying through the dark.
+  - **A new variant** (underwater, music-box-only and so on) is one more entry in `CHASE_VARIANTS` in the script.
 - **Level (round 3):** each stem is balanced on its own first (base -21, drive -20, peak -19 LUFS), so every tier
   steps up; then one gain for all three. Before balancing, the peak was 11 dB quieter than the drive in the grounded set (and the base 1 dB above it); now the grounded stems alone are base -24.4, drive -23.4, peak -22.4 LUFS, and all together -19.0 LUFS (its punchy kick and snare reach the peak ceiling first, so it's quieter as a whole); the airy stems are -21.4, -20.4, -19.4, and -16.0 together. The game sets the music level anyway.
 
@@ -282,6 +353,14 @@ Bars are counted from 1. Times are from the start of the loop file.
   tempo, if her piece ever joins the movement).
 
 ## For the creator to decide
+**Round 4:**
+- **Despair:** is faint subtle enough to sit under a normal scene? Is the ramp's pace right, and what drives it (the
+  Despair route's progress, anger, the Long Night)?
+- **The Long Night:** keep it as the full-despair track, or rebuild it on the new levels' sag and breath?
+- **Hope:** with the volume fixed, is it the right size? It could be quieter still, or come with a duck of the drive
+  stem.
+- **The spacey chase:** keep it as a third variant? Which scenes get which variant?
+
 **Round 3:**
 - **Hope and despair:** do the overlays fit and change the mood enough? Should despair also slow or detune the piece,
   or is the half-muffle enough?
