@@ -107,7 +107,7 @@ Larch Hill is one continuous hillside neighbourhood, used by Nights 1, 2 and 3, 
 | House | The Lasname house interior, hide-and-seek, the escape (the stretching corridor), fail states and being forced out of the dream, Night 2's props (incl. Theo's drawing) |
 | Battle | The argument battle's gameplay, UI and text delivery, Lena's and Walt's lines (incl. L5, the `~` drawl) |
 | Day | Day 1 and Day 2 (the hospital ward), the bedside scene and its consequences, the chain, title and music hand-offs |
-| People | 3D characters (Nadia, Elias, Lena, Theo, Walt, neighbours, ward staff): models, rigs, animation sets, the swap from cut-outs |
+| People | The 3D models (Nadia, Elias dream and in bed, Mags, and Rafael and the LeBaget representative altered from them) and the dream's billboards: how every cut-out looks, is lit and moves (DreamCutoutView and the cut-out art) |
 
 ## 6. Unity runs
 
@@ -115,3 +115,13 @@ Agents can't run Unity (the subagent rules). Use the dotnet suites in `core-test
 UnityLayerPlayer compile checks. When a milestone is ready: commit only your own paths, push, and hand back the exact
 Unity stages to run (captures, recorded runs, builds). Main runs them one at a time and sends you the results and the
 judge's findings.
+
+## 7. Who is 3D and who is a billboard (the creator's call, 2026-10-12)
+
+- **In the dream, only Nadia and Elias are 3D models.** Everyone else (Lena, Theo, Walt, the neighbours) stays a
+  billboard: a cut-out. The two real minds are solid and the memories are paper. The prose already has the waking world
+  flattening into the dream's billboards late in the game, so the split carries meaning. Billboards must look deliberate
+  and premium (paper with a real edge, lit and shadowed by the scene, a living idle), never "choppy".
+- **In the waking world:** 3D models for Mags and Elias (in bed). Rafael is made by altering Elias's model, and the
+  LeBaget representative, now a woman, by altering Mags's, each into a recognizably different person (build, hair,
+  skin, face texture, clothes, accessories). Nadia's existing model stays the first-person body.
