@@ -245,6 +245,10 @@ namespace JamKit.Shell
                     break;
                 case SceneRole.Title:
                     if (_flow.Current != GameState.Credits) GoToTitleState();
+                    // The title's own sound, and nothing from the scene before it: the old scene's objects are gone by now,
+                    // but some hand the world's sound back as they go (a battle restoring the music and ambience it took
+                    // over), and the ambience bed lives on the GameRoot. Quit to title used to carry them in.
+                    _audio.StopAmbience(0.4f);
                     _audio.PlayMusic(_config.titleMusic);
                     break;
                 case SceneRole.Gameplay:
@@ -313,6 +317,7 @@ namespace JamKit.Shell
                     break;
                 case GameState.Title:
                     _audio.PlayMusic(_config.titleMusic);
+                    _audio.StopAmbience(0.8f);
                     break;
             }
             if (to == GameState.Paused || to == GameState.Title) _juice.HitStopState.Clear();

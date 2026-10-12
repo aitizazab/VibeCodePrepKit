@@ -28,7 +28,15 @@ namespace JamKit.VisitingHours
         public const string TruthWalt = "truth_walt";
         public const string PersWrench = "pers_wrench";
 
-        public static List<JournalEntryDef> Entries() => new List<JournalEntryDef>
+        /// <summary>Every journal entry: the slice's, then the bigger floor's (<see cref="DayContent.Entries"/>).</summary>
+        public static List<JournalEntryDef> Entries()
+        {
+            var list = SliceEntries();
+            list.AddRange(DayContent.Entries());
+            return list;
+        }
+
+        static List<JournalEntryDef> SliceEntries() => new List<JournalEntryDef>
         {
             new JournalEntryDef
             {
@@ -49,9 +57,8 @@ namespace JamKit.VisitingHours
                 id = FactPoliceReport, kind = EntryKind.Fact, title = "The police report",
                 // In line with script/opening-script.md and docs/VISITING-HOURS.md: his voicemail to Nadia around 3 AM, the
                 // car caught in a gang crossfire (the Larpaca gang) on the drive home, the surname Lasname.
-                // TODO(creator): "Lena Lasname and Theo Lasname, dead at the scene" is kept until the creator answers: Lena is
-                // missing, not dead (settled); did Theo die at the scene, or is he missing too?
-                text = "An envelope at the station, for the family. Route 9, about 3:40 AM: the car was caught in a crossfire (gang violence: the Larpaca gang). Driver: Elias Lasname, critical. Lena Lasname and Theo Lasname, dead at the scene.\nPhone log: 3:03, call to Nadia Lasname, not answered. 3:06, call to Lena Lasname, 2 minutes.",
+                // Lena is missing, not dead (the creator, settled 2026-10-12); Theo died at the scene (his height marks stop at ten).
+                text = "An envelope at the station, for the family. Route 9, about 3:40 AM: the car was caught in a crossfire (gang violence: the Larpaca gang). Driver: Elias Lasname, critical. Passenger: Theo Lasname, 10, dead at the scene. Lena Lasname: not at the scene. The passenger door was open. Listed as missing.\nPhone log: 3:03, call to Nadia Lasname, not answered. 3:06, call to Lena Lasname, 2 minutes.",
                 scribble = "I should have",
                 sayLine = "There's a police report, Walt.",
                 icon = "prop_police_envelope",
@@ -59,7 +66,7 @@ namespace JamKit.VisitingHours
             new JournalEntryDef
             {
                 id = FactPhoto, kind = EntryKind.Fact, title = "The photo",
-                text = "On his bedside table: Eli, Lena and Theo on the beach, laughing so hard Theo's a blur.",
+                text = "On his locker: Eli, Lena and Theo at the lake last summer, laughing so hard Theo's a blur. I took it.",
                 sayLine = "He has a family. Had.",
                 icon = "prop_family_photo",
             },
@@ -377,7 +384,15 @@ namespace JamKit.VisitingHours
 
         /// <summary>The things Nadia can look at with E: where, what the prompt calls it, the ink knot
         /// it plays and the entry that knot writes in the journal (empty for none).</summary>
-        public static List<ExamineDef> Examinables() => new List<ExamineDef>
+        /// <summary>Every examinable: the slice's, then the bigger floor's (<see cref="DayContent.Examinables"/>).</summary>
+        public static List<ExamineDef> Examinables()
+        {
+            var list = SliceExaminables();
+            list.AddRange(DayContent.Examinables());
+            return list;
+        }
+
+        static List<ExamineDef> SliceExaminables() => new List<ExamineDef>
         {
             new ExamineDef { id = "chart", area = SliceArea.Hospital, label = "the chart", knot = "examine_chart", records = FactChart },
             new ExamineDef { id = "effects", area = SliceArea.Hospital, label = "his effects bag", knot = "examine_effects", records = FactEffects },
@@ -447,6 +462,7 @@ namespace JamKit.VisitingHours
                 KnotConvinced, KnotHeardOut, KnotPressed, KnotLost, KnotSliceEnd, KnotDay2Intro, KnotBooth2,
             };
             foreach (var e in Examinables()) if (!list.Contains(e.knot)) list.Add(e.knot);
+            foreach (var k in DayContent.Knots()) if (!list.Contains(k)) list.Add(k);
             return list;
         }
 

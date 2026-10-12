@@ -76,7 +76,21 @@ namespace JamKit.VisitingHours
 
         Dictionary<string, Texture2D> _art;
 
-        public JournalBook MakeBook() => new JournalBook(entries, pairs);
+        /// <summary>The journal's book: this asset's entries, and any of the core's newer ones it doesn't have yet (so the
+        /// days' new finds work before the next Rebuild Shell Scenes copies them in).</summary>
+        public JournalBook MakeBook()
+        {
+            var all = new List<JournalEntryDef>(entries);
+            foreach (var e in SliceContent.Entries())
+            {
+                bool have = false;
+                foreach (var x in all) if (x != null && x.id == e.id) { have = true; break; }
+                if (!have) all.Add(e);
+            }
+            return new JournalBook(all, pairs);
+        }
+
+        List<ExamineDef> _defaultExaminables;
 
         /// <summary>The picture with this file name (portrait_walt_sad, tex_grass...), or null.</summary>
         public Texture2D Art(string name)
@@ -99,10 +113,14 @@ namespace JamKit.VisitingHours
             return null;
         }
 
+        /// <summary>The examinable with this id: this asset's, else the core's default (a newer one the asset doesn't have yet).</summary>
         public ExamineDef FindExaminable(string id)
         {
             foreach (var e in examinables)
                 if (e != null && e.id == id) return e;
+            if (_defaultExaminables == null) _defaultExaminables = SliceContent.Examinables();
+            foreach (var e in _defaultExaminables)
+                if (e.id == id) return e;
             return null;
         }
 

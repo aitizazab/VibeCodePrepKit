@@ -26,6 +26,7 @@ namespace JamKit.VisitingHours
         IEnumerator BeginDay()
         {
             _mode = Mode.Transition;
+            StartDayState();
             yield return Card("St. Brigid's", "Six weeks later", () => EnterArea(SliceArea.Hospital), 2.4f, true);
             _mode = Mode.Explore;
             _hud.ShowControls(16f);
@@ -37,6 +38,7 @@ namespace JamKit.VisitingHours
         IEnumerator BeginDay2()
         {
             _mode = Mode.Transition;
+            StartDayState();
             yield return Card("St. Brigid's", "Day 2", () => EnterArea(SliceArea.HospitalDay2), 2.4f, true);
             _mode = Mode.Explore;
             yield return PlayWhenFree(SliceContent.KnotDay2Intro);
@@ -84,7 +86,10 @@ namespace JamKit.VisitingHours
                 case SliceArea.BoothDay2: audio.PlayAmbience("amb_hum"); break;
                 default: audio.PlayAmbience("amb_vh_suburb"); break;
             }
-            SetMonitor(which == SliceArea.Hospital || which == SliceArea.HospitalDay2 ? _area.monitor : (Vector3?)null);
+            // Room 14's monitor beeps by itself now (VhPatientMonitor); the old loop only where there's none.
+            bool ward = which == SliceArea.Hospital || which == SliceArea.HospitalDay2;
+            SetMonitor(ward && _area.patientMonitor == null ? _area.monitor : (Vector3?)null);
+            RefreshRoundSheet();
         }
 
         void SetMonitor(Vector3? at)
@@ -248,6 +253,7 @@ namespace JamKit.VisitingHours
                 TalkToWalt();
                 return;
             }
+            if (ExamineDay(id)) return;
             Play(def.knot);
         }
 
@@ -289,6 +295,8 @@ namespace JamKit.VisitingHours
         {
             story.BindExternalFunction("knows", new Func<string, object>(id => _state != null && _state.journal.Knows(id)), true);
             story.BindExternalFunction("open_questions", new Func<object>(() => _state != null ? _state.journal.OpenQuestions(_openScratch) : 0), true);
+            story.BindExternalFunction("vh_state", new Func<string, object>(name => DayState(name)), true);
+            story.BindExternalFunction("vh_topic", new Func<string, object>(id => TopicOpen(id)), true);
         }
 
         void OnInkEvent(string name)
@@ -300,6 +308,7 @@ namespace JamKit.VisitingHours
                 Record(name.Substring(record.Length));
                 return;
             }
+            if (DayEvent(name)) return;
             switch (name)
             {
                 case "vh:to_booth": _pending = Pending.ToBooth; break;
@@ -314,6 +323,7 @@ namespace JamKit.VisitingHours
 
         void OnDialogueEnded(string knot)
         {
+            DayDialogueEnded(knot);
             var p = _pending;
             _pending = Pending.None;
             switch (p)

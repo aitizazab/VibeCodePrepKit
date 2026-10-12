@@ -106,9 +106,13 @@ namespace JamKit.VisitingHours.Tests
             game.Examine("stairwell");
             yield return WaitFor(() => GameRoot.Dialogue.IsActive, "the stairwell");
             yield return FinishDialogue();
-            Assert.That(game.Area, Is.EqualTo(SliceArea.Hospital), "not before charting him");
+            Assert.That(game.Area, Is.EqualTo(SliceArea.Hospital), "not before the round (docs/redesign/day.md)");
 
-            yield return Look("chart");
+            // The handover starts the round; the round's three tasks (the first choice of each is the right one).
+            foreach (var id in new[] { "rafael", "wristband", "vitals", "okafor", "chart" })
+                yield return Look(id);
+            Assert.That(game.Round.Complete, Is.True, "the round is done");
+            Assert.That(game.Round.Slips, Is.EqualTo(0));
             game.StandAt("stairwell");
             yield return Frames(2);
             game.Examine("stairwell");

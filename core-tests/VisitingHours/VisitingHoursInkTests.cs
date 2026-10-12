@@ -45,14 +45,23 @@ namespace JamKit.Tests
             return _json;
         }
 
+        /// <summary>The game's state as the ink asks it (vh_state): "round_done", "sat", "told_any"... (the Day agent's).</summary>
+        static HashSet<string> _states = new HashSet<string>();
+
         static Story NewStory(HashSet<string> known)
         {
             var story = new Story(Compile());
             story.allowExternalFunctionFallbacks = true;
             story.BindExternalFunction("knows", (string id) => (object)known.Contains(id), true);
             story.BindExternalFunction("open_questions", () => (object)0, true);
+            var states = _states;
+            story.BindExternalFunction("vh_state", (string name) => (object)states.Contains(name), true);
+            story.BindExternalFunction("vh_topic", (string id) => (object)true, true);
             return story;
         }
+
+        [SetUp]
+        public void ClearStates() => _states = new HashSet<string>();
 
         static bool Has(Story s, string knot)
         {
@@ -193,20 +202,83 @@ namespace JamKit.Tests
             Assert.That(string.Join(" ", lines), Does.Not.Contain("transfer").IgnoreCase, "no transfer clock");
             tags.Clear();
             Play("day2_stairwell", lines, tags);
+            Assert.That(tags, Does.Not.Contain("event:vh:to_booth"), "the round first (the Day agent's redesign)");
+            _states.Add("round_done");
+            Play("day2_stairwell", lines, tags);
             Assert.That(tags, Does.Contain("event:vh:to_booth"));
             Play("day1_phone", lines, tags);
             Assert.That(string.Join(" ", lines), Does.Contain("Not now."));
         }
 
         [Test]
-        public void TheStairwellWaitsForTheChart()
+        public void TheStairwellWaitsForTheRound()
         {
             var lines = new List<string>();
             var tags = new List<string>();
             Play("stairwell", lines, tags);
-            Assert.That(tags, Does.Not.Contain("event:vh:to_booth"), "chart him first");
-            Play("stairwell", lines, tags, new HashSet<string> { SliceContent.FactChart });
+            Assert.That(tags, Does.Not.Contain("event:vh:to_booth"), "the duty round first (docs/redesign/day.md)");
+            _states.Add("round_done");
+            Play("stairwell", lines, tags);
             Assert.That(tags, Does.Contain("event:vh:to_booth"));
+        }
+
+        [Test]
+        public void EveryRoundChoiceEndsTheTaskOkOrWithASlip()
+        {
+            foreach (var day in new[] { 1, 2 })
+                foreach (var task in DayContent.RoundTasks(day))
+                {
+                    bool sawOk = false, sawSlip = false;
+                    for (int choice = 0; choice < 3; choice++)
+                    {
+                        var lines = new List<string>();
+                        var tags = new List<string>();
+                        Play(task.knot, lines, tags, null, choice);
+                        bool ok = tags.Contains("event:vh:round:" + task.id + ":ok");
+                        bool slip = tags.Contains("event:vh:round:" + task.id + ":slip");
+                        Assert.That(ok ^ slip, Is.True, task.knot + " choice " + choice + ": exactly one of ok and slip");
+                        sawOk |= ok;
+                        sawSlip |= slip;
+                    }
+                    Assert.That(sawOk && sawSlip, Is.True, task.knot + ": a right answer and a slip to catch");
+                }
+        }
+
+        [Test]
+        public void EachTopicTellsHimAndHisBodyAnswers()
+        {
+            foreach (var topic in DayContent.Topics())
+            {
+                var lines = new List<string>();
+                var tags = new List<string>();
+                Play(topic.knot, lines, tags);
+                string told = DayContent.IsSilence(topic) ? "silence" : topic.id;
+                Assert.That(tags, Does.Contain("event:vh:told:" + told), topic.knot);
+                string body = topic.response == BedsideResponse.Fingers ? "fingers" : topic.response == BedsideResponse.Heart ? "heart" : "calm";
+                Assert.That(tags, Does.Contain("event:vh:elias:" + body), topic.knot + " should answer with " + body);
+                Assert.That(lines.Count, Is.GreaterThanOrEqualTo(2), topic.knot);
+            }
+            var l2 = new List<string>();
+            var t2 = new List<string>();
+            Play("bedside_enough", l2, t2);
+            Assert.That(t2, Does.Contain("event:vh:bedside:rise"));
+        }
+
+        [Test]
+        public void TheBedsideOffersEveryOpenTopicAndMagsSaysWhatItDid()
+        {
+            var s = NewStory(new HashSet<string>());
+            s.ChoosePathString("bedside_intro");
+            while (s.canContinue) s.Continue();
+            var choices = s.currentChoices.ConvertAll(c => c.text);
+            foreach (var topic in DayContent.Topics())
+                Assert.That(choices, Does.Contain(topic.label), "the choice for " + topic.id);
+            var lines = new List<string>();
+            var tags = new List<string>();
+            _states.Add("told_any");
+            Play("booth_heard", lines, tags);
+            Assert.That(string.Join(" ", lines), Does.Contain("Whatever you told him"));
+            Assert.That(tags, Does.Contain("event:vh:dive"));
         }
 
         [Test]

@@ -121,12 +121,14 @@ namespace JamKit.VisitingHours.Tests
             GameRoot.Save.Data.seenHowToPlay = true;
             Assert.That(GameRoot.Instance.SceneService.Load("VisitingHours"), Is.True);
             yield return WaitForWaking(ChainSegment.Day1);
-            // Day 1's round is two checks (the tutorial: shorter than the later rounds), Day 2's three.
-            foreach (var id in new[] { "rafael", "wristband", "vitals", "bouquet", "phone", "elias", "chart", "effects", "police_report", "photo", "station", "stairwell" })
+            // Every place on the bigger floor (docs/redesign/day.md), each from where she stands to look at it.
+            foreach (var id in new[] { "rafael", "wristband", "vitals", "bouquet", "phone", "elias", "chart", "effects", "police_report", "photo", "station", "stairwell",
+                "okafor", "round_board", "locker", "rota", "kettle", "june", "tv", "vending", "remembrance_book", "candles", "west_window", "sit1" })
                 yield return Picks(id, "Day 1");
             Game.DebugJumpTo(SliceArea.HospitalDay2);
             yield return Frames(2);
-            foreach (var id in new[] { "rafael2", "visitor", "wristband2", "round2", "vitals2", "sit", "stairwell2", "elias", "chart", "photo" })
+            foreach (var id in new[] { "rafael2", "visitor", "wristband2", "round2", "vitals2", "sit", "stairwell2", "elias", "chart", "photo",
+                "brandt", "brandt_band", "okafor", "okafor_chart", "round_board", "remembrance_book" })
                 yield return Picks(id, "Day 2");
         }
     }

@@ -47,15 +47,18 @@ the dive, as it does Day 1.
 
 ## The days
 
-- **Day 1** (style E: the corridor, the nurses' station, room 14): Rafael's handover; the tutorial duty round is two
-  checks (his wristband, his vitals), a bit shorter than the later rounds (the creator); the chart, the effects bag, the
-  photo, LeBaget's lilies (a new fact); the police envelope (3:03 Nadia, not answered, as on her phone; 3:06 Lena, 2 minutes; no
-  comment); her phone ("Not now."); the booth with Mags, the creator's scene word for word (`STORY-PROSE.md` 83-92; the
-  phone-charge ritual dropped), then the journal and the dive.
-- **Day 2** (short): Rafael's "Did Lena get out?" (a fact), the LeBaget "Community Partnerships" visitor ("Has he said
-  anything?", a fact, no transfer clock), one round of three checks (wristband, the drip, vitals), the chair by his bed
-  (talk to him, or just sit), the stairwell, the booth, the dive.
+Redesigned 2026-10-12 (the Day agent): **docs/redesign/day.md** has the design (the bigger floor, Ward 4 West; the duty
+round as small gameplay; the finds; the animated bedside; what she tells him and how it changes the next night), the API
+the nights read (`Chain.HasDreamChange`, `Chain.DreamChangesFor`, `Chain.HasTold`), the forced-out hook
+(`Chain.ForceOut`), the look and the captures (`-ward-shot`, `-day-run`).
 
-Every line the creator didn't write is marked `PLACEHOLDER` in `Dialogue/VisitingHours.ink` and `SliceContent.cs`.
-People are style-E stand-ins until they have models; the ward uses Kenney's furniture where the kit has the piece
-(desk chairs, the sink, the visitors' chair, the locker, the booth's lamp, radio, coat stand and boxes).
+- **Day 1:** Rafael's handover starts the round (three tasks); room 14 (the chart, the effects bag, the photo, the
+  lilies), the police envelope, her locker (the creek photo), her phone ("Not now."), June Brandt, the remembrance book;
+  the bedside (two things, or just sitting); the stairs (only after the round); the booth with Mags, the creator's
+  scene word for word, then Mags on what his monitor did, the journal and the dive.
+- **Day 2:** the round (five tasks), Rafael's "Did Lena get out?" in the staff room, Mr. Brandt, the man from LeBaget in
+  the family room, the bedside, the stairs, the booth. If Night 1 forced her out, the day opens on the crash call.
+
+**Sound at the hand-offs:** the runner stops the ambience and the music when a night loads and when the ward comes back;
+the title stops the ambience and asserts its own music when it loads (a battle torn down on quit used to hand the world's
+sound back into the title).

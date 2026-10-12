@@ -27,6 +27,16 @@ namespace JamKit.VisitingHours
         /// <summary>Night 1 is over (the street's LarchStreetStory.NightDoneFlag).</summary>
         public const string Night1DoneFlag = "vh_night1_done";
         public const string LenaKey = "vh_chain_lena";
+        /// <summary>What the bedside told the dream: <see cref="DreamChanges"/> ids, one comma list (docs/redesign/day.md).</summary>
+        public const string DreamChangesKey = "vh_dream_changes";
+        /// <summary>The bedside topics she has told him (DayContent topic ids), one comma list.</summary>
+        public const string ToldKey = "vh_bedside_told";
+        /// <summary>The duty rounds' slips across the run (a wrong choice she caught herself making).</summary>
+        public const string SlipsKey = "vh_round_slips";
+        /// <summary>The nights she was forced out of (night names, one comma list; a night forced out twice is listed twice).</summary>
+        public const string ForcedOutKey = "vh_forced_out";
+        /// <summary>Why the last forced exit happened (the night's own words, for the next day's lines).</summary>
+        public const string ForcedOutWhyKey = "vh_forced_out_why";
 
         /// <summary>The scenes each night can be (the first one in the build wins). Night 1's own scene is being built (the
         /// movement agent's Larch Street on a hill); until it's in the build, the dream escape stands in for it.</summary>
@@ -46,7 +56,11 @@ namespace JamKit.VisitingHours
         public static void Done() => _done?.Invoke();
 
         /// <summary>Tests: nobody listens any more.</summary>
-        public static void ClearListeners() => _done = null;
+        public static void ClearListeners()
+        {
+            _done = null;
+            _forcedOut = null;
+        }
 
         public static ChainSegment Next(ChainSegment s) => s >= ChainSegment.End ? ChainSegment.End : s + 1;
 
@@ -146,6 +160,10 @@ namespace JamKit.VisitingHours
         {
             int d = 0;
             foreach (var r in BattleResults(save)) d += r.despairAdded;
+            // Her shifts fray her: a run's worth of slips on the duty rounds is one step down the Long Night's slope, and so
+            // is each time the dream threw her out (the strain on him, and on her).
+            if (Slips(save) >= SlipsForDespair) d += 1;
+            d += Strain(save);
             if (Despair(save)) d = ArgumentMeters.DespairMax;
             return d < 0 ? 0 : d > ArgumentMeters.DespairMax ? ArgumentMeters.DespairMax : d;
         }
@@ -212,7 +230,133 @@ namespace JamKit.VisitingHours
             save.ClearFlag(DespairFlag);
             save.ClearFlag(CondemnsFlag);
             save.ClearFlag(Night1DoneFlag);
+            save.SetEntry(DreamChangesKey, "");
+            save.SetEntry(ToldKey, "");
+            save.SetEntry(SlipsKey, "0");
+            save.SetEntry(ForcedOutKey, "");
+            save.SetEntry(ForcedOutWhyKey, "");
         }
+
+        // ---------- The bedside and the dream (docs/redesign/day.md: the API the nights read) ----------
+
+        /// <summary>The changes the bedside has made in the dream so far (<see cref="JamKit.VisitingHours.DreamChanges"/> ids).</summary>
+        public static List<string> DreamChanges(SaveData save) => Split(save != null ? save.GetEntry(DreamChangesKey) : null);
+
+        /// <summary>
+        /// The night's question: did what she told him change this? (e.g. the street: <c>Chain.HasDreamChange(save,
+        /// DreamChanges.WaltLedger)</c> puts Walt's ledger out on his bench). Ask it when the night builds.
+        /// </summary>
+        public static bool HasDreamChange(SaveData save, string changeId) =>
+            save != null && !string.IsNullOrEmpty(changeId) && DreamChanges(save).Contains(changeId);
+
+        /// <summary>The changes for one night (its own code can loop over them).</summary>
+        public static List<string> DreamChangesFor(SaveData save, ChainSegment night)
+        {
+            var list = new List<string>();
+            foreach (var id in DreamChanges(save))
+            {
+                var def = JamKit.VisitingHours.DreamChanges.Find(id);
+                if (def != null && def.night == night) list.Add(id);
+            }
+            return list;
+        }
+
+        public static bool AddDreamChange(SaveData save, string changeId)
+        {
+            if (save == null || string.IsNullOrEmpty(changeId)) return false;
+            var list = DreamChanges(save);
+            if (list.Contains(changeId)) return false;
+            list.Add(changeId);
+            save.SetEntry(DreamChangesKey, Join(list));
+            return true;
+        }
+
+        /// <summary>The bedside topics she's told him this run.</summary>
+        public static List<string> Told(SaveData save) => Split(save != null ? save.GetEntry(ToldKey) : null);
+
+        public static bool HasTold(SaveData save, string topicId) => save != null && Told(save).Contains(topicId);
+
+        /// <summary>
+        /// She told him <paramref name="topic"/> at his bedside: it's kept (the topic, its "told him" journal entry, and the
+        /// change it makes in the dream). False for an unknown topic or one already told.
+        /// </summary>
+        public static bool Tell(SaveData save, BedsideTopicDef topic)
+        {
+            if (save == null || topic == null || string.IsNullOrEmpty(topic.id)) return false;
+            var told = Told(save);
+            if (told.Contains(topic.id)) return false;
+            told.Add(topic.id);
+            save.SetEntry(ToldKey, Join(told));
+            Record(save, DayContent.ToldEntry(topic.id));
+            AddDreamChange(save, topic.change);
+            return true;
+        }
+
+        // ---------- The duty rounds' slips ----------
+
+        /// <summary>A run's slips from which the Long Night's slope takes one step (<see cref="DespairTally"/>).</summary>
+        public const int SlipsForDespair = 3;
+
+        public static int Slips(SaveData save) => save != null && int.TryParse(save.GetEntry(SlipsKey), out int n) && n > 0 ? n : 0;
+
+        public static void AddSlips(SaveData save, int n)
+        {
+            if (save == null || n <= 0) return;
+            save.SetEntry(SlipsKey, (Slips(save) + n).ToString());
+        }
+
+        // ---------- Forced out of the dream (a failure with a cost: the House and World agents' hook) ----------
+
+        static Action<string> _forcedOut;
+
+        /// <summary>A night's game forced Nadia out (the runner listens: it ends the night the way <see cref="Done"/> does,
+        /// with the cost kept). The argument is the night's reason, in a few words ("fell from the stairwell").</summary>
+        public static event Action<string> ForcedOutRaised
+        {
+            add => _forcedOut += value;
+            remove => _forcedOut -= value;
+        }
+
+        /// <summary>
+        /// The dream threw her out (she fell, she was caught, the house tipped her out): call this instead of <see cref="Done"/>.
+        /// The night ends, and it costs: the forced exit is kept (<see cref="ForcedOutCount"/>); the next day opens on the crash
+        /// call in the night and a worse monitor; the run's strain rises (<see cref="Strain"/>: each forced exit is one step of
+        /// Despair, the Long Night's slope, and burns the "maybe six" of Mags's nights, <see cref="NightsLeft"/>).
+        /// </summary>
+        public static void ForceOut(string reason) => _forcedOut?.Invoke(reason ?? "");
+
+        /// <summary>Keeps a forced exit from <paramref name="night"/> in the save (the runner calls this; tests too).</summary>
+        public static void RecordForcedOut(SaveData save, ChainSegment night, string reason)
+        {
+            if (save == null) return;
+            string list = save.GetEntry(ForcedOutKey) ?? "";
+            save.SetEntry(ForcedOutKey, list.Length > 0 ? list + "," + night : night.ToString());
+            save.SetEntry(ForcedOutWhyKey, reason ?? "");
+        }
+
+        /// <summary>How many times she's been forced out this run (of <paramref name="night"/>, or of any night).</summary>
+        public static int ForcedOutCount(SaveData save, ChainSegment? night = null)
+        {
+            if (save == null) return 0;
+            int n = 0;
+            foreach (var part in (save.GetEntry(ForcedOutKey) ?? "").Split(','))
+            {
+                string p = part.Trim();
+                if (p.Length == 0) continue;
+                if (night == null || p == night.Value.ToString()) n++;
+            }
+            return n;
+        }
+
+        public static bool WasForcedOut(SaveData save, ChainSegment night) => ForcedOutCount(save, night) > 0;
+
+        public static string ForcedOutReason(SaveData save) => save != null ? save.GetEntry(ForcedOutWhyKey) ?? "" : "";
+
+        /// <summary>The strain on Elias across the run: one per forced exit.</summary>
+        public static int Strain(SaveData save) => ForcedOutCount(save);
+
+        /// <summary>Mags's budget ("Five Nights, maybe Six"): six, or five once he's been strained by a forced exit.</summary>
+        public static int NightsLeft(SaveData save) => Strain(save) > 0 ? 5 : 6;
 
         public static List<string> Split(string joined)
         {

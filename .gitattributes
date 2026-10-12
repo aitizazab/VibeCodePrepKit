@@ -29,3 +29,7 @@
 *.glb  binary
 *.ttf  binary
 *.otf  binary
+
+# Binary images the auto-detection can miss (the ward's HDRI sky)
+*.hdr  binary
+*.exr  binary

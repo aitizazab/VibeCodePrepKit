@@ -29,6 +29,22 @@ namespace JamKit.VisitingHours
         public Vector3 monitor;
         public Vector3 dogHome;
 
+        // ---------- The ward's bedside (docs/redesign/day.md) ----------
+        /// <summary>Room 14's live monitor (its beeps are its own).</summary>
+        public VhPatientMonitor patientMonitor;
+        /// <summary>Elias's near hand on the blanket (it answers her: the fingers move).</summary>
+        public VhHandRig eliasHand;
+        /// <summary>Where her eyes are when she sits in the chair by his bed, and which way she looks (yaw, pitch down).</summary>
+        public Vector3 bedsideEye;
+        public float bedsideYaw, bedsidePitch;
+        /// <summary>Where she stands to sit down, and stands back up to.</summary>
+        public Vector3 bedsideStand;
+        /// <summary>Where her hand rests on his (world, the back of his hand) and which way his fingers point.</summary>
+        public Vector3 bedsideHold;
+        public Vector3 bedsideHandForward = Vector3.forward;
+        /// <summary>The bedside's shallow focus (weight 0 until she sits).</summary>
+        public UnityEngine.Rendering.Volume bedsideFocus;
+
         public VhSpot Spot(string id)
         {
             foreach (var s in spots) if (s.def != null && s.def.id == id) return s;

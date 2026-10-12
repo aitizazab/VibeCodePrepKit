@@ -30,6 +30,8 @@ namespace JamKit.VisitingHours
             if (colors != null) m.SetColors(colors);
             m.SetTriangles(t, 0);
             m.RecalculateBounds();
+            // Tangents: the ward's PBR materials have normal maps (URP/Lit reads the mesh's tangents for them).
+            if (uv.Count == v.Count) m.RecalculateTangents();
             _meshes.Add(m);
             return m;
         }

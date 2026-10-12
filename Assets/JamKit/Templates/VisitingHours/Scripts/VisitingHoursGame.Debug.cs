@@ -28,17 +28,18 @@ namespace JamKit.VisitingHours
                     return true;
             }
             if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.Stop();
+            StopBedside();
             _pending = Pending.None;
             _afterJournalKnot = false;
             _journal.Close();
             switch (Area)
             {
                 case SliceArea.Hospital:
-                    foreach (var id in new[] { SliceContent.FactChart, SliceContent.FactEffects, SliceContent.FactPoliceReport, SliceContent.FactPhoto }) _state.journal.Record(id);
+                    DebugCompleteRound(SliceContent.FactChart, SliceContent.FactEffects, SliceContent.FactPoliceReport, SliceContent.FactPhoto);
                     StartCoroutine(GoToBooth());
                     break;
                 case SliceArea.HospitalDay2:
-                    foreach (var id in new[] { SliceContent.FactDidLenaGetOut, SliceContent.FactVisitor }) _state.journal.Record(id);
+                    DebugCompleteRound(SliceContent.FactDidLenaGetOut, SliceContent.FactVisitor);
                     StartCoroutine(GoToBooth());
                     break;
                 case SliceArea.Booth:
@@ -59,6 +60,10 @@ namespace JamKit.VisitingHours
         {
             StopAllCoroutines();
             if (GameRoot.Dialogue.IsActive) GameRoot.Dialogue.Stop();
+            StopBedside();
+            int day = area == SliceArea.HospitalDay2 ? 2 : 1;
+            if ((area == SliceArea.Hospital || area == SliceArea.HospitalDay2) && (_round == null || _round.Day != day))
+                _round = new DutyRound(day);
             _pending = Pending.None;
             _afterJournalKnot = false;
             _journal.Close();
@@ -83,28 +88,47 @@ namespace JamKit.VisitingHours
             player.FaceYaw(Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg);
         }
 
-        static Vector3 Approach(string id, Vector3 at)
+        /// <summary>Where Nadia stands to look at each thing (the smoke run, the captures, the autopilot).</summary>
+        public static Vector3 Approach(string id, Vector3 at)
         {
             switch (id)
             {
-                // The ward (VhWakingWard: room 14's bed against the headwall, the station's counter and ledge).
-                case "chart": return new Vector3(6.0f, 0f, 20.3f);
-                case "effects": return new Vector3(7.3f, 0f, 17.9f);
-                case "police_report": return new Vector3(-2.5f, 0f, 4.9f);
-                case "phone": return new Vector3(-2.5f, 0f, 4.25f);
-                case "photo": return new Vector3(8.1f, 0f, 23.0f);
+                // Ward 4 West (VhWardFloor: the corridor along z 11-14, rooms 12/14/16 north, the station, staff room,
+                // quiet room, lobby and family room south).
+                case "rafael": return new Vector3(21.3f, 0f, 11.5f);
+                case "rafael2": return new Vector3(11.9f, 0f, 7.0f);
+                case "police_report": return new Vector3(18.3f, 0f, 11.6f);
+                case "station": return new Vector3(23.9f, 0f, 11.6f);
+                case "round_board": return new Vector3(19.6f, 0f, 5.9f);
+                case "chart": return new Vector3(22.6f, 0f, 19.3f);
+                case "effects": return new Vector3(25.5f, 0f, 16.0f);
+                case "photo": return new Vector3(24.6f, 0f, 21.7f);
                 case "stairwell":
-                case "stairwell2": return new Vector3(0f, 0f, 24.6f);
-                case "station": return new Vector3(-2.6f, 0f, 6.4f);
-                case "elias": return new Vector3(4.9f, 0f, 22.3f);
+                case "stairwell2": return new Vector3(42f, 0f, 12.5f);
+                case "elias": return new Vector3(21.5f, 0f, 21.0f);
                 case "wristband":
-                case "wristband2": return new Vector3(6.95f, 0f, 21.9f);
+                case "wristband2": return new Vector3(23.6f, 0f, 21.65f);
                 case "vitals":
-                case "vitals2": return new Vector3(4.75f, 0f, 22.5f);
-                case "round2": return new Vector3(7.0f, 0f, 22.0f);
-                case "bouquet": return new Vector3(7.8f, 0f, 19.3f);
-                case "sit": return new Vector3(8.5f, 0f, 21.5f);
-                case "visitor": return new Vector3(0f, 0f, 16.0f);
+                case "vitals2": return new Vector3(21.0f, 0f, 21.5f);
+                case "round2": return new Vector3(20.3f, 0f, 21.1f);
+                case "bouquet": return new Vector3(25.3f, 0f, 21.8f);
+                case "sit":
+                case "sit1": return new Vector3(24.55f, 0f, 20.5f);
+                case "okafor": return new Vector3(10.9f, 0f, 19.7f);
+                case "okafor_chart": return new Vector3(11.6f, 0f, 21.6f);
+                case "brandt": return new Vector3(37.7f, 0f, 21.5f);
+                case "brandt_band": return new Vector3(35.6f, 0f, 20.0f);
+                case "locker": return new Vector3(7.5f, 0f, 4.9f);
+                case "rota": return new Vector3(10.2f, 0f, 9.4f);
+                case "kettle": return new Vector3(9.7f, 0f, 1.7f);
+                case "june": return new Vector3(41.5f, 0f, 7.3f);
+                case "tv": return new Vector3(42.5f, 0f, 9.0f);
+                case "vending": return new Vector3(46.3f, 0f, 9.9f);
+                case "visitor": return new Vector3(37.6f, 0f, 8.0f);
+                case "remembrance_book": return new Vector3(1.8f, 0f, 8.3f);
+                case "candles": return new Vector3(1.7f, 0f, 5.5f);
+                case "west_window": return new Vector3(1.5f, 0f, 12.5f);
+                case "phone": return new Vector3(9.95f, 0f, 7.0f);
                 case "newspaper": return new Vector3(-8f, 0f, -14f);
                 case "shop_sign": return new Vector3(25f, 0f, 12f);
                 case "roses": return new Vector3(-14f, 0f, 10.8f);
@@ -184,12 +208,25 @@ namespace JamKit.VisitingHours
             if (_smokeFailed) yield break;
             if (Area == SliceArea.Hospital)
             {
-                foreach (var id in new[] { "chart", "effects", "police_report", "photo" })
+                // Day 1 (docs/redesign/day.md): the handover, the round's three tasks, the finds, the bedside, the stairs.
+                foreach (var id in new[] { "rafael", "wristband", "vitals", "okafor", "chart", "effects", "police_report", "photo", "locker", "june", "remembrance_book" })
                 {
                     yield return LookAt(id);
                     if (_smokeFailed) yield break;
                 }
-                Log("journal: " + _state.journal.Count + " entries");
+                Log("journal: " + _state.journal.Count + " entries; round " + _round.DoneCount + "/" + _round.Tasks.Count + ", slips " + _round.Slips);
+                if (!_round.Complete) { SmokeFail("the round wasn't done"); yield break; }
+                yield return WaitFor(() => Ready, "free to sit with him");
+                if (_smokeFailed) yield break;
+                AutoRise = true;
+                StandAt("sit1");
+                Examine("sit1");
+                yield return WaitFor(() => _mode == Mode.Bedside, "the bedside to start");
+                if (_smokeFailed) yield break;
+                yield return WaitFor(() => _mode == Mode.Explore && _bedside == null, "the bedside to end", 40f);
+                AutoRise = false;
+                if (_smokeFailed) yield break;
+                Log("bedside: told " + string.Join(", ", _toldToday) + "; dream changes " + string.Join(", ", Chain.DreamChanges(GameRoot.Save.Data)));
                 yield return LookAt("stairwell");
                 yield return WaitFor(() => Area == SliceArea.Booth, "the booth");
                 if (_smokeFailed) yield break;

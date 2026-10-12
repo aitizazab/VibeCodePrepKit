@@ -44,6 +44,7 @@ namespace JamKit.VisitingHours
         ChainSegment _night;
         bool _inNight;
         Action _onDone;
+        Action<string> _onForcedOut;
 
         public bool InNight => _inNight;
         public ChainSegment Night => _night;
@@ -64,12 +65,15 @@ namespace JamKit.VisitingHours
         {
             _instance = this;
             _onDone = OnNightDone;
+            _onForcedOut = OnForcedOut;
             Chain.SegmentDone += _onDone;
+            Chain.ForcedOutRaised += _onForcedOut;
         }
 
         void OnDestroy()
         {
             Chain.SegmentDone -= _onDone;
+            Chain.ForcedOutRaised -= _onForcedOut;
             Unhook();
             if (_instance == this) _instance = null;
         }
@@ -131,6 +135,9 @@ namespace JamKit.VisitingHours
             Chain.SetSegment(save, night);
             GameRoot.Save.Save();
             Hook(night);
+            // Nothing of the waking day's sound goes under with her (each night sets its own).
+            GameRoot.Audio.StopAmbience(0.8f);
+            GameRoot.Audio.StopMusic(0.8f);
             if (!GameRoot.Instance.SceneService.Load(scene))
             {
                 Unhook();
@@ -159,6 +166,22 @@ namespace JamKit.VisitingHours
             _inNight = false;
         }
 
+        /// <summary>
+        /// The dream threw her out (<see cref="Chain.ForceOut"/>: a night's fail state with a cost). The forced exit is kept
+        /// (the next day opens on the crash call, his monitor runs higher, the strain is a step of Despair and burns Mags's
+        /// "maybe six"), then the night ends as it would have.
+        /// </summary>
+        void OnForcedOut(string reason)
+        {
+            if (!_inNight) return;
+            Chain.RecordForcedOut(Save, _night, reason);
+            Say(Chain.Title(_night) + ": forced out (" + reason + "), strain " + Chain.Strain(Save));
+            OnNightDone();
+        }
+
+        /// <summary>Tests and the debug menu: as if the night forced her out now.</summary>
+        public void ForceOutNow(string reason) => OnForcedOut(reason);
+
         /// <summary>The night is over (Nadia's out): the next waking segment (Day 2, or the end card) loads.</summary>
         void OnNightDone()
         {
@@ -178,6 +201,9 @@ namespace JamKit.VisitingHours
         {
             _pending = segment;
             _hasPending = true;
+            // The night's sound stops at the hand-off (the ward sets its own).
+            GameRoot.Audio.StopAmbience(0.8f);
+            GameRoot.Audio.StopMusic(0.8f);
             GameRoot.Instance.SceneService.LoadQueued(SliceScene);
         }
 

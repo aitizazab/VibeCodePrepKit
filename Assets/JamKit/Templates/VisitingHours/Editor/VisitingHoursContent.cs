@@ -47,6 +47,8 @@ namespace JamKit.VisitingHours.EditorTools
             config.portraits = Portraits(art, reset);
             EditorUtility.SetDirty(config);
             Boot(art, reset);
+            // The ward's PBR materials and window sky (the Day agent's redesign: docs/redesign/day.md).
+            VhWardLibraryBuilder.Ensure();
             return config;
         }
 

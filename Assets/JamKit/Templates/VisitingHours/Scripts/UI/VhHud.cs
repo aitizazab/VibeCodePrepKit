@@ -22,6 +22,81 @@ namespace JamKit.VisitingHours
 
         public string PromptText => _promptText;
         public string ToastText => _toast.text;
+
+        VisualElement _sheet;
+        Label _sheetTitle;
+        readonly System.Collections.Generic.List<Label> _sheetLines = new System.Collections.Generic.List<Label>();
+        string _sheetKey = "";
+
+        /// <summary>The round sheet (docs/redesign/day.md): a card at the top left with a title and its lines, each wrapping
+        /// inside the card (nothing clips). Null title hides it.</summary>
+        public void SetChecklist(string title, System.Collections.Generic.IReadOnlyList<string> lines)
+        {
+            string key = title ?? "";
+            if (lines != null) foreach (var l in lines) key += "\n" + l;
+            if (key == _sheetKey) return;
+            _sheetKey = key;
+            if (title == null)
+            {
+                if (_sheet != null) _sheet.style.display = DisplayStyle.None;
+                return;
+            }
+            if (_sheet == null)
+            {
+                _sheet = new VisualElement { name = "vh-round-sheet", pickingMode = PickingMode.Ignore };
+                var s = _sheet.style;
+                s.position = Position.Absolute;
+                s.left = 36;
+                s.top = 96;
+                s.width = 470;
+                s.paddingLeft = 18;
+                s.paddingRight = 18;
+                s.paddingTop = 12;
+                s.paddingBottom = 14;
+                s.backgroundColor = new Color(0.93f, 0.91f, 0.86f, 0.9f);
+                s.borderTopLeftRadius = 4;
+                s.borderTopRightRadius = 4;
+                s.borderBottomLeftRadius = 4;
+                s.borderBottomRightRadius = 4;
+                _sheetTitle = new Label("") { pickingMode = PickingMode.Ignore };
+                _sheetTitle.style.fontSize = 22;
+                _sheetTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
+                _sheetTitle.style.color = new Color(0.2f, 0.17f, 0.13f);
+                _sheetTitle.style.whiteSpace = WhiteSpace.Normal;
+                _sheetTitle.style.marginBottom = 6;
+                _sheet.Add(_sheetTitle);
+                Root.Add(_sheet);
+            }
+            _sheet.style.display = DisplayStyle.Flex;
+            _sheetTitle.text = title;
+            int n = lines != null ? lines.Count : 0;
+            while (_sheetLines.Count < n)
+            {
+                var l = new Label("") { pickingMode = PickingMode.Ignore };
+                l.style.fontSize = 19;
+                l.style.whiteSpace = WhiteSpace.Normal;
+                l.style.marginTop = 3;
+                _sheet.Add(l);
+                _sheetLines.Add(l);
+            }
+            for (int i = 0; i < _sheetLines.Count; i++)
+            {
+                var l = _sheetLines[i];
+                if (i >= n)
+                {
+                    l.style.display = DisplayStyle.None;
+                    continue;
+                }
+                string text = lines[i];
+                bool done = text.EndsWith(DutyRound.DoneMark);
+                l.style.display = DisplayStyle.Flex;
+                l.text = text;
+                l.style.color = done ? new Color(0.36f, 0.42f, 0.34f) : new Color(0.2f, 0.17f, 0.13f);
+            }
+        }
+
+        /// <summary>The round sheet's lines as shown (tests).</summary>
+        public string ChecklistText => _sheet != null && _sheet.style.display == DisplayStyle.Flex ? _sheetKey : "";
         public string CardTitle => _cardTitle.text;
         public float CardAlpha => _card.resolvedStyle.opacity;
 

@@ -25,7 +25,7 @@ namespace JamKit.VisitingHours
     [DefaultExecutionOrder(-100)]
     public sealed partial class VisitingHoursGame : MonoBehaviour
     {
-        public enum Mode { Loading, Explore, Transition, Battle, End }
+        public enum Mode { Loading, Explore, Transition, Battle, End, Bedside }
 
         [Header("Data")]
         public VisitingHoursConfig config;
@@ -225,6 +225,14 @@ namespace JamKit.VisitingHours
                 return;
             }
 
+            // The bedside (docs/redesign/day.md): she sits, holds his hand, talks; E stands her up. No walking meanwhile.
+            if (_mode == Mode.Bedside)
+            {
+                _hud.SetExploring(false);
+                if (playing || GameRoot.Dialogue.IsActive) TickBedside(dt);
+                return;
+            }
+
             bool exploring = playing && _mode == Mode.Explore && !journalOpen;
             _hud.SetExploring(_mode == Mode.Explore && !GameRoot.Dialogue.IsActive);
             _hud.SetOpenQuestions(_state.journal.OpenQuestions(_openScratch));
@@ -362,6 +370,7 @@ namespace JamKit.VisitingHours
             switch (area)
             {
                 case SliceArea.Street:
+                    VhWardLight.Leave(cam);
                     fog = config.dreamFog; p = config.dreamFogParams;
                     cam.backgroundColor = config.dreamFog;
                     _hud.SetVignette(config.dreamVignette, new Color(1f, 0.78f, 0.52f, 1f));
