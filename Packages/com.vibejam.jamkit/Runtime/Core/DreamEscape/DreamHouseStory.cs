@@ -146,6 +146,29 @@ namespace JamKit.DreamEscape
             new HouseLine(Nadia, Placeholder + "The floor-- the house is turning over!", 2.4f),
         };
 
+        /// <summary>Theo's parting line as Lena turns Nadia out, before the house tips: his question's answer pays off
+        /// (index = <see cref="TheoAnswer"/> - 1). PLACEHOLDERS.</summary>
+        public static readonly HouseLine[] TheoParting =
+        {
+            new HouseLine(Theo, Placeholder + "Nadia? Tell Dad it's okay to be sad. I'll be brave.", 3.2f),
+            new HouseLine(Theo, Placeholder + "Bye, Nadia! You promised he won't be sad!", 3f),
+            new HouseLine(Theo, Placeholder + "(Theo doesn't look up from his plate. He doesn't wave.)", 3f),
+        };
+
+        /// <summary>His parting line for her answer, or none if he never asked.</summary>
+        public static HouseLine[] PartingFor(TheoAnswer a) => a == TheoAnswer.None ? new HouseLine[0] : new[] { TheoParting[(int)a - 1] };
+
+        /// <summary>When Lena ends unsure, Theo opens a window past the hardest spot (the shortcut). PLACEHOLDER.</summary>
+        public static readonly HouseLine[] TheoWindow =
+        {
+            new HouseLine(Theo, Placeholder + "Nadia! Over here, the window! Quick!", 2.6f),
+        };
+
+        public static readonly HouseLine[] ThroughTheWindow =
+        {
+            new HouseLine(Nadia, Placeholder + "(She climbs through. Theo's already gone.)", 2.6f),
+        };
+
         public const string TheDream = "The dream", Mags = "Mags";
 
         /// <summary>The memory-for-a-shortcut offer at the escape's hardest spot, after two falls (docs/NIGHTS-GAMEPLAY.md:
@@ -183,6 +206,16 @@ namespace JamKit.DreamEscape
         /// <summary>Metres into the rain without the umbrella before it's the Despair choice; after Lena condemns her.</summary>
         public const float DespairDepth = 8f, CondemnedDespairDepth = 3f;
         public const float SoakTime = 5f, CondemnedSoakTime = 3f;
+
+        /// <summary>The outcome at the escape's hardest spot (the plan: outcomes change the chase). Unsure: Theo opens a
+        /// window there, a way round the stairwell door. Condemns: the house folds shut faster behind her there (the fold
+        /// keeps closer, <see cref="CondemnedFoldGap"/> m, and each room folds in <see cref="CondemnedFoldSeconds"/> s).</summary>
+        public static bool TheoOpensTheWindow(ArgumentOutcome o) => o == ArgumentOutcome.Unsure;
+        public const float CondemnedFoldGap = 7f, FoldSeconds = 0.8f, CondemnedFoldSeconds = 0.4f;
+        public static float FoldGapAt(float baseGap, ArgumentOutcome o, bool atHardSpot) =>
+            o == ArgumentOutcome.Condemns && atHardSpot ? Math.Min(baseGap, CondemnedFoldGap) : baseGap;
+        public static float FoldSecondsAt(ArgumentOutcome o, bool atHardSpot) =>
+            o == ArgumentOutcome.Condemns && atHardSpot ? CondemnedFoldSeconds : FoldSeconds;
 
         /// <summary>The save entry holding Theo's question's answer ("honest", "comfort", "silence").</summary>
         public const string TheoAnswerKey = "vh_theo_dad_sad";

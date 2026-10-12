@@ -91,6 +91,8 @@ namespace JamKit.DreamEscape
         /// <summary>The builder groups each escape room's pieces under "Escape room: (its name)" (they fold shut as one), and
         /// the hallway's things that turn over with it under <see cref="TurningGroup"/>.</summary>
         public const string RoomGroupPrefix = "Escape room: ", TurningGroup = "The hallway's things (turning over)";
+        /// <summary>Theo's window at the hardest spot (the builder's): shut, or open with Theo in it when Lena ended unsure.</summary>
+        public const string TheoWindowShut = "Theo's window (shut)", TheoWindowOpenName = "Theo's window (open)";
 
         DreamHouse _h;
         LabCourse _course;
@@ -113,6 +115,8 @@ namespace JamKit.DreamEscape
         Quaternion[] _roomRot;
         bool[] _folded;
         Transform _turning;
+        GameObject _windowShut, _windowOpen;
+        bool _windowUsed, _saidTheoWindow;
         Vector3 _turningPos;
         Quaternion _turningRot;
         Color _sky0, _equator0, _ground0, _fog0;
@@ -147,6 +151,12 @@ namespace JamKit.DreamEscape
         public bool Offering => _offering;
         /// <summary>The escape room she's in (-1 outside the escape).</summary>
         public int Room => _room;
+        /// <summary>Theo's window is open at the hardest spot (Lena ended unsure; not yet climbed through).</summary>
+        public bool TheoWindowOpen => _story.Phase == HousePhase.Escape && DreamHouseStory.TheoOpensTheWindow(_story.Outcome) && !_windowUsed;
+        /// <summary>She climbed through Theo's window this visit.</summary>
+        public bool TookTheoWindow => _windowUsed;
+        /// <summary>How close the fold keeps behind her now (m): nearer at the hardest spot when Lena condemned her.</summary>
+        public float FoldGap => _pursuer.targetGap;
         /// <summary>The memory she gave the dream for the shortcut (the save's), or null.</summary>
         public static string MemoryGiven => GameRoot.Exists ? GameRoot.Save.Data.GetEntry(DreamHouseStory.MemoryGivenKey) : null;
         /// <summary>The evidence cards she'd carry into the battle now (the memories found; the calendar as the Saturday
@@ -197,6 +207,8 @@ namespace JamKit.DreamEscape
                     if (i >= 0) { _roomGroups[i] = t; _roomPos[i] = t.position; _roomRot[i] = t.rotation; }
                 }
                 else if (t.name == TurningGroup) { _turning = t; _turningPos = t.position; _turningRot = t.rotation; }
+                else if (t.name == TheoWindowShut) _windowShut = t.gameObject;
+                else if (t.name == TheoWindowOpenName) _windowOpen = t.gameObject;
             }
 
             GameRoot.Hud.Show();
@@ -261,6 +273,8 @@ namespace JamKit.DreamEscape
             _offering = false;
             _offerUsed = false;
             _hardFalls = 0;
+            _windowUsed = false;
+            _saidTheoWindow = false;
             RestoreRooms(-1f);
             SetMood(-1, true);
             _leaving = false;
@@ -332,6 +346,7 @@ namespace JamKit.DreamEscape
                     {
                         var dir = _course.route.DirectionAt(_s);
                         float along = Vector3.Dot(player.Velocity, new Vector3(dir.X, dir.Y, dir.Z));
+                        TunePursuer(_s);
                         bool caught = _pursuer.Step(_s, along, dt) && !DebugMenu.PlayerInvincible;
                         PlaceFold();
                         if (_s >= _h.chaseEndS) StopChase();
@@ -344,6 +359,7 @@ namespace JamKit.DreamEscape
                             return;
                         }
                     }
+                    if (TheoWindowOpen && _checkpoint == _h.hardCheckpoint && !_respawning && AtTheoWindow(p)) { ClimbThroughTheWindow(); return; }
                     if (!_saidWindow && _s >= _rain.rainStartS + 1f) { _saidWindow = true; Say(DreamHouseLines.LenaAtTheWindow, null); }
                     if (!_leaving && _s >= _rain.rainEndS && player.Sim.Grounded) StartCoroutine(Leave());
                     break;
@@ -556,7 +572,10 @@ namespace JamKit.DreamEscape
                 if (!save.HasFlag(DreamHouseStory.CondemnsFlag)) { save.SetFlag(DreamHouseStory.CondemnsFlag); GameRoot.Save.Save(); }
                 Debug.Log("JAMKIT_HOUSE Lena condemns Nadia (the save's " + DreamHouseStory.CondemnsFlag + " is set): the Despair route comes easier");
             }
-            Say(outcome == ArgumentOutcome.Condemns ? DreamHouseLines.Condemns : DreamHouseLines.Unsure, () => StartCoroutine(KickOut(true)));
+            // Theo's answer pays off: his parting line as Lena turns her out, by what she told him.
+            var lines = new List<HouseLine>(outcome == ArgumentOutcome.Condemns ? DreamHouseLines.Condemns : DreamHouseLines.Unsure);
+            lines.AddRange(DreamHouseLines.PartingFor(_story.TheoAnswered));
+            Say(lines, () => StartCoroutine(KickOut(true)));
         }
 
         // ---------- The house tips ----------
@@ -632,7 +651,8 @@ namespace JamKit.DreamEscape
             _s = cp.s;
             bool chase = _story.Phase == HousePhase.Escape && cp.s >= _h.chaseStartS && cp.s < _h.chaseEndS - 6f;
             _chasing = chase;
-            if (chase) _pursuer.Reset(cp.s, player.Def.sprintSpeed);
+            if (chase) { TunePursuer(cp.s); _pursuer.Reset(cp.s, player.Def.sprintSpeed); }
+            SetTheoWindow(TheoWindowOpen);
             if (fold != null) fold.gameObject.SetActive(chase);
             if (chase) PlaceFold();
             _pilot.Reset(cp.s);
@@ -683,6 +703,11 @@ namespace JamKit.DreamEscape
                     GameRoot.Hud.Message(room.name, 2.2f);
                     // The framed turn: a breath of slow motion as she comes into each room (not for the autopilot).
                     if (!AutopilotOn) GameRoot.Juice.HitStop(0.5f, 0.4f);
+                    if (TheoWindowOpen && !_saidTheoWindow && room.s >= _h.hardRoomS - 0.01f && room.s < _h.hardEndS)
+                    {
+                        _saidTheoWindow = true;
+                        Say(DreamHouseLines.TheoWindow, null);
+                    }
                 }
             }
             // The house folds shut room by room behind her (the pursuer's front).
@@ -712,10 +737,11 @@ namespace JamKit.DreamEscape
             var g = _roomGroups[i];
             var hinge = new Vector3(0f, _h.escapeRooms[i].s < 0f ? 0f : g.position.y, RoomEnd(i));
             GameRoot.Audio.Play("mv_collapse", 0.35f);
-            for (float t = 0f; t < 0.8f && g != null; t += Time.deltaTime)
+            float secs = DreamHouseStory.FoldSecondsAt(_story.Outcome, AtHardSpot(_s));
+            for (float t = 0f; t < secs && g != null; t += Time.deltaTime)
             {
                 g.SetPositionAndRotation(_roomPos[i], _roomRot[i]);
-                g.RotateAround(hinge, Vector3.right, -100f * Mathf.SmoothStep(0f, 1f, t / 0.8f));
+                g.RotateAround(hinge, Vector3.right, -100f * Mathf.SmoothStep(0f, 1f, t / secs));
                 yield return null;
             }
             if (g != null) g.gameObject.SetActive(false);
@@ -772,6 +798,35 @@ namespace JamKit.DreamEscape
             _mood = null;
         }
 
+        // ---------- The outcome at the hardest spot: Theo's window (unsure), the fold closing in (condemns) ----------
+
+        bool AtHardSpot(float s) => s >= _h.hardRoomS && s < _h.hardEndS;
+
+        /// <summary>The fold's gap for where she is: nearer at the hardest spot when Lena condemned her.</summary>
+        void TunePursuer(float s) => _pursuer.targetGap = DreamHouseStory.FoldGapAt(_course.pursuer.targetGap, _story.Outcome, AtHardSpot(s));
+
+        void SetTheoWindow(bool open)
+        {
+            if (_windowOpen != null) _windowOpen.SetActive(open);
+            if (_windowShut != null) _windowShut.SetActive(!open);
+        }
+
+        bool AtTheoWindow(Vector3 p) =>
+            p.x < DreamHouse.TheoWindowX + 1.1f && Mathf.Abs(p.z - _h.theoWindowZ) < DreamHouse.TheoWindowWidth * 0.5f + 0.4f;
+
+        /// <summary>Through Theo's window (Lena ended unsure): past the stairwell door, to the last hall.</summary>
+        public void ClimbThroughTheWindow()
+        {
+            if (!TheoWindowOpen) return;
+            _windowUsed = true;
+            _offering = false;
+            _prompt.style.display = DisplayStyle.None;
+            Debug.Log("JAMKIT_HOUSE through Theo's window, past the stairwell door (Lena ended unsure)");
+            GameRoot.Audio.Play("chime", 0.6f);
+            PlaceAt(_h.hardSkipCheckpoint, true);
+            Say(DreamHouseLines.ThroughTheWindow, null);
+        }
+
         // ---------- The memory-for-a-shortcut offer (the hardest spot, after two falls) ----------
 
         /// <summary>A fall (or the house catching her) in the escape: two at the hardest spot and the dream makes its
@@ -820,7 +875,7 @@ namespace JamKit.DreamEscape
         }
 
         /// <summary>Straight into the escape at checkpoint <paramref name="checkpoint"/>, running (chapters, smoke, tests).</summary>
-        public void JumpToEscapeAt(int checkpoint) => JumpToEscape(checkpoint);
+        public void JumpToEscapeAt(int checkpoint, ArgumentOutcome outcome = ArgumentOutcome.None) => JumpToEscape(checkpoint, outcome);
 
         // ---------- Lines ----------
 
@@ -949,12 +1004,12 @@ namespace JamKit.DreamEscape
         public const string SmokeCheckpoint = "The last door";
 
         /// <summary>Straight into the escape at one of its checkpoints, running (chapters, the smoke run).</summary>
-        void JumpToEscape(int checkpoint)
+        void JumpToEscape(int checkpoint, ArgumentOutcome outcome = ArgumentOutcome.None)
         {
             StopAllCoroutines();
             _respawning = false;
             SetWhite(0f);
-            _story.JumpTo(HousePhase.Escape);
+            _story.JumpTo(HousePhase.Escape, outcome);
             ResetHouse();
             _stretched = true;
             BeginEscape(checkpoint < 0 ? _h.escapeCheckpoint : checkpoint);

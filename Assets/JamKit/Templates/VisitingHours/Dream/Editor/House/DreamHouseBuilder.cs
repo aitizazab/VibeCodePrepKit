@@ -465,6 +465,45 @@ namespace JamKit.DreamEscape.EditorTools
             EscapeDecor(h, groups);
         }
 
+        /// <summary>THE SWITCH for the escape's ceilings (the creator decides): true closes in every escape room but the
+        /// observatory (open to the sky); false leaves them open to the sky over their walls. Rebuild the house after
+        /// changing it.</summary>
+        public static bool EscapeCeilings = true;
+        /// <summary>How tall the escape's rooms are (floor to ceiling); the last hall meets the front door's wall.</summary>
+        public const float EscapeRoomHeight = 7.5f, LastHallHeight = 6f;
+        const string ObservatoryRoom = "The observatory, open to the sky", LastHallRoom = "The last hall", AtticStairsRoom = "The attic stairs, the wrong way";
+
+        /// <summary>Theo's window in the left wall before the stairwell door: shut (curtained), or open, lit, with Theo in it
+        /// (the game opens it when Lena ended unsure: the shortcut round the door).</summary>
+        static void TheosWindow(DreamHouse h, Transform parent, float floor, Material trim)
+        {
+            float w = DreamHouse.TheoWindowWidth, ht = DreamHouse.TheoWindowHeight, x = DreamHouse.TheoWindowX + 0.01f;
+            var c = new Vector3(x, floor + DreamHouse.TheoWindowSill + ht * 0.5f, h.theoWindowZ);
+            var t = new GameObject("Theo's window").transform;
+            t.SetParent(parent, false);
+            DreamEscapeBuilder.Box("Window frame (top)", t, c + new Vector3(0.03f, ht * 0.5f + 0.05f, 0f), new Vector3(0.08f, 0.1f, w + 0.2f), trim);
+            DreamEscapeBuilder.Box("Window frame (sill)", t, c + new Vector3(0.06f, -ht * 0.5f - 0.05f, 0f), new Vector3(0.14f, 0.1f, w + 0.3f), trim);
+            foreach (float dz in new[] { -w * 0.5f - 0.05f, w * 0.5f + 0.05f })
+                DreamEscapeBuilder.Box("Window frame (side)", t, c + new Vector3(0.03f, 0f, dz), new Vector3(0.08f, ht + 0.2f, 0.1f), trim);
+            var shut = new GameObject(DreamHouseGame.TheoWindowShut).transform;
+            shut.SetParent(t, false);
+            DreamEscapeBuilder.Quad("Curtain (drawn)", shut, c, Vector3.right, w, ht, DreamEscapeBuilder.Pastel("HouseCurtain", new Color(0.86f, 0.66f, 0.36f), 0.03f));
+            var open = new GameObject(DreamHouseGame.TheoWindowOpenName).transform;
+            open.SetParent(t, false);
+            DreamEscapeBuilder.Quad("Window (lit, open)", open, c, Vector3.right, w, ht, DreamEscapeBuilder.Glow("HouseWindowLit", new Color(1f, 0.86f, 0.6f), 0.7f, 0f, 0.1f));
+            var mat = DreamEscapeBuilder.Mat("Cutout_" + DreamArt.Theo, "JamKit/Dream/Cutout");
+            mat.SetTexture("_MainTex", DreamArt.Get(DreamArt.Theo, out _));
+            var theo = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            theo.name = "Theo (in the window)";
+            Object.DestroyImmediate(theo.GetComponent<Collider>());
+            theo.transform.SetParent(open, false);
+            theo.transform.position = new Vector3(x + 0.03f, floor + DreamHouse.TheoWindowSill + 0.55f, h.theoWindowZ - 0.25f);
+            theo.transform.rotation = Quaternion.LookRotation(Vector3.left);
+            theo.transform.localScale = new Vector3(0.5f, 1.1f, 1f);
+            theo.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            open.gameObject.SetActive(false);   // the game opens it
+        }
+
         static void EscapeDecor(DreamHouse h, Dictionary<string, Transform> groups)
         {
             LabPiece P(string n) => h.course.pieces.Find(x => x.name == n);
@@ -478,32 +517,54 @@ namespace JamKit.DreamEscape.EditorTools
             var bulb = DreamEscapeBuilder.Glow("StairBulb", new Color(1f, 0.86f, 0.6f), 1.0f, 0f, 0.1f);
             var rnd = new System.Random(31);
 
-            // The rooms' walls (2026-10-13 review: the escape's floors read as strips in a void, the pendant, the clock, the
-            // calendar and the hanging counters floated). Each floor gets its two side walls, picture only (no collider, so
-            // the course and its wallruns are unchanged), as tall as the run walls: in the tipped rooms the old floor on the
-            // left and the old ceiling on the right; the last hall the right way up, papered; the attic in its boards. The
-            // observatory keeps its open night (closed at the far end below).
+            // The rooms' walls and ceilings (2026-10-13 review: the escape's floors read as strips in a void, the pendant, the
+            // clock, the calendar and the hanging counters floated, the sky showed over every room). Picture only (no
+            // collider, so the course and its wallruns are unchanged). Each floor gets its two side walls up to its room's
+            // ceiling: in the tipped rooms the old floor on the left and the old ceiling on the right; the last hall the
+            // right way up, papered; the attic in its boards. Each room but the observatory gets a ceiling (EscapeCeilings),
+            // the tipped rooms' being the old wall (papered). The observatory keeps its open night (closed at the far end
+            // below).
             if (h.escapeRooms.Count > 0)
             {
                 var oldFloor = Look(HouseLook.TippedFloor);
                 var oldCeiling = Look(HouseLook.Ceiling);
                 var paper = Look(HouseLook.Wall);
                 var boards = Look(HouseLook.Roof);
-                float s0 = h.escapeRooms[0].s - 0.01f;
-                foreach (var p in h.course.pieces)
+                for (int r = 0; r < h.escapeRooms.Count; r++)
                 {
-                    if (p.kind != LabPieceKind.Floor || p.center.Z < s0 || p.center.Z >= h.frontDoorZ - 0.3f) continue;
-                    if (p.name == "The entrance hall") continue;
-                    string room = h.escapeRooms[0].name;
-                    foreach (var er in h.escapeRooms) if (p.center.Z >= er.s - 0.01f) room = er.name;
-                    if (room == "The observatory, open to the sky" || !groups.TryGetValue(room, out var g)) continue;
-                    Material left = oldFloor, right = oldCeiling;
-                    if (room == "The last hall") left = right = paper;
-                    else if (room == "The attic stairs, the wrong way") left = right = boards;
-                    float top = p.Max.Y, len = p.size.Z;
-                    DreamEscapeBuilder.Box("Room wall (left)", g, new Vector3(-4.6f, top + 2f, p.center.Z), new Vector3(0.1f, 8f, len), left);
-                    DreamEscapeBuilder.Box("Room wall (right)", g, new Vector3(4.6f, top + 2f, p.center.Z), new Vector3(0.1f, 8f, len), right);
+                    var er = h.escapeRooms[r];
+                    if (er.name == ObservatoryRoom || !groups.TryGetValue(er.name, out var g)) continue;
+                    float rs = er.s - 0.01f, re = r + 1 < h.escapeRooms.Count ? h.escapeRooms[r + 1].s : h.frontDoorZ - 0.25f;
+                    var floors = h.course.pieces.FindAll(p => p.kind == LabPieceKind.Floor && p.name != "The entrance hall" && p.center.Z >= rs && p.center.Z < re);
+                    if (floors.Count == 0) continue;
+                    bool lastHall = er.name == LastHallRoom, attic = er.name == AtticStairsRoom;
+                    Material left = lastHall ? paper : attic ? boards : oldFloor, right = lastHall ? paper : attic ? boards : oldCeiling;
+                    Material over = lastHall ? oldCeiling : attic ? boards : paper;
+                    float top = float.MinValue;
+                    foreach (var p in floors) top = Mathf.Max(top, p.Max.Y);
+                    float ceil = top + (lastHall ? LastHallHeight : EscapeRoomHeight);   // the last hall meets the front door's wall
+                    foreach (var p in floors)
+                    {
+                        float y0 = p.Max.Y - 2f, len = p.size.Z;
+                        DreamEscapeBuilder.Box("Room wall (left)", g, new Vector3(-4.6f, (y0 + ceil) * 0.5f, p.center.Z), new Vector3(0.1f, ceil - y0, len), left);
+                        DreamEscapeBuilder.Box("Room wall (right)", g, new Vector3(4.6f, (y0 + ceil) * 0.5f, p.center.Z), new Vector3(0.1f, ceil - y0, len), right);
+                    }
+                    if (EscapeCeilings)
+                        DreamEscapeBuilder.Box("Room ceiling", g, new Vector3(0f, ceil + 0.05f, (er.s + re) * 0.5f), new Vector3(9.3f, 0.1f, re - er.s), over);
                 }
+            }
+
+            // A chair, stuck to the wall that was its floor: its legs on the old floor (the left wall), its seat sideways.
+            void ChairOnTheWall(Transform g, Vector3 foot, float turn)
+            {
+                var c = new GameObject("Chair (stuck to the wall-floor)").transform;
+                c.SetParent(g, false);
+                c.position = foot;
+                DreamEscapeBuilder.Box("Chair seat", c, foot + new Vector3(0f, 0.46f, 0f), new Vector3(0.46f, 0.05f, 0.46f), chair);
+                DreamEscapeBuilder.Box("Chair back", c, foot + new Vector3(-0.2f, 0.75f, 0f), new Vector3(0.05f, 0.55f, 0.46f), chair);
+                foreach (var (lx, lz) in new[] { (-0.2f, -0.2f), (0.2f, -0.2f), (-0.2f, 0.2f), (0.2f, 0.2f) })
+                    DreamEscapeBuilder.Box("Chair leg", c, foot + new Vector3(lx, 0.22f, lz), new Vector3(0.04f, 0.44f, 0.04f), frame);
+                c.rotation = Quaternion.Euler(0f, 0f, -90f) * Quaternion.Euler(0f, turn, 0f);
             }
 
             void Photo(Transform g, Vector3 at, Vector3 n, int pic, float roll)
@@ -525,11 +586,9 @@ namespace JamKit.DreamEscape.EditorTools
                     MeshPart("Plate (sliding)", PrimitiveType.Cylinder, kitchen, new Vector3(i % 2 == 0 ? -0.6f : 0.6f, RampY(table, z) + 0.02f, z), new Vector3(0.36f, 0.012f, 0.36f), plateMat);
                 }
                 var floor = P("The tipped kitchen (its wall is the floor)");
+                int n = 0;
                 foreach (float z in new[] { floor.Min.Z + 3f, floor.Min.Z + 7f, floor.Min.Z + 11f })
-                {
-                    var c = DreamEscapeBuilder.Box("Chair (stuck to the wall-floor)", kitchen, new Vector3(-3.6f, floor.Max.Y + 0.25f, z), new Vector3(0.9f, 0.5f, 0.5f), chair);
-                    c.transform.rotation = Quaternion.Euler(0f, 20f * (z % 3f), 0f);
-                }
+                    ChairOnTheWall(kitchen, new Vector3(-4.55f, floor.Max.Y + 1.4f + 0.9f * (n % 2), z), 25f * (n++ - 1));
                 var pend = MeshPart("Pendant (hanging sideways)", PrimitiveType.Cylinder, kitchen, new Vector3(3.2f, floor.Max.Y + 2.4f, floor.Min.Z + 9f), new Vector3(0.5f, 0.1f, 0.5f), DreamProps.MeshLook("DecorShade", new Color(0.99f, 0.93f, 0.8f), 0.01f));
                 pend.transform.rotation = Quaternion.Euler(0f, 0f, 90f);
                 DreamEscapeBuilder.Box("Pendant cord (to the old ceiling)", kitchen, new Vector3(3.925f, floor.Max.Y + 2.4f, floor.Min.Z + 9f), new Vector3(1.25f, 0.03f, 0.03f), frame);
@@ -544,7 +603,8 @@ namespace JamKit.DreamEscape.EditorTools
                 var wall = P("The hallway's floor (turning into the wall)");
                 var turning = new GameObject(DreamHouseGame.TurningGroup).transform;
                 turning.SetParent(hallRoom, false);
-                turning.position = new Vector3(0f, hall.Max.Y + 3f, (hall.Min.Z + wall.Max.Z) * 0.5f);
+                // Its pivot half the room's width up, so the walls roll onto the floor and the floor onto the wall.
+                turning.position = new Vector3(0f, hall.Max.Y + 4.5f, (hall.Min.Z + wall.Max.Z) * 0.5f);
                 var runner = DreamEscapeBuilder.Pastel("HouseRunnerEscape", new Color(0.32f, 0.52f, 0.52f), 0.02f);
                 DreamEscapeBuilder.Box("The runner (on the wall)", turning, new Vector3(4.45f, hall.Max.Y + 3f, (hall.Min.Z + wall.Max.Z) * 0.5f), new Vector3(0.04f, 1.0f, wall.Max.Z - hall.Min.Z - 4f), runner);
                 for (int i = 0; i < 8; i++)
@@ -605,7 +665,7 @@ namespace JamKit.DreamEscape.EditorTools
             {
                 var first = P("The observatory's first boards");
                 var wall = P("Along the round window (over the sky)");
-                float z0 = first.Min.Z - 2f, z1 = wall.Max.Z + 4f, y = first.Max.Y;
+                float z0 = first.Min.Z - 2f, z1 = wall.Max.Z + 1f, y = first.Max.Y;   // z1: where the attic's room starts
                 DreamEscapeBuilder.Quad("Night (left)", obs, new Vector3(-14f, y + 2f, (z0 + z1) * 0.5f), Vector3.right, z1 - z0, 30f, night);
                 DreamEscapeBuilder.Quad("Night (right)", obs, new Vector3(14f, y + 2f, (z0 + z1) * 0.5f), Vector3.left, z1 - z0, 30f, night);
                 DreamEscapeBuilder.Quad("Night (below)", obs, new Vector3(0f, y - 9f, (z0 + z1) * 0.5f), Vector3.up, 28f, z1 - z0, night);
@@ -662,7 +722,7 @@ namespace JamKit.DreamEscape.EditorTools
                 var floor = P("The kitchen again (turned)");
                 var counter = DreamEscapeBuilder.Pastel("HouseCounter", DreamEscapeBuilder.Palette[4], 0.05f);
                 foreach (float x in new[] { -3.9f, 3.9f })
-                    DreamEscapeBuilder.Box("Counter (hanging from the ceiling)", kitchen2, new Vector3(x, floor.Max.Y + 4.1f, floor.center.Z + 4f), new Vector3(1.2f, 0.9f, 10f), counter);
+                    DreamEscapeBuilder.Box("Counter (hanging from the ceiling)", kitchen2, new Vector3(x, floor.Max.Y + (EscapeCeilings ? EscapeRoomHeight - 0.45f : 4.1f), floor.center.Z + 4f), new Vector3(1.2f, 0.9f, 10f), counter);
                 var table = P("The table again (the long way)");
                 for (int i = 0; i < 4; i++)
                 {
@@ -693,6 +753,7 @@ namespace JamKit.DreamEscape.EditorTools
                 foreach (float x in new[] { -1.15f, 1.15f })
                     DreamEscapeBuilder.Box("Stairwell door frame", door, new Vector3(x, over.Min.Y - 1.15f, over.center.Z - 0.22f), new Vector3(0.1f, 2.3f, 0.06f), white);
                 DreamEscapeBuilder.Part("Bulb (over the stairwell)", PrimitiveType.Sphere, door, Vector3.zero, Vector3.one * 0.3f, bulb).transform.position = new Vector3(0f, over.Max.Y + 0.6f, over.center.Z + 12f);
+                TheosWindow(h, door, P("Before the stairwell door").Max.Y, white);
             }
         }
         /// <summary>Lena watching from the window as Nadia leaves (Night 2, step 7): a lit window beside the way out's door,

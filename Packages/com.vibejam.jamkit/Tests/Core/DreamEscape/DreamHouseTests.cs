@@ -506,5 +506,40 @@ namespace JamKit.Tests.DreamEscape
             Assert.That(r.resetS, Is.GreaterThan(h.hubCheckpoint >= 0 ? h.course.checkpoints[h.hubCheckpoint].s : 0f), "a new visit puts it back");
             Assert.That(r.rainEndS, Is.GreaterThan(r.despairS + 10f));
         }
+
+        [Test]
+        public void TheOutcomeChangesTheHardestSpot()
+        {
+            // Unsure: Theo opens the window; condemns: the fold keeps closer there, and folds the rooms faster.
+            Assert.That(DreamHouseStory.TheoOpensTheWindow(ArgumentOutcome.Unsure), Is.True);
+            Assert.That(DreamHouseStory.TheoOpensTheWindow(ArgumentOutcome.Condemns), Is.False);
+            Assert.That(DreamHouseStory.FoldGapAt(12f, ArgumentOutcome.Condemns, true), Is.EqualTo(DreamHouseStory.CondemnedFoldGap));
+            Assert.That(DreamHouseStory.FoldGapAt(12f, ArgumentOutcome.Condemns, false), Is.EqualTo(12f), "only at the hardest spot");
+            Assert.That(DreamHouseStory.FoldGapAt(12f, ArgumentOutcome.Unsure, true), Is.EqualTo(12f));
+            Assert.That(DreamHouseStory.FoldSecondsAt(ArgumentOutcome.Condemns, true), Is.LessThan(DreamHouseStory.FoldSecondsAt(ArgumentOutcome.Unsure, true)));
+            Assert.That(DreamHouseStory.CondemnedFoldGap, Is.GreaterThan(new Pursuer().catchGap + 2f), "closer, still not on top of her");
+
+            var h = Build();
+            float cp = h.course.checkpoints[h.hardCheckpoint].s;
+            Assert.That(h.hardRoomS, Is.LessThanOrEqualTo(cp), "the hardest spot's room holds its checkpoint");
+            Assert.That(h.theoWindowZ, Is.GreaterThan(cp).And.LessThan(h.hardStartS - DreamHouse.TheoWindowWidth * 0.5f), "the window between the checkpoint and the door");
+            Assert.That(h.course.LaneAt(h.theoWindowZ), Is.GreaterThan(DreamHouse.TheoWindowX + 1.5f), "the run passes it by (the window is a choice)");
+            Assert.That(h.hardSkipCheckpoint, Is.GreaterThan(h.hardCheckpoint), "it lets her out past the door");
+        }
+
+        [Test]
+        public void TheoRemembersHerAnswerAsSheIsTurnedOut()
+        {
+            Assert.That(DreamHouseLines.PartingFor(TheoAnswer.None), Is.Empty, "he never asked: nothing");
+            var said = new HashSet<string>();
+            foreach (var a in new[] { TheoAnswer.Honest, TheoAnswer.Comfort, TheoAnswer.Silence })
+            {
+                var l = DreamHouseLines.PartingFor(a);
+                Assert.That(l.Length, Is.EqualTo(1));
+                Assert.That(l[0].speaker, Is.EqualTo(DreamHouseLines.Theo));
+                Assert.That(l[0].text, Does.StartWith(DreamHouseLines.Placeholder), "a placeholder: the dialogue is the creator's");
+                Assert.That(said.Add(l[0].text), Is.True, "a different line for each answer");
+            }
+        }
     }
 }

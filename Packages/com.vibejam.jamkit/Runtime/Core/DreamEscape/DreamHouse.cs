@@ -153,6 +153,12 @@ namespace JamKit.DreamEscape
         /// memory-for-a-shortcut offer puts her (docs/NIGHTS-GAMEPLAY.md).</summary>
         public int hardCheckpoint, hardSkipCheckpoint;
         public float hardStartS, hardEndS;
+        /// <summary>Where the hardest spot's room starts (the fold closes in faster from here when Lena condemned her).</summary>
+        public float hardRoomS;
+        /// <summary>Theo's window, the shortcut when Lena ends unsure: in the left wall before the stairwell door, its middle
+        /// at <see cref="theoWindowZ"/>; climbing through puts her at <see cref="hardSkipCheckpoint"/>.</summary>
+        public float theoWindowZ;
+        public const float TheoWindowX = -4.55f, TheoWindowWidth = 1.6f, TheoWindowSill = 0.8f, TheoWindowHeight = 1.5f;
         /// <summary>The front door, the umbrella and the rain path (normal; <see cref="DreamHouseStory.RainFor"/> adjusts it).</summary>
         public DreamRainSpot rain;
         public int arrivalCheckpoint, hubCheckpoint, escapeCheckpoint, frontDoorCheckpoint;
@@ -725,11 +731,13 @@ namespace JamKit.DreamEscape
             z = WallrunAcross("The third hallway: the right wall", z + 20f, t, 1f);
             t -= 1f;
 
+            hardRoomS = z;
             Room("The door onto the stairwell", z, new Vector3(0.7f, 0.66f, 0.82f), new Vector3(0.55f, 0.5f, 0.7f), "glitch");
             // The hardest spot: a door that opens onto the stairwell's drop; kick wall to wall down it. The dream offers
             // to let her through for a memory after two falls here (DreamHouseGame).
             Floor("Before the stairwell door", HouseLook.TippedWall, z, z + 20f, t);
             hardCheckpoint = Checkpoint("The stairwell door", z + 4f, t);
+            theoWindowZ = z + 6.2f;   // between the checkpoint and the door, in the left wall
             Add("The stairwell door (left)", LabPieceKind.Wall, HouseLook.Wall, V(-4.5f, t, z + 8f), V(-1.1f, t + 3.4f, z + 8.4f));
             Add("The stairwell door (right)", LabPieceKind.Wall, HouseLook.Wall, V(1.1f, t, z + 8f), V(4.5f, t + 3.4f, z + 8.4f));
             Add("The stairwell door (over it)", LabPieceKind.Wall, HouseLook.Lintel, V(-1.1f, t + 2.3f, z + 8f), V(1.1f, t + 3.4f, z + 8.4f));

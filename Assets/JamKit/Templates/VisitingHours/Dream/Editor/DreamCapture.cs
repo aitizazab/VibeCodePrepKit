@@ -116,6 +116,12 @@ namespace JamKit.DreamEscape.EditorTools
                 string id = cp.name.ToLowerInvariant().Replace(" ", "-").Replace(",", "").Replace("'", "");
                 house.Add(new Spot($"escape-house-{n:00}-{id}", at + new Vector3(0f, Eye + 0.3f, -3f), at + new Vector3(0f, 1.2f, 14f)));
             }
+            // Theo's window open at the hardest spot (Lena ended unsure: the shortcut round the stairwell door).
+            {
+                var hcp = hb.course.checkpoints[hb.hardCheckpoint].position;
+                house.Add(new Spot("escape-house-11b-theos-window-open", new Vector3(0.8f, hcp.Y + Eye, hb.theoWindowZ - 4.5f),
+                    new Vector3(DreamHouse.TheoWindowX, hcp.Y + 1.4f, hb.theoWindowZ), "theos-window"));
+            }
             Scene(DreamHouseBuilder.ScenePath, house, dir);
             if (!string.IsNullOrEmpty(variants)) HouseVariants(dir, variants);
 
@@ -164,10 +170,16 @@ namespace JamKit.DreamEscape.EditorTools
                         look = open.transform.position;
                         eye = look + new Vector3(2.4f, -0.4f, -2.4f);
                     }
+                    var windowOpen = s.show == "theos-window" ? FindByName(DreamHouseGame.TheoWindowOpenName) : null;
+                    var windowShut = s.show == "theos-window" ? FindByName(DreamHouseGame.TheoWindowShut) : null;
+                    if (windowOpen != null) windowOpen.SetActive(true);
+                    if (windowShut != null) windowShut.SetActive(false);
                     go.transform.position = eye;
                     go.transform.rotation = Quaternion.LookRotation(look - eye, Vector3.up);
                     FaceCutOuts(eye);
                     Shot(cam, rt, s.name, dir);
+                    if (windowOpen != null) windowOpen.SetActive(false);
+                    if (windowShut != null) windowShut.SetActive(true);
                 }
             }
             finally

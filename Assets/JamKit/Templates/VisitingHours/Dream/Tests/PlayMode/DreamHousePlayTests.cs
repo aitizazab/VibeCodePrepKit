@@ -223,6 +223,64 @@ namespace JamKit.DreamEscape.Tests
         }
 
         [UnityTest]
+        public IEnumerator UnsureOpensTheosWindowRoundTheHardestSpot()
+        {
+            yield return StartHouse();
+            Game.JumpToEscapeAt(Game.House.hardCheckpoint, ArgumentOutcome.Condemns);
+            yield return Frames(3);
+            Assert.That(Game.TheoWindowOpen, Is.False, "condemned: no window");
+            Assert.That(GameObject.Find(DreamHouseGame.TheoWindowShut), Is.Not.Null, "its curtain drawn");
+            Assert.That(GameObject.Find(DreamHouseGame.TheoWindowOpenName), Is.Null);
+
+            Game.JumpToEscapeAt(Game.House.hardCheckpoint, ArgumentOutcome.Unsure);
+            yield return Frames(3);
+            Assert.That(Game.TheoWindowOpen, Is.True, "unsure: Theo opens the window");
+            Assert.That(GameObject.Find(DreamHouseGame.TheoWindowOpenName), Is.Not.Null, "lit, with Theo in it");
+            Assert.That(GameObject.Find(DreamHouseGame.TheoWindowShut), Is.Null);
+            // Run to it: through the window, past the stairwell door.
+            var cp = Game.House.course.checkpoints[Game.House.hardCheckpoint].position;
+            Game.player.Teleport(new Vector3(DreamHouse.TheoWindowX + 0.6f, cp.Y + 0.02f, Game.House.theoWindowZ), 270f, Vector3.zero);
+            yield return WaitFor(() => Game.TookTheoWindow, "through Theo's window", 3f);
+            yield return Frames(2);
+            Assert.That(Game.Checkpoint, Is.EqualTo(Game.House.hardSkipCheckpoint), "out past the door, in the last hall");
+            Assert.That(Game.TheoWindowOpen, Is.False, "once");
+        }
+
+        [UnityTest]
+        public IEnumerator CondemnsFoldsTheHouseFasterAtTheHardestSpot()
+        {
+            yield return StartHouse();
+            float normal = Game.House.course.pursuer.targetGap;
+            Game.JumpToEscapeAt(Game.House.hardCheckpoint, ArgumentOutcome.Unsure);
+            yield return Frames(3);
+            Assert.That(Game.Chasing, Is.True);
+            Assert.That(Game.FoldGap, Is.EqualTo(normal), "unsure: the usual gap");
+            Game.JumpToEscapeAt(Game.House.escapeCheckpoint, ArgumentOutcome.Condemns);
+            yield return Frames(3);
+            Assert.That(Game.FoldGap, Is.EqualTo(normal), "condemned, but not yet at the hardest spot");
+            Game.JumpToEscapeAt(Game.House.hardCheckpoint, ArgumentOutcome.Condemns);
+            yield return Frames(3);
+            Assert.That(Game.Chasing, Is.True);
+            Assert.That(Game.FoldGap, Is.EqualTo(DreamHouseStory.CondemnedFoldGap).And.LessThan(normal), "condemned: the house closes in behind her");
+        }
+
+        [UnityTest]
+        public IEnumerator TheosAnswerPaysOffAsLenaTurnsHerOut()
+        {
+            yield return StartHouse();
+            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterArgument), Is.EqualTo(JumpResult.Jumped));
+            yield return Frames(3);
+            Assert.That(Game.Story.AnswerTheo(TheoAnswer.Silence), Is.True, "as if she'd said nothing when he asked");
+            Game.Choose(ArgumentOutcome.Unsure);
+            string parting = DreamHouseLines.PartingFor(TheoAnswer.Silence)[0].text;
+            DebugMenu.TimeScale = 3f;
+            yield return WaitFor(() => Game.LineText.Contains(parting), "Theo's parting line, for her silence", 10f);
+            Assert.That(Game.Phase, Is.EqualTo(HousePhase.Escape), "the story's moved on");
+            Assert.That(Game.Checkpoint, Is.Not.EqualTo(Game.House.escapeCheckpoint), "before the house tips");
+            yield return WaitFor(() => Game.Checkpoint == Game.House.escapeCheckpoint && !Game.Respawning, "then the house kicks her out", 10f);
+        }
+
+        [UnityTest]
         public IEnumerator TheHouseFoldsShutRoomByRoomBehindHer()
         {
             yield return StartHouse();

@@ -163,7 +163,9 @@ In `DreamHouseGame`, `DreamHouseStory` and `DreamHouseLines`; every line here is
    (`fact_photo`). All five found: the creator's line, ending by route (normal: "...but what does it matter, when he's
    not even real?"; Despair: "...it would be nice to see his smile again.").
 5. **Theo's question** the first time he finds her: "Is Dad going to be sad?" (honest, comfort or say nothing; 1/2/3).
-   Kept in the save under `vh_theo_dad_sad`.
+   Kept in the save under `vh_theo_dad_sad`. **It pays off:** as Lena turns Nadia out, before the house tips, Theo has a
+   parting line by her answer (honest: "Tell Dad it's okay to be sad. I'll be brave."; comfort: "You promised he won't be
+   sad!"; silence: he doesn't look up, doesn't wave). Placeholders (`DreamHouseLines.TheoParting`).
 6. **Elias never comes down;** Nadia asks Lena; the battle `lena_night2` starts with the evidence she found
    (`DreamHouseGame.StartBattle(id, evidence, done)` is the argument's battle API's plug; until it's set, the battle
    prototype runs as before, F7/F8 skip it).
@@ -189,8 +191,16 @@ In `DreamHouseGame`, `DreamHouseStory` and `DreamHouseLines`; every line here is
        here the dream offers to let her through for a memory ("It'll let you through. It keeps what you give it.", Mags
        warning; placeholders); she can say no; given, the last memory she found is gone from her cards (save entry
        `vh_n2_memory_given`).
+       **The argument's outcome changes this spot:** if Lena ended **unsure**, Theo opens a window in the left wall just
+       before the door ("Nadia! Over here, the window!", placeholder): climbing through it puts her in the last hall, past
+       the drop (a choice: the run passes it by). If she **condemned** Nadia, the house folds faster here: the fold keeps
+       7 m behind her instead of 12, and the rooms fold shut in 0.4 s instead of 0.8 (`DreamHouseStory.FoldGapAt`).
    11. **The last hall**, the right way up, then **the umbrella** at the front door and **Lena at the window** as she leaves.
    A checkpoint every 5-12 s of the autopilot's run (10-20 s for a player); the smoke run starts at "The last door".
+   **The rooms' walls and ceilings** are pictures only (no colliders: the course is unchanged): the tipped rooms show the
+   old floor on the left, the old ceiling on the right, the old wall overhead; the last hall is papered; the attic in its
+   boards; the observatory stays open to the sky. **The ceilings are one switch:** `DreamHouseBuilder.EscapeCeilings`
+   (true: closed in, 7.5 m up; false: open to the sky over the walls), then rebuild the house.
 - **The Saturday deduction:** with Night 1's Saturday paper in the shared journal (`DreamJournal`, save entry
   `vh_dream_journal`, id `mem_saturday_paper`: Night 1 adds it), the calendar becomes `ded_saturday_off` in the evidence.
   Testing Night 2 alone: F6 in a debug build (or `DreamHouseGame.DebugSaturdayPaper`).
