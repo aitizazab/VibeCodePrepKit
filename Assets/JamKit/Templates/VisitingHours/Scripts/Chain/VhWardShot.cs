@@ -11,7 +11,7 @@ namespace JamKit.VisitingHours
     /// <summary>
     /// Stills of the waking days for review (the creator: "the rooms should look real"), from a build:
     /// <c>VibeJamKit.exe -ward-shot "C:/…/folder" -screen-width 1920 -screen-height 1080 -screen-fullscreen 0</c>. It skips the
-    /// opening, starts the Visiting Hours scene, and takes the HUD-free stills listed in <see cref="Framings"/>: the station,
+    /// opening, starts the Visiting Hours scene, and takes the UI-free stills listed in <see cref="Framings"/>: the station,
     /// the corridor both ways, room 14 on Day 1 and on Day 2, and the booth with Mags. Then it takes one first-person still
     /// per examinable on each day, from the approach the smoke run uses and looking at the thing. It writes
     /// <c>shots.txt</c> (one line per still: file, place, where from) and quits. Lives on the GameRoot (added by
@@ -98,17 +98,18 @@ namespace JamKit.VisitingHours
             var game = VisitingHoursGame.Current;
             if (game == null) { Finish("the Visiting Hours scene didn't start"); yield break; }
             Directory.CreateDirectory(_folder);
-            HideHud(true);
 
             SliceArea built = (SliceArea)(-1);
             foreach (var f in Framings)
             {
                 if (built != f.area) { yield return Enter(game, f.area); built = f.area; }
                 Place(game, new Vector3(f.at.x, 0.05f, f.at.y), f.yaw, f.pitch);
+                HideUi(true);
                 yield return Shoot(f.name, f.area + " from (" + f.at.x + ", " + f.at.y + ") yaw " + f.yaw + " pitch " + f.pitch);
             }
 
-            // One still per examinable on each day, from its approach, looking at it.
+            // One still per examinable on each day, from its approach, looking at it (the HUD shown: its prompt names the thing).
+            HideUi(false);
             foreach (var area in new[] { SliceArea.Hospital, SliceArea.HospitalDay2, SliceArea.Booth })
             {
                 yield return Enter(game, area);
@@ -161,10 +162,12 @@ namespace JamKit.VisitingHours
             else { _failed++; Debug.LogWarning("JAMKIT_VH ward shot missing: " + path); }
         }
 
-        static void HideHud(bool hide)
+        /// <summary>The framed stills are of the rooms alone: every UI document hidden (the HUD, the controls row, the
+        /// prompt), shown again for the per-thing stills.</summary>
+        static void HideUi(bool hide)
         {
-            var root = GameRoot.Exists && GameRoot.Hud != null ? GameRoot.Hud.Root : null;
-            if (root != null) root.style.display = hide ? DisplayStyle.None : DisplayStyle.Flex;
+            foreach (var doc in Object.FindObjectsByType<UIDocument>(FindObjectsSortMode.None))
+                if (doc != null && doc.rootVisualElement != null) doc.rootVisualElement.style.display = hide ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         void Finish(string problem)

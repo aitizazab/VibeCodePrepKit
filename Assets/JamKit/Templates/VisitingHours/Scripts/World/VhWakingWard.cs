@@ -498,14 +498,14 @@ namespace JamKit.VisitingHours
                 float z = 4.6f + i * 1.8f;
                 var screen = k.style.Unique(Color.black, null, "VH station screen");
                 VhWakingStyle.SetEmission(screen, (i == 0 ? new Color(0.36f, 0.5f, 0.62f) : new Color(0.42f, 0.48f, 0.5f)) * 0.75f);
-                Box(k, "Monitor", new Vector3(-4.0f, 1.07f, z), new Vector3(0.04f, 0.32f, 0.52f), VhWakingStyle.MetalDark, false, 0.01f);
-                VhMeshKit.Show(k.root, "Monitor screen", k.meshes.Quad(0.48f, 0.28f), screen, new Vector3(-3.975f, 1.075f, z), Quaternion.Euler(0f, -90f, 0f), false);
-                Box(k, "Monitor stand", new Vector3(-4.04f, 0.84f, z), new Vector3(0.04f, 0.18f, 0.05f), VhWakingStyle.MetalDark);
-                Box(k, "Monitor foot", new Vector3(-4.02f, 0.755f, z), new Vector3(0.18f, 0.01f, 0.2f), VhWakingStyle.MetalDark);
-                Box(k, "Keyboard", new Vector3(-3.72f, 0.76f, z), new Vector3(0.15f, 0.02f, 0.44f), new Color(0.22f, 0.23f, 0.25f), false, 0.005f, Quaternion.Euler(0f, 0f, 3f));
-                Box(k, "Mouse", new Vector3(-3.72f, 0.76f, z + 0.32f), new Vector3(0.1f, 0.025f, 0.06f), new Color(0.22f, 0.23f, 0.25f), false, 0.012f);
+                Box(k, "Monitor", new Vector3(-3.5f, 1.07f, z), new Vector3(0.04f, 0.32f, 0.52f), VhWakingStyle.MetalDark, false, 0.01f);
+                VhMeshKit.Show(k.root, "Monitor screen", k.meshes.Quad(0.48f, 0.28f), screen, new Vector3(-3.525f, 1.075f, z), Quaternion.Euler(0f, 90f, 0f), false);
+                Box(k, "Monitor stand", new Vector3(-3.46f, 0.84f, z), new Vector3(0.04f, 0.18f, 0.05f), VhWakingStyle.MetalDark);
+                Box(k, "Monitor foot", new Vector3(-3.48f, 0.755f, z), new Vector3(0.18f, 0.01f, 0.2f), VhWakingStyle.MetalDark);
+                Box(k, "Keyboard", new Vector3(-3.86f, 0.76f, z), new Vector3(0.15f, 0.02f, 0.44f), new Color(0.22f, 0.23f, 0.25f), false, 0.005f, Quaternion.Euler(0f, 0f, 3f));
+                Box(k, "Mouse", new Vector3(-3.86f, 0.76f, z + 0.32f), new Vector3(0.1f, 0.025f, 0.06f), new Color(0.22f, 0.23f, 0.25f), false, 0.012f);
             }
-            AddLight(k, "Screens", new Vector3(-3.6f, 1.15f, 5.5f), new Color(0.6f, 0.75f, 0.9f), 0.15f, 1.6f);
+            AddLight(k, "Screens", new Vector3(-3.95f, 1.15f, 5.5f), new Color(0.6f, 0.75f, 0.9f), 0.15f, 1.6f);
             Box(k, "Desk phone", new Vector3(-3.75f, 0.78f, 6.95f), new Vector3(0.2f, 0.06f, 0.22f), new Color(0.24f, 0.25f, 0.27f), false, 0.02f);
             Box(k, "Handset", new Vector3(-3.83f, 0.825f, 6.95f), new Vector3(0.05f, 0.04f, 0.2f), new Color(0.24f, 0.25f, 0.27f), false, 0.018f);
             Part(k, k.root, "Mug", k.meshes.Cylinder(0.04f, 0.04f, 0.095f, 14), VhWakingStyle.Mug, new Vector3(-3.5f, 0.75f, 7.15f), Quaternion.identity);
@@ -650,7 +650,7 @@ namespace JamKit.VisitingHours
             var framed = new GameObject("Framed photo").transform;
             framed.SetParent(k.root, false);
             framed.localPosition = new Vector3(7.5f, 0.63f, 23.5f);
-            framed.localRotation = Quaternion.Euler(10f, 205f, 0f);
+            framed.localRotation = Quaternion.Euler(10f, 30f, 0f);
             Part(k, framed, "Frame", k.meshes.Box(new Vector3(0.17f, 0.22f, 0.015f)), VhWakingStyle.WoodDark, new Vector3(0f, 0.11f, 0f), Quaternion.identity);
             VhMeshKit.Show(framed, "Photo", k.meshes.Quad(0.14f, 0.18f), k.style.Mat(photoArt != null ? Color.white : VhWakingStyle.Paper, photoArt, 0f), new Vector3(0f, 0.11f, -0.009f), Quaternion.identity, false);
             Box(k, "Get-well card", new Vector3(7.3f, 0.7f, 23.55f), new Vector3(0.12f, 0.16f, 0.004f), new Color(0.88f, 0.84f, 0.7f), false, 0f, Quaternion.Euler(0f, 160f, 8f));
@@ -686,8 +686,8 @@ namespace JamKit.VisitingHours
             {
                 if (Model(k, "armchair", new Vector3(8.35f, 0f, 17.25f), -60f, 0.85f) == null)
                     Box(k, "Visitors' chair", new Vector3(8.35f, 0.25f, 17.25f), new Vector3(0.65f, 0.5f, 0.65f), ChairBlue, true, 0.06f);
-                Box(k, "Effects bag", new Vector3(8.3f, 0.6f, 17.3f), new Vector3(0.36f, 0.26f, 0.24f), new Color(0.85f, 0.86f, 0.88f), false, 0.07f, Quaternion.Euler(0f, 25f, 4f));
-                Box(k, "Effects label", new Vector3(8.18f, 0.62f, 17.2f), new Vector3(0.1f, 0.06f, 0.004f), VhWakingStyle.Paper, false, 0f, Quaternion.Euler(0f, 25f, 4f));
+                Box(k, "Effects bag", new Vector3(8.2f, 0.72f, 17.33f), new Vector3(0.42f, 0.3f, 0.28f), new Color(0.85f, 0.86f, 0.88f), false, 0.07f, Quaternion.Euler(0f, 25f, 4f));
+                Box(k, "Effects label", new Vector3(8.06f, 0.74f, 17.2f), new Vector3(0.1f, 0.06f, 0.004f), VhWakingStyle.Paper, false, 0f, Quaternion.Euler(0f, 25f, 4f));
                 Spot(k, "effects", new Vector3(8.3f, 0.75f, 17.3f), 0.5f);
             }
             else
@@ -843,6 +843,7 @@ namespace JamKit.VisitingHours
             chairBox.center = new Vector3(0f, 0.5f, -0.2f);
             chairBox.size = new Vector3(0.8f, 1f, 1.8f);
             AddLight(k, "Rig glow", new Vector3(-1.0f, 1.4f, 5.0f), new Color(0.5f, 0.65f, 1f), 0.25f, 2f);
+            AddLight(k, "Lab fill", new Vector3(-1.0f, 2.3f, 3.4f), new Color(0.6f, 0.7f, 0.95f), 0.35f, 4.5f);
 
             Box(k, "Console", new Vector3(-2.5f, 0.55f, 5.25f), new Vector3(0.75f, 1.1f, 0.55f), VhWakingStyle.MetalDark, true, 0.02f);
             Box(k, "Console top", new Vector3(-2.5f, 1.12f, 5.2f), new Vector3(0.8f, 0.04f, 0.62f), new Color(0.3f, 0.31f, 0.33f), false, 0.01f);
@@ -879,7 +880,8 @@ namespace JamKit.VisitingHours
 
             // Mags, by the desk.
             var mags = Person(k, "Mags", new Vector3(1.6f, 0f, 2.3f), 230f, 1.64f, Cardigan, new Color(0.3f, 0.28f, 0.26f), GreyHair, true, new Color(0.8f, 0.78f, 0.74f));
-            Part(k, mags, "Glasses", k.meshes.Box(new Vector3(0.16f, 0.03f, 0.01f)), Shoe, new Vector3(0f, 1.55f, 0.115f), Quaternion.identity, false);
+            Part(k, mags, "Glasses (left)", k.meshes.RoundedBox(new Vector3(0.05f, 0.032f, 0.006f), 0.008f, 2), new Color(0.55f, 0.5f, 0.45f), new Vector3(-0.033f, 1.565f, 0.112f), Quaternion.identity, false);
+            Part(k, mags, "Glasses (right)", k.meshes.RoundedBox(new Vector3(0.05f, 0.032f, 0.006f), 0.008f, 2), new Color(0.55f, 0.5f, 0.45f), new Vector3(0.033f, 1.565f, 0.112f), Quaternion.identity, false);
 
             VhWakingStyle.SetAmbient(new Color(0.12f, 0.14f, 0.19f), new Color(0.06f, 0.06f, 0.07f), new Color(0.05f, 0.06f, 0.08f), 0f, 0.15f);
             a.spawn = new Vector3(-0.8f, 0.05f, 1.2f);
