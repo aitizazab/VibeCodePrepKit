@@ -55,6 +55,10 @@ namespace JamKit.Argument
                 if (!e.IsHeard(p.id) && e.Ask(p.id)) return Did("asked about " + p.label);
             // 6. Nothing left to argue.
             if (e.CanLetItRest && e.LetItRest()) return Did("let it rest");
+            // 7. Stuck: the cards that would bring the rest out aren't in the tray (they're found in the night, and this
+            // battle started without them), so nothing can be broken or heard out. Give in on the claim rather than stall:
+            // Yielded, which leaves them unsure.
+            if (e.CanConcedeClaim && e.ConcedeClaim()) return Did("gave in on the claim (nothing left it could do)");
             return false;
         }
 

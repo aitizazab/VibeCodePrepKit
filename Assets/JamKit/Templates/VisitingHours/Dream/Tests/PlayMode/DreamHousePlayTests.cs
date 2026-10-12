@@ -281,9 +281,12 @@ namespace JamKit.DreamEscape.Tests
             battle.Continue();
             yield return Frames(3);
             Assert.That(Game.Phase, Is.EqualTo(HousePhase.Escape), "its end card closed: the house kicks her out");
-            var stance = JamKit.Argument.ArgumentHost.LoadLedger().StanceOf(JamKit.Argument.DreamLenaDemo.Id);
-            TestContext.Out.WriteLine("the battle ended with Lena " + stance + "; the house: " + Game.Story.Outcome);
-            Assert.That(Game.Story.Outcome, Is.EqualTo(DreamHouseGame.OutcomeOf(stance)), "the stance decides");
+            // The battle's result for lena_night2, as the house's plug turns it into Unsure or Condemns (DreamBattles).
+            var record = JamKit.Argument.ArgumentHost.LoadLedger().Get(DreamHouseStory.LenaBattleId);
+            Assert.That(record, Is.Not.Null, "lena_night2's result is in the ledger");
+            var result = JamKit.Argument.ArgumentBattles.Result(JamKit.Argument.ArgumentBattles.Build(DreamHouseStory.LenaBattleId), record);
+            TestContext.Out.WriteLine("the battle ended " + result.outcome + ", Lena " + result.stance + "; the house: " + Game.Story.Outcome);
+            Assert.That(Game.Story.Outcome, Is.EqualTo(DreamBattles.OutcomeOf(result)), "the battle's ending decides");
         }
 
         [UnityTest]

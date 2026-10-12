@@ -170,7 +170,7 @@ namespace JamKit.Argument.Tests
             Assert.That(host.FocusedId, Is.EqualTo("continue"), "focus on Continue");
             yield return Tap(GamepadButton.South);
             Assert.That(ArgumentHost.Running, Is.False);
-            Assert.That(ArgumentHost.LoadLedger().StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Amenable));
+            Assert.That(ArgumentHost.LoadLedger().StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Unsure));
 
             // The menu, same model: the d-pad moves its focus, no wrap.
             var menu = ArgumentPrototype.Current;
@@ -250,7 +250,7 @@ namespace JamKit.Argument.Tests
             yield return WaitFor(() => host.Screen == ArgueScreen.End && host.View.EndShown, "the end card", 15f);
             Assert.That(host.View.EndTitle, Is.EqualTo(ArgumentStrings.Shared["outcome.Convinced"]));
             var saved = ArgumentLedger.Parse(GameRoot.Save.Data.GetEntry(ArgumentLedger.SaveKey));
-            Assert.That(saved.StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Amenable), "kept in the save");
+            Assert.That(saved.StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Unsure), "kept in the save (the creator's two endings: convinced, Lena is unsure)");
             host.Continue();
             yield return null;
             Assert.That(ArgumentHost.Running, Is.False);
@@ -271,7 +271,7 @@ namespace JamKit.Argument.Tests
             Assert.That(called, Is.True);
             Assert.That(got, Is.Not.Null, "a finished battle always calls back with its record");
             Assert.That(got.outcome, Is.EqualTo(ArgumentOutcome.Convinced));
-            Assert.That(ArgumentLedger.Parse(GameRoot.Save.Data.GetEntry(ArgumentLedger.SaveKey)).StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Amenable), "and it's saved");
+            Assert.That(ArgumentLedger.Parse(GameRoot.Save.Data.GetEntry(ArgumentLedger.SaveKey)).StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Unsure), "and it's saved");
             yield return null;
             Assert.That(ArgumentHost.Running, Is.False);
         }

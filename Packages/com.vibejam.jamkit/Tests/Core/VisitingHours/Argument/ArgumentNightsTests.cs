@@ -263,6 +263,17 @@ namespace JamKit.Tests.Argument
             Assert.That(new ArgumentPilot().Play(e2), Is.EqualTo(ArgumentOutcome.HeardOut), "without the same Saturday, L3'' stands");
         }
 
+        [Test]
+        public void TheAutopilotNeverStallsWithoutTheCards()
+        {
+            // The house can open the argument before anything is found (a chapter jump): nothing breaks, the premises behind
+            // the missing cards never come out, so it can't be heard out either. The autopilot gives in rather than stall.
+            var e = new ArgumentEngine(DreamLenaDemo.Build(), new ArgumentSetup { difficulty = ArgumentDifficulty.Story, seed = 9 });
+            Assert.That(new ArgumentPilot().Play(e), Is.EqualTo(ArgumentOutcome.Yielded));
+            Assert.That(e.Ended, Is.True);
+            Assert.That(e.Stance, Is.EqualTo(ArgumentStance.Unsure), "giving in leaves her unsure");
+        }
+
         // ---------- The two endings ----------
 
         [Test]
