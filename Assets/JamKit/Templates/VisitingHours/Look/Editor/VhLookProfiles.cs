@@ -63,26 +63,29 @@ namespace JamKit.Look.EditorTools
             tm.mode.Override(TonemappingMode.ACES);
 
             var ca = Comp<ColorAdjustments>(p);
-            ca.postExposure.Override(-0.05f);   // round 1: foreground underexposed (+0.1)
-            ca.contrast.Override(10f);
-            ca.saturation.Override(12f);
-            ca.colorFilter.Override(new Color(1f, 0.975f, 0.94f));
+            // Pass 4 (round 3, sampled: concrete orange (117, 83, 59), asphalt red-brown, warm shadows, the lawn's blue clipped, a
+            // grey zenith): the warmth now comes from the sun alone; the grade is near-neutral, cools the shadows, lifts the
+            // ground a third of a stop and takes saturation down.
+            ca.postExposure.Override(0.3f);
+            ca.contrast.Override(5f);
+            ca.saturation.Override(-8f);
+            ca.colorFilter.Override(Color.white);
 
             var wb = Comp<WhiteBalance>(p);
-            wb.temperature.Override(14f);
-            wb.tint.Override(3f);
+            wb.temperature.Override(2f);
+            wb.tint.Override(0f);
 
             var st = Comp<SplitToning>(p);
             // Round 1: lilac-grey lawns and roads in shade. Half the lilac, and a warm lift in the shadows (bounce off the
             // sunlit ground).
-            st.shadows.Override(new Color(0.46f, 0.49f, 0.55f));    // a cool hint, half pass 1's lilac
-            st.highlights.Override(new Color(0.64f, 0.53f, 0.4f));  // warm highlights
-            st.balance.Override(-6f);
+            st.shadows.Override(new Color(0.43f, 0.47f, 0.57f));    // shadows lean cool (sky-lit)
+            st.highlights.Override(new Color(0.54f, 0.51f, 0.47f)); // a light warm touch on highlights
+            st.balance.Override(0f);
 
             var smh = Comp<ShadowsMidtonesHighlights>(p);
-            smh.shadows.Override(Tone(1.03f, 1.0f, 0.95f, 0.01f));
-            smh.midtones.Override(Tone(1.02f, 1f, 0.97f, 0f));
-            smh.highlights.Override(Tone(1.05f, 1.0f, 0.93f, 0.02f));
+            smh.shadows.Override(Tone(0.97f, 1.0f, 1.05f, 0.02f));
+            smh.midtones.Override(Tone(1f, 1f, 1f, 0f));
+            smh.highlights.Override(Tone(1.02f, 1.0f, 0.98f, 0f));
 
             var bloom = Comp<Bloom>(p);
             // Pass 3: less bloom (round 2's cream wash sunward), no HQ filtering and a quarter-resolution start (the Perf
@@ -90,14 +93,14 @@ namespace JamKit.Look.EditorTools
             bloom.threshold.Override(1.0f);
             bloom.intensity.Override(0.7f);
             bloom.scatter.Override(0.62f);
-            bloom.tint.Override(new Color(1f, 0.92f, 0.82f));
+            bloom.tint.Override(new Color(1f, 0.95f, 0.88f));
             bloom.highQualityFiltering.Override(false);
             bloom.downscale.Override(BloomDownscaleMode.Quarter);
 
             var vig = Comp<Vignette>(p);
             vig.intensity.Override(0.22f);
             vig.smoothness.Override(0.45f);
-            vig.color.Override(new Color(0.12f, 0.06f, 0.03f));
+            vig.color.Override(new Color(0.06f, 0.05f, 0.05f));
 
             var grain = Comp<FilmGrain>(p);
             grain.type.Override(FilmGrainLookup.Thin1);

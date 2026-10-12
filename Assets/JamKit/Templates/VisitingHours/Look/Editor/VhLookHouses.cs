@@ -373,7 +373,9 @@ namespace JamKit.Look.EditorTools
                         if (c - a < 1e-3f) continue;
                         float mid = (a + c) * 0.5f;
                         var vs = new List<float> { 0f, H };
-                        foreach (var o in openings) if (mid > o.u0 && mid < o.u1) { vs.Add(o.v0); vs.Add(o.v1); }
+                        // Every column is cut at every opening's heights (pass 4; round 3: "vertical dashed seams": a full-height column
+                        // beside a column cut at a window made T-junctions, and light leaked through the cracks down the wall).
+                        foreach (var o in openings) { vs.Add(o.v0); vs.Add(o.v1); }
                         vs.Sort();
                         for (int k = 0; k < vs.Count - 1; k++)
                         {
@@ -440,8 +442,8 @@ namespace JamKit.Look.EditorTools
                 WallBox("Reveal top", wall, origin, rot, o.u0, o.u1, o.v1 - 0.02f, o.v1, 0f, Th, s.trim, 0.002f, false);
                 WallBox("Reveal bottom", wall, origin, rot, o.u0, o.u1, o.v0, o.v0 + 0.02f, 0f, Th, s.trim, 0.002f, false);
                 WallBox("Glass", wall, origin, rot, o.u0, o.u1, o.v0, o.v1, 0.11f, 0.12f, glass, 0.001f, false);
-                // A sheer curtain on the lower sash: the room reads as a soft warm glow, not as blocks.
-                WallBox("Sheer", wall, origin, rot, o.u0 + 0.02f, o.u1 - 0.02f, o.v0 + 0.04f, vc + 0.02f, 0.16f, 0.165f, sheer, 0.001f, false);
+                // A sheer curtain over both sashes (pass 4: round 3 still saw blocks in the upper sash): the room is a soft glow.
+                WallBox("Sheer", wall, origin, rot, o.u0 + 0.02f, o.u1 - 0.02f, o.v0 + 0.04f, o.v1 - 0.04f, 0.16f, 0.165f, sheer, 0.001f, false);
                 WallBox("Meeting rail", wall, origin, rot, o.u0, o.u1, vc - 0.03f, vc + 0.03f, 0.07f, 0.11f, s.trim, 0.005f, false);
                 WallBox("Muntin v", wall, origin, rot, uc - 0.015f, uc + 0.015f, o.v0, o.v1, 0.085f, 0.11f, s.trim, 0.004f, false);
                 for (int m = 1; m <= 2; m++)

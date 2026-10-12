@@ -38,7 +38,7 @@ namespace JamKit.Look.EditorTools
     {
         public const string Dir = VhLookLibrary.MatRoot + "Trees/";
         /// <summary>Bumped whenever the generator changes, so cached meshes from an older generator are never reused.</summary>
-        const int GeneratorVersion = 4;
+        const int GeneratorVersion = 5;
         public const int Variants = 3;
 
         public enum Species { Maple, Oak, Birch, Elm, Shrub }
@@ -86,11 +86,11 @@ namespace JamKit.Look.EditorTools
                 case Species.Oak:
                     // Broad and spreading: low, near-horizontal limbs off a short leader; big clumps with sky between.
                     return new Spec { refHeight = 10f, fork = 2.2f, crownR = 4.8f, crownRy = 2.9f, crownY = 6.5f, clumpR = 1.6f, trunkR = 0.42f,
-                        leaderTop = 5.2f, limbStartTop = 4.6f, limbLift = 0.2f, limbs = 6, branches = 2, cardsPerClump = 6, cell = 1 };
+                        leaderTop = 5.2f, limbStartTop = 4.6f, limbLift = 0.2f, limbs = 6, branches = 3, cardsPerClump = 5, cell = 1 };
                 case Species.Birch:
                     // A pale leader running up through a full oval crown that reaches down to ~3 m.
-                    return new Spec { refHeight = 10f, fork = 2.5f, crownR = 3.0f, crownRy = 3.7f, crownY = 6.0f, clumpR = 1.15f, trunkR = 0.2f,
-                        leaderTop = 8.4f, limbStartTop = 7.6f, limbLift = 0.55f, limbs = 9, branches = 1, cardsPerClump = 5, cell = 2 };
+                    return new Spec { refHeight = 10f, fork = 2.5f, crownR = 3.3f, crownRy = 3.8f, crownY = 6.0f, clumpR = 1.4f, trunkR = 0.2f,
+                        leaderTop = 8.4f, limbStartTop = 7.6f, limbLift = 0.55f, limbs = 8, branches = 2, cardsPerClump = 5, cell = 2 };
                 case Species.Elm:
                     // A vase: limbs fanning up from 3 m into a wide, flat-topped crown (the street tree).
                     return new Spec { refHeight = 10f, fork = 3.0f, crownR = 4.4f, crownRy = 2.8f, crownY = 7.0f, clumpR = 1.5f, trunkR = 0.36f,
@@ -101,7 +101,7 @@ namespace JamKit.Look.EditorTools
                 default:
                     // Maple: a round full crown on a short trunk (the lawn tree).
                     return new Spec { refHeight = 10f, fork = 2.5f, crownR = 3.9f, crownRy = 3.3f, crownY = 6.3f, clumpR = 1.4f, trunkR = 0.36f,
-                        leaderTop = 7.4f, limbStartTop = 6.0f, limbLift = 0.45f, limbs = 6, branches = 2, cardsPerClump = 6, cell = 0 };
+                        leaderTop = 7.4f, limbStartTop = 6.0f, limbLift = 0.45f, limbs = 6, branches = 3, cardsPerClump = 5, cell = 0 };
             }
         }
 
@@ -484,6 +484,7 @@ namespace JamKit.Look.EditorTools
 
             // ---- Limbs: from staggered heights up the trunk, curving out to tips inside the crown ----
             float golden = Mathf.PI * (3f - Mathf.Sqrt(5f));
+            var limbs = new List<List<Vector3>>();
             float az0 = R() * Mathf.PI * 2f;
             for (int i = 0; i < spec.limbs; i++)
             {
@@ -502,6 +503,7 @@ namespace JamKit.Look.EditorTools
                 var tip = Inside(new Vector3(crownC.x + dirH.x * reach, tipY, crownC.z + dirH.z * reach), spec.clumpR * 0.75f);
                 float limbR = shrub ? r0 * 0.7f : Mathf.Min(baseR * 0.62f, r0 * (spec.vase ? 0.6f : 0.5f)) * Mathf.Lerp(0.85f, 1.1f, R());
                 var limb = Curve(start, tip, (dirH * (1f - spec.limbLift) + Vector3.up * (0.25f + spec.limbLift)).normalized, rng, 6);
+                limbs.Add(limb);
                 var radii = Taper(limb, limbR, limbR * 0.22f);
                 Sweep(near, limb, radii, shrub ? 4 : 8, sy);
                 if (!shrub) Sweep(far, Thin(limb), Thin(radii), 4, sy);
@@ -554,15 +556,16 @@ namespace JamKit.Look.EditorTools
                 }
             }
 
+            if (!shrub) FillShell(near, spec, crownC, clumps, limbs, rng);
             var set = new MeshSet
             {
                 trunk = MakeMesh(key + " trunk", near),
                 trunkLow = MakeMesh(key + " trunk far", far),
             };
             int s0 = variant * 31 + (int)species * 97;
-            set.crown0 = Crown(key + " crown0", spec, clumps, crownC, spec.cardsPerClump, 1.2f, 1, new System.Random(s0 + 1), out set.cards0, out set.area0);
-            set.crown1 = Crown(key + " crown1", spec, clumps, crownC, 2, 1.55f, 1, new System.Random(s0 + 2), out set.cards1, out _);
-            set.crown2 = Crown(key + " crown2", spec, clumps, crownC, 1, 2.2f, 2, new System.Random(s0 + 3), out set.cards2, out _);
+            set.crown0 = Crown(key + " crown0", spec, clumps, crownC, spec.cardsPerClump, 1.08f, 1, new System.Random(s0 + 1), out set.cards0, out set.area0, true);
+            set.crown1 = Crown(key + " crown1", spec, clumps, crownC, 2, 1.5f, 1, new System.Random(s0 + 2), out set.cards1, out _, true);
+            set.crown2 = Crown(key + " crown2", spec, clumps, crownC, 1, 2.2f, 2, new System.Random(s0 + 3), out set.cards2, out _, true);
             return set;
         }
 
@@ -574,11 +577,53 @@ namespace JamKit.Look.EditorTools
                 var o = clumps[i];
                 if ((o.c - c).sqrMagnitude < (0.45f * Mathf.Min(o.r, r)) * (0.45f * Mathf.Min(o.r, r)))
                 {
-                    clumps[i] = new Clump { c = (o.c + c) * 0.5f, r = Mathf.Max(o.r, r) * 1.05f };
+                    // Grow the clump that's there to cover the new one instead of moving it: a moved clump left its own
+                    // branch tip poking out (round 3's "twig spikes").
+                    clumps[i] = new Clump { c = o.c, r = Mathf.Max(o.r, (o.c - c).magnitude + r * 0.8f) };
                     return;
                 }
             }
             clumps.Add(new Clump { c = c, r = r });
+        }
+
+        /// <summary>
+        /// Fills holes in the crown's shell (round 3: "separate clumps with sky between, topiary"): points spread evenly over
+        /// the crown's outline (a Fibonacci sphere, the underside left open) that are far from every clump get a clump of
+        /// their own, carried on a short branch from the nearest point of the nearest limb (never floating).
+        /// </summary>
+        static void FillShell(Wood near, Spec spec, Vector3 crownC, List<Clump> clumps, List<List<Vector3>> limbs, System.Random rng)
+        {
+            if (limbs.Count == 0) return;
+            const int samples = 40;
+            float golden = Mathf.PI * (3f - Mathf.Sqrt(5f));
+            for (int k = 0; k < samples; k++)
+            {
+                float y = 1f - (k + 0.5f) / samples * 2f;
+                if (y < -0.45f) continue;   // leave the underside open: you see up into a tree
+                float rr = Mathf.Sqrt(1f - y * y), a = k * golden;
+                var p = crownC + new Vector3(Mathf.Cos(a) * rr * spec.crownR, y * spec.crownRy, Mathf.Sin(a) * rr * spec.crownR) * 0.72f;
+                float gap = float.MaxValue;
+                foreach (var c in clumps) gap = Mathf.Min(gap, (c.c - p).magnitude - c.r);
+                if (gap < spec.clumpR * 0.15f) continue;
+                // The nearest point on any limb's outer two thirds.
+                Vector3 best = Vector3.zero, bestDir = Vector3.up;
+                float bd = float.MaxValue;
+                foreach (var limb in limbs)
+                    for (int i = limb.Count / 3; i < limb.Count; i++)
+                    {
+                        float d = (limb[i] - p).sqrMagnitude;
+                        if (d < bd) { bd = d; best = limb[i]; bestDir = (limb[Mathf.Min(i + 1, limb.Count - 1)] - limb[Mathf.Max(i - 1, 0)]).normalized; }
+                    }
+                var dir = (p - best).normalized;
+                float cr = spec.clumpR * Mathf.Lerp(0.85f, 1.05f, (float)rng.NextDouble());
+                var end = p - dir * cr * 0.35f;
+                if ((end - best).magnitude > 0.2f)
+                {
+                    var pts = Curve(best, end, (bestDir * 0.5f + dir).normalized, rng, 3);
+                    Sweep(near, pts, Taper(pts, spec.trunkR * 0.16f, spec.trunkR * 0.05f), 4, 0f);
+                }
+                clumps.Add(new Clump { c = p, r = cr });
+            }
         }
 
         /// <summary>A bent path from <paramref name="a"/> to <paramref name="b"/> leaving <paramref name="a"/> along
@@ -705,7 +750,7 @@ namespace JamKit.Look.EditorTools
         /// written outermost first. Returns the card count and total card area.
         /// </summary>
         static Mesh Crown(string name, Spec spec, List<Clump> clumps, Vector3 crownC, int perClump, float sizeK, int clumpStep,
-            System.Random rng, out int cardCount, out float area)
+            System.Random rng, out int cardCount, out float area, bool core = false)
         {
             float R() => (float)rng.NextDouble();
             var cards = new List<Card>();
@@ -770,10 +815,60 @@ namespace JamKit.Look.EditorTools
                 for (int k = 0; k < 4; k++) { cn.Add(cd.n); cc.Add(cd.tint); cuv1.Add(new Vector2(cd.rim, 0f)); }
                 ct.Add(b); ct.Add(b + 1); ct.Add(b + 2); ct.Add(b); ct.Add(b + 2); ct.Add(b + 3);
             }
+            if (core) Core(spec, clumps, crownC, cell, cv, cn, cuv, cuv1, cc, ct);
             var mesh = new Mesh { name = name };
             mesh.SetVertices(cv); mesh.SetNormals(cn); mesh.SetUVs(0, cuv); mesh.SetUVs(1, cuv1); mesh.SetColors(cc); mesh.SetTriangles(ct, 0);
             mesh.RecalculateBounds();
             return mesh;
+        }
+
+        /// <summary>
+        /// The crown's inner leaf volume (round 3: sky showing straight through the middle of every crown): one small lumpy
+        /// ball inside each clump (60% of its radius), textured from the dense middle of the clump cell, dark (painted
+        /// occlusion: rim 0), drawn after the cards. Gaps between the cards show leaves, not sky; the cards keep the
+        /// silhouette. 24 triangles a clump.
+        /// </summary>
+        static void Core(Spec spec, List<Clump> clumps, Vector3 crownC, Vector2 cell, List<Vector3> cv, List<Vector3> cn, List<Vector2> cuv,
+            List<Vector2> cuv1, List<Color> cc, List<int> ct)
+        {
+            // An octahedron split once (18 vertices, 32 faces would be more; this is 6 + 12 = a 24-face ball).
+            var dirs = new List<Vector3> { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
+            int[] faces = { 0, 2, 4, 4, 2, 1, 1, 2, 5, 5, 2, 0, 0, 4, 3, 4, 1, 3, 1, 5, 3, 5, 0, 3 };
+            var mid = new Dictionary<long, int>();
+            var tris = new List<int>();
+            int Mid(int a, int b)
+            {
+                long key = a < b ? ((long)a << 32) | (uint)b : ((long)b << 32) | (uint)a;
+                if (mid.TryGetValue(key, out int i)) return i;
+                dirs.Add((dirs[a] + dirs[b]).normalized);
+                mid[key] = dirs.Count - 1;
+                return dirs.Count - 1;
+            }
+            for (int f = 0; f < faces.Length; f += 3)
+            {
+                int a = faces[f], b = faces[f + 1], c = faces[f + 2];
+                int ab = Mid(a, b), bc = Mid(b, c), ca = Mid(c, a);
+                tris.AddRange(new[] { a, ab, ca, ab, b, bc, ca, bc, c, ab, bc, ca });
+            }
+            foreach (var cl in clumps)
+            {
+                int b0 = cv.Count;
+                float r = cl.r * 0.6f;
+                for (int i = 0; i < dirs.Count; i++)
+                {
+                    var d = dirs[i];
+                    float lump = 1f + 0.15f * Mathf.Sin(d.x * 5.1f + cl.c.x) * Mathf.Cos(d.z * 4.3f + cl.c.z);
+                    cv.Add(cl.c + d * r * lump);
+                    var fromC = cl.c - crownC;
+                    cn.Add((d * 0.5f + new Vector3(fromC.x / (spec.crownR * spec.crownR), fromC.y / (spec.crownRy * spec.crownRy), fromC.z / (spec.crownR * spec.crownR)).normalized * 0.5f).normalized);
+                    // The clump cell's dense middle (u, v 0.16-0.34 of the cell's 0.5): leaves, few holes.
+                    cuv.Add(cell + new Vector2(0.25f + d.x * 0.08f + d.z * 0.03f, 0.25f + d.y * 0.08f));
+                    cuv1.Add(new Vector2(0.15f, 0f));
+                    cc.Add(new Color(0.8f, 0.85f, 0.8f, 0.3f));
+                }
+                // Outward winding (the foliage shader is double-sided, so this only matters for consistency).
+                foreach (var t in tris) ct.Add(b0 + t);
+            }
         }
 
         /// <summary>A tapered straight tube from a to b (bark UVs in metres: u round the girth, v along the length). Kept for

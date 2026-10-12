@@ -6,6 +6,21 @@ Owner: the Look agent (docs/REDESIGN.md section 5). Pass 1 was judged FAIL 5/3/3
 **not yet seen in Unity** (agents can't run it): main runs `tools/look-capture.ps1`, a new judge scores the twelve
 captures (the same twelve cameras), and the Perf agent's probe measures it.
 
+## Pass 4 (after judge round 3: FAIL 5/5/5/6; look-3.md)
+
+| Round 3 defect | Pass 4 |
+|---|---|
+| Black, unhazed far hills; backdrop darker than the lawn | Two causes. (1) The haze composite rebuilt positions with the pass's own UNITY_MATRIX_I_VP / _WorldSpaceCameraPos, which weren't the camera's inside the full-screen draw: every pixel came out a few metres away, so there was no haze anywhere, in any round. The feature now passes the camera itself (position, axes, FOV, its own depth linearisation) and logs JAMKIT_LOOK atmosphere: depth bound/MISSING. (2) The project uses Adaptive Probe Volumes; the foliage and FarLand shaders read per-object SH, which came out black. They now use a sky/horizon/ground hemispherical ambient from the rig's globals (VhLookRig.ambientSky/Equator/Ground). |
+| Hard orange disc (08) | The sun's lens flare is off (VhLook.Options.lensFlare = false). |
+| No sun disc | Not the ridge: the whole sunward sky sat at the tonemapper's ceiling (229, 216, 198), so a disc couldn't be brighter. Sky x(0.8, 0.83, 0.88), the sun side dimmed to 0.55, glow and halo cut; the haze colours follow. |
+| Warm, crushed grade | The warmth is the sun's alone (1, 0.84, 0.66): white balance +2, no colour filter, split toning near-neutral with cool shadows, SMH cool shadows, saturation -8, contrast +5, exposure +0.3; bounce neutral. |
+| Topiary crowns | Generator 5: 3 branches a limb, shell holes filled with clumps on short branches from the nearest limb, a small dark leaf ball inside every clump (the gaps show leaves, not sky), clumps grow rather than move when merged (the spikes), clump cells fade to a round ragged edge inside the cell (no straight card edges), yellowed leaves 1.5% and only on outer tops, a greener rim; birches fuller (clumps 1.4 m); translucency 2.6, focus 2.5. |
+| Siding seams | Every wall column is cut at every opening's heights: no T-junctions, no light through the cracks. |
+| Flat lawns, empty hill lots | Stronger dry and lush patches in the terrain mix (clover layer darker); 2-4 foundation shrubs in front of every hill house. |
+| Prism hedgerows | Knobbly tops (fast noise), crowns every 12-22 m, trees standing out, the line wandering, sampled every 4-16 m. |
+| Window blocks | The sheer covers both sashes. |
+| Kerb tuft runs | Runs 0.3-1.8 m, gaps 0.8-3.5 m. |
+
 ## Pass 3: the judge's defects and what changed
 
 | # | Defect (round 2) | Pass 3 |

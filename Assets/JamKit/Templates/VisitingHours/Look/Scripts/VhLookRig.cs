@@ -57,6 +57,12 @@ namespace JamKit.Look
         public float shadowDepthBias = 0.6f;
         public float shadowNormalBias = 0.45f;
 
+        [Header("Ambient for the Look's own shaders (foliage, far land): linear, hemispherical")]
+        [Tooltip("Ambient from straight up (the sky's average), from the horizon, and from below (sunlit ground bounce).")]
+        public Color ambientSky = new Color(0.62f, 0.72f, 0.9f);
+        public Color ambientEquator = new Color(0.62f, 0.6f, 0.62f);
+        public Color ambientGround = new Color(0.16f, 0.17f, 0.11f);
+
         [Header("Environment")]
         [Tooltip("Set by VhLook.Bake once the scene's lighting (ambient, reflections, probes) is baked. If false, the sky's " +
                  "ambient and reflections are rebuilt from the skybox when the scene starts.")]
@@ -68,6 +74,9 @@ namespace JamKit.Look
         static readonly int SkyRotationId = Shader.PropertyToID("_VhSkyRotation");
         static readonly int SkyMatrixId = Shader.PropertyToID("_VhSkyMatrix");
         static readonly int SkyTimeId = Shader.PropertyToID("_VhSkyTime");
+        static readonly int AmbientSkyId = Shader.PropertyToID("_VhAmbientSky");
+        static readonly int AmbientEquatorId = Shader.PropertyToID("_VhAmbientEquator");
+        static readonly int AmbientGroundId = Shader.PropertyToID("_VhAmbientGround");
 
         UniversalRenderPipelineAsset _asset;
         float _oldDistance, _oldBorder, _oldDepthBias, _oldNormalBias;
@@ -142,6 +151,9 @@ namespace JamKit.Look
             Color c = sun != null ? sun.color * sun.intensity : Color.white;
             Shader.SetGlobalVector(SunColorId, new Vector4(c.r, c.g, c.b, 1f));
             Shader.SetGlobalFloat(SkyRotationId, sunAzimuth - hdriSunAzimuth);
+            Shader.SetGlobalVector(AmbientSkyId, new Vector4(ambientSky.r, ambientSky.g, ambientSky.b, 1f));
+            Shader.SetGlobalVector(AmbientEquatorId, new Vector4(ambientEquator.r, ambientEquator.g, ambientEquator.b, 1f));
+            Shader.SetGlobalVector(AmbientGroundId, new Vector4(ambientGround.r, ambientGround.g, ambientGround.b, 1f));
             Shader.SetGlobalFloat(SkyTimeId, Application.isPlaying ? Time.time * cloudDrift : 0f);
         }
 

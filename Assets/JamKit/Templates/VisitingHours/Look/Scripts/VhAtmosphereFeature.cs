@@ -86,12 +86,19 @@ namespace JamKit.Look
             static readonly int ShaftTintId = Shader.PropertyToID("_VhShaftTint");
             static readonly int BlurStepId = Shader.PropertyToID("_VhBlurStep");
             static readonly int CameraDepthId = Shader.PropertyToID("_CameraDepthTexture");
+            static readonly int CamPosId = Shader.PropertyToID("_VhCamPos");
+            static readonly int CamRightId = Shader.PropertyToID("_VhCamRight");
+            static readonly int CamUpId = Shader.PropertyToID("_VhCamUp");
+            static readonly int CamFwdId = Shader.PropertyToID("_VhCamFwd");
+            static readonly int ZParamsId = Shader.PropertyToID("_VhZParams");
 
             const int PassMask = 0, PassBlur = 1, PassComposite = 2;
 
             Material _material;
             VhAtmosphere _atmo;
             Vector4 _farHaze;
+            Vector4 _camPos, _camRight, _camUp, _camFwd, _zParams;
+            static int _logged;
 
             sealed class PassData
             {
@@ -104,6 +111,7 @@ namespace JamKit.Look
                 public Vector4 sunScreen, sunDir, hazeParams, hazeParams2, farHazeParams, hazeColor, hazeSunColor, shaftParams, shaftTint;
                 public bool hasShafts;
                 public bool hasDepth;
+                public Vector4 camPos, camRight, camUp, camFwd, zParams;
             }
 
             static readonly MaterialPropertyBlock Props = new MaterialPropertyBlock();
@@ -133,6 +141,17 @@ namespace JamKit.Look
                 float aspect = cam.pixelHeight > 0 ? (float)cam.pixelWidth / cam.pixelHeight : 1.777f;
                 var sunScreen = new Vector4(vp.x, vp.y, facing, aspect);
                 var sunDir = new Vector4(toSun.x, toSun.y, toSun.z, 0f);
+                // The camera for the haze's reconstruction (not the pass's matrices: see the shader).
+                var ct = cam.transform;
+                float tanY = Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                _camPos = ct.position;
+                _camRight = new Vector4(ct.right.x, ct.right.y, ct.right.z, tanY * aspect);
+                _camUp = new Vector4(ct.up.x, ct.up.y, ct.up.z, tanY);
+                _camFwd = ct.forward;
+                float n = cam.nearClipPlane, f = cam.farClipPlane;
+                _zParams = SystemInfo.usesReversedZBuffer
+                    ? new Vector4(-1f + f / n, 1f, (-1f + f / n) / f, 1f / f)
+                    : new Vector4(1f - f / n, f / n, (1f - f / n) / f, (f / n) / f);
 
                 var a = _atmo;
                 var hazeParams = new Vector4(a.hazeDensity.value, a.hazeBaseHeight.value, a.hazeHeightFalloff.value, a.hazeStart.value);
@@ -150,6 +169,13 @@ namespace JamKit.Look
                 colorDesc.msaaSamples = MSAASamples.None;
                 TextureHandle source = resources.activeColorTexture;
                 TextureHandle depth = resources.cameraDepthTexture;
+                if (_logged < 3)
+                {
+                    // A trace for the captures' log (round 3 showed no haze at all): is there a depth texture to read?
+                    _logged++;
+                    Debug.Log("JAMKIT_LOOK atmosphere: camera " + cam.name + ", depth " + (depth.IsValid() ? "bound" : "MISSING") +
+                              ", haze " + a.hazeDensity.value + "/" + a.farHazeDensity.value + ", shafts " + (shafts ? "on" : "off"));
+                }
                 TextureHandle shaftTex = TextureHandle.nullHandle;
 
                 if (shafts)
@@ -203,6 +229,7 @@ namespace JamKit.Look
                     data.shaftTint = shaftTint;
                     data.hasShafts = shafts.IsValid();
                     data.hasDepth = depth.IsValid();
+                    data.camPos = _camPos; data.camRight = _camRight; data.camUp = _camUp; data.camFwd = _camFwd; data.zParams = _zParams;
                     builder.UseTexture(src, AccessFlags.Read);
                     if (depth.IsValid()) builder.UseTexture(depth, AccessFlags.Read);
                     if (data.hasShafts) builder.UseTexture(shafts, AccessFlags.Read);
@@ -229,6 +256,11 @@ namespace JamKit.Look
                 Props.SetVector(ShaftParamsId, d.shaftParams);
                 Props.SetVector(ShaftTintId, d.shaftTint);
                 Props.SetFloat(BlurStepId, d.blurStep);
+                Props.SetVector(CamPosId, d.camPos);
+                Props.SetVector(CamRightId, d.camRight);
+                Props.SetVector(CamUpId, d.camUp);
+                Props.SetVector(CamFwdId, d.camFwd);
+                Props.SetVector(ZParamsId, d.zParams);
                 ctx.cmd.DrawProcedural(Matrix4x4.identity, d.material, d.pass, MeshTopology.Triangles, 3, 1, Props);
             }
         }

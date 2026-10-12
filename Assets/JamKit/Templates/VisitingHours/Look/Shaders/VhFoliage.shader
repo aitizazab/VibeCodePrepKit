@@ -82,6 +82,21 @@ Shader "JamKit/Look/Foliage"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 
+            // Pass 4: a sky/horizon/ground ambient from the rig's globals (_VhAmbientSky etc., linear; a = 1 when set). The
+            // project uses Adaptive Probe Volumes, which this shader doesn't sample, and the per-object SH it falls back to came
+            // out black (round 3: "sunward far hills pitch black"). Hemispherical, so shade reads cool from the sky above.
+            float4 _VhAmbientSky;
+            float4 _VhAmbientEquator;
+            float4 _VhAmbientGround;
+            float3 VhAmbient(float3 n)
+            {
+                if (_VhAmbientSky.a < 0.5) return SampleSH(n);
+                float up = n.y;
+                float3 top = lerp(_VhAmbientEquator.rgb, _VhAmbientSky.rgb, saturate(up));
+                float3 bottom = lerp(_VhAmbientEquator.rgb, _VhAmbientGround.rgb, saturate(-up));
+                return up >= 0.0 ? top : bottom;
+            }
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -147,7 +162,7 @@ Shader "JamKit/Look/Foliage"
                 float3 trans = _TranslucencyColor.rgb * lightCol * _Translucency *
                                (back * 0.9 + 0.12 * saturate(-ndl)) * lerp(0.3, 1.0, rim) * lerp(0.45, 1.0, atten);
                 float3 direct = lightCol * wrap * lit;
-                float3 ambient = SampleSH(n) * _AmbientBoost;
+                float3 ambient = VhAmbient(n) * _AmbientBoost;
             #if defined(_SCREEN_SPACE_OCCLUSION)
                 AmbientOcclusionFactor ao = GetScreenSpaceAmbientOcclusion(GetNormalizedScreenSpaceUV(i.positionCS));
                 ambient *= ao.indirectAmbientOcclusion;

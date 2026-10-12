@@ -60,7 +60,7 @@ namespace JamKit.Look.EditorTools
                 // Pass 3: matte (round 2's lake), and late-summer colours (tools/look/palette-check.py).
                 VhLookLibrary.TerrainLayerVariant("Grass_DirtMix", "DryGold", new Color(1.0f, 0.98f, 0.84f), 3.3f, 0.09f),
                 VhLookLibrary.GetTerrainLayer("Dirt"),
-                VhLookLibrary.TerrainLayerVariant("Grass_Lawn", "Clover", new Color(0.9f, 0.95f, 0.85f), 3.7f, 0.07f),
+                VhLookLibrary.TerrainLayerVariant("Grass_Lawn", "Clover", new Color(0.78f, 0.92f, 0.8f), 3.7f, 0.07f),
             };
             td.terrainLayers = layers;
             td.alphamapResolution = o.alphamapResolution;
@@ -79,8 +79,10 @@ namespace JamKit.Look.EditorTools
                     // Wild hillside: dry gold and green clover in big patches; lawns: mown grass with clover drifts.
                     float wildGold = Mathf.SmoothStep(0f, 1f, (big - 0.38f) / 0.3f) * 0.85f + (fine - 0.5f) * 0.2f;
                     float wGrass = Mathf.Lerp(0.25f, 0.62f, lawn) + (mid - 0.5f) * 0.5f;
-                    float wGold = Mathf.Lerp(Mathf.Clamp01(wildGold), 0.04f + Mathf.Max(0f, big - 0.62f) * 0.4f, lawn);
-                    float wClover = Mathf.Lerp(0.35f, 0.28f, lawn) * Mathf.SmoothStep(0f, 1f, (mid - 0.35f) / 0.4f) + (fine - 0.5f) * 0.12f;
+                    // Pass 4 (round 3: "lawns one flat saturated green"): late-summer lawns have dry, tired patches and darker,
+                    // lusher drifts; both much stronger than before.
+                    float wGold = Mathf.Lerp(Mathf.Clamp01(wildGold), 0.1f + Mathf.Max(0f, big - 0.5f) * 0.9f + Mathf.Max(0f, mid - 0.62f) * 1.2f, lawn);
+                    float wClover = Mathf.Lerp(0.35f, 0.5f, lawn) * Mathf.SmoothStep(0f, 1f, (mid - 0.3f) / 0.35f) + (fine - 0.5f) * 0.2f;
                     float wDirt = Mathf.Max(0f, (Mathf.PerlinNoise(x * 0.05f + s * 2f, z * 0.05f) - 0.7f) * 1.6f) * (1f - lawn * 0.8f) + extraDirt;
                     wGrass = Mathf.Max(0f, wGrass); wGold = Mathf.Max(0f, wGold); wClover = Mathf.Max(0f, wClover);
                     float sum = wGrass + wGold + wDirt + wClover + 1e-4f;
@@ -243,7 +245,7 @@ namespace JamKit.Look.EditorTools
                 float t = R() * 1.5f;
                 while (t < len)
                 {
-                    float run = Mathf.Lerp(0.5f, 3f, R() * R() + 0.15f);
+                    float run = Mathf.Lerp(0.3f, 1.8f, R() * R() + 0.1f);   // pass 4: shorter runs, longer gaps (round 3: a run along the kerb in 01)
                     float tall = Mathf.Lerp(0.7f, 1.3f, R());
                     var runTint = new Color(Mathf.Lerp(0.93f, 1.05f, R()), Mathf.Lerp(0.95f, 1.05f, R()), Mathf.Lerp(0.9f, 1.03f, R()), 1f);
                     for (float u = 0f; u < run && t + u < len; u += spacing * Mathf.Lerp(0.4f, 1.6f, R()))
@@ -255,7 +257,7 @@ namespace JamKit.Look.EditorTools
                         var lean = -outward * Mathf.Lerp(0.03f, 0.16f, R()) + dir * Mathf.Lerp(-0.05f, 0.05f, R());
                         Add(p.x, p.y, kind, Mathf.Lerp(0.12f, 0.4f, 0.35f + 0.65f * bell * R()) * tall, lean, yBias, runTint);
                     }
-                    t += run + Mathf.Lerp(0.3f, 2.5f, R());
+                    t += run + Mathf.Lerp(0.8f, 3.5f, R());
                 }
             }
 

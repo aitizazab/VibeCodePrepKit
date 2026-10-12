@@ -374,10 +374,15 @@ namespace JamKit.Look.EditorTools
                         if (ok)
                         {
                             float n = Mathf.PerlinNoise(p.x * 0.05f + s, p.y * 0.05f - s);
-                            float tree = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(t / Mathf.Lerp(25f, 40f, n) * Mathf.PI)), 6f);
-                            heights.Add(Mathf.Lerp(3.5f, 7.5f, n) + tree * Mathf.Lerp(3f, 6f, n));
-                            widths.Add(Mathf.Lerp(4f, 6f, n) + tree * 2f);
-                            pts.Add(new Vector3(p.x, g.SurfaceHeight(p.x, p.y) - 0.6f, p.y));
+                            // Pass 4 (round 3: "flat-topped extruded prisms"): crowns every 12-22 m, a knobbly top (a fast noise, +-30%),
+                            // trees standing out of it, the line wandering a metre either side.
+                            float tree = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(t / Mathf.Lerp(18f, 30f, n) * Mathf.PI)), 4f);
+                            float knob = Mathf.PerlinNoise(p.x * 0.31f + s, p.y * 0.31f - s);
+                            float crown = Mathf.Abs(Mathf.Sin(t / Mathf.Lerp(12f, 22f, n) * Mathf.PI));
+                            var wob = side * ((Mathf.PerlinNoise(p.x * 0.04f - s, p.y * 0.04f) - 0.5f) * 2f);
+                            heights.Add((Mathf.Lerp(3.5f, 7f, n) * Mathf.Lerp(0.7f, 1.3f, knob) * Mathf.Lerp(0.8f, 1.1f, crown)) + tree * Mathf.Lerp(4f, 7f, n));
+                            widths.Add(Mathf.Lerp(4f, 6f, n) * Mathf.Lerp(0.8f, 1.2f, crown) + tree * 2.5f);
+                            pts.Add(new Vector3(p.x + wob.x, g.SurfaceHeight(p.x + wob.x, p.y + wob.y) - 0.6f, p.y + wob.y));
                         }
                         if ((!ok || t + 1e-3f >= len) && pts.Count >= 3)
                         {
@@ -386,7 +391,7 @@ namespace JamKit.Look.EditorTools
                             made++;
                         }
                         if (!ok || t + 1e-3f >= len) { pts.Clear(); widths.Clear(); heights.Clear(); }
-                        float step = Mathf.Clamp(r * 0.009f, 6f, 25f);
+                        float step = Mathf.Clamp(r * 0.006f, 4f, 16f);
                         if (t < len && t + step > len) t = len; else t += step;
                         if (t > len) break;
                     }

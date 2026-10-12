@@ -38,12 +38,12 @@ namespace JamKit.Look.EditorTools
             public float sunAzimuth = 250f;
             public string sky = VhLookSky.Default;
             public float sunIntensity = 3.2f;
-            public Color sunColor = new Color(1f, 0.77f, 0.52f);
-            public float bounceIntensity = 0.42f;
-            public Color bounceColor = new Color(1f, 0.78f, 0.55f);
+            public Color sunColor = new Color(1f, 0.84f, 0.66f);   // pass 4: the only warm thing (round 3: everything orange)
+            public float bounceIntensity = 0.35f;
+            public Color bounceColor = new Color(0.9f, 0.92f, 0.82f);
             public float ambientIntensity = 1f;
             public float shadowDistance = 160f;
-            public bool lensFlare = true;
+            public bool lensFlare = false;   // pass 4: off (round 3: a hard orange disc on the hills); the sky draws its own glow
             /// <summary>Height (world y) where the haze is densest: the bottom of the valley.</summary>
             public float hazeBaseHeight = 0f;
             /// <summary>Disable other directional lights already in the scene (they would double the sun).</summary>

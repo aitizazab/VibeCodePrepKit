@@ -505,6 +505,7 @@ namespace JamKit.Look.EditorTools
                     float yaw = (side < 0 ? 270f : 90f) + (L() - 0.5f) * 12f;
                     var corner = new Vector3(frontX, 0f, side < 0 ? z - spec.width * 0.5f : z + spec.width * 0.5f);
                     VhLookHouses.Build(houses, corner, yaw, spec, VhLookHouses.Lod.Far, Ground, "House " + seed);
+                    FrontPlanting(houses, corner, yaw, spec.width, seed);
                     float dz = z + spec.width * 0.5f + 2.2f;
                     Driveway(houses, new Vector2(CrossX + side * 6.3f, dz), new Vector2(frontX + side * 4f, dz), walk);
                 }
@@ -521,10 +522,29 @@ namespace JamKit.Look.EditorTools
                         float yaw = (side > 0 ? 0f : 180f) + (L() - 0.5f) * 12f;
                         var corner = new Vector3(side > 0 ? x - spec.width * 0.5f : x + spec.width * 0.5f, 0f, frontZ);
                         VhLookHouses.Build(houses, corner, yaw, spec, VhLookHouses.Lod.Far, Ground, "House " + seed);
+                        FrontPlanting(houses, corner, yaw, spec.width, seed);
                         float dx = x + spec.width * 0.5f + 2.2f;
                         Driveway(houses, new Vector2(dx, line + side * 6.3f), new Vector2(dx, frontZ + side * 4f), walk);
                     }
                 }
+        }
+
+        /// <summary>Foundation shrubs along a hill house's front (round 3: "houses on empty golf-course lawns"): two to four,
+        /// irregularly spaced, a metre or so out from the wall.</summary>
+        static void FrontPlanting(Transform parent, Vector3 corner, float yaw, float width, int seed)
+        {
+            var rng = new System.Random(seed * 613 + 1);
+            float R() => (float)rng.NextDouble();
+            var rot = Quaternion.Euler(0f, yaw, 0f);
+            int n = 2 + rng.Next(3);
+            for (int i = 0; i < n; i++)
+            {
+                float u = Mathf.Lerp(0.8f, width - 0.8f, (i + R() * 0.7f) / n);
+                var p = corner + rot * new Vector3(u, 0f, -Mathf.Lerp(0.9f, 1.5f, R()));
+                if (OnPaving(p.x, p.z)) continue;
+                p.y = Ground(p.x, p.z) - 0.1f;
+                VhLookTrees.Place(parent, p, VhLookTrees.Species.Shrub, rng.Next(3), Mathf.Lerp(1.1f, 1.9f, R()), false, R() * 360f);
+            }
         }
 
         /// <summary>A 3 m concrete driveway from a to b (world xz) following the ground.</summary>

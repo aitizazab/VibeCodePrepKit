@@ -47,6 +47,21 @@ Shader "JamKit/Look/FarLand"
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Fog.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
+            // Pass 4: a sky/horizon/ground ambient from the rig's globals (_VhAmbientSky etc., linear; a = 1 when set). The
+            // project uses Adaptive Probe Volumes, which this shader doesn't sample, and the per-object SH it falls back to came
+            // out black (round 3: "sunward far hills pitch black"). Hemispherical, so shade reads cool from the sky above.
+            float4 _VhAmbientSky;
+            float4 _VhAmbientEquator;
+            float4 _VhAmbientGround;
+            float3 VhAmbient(float3 n)
+            {
+                if (_VhAmbientSky.a < 0.5) return SampleSH(n);
+                float up = n.y;
+                float3 top = lerp(_VhAmbientEquator.rgb, _VhAmbientSky.rgb, saturate(up));
+                float3 bottom = lerp(_VhAmbientEquator.rgb, _VhAmbientGround.rgb, saturate(-up));
+                return up >= 0.0 ? top : bottom;
+            }
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -87,7 +102,7 @@ Shader "JamKit/Look/FarLand"
                 Light light = GetMainLight();
                 float ndl = dot(n, light.direction);
                 float wrap = saturate((ndl + _Wrap) / (1.0 + _Wrap));
-                float3 col = albedo * (light.color * wrap + SampleSH(n) * _AmbientBoost);
+                float3 col = albedo * (light.color * wrap + VhAmbient(n) * _AmbientBoost);
                 col = MixFog(col, i.fogFactor);
                 return half4(col, 1.0);
             }

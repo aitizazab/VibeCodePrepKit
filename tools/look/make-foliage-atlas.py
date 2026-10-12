@@ -55,8 +55,8 @@ def tinted(c, shift):
 DEEP = [(24, 46, 26), (30, 56, 30), (36, 66, 34)]               # deep inside the clump, under other leaves
 MID = [(40, 76, 36), (46, 86, 40), (52, 94, 44), (44, 82, 42)]  # the body of the clump
 OLIVE = [(58, 84, 38), (64, 92, 42)]                              # olive variety
-RIM = [(82, 118, 50), (94, 128, 54), (106, 136, 58)]             # warm yellow-green, sunlit edges only
-YELLOWED = [(140, 136, 60), (150, 140, 64)]                       # the odd yellowed leaf (~4%)
+RIM = [(72, 112, 48), (80, 120, 50), (90, 128, 54)]               # a lighter green on the clump's rim (the shader adds the sun)
+YELLOWED = [(128, 130, 58), (138, 136, 62)]                       # the odd tired leaf (~1.5%, outer top only)
 
 SPECIES_SHIFT = {
     0: (1.0, 1.0, 1.0),     # maple / elm: the reference greens
@@ -100,8 +100,8 @@ def leaf_clump(rng, kind, count, size, shape):
     img = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     c = CELL / 2
-    R = CELL * 0.46
-    lobes = [(c + rng.uniform(-0.3, 0.3) * R, c + rng.uniform(-0.25, 0.3) * R, R * rng.uniform(0.5, 0.66)) for _ in range(6)]
+    R = CELL * 0.42
+    lobes = [(c + rng.uniform(-0.24, 0.24) * R, c + rng.uniform(-0.2, 0.24) * R, R * rng.uniform(0.5, 0.64)) for _ in range(6)]
     lobes.append((c, c + 0.04 * R, R * 0.72))
 
     def inside(x, y):
@@ -138,7 +138,7 @@ def leaf_clump(rng, kind, count, size, shape):
         top = max(0.0, (c - y) / R)                      # 1 at the top
         depth = min(1.0, k * 1.6)                        # deep inside the clump
         u = rng.random()
-        if u < 0.04:
+        if u < 0.015 and top > 0.3 and rim > 0.3:
             col = YELLOWED[rng.integers(len(YELLOWED))]
         elif rim * (0.4 + 0.6 * top) > 0.45 and rng.random() < 0.75:
             col = RIM[rng.integers(len(RIM))]
@@ -157,7 +157,11 @@ def leaf_clump(rng, kind, count, size, shape):
         d.polygon(mid, fill=shade(col, light * 1.1) + (255,))
         ex, ey = x + math.cos(ang) * L * 0.85, y + math.sin(ang) * L * 0.85
         d.line([(x, y), (ex, ey)], fill=shade(col, light * 0.78) + (255,), width=max(1, int(1.1 * SS)))
-    return img
+    # Round 3: "card edges show as straight lines": leaves reached the cell's border and were cut. Fade the alpha to
+    # zero before it (a round window), so every clump has a ragged rounded outline.
+    a = np.asarray(img).astype(np.float32)
+    a[..., 3] *= window(CELL, 0.86, 0.97)
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
 
 
 def atlas(cells, size=1024):

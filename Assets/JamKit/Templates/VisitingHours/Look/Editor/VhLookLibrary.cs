@@ -687,8 +687,8 @@ namespace JamKit.Look.EditorTools
             // green under the warm key light. Set explicitly so older materials update.
             m.SetColor("_TranslucencyColor", new Color(0.72f, 0.95f, 0.34f, 1f));
             m.SetColor("_LightTint", new Color(0.88f, 1f, 0.9f, 1f));
-            m.SetFloat("_Translucency", 1.5f);
-            m.SetFloat("_TranslucencyFocus", 4f);
+            m.SetFloat("_Translucency", 2.6f);   // pass 4: round 3's backlit crowns looked front-lit
+            m.SetFloat("_TranslucencyFocus", 2.5f);
             m.SetFloat("_RimOcclusion", 0.35f);
             m.SetFloat("_Wrap", 0.45f);
             m.SetFloat("_Cutoff", 0.45f);

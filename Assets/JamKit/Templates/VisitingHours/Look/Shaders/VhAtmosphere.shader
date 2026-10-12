@@ -22,6 +22,15 @@ Shader "JamKit/Look/Atmosphere"
         float4 _VhSunScreen;      // viewport xy of the sun, z = dot(camera forward, to sun), w = aspect
         float4 _VhAtmoSunDir;     // world direction to the sun
         float4 _VhHazeParams;     // density, base height, height falloff, start distance
+        // Pass 4: the camera, passed by the feature itself (round 3's captures showed no haze at all: the pass's own
+        // UNITY_MATRIX_I_VP / _WorldSpaceCameraPos weren't the camera's inside the full-screen draw, so every pixel came out
+        // a few metres away). Position; right, up and forward axes (w = tan of the half FOV across, up); and the depth
+        // buffer's own linearisation (Unity's _ZBufferParams layout).
+        float4 _VhCamPos;
+        float4 _VhCamRight;
+        float4 _VhCamUp;
+        float4 _VhCamFwd;
+        float4 _VhZParams;
         float4 _VhHazeParams2;    // sun focus, max opacity
         float4 _VhFarHazeParams;  // far density, far start, far height falloff, far max opacity
         float4 _VhHazeColor;
@@ -83,17 +92,16 @@ Shader "JamKit/Look/Atmosphere"
             float raw = SampleSceneDepth(uv);
             if (!VhIsSky(raw) && (_VhHazeParams.x > 0.0 || _VhFarHazeParams.x > 0.0))
             {
-            #if !UNITY_REVERSED_Z
-                raw = lerp(UNITY_NEAR_CLIP_VALUE, 1.0, raw);
-            #endif
-                float3 wp = ComputeWorldSpacePosition(uv, raw, UNITY_MATRIX_I_VP);
-                float3 v = wp - _WorldSpaceCameraPos;
-                float dist = length(v);
-                float3 dir = v / max(dist, 1e-4);
+                // Eye depth from the raw depth, the view ray from the viewport position (v = 0 at the bottom).
+                float eye = 1.0 / (_VhZParams.z * raw + _VhZParams.w);
+                float2 ndc = uv * 2.0 - 1.0;
+                float3 ray = _VhCamFwd.xyz + _VhCamRight.xyz * (ndc.x * _VhCamRight.w) + _VhCamUp.xyz * (ndc.y * _VhCamUp.w);
+                float dist = eye * length(ray);
+                float3 dir = normalize(ray);
                 float d = max(dist - _VhHazeParams.w, 0.0);
                 // Exponential height fog, integrated along the ray: density(h) = D * exp(-f (h - base)).
                 float f = max(_VhHazeParams.z, 1e-4);
-                float h0 = max(_WorldSpaceCameraPos.y + dir.y * _VhHazeParams.w - _VhHazeParams.y, -40.0);
+                float h0 = max(_VhCamPos.y + dir.y * _VhHazeParams.w - _VhHazeParams.y, -40.0);
                 float k = f * dir.y * d;
                 float shape = abs(k) > 1e-3 ? (1.0 - exp(-k)) / k : 1.0;
                 float optical = _VhHazeParams.x * exp(-f * h0) * shape * d;
@@ -102,7 +110,7 @@ Shader "JamKit/Look/Atmosphere"
                 // distance (the hill 300 m off goes soft, the ring at 2-3 km dissolves into the horizon's colour).
                 float d2 = max(dist - _VhFarHazeParams.y, 0.0);
                 float f2 = max(_VhFarHazeParams.z, 1e-5);
-                float h2 = max(_WorldSpaceCameraPos.y + dir.y * _VhFarHazeParams.y - _VhHazeParams.y, -40.0);
+                float h2 = max(_VhCamPos.y + dir.y * _VhFarHazeParams.y - _VhHazeParams.y, -40.0);
                 float k2 = f2 * dir.y * d2;
                 float shape2 = abs(k2) > 1e-3 ? (1.0 - exp(-k2)) / k2 : 1.0;
                 float optical2 = _VhFarHazeParams.x * exp(-f2 * max(h2, 0.0)) * shape2 * d2;
