@@ -32,7 +32,7 @@ namespace JamKit.Movement
             var next = body.Profile == MoveProfileKind.Dream ? MoveProfileKind.Daytime : MoveProfileKind.Dream;
             body.SetProfile(next);
             if (GameRoot.Exists) GameRoot.Hud.Message(next == MoveProfileKind.Daytime
-                ? "Movement: daytime (no double jump, wallrun or slide; the air strafe down; jump fatigue)"
+                ? "Movement: daytime (no double jump, wallrun or slide; the air strafe down; jump fatigue after 3 quick jumps)"
                 : "Movement: the dream (everything)", 3f);
         }
 

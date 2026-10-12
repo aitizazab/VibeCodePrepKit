@@ -322,7 +322,7 @@ shared tuning:
 | Wallrun | yes | no |
 | Slide | yes | no: crouch at speed only crouches (no slide boost, no slide hop) |
 | Air strafe | ×1 | **×0.3** (`airStrafeScale`) on both the per-tick cap and the acceleration |
-| Jump fatigue | off | **on** (`jumpFatigue`): a jump within 0.8 s of landing from the last is lower, 25% of the height per jump in the chain, down to 50%; standing 0.8 s resets it |
+| Jump fatigue | off | **on** (`jumpFatigue`): jumps each within 0.8 s of landing from the last form a chain; the first **3** are full height (`jumpFatigueFreeJumps`), then each is 25% of the height lower, down to 50%; standing 0.8 s resets the chain |
 
 - **Why 0.3 for the air strafe:** the speed gained per tick goes with the square of the cap, so 0.3 keeps about 9% of
   the dream's gain.
@@ -330,10 +330,13 @@ shared tuning:
     (`TheDaytimeAirStrafeIsWellDown`).
   - A daytime jump still bends a little toward the stick, but strafing can't build speed.
   - The slow-jump air control (below 5 m/s) is untouched, so a standing jump can still be aimed.
-- **Jump fatigue: to confirm.** The creator's sentence was ambiguous ("can't ... have jump fatigue"). Daytime has it
-  **on** by default, since the rest of the list makes daytime grounded and fatigue stops bunny-hopping round a
-  hospital. It is one flag in the shared asset's `daytime` profile.
-  - Measured: three quick hops reach 1.22, 0.91 and 0.60 m, and after 1.5 s standing it's 1.22 again.
+- **Jump fatigue: confirmed 2026-10-12.** The creator: "Jump fatigue should be on for daytime, but only kick in after
+  3 jumps, not the current 1-2." So three quick jumps in a row are full height and the fourth is the first lower one
+  (before, the second already was). The chain rule is unchanged: a jump counts as "quick" if she stood on the ground
+  0.8 s or less (`jumpFatigueRecover`) before it, and standing longer than that starts a fresh chain. The flag and the
+  numbers are in the shared asset's `daytime` profile.
+  - Heights in a chain: 100%, 100%, 100%, 75%, 50% (the floor), 50%...; measured on flat ground: 1.22, 1.22, 1.22,
+    0.91, 0.60 and 0.60 m, and after 1.5 s standing 1.22 m again (`JumpFatigueSparesThreeQuickJumpsLowersTheFourthAndRestingResetsIt`).
 - **Where the values live:** the daytime values are in the shared asset (`MovementTuning.daytime`), so they are edited
   in one place.
 - **In code:** a controller picks its profile with `MovementController.profile` (`MoveProfileKind.Dream` or
