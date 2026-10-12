@@ -1,0 +1,10 @@
+Aspect ratio: 16:9 landscape.
+
+Image 1 is Walt's battle sprite. Redraw Image 1 keeping EVERYTHING exactly the same: the framing, size and position, the pose, the head's position and tilt, the brown plaid flat cap, the white hair at his temples, the white moustache, the round face with the small round nose, the faded blue work shirt, the tan canvas apron with its grease stains, the dark grey trousers, the red rag in his hands, the hand-drawn crayon sketchbook look and the flat solid pure blue (#0050ff) background with no halo.
+
+Change ONLY his face (eyes, brows, mouth under the moustache, the colour in his cheeks), drawn in the same simple style as Image 1 (small dot eyes, short white brows, the white moustache kept):
+KIND, AMUSED: a warm crinkly smile, his eyes squeezed into happy curved lines, the moustache lifted by the smile, as if a child just said something funny.
+
+He stays a gentle, cute old man: not overwhelmingly wrong. His body, hands, cap, rag and clothes do not move.
+
+No text, no labels, no captions, no numbers, no letters, no logos, no watermark, no signature anywhere in the image.

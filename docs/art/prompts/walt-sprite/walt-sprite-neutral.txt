@@ -1,0 +1,9 @@
+Aspect ratio: 16:9 landscape.
+
+Image 1 is Walt, the old bicycle mechanic of the dream, cropped from his chosen billboard. Redraw Image 1 as a crisp, full-resolution drawing with EXACTLY the same framing, size, position, pose and expression: the brown plaid flat cap, the white hair at his temples, the white moustache, the round face with the small round nose, the faded blue work shirt, the tan canvas apron with its grease stains, the dark grey trousers, the red rag held in both hands as he wipes them. Do not move, resize, re-pose or re-frame anything.
+
+Keep the hand-drawn sketchbook look of Image 1 exactly: pastel crayon and coloured pencil, wobbly dark outlines, visible crayon strokes and grain inside every colour, never a clean polished digital render.
+
+Change only the background: replace the paper with a completely flat, uniform, solid pure blue (#0050ff) digital fill, edge to edge: no paper texture, no crayon strokes, no gradient, no glow, no shadow, nothing else in the picture. Nothing of the character is blue except his shirt, which stays its own faded grey-blue, and there is no white halo around him.
+
+No text, no labels, no captions, no numbers, no letters, no logos, no watermark, no signature anywhere in the image.
