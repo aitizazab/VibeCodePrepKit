@@ -304,7 +304,10 @@ namespace JamKit.DreamEscape.EditorTools
             // Theo's drawing, "THE BAD DREAM", up on top of his bookcase in his room (climb his desk to see it).
             var drawn = h.memories.Find(m => m.id == DreamHouseStory.MemBadDream).position;
             var drawing = Picture(DreamArt.PicBadDream, white);
-            DreamEscapeBuilder.Quad("Theo's drawing (on top of the bookcase)", t, new Vector3(drawn.X, F + 2.012f, drawn.Z), Vector3.up, 0.44f, 0.33f, drawing);
+            var bad = DreamEscapeBuilder.Quad("Theo's drawing (on top of the bookcase)", t, new Vector3(drawn.X, F + 2.012f, drawn.Z), Vector3.up, 0.44f, 0.33f, drawing);
+            // Its top away from her: she reads it from the desk, on its +z side (the memory's standAt; 2026-10-13: it lay
+            // with its top toward her, upside down).
+            bad.transform.rotation = Quaternion.AngleAxis(180f, Vector3.up) * bad.transform.rotation;
             // The photo wall: the hall's north wall, between the parents' door and the cupboard under the stairs.
             var photos = h.memories.Find(m => m.id == DreamHouseStory.FactPhoto).position;
             var wood = DreamEscapeBuilder.Pastel("HousePhotoFrame", new Color(0.62f, 0.46f, 0.38f), 0.01f);
