@@ -173,7 +173,7 @@ namespace JamKit.DreamEscape.EditorTools
             // Terrace 1's neighbour at his grill (he chats as she passes).
             var chatter = U(h.Spot(LarchHill.SpotChatter).position);
             CutOut("The neighbour at his grill (terrace 1)", DreamArt.NeighbourGrill, root, chatter, 1.75f);
-            DreamEscapeBuilder.Box("His grill", root, chatter + new Vector3(1.1f, 0.45f, 0.4f), new Vector3(0.9f, 0.9f, 0.6f), DreamEscapeBuilder.Pastel("StreetBarbecue", Plum, 0.04f));
+            Grill("His grill", root, chatter + new Vector3(1.1f, 0f, 0.4f));
             var ball = DreamEscapeBuilder.Part("The dog's ball", PrimitiveType.Sphere, root, Vector3.zero, Vector3.one * 0.22f,
                 DreamEscapeBuilder.Pastel("StreetBall", new Color(0.98f, 0.62f, 0.58f), 0.08f));
             ball.transform.position = U(h.Spot(LarchHill.SpotBallFrom).position);
@@ -187,7 +187,7 @@ namespace JamKit.DreamEscape.EditorTools
             var house = House(h, root, out var parts);
             var beacon = Beacon(h, root);
             var barbecue = U(h.Spot(LarchHill.SpotBarbecue).position);
-            DreamEscapeBuilder.Box("The barbecue", root, barbecue + new Vector3(0.9f, 0.45f, 0.3f), new Vector3(0.9f, 0.9f, 0.6f), DreamEscapeBuilder.Pastel("StreetBarbecue", Plum, 0.04f));
+            Grill("The barbecue", root, barbecue + new Vector3(0.9f, 0f, 0.3f));
             var eliasOut = CutOut("Elias (at the barbecue)", DreamArt.Elias, root, barbecue, EliasCardHeight);
 
             var game = new GameObject("Dream Street").AddComponent<DreamStreetGame>();
@@ -418,6 +418,39 @@ namespace JamKit.DreamEscape.EditorTools
                 drop.transform.localPosition = new Vector3(0f, y, d);
             }
             return jet;
+        }
+
+        /// <summary>A kettle grill in the dream's round mesh look, standing on the ground at <paramref name="foot"/> (inside the
+        /// old 0.9 x 0.6 m box's footprint, 0.95 m to the lid's top): the bowl, the domed lid with its handle, three legs, a
+        /// little shelf between them, the vent, and three soft puffs of smoke. Decoration only (no colliders).</summary>
+        static void Grill(string name, Transform root, Vector3 foot)
+        {
+            var t = new GameObject(name).transform;
+            t.SetParent(root, false);
+            t.position = foot;
+            var body = DreamProps.MeshLook("StreetGrill", new Color(0.42f, 0.36f, 0.56f), 0.012f);
+            var metal = DreamProps.MeshLook("StreetGrillMetal", new Color(0.78f, 0.76f, 0.86f), 0.01f);
+            var smoke = DreamEscapeBuilder.Glow("StreetGrillSmoke", new Color(0.96f, 0.94f, 1f), 0.35f, 0f, 0.35f);
+            void Part(string n, PrimitiveType type, Vector3 local, Vector3 scale, Material mat, Vector3 euler = default)
+            {
+                var go = DreamEscapeBuilder.Part(n, type, t, local, scale, mat);
+                go.transform.localPosition = local;
+                go.transform.localRotation = Quaternion.Euler(euler);
+            }
+            Part("Bowl", PrimitiveType.Sphere, new Vector3(0f, 0.62f, 0f), new Vector3(0.58f, 0.36f, 0.58f), body);
+            Part("Rim", PrimitiveType.Cylinder, new Vector3(0f, 0.66f, 0f), new Vector3(0.6f, 0.012f, 0.6f), metal);
+            Part("Lid", PrimitiveType.Sphere, new Vector3(0f, 0.7f, 0f), new Vector3(0.56f, 0.46f, 0.56f), body);
+            Part("Lid handle", PrimitiveType.Cube, new Vector3(0f, 0.95f, 0f), new Vector3(0.16f, 0.04f, 0.05f), metal);
+            Part("Vent", PrimitiveType.Cylinder, new Vector3(0.12f, 0.9f, 0f), new Vector3(0.08f, 0.01f, 0.08f), metal, new Vector3(0f, 0f, 22f));
+            for (int i = 0; i < 3; i++)
+            {
+                float a = i * 120f * Mathf.Deg2Rad;
+                var at = new Vector3(Mathf.Sin(a) * 0.22f, 0.24f, Mathf.Cos(a) * 0.22f);
+                Part("Leg", PrimitiveType.Cylinder, at, new Vector3(0.03f, 0.24f, 0.03f), metal, new Vector3(Mathf.Cos(a) * -8f, 0f, Mathf.Sin(a) * 8f));
+            }
+            Part("Shelf", PrimitiveType.Cylinder, new Vector3(0f, 0.18f, 0f), new Vector3(0.36f, 0.01f, 0.36f), metal);
+            for (int i = 0; i < 3; i++)
+                Part("Smoke", PrimitiveType.Sphere, new Vector3(0.12f + 0.05f * i, 1.08f + 0.2f * i, 0.04f * i), Vector3.one * (0.14f + 0.06f * i), smoke);
         }
 
         /// <summary>A memory you walk up to: a glowing card where it lies, with a soft halo.</summary>
