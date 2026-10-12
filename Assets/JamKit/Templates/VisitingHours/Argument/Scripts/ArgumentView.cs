@@ -85,8 +85,8 @@ namespace JamKit.Argument
             _spriteNote = ArgueUi.Text(_content, "", ArgumentArt.BodyItalic, 16, ArgueUi.Dim, "argument-sprite-note");
             ArgueUi.Place(_spriteNote, 40, 880, 600, 24);
             _boilLabel = ArgueUi.Text(_content, "", ArgumentArt.Body, 17, ArgueUi.Dim, "argument-boil-label");
-            // At the foot of her slot (over her waist, never her face), on a dark band so it reads.
-            ArgueUi.Place(_boilLabel, 24, 846, 660, 28);
+            // Above her name, the one strip on her side nothing else uses (on her slot the sprite drew over it).
+            ArgueUi.Place(_boilLabel, 24, 0, 660, 24);
             _boilLabel.style.backgroundColor = new Color(0f, 0f, 0f, 0.65f);
             _boilLabel.style.paddingLeft = 8;
             _boilLabel.style.display = DisplayStyle.None;

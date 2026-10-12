@@ -57,8 +57,9 @@ Shader "Hidden/JamKit/ArgumentBoil"
                 float2 push = float2(Fractal(p + seed), Fractal(p + seed + float2(41.3, 17.9))) * _BoilScale.xy;
                 float2 uv = i.uv + push;
                 fixed4 c = tex2D(_MainTex, uv);
-                // Nothing comes in from outside the sprite (the clamp would smear its edge pixels).
-                float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+                // Nothing comes in from beyond her sides or the top (the clamp would smear those edge pixels); the
+                // bottom edge is where the drawing is cut off mid-figure, so there it holds the edge (no ragged gap).
+                float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(uv.y, 1.0);
                 return c * inside;
             }
             ENDCG
