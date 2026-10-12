@@ -58,6 +58,8 @@ namespace JamKit.VisitingHours
             if (root.gameObject.GetComponent<VhOpeningEditor>() == null) root.gameObject.AddComponent<VhOpeningEditor>();
             // The title screenshot for checking the table against the sketch (-title-shot; does nothing without it).
             if (root.gameObject.GetComponent<VhTitleShot>() == null) root.gameObject.AddComponent<VhTitleShot>();
+            // Stills of the waking days for review (-ward-shot <folder>; does nothing without it).
+            if (root.gameObject.GetComponent<VhWardShot>() == null) root.gameObject.AddComponent<VhWardShot>();
             // Its capture tour (tools/vh-editor-capture.ps1): only with -opening-editor-tour.
             if (VhOpeningEditorTour.RequestedFolder() != null && root.gameObject.GetComponent<VhOpeningEditorTour>() == null)
                 root.gameObject.AddComponent<VhOpeningEditorTour>();
