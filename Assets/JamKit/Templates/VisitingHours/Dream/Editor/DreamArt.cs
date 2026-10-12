@@ -273,22 +273,27 @@ namespace JamKit.DreamEscape.EditorTools
             return c;
         }
 
-        /// <summary>Lena (PLACEHOLDER): blonde, long loose waves, a soft cardigan over a dress, an apron from the pancakes.</summary>
+        /// <summary>Lena (PLACEHOLDER, only drawn if Art/Dream/dream_lena.png is missing; the real file is her approved
+        /// design, CHARACTERS.md "4-a"): blonde, long loose waves, a cream turtleneck, slim wine-red trousers, dark boots, a
+        /// notebook held loosely in one hand. No apron (2026-10-12: the old placeholder had one).</summary>
         static Canvas DrawLena()
         {
             var c = new Canvas(256, 540);
-            var cardigan = new Color(0.8f, 0.74f, 0.96f, 1f);
-            var dress = new Color(0.98f, 0.9f, 0.82f, 1f);
-            var apron = new Color(1f, 0.99f, 0.97f, 1f);
+            var trousers = new Color(0.55f, 0.16f, 0.22f, 1f);
+            var top = new Color(0.98f, 0.94f, 0.86f, 1f);
+            var boots = new Color(0.36f, 0.24f, 0.2f, 1f);
+            var notebook = new Color(0.3f, 0.22f, 0.2f, 1f);
             var hair = new Color(0.98f, 0.86f, 0.55f, 1f);
-            c.Capsule(112, 26, 112, 120, 12, Skin);
-            c.Capsule(144, 26, 144, 120, 12, Skin);
-            c.Dress(128, 300, 92, 46, 96, dress);
-            c.Box(92, 150, 164, 300, 14, apron);
-            c.Capsule(84, 300, 66, 196, 13, cardigan);
-            c.Capsule(172, 300, 190, 196, 13, cardigan);
-            c.Ellipse(66, 190, 13, 13, Skin);
-            c.Ellipse(190, 190, 13, 13, Skin);
+            c.Capsule(112, 30, 112, 160, 15, trousers);
+            c.Capsule(144, 30, 144, 160, 15, trousers);
+            c.Ellipse(110, 24, 18, 12, boots);
+            c.Ellipse(146, 24, 18, 12, boots);
+            c.Box(90, 150, 166, 310, 18, top);
+            c.Capsule(86, 300, 74, 190, 12, top);
+            c.Capsule(170, 300, 182, 190, 12, top);
+            c.Ellipse(74, 184, 12, 12, Skin);
+            c.Ellipse(182, 184, 12, 12, Skin);
+            c.Box(170, 168, 204, 214, 4, notebook);
             // Long loose waves, falling past the shoulders.
             c.Ellipse(128, 380, 86, 92, hair);
             c.Capsule(62, 380, 70, 270, 22, hair);
