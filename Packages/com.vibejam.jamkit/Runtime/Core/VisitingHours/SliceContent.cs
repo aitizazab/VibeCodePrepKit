@@ -51,7 +51,7 @@ namespace JamKit.VisitingHours
                 // car caught in a gang crossfire (the Larpaca gang) on the drive home, the surname Lasname.
                 // TODO(creator): "Lena Lasname and Theo Lasname, dead at the scene" is kept until the creator answers: Lena is
                 // missing, not dead (settled); did Theo die at the scene, or is he missing too?
-                text = "An envelope at the station, for the family. Route 9, about 3:40 AM: the car was caught in a crossfire (gang violence: the Larpaca gang). Driver: Elias Lasname, critical. Lena Lasname and Theo Lasname, dead at the scene.\nPhone log: 3:04, call to Nadia Lasname, not answered. 3:07, call to Lena Lasname, 2 minutes.",
+                text = "An envelope at the station, for the family. Route 9, about 3:40 AM: the car was caught in a crossfire (gang violence: the Larpaca gang). Driver: Elias Lasname, critical. Lena Lasname and Theo Lasname, dead at the scene.\nPhone log: 3:03, call to Nadia Lasname, not answered. 3:06, call to Lena Lasname, 2 minutes.",
                 scribble = "I should have",
                 sayLine = "There's a police report, Walt.",
                 icon = "prop_police_envelope",

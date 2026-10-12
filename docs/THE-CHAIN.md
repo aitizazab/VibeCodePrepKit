@@ -49,7 +49,7 @@ the dive, as it does Day 1.
 
 - **Day 1** (style E: the corridor, the nurses' station, room 14): Rafael's handover; the tutorial duty round is two
   checks (his wristband, his vitals), a bit shorter than the later rounds (the creator); the chart, the effects bag, the
-  photo, LeBaget's lilies (a new fact); the police envelope (3:04 Nadia, not answered; 3:07 Lena, 2 minutes; no
+  photo, LeBaget's lilies (a new fact); the police envelope (3:03 Nadia, not answered, as on her phone; 3:06 Lena, 2 minutes; no
   comment); her phone ("Not now."); the booth with Mags, the creator's scene word for word (`STORY-PROSE.md` 83-92; the
   phone-charge ritual dropped), then the journal and the dive.
 - **Day 2** (short): Rafael's "Did Lena get out?" (a fact), the LeBaget "Community Partnerships" visitor ("Has he said

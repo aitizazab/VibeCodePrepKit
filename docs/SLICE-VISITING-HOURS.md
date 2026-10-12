@@ -10,7 +10,7 @@ journal of facts and deductions, and Undertale-style argument battles. The story
 - **Elias is an ER doctor.** Around 3 AM, having stayed late to put off facing her, he called Nadia for a ride and
   left a voicemail; she heard the start and fell asleep as it played (the premise in `VISITING-HOURS.md`).
 - **The call opens the game** (see "Opening"); it isn't hidden.
-- **The deeper hidden layer:** when Nadia didn't pick up, Elias called Lena (3:07). Lena drove out with Theo
+- **The deeper hidden layer:** when Nadia didn't pick up, Elias called Lena (3:06). Lena drove out with Theo
   asleep in the back, and they drove home. Nadia doesn't know yet. The police report's call log is the bomb
   under the table for attentive players: it's shown, and nobody comments on it.
 - **The Dream Bridge is secret.** Mags runs it off the books after visiting hours. Forcing Elias out is selfish:

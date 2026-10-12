@@ -45,7 +45,7 @@ The options for each FLUX row are in `STORY-TALK.md`.
 | His effects: a keyring tagged "W.A. workshop", Walt's memorial card (1941 to 2015) | Room 14 | The deduction that Walt is dead; Walt's battle; the dream garage's lock | Required | FLUX: Walt's battle |
 | The family photo | Room 14 | Evidence tray only | World | |
 | The LeBaget bouquet card | Room 14 | The crossfire thread; LeBaget's well-meaning face | World | |
-| The police report: timeline, passenger door open, Lena "missing", the call log (3:04 rang out, 3:07 two minutes) | The nurses' station | The deduction that he called Lena because Nadia didn't come; the Doctor's "his family is dead" premise | Required (the call log) | FLUX: the open door pointed to the cut reveal |
+| The police report: timeline, passenger door open, Lena "missing", the call log (3:03 rang out, as on her phone; 3:06 two minutes) | The nurses' station | The deduction that he called Lena because Nadia didn't come; the Doctor's "his family is dead" premise | Required (the call log) | FLUX: the open door pointed to the cut reveal |
 | Her phone: the voicemail, "Not now" | Her pocket, all game | The same deduction | Required | FLUX: when she hears the rest is undecided (SB:19) |
 | Deduction: he called Lena three minutes after her, because she didn't come | Day 1 (optional), or from Lena on Night 2 | Lena's battle; Nadia's survivor's guilt | Optional | FLUX: whether "He called you first" stays in Night 2's argument is undecided |
 | Duty rounds: patients' gratitude and gossip | Every day | Elias's purpose hold; the Doctor's purpose premise; the charge nurse post | Optional | FLUX: Rafael is now an intern (PROSE:45) |

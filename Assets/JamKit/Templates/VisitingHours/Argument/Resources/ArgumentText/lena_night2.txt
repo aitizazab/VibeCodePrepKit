@@ -318,7 +318,7 @@ fact_photo.note: Four of them, at the lake.
   ? one line under the name: what it is. The "four" includes Nadia.
 fact_police_report.name: the police report
   ? the card's name, as it reads in a sentence ("the fourth chair")
-fact_police_report.note: The call log: 3:04 to Nadia, unanswered. 3:07 to Lena, two minutes.
+fact_police_report.note: The call log: 3:03 to Nadia, unanswered. 3:06 to Lena, two minutes.
   ? one line under the name: what it is. L4 is true and painful: it stays.
 truth_walt.name: Walt's truth
   ? the card's name, as it reads in a sentence ("the fourth chair")
