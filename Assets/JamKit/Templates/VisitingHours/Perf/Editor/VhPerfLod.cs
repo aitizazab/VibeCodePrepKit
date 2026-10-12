@@ -105,7 +105,7 @@ namespace JamKit.Perf.EditorTools
                 if (r2 != null) lod2.Add(r2);
             }
             if (lod0.Count == 0) return null;
-            var g = chunkRoot.GetComponent<LODGroup>() ?? chunkRoot.AddComponent<LODGroup>();
+            var g = chunkRoot.GetComponent<LODGroup>(); if (g == null) g = chunkRoot.AddComponent<LODGroup>();   // not ??: a missing component is Unity's fake null
             g.fadeMode = LODFadeMode.CrossFade;
             g.animateCrossFading = true;
             g.SetLODs(new[] { new LOD(1f, lod0.ToArray()) });
@@ -158,7 +158,7 @@ namespace JamKit.Perf.EditorTools
             foreach (var r in root.GetComponentsInChildren<Renderer>())
                 if (!(r is ParticleSystemRenderer) && (farRenderers == null || Array.IndexOf(farRenderers, r) < 0)) lod0.Add(r);
             if (lod0.Count == 0) return null;
-            var g = root.GetComponent<LODGroup>() ?? root.AddComponent<LODGroup>();
+            var g = root.GetComponent<LODGroup>(); if (g == null) g = root.AddComponent<LODGroup>();   // not ??: a missing component is Unity's fake null
             g.fadeMode = LODFadeMode.CrossFade;
             g.animateCrossFading = true;
             g.SetLODs(new[] { new LOD(1f, lod0.ToArray()) });
@@ -206,7 +206,7 @@ namespace JamKit.Perf.EditorTools
             if (go == null) return null;
             var rs = go.GetComponentsInChildren<Renderer>();
             if (rs.Length == 0) return null;
-            var g = go.GetComponent<LODGroup>() ?? go.AddComponent<LODGroup>();
+            var g = go.GetComponent<LODGroup>(); if (g == null) g = go.AddComponent<LODGroup>();   // not ??: a missing component is Unity's fake null
             g.fadeMode = LODFadeMode.CrossFade;
             g.animateCrossFading = true;
             g.SetLODs(new[] { new LOD(1f, rs) });
