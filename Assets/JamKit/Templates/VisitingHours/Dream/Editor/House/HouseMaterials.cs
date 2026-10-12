@@ -222,16 +222,34 @@ namespace JamKit.DreamEscape.EditorTools
 
         // ---------- Models (Dream/House/Models, house-assets.json; Kenney's kit) ----------
 
-        sealed class ModelEntry { public string id, role, fbx; public Vector3 dims; public List<string> roles = new List<string>(); }
+        sealed class ModelEntry { public string id, role, fbx; public Vector3 dims; public List<string> roles = new List<string>(); public FitSpec fit = new FitSpec(); }
+
+        /// <summary>How a model sits in its box (house-assets.json "fit"; Kenney's in "kenney_fit" by file name): the
+        /// model's own up and front after Unity's import (Poly Haven: +y up, front +z, the FBX root carries Blender's axis
+        /// conversion, which the fit keeps), an extra turn, how far each axis may stretch past the uniform fit to fill the
+        /// box, and its real size (for the mesh lint's upright and scale checks).</summary>
+        public sealed class FitSpec
+        {
+            /// <summary>An extra rotation (Euler degrees, in the model's frame) when its import isn't +y up, front +z.</summary>
+            public Vector3 rotate;
+            /// <summary>Degrees added to the part's yaw (a model whose front isn't +z).</summary>
+            public float yaw;
+            /// <summary>How far one axis may grow past the uniform fit (0.12: 12 %), so a bed fills its box.</summary>
+            public float stretch = 0.12f;
+            /// <summary>The real size (x, y, z metres, upright, front +z), or zero when unknown.</summary>
+            public Vector3 dims;
+        }
 
         static List<ModelEntry> _models;
         static Dictionary<string, string> _kenney;
+        static Dictionary<string, FitSpec> _kenneyFit;
 
         static void LoadManifest()
         {
             if (_models != null) return;
             _models = new List<ModelEntry>();
             _kenney = new Dictionary<string, string>();
+            _kenneyFit = new Dictionary<string, FitSpec>();
             string path = HouseDir + "/house-assets.json";
             if (!File.Exists(path)) { Debug.LogWarning("JAMKIT_HOUSE no " + path); return; }
             var root = MiniJson.Parse(File.ReadAllText(path)) as Dictionary<string, object>;
@@ -245,10 +263,45 @@ namespace JamKit.DreamEscape.EditorTools
                         e.dims = new Vector3(System.Convert.ToSingle(dl[0]), System.Convert.ToSingle(dl[1]), System.Convert.ToSingle(dl[2]));
                     e.roles.Add(e.role);
                     if (d.TryGetValue("alt_roles", out var ar) && ar is List<object> al) foreach (var r in al) e.roles.Add(r as string);
+                    e.fit = ReadFit(d.TryGetValue("fit", out var fo) ? fo as Dictionary<string, object> : null);
+                    e.fit.dims = e.dims;
                     _models.Add(e);
                 }
             if (root.TryGetValue("kenney_files", out var kf) && kf is Dictionary<string, object> kd)
                 foreach (var kv in kd) _kenney[kv.Key] = "Assets/JamKit/Templates/VisitingHours/" + kv.Value;
+            if (root.TryGetValue("kenney_fit", out var kfit) && kfit is Dictionary<string, object> kfd)
+                foreach (var kv in kfd)
+                {
+                    var kfs = ReadFit(kv.Value as Dictionary<string, object>);
+                    if (!(kv.Value is Dictionary<string, object> kvd && kvd.ContainsKey("yaw"))) kfs.yaw = 180f;
+                    _kenneyFit["kenney:" + kv.Key] = kfs;
+                }
+        }
+
+        static FitSpec ReadFit(Dictionary<string, object> d)
+        {
+            var f = new FitSpec();
+            if (d == null) return f;
+            if (d.TryGetValue("rotate", out var r) && r is List<object> rl && rl.Count == 3)
+                f.rotate = new Vector3(System.Convert.ToSingle(rl[0]), System.Convert.ToSingle(rl[1]), System.Convert.ToSingle(rl[2]));
+            if (d.TryGetValue("yaw", out var y)) f.yaw = System.Convert.ToSingle(y);
+            if (d.TryGetValue("stretch", out var st)) f.stretch = System.Convert.ToSingle(st);
+            if (d.TryGetValue("dims_m", out var dm) && dm is List<object> dl && dl.Count == 3)
+                f.dims = new Vector3(System.Convert.ToSingle(dl[0]), System.Convert.ToSingle(dl[1]), System.Convert.ToSingle(dl[2]));
+            return f;
+        }
+
+        /// <summary>The fit settings for a model id from <see cref="Model"/> (defaults: no turn, 12 % stretch).</summary>
+        public static FitSpec Fit(string id)
+        {
+            LoadManifest();
+            if (id == null) return new FitSpec();
+            if (_kenneyFit.TryGetValue(id, out var k)) return k;
+            foreach (var e in _models) if (e.id == id) return e.fit;
+            // Kenney's kit faces -z (a chair's back, a bed's headboard and a toilet's tank are at +z: measured from the
+            // FBX geometry): turned round so 0 faces +z like the rest.
+            if (id.StartsWith("kenney:")) return new FitSpec { yaw = 180f };
+            return new FitSpec();
         }
 
         /// <summary>The model for a role (a Poly Haven model with its own textures, or Kenney's), or null.</summary>

@@ -63,6 +63,49 @@ namespace JamKit.DreamEscape.EditorTools
             t.Add(i); t.Add(i + 1); t.Add(i + 2);
         }
 
+        /// <summary>A quad turned to face away from <paramref name="centre"/> (the winding is flipped when its normal
+        /// points at it): for faces built from computed corners whose order isn't known (slopes, prisms).</summary>
+        public void QuadFacing(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Material m, Vector3 centre)
+        {
+            var n = Vector3.Cross(b - a, d - a);
+            if (Vector3.Dot(n, (a + b + c + d) * 0.25f - centre) < 0f) Quad(d, c, b, a, m);
+            else Quad(a, b, c, d, m);
+        }
+
+        public void TriFacing(Vector3 a, Vector3 b, Vector3 c, Material m, Vector3 centre)
+        {
+            var n = Vector3.Cross(b - a, c - a);
+            if (Vector3.Dot(n, (a + b + c) / 3f - centre) < 0f) Tri(c, b, a, m);
+            else Tri(a, b, c, m);
+        }
+
+        /// <summary>Adds a ready mesh (smooth shapes: <see cref="HouseShapes"/>): its vertices, normals, UVs and
+        /// triangles (Unity's winding: clockwise seen from the front).</summary>
+        public void Raw(List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> tris, Material m)
+        {
+            if (m == null || v.Count == 0) return;
+            var t = TrisFor(m);
+            int i0 = _v.Count;
+            _v.AddRange(v);
+            _n.AddRange(n);
+            _uv.AddRange(uv);
+            for (int k = 0; k < tris.Count; k++) t.Add(i0 + tris[k]);
+            if (Record != null) Record.Add(new HouseDrawn { name = Owner, min = N(Min(v)), max = N(Max(v)), kind = Kind, owner = OwnerPart });
+        }
+
+        static System.Numerics.Vector3 N(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
+        static Vector3 Min(List<Vector3> v) { var m = v[0]; for (int i = 1; i < v.Count; i++) m = Vector3.Min(m, v[i]); return m; }
+        static Vector3 Max(List<Vector3> v) { var m = v[0]; for (int i = 1; i < v.Count; i++) m = Vector3.Max(m, v[i]); return m; }
+
+        // ---------- What was drawn, for the mesh lint (HouseMeshLint) ----------
+
+        /// <summary>When set, every box and shape drawn is recorded here (in the builder's frame) with
+        /// <see cref="Owner"/>, <see cref="OwnerPart"/> and <see cref="Kind"/>.</summary>
+        public List<HouseDrawn> Record;
+        public string Owner = "";
+        public int OwnerPart = -1;
+        public DrawnKind Kind = DrawnKind.Owned;
+
         /// <summary>World-aligned metre UVs: along the face's plane (walls: horizontal along the wall, vertical up).</summary>
         static Vector2 Uv(Vector3 p, Vector3 n)
         {
@@ -76,6 +119,7 @@ namespace JamKit.DreamEscape.EditorTools
         /// Order: -X, +X, -Y, +Y, -Z, +Z.</summary>
         public void Box(Vector3 min, Vector3 max, Material[] faces)
         {
+            if (Record != null) Record.Add(new HouseDrawn { name = Owner, min = N(min), max = N(max), kind = Kind, owner = OwnerPart });
             Vector3 a = min, b = max;
             var p000 = new Vector3(a.x, a.y, a.z); var p100 = new Vector3(b.x, a.y, a.z);
             var p010 = new Vector3(a.x, b.y, a.z); var p110 = new Vector3(b.x, b.y, a.z);
@@ -95,6 +139,11 @@ namespace JamKit.DreamEscape.EditorTools
         /// (order: -u, +u, -v, +v, -w, +w).</summary>
         public void Obb(Vector3 c, Vector3 u, Vector3 v, Vector3 w, Material[] faces)
         {
+            if (Record != null)
+            {
+                var e = new Vector3(Mathf.Abs(u.x) + Mathf.Abs(v.x) + Mathf.Abs(w.x), Mathf.Abs(u.y) + Mathf.Abs(v.y) + Mathf.Abs(w.y), Mathf.Abs(u.z) + Mathf.Abs(v.z) + Mathf.Abs(w.z));
+                Record.Add(new HouseDrawn { name = Owner, min = N(c - e), max = N(c + e), kind = Kind, owner = OwnerPart, oriented = true });
+            }
             // A left-handed set of axes would turn every face inward: flip one (the box is the same box).
             if (Vector3.Dot(Vector3.Cross(u, v), w) < 0f)
             {

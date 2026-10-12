@@ -77,7 +77,10 @@ namespace JamKit.DreamEscape
             Round(bar, 5);
             _eyeBox.Add(bar);
             _eyeFill = new VisualElement { pickingMode = PickingMode.Ignore };
-            _eyeFill.style.height = 10; _eyeFill.style.width = Length.Percent(0); _eyeFill.style.backgroundColor = Gold;
+            // Full width, scaled along x from its left edge (a scale is a transform: no layout pass per frame).
+            _eyeFill.style.height = 10; _eyeFill.style.width = Length.Percent(100); _eyeFill.style.backgroundColor = Gold;
+            _eyeFill.style.transformOrigin = new TransformOrigin(Length.Percent(0), Length.Percent(50));
+            _eyeFill.style.scale = new Scale(new Vector3(0f, 1f, 1f));
             Round(_eyeFill, 5);
             bar.Add(_eyeFill);
             _eyeBox.style.display = DisplayStyle.None;
@@ -203,12 +206,21 @@ namespace JamKit.DreamEscape
             }
         }
 
-        /// <summary>Theo's eye: how close he is to seeing her (0..1) and what he's doing.</summary>
+        string _eyeWordShown;
+        int _eyeShown = -1;
+
+        /// <summary>Theo's eye: how close he is to seeing her (0..1) and what he's doing (pass the same string instance
+        /// while it doesn't change: the label is only written when it does).</summary>
         public void Eye(float meter, string word)
         {
-            _eyeWord.text = word;
-            _eyeFill.style.width = Length.Percent(Mathf.Clamp01(meter) * 100f);
-            _eyeFill.style.backgroundColor = Color.Lerp(Gold, new Color(0.95f, 0.25f, 0.2f), Mathf.InverseLerp(0.5f, 1f, meter));
+            if (!ReferenceEquals(word, _eyeWordShown)) { _eyeWord.text = word; _eyeWordShown = word; }
+            // Only when it moves visibly (a 1/200 step): no style writes on a still frame.
+            int q = Mathf.RoundToInt(Mathf.Clamp01(meter) * 200f);
+            if (q == _eyeShown) return;
+            _eyeShown = q;
+            float m = q / 200f;
+            _eyeFill.style.scale = new Scale(new Vector3(m, 1f, 1f));
+            _eyeFill.style.backgroundColor = Color.Lerp(Gold, new Color(0.95f, 0.25f, 0.2f), Mathf.InverseLerp(0.5f, 1f, m));
         }
 
         // ---------- Prompt, choice ----------

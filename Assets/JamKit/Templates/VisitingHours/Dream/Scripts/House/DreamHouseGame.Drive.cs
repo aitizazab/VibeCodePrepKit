@@ -87,8 +87,8 @@ namespace JamKit.DreamEscape
         // The autopilot
         // =====================================================================================================
 
-        string _pilotFor;
-        float _flee;
+        string _pilotFor, _pilotSkip;
+        float _flee, _pilotThere, _pilotSkipUntil;
 
         /// <summary>The house plays itself (attract, the smoke run, the recorder, tests): the hide-and-seek walked, the escape run.</summary>
         public void SetAutopilot(bool on)
@@ -133,6 +133,14 @@ namespace JamKit.DreamEscape
                     }
                     if (_flee > 0f) { _flee -= dt; return _walker.Next(sim, dt); }
                     if (_round.AllFound) return default;   // she waits for him
+                    // There and still not taken after 3 s (or blocked): leave that one for 30 s and try another.
+                    if (_pilotFor != null && _pilotFor != "flee" && _pilotFor != "chair" && (_walker.Arrived || _walker.Stuck))
+                    {
+                        _pilotThere += dt;
+                        if (_pilotThere > 3f || _walker.Stuck) { _pilotSkip = _pilotFor; _pilotSkipUntil = Time.time + 30f; _pilotThere = 0f; _pilotFor = null; }
+                        else if (_walker.Arrived) return default;
+                    }
+                    else _pilotThere = 0f;
                     if (_pilotFor == null || _pilotFor == "flee" || _pilotFor == "chair" || _round.IsFound(_pilotFor) || _walker.Stuck || _walker.Arrived)
                     {
                         _pilotFor = null;
@@ -140,6 +148,7 @@ namespace JamKit.DreamEscape
                         foreach (var m in _h.memories)
                         {
                             if (_round.IsFound(m.id)) continue;
+                            if (m.id == _pilotSkip && Time.time < _pilotSkipUntil) continue;
                             if (!_theoRoomOpen && _round.RoomOf(m.id) == "theo") continue;
                             var at = _round.StandAtOf(m.id);
                             float d = NVec3.Distance(p, at) + Mathf.Abs(p.Y - at.Y) * 6f;

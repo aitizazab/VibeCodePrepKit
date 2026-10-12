@@ -52,50 +52,144 @@ namespace JamKit.DreamEscape.EditorTools
         static void Furnish(HousePart part, Transform parent, MeshBuilder built, Vector3 mn, Vector3 mx)
         {
             var model = HouseMaterials.Model(part.model, out string id);
-            if (model != null && !BuiltFirst(part.model)) { Fit(model, id, parent, mn, mx, part.yaw, part.piece.name); return; }
+            if (model != null && !BuiltFirst(part.model))
+            {
+                bool hangs = part.model.Contains("pendant");
+                var go = Fit(model, id, parent, mn, mx, part.yaw, part.piece.name, hangs);
+                // A lamp's own shade never casts its light's shadow: a bulb inside a shade threw the shade's shadow over
+                // every wall above the rim (the dark translucent band at head height in the recorded run).
+                if (part.model.Contains("lamp"))
+                    foreach (var r in go.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = ShadowCastingMode.Off;
+                return;
+            }
             if (!_missing.Contains(part.model)) _missing.Add(part.model);
             Built(part.model, part.piece.name, built, mn, mx, part.yaw);
+        }
+
+        /// <summary>A piece of furniture for a role (house-assets.json's model fitted in, or built here where there's none),
+        /// under its own holder in <paramref name="parent"/>'s frame, box <paramref name="mn"/>-<paramref name="mx"/>, facing
+        /// <paramref name="yaw"/> (0 = +z). For other builders (the escape dresses its rooms with the house's own things).
+        /// Static flags are set for the house; clear them on anything that moves.</summary>
+        public static GameObject Prop(string role, Transform parent, Vector3 mn, Vector3 mx, float yaw, string name)
+        {
+            var model = HouseMaterials.Model(role, out string id);
+            if (model != null && !BuiltFirst(role)) return Fit(model, id, parent, mn, mx, yaw, name);
+            var holder = new GameObject(name);
+            holder.transform.SetParent(parent, false);
+            var b = new MeshBuilder();
+            Built(role, name, b, mn, mx, yaw);
+            b.Build("Built", holder.transform);
+            return holder;
         }
 
         /// <summary>Roles drawn here even when a model exists (they need the exact shape: counters run to the walls).</summary>
         static bool BuiltFirst(string role) => role == "kitchen.counter" || role == "kitchen.sink_counter" || role == "kitchen.island" || role == "kitchen.cabinet_upper";
 
-        /// <summary>A model scaled (uniformly) to fit inside the box, standing on its floor, turned to <paramref name="yaw"/>.
-        /// Its colliders are dropped (the box is its collider) and its materials made PBR.</summary>
-        public static GameObject Fit(GameObject prefab, string id, Transform parent, Vector3 mn, Vector3 mx, float yaw, string name)
+        /// <summary>A model fitted into its box, kept for the mesh lint (<see cref="HouseMeshLint"/>).</summary>
+        public sealed class FittedModel
         {
-            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-            go.name = name;
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = Vector3.zero;
-            go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
-            go.transform.localScale = Vector3.one;
-            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
-            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            public GameObject go;
+            public string id, name;
+            /// <summary>The box in <see cref="space"/>'s frame (the house's).</summary>
+            public Vector3 boxMin, boxMax;
+            public Transform space;
+            public HouseMaterials.FitSpec spec;
+            /// <summary>The model's size in its own frame (upright, front +z) after the fit, for the upright check.</summary>
+            public Vector3 modelSize;
+            /// <summary>The scale the fit used (per axis of the box).</summary>
+            public Vector3 scale;
+            /// <summary>It hangs (a pendant, a mirror, a picture): it rests on nothing, it touches its wall or ceiling.</summary>
+            public bool hangs;
+        }
+
+        public static readonly List<FittedModel> Fitted = new List<FittedModel>();
+
+        /// <summary>A model fitted into the box: a holder at the box (the house's axes), the model turned to
+        /// <paramref name="yaw"/> under it, the import's own transform kept (Poly Haven's FBX root carries Blender's
+        /// axis conversion: overwriting it laid the single-mesh models on their sides, house-1.md blocker 1), the
+        /// manifest's per-model turn (<see cref="HouseMaterials.FitSpec"/>), scaled uniformly to the box with each
+        /// axis allowed <see cref="HouseMaterials.FitSpec.stretch"/> more where the box has room, standing on the box's
+        /// floor, centred. Its colliders go (the box is its collider) and its materials are made PBR.</summary>
+        public static GameObject Fit(GameObject prefab, string id, Transform parent, Vector3 mn, Vector3 mx, float yaw, string name, bool hangs = false)
+        {
+            var spec = HouseMaterials.Fit(id);
+            var holder = new GameObject(name);
+            holder.transform.SetParent(parent, false);
+            var turn = new GameObject("Turned").transform;
+            turn.SetParent(holder.transform, false);
+            turn.localRotation = Quaternion.Euler(0f, yaw + spec.yaw, 0f);
+            var fix = turn;
+            if (spec.rotate != Vector3.zero)
+            {
+                fix = new GameObject("Upright").transform;
+                fix.SetParent(turn, false);
+                fix.localRotation = Quaternion.Euler(spec.rotate);
+            }
+            var inst = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            inst.transform.SetParent(fix, false);   // its own local rotation and scale stay: the import's axis conversion
+            foreach (var c in inst.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
+            foreach (var an in inst.GetComponentsInChildren<Animator>(true)) Object.DestroyImmediate(an);
+            foreach (var r in inst.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
                 for (int i = 0; i < mats.Length; i++) mats[i] = Pbr(mats[i], id);
                 r.sharedMaterials = mats;
                 r.shadowCastingMode = ShadowCastingMode.On;
             }
-            var b = Bounds(go);
-            if (b.size.x < 1e-4f || b.size.y < 1e-4f || b.size.z < 1e-4f) return go;
+            var b = LocalBounds(holder.transform, inst);
+            var modelSize = LocalBounds(turn, inst).size;
             var size = mx - mn;
-            float s = Mathf.Min(size.x / b.size.x, Mathf.Min(size.y / b.size.y, size.z / b.size.z)) * 0.995f;
-            go.transform.localScale = Vector3.one * s;
-            b = Bounds(go);
-            var target = new Vector3((mn.x + mx.x) * 0.5f, mn.y, (mn.z + mx.z) * 0.5f);
-            go.transform.position += target - new Vector3(b.center.x, b.min.y, b.center.z);
-            GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI);
-            return go;
+            var scale = Vector3.one;
+            if (b.size.x > 1e-4f && b.size.y > 1e-4f && b.size.z > 1e-4f)
+            {
+                float sx = size.x / b.size.x * 0.995f, sy = size.y / b.size.y * 0.995f, sz = size.z / b.size.z * 0.995f;
+                float s = Mathf.Min(sx, Mathf.Min(sy, sz));
+                scale = Vector3.one * s;
+                float turned = Mathf.Repeat(yaw + spec.yaw, 90f);
+                bool square = turned < 0.5f || turned > 89.5f;
+                if (square && spec.stretch > 0f)
+                {
+                    float cap = s * (1f + spec.stretch);
+                    scale = new Vector3(Mathf.Min(sx, cap), Mathf.Min(sy, cap), Mathf.Min(sz, cap));
+                }
+            }
+            holder.transform.localScale = scale;
+            var bottom = new Vector3(b.center.x, hangs ? b.max.y : b.min.y, b.center.z);
+            var target = new Vector3((mn.x + mx.x) * 0.5f, hangs ? mx.y : mn.y, (mn.z + mx.z) * 0.5f);
+            holder.transform.localPosition = target - Vector3.Scale(bottom, scale);
+            GameObjectUtility.SetStaticEditorFlags(holder, StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI);
+            foreach (var t in holder.GetComponentsInChildren<Transform>(true))
+                GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI);
+            Fitted.Add(new FittedModel { go = holder, id = id, name = name, boxMin = mn, boxMax = mx, space = parent, spec = spec, modelSize = Vector3.Scale(modelSize, Vector3.one * Mathf.Min(scale.x, Mathf.Min(scale.y, scale.z))), scale = scale, hangs = hangs });
+            return holder;
         }
 
-        static Bounds Bounds(GameObject go)
+        /// <summary>The bounds of every mesh under <paramref name="of"/>, in <paramref name="space"/>'s frame (the eight
+        /// corners of each mesh's own bounds, so a turned model is measured in the box's axes, not the world's).</summary>
+        public static Bounds LocalBounds(Transform space, GameObject of)
         {
-            var rs = go.GetComponentsInChildren<Renderer>(true);
-            if (rs.Length == 0) return new Bounds(go.transform.position, Vector3.zero);
-            var b = rs[0].bounds;
-            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+            bool any = false;
+            var b = new Bounds();
+            var toSpace = space.worldToLocalMatrix;
+            foreach (var r in of.GetComponentsInChildren<Renderer>(true))
+            {
+                Bounds mb;
+                if (r is SkinnedMeshRenderer sk && sk.sharedMesh != null) mb = sk.sharedMesh.bounds;
+                else
+                {
+                    var mf = r.GetComponent<MeshFilter>();
+                    if (mf == null || mf.sharedMesh == null) continue;
+                    mb = mf.sharedMesh.bounds;
+                }
+                var m = toSpace * r.transform.localToWorldMatrix;
+                for (int k = 0; k < 8; k++)
+                {
+                    var c = new Vector3((k & 1) == 0 ? mb.min.x : mb.max.x, (k & 2) == 0 ? mb.min.y : mb.max.y, (k & 4) == 0 ? mb.min.z : mb.max.z);
+                    var p = m.MultiplyPoint3x4(c);
+                    if (!any) { b = new Bounds(p, Vector3.zero); any = true; }
+                    else b.Encapsulate(p);
+                }
+            }
             return b;
         }
 

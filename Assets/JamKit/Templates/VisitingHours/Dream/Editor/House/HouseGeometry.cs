@@ -46,7 +46,10 @@ namespace JamKit.DreamEscape.EditorTools
                     case HouseLook.Slab: SlabFaces(h, part, B(key)); break;
                     case HouseLook.Chimney: B(key).Box(U(p.Min), U(p.Max), HouseMaterials.Brick()); break;
                     case HouseLook.Rail: B(key).Box(U(p.Min), U(p.Max), HouseMaterials.TrimWalnut()); break;
-                    case HouseLook.Cupboard: B(key).Box(U(p.Min), U(p.Max), HouseMaterials.TrimWalnut()); break;
+                    case HouseLook.Cupboard:
+                        if (p.name.StartsWith("Under the stairs") || p.name.StartsWith("Cupboard")) Spandrel(h, part, B(key));
+                        else B(key).Box(U(p.Min), U(p.Max), HouseMaterials.TrimWalnut());
+                        break;
                     case HouseLook.Glass: Glass(part, B("Glass")); break;
                     case HouseLook.Stair: Stair(h, part, B(key)); break;
                     case HouseLook.Roof:
@@ -265,46 +268,176 @@ namespace JamKit.DreamEscape.EditorTools
         // Stairs, ramps, roofs
         // =====================================================================================================
 
-        /// <summary>Real steps over a stair's ramp (the ramp is the collider): treads (wood, a carpet runner up the middle
-        /// indoors), white risers, the soffit under it.</summary>
+        /// <summary>Real stairs over a stair's ramp (the ramp is the hidden collider; nothing of it is drawn but the soffit
+        /// under it). Every visible piece sits clear of every other (no shared faces, so nothing z-fights; house-1.md and
+        /// the recorded run's stair): thin treads with a nosing and risers standing on the slope line (the collider's top
+        /// runs through each step's inner corner), a closed stringer each side that hides the step ends (on a wall side
+        /// only its room face is drawn: the wall is behind it), the soffit 6 cm under the slope line and inside the
+        /// stringers, a carpet runner up the middle indoors. The treehouse's flight is a ladder instead: two rails and open
+        /// slatted treads.</summary>
         static void Stair(DreamHouse h, HousePart part, MeshBuilder b)
         {
             var p = part.piece;
             bool outside = part.look != HouseLook.Stair;
+            bool ladder = p.name.IndexOf("ladder", System.StringComparison.OrdinalIgnoreCase) >= 0;
             var tread = outside ? HouseMaterials.Deck() : HouseMaterials.TrimWalnut();
             var riser = outside ? HouseMaterials.Deck() : HouseMaterials.TrimWhite();
+            var stringer = outside ? HouseMaterials.Deck() : HouseMaterials.TrimWhite();
             var runner = outside ? null : HouseMaterials.Fabric("StairRunner", new Color(0.36f, 0.42f, 0.55f));
             float lo = Mathf.Min(p.rampTopStart, p.rampTopEnd), hi = Mathf.Max(p.rampTopStart, p.rampTopEnd);
             int n = Mathf.Max(3, Mathf.RoundToInt((hi - lo) / 0.19f));
             float rise = (hi - lo) / n;
             bool ax = part.rampAlongX;
             bool upPositive = p.rampTopEnd > p.rampTopStart;
-            float a0 = ax ? p.Min.X : p.Min.Z, a1 = ax ? p.Max.X : p.Max.Z, run = (a1 - a0) / n;
+            float a0 = ax ? p.Min.X : p.Min.Z, a1 = ax ? p.Max.X : p.Max.Z, L = a1 - a0, run = L / n, slope = (hi - lo) / L;
             float w0 = ax ? p.Min.Z : p.Min.X, w1 = ax ? p.Max.Z : p.Max.X;
+            // (u from the bottom end along the run, w across, y up) to the house's frame.
+            System.Func<float, float, float, Vector3> P = (u, w, y) =>
+            {
+                float s = upPositive ? a0 + u : a1 - u;
+                return ax ? new Vector3(s, y, w) : new Vector3(w, y, s);
+            };
+            void BoxU(float u0, float u1, float wa, float wb, float y0, float y1, Material m)
+            {
+                Vector3 m0 = P(u0, wa, y0), m1 = P(u1, wb, y1);
+                b.Box(Vector3.Min(m0, m1), Vector3.Max(m0, m1), new[] { m, m, null, m, m, m });
+            }
+            if (ladder)
+            {
+                // Two rails along the slope (running on past the deck: handholds), open slats between them, no risers.
+                const float rw = 0.07f;
+                SlopeBoard(b, P, 0f, L, w0 + 0.02f, w0 + 0.02f + rw, lo, slope, -0.09f, 0.05f, 0.9f, tread);
+                SlopeBoard(b, P, 0f, L, w1 - 0.02f - rw, w1 - 0.02f, lo, slope, -0.09f, 0.05f, 0.9f, tread);
+                for (int k = 0; k < n; k++)
+                {
+                    float yT = lo + (k + 1) * rise, uBack = (k + 1) * run;
+                    BoxU(uBack - 0.24f, uBack - 0.01f, w0 + 0.02f + rw + 0.003f, w1 - 0.02f - rw - 0.003f, yT - 0.04f, yT, tread);
+                }
+                return;
+            }
+            const float st = 0.045f;
+            bool wallLow = SideIsWall(h, part, ax, w0, -1), wallHigh = SideIsWall(h, part, ax, w1, +1);
+            float wi0 = w0 + st - 0.012f, wi1 = w1 - st + 0.012f;   // the steps' ends bed 1.2 cm into the stringers
             for (int k = 0; k < n; k++)
             {
-                // Step k (from the bottom): its tread at lo + (k+1) rise, its run from the bottom end.
-                float top = lo + (k + 1) * rise;
-                float s0 = upPositive ? a0 + k * run : a1 - (k + 1) * run, s1 = s0 + run;
-                float bottom = top - rise - 0.06f;
-                Vector3 mn = ax ? new Vector3(s0, bottom, w0) : new Vector3(w0, bottom, s0);
-                Vector3 mx = ax ? new Vector3(s1, top, w1) : new Vector3(w1, top, s1);
-                // The face toward the bottom of the flight is the riser.
-                var faces = new Material[6];
-                faces[3] = tread;
-                int riserFace = ax ? (upPositive ? 0 : 1) : (upPositive ? 4 : 5);
-                for (int f = 0; f < 6; f++) if (f != 3 && f != 2) faces[f] = f == riserFace ? riser : tread;
-                b.Box(mn, mx, faces);
+                float yT = lo + (k + 1) * rise, u0 = k * run, u1 = (k + 1) * run;
+                // The tread: a 3.5 cm board with a 2.5 cm nosing over the riser.
+                BoxU(Mathf.Max(0f, u0 - 0.025f), u1, wi0, wi1, yT - 0.035f, yT, tread);
+                // The riser: a 2 cm board from the slope line up under the tread.
+                BoxU(u0, u0 + 0.02f, wi0, wi1, lo + k * rise, yT - 0.035f, riser);
                 if (runner != null)
                 {
                     float inset = (w1 - w0) * 0.2f;
-                    Vector3 rmn = ax ? new Vector3(s0, top, w0 + inset) : new Vector3(w0 + inset, top, s0);
-                    Vector3 rmx = ax ? new Vector3(s1, top + 0.008f, w1 - inset) : new Vector3(w1 - inset, top + 0.008f, s1);
-                    b.Box(rmn, rmx, new[] { runner, runner, null, runner, runner, runner });
+                    BoxU(Mathf.Max(0f, u0 - 0.025f), u1 - 0.002f, w0 + inset, w1 - inset, yT, yT + 0.006f, runner);
+                    if (u0 > 0.04f) BoxU(u0 - 0.031f, u0 - 0.025f, w0 + inset, w1 - inset, lo + k * rise + 0.03f, yT, runner);
                 }
             }
-            // The soffit: the slab under the slope.
-            RampSlab(part, b, null, outside ? HouseMaterials.Deck() : HouseMaterials.Ceiling(), HouseMaterials.TrimWhite());
+            // The stringers: closed, from 30 cm under the slope line to a hand above the nosings, cut level at both ends.
+            StringerSide(b, P, L, slope, lo, hi, rise, w0, w0 + st, stringer, wallLow ? -1 : 0);
+            StringerSide(b, P, L, slope, lo, hi, rise, w1 - st, w1, stringer, wallHigh ? +1 : 0);
+            // The soffit: 6 cm under the slope line, inside the stringers (its edges 1 cm into them): only its underside.
+            var soffit = outside ? HouseMaterials.Deck() : HouseMaterials.Ceiling();
+            SlopeBoard(b, P, 0.4f, L - 0.05f, w0 + st - 0.01f, w1 - st + 0.01f, lo, slope, -0.30f, -0.06f, 0f, null, soffit);
+        }
+
+        /// <summary>The panelling under the main stair's open side: painted panels whose top follows the flight's slope
+        /// (12 cm under the slope line, tucked against the stringer) instead of dark stepped blocks; the stepped parts stay
+        /// its colliders. A walnut capping strip along the slope, a skirting at the floor.</summary>
+        static void Spandrel(DreamHouse h, HousePart part, MeshBuilder b)
+        {
+            var p = part.piece;
+            HousePart stair = null;
+            foreach (var o in h.parts) if (o.look == HouseLook.Stair && o.piece.name == "The main stairs") { stair = o; break; }
+            Vector3 mn = U(p.Min), mx = U(p.Max);
+            if (stair == null)
+            {
+                b.Box(mn, mx, HouseMaterials.TrimWhite());
+                return;
+            }
+            float Top(float z) => Mathf.Max(p.Max.Y, DreamHouse.RampTop(stair, -1.1f, z) - 0.12f);
+            bool alongZ = p.size.Z >= p.size.X;
+            var paint = HouseMaterials.Paint("UnderStairsPanel", new Color(0.93f, 0.91f, 0.86f));
+            var cap = HouseMaterials.TrimWalnut();
+            float x0 = mn.x, x1 = mx.x, y0 = mn.y;
+            if (!alongZ)
+            {
+                // A cross wall under the flight (the cupboard's end): flat-topped, as it is.
+                b.Box(mn, mx, paint);
+                return;
+            }
+            float z0 = mn.z, z1 = mx.z, t0 = Top(z0), t1 = Top(z1);
+            var c = (mn + mx) * 0.5f;
+            var a = new Vector3(x0, y0, z0); var bb = new Vector3(x0, t0, z0); var cc = new Vector3(x0, t1, z1); var d = new Vector3(x0, y0, z1);
+            var a2 = new Vector3(x1, y0, z0); var b2 = new Vector3(x1, t0, z0); var c2 = new Vector3(x1, t1, z1); var d2 = new Vector3(x1, y0, z1);
+            b.QuadFacing(a2, b2, c2, d2, paint, c);   // the hall's face
+            b.QuadFacing(a, bb, cc, d, paint, c);     // the stair's side (behind the stringer)
+            b.QuadFacing(bb, b2, c2, cc, cap, c);     // the sloped top
+            b.QuadFacing(a, a2, b2, bb, paint, c);    // ends
+            b.QuadFacing(d, d2, c2, cc, paint, c);
+            // The capping strip proud of the hall face along the slope, and a skirting.
+            b.QuadFacing(new Vector3(x1 + 0.012f, t0 - 0.06f, z0), new Vector3(x1 + 0.012f, t0, z0), new Vector3(x1 + 0.012f, t1, z1), new Vector3(x1 + 0.012f, t1 - 0.06f, z1), cap, c);
+            if (y0 < 0.01f) b.Box(new Vector3(x1, y0, z0), new Vector3(x1 + 0.015f, y0 + 0.12f, z1), cap);
+        }
+
+        /// <summary>Whether a wall stands against the stair's side at <paramref name="w"/> (side -1 the low w, +1 the high).</summary>
+        static bool SideIsWall(DreamHouse h, HousePart stair, bool ax, float w, int side)
+        {
+            var p = stair.piece;
+            float a0 = ax ? p.Min.X : p.Min.Z, a1 = ax ? p.Max.X : p.Max.Z;
+            foreach (var o in h.parts)
+            {
+                if (o == stair || !o.piece.solid || o.look != HouseLook.Wall && o.look != HouseLook.Chimney) continue;
+                var q = o.piece;
+                float qa0 = ax ? q.Min.X : q.Min.Z, qa1 = ax ? q.Max.X : q.Max.Z, qw0 = ax ? q.Min.Z : q.Min.X, qw1 = ax ? q.Max.Z : q.Max.X;
+                if (Mathf.Min(qa1, a1) - Mathf.Max(qa0, a0) < (a1 - a0) * 0.3f) continue;
+                if (side < 0 ? Mathf.Abs(qw1 - w) < 0.02f : Mathf.Abs(qw0 - w) < 0.02f) return true;
+            }
+            return false;
+        }
+
+        /// <summary>A board along a flight's slope: from <paramref name="u0"/> to <paramref name="u1"/> (and
+        /// <paramref name="extend"/> metres higher past the top: a ladder's handholds), between <paramref name="wa"/> and
+        /// <paramref name="wb"/>, from <paramref name="below"/> to <paramref name="above"/> the slope line (vertical
+        /// offsets). Faces <paramref name="m"/> (null: only the underside, in <paramref name="under"/>).</summary>
+        static void SlopeBoard(MeshBuilder b, System.Func<float, float, float, Vector3> P, float u0, float u1, float wa, float wb, float lo, float slope, float below, float above, float extend, Material m, Material under = null)
+        {
+            float u1e = u1 + extend / Mathf.Max(0.05f, slope);
+            Vector3 A(float u, float w, float off) => P(u, w, lo + u * slope + off);
+            var c000 = A(u0, wa, below); var c100 = A(u1e, wa, below); var c010 = A(u0, wa, above); var c110 = A(u1e, wa, above);
+            var c001 = A(u0, wb, below); var c101 = A(u1e, wb, below); var c011 = A(u0, wb, above); var c111 = A(u1e, wb, above);
+            var centre = (c000 + c111) * 0.5f;
+            b.QuadFacing(c000, c100, c101, c001, under ?? m, centre);   // underside
+            if (m == null) return;
+            b.QuadFacing(c010, c011, c111, c110, m, centre);   // top
+            b.QuadFacing(c000, c010, c110, c100, m, centre);   // wa side
+            b.QuadFacing(c001, c101, c111, c011, m, centre);   // wb side
+            b.QuadFacing(c000, c001, c011, c010, m, centre);   // low end
+            b.QuadFacing(c100, c110, c111, c101, m, centre);   // high end
+        }
+
+        /// <summary>A closed stringer (a hexagonal board in the flight's side plane): its foot on the lower floor, its
+        /// bottom edge 30 cm under the slope line to under the landing's slab, cut level at the landing 6 cm above the
+        /// floor, its top edge a hand above the nosings. <paramref name="wallSide"/> -1 / +1: a wall stands on that side
+        /// (that face isn't drawn); 0: both faces.</summary>
+        static void StringerSide(MeshBuilder b, System.Func<float, float, float, Vector3> P, float L, float slope, float lo, float hi, float rise, float wa, float wb, Material m, int wallSide)
+        {
+            float top = rise + 0.05f;
+            var poly = new[]
+            {
+                new Vector2(0f, lo), new Vector2(Mathf.Min(L, 0.3f / slope), lo), new Vector2(L, hi - 0.3f),
+                new Vector2(L, hi + 0.06f), new Vector2(Mathf.Max(0f, L - (top - 0.06f) / slope), hi + 0.06f), new Vector2(0f, lo + top),
+            };
+            int k = poly.Length;
+            var fa = new Vector3[k]; var fb = new Vector3[k];
+            for (int i = 0; i < k; i++) { fa[i] = P(poly[i].x, wa, poly[i].y); fb[i] = P(poly[i].x, wb, poly[i].y); }
+            var centre = (P(L * 0.5f, wa, (lo + hi) * 0.5f) + P(L * 0.5f, wb, (lo + hi) * 0.5f)) * 0.5f;
+            if (wallSide >= 0) for (int i = 1; i < k - 1; i++) b.TriFacing(fa[0], fa[i], fa[i + 1], m, centre);
+            if (wallSide <= 0) for (int i = 1; i < k - 1; i++) b.TriFacing(fb[0], fb[i], fb[i + 1], m, centre);
+            for (int i = 0; i < k; i++)
+            {
+                int j = (i + 1) % k;
+                b.QuadFacing(fa[i], fa[j], fb[j], fb[i], m, centre);
+            }
         }
 
         /// <summary>A ramp's slab (<see cref="HouseLint.RampThickness"/> under its slope) as a rotated box: its top, its

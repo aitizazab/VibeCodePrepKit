@@ -38,10 +38,12 @@ namespace JamKit.DreamEscape
         public static readonly PlanRect MainStair = new PlanRect(-1.7f + i, -0.575f, 1.6f, 5.8f);
         public static readonly PlanRect BasementStair = new PlanRect(-1.7f + i, -0.575f, 5.2f, 9.0f);
         public static readonly PlanRect AtticStair = new PlanRect(1.7f + i, 5.2f, 9.75f + i, Z1 - e);
-        /// <summary>The holes in the slabs over the stairs (where the head needs the room).</summary>
-        public static readonly PlanRect UpperHole = new PlanRect(-1.7f + i, -0.575f, 2.75f, 5.8f);
+        /// <summary>The holes in the slabs over the stairs (where the head needs the room). Long enough that coming DOWN
+        /// she never meets the slab's edge at head height (it read as a ledge: she mantled up onto the landing and
+        /// stalled against the balustrade, the recorded run of 2026-10-12): 2.4 m clear over the slope at the edge.</summary>
+        public static readonly PlanRect UpperHole = new PlanRect(-1.7f + i, -0.575f, 2.2f, 5.8f);
         public static readonly PlanRect GroundHole = new PlanRect(-1.7f + i, -0.575f, 6.0f + i, 9.0f);
-        public static readonly PlanRect AtticHole = new PlanRect(2.55f, 5.2f, 9.75f + i, Z1 - e);
+        public static readonly PlanRect AtticHole = new PlanRect(1.7f + i + 0.08f, 5.2f, 9.75f + i, Z1 - e);
 
         /// <summary>The roof's underside over the attic floor at z (knee 0.9 at the walls, the ridge 3.4 over z 5.5).</summary>
         public static float RoofAt(float z) => KneeWall + (RidgeHeight - KneeWall) * (1f - Math.Min(1f, Math.Abs(z - RidgeZ) / (RidgeZ - Z0)));
@@ -187,7 +189,7 @@ namespace JamKit.DreamEscape
                 Opening.Door(9.4f, 10.3f, "Guest room door"));
             WallZ("Wall (upper hall | parents, attic stairs)", 1.7f, Z0 + e, Z1 - e, c0, c1, IntT,
                 Opening.Door(4.4f, 5.3f, "Parents' door"),
-                Opening.Door(9.8f + 0.05f, 10.8f, "Attic stairs door"));
+                Opening.Arch(9.8f + 0.05f, 10.8f, "Attic stairs archway (no header: coming down the steep flight her head would meet it)", UpperH));
             WallX("Wall (Theo | bath, guest)", 5.0f, X0 + e, -1.7f - i, c0, c1, IntT);
             WallZ("Wall (bath | guest)", -4.2f, 5.0f + i, 7.6f - i, c0, c1, IntT);
             WallX("Wall (bath | guest, north)", 7.6f, -4.2f - i, -1.7f - i, c0, c1, IntT);
@@ -426,6 +428,8 @@ namespace JamKit.DreamEscape
             Part("Sandbox", LabPieceKind.Ledge, HouseLook.Wood, V(8.4f, Yard, 18.6f), V(10.8f, Yard + 0.3f, 21.0f));
             Part("Clothesline post (west)", LabPieceKind.Wall, HouseLook.Wood, V(-4.1f, Yard, 15.45f), V(-3.95f, Yard + 2.1f, 15.6f));
             Part("Clothesline post (east)", LabPieceKind.Wall, HouseLook.Wood, V(2.15f, Yard, 15.45f), V(2.3f, Yard + 2.1f, 15.6f));
+            // The line itself, post to post (the sheets hang from it: before round 2 they hung from nothing).
+            Part("Clothesline (the line)", LabPieceKind.Wall, HouseLook.Rail, V(-3.95f, Yard + 2.0f, 15.515f), V(2.15f, Yard + 2.02f, 15.535f), true, false, "yard.line");
             Part("Sheets on the line", LabPieceKind.Wall, HouseLook.Cloth, V(-3.7f, Yard + 0.35f, 15.5f), V(1.9f, Yard + 2.0f, 15.56f), false, false, "yard.sheets");
             Part("Vegetable patch", LabPieceKind.Ledge, HouseLook.Wood, V(-13.6f, Yard, 11.8f), V(-12.0f, Yard + 0.35f, 14.8f));
             Shed();

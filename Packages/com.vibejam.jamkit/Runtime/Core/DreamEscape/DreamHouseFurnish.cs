@@ -265,6 +265,8 @@ namespace JamKit.DreamEscape
             Furniture("Washing machine", "laundry.washer", 5.5f, 6.15f, 10.2f, 10.85f, B, 0.88f, 180f);
             Furniture("Dryer", "laundry.dryer", 6.25f, 6.9f, 10.2f, 10.85f, B, 0.88f, 180f);
             Furniture("Laundry basket", "laundry.basket", 4.6f, 5.1f, 10.35f, 10.85f, B, 0.45f);
+            // The line across the laundry, wall to wall, the washing pegged on it.
+            Box("Washing line (laundry)", "laundry.line", 1.7f + i, X1 - e, B + 2.0f, B + 2.02f, 8.775f, 8.795f, 0f, HouseLook.Rail);
             Cloth("Washing on the line", "laundry.washing", 2.1f, 4.9f, B + 0.5f, B + 2.0f, 8.75f, 8.82f);
             _room = "corridor";
             Furniture("Jars on the shelves", "basement.shelves", 0.98f, 1.62f, 0.8f, 1.72f, B, 1.9f, -90f);
@@ -350,6 +352,8 @@ namespace JamKit.DreamEscape
                             float x = r.x0 + w * (ix + 0.5f) / nx, z = r.z0 + d * (iz + 0.5f) / nz;
                             var p = V(x, room.floorY, z);
                             if (room.id == "attic" && RoofAt(z) < 1.9f) continue;
+                            // Over a stairwell there's no floor: no point there (Theo and her autopilot walked into the hole).
+                            if (float.IsNaN(FloorAt(p + V(0f, 0.05f, 0f))) || Math.Abs(FloorAt(p + V(0f, 0.05f, 0f)) - room.floorY) > 0.05f) continue;
                             if (Free(p, 0.32f, 1.6f)) Node(room.id, x, room.floorY, z);
                         }
                 }
@@ -470,7 +474,7 @@ namespace JamKit.DreamEscape
 
             m = Memory(DreamHouseStory.MemBadDream, "Theo's drawing: THE BAD DREAM", "theo", "dream_pic_bad_dream", V(-3.22f, U + 1.92f, 0.33f), V(-4.05f, U + 0.75f, 0.45f));
             Alt(m, "rec", V(-4.8f, B + 0.78f, 3.2f), V(-3.5f, B, 3.2f));
-            Alt(m, "guest", V(-4.4f, U + 0.62f, 10.4f), V(-4.4f, U, 8.3f));
+            Alt(m, "guest", V(-4.4f, U + 0.62f, 10.4f), V(-4.4f, U, 8.5f));
 
             m = Memory(DreamHouseStory.MemSaturdayPaper, "Today's paper, folded into Theo's hat", "treehouse", "dream_pic_paper_hat", V(TreeX - 1.0f, TreeFloor + 0.05f, TreeZ + 0.5f), V(TreeX - 0.2f, TreeFloor, TreeZ));
             Alt(m, "frontgarden", V(0.55f, Yard + 0.03f, -1.0f), V(0f, Yard + 0.02f, -1.7f));

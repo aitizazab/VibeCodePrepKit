@@ -195,12 +195,21 @@ namespace JamKit.DreamEscape
             }
         }
 
+        // "Theo's counting  N" and "Theo's peeking!  N", made once per number (no string per frame).
+        static readonly string[] CountingWords = new string[64], PeekingWords = new string[64];
+        static string CountWord(bool peeking, int n)
+        {
+            n = Mathf.Clamp(n, 0, 63);
+            var cache = peeking ? PeekingWords : CountingWords;
+            return cache[n] ?? (cache[n] = (peeking ? "Theo's peeking!" : "Theo's counting") + "  " + n);
+        }
+
         void Eye()
         {
             string word;
             switch (_theo.State)
             {
-                case TheoState.Counting: word = (_theo.Peeking ? "Theo's peeking!" : "Theo's counting") + "  " + Mathf.CeilToInt(_theo.CountLeft); break;
+                case TheoState.Counting: word = CountWord(_theo.Peeking, Mathf.CeilToInt(_theo.CountLeft)); break;
                 case TheoState.Coming: word = "He's coming to find you"; break;
                 case TheoState.Investigating: word = _theo.Meter > 0.3f ? "He's seen something" : "He heard something"; break;
                 case TheoState.Celebrating: word = "Found!"; break;
@@ -225,7 +234,9 @@ namespace JamKit.DreamEscape
             foreach (var v in memoryViews)
             {
                 if (v == null || _round.IsFound(v.id)) continue;
-                if (AutopilotOn ? Vector3.Distance(player.transform.position, v.transform.position) < 2.4f : v.InReach(cam.position, cam.forward)) { near = v; break; }
+                // The autopilot measures from her eyes like the player does (from her feet it never reached the lake photo
+                // hung over the stairs, and stood under it for the rest of the recorded run).
+                if (AutopilotOn ? Vector3.Distance(cam.position, v.transform.position) < 2.4f : v.InReach(cam.position, cam.forward)) { near = v; break; }
             }
             string id = near != null ? near.id : null;
             if (id != _promptMemory)
