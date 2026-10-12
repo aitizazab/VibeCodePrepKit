@@ -348,11 +348,11 @@ the **round window of the observatory**, full of stars. Walls become chords acro
 
 ### 32. The empty Thursday (M) *(shortlist)*
 The **fridge calendar** as an attack: seven columns, one per day, with things dropping down the columns day by day.
-**Thursday's column, marked with Elias's little key, is always empty.** It's the one safe lane.
+**Thursday's column, marked with a small star, is always empty.** It's the one safe lane.
 - **As an argument:** the hole in her week is the hole in the story. Dream-Lena can't attack from Thursday because
   Elias never knew what was there ("Elias drew those. I never asked."). The safe place is the mystery.
 - **Fair:** each column's day letter lights up before something falls in it.
-- **Lena:** her private life, the Thursdays, the key (or a moon phase if the key is replaced, per `STORY-TALK.md`).
+- **Lena:** her private life, the Thursdays and their small stars.
 - **Teach:** the first time, the Thursday lane glows and the light is placed in it, then the other lanes fill.
 
 ### 33. The pencil marks (M) *(shortlist)*
@@ -445,11 +445,10 @@ A set that's coherent and buildable for the jam, if the creator wants a starting
 - **Is "curious" really her?** The bible calls her quick, warm, teasing, plain-spoken and fierce. Curiosity is implied
   only by the art notes (the pencil "shows a curious, ordered mind", the notebook). If curiosity is central, the
   bible's personality section should say so, because several ideas here lean on it.
-- **The stars are settled; the Thursdays aren't.** The creator settled stargazing in `STORY-PROSE.md` and approved
-  the attic observatory (with a raised roof section over it). What she said she was doing on Thursdays, and what the
-  fridge keys mean, are undecided. Ideas 31, 32 and 39 depend on whether the stars are where she went on Thursdays.
-- **The Thursday key or a moon phase?** `STORY-TALK.md` offers both, and the key necklace was cut from her design.
-  Idea 32 works with either mark.
+- **The stars are settled, and so are the Thursdays.** The creator settled stargazing in `STORY-PROSE.md` and
+  approved the attic observatory (with a raised roof section over it). The fridge calendar marks Lena's Thursdays
+  with small stars, not keys (2026-10-12), so the stars are where she went on Thursdays. Ideas 31, 32 and 39 can lean
+  on that.
 - **Her keepsake.** She's a stargazer, with no clay, no workwear and no apron, so the Heard-out keepsake (the apron
   hair tie in the prototype) needs replacing; what replaces it is undecided. The flour and batter patterns may need
   rethinking if she isn't the one cooking.

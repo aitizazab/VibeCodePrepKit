@@ -161,8 +161,8 @@ hallway ("Walls in there are only as solid as he remembers them."). The house pl
   route ("but what does it matter, when he's not even real?" or "it would be nice to see his smile again"; which goes
   with which route is undecided). His height marks on the kitchen doorframe stop at 10.
 - **The table is set for four.** The fourth chair is Nadia's.
-- **The calendar** on the fridge: every Thursday has a little key drawn on it, in Elias's hand. Dream-Lena: "Elias
-  drew those. I never asked." What the keys mean is undecided (the creator asked).
+- **The calendar** on the fridge: "Pancakes!" on every Sunday, and a small star on every one of Lena's Thursdays (her
+  stargazing; 2026-10-12).
 - Theo asks the question for the first time: **"Is Dad going to be sad?"** The answer is remembered (honest, comfort,
   or silence). An honest answer is what later brings Theo to her side.
 - Deductions: `ded_she_knows` (Lena knows what she is); `ded_saturday_off` (in the dream Elias is home on Saturday,
@@ -298,7 +298,7 @@ never required for an ending, except where noted as alternatives.
 |---|---|---|---|
 | **Opening** | The headline: "WIFE MISSING" | The anchor says crossfire involving the Larpaca gang; the headline says "gang violence". LeBaget isn't named | "The Good Doctor" |
 | **N1** | Police report: passenger door open, "missing" | LeBaget's flowers in room 14 | The founding plaque: he was 29. In the dream, the father's house on the hill: gate chained |
-| **N2** | Rafael: "Did Lena get out?" The dream calendar's little keys. What shows the hole in her life: undecided | The unwelcome visitor (it can be LeBaget) | Nadia refuses to use his money while he's in a coma |
+| **N2** | Rafael: "Did Lena get out?" The dream calendar's Thursday stars. What shows the hole in her life: undecided | The unwelcome visitor (it can be LeBaget) | Nadia refuses to use his money while he's in a coma |
 | **N3** | (Optional) a parking stub from across the river, on a Thursday | St. Brigid's books: LeBaget's grant keeps it open | The founder's discretionary fund (cash); the trust's letter (undecided) |
 | **N4** | The Night 4 truth (undecided) | The cordon is still up six weeks on. One wreath, from LeBaget | Mags: "Your brother paid for this rig. Cash. I didn't ask." |
 | **N5 / endings** | Undecided (the endings are being redone) | Nobody charged | Undecided |

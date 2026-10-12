@@ -98,7 +98,7 @@ matter".
 |---|---|
 | **Want (in the dream)** | The Saturday he didn't have: home, no shift, no remark, his family |
 | **Need** | To forgive himself, and to let someone help him (the hardest thing he can do). His guilt, in the creator's words: "Guilty for getting his wife and son killed in his mind." Whether he represses it or comes to it over the nights, and what releases it: undecided |
-| **Flaws** | Pride disguised as competence. Avoids instead of apologising (he stayed late rather than face her; he apologised to a voicemail). Controls. Noticed Lena's Thursdays and never asked (what the keys on the fridge mean is undecided) |
+| **Flaws** | Pride disguised as competence. Avoids instead of apologising (he stayed late rather than face her; he apologised to a voicemail). Controls. Noticed Lena's Thursdays (the small stars on the fridge calendar) and never asked |
 
 **Feats and skills.** Emergency medicine (fast, blunt, right); built and runs a hospital (money, politics, charm when he
 bothers); fixes bikes (Walt's lessons; it's how he calms down). In the dream he's the architect: every defence is his
@@ -112,7 +112,7 @@ mind's.
 
 **His decision.** Granular (the creator): anything that could affect it should, and he mentions the major ones.
 
-**Secrets (hints only).** The little keys he drew on the fridge calendar's Thursdays (what they mean is undecided).
+**Secrets (hints only).** He noticed Lena's Thursdays (the small stars on the fridge calendar) and never asked.
 
 **Arc across the five nights.**
 | N1 | N2 | N3 | N4 | N5 |
@@ -135,8 +135,7 @@ perfect, because she's what he kept, and **she knows it**.
 
 **History.** A **stargazer** (the creator): the attic of the family house is her small observatory. She doesn't need to
 work (Elias comes from money). Eleven years married. Something about her Thursdays didn't add up: in the dream, every
-Thursday on the fridge calendar has a little key drawn on it, in Elias's hand. What she said she was doing on Thursdays,
-and what the keys mean, is undecided. After the crash on Route 9 the passenger door was standing open. **She was never
+Thursday on the fridge calendar has a small star on it: her stargazing nights. After the crash on Route 9 the passenger door was standing open. **She was never
 found: she's missing, not dead.**
 
 | | |

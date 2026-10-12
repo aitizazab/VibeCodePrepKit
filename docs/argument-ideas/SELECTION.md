@@ -363,7 +363,7 @@ and a quiet last second where the page or plane floats across.
 | **Locks before the painful phase** (borrowed 21) | It's Nadia preparing, not Lena | **The Doctor**: foreshadow "You only got this job because you're my sister" |
 | **Nadia's pulse** (brainstorm 25) | Nadia's, not Lena's | **The Doctor**, whose patterns are ECG traces on the beat |
 | **Star trails** (brainstorm 35) | Starry, but redundant with 7, and its meaning (the same morning, round and round) is someone else's | **Walt**, if his battle survives in another form: his spoke shadows already sweep like clock hands |
-| **The empty Thursday** (brainstorm 32, on the brainstorm's shortlist) | Very her, but the Thursdays' mark isn't settled (a key or a moon phase; `STORY-FACTS.md` says they need a new carrier), and dream-Lena doesn't know what they were. A safe lane could say more than the story has decided | This battle, later, if question 5 says yes (M) |
+| **The empty Thursday** (brainstorm 32, on the brainstorm's shortlist) | Very her; the Thursdays' mark is now settled (small stars, 2026-10-12), and dream-Lena doesn't know what they were. A safe lane could say more than the story has decided | This battle, later, if question 5 says yes (M) |
 | **Answer under fire** (brainstorm 12) | M–L, and hush, answer me and the three rings carry the same choice for less | — |
 | **Old light** (brainstorm 30) | Beautiful and very her ("You don't know where I am"), but hollow after-images in a dodge box are a readability risk the jam can't test enough | A cutscene or the Morning ending's sky, not a hazard |
 | **The round window** (brainstorm 31), **the box changes shape** (borrowed 6) | The sky act takes their place; a round box needs new collision and a new planner | — |

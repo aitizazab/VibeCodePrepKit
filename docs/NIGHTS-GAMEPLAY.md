@@ -152,7 +152,7 @@ truth is on her side in there; stay calm, or Elias is harmed).
   between the Despair route and the normal route ("...but what does it matter, when he's not even real?" or "...it
   would be nice to see his smile again."); which belongs to which is undecided.
 - **Theo's first question:** "Is Dad going to be sad?" (honest, comfort, or silence).
-- **Deductions:** `ded_she_knows`; `ded_saturday_off` (key); the fridge calendar's keys (what they mean is undecided).
+- **Deductions:** `ded_she_knows`; `ded_saturday_off` (key); the fridge calendar's Thursday stars (her stargazing nights).
 - **Argument:** Elias never comes. Nadia questions Lena, and Lena admits she isn't willing to let Elias go
   (`ARGUMENT-BATTLES.md`). There's an option that pacifies her and one that antagonises her further (Dream-Lena is in
   the wrong for acting like she's real). The battle ends with Lena **unsure** of her conviction (open to giving her

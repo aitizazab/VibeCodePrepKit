@@ -47,7 +47,7 @@ Shares are rough, by lines. **a** = story calls only you can make. **b** = detai
 ### Lena
 - [SETTLED] Her passion: stargazing. Her small observatory is the attic, approved with a raised roof section. No ceramics, clay or apron anywhere.
 - [SETTLED] Lena is missing, not dead (2026-10-12).
-- [OPEN] Her Thursdays: with no studio, what she said she was doing, and what the keys Elias drew on the calendar mean (STORY-PROSE:115, STORY-PROSE:125).
+- [SETTLED] Her Thursdays: the fridge calendar marks them with small stars, not keys, which fits her stargazing (2026-10-12; built in the house).
 - [CONFIRM] Dream-Lena knows she's his memory (SB:162).
 - [OPEN] What makes her amenable to giving her blessing later. Your Night 2: the battle ends with her unsure or condemning Nadia (STORY-PROSE:140). "He called you first" stays (your rewrite of the battle), and the Night 2 argument is exactly what lets Lena change her mind later "if you play your cards right".
 - [SETTLED] Her dream billboard at 6'2" is fine.

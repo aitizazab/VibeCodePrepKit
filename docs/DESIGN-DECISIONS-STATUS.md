@@ -13,7 +13,7 @@ VH = VISITING-HOURS, CH = CHARACTERS, WL = WORKLOG. PROSE line numbers are curre
 from before the 2026-10-12 update (the updated versions wait in `docs/_pending/`); search for the quoted words.
 DESIGN-DECISIONS numbers only its first three questions; the rest are numbered 4 to 51 here in the same order.
 
-**Counts (51 questions), after your answers in 3d4a773:** 18 answered, 16 partly answered, 17 open (9 of the open ones just need a yes or no).
+**Counts (51 questions), after your answers in 3d4a773:** 19 answered, 15 partly answered, 17 open (9 of the open ones just need a yes or no).
 
 ---
 
@@ -36,37 +36,32 @@ ones moved to **Answered**. Where you asked a question back, the reply follows a
 5. **The Long Night's lock-in** (3): which curious choices count, how many lock the route, and how it can be aborted.
    The umbrella is already one of them in the build. // We'll do this when inspiration strikes me, or after the normal rotue is made in its entirety.
 6. **The final arena** (31): is it the car, and if so, why are they back at the beginning? // beats me.
-7. **Lena's Thursdays and the fridge keys** (20): with no studio, what did she say she was doing, and what do the keys
-   mean? The fridge calendar is already in the house art. (Her passion is settled: stargazing.) // beats me. Does it matter within the scope of this game?
-   **Reply:** only as much as the house shows. The keys are drawn on the fridge calendar in the dream; if nothing
-   explains them, they can go, or stay as an unexplained detail of the "where is Lena" thread. Nothing else depends on
-   them.
 
 **Blocks the story and the endings**
-8. **What releases Elias's guilt** (17). What he feels guilty about is answered (below); still open is whether he
+7. **What releases Elias's guilt** (17). What he feels guilty about is answered (below); still open is whether he
    represses it or comes to it over the nights, and what releases each of the four holds. // Guilty for getting his wife and son killed in his mind.
-9. **Lena's truth** (2): what she gives up, when (a later battle, or the back seat), and in what words. It has to fit
+8. **Lena's truth** (2): what she gives up, when (a later battle, or the back seat), and in what words. It has to fit
    her being missing, not dead. // Does it need to be a physical object?
    **Reply:** no. Lena's truth is something Nadia comes to understand, kept for later battles (now: "The Lena he
    remembers wouldn't let him hide"). The physical object is the separate keepsake, given when Nadia lets it rest
    (that one is open for discussion).
-10. **Morning, forced** (42): you want it redone. How does it play, and how does it end? // What do you mean? Did we not write words on this?
+9. **Morning, forced** (42): you want it redone. How does it play, and how does it end? // What do you mean? Did we not write words on this?
     **Reply:** you wrote its premise (PROSE:56: she's "willing to force him out if he won't see reason"), and under the
     bible's two Mornings you noted "Both of these probably need complete re-do's. Talk about it." (PROSE:244). So the
     words that exist are the bible's version (she drags him up through a collapsing dream; he lives, polite and far
     away). The open part is whether that stays, or how it plays and ends instead.
-11. **The Long Night's last image** (3): you asked for suggestions; the default is Nadia's exhausted face. // Yeah?
+10. **The Long Night's last image** (3): you asked for suggestions; the default is Nadia's exhausted face. // Yeah?
     **Reply:** yes: unless a better idea comes, the default stands. STORY-TALK problem 12 has three alternatives.
-12. **The rest of the voicemail** (6): on which night, or in which ending, Nadia finally hears the apology, and what it
+11. **The rest of the voicemail** (6): on which night, or in which ending, Nadia finally hears the apology, and what it
     changes. // I'm not sure if that fight's emotions are even lingering in her mind anymore, but if they are, then it would certainly be a pivtol moment, where her doubts about her brother are quashed. (So what it changes is set; where she hears it is open.)
-13. **The unwelcome visitor on Day 2** (28): you like the idea, but not LeBaget's representative. Who is it? // It can be LeBaget, but I'm open to other ideas.
-14. **The hope** (39): waits on the Night 4 truth. // What does this mean?
+12. **The unwelcome visitor on Day 2** (28): you like the idea, but not LeBaget's representative. Who is it? // It can be LeBaget, but I'm open to other ideas.
+13. **The hope** (39): waits on the Night 4 truth. // What does this mean?
     **Reply:** in the bible's final talk, one way to loosen Elias's hold on Lena was for Nadia to tell him "Lena got
     out of the car": a hope she can't prove, which came from the cut Night 4 reveal. Whether any such hope exists
     depends on what the Night 4 truth becomes.
-15. **LeBaget** (4): how big a part it plays (you said it may become a big part of the story, undecided), and whether it
+14. **LeBaget** (4): how big a part it plays (you said it may become a big part of the story, undecided), and whether it
     shares the blame for the crash (if it does, it stays hidden).
-16. **Lena's keepsake** (the Night 2 battle's heard-out reward): to be decided in discussion.
+15. **Lena's keepsake** (the Night 2 battle's heard-out reward): to be decided in discussion.
 
 **New questions your notes raised that DESIGN-DECISIONS doesn't list** (STORY-TALK has options for most of them) // gonna do this tomorrow
 - Nadia's survivor's guilt, and what Lena did or was that makes it make sense (PROSE:37, PROSE:56).
@@ -115,6 +110,8 @@ ones moved to **Answered**. Where you asked a question back, the reply follows a
 - **Larpaca is the gang, and the news doesn't name LeBaget** (4): // Yes.
 - **The family money doesn't matter** (10): // Doesn't matter/
 
+- **The fridge keys are replaced by small stars on Lena's Thursdays** (20), which fits her stargazing (in `NIGHTS-1-2.md` and built in the house, 4f87977). Your note: // beats me. Does it matter within the scope of this game?
+
 **In chat (2026-10-12)**
 - The spelling is **LeBaget**.
 - The observatory tower is **stone**.
@@ -130,7 +127,7 @@ ones moved to **Answered**. Where you asked a question back, the reply follows a
 11 (the proxy form: cut), 12 (the clock: Mags's five nights), 16 (his choice: granular), 19 (her passion: stargazing),
 22 ("He called you first" stays), 23 (her height), 26 (Julian Cho: cut, no replacement), 27 (Rafael: an intern),
 29 (the mother never mentioned), 37 (His Choice inside Morning), 38 (Evening means he dies), 40 (the Force route's
-rule-break is Lena), 43 (Morning, chosen ends on the stargazing), 44 (the concept "Take it apart") and 49 (Evening both ways).
+rule-break is Lena), 43 (Morning, chosen ends on the stargazing), 44 (the concept "Take it apart") and 49 (Evening both ways), and 20 (the Thursdays: small stars, not keys).
 Theo staying also moves 24 and 48 to partly answered.
 
 ---
@@ -342,11 +339,10 @@ placeholder prose.
   roof section. The ceramics are gone from the docs, and the game's keepsake is now "[keepsake: undecided]".
 
 **20. [CONFIRM] Her Thursdays**
-- **Status:** Partly answered
+- **Status:** Answered
 - **Where:** PROSE:115: "Instead of a friend, something else that shows a hole in who Lena is." PROSE:125: "my question
   is what the keys on the fridge represent, or even mean?"
-- **What's left:** what she said she was doing on Thursdays now there's no studio, what the keys mean, and what shows the
-  gap in her life in place of the friend. (Stargazing itself is settled.)
+- **Answer (2026-10-12):** the keys are replaced by small stars on Lena's Thursdays, which fit her stargazing (`NIGHTS-1-2.md`; built in the house, 4f87977). What she said she was doing needs no more answer.
 
 **21. [CONFIRM] Dream-Lena knows she's his memory**
 - **Status:** Open (confirm only)
