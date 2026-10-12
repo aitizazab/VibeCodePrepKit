@@ -49,6 +49,8 @@ namespace JamKit.DeepBlock
         public static readonly StreetLine[] WaltAsidePressed = { L(Walt, "...Fine. Go.", 2.4f) };
         public static readonly StreetLine[] FourWaysUp = { L(Mags, "The house at the top. Road, stairs, roofs or the creek: pick one.", 3.8f) };
         public static readonly StreetLine[] Paper = { L(Nadia, "Saturday's paper. Still in its plastic.", 3f) };
+        public const string GrillNeighbour = "The neighbour";
+        public static readonly StreetLine[] Chatter = { L(GrillNeighbour, "Afternoon! Smell that? Burgers all the way up the hill.", 3.4f) };
         public const string LoopLine = "Lovely Saturday for it!";
         public static readonly StreetLine[] LoopHeard = { L(Nadia, "She said that already. Word for word.", 3f) };
         public static readonly StreetLine[] SameSaturday = { L(Nadia, "He's living one Saturday, over and over.", 3.4f) };

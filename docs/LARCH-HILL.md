@@ -24,10 +24,10 @@ World axes: X runs east, Z runs north (up the hill), Y is up. The foot is at Y 0
 
 | Level | Height | Z | What's there |
 |---|---|---|---|
-| The far bank | 0 | -44 to -8 | Where she arrives, facing the whole climb |
+| The far bank | 0 | -44 to -8 | Where she arrives, facing the whole climb; the neighbours' house and the loop in its garden |
 | The creek | bed -2.5 | -8 to 0 | 8 m wide: the first double jump |
-| The foot | 0 | 0 to 34 | Walt's bike shop, its yard and gate, the foot square, the creek lane, four houses, road leg 1 |
-| Terrace 1 | 12 | 34 to 68 | Four houses with porches and gardens, the neighbours' loop, Saturday's paper, road leg 2 |
+| The foot | 0 | 0 to 34 | Walt's bike shop, its yard (Saturday's paper on the bench) and gate, the foot square, the creek lane, four houses, road leg 1 |
+| Terrace 1 | 12 | 34 to 68 | Four houses with porches and gardens, a neighbour at his grill, road leg 2 |
 | Terrace 2 | 24 | 68 to 102 | Four houses, road leg 3 |
 | The top | 36 | 102 to 176 | The lookout (4.8 m), the knoll (40) with the house and its tower, the barbecue |
 
@@ -64,24 +64,27 @@ lookout sees the far bank, the shop and the roofs at the foot.
 Every line is a **placeholder**, marked so on screen. The lines quoted from the plan are main's.
 
 1. **Arrival.** Mags: "You're lighter in here." and "The creek. Jump, then jump again in the air."
+   - In the neighbours' garden on the far bank, right where she arrives, the neighbours' loop runs: the sprinkler
+     sweeping, the ball thrown, the dog fetching, and "Lovely Saturday for it!". It is `NeighbourLoop`, a fixed 24 s
+     afternoon whose start point is fixed per night, so Night 2 replays it exactly with `new NeighbourLoop(1)`.
+   - Heard twice (within the far bank), the line is `mem_neighbours_loop`.
 2. **The apron.** Mags: "The door's half up. Run at it and crouch: slide under."
 3. **The yard.**
    - Walt waves. That gives the memory `mem_walt_alive`, and with Day 1's memorial card (`fact_effects`) the deduction
      `ded_walt_dead` ("Walt died in 2015. This is memory.").
    - Standalone, the card counts as known (`assumeDay1Facts`). In the chain it is read from the dream journal.
+   - Saturday's paper lies on the bench in his yard (`mem_saturday_paper`, the id Night 2 reads). With the loop that
+     makes `ded_same_saturday` ("He's living one Saturday, over and over.").
+   - Both halves are below Walt's gate (main, 2026-10-13: his optional premise is part of the tutorial, so it has to be
+     breakable on the first pass). A core test and a PlayMode test check it.
 4. **Walt.** "Your brother's having a good day. Let him have it. Come back tomorrow."
    - His battle is the argument agent's (`ArgumentHost.BeginBattle("walt_night1", ...)`, its context from
      `DreamBattles.Context`). It gets the journal ids she carries; truths and keepsakes won go into the journal.
    - The outcome maps Convinced to persuaded, Pressed or ComposureLost to pressed, and anything else to heard out.
    - Under the autopilot, or if the battle can't start, a debug choice stands in: 1, 2 or 3; F7 is heard out.
    - In every outcome he steps aside and the gate opens. The outcome is kept in the save entry `vh_walt_night1`.
-5. **The climb.** On terrace 1, by the east hairpin:
-   - Saturday's paper lies on house 3's porch (`mem_saturday_paper`, the id Night 2 reads).
-   - The neighbours' loop runs in house 4's garden: the sprinkler sweeping, the ball thrown, the dog fetching, and
-     "Lovely Saturday for it!". It is `NeighbourLoop`, a fixed 24 s afternoon whose start point is fixed per night, so
-     Night 2 replays it exactly with `new NeighbourLoop(1)`.
-   - Heard twice, the line is `mem_neighbours_loop`. With the paper that makes `ded_same_saturday` ("He's living one
-     Saturday, over and over.").
+5. **The climb.**
+   - On terrace 1, by the east hairpin, a neighbour at his grill chats as she passes (one line).
    - Walt's ledger on the workbench is optional (`mem_walt_ledger`).
 6. **The top.** Elias (a **placeholder figure**: there's no art of him yet) is at the barbecue and goes in as she
    arrives.
@@ -106,9 +109,6 @@ Every line is a **placeholder**, marked so on screen. The lines quoted from the 
 
 ## What's open
 
-- **Walt's optional premise.** `ded_same_saturday` breaks Walt's optional premise, but its two halves (the paper and
-  the loop) are on terrace 1, past Walt. On a first pass that premise can't be broken, and the deduction is carried
-  into Night 2's battle instead. Moving the loop or the paper below Walt's gate would change that.
 - **Placeholders.** Elias has no art yet (a placeholder figure, at the barbecue and in the window). The shop's sign has
   no lettering.
 - **The chain.** The night says it's over through `DreamStreetGame.NightEnded`. The chain's runner listens to the house

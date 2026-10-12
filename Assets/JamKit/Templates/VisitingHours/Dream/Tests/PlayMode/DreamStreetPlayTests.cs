@@ -114,23 +114,24 @@ namespace JamKit.DreamEscape.Tests
         }
 
         [UnityTest]
-        public IEnumerator TheNeighboursLoopAndThePaperMakeTheSameSaturday()
+        public IEnumerator TheLoopOnTheFarBankAndThePaperInWaltsYardMakeTheSameSaturdayBeforeWalt()
         {
             yield return StartStreet();
-            Game.JumpToChapter(LarchHill.ChapterRoad);
-            yield return Frames(2);
-            var paper = Game.paper.transform.position;
-            Game.player.Teleport(new Vector3(paper.x, paper.y - 0.35f, paper.z - 0.6f), 0f, Vector3.zero);
-            yield return WaitFor(() => Game.Story.Knows(LarchStreetStory.MemSaturdayPaper), "Saturday's paper", 3f);
-            Assert.That(DreamJournal.Has(Journal, DreamJournal.SaturdayPaper), Is.True, "the id Night 2 looks for, in the journal");
-            Assert.That(Game.paper.activeSelf, Is.False);
-            // Stand in the neighbours' garden until her line comes round twice (a 24 s loop).
-            var at = Game.Hill.Spot(LarchHill.SpotSprinkler).position;
-            Game.player.Teleport(new Vector3(at.X - 2f, at.Y + 0.02f, at.Z - 1f), 0f, Vector3.zero);
+            // Where she arrives: the neighbours' loop, until her line comes round twice (a 24 s loop).
             DebugMenu.TimeScale = 4f;
-            yield return WaitFor(() => Game.HeardLine >= 2, "her line, twice", 30f);
+            yield return WaitFor(() => Game.HeardLine >= 2, "her line, twice, heard from the arrival", 30f);
+            DebugMenu.TimeScale = 1f;
             Assert.That(Game.Story.Knows(LarchStreetStory.MemNeighboursLoop), Is.True);
+            Assert.That(Game.Phase, Is.EqualTo(StreetPhase.Arrival), "before the creek");
+            // Saturday's paper on Walt's yard bench.
+            var paper = Game.paper.transform.position;
+            Game.player.Teleport(new Vector3(paper.x + 1.2f, 0.02f, paper.z), 0f, Vector3.zero);   // beside the bench
+            yield return WaitFor(() => Game.Story.Knows(LarchStreetStory.MemSaturdayPaper), "Saturday's paper", 3f);
+            Assert.That(Game.paper.activeSelf, Is.False);
             Assert.That(Game.Story.Knows(LarchStreetStory.DedSameSaturday), Is.True, "He's living one Saturday, over and over");
+            Assert.That(Game.Story.WaltAside, Is.False, "made before Walt's argument: his optional premise can break");
+            Assert.That(Game.Evidence(), Does.Contain(LarchStreetStory.DedSameSaturday), "in what his battle gets");
+            Assert.That(DreamJournal.Has(Journal, DreamJournal.SaturdayPaper), Is.True, "the id Night 2 looks for, in the journal");
             Assert.That(DreamJournal.Has(Journal, LarchStreetStory.DedSameSaturday), Is.True, "for Night 2's battle");
         }
     }

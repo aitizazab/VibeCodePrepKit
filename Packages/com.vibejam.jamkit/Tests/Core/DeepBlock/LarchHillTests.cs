@@ -243,6 +243,23 @@ namespace JamKit.Tests.DeepBlock
         }
 
         [Test]
+        public void BothHalvesOfTheSameSaturdayAreBelowWaltsGate()
+        {
+            // Walt's optional premise (W3, ded_same_saturday) is part of the tutorial: breakable on the first pass.
+            var h = LarchHill.Build();
+            var gate = h.Spot(LarchHill.SpotWalt).position;
+            var paper = h.Spot(LarchHill.SpotPaper).position;
+            var loop = h.Spot(LarchHill.SpotLoopZone);
+            Assert.That(paper.Z, Is.LessThan(gate.Z - 1f), "the paper: in Walt's yard, this side of his gate");
+            Assert.That(paper.X, Is.InRange(-62f, -44f), "inside the yard's walls");
+            Assert.That(loop.position.Z + loop.size.Z * 0.5f, Is.LessThan(LarchHill.CreekZ0 + 0.01f), "the loop: on the far bank");
+            Assert.That(loop.Contains(h.arrival), Is.True, "heard where she arrives");
+            foreach (var id in new[] { LarchHill.SpotSprinkler, LarchHill.SpotNeighbour, LarchHill.SpotDog, LarchHill.SpotBallTo })
+                Assert.That(loop.Contains(h.Spot(id).position + new System.Numerics.Vector3(0f, 0.5f, 0f)), Is.True, id + " is in earshot");
+            Assert.That(h.Spot(LarchHill.SpotChatter).position.Y, Is.EqualTo(LarchHill.L1), "terrace 1 keeps a neighbour to chat");
+        }
+
+        [Test]
         public void TheNightOnlyGoesForwardAndTheClimbWaitsForWalt()
         {
             var s = new LarchStreetStory();

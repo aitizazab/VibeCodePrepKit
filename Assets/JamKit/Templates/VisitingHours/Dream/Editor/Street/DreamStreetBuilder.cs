@@ -151,8 +151,8 @@ namespace JamKit.DreamEscape.EditorTools
                 if (go == null) continue;
                 if (p.switchIndex == LarchHill.WaltGateSwitch) waltGate = go;
                 if (p.usable) Gold(p, gold);
-                if (p.kind == BlockKind.House && p.layer == "terraces") Dress(p, root, index);
-                if (p.kind == BlockKind.Roof && p.layer == "terraces")
+                if (p.kind == BlockKind.House && (p.layer == "terraces" || p.layer == "farbank")) Dress(p, root, index, p.layer == "farbank");
+                if (p.kind == BlockKind.Roof && (p.layer == "terraces" || p.layer == "farbank"))
                 {
                     Object.DestroyImmediate(go.GetComponent<MeshRenderer>());   // the gable is drawn; the box keeps the collider
                     GableRoof(p, root, gableMesh, index);
@@ -168,11 +168,15 @@ namespace JamKit.DreamEscape.EditorTools
             var neighbour = CutOut("Mrs. Lindqvist (her roses)", DreamArt.NeighbourRoses, root, U(h.Spot(LarchHill.SpotNeighbour).position), 1.7f);
             var dog = CutOut("The dog", DreamArt.Dog, root, U(h.Spot(LarchHill.SpotDog).position), 0.75f);
             var sprinkler = Sprinkler(root, U(h.Spot(LarchHill.SpotSprinkler).position));
+            // Terrace 1's neighbour at his grill (he chats as she passes).
+            var chatter = U(h.Spot(LarchHill.SpotChatter).position);
+            CutOut("The neighbour at his grill (terrace 1)", DreamArt.NeighbourGrill, root, chatter, 1.75f);
+            DreamEscapeBuilder.Box("His grill", root, chatter + new Vector3(1.1f, 0.45f, 0.4f), new Vector3(0.9f, 0.9f, 0.6f), DreamEscapeBuilder.Pastel("StreetBarbecue", Plum, 0.04f));
             var ball = DreamEscapeBuilder.Part("The dog's ball", PrimitiveType.Sphere, root, Vector3.zero, Vector3.one * 0.22f,
                 DreamEscapeBuilder.Pastel("StreetBall", new Color(0.98f, 0.62f, 0.58f), 0.08f));
             ball.transform.position = U(h.Spot(LarchHill.SpotBallFrom).position);
 
-            // The memories you walk up to: Saturday's paper on the porch, Walt's ledger on his workbench.
+            // The memories you walk up to: Saturday's paper on Walt's yard bench, his ledger on his workbench.
             var paper = Memory("Memory: Saturday's paper", root, U(h.Spot(LarchHill.SpotPaper).position), new Vector3(0.42f, 0.06f, 0.3f));
             var ledger = Memory("Memory: Walt's ledger", root, U(h.Spot(LarchHill.SpotLedger).position), new Vector3(0.36f, 0.05f, 0.26f));
 
@@ -312,18 +316,19 @@ namespace JamKit.DreamEscape.EditorTools
         }
 
         /// <summary>A terraced house's face: two windows up, two down, a door, on its south side (toward the view).</summary>
-        static void Dress(BlockPiece p, Transform parent, int index)
+        static void Dress(BlockPiece p, Transform parent, int index, bool facesNorth = false)
         {
             var warm = DreamEscapeBuilder.Pastel("StreetWindowWarm", WindowWarm, 0.03f, 0.35f);
             var dark = DreamEscapeBuilder.Pastel("StreetWindowDark", WindowDark, 0.03f);
             var trim = DreamEscapeBuilder.Pastel("StreetTrim", DreamEscapeBuilder.Palette[0], 0.03f);
-            float face = p.Min.Z - 0.02f, y0 = p.Min.Y;
+            float face = facesNorth ? p.Max.Z + 0.02f : p.Min.Z - 0.02f, y0 = p.Min.Y, outward = facesNorth ? 0.03f : -0.03f;
+            var normal = facesNorth ? Vector3.forward : Vector3.back;
             float cx = p.center.X;
             foreach (float dx in new[] { -3.2f, 3.2f })
                 foreach (float dy in new[] { 1.5f, 3.4f })
-                    DreamEscapeBuilder.Quad("Window", parent, new Vector3(cx + dx, y0 + dy, face), Vector3.back, 1.4f, 1.1f, (index + (int)dy) % 3 == 0 ? warm : dark);
-            DreamEscapeBuilder.Quad("Door", parent, new Vector3(cx, y0 + 1.1f, face), Vector3.back, 1.1f, 2.2f, DreamEscapeBuilder.Pastel("StreetDoor" + index % 3, RoofColors[(index + 1) % 4], 0.03f));
-            DreamEscapeBuilder.Box("Door frame", parent, new Vector3(cx, y0 + 2.28f, face - 0.03f), new Vector3(1.4f, 0.14f, 0.06f), trim);
+                    DreamEscapeBuilder.Quad("Window", parent, new Vector3(cx + dx, y0 + dy, face), normal, 1.4f, 1.1f, (index + (int)dy) % 3 == 0 ? warm : dark);
+            DreamEscapeBuilder.Quad("Door", parent, new Vector3(cx, y0 + 1.1f, face), normal, 1.1f, 2.2f, DreamEscapeBuilder.Pastel("StreetDoor" + index % 3, RoofColors[(index + 1) % 4], 0.03f));
+            DreamEscapeBuilder.Box("Door frame", parent, new Vector3(cx, y0 + 2.28f, face + outward), new Vector3(1.4f, 0.14f, 0.06f), trim);
         }
 
         /// <summary>A gable over a terraced house's roof box (decoration; the box keeps the collider).</summary>

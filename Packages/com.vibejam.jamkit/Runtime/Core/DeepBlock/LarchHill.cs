@@ -113,7 +113,7 @@ namespace JamKit.DeepBlock
             SpotSprinkler = "sprinkler", SpotNeighbour = "neighbour", SpotDog = "dog", SpotBallFrom = "ball_from", SpotBallTo = "ball_to",
             SpotLoopZone = "loop_zone", SpotGarageDoor = "garage_door", SpotCreekEdge = "creek_edge", SpotTopArrive = "top", SpotGate = "garden_gate",
             SpotBarbecue = "barbecue", SpotElias = "elias", SpotWindow = "window", SpotDoor = "front_door", SpotPorchLight = "porch_light",
-            SpotFoot = "foot";
+            SpotFoot = "foot", SpotChatter = "chatter";
 
         public static LarchHill Build()
         {
@@ -251,6 +251,11 @@ namespace JamKit.DeepBlock
             Ground("The south bank", WestX, -44f, 40f, CreekZ0, L0);
             Ground("The creek bed", WestX, CreekZ0, RavX1, CreekZ1, CreekBed);
             Box("The creek (water)", BlockKind.Water, WestX, CreekZ0, RavX1, CreekZ1, CreekBed, CreekBed + 0.6f, solid: false);
+            // The neighbours' house on the far bank, its front garden toward the creek (the loop plays in it).
+            _layer = "farbank";
+            Box("The neighbours' house (the far bank)", BlockKind.House, -40f, -38f, -28f, -29f, L0, L0 + HouseFloor);
+            Box("The neighbours' house (the far bank) (roof)", BlockKind.Roof, -40.3f, -38.3f, -27.7f, -28.7f, L0 + HouseFloor, L0 + HouseTop);
+            _layer = "bottom";
             // A grate across the creek and a fence on the bank at X 40: the creek can't take her round Walt.
             Box("The grate (across the creek)", BlockKind.Fence, 39.6f, CreekZ0, 40.4f, CreekZ1, CreekBed, 6f);
             WallZ("The bank fence", BlockKind.Fence, 40f, -44f, CreekZ0, L0, 6f, 0.6f);
@@ -277,6 +282,7 @@ namespace JamKit.DeepBlock
             Box("The shop (over the back door)", BlockKind.Shop, -50f, sz1 - 0.3f, -47.5f, sz1, 2.4f, sh);
             Box("The shop (roof)", BlockKind.Roof, sx0 - 0.3f, sz0 - 0.3f, sx1 + 0.3f, sz1 + 0.3f, sh, sh + 0.3f);
             Box("The workbench", BlockKind.Deck, sx0 + 0.4f, 6f, sx0 + 2.2f, 12f, L0, 0.9f);
+            Box("Walt's yard bench", BlockKind.Deck, -60f, 20.4f, -57f, 21.6f, L0, 0.45f);
             // The yard behind the shop: walled, with the gate to the hill in its north wall (Walt stands in it).
             _layer = "yard";
             Box("The yard (east wall)", BlockKind.BrickWall, -44f, CreekZ1 + 1f, MidX0, 24f, L0, 5f);
@@ -466,15 +472,18 @@ namespace JamKit.DeepBlock
             AddSpot(SpotWalt, "Walt, in the gate", -52.5f, L0, 23.2f, yaw: 180f);
             AddSpot(SpotWaltAside, "Walt, stepped aside", -56.5f, L0, 26.5f, yaw: 135f);
             AddSpot(SpotFoot, "the foot square", -45f, L0, 29f, 36f, 4f, 10f);
-            // Terrace 1, by the east hairpin: Saturday's paper on house 3's porch; the neighbours' loop in house 4's garden.
-            float t1 = L1;
-            AddSpot(SpotPaper, "Saturday's paper (on a porch)", 9.5f, t1 + 0.35f, 41.2f);
-            AddSpot(SpotSprinkler, "the sprinkler", 24.5f, t1, 38f);
-            AddSpot(SpotNeighbour, "the neighbour (her roses)", 21.5f, t1, 38.6f, yaw: 160f);
-            AddSpot(SpotDog, "the dog", 13f, t1, 37.5f, yaw: 90f);
-            AddSpot(SpotBallFrom, "the ball (thrown)", 20.5f, t1 + 1.2f, 39f);
-            AddSpot(SpotBallTo, "the ball (lands)", 8f, t1, 36.5f);
-            AddSpot(SpotLoopZone, "within earshot of the neighbours", 18f, t1 + 2f, 45f, 60f, 10f, 40f);
+            // Both halves of "the same Saturday" are below Walt's gate (his optional premise is part of the tutorial, so it
+            // must be breakable on the first pass): the neighbours' loop in the garden on the far bank where she arrives,
+            // Saturday's paper on the bench in Walt's yard.
+            AddSpot(SpotPaper, "Saturday's paper (on Walt's yard bench)", -58.5f, L0 + 0.5f, 21f);
+            AddSpot(SpotSprinkler, "the sprinkler", -40f, L0, -21.5f);
+            AddSpot(SpotNeighbour, "the neighbour (her roses)", -43f, L0, -20.8f, yaw: -60f);
+            AddSpot(SpotDog, "the dog", -48.5f, L0, -24f, yaw: 90f);
+            AddSpot(SpotBallFrom, "the ball (thrown)", -43.8f, L0 + 1.2f, -21.4f);
+            AddSpot(SpotBallTo, "the ball (lands)", -57f, L0, -25f);
+            AddSpot(SpotLoopZone, "within earshot of the neighbours", -50f, L0 + 2f, -24f, 44f, 8f, 32f);
+            // Terrace 1 keeps a neighbour at his grill by the east hairpin, who chats as she passes.
+            AddSpot(SpotChatter, "the neighbour at his grill (terrace 1)", 24.5f, L1, 38.5f, 18f, 6f, 12f, yaw: 160f);
             // The top.
             AddSpot(SpotTopArrive, "the top", -20f, Top + 3f, 140f, 160f, 8f, 76f);
             AddSpot(SpotGate, "the garden gate", -2f, Knoll + 1f, 109.5f, 4f, 3f, 3f);

@@ -25,9 +25,10 @@ namespace JamKit.DreamEscape
     /// "Walt died in 2015. This is memory."), then stands in the gate to the hill: "Let him have it. Come back tomorrow."
     /// His argument (the argument agent's battle, <see cref="ArgumentHost.BeginBattle"/>, "walt_night1", with what she
     /// carries in the dream journal); whatever the outcome he steps aside, and how she treated him is kept in the save.</item>
-    /// <item><b>The climb.</b> Four ways up. On terrace 1, Saturday's paper on a porch and the neighbours' loop (the
-    /// sprinkler, the dog's ball, "Lovely Saturday for it!" on a fixed timer: <see cref="NeighbourLoop"/>); heard twice, it's
-    /// a memory, and with the paper it's the deduction "He's living one Saturday, over and over."</item>
+    /// <item><b>Before Walt</b>, both halves of his optional premise: on the far bank the neighbours' loop (the sprinkler,
+    /// the dog's ball, "Lovely Saturday for it!" on a fixed timer: <see cref="NeighbourLoop"/>), heard twice, is a memory;
+    /// with Saturday's paper on his yard bench it's the deduction "He's living one Saturday, over and over."</item>
+    /// <item><b>The climb.</b> Four ways up; a neighbour at his grill on terrace 1 chats as she passes.</item>
     /// <item><b>The top.</b> Elias at the barbecue goes in as she arrives. At the garden gate she sees him through the
     /// window at the stove, Theo setting the table; he looks up and sees her; Lena steps between them, takes him inside,
     /// the door closes, the porch light goes out. Mags: "His heart's up. That's enough for tonight. You found the house."</item>
@@ -84,7 +85,7 @@ namespace JamKit.DreamEscape
         string _lineText = "";
         Action _afterLines;
         int _heardLine, _checkpoint, _respawns;
-        bool _saidDoor, _waitingForWalt, _ending, _ended, _eliasGone;
+        bool _saidDoor, _waitingForWalt, _ending, _ended, _eliasGone, _chatted;
         Vector3 _waltHome, _ballFrom, _ballTo, _dogHome;
         ArgumentHost _battle;
         Func<MoveSim, MoveInput> _hold;
@@ -160,7 +161,7 @@ namespace JamKit.DreamEscape
             _lineText = "";
             _afterLines = null;
             _heardLine = 0;
-            _saidDoor = _waitingForWalt = _ending = _ended = _eliasGone = false;
+            _saidDoor = _waitingForWalt = _ending = _ended = _eliasGone = _chatted = false;
             _night = 0f;
             _loopPrev = 0f;
             _route = null;
@@ -239,6 +240,7 @@ namespace JamKit.DreamEscape
             if (p.y < -9f) { Respawn(); return; }
             TickPhase(feet);
             TickMemories(p);
+            if (!_chatted && _h.Spot(LarchHill.SpotChatter).Contains(feet)) { _chatted = true; Say(LarchStreetLines.Chatter, null); }
         }
 
         void TickPhase(System.Numerics.Vector3 feet)
