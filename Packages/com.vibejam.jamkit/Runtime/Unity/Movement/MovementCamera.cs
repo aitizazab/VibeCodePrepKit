@@ -129,13 +129,7 @@ namespace JamKit.Movement
             }
             targetRoll *= rollK;
             if (ev.wallrunStarted) _rollVel += ev.wallSide * wallCatchKick * rollFrequency * rollK;
-            if (dt > 0f)
-            {
-                float w = rollFrequency;
-                float acc = w * w * (targetRoll - _roll) - 2f * rollDamping * w * _rollVel;
-                _rollVel += acc * dt;
-                _roll += _rollVel * dt;
-            }
+            MoveMath.Spring(ref _roll, ref _rollVel, targetRoll, rollFrequency, rollDamping, dt);
 
             // Landing dip: a critically damped spring kicked down in proportion to the fall speed.
             if (ev.slideStarted) _dipVel -= slideEntryDip * dipFrequency * 2.718f * bobK;
@@ -144,12 +138,9 @@ namespace JamKit.Movement
                 float amount = landDip * Mathf.Clamp01((ev.landImpact - landDipFrom) / (landDipFull - landDipFrom)) * bobK;
                 _dipVel -= amount * dipFrequency * 2.718f;
             }
-            if (dt > 0f)
-            {
-                float w = dipFrequency;
-                _dipVel += (-w * w * _dip - 2f * w * _dipVel) * dt;
-                _dip += _dipVel * dt;
-            }
+            // Stepped exactly: a long frame on a hard landing used to fling the camera up to 0.3 m off the body (out of the
+            // head's cut-away, 2026-10-12).
+            MoveMath.CriticalSpring(ref _dip, ref _dipVel, 0f, dipFrequency, dt);
 
             // Head bob on the ground only, with the stride.
             bool ground = mode == MoveMode.Grounded || mode == MoveMode.Sprint;

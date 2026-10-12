@@ -103,5 +103,36 @@ namespace JamKit.Movement
             float k = max / s;
             return new Vector3(v.X * k, v.Y, v.Z * k);
         }
+    
+        /// <summary>
+        /// A critically damped spring towards <paramref name="target"/> (angular frequency <paramref name="w"/>), stepped
+        /// exactly: the same curve whatever the frame length. (The camera's landing dip used a per-frame Euler step,
+        /// which on a long frame at a hard landing overshot the wrong way by up to a third of a metre: 2026-10-12.)
+        /// </summary>
+        public static void CriticalSpring(ref float x, ref float v, float target, float w, float dt)
+        {
+            if (dt <= 0f) return;
+            float x0 = x - target;
+            float c = v + w * x0;
+            float e = (float)Math.Exp(-w * dt);
+            x = target + (x0 + c * dt) * e;
+            v = (v - w * c * dt) * e;
+        }
+
+        /// <summary>
+        /// A damped spring (any damping ratio) stepped in pieces of at most <paramref name="maxStep"/> s, so a long
+        /// frame can't make it overshoot or blow up. No allocation.
+        /// </summary>
+        public static void Spring(ref float x, ref float v, float target, float w, float damping, float dt, float maxStep = 1f / 240f)
+        {
+            if (dt <= 0f) return;
+            int n = Math.Min(64, Math.Max(1, (int)Math.Ceiling(dt / maxStep)));
+            float h = dt / n;
+            for (int i = 0; i < n; i++)
+            {
+                v += (w * w * (target - x) - 2f * damping * w * v) * h;
+                x += v * h;
+            }
+        }
     }
 }

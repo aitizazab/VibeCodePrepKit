@@ -394,8 +394,14 @@ namespace JamKit.Movement
             }
             if (dt > 0f)
             {
-                _punchV += (-d.punchConstant * _punch - d.punchDamping * _punchV) * dt;
-                _punch += _punchV * dt;
+                // In pieces of at most 1/240 s, so a long frame steps it the same as short ones.
+                int n = Math.Min(64, Math.Max(1, (int)Math.Ceiling(dt * 240f)));
+                float h = dt / n;
+                for (int k = 0; k < n; k++)
+                {
+                    _punchV += (-d.punchConstant * _punch - d.punchDamping * _punchV) * h;
+                    _punch += _punchV * h;
+                }
             }
             float lag = (delayed + _punch - i.cameraDip) * motion;
             pose.armDipOffset = lag;
@@ -656,12 +662,9 @@ namespace JamKit.Movement
             return _dipV[idx];
         }
 
+        // Stepped in short pieces (MoveMath.Spring), so a long frame can't overshoot it.
         static void Spring(ref float x, ref float v, float target, float w, float zeta, float dt)
-        {
-            if (dt <= 0f) return;
-            v += (w * w * (target - x) - 2f * zeta * w * v) * dt;
-            x += v * dt;
-        }
+            => MoveMath.Spring(ref x, ref v, target, w, zeta, dt);
 
         static float Clamp(float v, float a, float b) => v < a ? a : (v > b ? b : v);
         static float Clamp01(float v) => Clamp(v, 0f, 1f);
