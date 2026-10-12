@@ -52,13 +52,15 @@ namespace JamKit.DreamEscape.EditorTools
             string dir = Path.Combine(Directory.GetCurrentDirectory(), "out", "dream-captures", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             Directory.CreateDirectory(dir);
 
+            var hb = DreamHouse.Build();
+            float fd = hb.frontDoorZ, ft = hb.frontDoorFloor;
             var house = new List<Spot>
             {
                 // Night 2's re-plot: the street, the place card, the bad dream, Lena at the window.
                 new Spot("house-00-the-street", new Vector3(-3f, Eye, DreamHouse.StreetZ0 + 5f), new Vector3(1f, 2.2f, -12f)),
                 new Spot("house-04b-place-card", new Vector3(-0.7f, F + 1.25f, 75.7f), new Vector3(-2.12f, F + 0.86f, 75.7f)),
                 new Spot("house-11d-the-bad-dream", new Vector3(7.5f, F + 0.75f + Eye, 82.7f), new Vector3(7.72f, F + 2.0f, 81.95f)),
-                new Spot("house-17-lena-at-the-window", new Vector3(-1.5f, -5f + Eye, 325f), new Vector3(-4.2f, -5f + 1.55f, 319f)),
+                new Spot("house-17-lena-at-the-window", new Vector3(-1.5f, ft + Eye, fd + 6.25f), new Vector3(-4.2f, ft + 1.55f, fd + 0.25f)),
                 new Spot("house-01-front-garden-door", new Vector3(0f, Eye, -9f), new Vector3(0f, 1.6f, 0.5f)),
                 new Spot("house-02-hallway-from-door", new Vector3(0f, Eye, -1.5f), new Vector3(0f, 1.2f, 20f)),
                 // The house's rooms (the architecture pass, 2026-10-12).
@@ -98,14 +100,22 @@ namespace JamKit.DreamEscape.EditorTools
                 new Spot("exterior-06-side-garden-left", new Vector3(-12.5f, Eye, 8.5f), new Vector3(-7.5f, 2.6f, 2.2f)),
                 new Spot("exterior-07-observatory-from-the-side", new Vector3(-12.8f, 2.4f, 9.8f), new Vector3(-4f, 7.2f, 14f)),
                 new Spot("house-13-tipped-hallway", new Vector3(0f, Eye, 190f), new Vector3(1.5f, 1.2f, 214f)),
-                new Spot("house-14-way-out-door", new Vector3(0f, -3.3f, 311.5f), new Vector3(0f, -3.6f, 319f)),
-                new Spot("house-15-umbrella-closed", new Vector3(1.2f, -3.75f, 315.6f), new Vector3(2.4f, -4.45f, 317.6f)),
+                new Spot("house-14-way-out-door", new Vector3(0f, ft + 1.7f, fd - 7.25f), new Vector3(0f, ft + 1.4f, fd + 0.25f)),
+                new Spot("house-15-umbrella-closed", new Vector3(1.2f, ft + 1.25f, fd - 3.15f), new Vector3(2.4f, ft + 0.55f, fd - 1.15f)),
                 new Spot("house-16-umbrella-open", Vector3.zero, Vector3.zero, "umbrella-open"),
             };
             // -houseVariants all|walls,ceilings,cornices,heights,attic (tools/dream-capture.ps1 -Variants ...): the finish
             // options for the creator to choose from; "only" captures just those, skipping the usual stills.
             string variants = VariantsArg();
             if (variants == "only") { HouseVariants(dir, "all"); return dir; }
+            // The escape, room by room (round 6: the night's peak): from each of its checkpoints, looking ahead.
+            for (int i = hb.escapeCheckpoint, n = 1; i < hb.course.checkpoints.Count && i < hb.frontDoorCheckpoint; i++, n++)
+            {
+                var cp = hb.course.checkpoints[i];
+                var at = new Vector3(cp.position.X, cp.position.Y, cp.position.Z);
+                string id = cp.name.ToLowerInvariant().Replace(" ", "-").Replace(",", "").Replace("'", "");
+                house.Add(new Spot($"escape-house-{n:00}-{id}", at + new Vector3(0f, Eye + 0.3f, -3f), at + new Vector3(0f, 1.2f, 14f)));
+            }
             Scene(DreamHouseBuilder.ScenePath, house, dir);
             if (!string.IsNullOrEmpty(variants)) HouseVariants(dir, variants);
 

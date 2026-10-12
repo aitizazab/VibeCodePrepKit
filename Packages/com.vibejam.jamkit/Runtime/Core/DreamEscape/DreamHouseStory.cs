@@ -146,6 +146,23 @@ namespace JamKit.DreamEscape
             new HouseLine(Nadia, Placeholder + "The floor-- the house is turning over!", 2.4f),
         };
 
+        public const string TheDream = "The dream", Mags = "Mags";
+
+        /// <summary>The memory-for-a-shortcut offer at the escape's hardest spot, after two falls (docs/NIGHTS-GAMEPLAY.md:
+        /// the dream offers, Mags warns).</summary>
+        public static readonly HouseLine[] MemoryOffer =
+        {
+            new HouseLine(TheDream, Placeholder + "It'll let you through. It keeps what you give it.", 3.4f),
+            new HouseLine(Mags, Placeholder + "Nadia, don't. Whatever you give it, he loses too.", 3.4f),
+        };
+
+        public const string MemoryOfferPrompt = "Give the dream a memory to be let through?   [Y] Give it one   [N] Keep trying";
+
+        public static readonly HouseLine[] MemoryTaken =
+        {
+            new HouseLine(TheDream, Placeholder + "(The door is simply open. Something she found is gone.)", 3f),
+        };
+
         /// <summary>Out of the front door (step 7): Lena watches from the window.</summary>
         public static readonly HouseLine[] LenaAtTheWindow =
         {
@@ -169,6 +186,8 @@ namespace JamKit.DreamEscape
 
         /// <summary>The save entry holding Theo's question's answer ("honest", "comfort", "silence").</summary>
         public const string TheoAnswerKey = "vh_theo_dad_sad";
+        /// <summary>The save entry holding the memory she gave the dream for the shortcut (its id), if she did.</summary>
+        public const string MemoryGivenKey = "vh_n2_memory_given";
         /// <summary>The battle with Lena, by id (the argument's battle API starts it by id).</summary>
         public const string LenaBattleId = "lena_night2";
 

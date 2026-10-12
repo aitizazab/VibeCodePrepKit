@@ -46,12 +46,15 @@ namespace JamKit.Tests.DreamEscape
         public void TheAutopilotEscapesTheTippingHouseIntoTheRain(int fps, int jitter)
         {
             var h = Build();
-            var r = LabCourseTests.Drive(h.course, h.escapeCheckpoint, h.rain.rainEndS, 60f, fps == 0 ? 60 : fps, true, jitter, 0.04f);
+            var r = LabCourseTests.Drive(h.course, h.escapeCheckpoint, h.rain.rainEndS, 160f, fps == 0 ? 60 : fps, true, jitter, 0.04f);
             if (!r.finished || r.falls > 0 || r.caught > 0) TestContext.Out.WriteLine(r.log.ToString());
             TestContext.Out.WriteLine($"{fps} fps: escape {r.seconds:0.0} s, top speed {r.topSpeed:0.0} m/s");
             Assert.That(r.finished, Is.True, fps + " fps");
             Assert.That(r.falls, Is.EqualTo(0), fps + " fps");
             Assert.That(r.caught, Is.EqualTo(0), "the house folding shut never catches a good run");
+            // The creator: "unexpectedly long for how small the house looks": a player takes 75-120 s, the autopilot's
+            // near-perfect run a good minute.
+            Assert.That(r.seconds, Is.InRange(55f, 100f), "the escape's length (autopilot)");
         }
 
         [Test]
@@ -66,15 +69,36 @@ namespace JamKit.Tests.DreamEscape
                 if (!r.finished || r.falls > 0) TestContext.Out.WriteLine(r.log.ToString());
                 Assert.That(r.finished, Is.True, c.checkpoints[i].name);
                 Assert.That(r.falls, Is.EqualTo(0), c.checkpoints[i].name);
+                // A checkpoint every 10-20 s for a player: at most about 12 s apart for the autopilot's near-perfect run.
+                Assert.That(r.seconds, Is.LessThan(12.5f), c.checkpoints[i].name + " to the next");
             }
+        }
+
+        [Test]
+        public void TheEscapeRunsThroughRoomsThatCantFitInTheHouse()
+        {
+            var h = Build();
+            var names = h.escapeRooms.ConvertAll(r => r.name);
+            foreach (var n in new[] { "The kitchen tilts", "The hallway turns over", "The stairs flatten", "The hallway, again",
+                "The observatory, open to the sky", "The kitchen, come round again", "The door onto the stairwell" })
+                Assert.That(names, Does.Contain(n));
+            for (int i = 1; i < h.escapeRooms.Count; i++) Assert.That(h.escapeRooms[i].s, Is.GreaterThan(h.escapeRooms[i - 1].s), "in order");
+            Assert.That(h.escapeRooms[0].s, Is.LessThanOrEqualTo(h.escapeStartS));
+            // The hardest spot: its checkpoint before it, the shortcut's after it, and the offer leaves her short of the door.
+            var c = h.course;
+            Assert.That(c.checkpoints[h.hardCheckpoint].s, Is.LessThan(h.hardStartS));
+            Assert.That(c.checkpoints[h.hardSkipCheckpoint].s, Is.GreaterThan(h.hardEndS));
+            Assert.That(h.hardSkipCheckpoint, Is.LessThan(h.frontDoorCheckpoint));
+            Assert.That(h.rain.rainStartS, Is.EqualTo(h.frontDoorZ));
+            Assert.That(h.course.killY, Is.LessThan(h.frontDoorFloor - 3f), "the floor at the end stays above the fall line");
         }
 
         [Test]
         public void TheSmokeRunsLegFromTheStairsFitsItsBudget()
         {
-            // DreamHouseGame's smoke drive runs from "The stairs" (the whole smoke run, credits included, has 20 s).
+            // DreamHouseGame's smoke drive runs from "The last door" (the whole smoke run, credits included, has 20 s).
             var h = Build();
-            int stairs = h.course.checkpoints.FindIndex(c => c.name == "The stairs");
+            int stairs = h.course.checkpoints.FindIndex(c => c.name == "The last door");
             Assert.That(stairs, Is.GreaterThan(h.escapeCheckpoint));
             var r = LabCourseTests.Drive(h.course, stairs, h.rain.rainEndS, 20f, 60, true);
             TestContext.Out.WriteLine("the stairs to the end of the rain: " + r.seconds.ToString("0.0") + " s");

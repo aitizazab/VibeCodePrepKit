@@ -88,6 +88,10 @@ namespace JamKit.DreamEscape
         /// <summary>Lena condemned Nadia in an argument (kept in the save across visits; it makes the Despair route easier).</summary>
         public static bool LenaCondemned => GameRoot.Exists && GameRoot.Save.Data.HasFlag(DreamHouseStory.CondemnsFlag);
 
+        /// <summary>The builder groups each escape room's pieces under "Escape room: (its name)" (they fold shut as one), and
+        /// the hallway's things that turn over with it under <see cref="TurningGroup"/>.</summary>
+        public const string RoomGroupPrefix = "Escape room: ", TurningGroup = "The hallway's things (turning over)";
+
         DreamHouse _h;
         LabCourse _course;
         readonly DreamHouseStory _story = new DreamHouseStory();
@@ -100,6 +104,19 @@ namespace JamKit.DreamEscape
         int _checkpoint, _respawns, _caught, _falls, _finishes;
         bool _chasing, _respawning, _leaving, _stretched, _waitingForChoice;
         bool _saidArrival, _saidWindow, _waitingForTheo, _theoOver;
+        // The escape as the night's peak: its rooms (light, sound, the framed turn), the rooms folding shut behind her,
+        // the hallway turning over, the memory offer at the hardest spot.
+        int _room = -1, _hardFalls;
+        bool _offering, _offerUsed;
+        Transform[] _roomGroups;
+        Vector3[] _roomPos;
+        Quaternion[] _roomRot;
+        bool[] _folded;
+        Transform _turning;
+        Vector3 _turningPos;
+        Quaternion _turningRot;
+        Color _sky0, _equator0, _ground0, _fog0;
+        Coroutine _mood;
         readonly List<string> _found = new List<string>();
         float _stretchT = -1f;
         Vector3 _hallwayHome;
@@ -126,6 +143,12 @@ namespace JamKit.DreamEscape
         public bool WaitingForChoice => _waitingForChoice;
         /// <summary>Theo has asked "Is Dad going to be sad?" and waits for her answer.</summary>
         public bool AskingTheo => _waitingForTheo;
+        /// <summary>The dream offers to let her through the hardest spot for a memory.</summary>
+        public bool Offering => _offering;
+        /// <summary>The escape room she's in (-1 outside the escape).</summary>
+        public int Room => _room;
+        /// <summary>The memory she gave the dream for the shortcut (the save's), or null.</summary>
+        public static string MemoryGiven => GameRoot.Exists ? GameRoot.Save.Data.GetEntry(DreamHouseStory.MemoryGivenKey) : null;
         /// <summary>The evidence cards she'd carry into the battle now (the memories found; the calendar as the Saturday
         /// deduction when she has Night 1's paper).</summary>
         public List<string> Evidence => DreamHouseStory.EvidenceFor(_found, HasSaturdayPaper);
@@ -163,6 +186,18 @@ namespace JamKit.DreamEscape
             memories.summaryFormat = (found, total) => found >= total ? "All " + total + " memories found" : "Memories: " + found + " of " + total;
             if (theo != null) theo.Found += OnTheoFound;
             if (hallwayEnd != null) _hallwayHome = hallwayEnd.position;
+            _sky0 = RenderSettings.ambientSkyColor; _equator0 = RenderSettings.ambientEquatorColor; _ground0 = RenderSettings.ambientGroundColor; _fog0 = RenderSettings.fogColor;
+            int rooms = _h.escapeRooms.Count;
+            _roomGroups = new Transform[rooms]; _roomPos = new Vector3[rooms]; _roomRot = new Quaternion[rooms]; _folded = new bool[rooms];
+            foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (t.name.StartsWith(RoomGroupPrefix))
+                {
+                    int i = _h.escapeRooms.FindIndex(r => r.name == t.name.Substring(RoomGroupPrefix.Length));
+                    if (i >= 0) { _roomGroups[i] = t; _roomPos[i] = t.position; _roomRot[i] = t.rotation; }
+                }
+                else if (t.name == TurningGroup) { _turning = t; _turningPos = t.position; _turningRot = t.rotation; }
+            }
 
             GameRoot.Hud.Show();
             GameRoot.Hud.ShowHealth(false);
@@ -186,7 +221,7 @@ namespace JamKit.DreamEscape
         {
             if (_current == this) _current = null;
             if (memories != null) { memories.AllFound -= OnAllMemoriesFound; memories.ItemCollected -= OnMemory; }
-            if (ArgumentRunning) { var b = _battle; _battle = null; b.Close(false); }
+            if (ArgumentRunning) CloseBattle();
             if (theo != null) theo.Found -= OnTheoFound;
             if (!GameRoot.Exists) return;
             PresenterMode.Unregister(this);
@@ -213,7 +248,7 @@ namespace JamKit.DreamEscape
 
         void ResetHouse()
         {
-            if (ArgumentRunning) { var b = _battle; _battle = null; b.Close(false); }
+            if (ArgumentRunning) CloseBattle();
             _lines.Clear();
             _lineText = "";
             _lineLeft = 0f;
@@ -223,6 +258,11 @@ namespace JamKit.DreamEscape
             _saidArrival = false;
             _saidWindow = false;
             _found.Clear();
+            _offering = false;
+            _offerUsed = false;
+            _hardFalls = 0;
+            RestoreRooms(-1f);
+            SetMood(-1, true);
             _leaving = false;
             _stretched = false;
             _stretchT = -1f;
@@ -257,6 +297,7 @@ namespace JamKit.DreamEscape
             if (GameRoot.Flow.Current == GameState.Playing && !_respawning) Tick(dt, p);
             if (_waitingForChoice) ReadChoice();
             if (_waitingForTheo) ReadTheoAnswer();
+            if (_offering) ReadOffer();
             var kb = Keyboard.current;
             if (DebugMenu.Allowed && kb != null && kb.f6Key.wasPressedThisFrame)
             {
@@ -286,7 +327,8 @@ namespace JamKit.DreamEscape
                     }
                     break;
                 case HousePhase.Escape:
-                    if (_chasing)
+                    TickRooms();
+                    if (_chasing && !_offering)
                     {
                         var dir = _course.route.DirectionAt(_s);
                         float along = Vector3.Dot(player.Velocity, new Vector3(dir.X, dir.Y, dir.Z));
@@ -296,6 +338,7 @@ namespace JamKit.DreamEscape
                         if (caught)
                         {
                             _caught++;
+                            FellAtTheHardSpot();
                             GameRoot.Audio.Play("mv_caught", 0.8f);
                             StartCoroutine(Respawn("The house folded shut on her."));
                             return;
@@ -308,6 +351,7 @@ namespace JamKit.DreamEscape
             if (p.y < _course.killY)
             {
                 _falls++;
+                if (_story.Phase == HousePhase.Escape) FellAtTheHardSpot();
                 StartCoroutine(Respawn(_story.Phase == HousePhase.WayIn ? "The house puts her back at the door." : "The house let go of her."));
             }
         }
@@ -416,7 +460,7 @@ namespace JamKit.DreamEscape
 
         void OnMemory(Collectible item, int index)
         {
-            if (item != null && !_found.Contains(item.id)) _found.Add(item.id);
+            if (item != null) NoteMemory(item.id);
         }
 
         void OnAllMemoriesFound()
@@ -454,7 +498,14 @@ namespace JamKit.DreamEscape
         ArgumentHost _battle;
 
         /// <summary>The argument battle (or its prototype) is on screen.</summary>
-        public bool ArgumentRunning => _battle != null && ArgumentHost.Current == _battle;
+        public bool ArgumentRunning => (_battle != null && ArgumentHost.Current == _battle) || (_waitingForChoice && ArgumentHost.Current != null);
+
+        /// <summary>Closes the battle on screen, ours (the stub) or the real one started through <see cref="StartBattle"/>.</summary>
+        void CloseBattle()
+        {
+            _battle = null;
+            ArgumentHost.Current?.Close(false);
+        }
 
         /// <summary>The battle's end card was closed: its stance decides.</summary>
         void OnArgumentClosed(ArgumentRecord record)
@@ -495,7 +546,7 @@ namespace JamKit.DreamEscape
         {
             if (!_story.Choose(outcome)) return;
             _waitingForChoice = false;
-            if (ArgumentRunning) { var b = _battle; _battle = null; b.Close(false); }
+            if (ArgumentRunning) CloseBattle();
             _prompt.style.display = DisplayStyle.None;
             if (outcome == ArgumentOutcome.Condemns)
             {
@@ -550,6 +601,8 @@ namespace JamKit.DreamEscape
         {
             _leaving = true;
             _finishes++;
+            SetMood(-1, false);
+            _room = -1;
             _story.Escaped();
             GameRoot.Audio.Play("chime", 0.7f);
             Debug.Log("JAMKIT_HOUSE out of the house" + (umbrella != null && umbrella.HasUmbrella ? " under the umbrella" : " in the rain") + (DreamEscapeGame.Despair ? " (Despair set)" : ""));
@@ -581,6 +634,12 @@ namespace JamKit.DreamEscape
             if (fold != null) fold.gameObject.SetActive(chase);
             if (chase) PlaceFold();
             _pilot.Reset(cp.s);
+            if (_story.Phase == HousePhase.Escape)
+            {
+                RestoreRooms(cp.s - 12f);
+                _room = RoomAt(cp.s);
+                SetMood(_room, true);
+            }
         }
 
         IEnumerator Respawn(string message)
@@ -596,6 +655,170 @@ namespace JamKit.DreamEscape
             SetWhite(0f);
             _respawning = false;
         }
+
+        // ---------- The escape's rooms: light and sound, the framed turn, folding shut, the hallway turning over ----------
+
+        int RoomAt(float s)
+        {
+            int at = -1;
+            for (int i = 0; i < _h.escapeRooms.Count; i++) if (s >= _h.escapeRooms[i].s) at = i;
+            return at;
+        }
+
+        float RoomEnd(int i) => i + 1 < _h.escapeRooms.Count ? _h.escapeRooms[i + 1].s : _h.frontDoorZ;
+
+        void TickRooms()
+        {
+            int r = RoomAt(_s);
+            if (r != _room && !_respawning)
+            {
+                _room = r;
+                if (r >= 0)
+                {
+                    var room = _h.escapeRooms[r];
+                    SetMood(r, false);
+                    GameRoot.Audio.Play(room.sound, 0.55f);
+                    GameRoot.Hud.Message(room.name, 2.2f);
+                    // The framed turn: a breath of slow motion as she comes into each room (not for the autopilot).
+                    if (!AutopilotOn) GameRoot.Juice.HitStop(0.5f, 0.4f);
+                }
+            }
+            // The house folds shut room by room behind her (the pursuer's front).
+            if (_chasing && _roomGroups != null)
+                for (int i = 0; i < _roomGroups.Length; i++)
+                    if (!_folded[i] && _roomGroups[i] != null && RoomEnd(i) < _pursuer.S - 1f)
+                    {
+                        _folded[i] = true;
+                        StartCoroutine(FoldRoom(i));
+                    }
+            // The hallway turns over while she runs it: its things roll a quarter turn along the run.
+            if (_turning != null)
+            {
+                int hall = _h.escapeRooms.FindIndex(x => x.name == "The hallway turns over");
+                if (hall >= 0 && !_folded[hall])
+                {
+                    float s0 = _h.escapeRooms[hall].s, s1 = RoomEnd(hall);
+                    float k = Mathf.Clamp01((_s - s0 - 8f) / Mathf.Max(1f, (s1 - s0) * 0.5f));
+                    _turning.SetPositionAndRotation(_turningPos, _turningRot);
+                    _turning.RotateAround(new Vector3(0f, _turningPos.y, _turningPos.z), Vector3.forward, -90f * Mathf.SmoothStep(0f, 1f, k));
+                }
+            }
+        }
+
+        IEnumerator FoldRoom(int i)
+        {
+            var g = _roomGroups[i];
+            var hinge = new Vector3(0f, _h.escapeRooms[i].s < 0f ? 0f : g.position.y, RoomEnd(i));
+            GameRoot.Audio.Play("mv_collapse", 0.35f);
+            for (float t = 0f; t < 0.8f && g != null; t += Time.deltaTime)
+            {
+                g.SetPositionAndRotation(_roomPos[i], _roomRot[i]);
+                g.RotateAround(hinge, Vector3.right, -100f * Mathf.SmoothStep(0f, 1f, t / 0.8f));
+                yield return null;
+            }
+            if (g != null) g.gameObject.SetActive(false);
+        }
+
+        /// <summary>Every room whole again, except those ending before <paramref name="foldedBefore"/> (folded away).</summary>
+        void RestoreRooms(float foldedBefore)
+        {
+            if (_roomGroups == null) return;
+            for (int i = 0; i < _roomGroups.Length; i++)
+            {
+                var g = _roomGroups[i];
+                if (g == null) continue;
+                g.SetPositionAndRotation(_roomPos[i], _roomRot[i]);
+                bool gone = RoomEnd(i) < foldedBefore;
+                g.gameObject.SetActive(!gone);
+                _folded[i] = gone;
+            }
+            if (_turning != null) _turning.SetPositionAndRotation(_turningPos, _turningRot);
+        }
+
+        /// <summary>The light of room <paramref name="i"/> (-1: the house's own), at once or over a second.</summary>
+        void SetMood(int i, bool now)
+        {
+            Color sky = _sky0, eq = _equator0, fog = _fog0;
+            if (i >= 0)
+            {
+                var r = _h.escapeRooms[i];
+                sky = new Color(r.ambient.X, r.ambient.Y, r.ambient.Z);
+                eq = Color.Lerp(sky, _equator0, 0.4f);
+                fog = new Color(r.fog.X, r.fog.Y, r.fog.Z);
+            }
+            if (_mood != null) { StopCoroutine(_mood); _mood = null; }
+            if (now || !isActiveAndEnabled)
+            {
+                RenderSettings.ambientSkyColor = sky; RenderSettings.ambientEquatorColor = eq; RenderSettings.fogColor = fog;
+                return;
+            }
+            _mood = StartCoroutine(Mood(sky, eq, fog));
+        }
+
+        IEnumerator Mood(Color sky, Color eq, Color fog)
+        {
+            Color s0 = RenderSettings.ambientSkyColor, e0 = RenderSettings.ambientEquatorColor, f0 = RenderSettings.fogColor;
+            for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime)
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t);
+                RenderSettings.ambientSkyColor = Color.Lerp(s0, sky, k);
+                RenderSettings.ambientEquatorColor = Color.Lerp(e0, eq, k);
+                RenderSettings.fogColor = Color.Lerp(f0, fog, k);
+                yield return null;
+            }
+            RenderSettings.ambientSkyColor = sky; RenderSettings.ambientEquatorColor = eq; RenderSettings.fogColor = fog;
+            _mood = null;
+        }
+
+        // ---------- The memory-for-a-shortcut offer (the hardest spot, after two falls) ----------
+
+        /// <summary>A fall (or the house catching her) in the escape: two at the hardest spot and the dream makes its
+        /// offer (once a visit, if she has a memory to give).</summary>
+        public void FellAtTheHardSpot()
+        {
+            if (_story.Phase != HousePhase.Escape || _checkpoint != _h.hardCheckpoint || _offerUsed || _offering) return;
+            _hardFalls++;
+            if (_hardFalls < 2 || _found.Count == 0) return;
+            _offering = true;
+            Say(DreamHouseLines.MemoryOffer, null);
+            _prompt.text = DreamHouseLines.MemoryOfferPrompt;
+            _prompt.style.display = DisplayStyle.Flex;
+        }
+
+        void ReadOffer()
+        {
+            var kb = Keyboard.current;
+            var pad = Gamepad.current;
+            if ((kb != null && kb.yKey.wasPressedThisFrame) || (pad != null && pad.buttonNorth.wasPressedThisFrame)) AnswerOffer(true);
+            else if ((kb != null && kb.nKey.wasPressedThisFrame) || (pad != null && pad.buttonEast.wasPressedThisFrame)) AnswerOffer(false);
+        }
+
+        /// <summary>Her answer to the dream's offer: give it a memory (the last one she found; it's gone from what she
+        /// carries, and kept in the save) and be put past the hardest spot, or keep trying (it asks again after two more
+        /// falls).</summary>
+        public void AnswerOffer(bool give)
+        {
+            if (!_offering) return;
+            _offering = false;
+            _prompt.style.display = DisplayStyle.None;
+            if (!give) { _hardFalls = 0; return; }
+            _offerUsed = true;
+            string id = _found[_found.Count - 1];
+            _found.RemoveAt(_found.Count - 1);
+            if (GameRoot.Exists) { GameRoot.Save.Data.SetEntry(DreamHouseStory.MemoryGivenKey, id); GameRoot.Save.Save(); }
+            Debug.Log("JAMKIT_HOUSE the dream let her through the stairwell door for a memory: " + id);
+            PlaceAt(_h.hardSkipCheckpoint, true);
+            Say(DreamHouseLines.MemoryTaken, null);
+        }
+
+        /// <summary>A memory she found (the collect event, and tests).</summary>
+        public void NoteMemory(string id)
+        {
+            if (!string.IsNullOrEmpty(id) && !_found.Contains(id)) _found.Add(id);
+        }
+
+        /// <summary>Straight into the escape at checkpoint <paramref name="checkpoint"/>, running (chapters, smoke, tests).</summary>
+        public void JumpToEscapeAt(int checkpoint) => JumpToEscape(checkpoint);
 
         // ---------- Lines ----------
 
@@ -721,7 +944,7 @@ namespace JamKit.DreamEscape
         }
 
         /// <summary>The smoke run starts here (an escape checkpoint).</summary>
-        public const string SmokeCheckpoint = "The stairs";
+        public const string SmokeCheckpoint = "The last door";
 
         /// <summary>Straight into the escape at one of its checkpoints, running (chapters, the smoke run).</summary>
         void JumpToEscape(int checkpoint)

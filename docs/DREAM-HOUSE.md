@@ -167,8 +167,30 @@ In `DreamHouseGame`, `DreamHouseStory` and `DreamHouseLines`; every line here is
 6. **Elias never comes down;** Nadia asks Lena; the battle `lena_night2` starts with the evidence she found
    (`DreamHouseGame.StartBattle(id, evidence, done)` is the argument's battle API's plug; until it's set, the battle
    prototype runs as before, F7/F8 skip it).
-7. **The house tips** (4 checkpoints, about 15 s of running as built; the plan's "~75 s" would need a much longer
-   course: open), **the umbrella** at the front door, **Lena at the window** as she leaves.
+7. **The house tips: the night's peak** (rebuilt; the creator: "borderline cinematic, make it dynamic and unexpectedly
+   long for how small the house looks, so it feels like a fever dream"). About a minute for the autopilot's perfect run
+   (62-64 s, tested), so 75-120 s for a player, through rooms that can't fit in this house, each with its own light and
+   sound, the turn into each framed (a breath of slow motion, its name on screen), the house folding shut room by room
+   behind her (each room's pieces are grouped and fold away once the pursuer passes):
+   1. **The kitchen tilts:** run the length of the tilting table, slide under the hatch's frame, drop through.
+   2. **The hallway turns over** while she runs it: wallrun the wall as it becomes the floor (its photos, runner and lights
+      roll a quarter turn as she goes); then the doorframes, wall to wall.
+   3. **The stairs flatten** into a slide.
+   4. **Theo's room, where the stairs were:** over his bed and his things, under his bunk.
+   5. **The hallway, again** (wrong: the photos upside down, a clock without hands): the other wall; then **the same
+      door**, three times, half open (slide).
+   6. **The observatory, open to the sky:** floorboards floating in the night, jump to jump, a double jump to the
+      telescope's platform, then run along the round window over the sky.
+   7. **The attic stairs, the wrong way** (a slide), over the stairwell's gap.
+   8. **The kitchen, come round again** (turned: its counters hanging from the ceiling, the calendar upside down): its
+      table the long way, under the hanging fridge, over the sink's pit.
+   9. **The hallway, a third time:** left wall, right wall.
+   10. **The door onto the stairwell** (the hardest spot): through the door, wall to wall down the drop. After two falls
+       here the dream offers to let her through for a memory ("It'll let you through. It keeps what you give it.", Mags
+       warning; placeholders); she can say no; given, the last memory she found is gone from her cards (save entry
+       `vh_n2_memory_given`).
+   11. **The last hall**, the right way up, then **the umbrella** at the front door and **Lena at the window** as she leaves.
+   A checkpoint every 5-12 s of the autopilot's run (10-20 s for a player); the smoke run starts at "The last door".
 - **The Saturday deduction:** with Night 1's Saturday paper in the shared journal (`DreamJournal`, save entry
   `vh_dream_journal`, id `mem_saturday_paper`: Night 1 adds it), the calendar becomes `ded_saturday_off` in the evidence.
   Testing Night 2 alone: F6 in a debug build (or `DreamHouseGame.DebugSaturdayPaper`).

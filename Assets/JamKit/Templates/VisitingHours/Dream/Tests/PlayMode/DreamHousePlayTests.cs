@@ -202,6 +202,43 @@ namespace JamKit.DreamEscape.Tests
         }
 
         [UnityTest]
+        public IEnumerator TheDreamOffersAShortcutForAMemoryAtTheHardestSpot()
+        {
+            yield return StartHouse();
+            GameRoot.Save.Data.SetEntry(DreamHouseStory.MemoryGivenKey, null);
+            Game.JumpToEscapeAt(Game.House.hardCheckpoint);
+            yield return Frames(3);
+            Assert.That(Game.Phase, Is.EqualTo(HousePhase.Escape));
+            Game.NoteMemory(DreamHouseStory.MemPlaceCard);
+            Game.FellAtTheHardSpot();
+            Assert.That(Game.Offering, Is.False, "not after one fall");
+            Game.FellAtTheHardSpot();
+            Assert.That(Game.Offering, Is.True, "two falls at the hardest spot: the dream's offer");
+            Game.AnswerOffer(true);
+            yield return Frames(2);
+            Assert.That(Game.Checkpoint, Is.EqualTo(Game.House.hardSkipCheckpoint), "let through");
+            Assert.That(DreamHouseGame.MemoryGiven, Is.EqualTo(DreamHouseStory.MemPlaceCard), "it keeps what she gave it");
+            Assert.That(Game.Evidence, Does.Not.Contain(DreamHouseStory.MemPlaceCard), "gone from what she carries");
+            GameRoot.Save.Data.SetEntry(DreamHouseStory.MemoryGivenKey, null);
+        }
+
+        [UnityTest]
+        public IEnumerator TheHouseFoldsShutRoomByRoomBehindHer()
+        {
+            yield return StartHouse();
+            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterTips), Is.EqualTo(JumpResult.Jumped));
+            yield return Frames(3);
+            var first = GameObject.Find(DreamHouseGame.RoomGroupPrefix + Game.House.escapeRooms[0].name);
+            Assert.That(first, Is.Not.Null, "the first room's group");
+            DebugMenu.TimeScale = 3f;
+            Game.SetAutopilot(true);
+            yield return WaitFor(() => Game.Room >= 3, "three rooms in", 30f);
+            yield return WaitFor(() => !first.activeSelf, "the first room folded shut behind her", 10f);
+            Game.SetAutopilot(false);
+            Assert.That(RenderSettings.fogColor, Is.Not.EqualTo(Color.clear));
+        }
+
+        [UnityTest]
         public IEnumerator CondemnsIsKeptAndBringsTheDespairChoiceNearer()
         {
             yield return StartHouse();
@@ -255,10 +292,19 @@ namespace JamKit.DreamEscape.Tests
             yield return StartHouse();
             Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterTips), Is.EqualTo(JumpResult.Jumped));
             yield return Frames(3);
-            DebugMenu.TimeScale = 2f;
+            DebugMenu.TimeScale = 3f;
             int respawns = Game.Respawns, caught = Game.Caught, finishes = Game.Finishes;
             Game.SetAutopilot(true);
-            yield return WaitFor(() => Game.Finishes > finishes, "out of the front door to the end of the rain", 40f);
+            // The escape is long now (the night's peak: about a minute for the autopilot), room by room.
+            int rooms = 0, last = -1;
+            float until = Time.realtimeSinceStartup + 90f;
+            while (Game.Finishes == finishes && Time.realtimeSinceStartup < until)
+            {
+                if (Game.Room != last && Game.Room >= 0) { rooms++; last = Game.Room; }
+                yield return null;
+            }
+            Assert.That(Game.Finishes, Is.GreaterThan(finishes), "out of the front door to the end of the rain");
+            Assert.That(rooms, Is.GreaterThanOrEqualTo(Game.House.escapeRooms.Count - 1), "through the escape's rooms");
             Game.SetAutopilot(false);
             Assert.That(Game.Caught - caught, Is.EqualTo(0), "the house folding shut never caught it");
             Assert.That(Game.Respawns - respawns, Is.LessThanOrEqualTo(1), "at most one slip on the real CharacterController");

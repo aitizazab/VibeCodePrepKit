@@ -32,6 +32,15 @@ namespace JamKit.DreamEscape
         public bool Contains(float x, float z) => x > x0 && x < x1 && z > z0 && z < z1;
     }
 
+    /// <summary>A room of the house's escape: where it starts along the route, its light (ambient and fog colours, 0..1)
+    /// and the sound that marks the turn into it.</summary>
+    public sealed class EscapeRoom
+    {
+        public string name, sound;
+        public float s;
+        public Vector3 ambient, fog;
+    }
+
     /// <summary>A stealth light zone in the house.</summary>
     public sealed class HouseLight
     {
@@ -135,6 +144,15 @@ namespace JamKit.DreamEscape
         public float stretchTrigger = 4f, stretchFrom = 26f, stretchTo = 56f;
         /// <summary>The escape: where she lands after the house throws her out, and the chase's span.</summary>
         public float escapeStartS, chaseStartS, chaseEndS;
+        /// <summary>The way out's front door (the wall's middle, where the rain starts) and the floor there.</summary>
+        public float frontDoorZ, frontDoorFloor;
+        /// <summary>The escape's rooms in order (where each starts, its light and sound): the game shifts the light and the
+        /// sound at each, frames the turn, and folds the rooms shut behind her.</summary>
+        public readonly List<EscapeRoom> escapeRooms = new List<EscapeRoom>();
+        /// <summary>The hardest spot (the door onto the stairwell): its checkpoint, the stretch, and where the dream's
+        /// memory-for-a-shortcut offer puts her (docs/NIGHTS-GAMEPLAY.md).</summary>
+        public int hardCheckpoint, hardSkipCheckpoint;
+        public float hardStartS, hardEndS;
         /// <summary>The front door, the umbrella and the rain path (normal; <see cref="DreamHouseStory.RainFor"/> adjusts it).</summary>
         public DreamRainSpot rain;
         public int arrivalCheckpoint, hubCheckpoint, escapeCheckpoint, frontDoorCheckpoint;
@@ -287,7 +305,7 @@ namespace JamKit.DreamEscape
         void Make()
         {
             var c = course;
-            c.killY = -16f;
+            c.killY = -26f;   // the escape goes down to about -16
             const float F = Ground;
 
             // ===== 1. The way in: the front door opens onto a hallway that stretches (its floor gone: run the striped wall),
@@ -572,26 +590,227 @@ namespace JamKit.DreamEscape
             openFloor.Add(V(-3.0f, F, 82.4f));
             openFloor.Add(V(4.5f, F, 81.6f));
 
-            // ===== 3. The house tips: the hallway's floor is a wall, the doorframes walls to kick between, the stairs a slide.
-            const float t0 = 0f, t1 = -1f, t2 = -2f, t3 = -5f;
-            Section(186f, "The house tips");
-            Lane(186f, 0f);
-            Add("The tipped kitchen (its wall is the floor)", LabPieceKind.Floor, HouseLook.TippedWall, V(-4.5f, t0 - 2f, 186f), V(4.5f, t0, 214f));
+            // ===== 3. The house tips (rebuilt as the night's peak, 2026-10-12 night; the creator: "borderline cinematic,
+            // make it dynamic and unexpectedly long for how small the house looks, so it feels like a fever dream").
+            // The plan's beats (the kitchen floor tilts, the hallway turns over while she runs it, the stairs flatten into
+            // a slide), then rooms that can't fit in this house: the hallway again (wrong), the attic observatory open to
+            // the sky, the same kitchen come round again (turned), a door onto the drop of the stairwell. A checkpoint
+            // every 10-20 s; the house folds shut behind her room by room (the builder groups the rooms, the game folds
+            // them); each room has its own light and sound (escapeRooms).
+            float z = 186f, t = 0f;
+            Room("The kitchen tilts", z, new Vector3(1.0f, 0.86f, 0.72f), new Vector3(0.95f, 0.82f, 0.75f), "mv_collapse");
+            Lane(z, 0f);
+            Floor("The tipped kitchen (its wall is the floor)", HouseLook.TippedWall, z, z + 14f, t);
             escapeStartS = 190f;
-            escapeCheckpoint = Checkpoint("The house tips", 190f, t0, ChapterTips);
+            escapeCheckpoint = Checkpoint("The house tips", 190f, t, ChapterTips);
             chaseStartS = 190f;
-            Lane(192f, 0f); Lane(202f, 3.6f);
-            Cue(LabCueKind.Jump, 213.2f);
-            RunWall("The hallway's floor (now a wall)", HouseLook.TippedFloor, 4.5f, 217f, 231f, t0 + 6f);
-            Cue(LabCueKind.WallJump, 226.5f);
-            Beat(CourseBeatKind.Wallrun, "The hallway's floor", 213.2f, 14f, 6f);
-            Lane(228f, 3.6f); Lane(234f, 0f);
-            Add("The tipped hallway (landing)", LabPieceKind.Floor, HouseLook.TippedWall, V(-4.5f, t1 - 2f, 232f), V(4.5f, t1, 252f));
-            Checkpoint("The doorframes", 236f, t1);
-            const float e = 252f;
+            // The tilting table: run its length (a long, falling table top, the floor gone either side).
+            Ramp("The tilting table", HouseLook.Table, -1.2f, 1.2f, z + 14f, z + 30f, t, t - 1.4f);
+            z += 30f; t -= 1.4f;
+            // The hatch: slide under its frame, then drop through.
+            Floor("The hatch's landing", HouseLook.TippedWall, z, z + 9f, t);
+            Add("The hatch (its frame: slide under)", LabPieceKind.Bar, HouseLook.Lintel, V(-4.5f, t + 1.15f, z + 3f), V(4.5f, t + 3f, z + 4.5f));
+            Cue(LabCueKind.Crouch, z - 2f, z + 6f);
+            Beat(CourseBeatKind.Slide, "The hatch", z + 3f, 1.5f, 1.15f);
+            z += 9f; t -= 1f;
+
+            Room("The hallway turns over", z, new Vector3(0.95f, 0.8f, 0.82f), new Vector3(0.9f, 0.78f, 0.85f), "glitch");
+            Floor("The hallway (on its side)", HouseLook.TippedWall, z, z + 26f, t);
+            Checkpoint("The hallway turns over", z + 4f, t);
+            z = WallrunAcross("The hallway's floor (turning into the wall)", z + 26f, t, 1f);
+            t -= 1f;
+            Floor("The hallway's far end", HouseLook.TippedWall, z, z + 20f, t);
+            Checkpoint("The doorframes", z + 4f, t);
+            z = Doorframes(z + 20f, t);
+            t -= 1f;
+
+            Room("The stairs flatten", z, new Vector3(0.9f, 0.84f, 0.9f), new Vector3(0.85f, 0.82f, 0.92f), "mv_collapse");
+            Floor("The landing (on its side)", HouseLook.TippedWall, z, z + 14f, t);
+            Checkpoint("The stairs", z + 4f, t);
+            Ramp("The staircase (now a slide)", HouseLook.Stairs, -4.5f, 4.5f, z + 14f, z + 30f, t, t - 3f);
+            Cue(LabCueKind.Crouch, z + 12f, z + 32f);
+            Beat(CourseBeatKind.SlideRamp, "The staircase", z + 14f, 16f, 3f);
+            z += 30f; t -= 3f;
+
+            Room("Theo's room, where the stairs were", z, new Vector3(0.82f, 0.9f, 1.0f), new Vector3(0.76f, 0.84f, 0.95f), "chime");
+            // His room, too big: over his bed and his toy chest, then under his bunk.
+            Floor("Theo's rug (on its side)", HouseLook.TippedWall, z, z + 12f, t);
+            Checkpoint("Theo's room", z + 3f, t);
+            z += 12f;
+            foreach (var (gap, len) in new[] { (4f, 8f), (5f, 16f) })
+            {
+                Cue(LabCueKind.Jump, z - 0.8f);
+                Beat(CourseBeatKind.Gap, "Over Theo's things", z - 0.8f, gap);
+                Floor("Theo's bed (a floor now)", HouseLook.Bed, z + gap, z + gap + len, t);
+                z += gap + len;
+            }
+            Add("Theo's bunk (slide under it)", LabPieceKind.Bar, HouseLook.Bed, V(-4.5f, t + 1.15f, z - 8f), V(4.5f, t + 3f, z - 6.5f));
+            Cue(LabCueKind.Crouch, z - 12f, z - 4.5f);
+            Beat(CourseBeatKind.Slide, "Under Theo's bunk", z - 8f, 1.5f, 1.15f);
+
+            Room("The hallway, again", z, new Vector3(0.86f, 0.78f, 0.92f), new Vector3(0.8f, 0.74f, 0.9f), "glitch");
+            Floor("The hallway again (it shouldn't be here)", HouseLook.TippedWall, z, z + 22f, t);
+            Checkpoint("The hallway, again", z + 6f, t);
+            z = WallrunAcross("The hallway again: the other wall", z + 22f, t, -1f);
+            t -= 1f;
+            // The same door, again and again: three half-open doors to slide under.
+            Floor("The hall of the same door", HouseLook.TippedWall, z, z + 40f, t);
+            for (int i = 0; i < 3; i++)
+            {
+                float d = z + 10f + i * 10f;
+                Add("The same door (half open) " + (i + 1), LabPieceKind.Bar, HouseLook.Lintel, V(-4.5f, t + 1.15f, d), V(4.5f, t + 3.4f, d + 0.6f));
+                Cue(LabCueKind.Crouch, d - 4f, d + 2.5f);
+                Beat(CourseBeatKind.Slide, "The same door " + (i + 1), d, 0.6f, 1.15f);
+            }
+            z += 40f;
+
+            Room("The observatory, open to the sky", z, new Vector3(0.55f, 0.6f, 0.95f), new Vector3(0.3f, 0.32f, 0.6f), "chime");
+            // The attic's floorboards in pieces over the sky: jump from one to the next; a double jump to the telescope's.
+            Floor("The observatory's first boards", HouseLook.Storage, z, z + 10f, t);
+            Checkpoint("The observatory", z + 3f, t);
+            z += 10f;
+            foreach (var (gap, len) in new[] { (3.5f, 7f), (4f, 7f), (4.5f, 8f) })
+            {
+                Cue(LabCueKind.Jump, z - 0.8f);
+                Beat(CourseBeatKind.Gap, "Over the sky", z - 0.8f, gap);
+                Floor("Floorboards over the sky", HouseLook.Storage, z + gap, z + gap + len, t);
+                z += gap + len;
+            }
+            Cue(LabCueKind.Jump, z - 0.8f);
+            Cue(LabCueKind.DoubleJumpAtApex, z + 0.8f);
+            Beat(CourseBeatKind.DoubleGap, "To the telescope", z - 0.8f, 7.5f);
+            z += 7.5f;
+            Floor("The telescope's platform", HouseLook.Storage, z, z + 16f, t);
+            Checkpoint("The telescope", z + 4f, t);
+            z = WallrunAcross("Along the round window (over the sky)", z + 16f, t, 1f);
+            t -= 1f;
+
+            Room("The attic stairs, the wrong way", z, new Vector3(0.7f, 0.66f, 0.9f), new Vector3(0.5f, 0.5f, 0.75f), "mv_collapse");
+            // Down the attic's stairs where they shouldn't be (a slide), then over the stairwell's gap.
+            Floor("The attic's landing", HouseLook.Storage, z, z + 12f, t);
+            Ramp("The attic stairs (a slide)", HouseLook.Stairs, -4.5f, 4.5f, z + 12f, z + 28f, t, t - 2f);
+            Cue(LabCueKind.Crouch, z + 10f, z + 30f);
+            Beat(CourseBeatKind.SlideRamp, "The attic stairs", z + 12f, 16f, 2f);
+            z += 28f; t -= 2f;
+            Floor("The foot of the attic stairs", HouseLook.TippedWall, z, z + 10f, t);
+            z += 10f;
+            Cue(LabCueKind.Jump, z - 0.8f);
+            Beat(CourseBeatKind.Gap, "The stairwell's gap", z - 0.8f, 4.5f);
+            z += 4.5f;
+
+            Room("The kitchen, come round again", z, new Vector3(1.0f, 0.88f, 0.7f), new Vector3(0.95f, 0.85f, 0.7f), "mv_collapse");
+            Floor("The kitchen again (turned)", HouseLook.TippedWall, z, z + 14f, t);
+            Checkpoint("The kitchen, again", z + 4f, t);
+            // Its table, the long way (falling away), the fridge hung over the floor (slide), the sink's pit (jump).
+            Ramp("The table again (the long way)", HouseLook.Table, -1.2f, 1.2f, z + 14f, z + 30f, t, t - 1.4f);
+            z += 30f; t -= 1.4f;
+            Floor("Under the fridge", HouseLook.TippedWall, z, z + 16f, t);
+            Add("The fridge (hanging over the floor)", LabPieceKind.Bar, HouseLook.Fridge, V(-4.5f, t + 1.15f, z + 6f), V(4.5f, t + 3.6f, z + 7.5f));
+            Cue(LabCueKind.Crouch, z + 2f, z + 9.5f);
+            Beat(CourseBeatKind.Slide, "Under the fridge", z + 6f, 1.5f, 1.15f);
+            z += 16f;
+            Cue(LabCueKind.Jump, z - 0.8f);
+            Beat(CourseBeatKind.Gap, "The sink's pit", z - 0.8f, 5f);
+            z += 5f;
+            Floor("The counter's far end", HouseLook.TippedWall, z, z + 16f, t);
+            z += 16f;
+
+            Room("The hallway, a third time", z, new Vector3(0.84f, 0.74f, 0.86f), new Vector3(0.7f, 0.6f, 0.75f), "glitch");
+            // Wall to wall to wall: left, then right.
+            Floor("The hallway a third time", HouseLook.TippedWall, z, z + 22f, t);
+            Checkpoint("The hallway, a third time", z + 4f, t);
+            z = WallrunAcross("The third hallway: the left wall", z + 22f, t, -1f);
+            t -= 1f;
+            Floor("Between the walls", HouseLook.TippedWall, z, z + 20f, t);
+            z = WallrunAcross("The third hallway: the right wall", z + 20f, t, 1f);
+            t -= 1f;
+
+            Room("The door onto the stairwell", z, new Vector3(0.7f, 0.66f, 0.82f), new Vector3(0.55f, 0.5f, 0.7f), "glitch");
+            // The hardest spot: a door that opens onto the stairwell's drop; kick wall to wall down it. The dream offers
+            // to let her through for a memory after two falls here (DreamHouseGame).
+            Floor("Before the stairwell door", HouseLook.TippedWall, z, z + 20f, t);
+            hardCheckpoint = Checkpoint("The stairwell door", z + 4f, t);
+            Add("The stairwell door (left)", LabPieceKind.Wall, HouseLook.Wall, V(-4.5f, t, z + 8f), V(-1.1f, t + 3.4f, z + 8.4f));
+            Add("The stairwell door (right)", LabPieceKind.Wall, HouseLook.Wall, V(1.1f, t, z + 8f), V(4.5f, t + 3.4f, z + 8.4f));
+            Add("The stairwell door (over it)", LabPieceKind.Wall, HouseLook.Lintel, V(-1.1f, t + 2.3f, z + 8f), V(1.1f, t + 3.4f, z + 8.4f));
+            Lane(z + 9f, 0f);   // straight through the door before lining up on the left doorframe
+            hardStartS = z + 8f;
+            z = Doorframes(z + 20f, t);
+            t -= 1f;
+            hardEndS = z;
+
+            Room("The last hall", z, new Vector3(0.98f, 0.92f, 0.86f), new Vector3(0.9f, 0.86f, 0.84f), "chime");
+            Floor("The last hall (the right way up)", HouseLook.Porch, z, z + 20f, t);
+            hardSkipCheckpoint = Checkpoint("The last door", z + 4f, t);
+            z += 20f;
+            chaseEndS = z - 2.75f;
+
+            // ===== 4. The front door, into the rain: the umbrella beside it; the rain path beyond.
+            float fd = z + 0.25f, t3 = t;
+            frontDoorZ = fd;
+            frontDoorFloor = t3;
+            Add("The entrance hall", LabPieceKind.Floor, HouseLook.Porch, V(-6f, t3 - 2f, fd - 11f), V(6f, t3, fd + 0.25f));
+            Section(fd - 6.75f, "The front door");
+            frontDoorCheckpoint = Checkpoint("The front door", fd - 6.75f, t3, ChapterFrontDoor);
+            Add("Front door wall (left)", LabPieceKind.Wall, HouseLook.Facade, V(-10f, t3, fd - 0.25f), V(-1.5f, t3 + 6f, fd + 0.25f));
+            Add("Front door wall (right)", LabPieceKind.Wall, HouseLook.Facade, V(1.5f, t3, fd - 0.25f), V(10f, t3 + 6f, fd + 0.25f));
+            Add("Front door lintel (the way out)", LabPieceKind.Wall, HouseLook.Facade, V(-1.5f, t3 + 2.6f, fd - 0.25f), V(1.5f, t3 + 6f, fd + 0.25f));
+            Section(fd, "The rain");
+            Add("The front path (rain)", LabPieceKind.Floor, HouseLook.RainPath, V(-4f, t3 - 2f, fd + 0.25f), V(4f, t3, fd + 43.25f));
+            rain = new DreamRainSpot
+            {
+                umbrella = V(2.4f, t3 + 0.55f, fd - 1.15f),
+                umbrellaRadius = 0.6f,
+                rainStartS = fd,
+                despairS = fd + DreamHouseStory.DespairDepth,
+                rainEndS = fd + 33.25f,
+                resetS = fd - 18.75f,
+                floorY = t3,
+            };
+
+            c.pursuer = new Pursuer { targetGap = 12f, k = 0.6f, minSpeed = 6f, maxSpeed = 11.5f };
+            c.route = new PathLine(new[] { new Vector3(0f, 0f, 0f), new Vector3(0f, 0f, fd + 62f) });
+            c.finishS = rain.rainEndS;
+            c.chaseStartS = chaseStartS;
+            c.chaseEndS = chaseEndS;
+            beats.Sort((a, b) => a.s.CompareTo(b.s));
+        }
+
+        // ---------- The escape's building blocks ----------
+
+        void Floor(string name, HouseLook look, float z0, float z1, float top) =>
+            Add(name, LabPieceKind.Floor, look, V(-4.5f, top - 2f, z0), V(4.5f, top, z1));
+
+        /// <summary>A room of the escape: where it starts, its light (ambient, fog) and its sound, and a section.</summary>
+        void Room(string name, float s, Vector3 ambient, Vector3 fog, string sound)
+        {
+            Section(s, name);
+            escapeRooms.Add(new EscapeRoom { name = name, s = s, ambient = ambient, fog = fog, sound = sound });
+        }
+
+        /// <summary>The floor ends at <paramref name="floorEnd"/>: jump to a 14 m wall on one side (<paramref name="side"/>
+        /// +1 right, -1 left), run it over the gap, land 1 m lower at the returned z (the proven pattern of the first
+        /// hallway).</summary>
+        float WallrunAcross(string name, float floorEnd, float t, float side)
+        {
+            Lane(floorEnd - 16f, 0f);
+            Lane(floorEnd - 12f, 3.6f * side);
+            Cue(LabCueKind.Jump, floorEnd - 0.8f);
+            RunWall(name, HouseLook.TippedFloor, 4.5f * side, floorEnd + 3f, floorEnd + 17f, t + 6f);
+            Cue(LabCueKind.WallJump, floorEnd + 12.5f);
+            Beat(CourseBeatKind.Wallrun, name, floorEnd - 0.8f, 14f, 6f);
+            Lane(floorEnd + 14f, 3.6f * side);
+            Lane(floorEnd + 20f, 0f);
+            return floorEnd + 18f;
+        }
+
+        /// <summary>The floor ends at <paramref name="e"/>: two doorframes (walls) to kick between over the drop, landing
+        /// 1 m lower at the returned z (the proven doorframes pattern).</summary>
+        float Doorframes(float e, float t)
+        {
             Lane(e - 8f, -1.95f);
-            RunWall("Doorframe (left)", HouseLook.TippedFloor, -2.5f, e + 1f, e + 13f, t1 + 6f);
-            RunWall("Doorframe (right)", HouseLook.TippedFloor, 2.5f, e + 7f, e + 25f, t1 + 6f);
+            RunWall("Doorframe (left)", HouseLook.TippedFloor, -2.5f, e + 1f, e + 13f, t + 6f);
+            RunWall("Doorframe (right)", HouseLook.TippedFloor, 2.5f, e + 7f, e + 25f, t + 6f);
             Cue(LabCueKind.Jump, e - 0.8f);
             Cue(LabCueKind.WallJump, e + 1.6f);
             Cue(LabCueKind.WallJump, e + 20.5f);
@@ -599,39 +818,8 @@ namespace JamKit.DreamEscape
             Lane(e + 6f, -1.95f); Lane(e + 10f, 2.1f); Lane(e + 22f, 2.1f); Lane(e + 28f, 0f);
             Beat(CourseBeatKind.WallToWall, "The doorframes", e - 0.8f, 5f);
             Beat(CourseBeatKind.Wallrun, "The right doorframe", e + 1.6f, 18f, 6f);
-            Add("The landing (on its side)", LabPieceKind.Floor, HouseLook.TippedWall, V(-4.5f, t2 - 2f, 278f), V(4.5f, t2, 292f));
-            Checkpoint("The stairs", 282f, t2);
-            Ramp("The staircase (now a slide)", HouseLook.Stairs, -4.5f, 4.5f, 292f, 308f, t2, t3);
-            Cue(LabCueKind.Crouch, 290f, 310f);
-            Beat(CourseBeatKind.SlideRamp, "The staircase", 292f, 16f, t2 - t3);
-            Add("The entrance hall", LabPieceKind.Floor, HouseLook.Porch, V(-6f, t3 - 2f, 308f), V(6f, t3, 319f));
-            chaseEndS = 316f;
-
-            // ===== 4. The front door, into the rain: the umbrella beside it; the rain path beyond.
-            Section(312f, "The front door");
-            frontDoorCheckpoint = Checkpoint("The front door", 312f, t3, ChapterFrontDoor);
-            Add("Front door wall (left)", LabPieceKind.Wall, HouseLook.Facade, V(-10f, t3, 318.5f), V(-1.5f, t3 + 6f, 319f));
-            Add("Front door wall (right)", LabPieceKind.Wall, HouseLook.Facade, V(1.5f, t3, 318.5f), V(10f, t3 + 6f, 319f));
-            Add("Front door lintel (the way out)", LabPieceKind.Wall, HouseLook.Facade, V(-1.5f, t3 + 2.6f, 318.5f), V(1.5f, t3 + 6f, 319f));
-            Section(318.75f, "The rain");
-            Add("The front path (rain)", LabPieceKind.Floor, HouseLook.RainPath, V(-4f, t3 - 2f, 319f), V(4f, t3, 362f));
-            rain = new DreamRainSpot
-            {
-                umbrella = V(2.4f, t3 + 0.55f, 317.6f),
-                umbrellaRadius = 0.6f,
-                rainStartS = 318.75f,
-                despairS = 318.75f + DreamHouseStory.DespairDepth,
-                rainEndS = 352f,
-                resetS = 300f,
-                floorY = t3,
-            };
-
-            c.pursuer = new Pursuer { targetGap = 12f, k = 0.6f, minSpeed = 6f, maxSpeed = 11.5f };
-            c.route = new PathLine(new[] { new Vector3(0f, 0f, 0f), new Vector3(0f, 0f, 380f) });
-            c.finishS = rain.rainEndS;
-            c.chaseStartS = chaseStartS;
-            c.chaseEndS = chaseEndS;
-            beats.Sort((a, b) => a.s.CompareTo(b.s));
+            return e + 26f;
         }
+
     }
 }
