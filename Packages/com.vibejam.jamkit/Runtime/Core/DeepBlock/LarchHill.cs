@@ -601,7 +601,7 @@ namespace JamKit.DeepBlock
             views.Add(new HillView { name = "street-01-bottom-the-climb", eye = arrival + new Vector3(0f, eye, 0f), look = towerPoint + new Vector3(0f, -14f, -30f) });
             views.Add(new HillView { name = "street-02-bottom-the-shop", eye = new Vector3(-48f, eye, -12f), look = new Vector3(-53f, 2f, 6f) });
             views.Add(new HillView { name = "street-03-middle-up-to-the-tower", eye = new Vector3(42f, L1 + eye, 36f), look = towerPoint });
-            views.Add(new HillView { name = "street-04-middle-down-the-road", eye = new Vector3(-36f, L2 + eye, 70f), look = new Vector3(5f, 2f, 12f) });
+            views.Add(new HillView { name = "street-04-middle-down-the-road", eye = new Vector3(-38f, L2 + eye, 59.3f), look = new Vector3(10f, 2f, 10f) });
             views.Add(new HillView { name = "street-05-top-the-vista", eye = new Vector3(LookoutX0 + 4f, LookoutTop + eye, Z3 + 1.2f), look = new Vector3(-18f, 4f, 0f) });
             views.Add(new HillView { name = "street-06-top-the-house", eye = new Vector3(-2f, Top + eye, Z3 + 0.8f), look = houseOrigin + new Vector3(0f, 3f, 4f) });
             views.Add(new HillView { name = "street-07-the-rooftops", eye = new Vector3(-53f, ShedRoof + RoofStep * 2f + eye, 50f), look = new Vector3(-53f, ShedRoof + RoofStep * 6f, 90f) });
