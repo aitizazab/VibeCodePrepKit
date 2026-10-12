@@ -32,6 +32,16 @@ namespace JamKit.VisitingHours
             yield return PlayWhenFree(SliceContent.KnotDay1Intro);
         }
 
+        /// <summary>Day 2 (docs/NIGHTS-1-2.md): short. Rafael's question, the visitor from LeBaget, one round, the chair by
+        /// his bed, then the stairs down to the booth.</summary>
+        IEnumerator BeginDay2()
+        {
+            _mode = Mode.Transition;
+            yield return Card("St. Brigid's", "Day 2", () => EnterArea(SliceArea.HospitalDay2), 2.4f, true);
+            _mode = Mode.Explore;
+            yield return PlayWhenFree(SliceContent.KnotDay2Intro);
+        }
+
         /// <summary>Black, the place's name, <paramref name="middle"/> while it's dark, then the fade back.</summary>
         IEnumerator Card(string title, string sub, Action middle, float hold, bool startBlack = false)
         {
@@ -68,11 +78,13 @@ namespace JamKit.VisitingHours
             audio.StopMusic(1.5f);
             switch (which)
             {
-                case SliceArea.Hospital: audio.PlayAmbience("amb_vh_hospital"); break;
-                case SliceArea.Booth: audio.PlayAmbience("amb_hum"); break;
+                case SliceArea.Hospital:
+                case SliceArea.HospitalDay2: audio.PlayAmbience("amb_vh_hospital"); break;
+                case SliceArea.Booth:
+                case SliceArea.BoothDay2: audio.PlayAmbience("amb_hum"); break;
                 default: audio.PlayAmbience("amb_vh_suburb"); break;
             }
-            SetMonitor(which == SliceArea.Hospital ? _area.monitor : (Vector3?)null);
+            SetMonitor(which == SliceArea.Hospital || which == SliceArea.HospitalDay2 ? _area.monitor : (Vector3?)null);
         }
 
         void SetMonitor(Vector3? at)
@@ -104,18 +116,101 @@ namespace JamKit.VisitingHours
         IEnumerator GoToBooth()
         {
             _mode = Mode.Transition;
-            yield return Card("11 PM", "The closed sleep-research wing", () => EnterArea(SliceArea.Booth), 2.4f);
+            bool day2 = _segment == ChainSegment.Day2;
+            yield return Card("11 PM", "The closed sleep-research wing", () => EnterArea(day2 ? SliceArea.BoothDay2 : SliceArea.Booth), 2.4f);
             _mode = Mode.Explore;
-            yield return PlayWhenFree(SliceContent.KnotBooth);
+            yield return PlayWhenFree(day2 ? SliceContent.KnotBooth2 : SliceContent.KnotBooth);
         }
 
+        /// <summary>
+        /// Under: the chain's night when it's on and its scene is in the build (Day 1's booth: Night 1 on the hill street;
+        /// Day 2's: Night 2 in the house), carrying the journal and Force. Otherwise the slice's own street (Day 1), or the
+        /// end card (Day 2: there's no house to go to).
+        /// </summary>
         IEnumerator Dive()
         {
             _mode = Mode.Transition;
             GameRoot.Audio.Play("glitch", 0.4f);
+            var night = _segment == ChainSegment.Day2 ? ChainSegment.Night2 : ChainSegment.Night1;
+            var runner = VhChainRunner.Instance;
+            if (runner != null && VhChainRunner.Enabled && VhChainRunner.NightScene(night) != null)
+            {
+                bool started = false;
+                string title = night == ChainSegment.Night2 ? "The house" : "Larch Street";
+                yield return CardThenHold(title, night == ChainSegment.Night2 ? "Night 2" : "Night 1", () => started = runner.StartNight(night, _state.journal, _state.force), 2f);
+                if (started) yield break;
+                _hud.SetCard(0f, "", "");
+            }
+            if (_segment == ChainSegment.Day2)
+            {
+                yield return ChainEnd();
+                yield break;
+            }
             yield return Card("Larch Street", "Night 1", () => EnterArea(SliceArea.Street), 2f);
             _mode = Mode.Explore;
             yield return PlayWhenFree(SliceContent.KnotNightArrive);
+        }
+
+        /// <summary>A card that fades to black, does <paramref name="middle"/> (the next scene's load) and stays black.</summary>
+        IEnumerator CardThenHold(string title, string sub, Action middle, float hold)
+        {
+            float k = Fast ? 0.03f : 1f;
+            _hud.SetCard(0f, title, sub);
+            for (float t = 0f; t < 0.9f * k; t += Time.unscaledDeltaTime)
+            {
+                _hud.SetCard(t / (0.9f * k), null, null);
+                yield return null;
+            }
+            _hud.SetCard(1f, null, null);
+            for (float t = 0f; t < hold * k; t += Time.unscaledDeltaTime) yield return null;
+            middle?.Invoke();
+        }
+
+        // ---------- The chain's end card ----------
+
+        /// <summary>
+        /// The end of the chain (after Night 2): what happened with Walt and Lena, Force and Despair, how much the journal
+        /// holds. PLACEHOLDER (agent-written): the creator's ending isn't written yet.
+        /// </summary>
+        IEnumerator ChainEnd()
+        {
+            _mode = Mode.Transition;
+            if (_area == null) EnterArea(SliceArea.BoothDay2);
+            _hud.SetDim(1f);
+            GameRoot.Audio.StopAmbience(1f);
+            yield return Card("St. Brigid's", "The next morning", null, 1.6f, true);
+            _hud.SetDim(1f);
+            ShowChainEnd();
+        }
+
+        void ShowChainEnd()
+        {
+            _mode = Mode.End;
+            _hud.ShowEnd("End of Night 2.", ChainEndBody(), Finish, RetryNight2, "Go back into the house");
+        }
+
+        /// <summary>The end card's text (tests read it).</summary>
+        public string ChainEndBody()
+        {
+            var save = GameRoot.Exists ? GameRoot.Save.Data : null;
+            var sb = new System.Text.StringBuilder();
+            var walt = Chain.BattleResult(save, JamKit.Argument.ArgumentBattles.Walt);
+            var lena = Chain.BattleResult(save, JamKit.Argument.ArgumentBattles.Lena);
+            sb.Append("Walt: ").Append(walt != null ? walt.outcome.ToString() : NonEmpty(Chain.WaltOutcome(save), "not argued")).Append('.');
+            sb.Append("\nLena: ").Append(lena != null ? (lena.Condemns ? "condemns her" : "unsure") : NonEmpty(Chain.LenaOutcome(save), "not argued")).Append('.');
+            sb.Append("\nForce ").Append(Chain.ForceTally(save)).Append(", Despair ").Append(Chain.DespairTally(save)).Append(" of 3");
+            if (Chain.Despair(save)) sb.Append(" (she went on into the rain)");
+            sb.Append(".\nThe journal holds ").Append(Chain.Known(save).Count).Append(" entries.");
+            sb.Append("\n\n(A placeholder end card: the ending isn't written yet.)");
+            return sb.ToString();
+        }
+
+        static string NonEmpty(string s, string fallback) => string.IsNullOrEmpty(s) ? fallback : s;
+
+        void RetryNight2()
+        {
+            var runner = VhChainRunner.Instance;
+            if (runner != null) runner.JumpTo(ChainSegment.Night2);
         }
 
         /// <summary>Per-frame life of a place: the dog wanders, Walt waves when you first see him.</summary>

@@ -17,8 +17,11 @@ namespace JamKit.VisitingHours
             var area = new VhArea { area = which, root = root };
             switch (which)
             {
-                case SliceArea.Hospital: Hospital(area, config); break;
-                case SliceArea.Booth: Booth(area, config); break;
+                // The waking world in style E (VhWakingWard); the slice's painted versions below are kept for reference.
+                case SliceArea.Hospital: VhWakingWard.Hospital(area, config, false); break;
+                case SliceArea.HospitalDay2: VhWakingWard.Hospital(area, config, true); break;
+                case SliceArea.Booth: VhWakingWard.Booth(area, config, false); break;
+                case SliceArea.BoothDay2: VhWakingWard.Booth(area, config, true); break;
                 default: Street(area, config); break;
             }
             return area;

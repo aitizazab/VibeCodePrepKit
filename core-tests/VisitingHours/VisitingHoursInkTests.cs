@@ -159,17 +159,43 @@ namespace JamKit.Tests
         }
 
         [Test]
-        public void MagsTeachesTheRigAndTheJournalThenDives()
+        public void MagsSaysTheCreatorsSceneThenTheJournalThenDives()
         {
             var lines = new List<string>();
             var tags = new List<string>();
             Play(SliceContent.KnotBooth, lines, tags);
+            string said = string.Join(" ", lines);
+            // The creator's Mags scene (docs/STORY-PROSE.md 83-92), word for word.
+            Assert.That(said, Does.Contain("Dream Walking isn't that easy, you know."));
+            Assert.That(said, Does.Contain("Only way I'd have it. You gonna follow me in?"));
+            Assert.That(said, Does.Contain("I'd give you Five Nights, maybe Six"));
+            Assert.That(said, Does.Contain("only the Truth is on your side"));
+            Assert.That(said, Does.Contain("stay calm"));
+            Assert.That(said, Does.Not.Contain("charg").IgnoreCase, "the phone-charging ritual is dropped");
             Assert.That(tags, Does.Contain("event:vh:open_journal"));
-            Assert.That(string.Join(" ", lines), Does.Contain("WASD").And.Contain("E to look"));
             tags.Clear();
             Play(SliceContent.KnotBoothAfterJournal, lines, tags);
             Assert.That(tags, Does.Contain("event:vh:dive"));
-            Assert.That(string.Join(" ", lines), Does.Contain("Let's not do that tonight."));
+            tags.Clear();
+            Play(SliceContent.KnotBooth2, lines, tags);
+            Assert.That(tags, Does.Contain("event:vh:dive"), "Day 2's booth dives too");
+        }
+
+        [Test]
+        public void DayTwoAsksDidLenaGetOutAndTheVisitorAsksWhatHeSaid()
+        {
+            var lines = new List<string>();
+            var tags = new List<string>();
+            Play("day2_rafael", lines, tags);
+            Assert.That(string.Join(" ", lines), Does.Contain("Did Lena get out?"));
+            Play("day2_visitor", lines, tags);
+            Assert.That(string.Join(" ", lines), Does.Contain("Community Partnerships").And.Contain("Has he said anything?"));
+            Assert.That(string.Join(" ", lines), Does.Not.Contain("transfer").IgnoreCase, "no transfer clock");
+            tags.Clear();
+            Play("day2_stairwell", lines, tags);
+            Assert.That(tags, Does.Contain("event:vh:to_booth"));
+            Play("day1_phone", lines, tags);
+            Assert.That(string.Join(" ", lines), Does.Contain("Not now."));
         }
 
         [Test]

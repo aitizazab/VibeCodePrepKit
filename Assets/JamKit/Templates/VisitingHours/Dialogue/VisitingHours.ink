@@ -22,7 +22,47 @@ EXTERNAL open_questions()
 === day1_intro ===
 #speaker:Nadia #portrait:Mags hide #portrait:Walt hide
 <i>Six weeks.</i> #thought #auto:2.2
-<i>Room 14 is at the end of the corridor. It always is.</i> #thought #auto:2.6
+// PLACEHOLDER (agent-written, 2026-10-12): Rafael's one-line handover (docs/NIGHTS-1-2.md, Day 1).
+#speaker:Rafael
+Evening. Room 14's yours: obs due, the nine o'clock drip's up. He's had a quiet day.
+#speaker:Nadia
+<i>Wristband, then his vitals. Then the chart.</i> #thought #auto:2.6
+-> END
+
+// PLACEHOLDER (agent-written): Rafael, if she talks to him again.
+=== day1_rafael ===
+#speaker:Rafael
+You don't have to take him every night, you know. I can swap.
+#speaker:Nadia
+I know. Thanks, Raf.
+-> END
+
+// PLACEHOLDER (agent-written): the tutorial duty round, three steps at his bed.
+=== duty_wristband ===
+#speaker:Nadia
+His wristband. LASNAME, ELIAS. Date of birth, hospital number. Same as the chart.
+<i>Right patient. It's always the right patient.</i> #thought
+-> END
+
+=== duty_vitals ===
+#speaker:Nadia
+Pulse sixty-two. Pressure one-eighteen over seventy-four. Sats ninety-eight.
+<i>Everything a well man has.</i> #thought
+-> END
+
+// PLACEHOLDER (agent-written): LeBaget's bouquet.
+=== examine_bouquet ===
+#speaker:Nadia
+Lilies on the windowsill. Too many for the sill. #event:vh:record:fact_bouquet #sfx:page
+The card: <i>With our deepest sympathies. LeBaget, Community Partnerships.</i>
+<i>Who sends lilies to a man who isn't dead?</i> #thought
+-> END
+
+// PLACEHOLDER (agent-written): her phone ("Not now." is the plan's).
+=== day1_phone ===
+#speaker:Nadia
+My phone, face down on the desk. It buzzes.
+<i>Not now.</i> #thought
 -> END
 
 === examine_chart ===
@@ -86,34 +126,102 @@ Stairwell B. The sleep-research wing is two floors down. It closes at nine.
 // ---------- 11 PM: the closed sleep-research wing ----------
 
 === booth_mags ===
-#speaker:Mags #portrait:Mags neutral right
-You came. Good. Shut the door, the corridor lights bleed in.
-#speaker:Nadia
-Is this it? It looks like a dentist's chair with a hangover.
+// The creator's scene (docs/STORY-PROSE.md 83-92), word for word: the opening stage direction as Nadia's thought, first
+// person (the creator: "change the writing to the correct tense or POV"); two spellings fixed (particularly, irreversible).
+// The phone-charging ritual is dropped (the creator rewrote the scene without it).
+#speaker:Nadia #portrait:Mags neutral right
+<i>I close the door behind me. Mags turns at the noise, and her face softens when she sees it's me.</i> #thought
 #speaker:Mags
-Two hundred and twelve dives in that chair. It's very comfortable. Lie back.
-Here's the rig, short version. You go under, you'll be standing in his dream. It'll feel like walking. It is walking.
-Same as out here: walk with WASD or the stick, look with the mouse. Shift if you need to hurry. You won't need to hurry.
-E to look at something properly. Your hands will work. Mostly.
+Dream Walking isn't that easy, you know. Hard to tell apart reality, and their perception of it. And when you try to get him out, well...
+There's a reason he's still under. It won't be easy. But he's your brother; I know you'd do anything for him.
 #speaker:Nadia
-And how do I find him?
+Only way I'd have it. You gonna follow me in?
 #speaker:Mags
-You don't find him. You find out where he is. That's what your notebook's for.
-Everything you write down out here comes in with you. Facts. The things you remember in there. Put two together and sometimes they make a third.
-Show me the notebook.
+Goodness, no. The Dream is tethered within his consciousness, and the more psyches invading his mind, the less stable he becomes.
+I'd give you Five Nights, maybe Six before it's too dangerous to continue, just on your own. Add to that the fact I'm not someone he doesn't have such a strong tie to, like you do... No point discussing it.
+And remember, inside the Dream, only the Truth is on your side. His consciousness can conjure up falsehoods and convincing manipulations, if his memories are particularly vivid, but your only bastion to fight with is the Truth.
+Enter prepared, or you'll be wasting our time. Regardless, get comfortable, we have a Long Night ahead of us.
+And whatever happens in there, stay calm. Undue distress could cause irreversible damage to Elias' wellbeing. No pressure.
+// PLACEHOLDER (agent-written): the journal's introduction (the game's tutorial for it).
+Your notebook. Show me before you go under.
 #event:vh:open_journal
 -> END
 
 === booth_after_journal ===
 #speaker:Mags #portrait:Mags neutral right
-Good. J or Tab opens it in there too. Pick two things, see if they fit.
-And when somebody in there argues with you, and they will, use what you've worked out. You can't say what you don't know.
-#speaker:Nadia
-How many of the two hundred and twelve went wrong?
-#speaker:Mags
-Nine.
-...Let's not do that tonight.
+// PLACEHOLDER (agent-written).
+J or Tab opens it in there too. Pick two things, see if they fit.
 Count back from ten. I'll be right here.
+#event:vh:dive
+-> END
+
+// ---------- Day 2 (the chain, docs/NIGHTS-1-2.md): all PLACEHOLDER, agent-written ----------
+
+=== day2_intro ===
+#speaker:Nadia #portrait:Mags hide #portrait:Walt hide
+<i>Day two. Four hours' sleep.</i> #thought #auto:2.2
+<i>Room 14. Then the stairs.</i> #thought #auto:2.2
+-> END
+
+=== day2_rafael ===
+#speaker:Rafael
+I was on when they brought him in. Did anyone tell you?
+He said one thing before they put him under. "Did Lena get out?" #event:vh:record:fact_did_lena #sfx:page
+#speaker:Nadia
+<i>Did she?</i> #thought
+-> END
+
+=== day2_visitor ===
+#speaker:Visitor
+Ms. Lasname? I'm from LeBaget. Community Partnerships. We were so sorry to hear.
+I brought fruit. I wasn't sure what he's allowed.
+Has he said anything? #event:vh:record:fact_visitor #sfx:page
+#speaker:Nadia
+He's in a coma.
+#speaker:Visitor
+Of course. Of course he is.
+-> END
+
+=== day2_wristband ===
+#speaker:Nadia
+Wristband. Same name, same number.
+-> END
+
+=== day2_round ===
+#speaker:Nadia
+The drip's due. New bag, same rate. The line's clean.
+-> END
+
+=== day2_vitals ===
+#speaker:Nadia
+Pulse sixty. Pressure one-sixteen over seventy-two. Sats ninety-eight.
+<i>Everything's the same as yesterday.</i> #thought
+-> END
+
+=== day2_sit ===
+#speaker:Nadia
+<i>I sit. The chair's where I left it.</i> #thought
+* [Talk to him]
+    It's Nadia. I'm here, Eli. I'm right here.
+    <i>His monitor doesn't change.</i> #thought
+    -> END
+* [Just sit]
+    <i>I sit with him a while.</i> #thought
+    -> END
+
+=== day2_stairwell ===
+#speaker:Nadia
+Stairwell B. Down to the closed wing.
+* [Go down to the sleep wing]
+    #event:vh:to_booth
+    -> END
+* [Not yet]
+    -> END
+
+=== booth_mags2 ===
+#speaker:Mags #portrait:Mags neutral right
+Again, then. You found the house. Tonight you go inside.
+Same rules. Only the Truth is on your side. Count back from ten.
 #event:vh:dive
 -> END
 

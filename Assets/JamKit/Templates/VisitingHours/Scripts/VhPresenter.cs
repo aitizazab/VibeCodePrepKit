@@ -23,8 +23,17 @@ namespace JamKit.VisitingHours
         public const string EndHeardOut = "End card: Heard out";
         public const string EndPressed = "End card: Pressed";
         public const string EndLost = "End card: Composure lost";
+        // The chain (docs/NIGHTS-1-2.md): a jump to each segment after Day 1, from anywhere (the journal as the save has it).
+        public const string ChainNight1 = "Chain: Night 1 (the street)";
+        public const string ChainDay2 = "Chain: Day 2";
+        public const string ChainNight2 = "Chain: Night 2 (the house)";
+        public const string ChainEnd = "Chain: the end card";
 
-        public static readonly string[] Chapters = { Opening, EditOpening, Day1, Booth, Street, Argument, EndConvinced, EndHeardOut, EndPressed, EndLost };
+        public static readonly string[] Chapters = { Opening, EditOpening, Day1, Booth, Street, Argument, EndConvinced, EndHeardOut, EndPressed, EndLost, ChainNight1, ChainDay2, ChainNight2, ChainEnd };
+
+        /// <summary>The chapters that work from any state (registered by VhBoot, not the slice): the opening, its editor,
+        /// the chain's jumps.</summary>
+        public static readonly string[] AnyTimeChapters = { Opening, EditOpening, ChainNight1, ChainDay2, ChainNight2, ChainEnd };
 
         /// <summary>Attract-mode segments VisitingHoursGame.AttractDrive plays.</summary>
         public static readonly string[] Segments = { "walk", "argument" };
@@ -51,6 +60,16 @@ namespace JamKit.VisitingHours
             chapters.Register(Scene, Opening, VhBoot.PresenterOpening, PresenterMode.AnyTime);
             // The opening editor (docs/OPENING-EDITOR.md): goes to the title and opens it there.
             chapters.Register(Scene, EditOpening, VhOpeningEditor.OpenFromAnywhere, PresenterMode.AnyTime);
+            chapters.Register(Scene, ChainNight1, () => JumpChain(ChainSegment.Night1), PresenterMode.AnyTime);
+            chapters.Register(Scene, ChainDay2, () => JumpChain(ChainSegment.Day2), PresenterMode.AnyTime);
+            chapters.Register(Scene, ChainNight2, () => JumpChain(ChainSegment.Night2), PresenterMode.AnyTime);
+            chapters.Register(Scene, ChainEnd, () => JumpChain(ChainSegment.End), PresenterMode.AnyTime);
+        }
+
+        static void JumpChain(ChainSegment segment)
+        {
+            var runner = VhChainRunner.Instance;
+            if (runner != null) runner.JumpTo(segment);
         }
 
         /// <summary>Everything else, live while the slice's scene runs.</summary>

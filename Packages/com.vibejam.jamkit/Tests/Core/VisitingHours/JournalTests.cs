@@ -118,7 +118,7 @@ namespace JamKit.Tests.VisitingHours
             Assert.That(battle.statements[3].optional, Is.True, "the spiral's crack is a bonus");
 
             Assert.That(book.Find(SliceContent.FactPoliceReport).scribble, Is.EqualTo("I should have"), "the one scribbled-out line");
-            Assert.That(book.Find(SliceContent.FactPoliceReport).text, Does.Contain("3:03").And.Contain("3:05").And.Contain("Lasname"), "the call log is shown (his voicemail to Nadia at 3:03, as on her phone)");
+            Assert.That(book.Find(SliceContent.FactPoliceReport).text, Does.Contain("3:04").And.Contain("3:07").And.Contain("Lasname"), "the call log is shown (docs/NIGHTS-1-2.md: 3:04 Nadia, unanswered; 3:07 Lena, 2 minutes)");
             Assert.That(book.Find(SliceContent.FactChart).text, Does.StartWith("Charting:"), "Nadia charts");
         }
     }

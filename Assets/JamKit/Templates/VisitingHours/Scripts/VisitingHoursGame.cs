@@ -75,6 +75,11 @@ namespace JamKit.VisitingHours
         bool _focused, _walked;
         Action _onJournalClosed;
 
+        ChainSegment _segment = ChainSegment.Day1;
+
+        /// <summary>The chain's segment this scene is playing (Day 1, Day 2 or the end card; docs/NIGHTS-1-2.md).</summary>
+        public ChainSegment ChainSegment => _segment;
+
         public SliceState State => _state;
         public Journal Journal => _state != null ? _state.journal : null;
         public Mode CurrentMode => _mode;
@@ -126,7 +131,19 @@ namespace JamKit.VisitingHours
             SetupPresenter();
             GameRoot.Run.Set("Slice", "Visiting Hours");
 
-            StartCoroutine(BeginDay());
+            // The chain: Day 1 from the title; Day 2 or the end card when a night hands back (what was found comes too).
+            _segment = VhChainRunner.TakeStartSegment();
+            if (_segment != ChainSegment.Day1 && GameRoot.Exists)
+            {
+                foreach (var id in Chain.Known(GameRoot.Save.Data)) _state.journal.Record(id);
+                _state.force = Chain.Force(GameRoot.Save.Data);
+            }
+            switch (_segment)
+            {
+                case ChainSegment.Day2: StartCoroutine(BeginDay2()); break;
+                case ChainSegment.End: StartCoroutine(ChainEnd()); break;
+                default: StartCoroutine(BeginDay()); break;
+            }
         }
 
         void OnDestroy()
@@ -350,6 +367,7 @@ namespace JamKit.VisitingHours
                     _hud.SetVignette(config.dreamVignette, new Color(1f, 0.78f, 0.52f, 1f));
                     break;
                 case SliceArea.Booth:
+                case SliceArea.BoothDay2:
                     fog = new Color(0.04f, 0.05f, 0.07f); p = new Vector3(4f, 14f, 0.5f);
                     cam.backgroundColor = Color.black;
                     _hud.SetVignette(0.5f, Color.black);

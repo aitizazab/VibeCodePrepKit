@@ -146,7 +146,7 @@ namespace JamKit.VisitingHours
         public string EndBody => _endBody != null ? _endBody.text : "";
 
         /// <summary>The end card: what happened, where the notes are, Finish and (optionally) Argue again.</summary>
-        public void ShowEnd(string title, string body, Action finish, Action retry)
+        public void ShowEnd(string title, string body, Action finish, Action retry, string retryLabel = null)
         {
             if (_end == null)
             {
@@ -180,6 +180,7 @@ namespace JamKit.VisitingHours
             _onRetry = retry;
             _endTitle.text = title;
             _endBody.text = body;
+            _endRetry.text = retryLabel ?? "Argue with Walt again";
             _endRetry.style.display = retry != null ? DisplayStyle.Flex : DisplayStyle.None;
             _end.style.display = DisplayStyle.Flex;
             _end.BringToFront();

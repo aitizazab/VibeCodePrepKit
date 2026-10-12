@@ -16,6 +16,9 @@ namespace JamKit.VisitingHours
         public const string FactEffects = "fact_effects";
         public const string FactPoliceReport = "fact_police_report";
         public const string FactPhoto = "fact_photo";
+        public const string FactBouquet = "fact_bouquet";
+        public const string FactDidLenaGetOut = "fact_did_lena";
+        public const string FactVisitor = "fact_visitor";
         public const string MemWaltAlive = "mem_walt_alive";
         public const string MemNewspaper = "mem_newspaper";
         public const string MemShopSign = "mem_shop_sign";
@@ -48,7 +51,7 @@ namespace JamKit.VisitingHours
                 // car caught in a gang crossfire (the Larpaca gang) on the drive home, the surname Lasname.
                 // TODO(creator): "Lena Lasname and Theo Lasname, dead at the scene" is kept until the creator answers: Lena is
                 // missing, not dead (settled); did Theo die at the scene, or is he missing too?
-                text = "An envelope at the station, for the family. Route 9, about 3:40 AM: the car was caught in a crossfire (gang violence: the Larpaca gang). Driver: Elias Lasname, critical. Lena Lasname and Theo Lasname, dead at the scene.\nPhone log: 3:03, call to Nadia Lasname, not answered (a voicemail). 3:05, call to Lena Lasname, 2 minutes.",
+                text = "An envelope at the station, for the family. Route 9, about 3:40 AM: the car was caught in a crossfire (gang violence: the Larpaca gang). Driver: Elias Lasname, critical. Lena Lasname and Theo Lasname, dead at the scene.\nPhone log: 3:04, call to Nadia Lasname, not answered. 3:07, call to Lena Lasname, 2 minutes.",
                 scribble = "I should have",
                 sayLine = "There's a police report, Walt.",
                 icon = "prop_police_envelope",
@@ -59,6 +62,28 @@ namespace JamKit.VisitingHours
                 text = "On his bedside table: Eli, Lena and Theo on the beach, laughing so hard Theo's a blur.",
                 sayLine = "He has a family. Had.",
                 icon = "prop_family_photo",
+            },
+            // PLACEHOLDER (agent-written, for the creator to rewrite): the chain's new Day 1 and Day 2 facts (docs/NIGHTS-1-2.md).
+            new JournalEntryDef
+            {
+                id = FactBouquet, kind = EntryKind.Fact, title = "The bouquet",
+                text = "Lilies on the windowsill of room 14, too big for it. The card: \"With our deepest sympathies. LeBaget, Community Partnerships.\" Nobody here knows who brought them.",
+                sayLine = "Somebody from LeBaget sent flowers.",
+                icon = "",
+            },
+            new JournalEntryDef
+            {
+                id = FactDidLenaGetOut, kind = EntryKind.Fact, title = "\"Did Lena get out?\"",
+                text = "Rafael was on when they brought him in. Elias said one thing before he went under: \"Did Lena get out?\"",
+                sayLine = "You asked if Lena got out.",
+                icon = "",
+            },
+            new JournalEntryDef
+            {
+                id = FactVisitor, kind = EntryKind.Fact, title = "The man from LeBaget",
+                text = "A man from LeBaget's Community Partnerships, with fruit Elias can't eat. \"Has he said anything?\"",
+                sayLine = "LeBaget came asking what you've said.",
+                icon = "",
             },
             new JournalEntryDef
             {
@@ -361,6 +386,22 @@ namespace JamKit.VisitingHours
             new ExamineDef { id = "elias", area = SliceArea.Hospital, label = "Elias", knot = "examine_elias" },
             new ExamineDef { id = "station", area = SliceArea.Hospital, label = "the nurses' station", knot = "examine_station" },
             new ExamineDef { id = "stairwell", area = SliceArea.Hospital, label = "the stairwell door", knot = "stairwell" },
+            // Day 1 in the chain (docs/NIGHTS-1-2.md): the handover, the tutorial duty round (two checks: the creator wants it
+            // a bit shorter than the later rounds), the bouquet, her phone.
+            new ExamineDef { id = "rafael", area = SliceArea.Hospital, label = "Rafael", knot = "day1_rafael" },
+            new ExamineDef { id = "wristband", area = SliceArea.Hospital, label = "his wristband", knot = "duty_wristband" },
+            new ExamineDef { id = "vitals", area = SliceArea.Hospital, label = "the monitor", knot = "duty_vitals" },
+            new ExamineDef { id = "bouquet", area = SliceArea.Hospital, label = "the flowers", knot = "examine_bouquet", records = FactBouquet },
+            new ExamineDef { id = "phone", area = SliceArea.Hospital, label = "your phone", knot = "day1_phone" },
+            // Day 2: Rafael's question, the LeBaget visitor, one duty round, sitting with him, the stairs down.
+            new ExamineDef { id = "rafael2", area = SliceArea.HospitalDay2, label = "Rafael", knot = "day2_rafael", records = FactDidLenaGetOut },
+            new ExamineDef { id = "visitor", area = SliceArea.HospitalDay2, label = "the visitor", knot = "day2_visitor", records = FactVisitor },
+            // Day 2's round: three checks (wristband, the drip, vitals), a step longer than the tutorial's.
+            new ExamineDef { id = "wristband2", area = SliceArea.HospitalDay2, label = "his wristband", knot = "day2_wristband" },
+            new ExamineDef { id = "round2", area = SliceArea.HospitalDay2, label = "the drip", knot = "day2_round" },
+            new ExamineDef { id = "vitals2", area = SliceArea.HospitalDay2, label = "the monitor", knot = "day2_vitals" },
+            new ExamineDef { id = "sit", area = SliceArea.HospitalDay2, label = "the chair by his bed", knot = "day2_sit" },
+            new ExamineDef { id = "stairwell2", area = SliceArea.HospitalDay2, label = "the stairwell door", knot = "day2_stairwell" },
             new ExamineDef { id = "newspaper", area = SliceArea.Street, label = "the newspaper", knot = "examine_newspaper", records = MemNewspaper },
             new ExamineDef { id = "shop_sign", area = SliceArea.Street, label = "the garage", knot = "examine_shop_sign", records = MemShopSign },
             new ExamineDef { id = "roses", area = SliceArea.Street, label = "the woman watering roses", knot = "examine_roses", records = MemSaturday },
@@ -382,6 +423,8 @@ namespace JamKit.VisitingHours
         public const string KnotPressed = "walt_pressed";
         public const string KnotLost = "walt_lost";
         public const string KnotSliceEnd = "slice_end";
+        public const string KnotDay2Intro = "day2_intro";
+        public const string KnotBooth2 = "booth_mags2";
 
         public static string OutcomeKnot(BattleOutcome outcome)
         {
@@ -401,7 +444,7 @@ namespace JamKit.VisitingHours
             var list = new List<string>
             {
                 KnotDay1Intro, KnotBooth, KnotBoothAfterJournal, KnotNightArrive, KnotWaltWave, KnotWaltRushing, KnotWaltIntro,
-                KnotConvinced, KnotHeardOut, KnotPressed, KnotLost, KnotSliceEnd,
+                KnotConvinced, KnotHeardOut, KnotPressed, KnotLost, KnotSliceEnd, KnotDay2Intro, KnotBooth2,
             };
             foreach (var e in Examinables()) if (!list.Contains(e.knot)) list.Add(e.knot);
             return list;

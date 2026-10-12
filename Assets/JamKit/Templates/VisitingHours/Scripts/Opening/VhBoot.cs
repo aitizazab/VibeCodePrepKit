@@ -61,6 +61,8 @@ namespace JamKit.VisitingHours
             // Its capture tour (tools/vh-editor-capture.ps1): only with -opening-editor-tour.
             if (VhOpeningEditorTour.RequestedFolder() != null && root.gameObject.GetComponent<VhOpeningEditorTour>() == null)
                 root.gameObject.AddComponent<VhOpeningEditorTour>();
+            // The chain from Day 1 to the end card (docs/NIGHTS-1-2.md).
+            if (root.gameObject.GetComponent<VhChainRunner>() == null) root.gameObject.AddComponent<VhChainRunner>();
             GameRoot.Ui.Title.Shown -= OnTitleShown;
             GameRoot.Ui.Title.Shown += OnTitleShown;
             VhPresenter.RegisterOpening(PresenterMode.Chapters);

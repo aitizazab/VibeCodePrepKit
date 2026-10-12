@@ -57,7 +57,7 @@ namespace JamKit.VisitingHours.Tests
             Assert.That(Game.Area, Is.EqualTo(SliceArea.Street));
             foreach (var name in VhPresenter.Chapters)
             {
-                if (name == VhPresenter.Opening || name == VhPresenter.EditOpening) continue; // their own tests
+                if (System.Array.IndexOf(VhPresenter.AnyTimeChapters, name) >= 0) continue; // the opening, its editor, the chain: their own tests
                 Assert.That(PresenterMode.Jump(VhPresenter.Scene, name), Is.EqualTo(JumpResult.Jumped), name);
                 yield return Frames(3);
                 Assert.That(GameRoot.Flow.InRun, Is.True, name);

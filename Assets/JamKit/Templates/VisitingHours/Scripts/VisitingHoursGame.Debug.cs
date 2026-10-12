@@ -37,7 +37,12 @@ namespace JamKit.VisitingHours
                     foreach (var id in new[] { SliceContent.FactChart, SliceContent.FactEffects, SliceContent.FactPoliceReport, SliceContent.FactPhoto }) _state.journal.Record(id);
                     StartCoroutine(GoToBooth());
                     break;
+                case SliceArea.HospitalDay2:
+                    foreach (var id in new[] { SliceContent.FactDidLenaGetOut, SliceContent.FactVisitor }) _state.journal.Record(id);
+                    StartCoroutine(GoToBooth());
+                    break;
                 case SliceArea.Booth:
+                case SliceArea.BoothDay2:
                     StartCoroutine(Dive());
                     break;
                 default:
@@ -82,13 +87,24 @@ namespace JamKit.VisitingHours
         {
             switch (id)
             {
-                case "chart": return new Vector3(4.2f, 0f, 19.5f);
-                case "effects": return new Vector3(7.2f, 0f, 17.9f);
-                case "police_report": return new Vector3(-2.4f, 0f, 4.9f);
-                case "photo": return new Vector3(7.3f, 0f, 22.1f);
-                case "stairwell": return new Vector3(0f, 0f, 24.6f);
-                case "station": return new Vector3(-2.5f, 0f, 6.4f);
-                case "elias": return new Vector3(5f, 0f, 20.4f);
+                // The ward (VhWakingWard: room 14's bed against the headwall, the station's counter and ledge).
+                case "chart": return new Vector3(6.0f, 0f, 20.3f);
+                case "effects": return new Vector3(7.3f, 0f, 17.9f);
+                case "police_report": return new Vector3(-2.5f, 0f, 4.9f);
+                case "phone": return new Vector3(-2.5f, 0f, 4.25f);
+                case "photo": return new Vector3(8.1f, 0f, 23.0f);
+                case "stairwell":
+                case "stairwell2": return new Vector3(0f, 0f, 24.6f);
+                case "station": return new Vector3(-2.6f, 0f, 6.4f);
+                case "elias": return new Vector3(4.9f, 0f, 22.3f);
+                case "wristband":
+                case "wristband2": return new Vector3(6.95f, 0f, 21.9f);
+                case "vitals":
+                case "vitals2": return new Vector3(4.75f, 0f, 22.5f);
+                case "round2": return new Vector3(7.0f, 0f, 22.0f);
+                case "bouquet": return new Vector3(7.8f, 0f, 19.3f);
+                case "sit": return new Vector3(8.5f, 0f, 21.5f);
+                case "visitor": return new Vector3(0f, 0f, 16.0f);
                 case "newspaper": return new Vector3(-8f, 0f, -14f);
                 case "shop_sign": return new Vector3(25f, 0f, 12f);
                 case "roses": return new Vector3(-14f, 0f, 10.8f);
@@ -184,6 +200,15 @@ namespace JamKit.VisitingHours
                 if (_smokeFailed) yield break;
                 Log("journal opened by Mags (" + _journal.CurrentTab + ")");
                 _journal.Close();
+                // A long enough smoke walks the whole chain from here (the nights, Day 2, the end card): the runner lives on
+                // the GameRoot, so it carries on when this scene goes.
+                var runner = VhChainRunner.Instance;
+                if (VhChainRunner.SmokeWalksTheChain && runner != null)
+                {
+                    Log("the chain: Night 1, Day 2, Night 2, the end card");
+                    yield return runner.SmokeWalk();
+                    yield break;
+                }
                 yield return WaitFor(() => Area == SliceArea.Street && Ready, "the street", 8f);
                 if (_smokeFailed) yield break;
             }

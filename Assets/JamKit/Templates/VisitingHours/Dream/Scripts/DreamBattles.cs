@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using JamKit.Argument;
+using JamKit.Shell;
 using UnityEngine;
 using HouseOutcome = JamKit.DreamEscape.ArgumentOutcome;
 
@@ -32,14 +33,16 @@ namespace JamKit.DreamEscape
             done?.Invoke(HouseOutcome.Unsure);
         }
 
-        /// <summary>What the battle gets: the journal ids found (they gate its cards) and the hidden numbers the dream
-        /// keeps. Despair: the save's Despair flag is the maximum (3), else 0. Force: no game-wide tally yet (0).</summary>
+        /// <summary>What the battle gets: the journal ids found (they gate its cards) and the hidden numbers the run keeps,
+        /// from the chain's tally (JamKit.VisitingHours.Chain, the opening agent's): Force (the battles' presses so far),
+        /// Despair (Lena condemning; the save's Despair flag is the maximum, 3).</summary>
         public static ArgumentContext Context(IReadOnlyList<string> evidence)
         {
+            var save = GameRoot.Exists ? GameRoot.Save.Data : null;
             var c = new ArgumentContext
             {
-                despair = DreamEscapeGame.Despair ? ArgumentMeters.DespairMax : 0,
-                force = 0,
+                despair = save != null ? JamKit.VisitingHours.Chain.DespairTally(save) : 0,
+                force = save != null ? JamKit.VisitingHours.Chain.ForceTally(save) : 0,
                 seed = (ulong)Environment.TickCount,
             };
             if (evidence != null) c.found.AddRange(evidence);

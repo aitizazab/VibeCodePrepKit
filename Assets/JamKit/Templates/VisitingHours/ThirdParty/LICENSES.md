@@ -30,6 +30,8 @@ Everything downloaded for Visiting Hours is listed here with its source and lice
 
 | `loungeChair`, `sideTable`, `lampRoundFloor`, `rugRound`, `rugRounded`, `bookcaseOpen`, `plantSmall1`, `plantSmall2`, `kitchenCabinetUpper`, `toaster`, `kitchenCoffeeMachine`, `tableCoffee`, `bear`, `chairDesk`, `cardboardBoxClosed`, `radio` (all `.fbx` in `Kenney/FurnitureKit/`) | Night 2's house as a home (2026-10-12, `DreamHouseDecor`): armchairs, lamps, rugs, bookcases, plants, the kitchen's clutter, Theo's teddy and toy chest, the study's chair and radio |
 
+| `chairDesk`, `bathroomSink`, `loungeChair`, `coatRackStanding`, `radio`, `cardboardBoxClosed`, `cabinetBedDrawerTable`, `lampRoundTable`, `pottedPlant` (all `.fbx` in `Kenney/FurnitureKit/`) | The waking days in style E (2026-10-12, `VhWakingWard`): the nurses' station's chairs and plant, room 14's sink, visitors' chair and locker, the booth's lamp, radio, coat stand and the closed wing's boxes |
+
 The dream's models (2026-10-11) came from the same kit and zip (re-downloaded, `License.txt` checked: CC0).
 
 ## Kenney: Impact Sounds, RPG Audio, Sci-Fi Sounds (the dream escape's movement sounds)

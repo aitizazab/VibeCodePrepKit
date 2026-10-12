@@ -12,6 +12,8 @@
     <Compile Include="$(PkgRoot)Runtime\Core\Roguelite\**\*.cs" />
     <Compile Include="$(PkgRoot)Runtime\Core\BulletHell\**\*.cs" />
     <Compile Include="$(PkgRoot)Runtime\Core\VisitingHours\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Flow\SaveData.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Flow\Settings.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\VisitingHours\**\*.cs" />
     <InkSource Include="$(InkLibs)com.inkle.ink-unity-integration@*\InkLibs\**\*.cs" />
     <Compile Include="@(InkSource)" LinkBase="InkLibs" />

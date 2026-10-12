@@ -238,7 +238,8 @@ namespace JamKit.VisitingHours
     }
 
     /// <summary>The slice's places.</summary>
-    public enum SliceArea { Hospital, Booth, Street }
+    /// <summary>The places of the slice and the chain's days (appended at the end: assets store them by number).</summary>
+    public enum SliceArea { Hospital, Booth, Street, HospitalDay2, BoothDay2 }
 
     /// <summary>Something Nadia can look at with E (the Unity layer places it in the world).</summary>
     [Serializable]

@@ -34,6 +34,9 @@ namespace JamKit.VisitingHours.EditorTools
         {
             ("nightstand", "cabinetBedDrawerTable"), ("lamp", "lampRoundTable"), ("chair", "chair"), ("rug", "rugRectangle"),
             ("shelf", "bookcaseOpenLow"), ("books", "books"), ("plant", "pottedPlant"),
+            // The waking days' ward and booth (VhWakingWard; the bedroom doesn't place these).
+            ("chair_desk", "chairDesk"), ("sink", "bathroomSink"), ("armchair", "loungeChair"), ("coat_rack", "coatRackStanding"),
+            ("radio", "radio"), ("box", "cardboardBoxClosed"),
         };
 
         /// <summary>The pictures the sets use, and the file names (no extension, any case, any subfolder of Art/) each one accepts.</summary>
