@@ -15,11 +15,12 @@ namespace JamKit.Argument
     /// <item><c>despair</c>: the hidden Despair value the game passes in, 0..3 (3 = max).</item>
     /// <item><c>presses</c>: presses this battle. <c>antagonised</c>: antagonising cards and retorts this battle.
     /// <c>heat</c>: the battle's heat, 0..3.</item>
+    /// <item><c>sorry</c>: 1 when Nadia has already said sorry at his bedside (Day 1's "the phone"), else 0.</item>
     /// </list>
     /// </summary>
     public struct ArgumentMeters
     {
-        public int anger, force, despair, presses, antagonised, heat;
+        public int anger, force, despair, presses, antagonised, heat, sorry;
 
         public const int MaxAnger = 3, DespairMax = 3, ForceHigh = 3;
 
@@ -32,12 +33,13 @@ namespace JamKit.Argument
                 case ArgumentMeter.Despair: return despair;
                 case ArgumentMeter.Presses: return presses;
                 case ArgumentMeter.Antagonised: return antagonised;
+                case ArgumentMeter.Sorry: return sorry;
                 default: return heat;
             }
         }
     }
 
-    public enum ArgumentMeter { Anger, Force, Despair, Presses, Antagonised, Heat }
+    public enum ArgumentMeter { Anger, Force, Despair, Presses, Antagonised, Heat, Sorry }
 
     /// <summary>
     /// A conditional line's condition: comparisons joined by "," (and) and "|" (or), "and" binding tighter:
@@ -91,7 +93,7 @@ namespace JamKit.Argument
                 if (at <= 0) continue;
                 string name = s.Substring(0, at).Trim().ToLowerInvariant();
                 string number = s.Substring(at + op.Length).Trim();
-                if (!Meter(name, out clause.meter)) { error = "unknown meter \"" + name + "\" (anger, force, despair, presses, antagonised, heat)"; return false; }
+                if (!Meter(name, out clause.meter)) { error = "unknown meter \"" + name + "\" (anger, force, despair, presses, antagonised, heat, sorry)"; return false; }
                 if (!int.TryParse(number, NumberStyles.Integer, CultureInfo.InvariantCulture, out clause.value)) { error = "not a whole number: \"" + number + "\""; return false; }
                 clause.op = op == "==" ? "=" : op;
                 return true;
@@ -105,6 +107,7 @@ namespace JamKit.Argument
             switch (name)
             {
                 case "anger": m = ArgumentMeter.Anger; return true;
+                case "sorry": m = ArgumentMeter.Sorry; return true;
                 case "force": m = ArgumentMeter.Force; return true;
                 case "despair": m = ArgumentMeter.Despair; return true;
                 case "presses": m = ArgumentMeter.Presses; return true;
@@ -160,7 +163,28 @@ namespace JamKit.Argument
     {
         public const string Ask = "ask", Challenge = "challenge", Concede = "concede", Pressure = "pressure", Press = "press",
             Rest = "rest", Broken = "broken";
+        /// <summary>The real-time battle's moments (docs/redesign/battle.md): the debate starts (move the light, keep off
+        /// the red); the first "Because..." (pick the reason that follows, before they lose patience); the first wrong
+        /// card (it costs a heartbeat and the card); the first showdown (cut through their words); the first slip.</summary>
+        public const string Debate = "debate", Because = "because", Wrong = "wrong", Showdown = "showdown", Slip = "slip";
 
-        public static readonly string[] Moments = { Ask, Challenge, Concede, Pressure, Press, Rest, Broken };
+        public static readonly string[] Moments = { Debate, Ask, Concede, Challenge, Because, Wrong, Pressure, Press, Showdown, Broken, Slip, Rest };
+    }
+
+    /// <summary>The short lines the real-time battle calls for, in each battle's prose file as <c>bark.&lt;id&gt;</c>.</summary>
+    public static class ArgumentBarks
+    {
+        /// <summary>A whole round of her statements went by and Nadia said nothing (her temper rises).</summary>
+        public const string Idle = "idle";
+        /// <summary>Nadia showed her evidence and then couldn't say why in time.</summary>
+        public const string Hesitate = "hesitate";
+        /// <summary>The evidence glanced off: it hit the statement, not the words that matter.</summary>
+        public const string Glance = "glance";
+        /// <summary>The three rings begin (the painful phase: a phone at the edge of the table).</summary>
+        public const string Ring = "ring";
+        /// <summary>Every key premise is down, but their painful question stands unanswered (the last stand).</summary>
+        public const string Stand = "stand";
+
+        public static readonly string[] Ids = { Idle, Hesitate, Glance, Ring, Stand };
     }
 }

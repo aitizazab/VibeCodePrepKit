@@ -101,6 +101,9 @@ namespace JamKit.Argument
         public PremiseKind kind = PremiseKind.Fact;
         public PremiseTruth truth = PremiseTruth.True;
         public string text = "";
+        /// <summary>The phrase that glows as the statement flies in the debate (plain words, a part of <see cref="text"/>):
+        /// a piece of evidence has to hit it. Empty, or not found in the text: the whole statement.</summary>
+        public string weak = "";
         /// <summary>Key premises must all be broken for Convinced.</summary>
         public bool key;
         /// <summary>Starts unseen: revealed by Ask, a concession, a fall-back or deepen, a slip, or by script.</summary>
@@ -113,6 +116,9 @@ namespace JamKit.Argument
         /// <summary>Asking the same premise a second time (the deepest premises: "ask twice in the right place").</summary>
         public string askAgainReply = "";
         public List<string> askAgainReveals = new List<string>();
+        /// <summary>Has a second answer (<see cref="askAgainReply"/>) even when asking again reveals nothing (L3's points
+        /// Nadia to Theo's drawing).</summary>
+        public bool askAgain;
 
         /// <summary>Nadia's words when she concedes it ("He is happy.").</summary>
         public string concedeLine = "";
@@ -228,6 +234,20 @@ namespace JamKit.Argument
         public string heardOutReply = "";
         public string pressedReply = "";
         public string composureLostLine = "";
+        /// <summary>Their answer as Nadia leaves the table (composure lost): the cost, in their voice.</summary>
+        public string composureLostReply = "";
+        public string composureLostExpression = "angry";
+
+        /// <summary>The words they cut back with when Nadia presses (the showdown: she cuts through each as it reaches her).</summary>
+        public List<string> showdown = new List<string>();
+        /// <summary>Short lines the debate calls for (<see cref="ArgumentBarks"/>), by id.</summary>
+        public Dictionary<string, string> barks = new Dictionary<string, string>();
+        /// <summary>The words written along their walls of pressure ("Sit down", "My kitchen").</summary>
+        public List<string> pressureWords = new List<string>();
+        /// <summary>The painful premise's phase is the three rings (a phone at the table's edge; standing still hurts).</summary>
+        public bool painfulCall;
+        /// <summary>How hard the debate's own pressure is, as a share of a full phase's density (1 = as dense).</summary>
+        public float debateDensity = 0.55f;
 
         /// <summary>Pressure shapes by heat 0..3 (and the slips' look: the premises' slipName).</summary>
         public List<PressureShape> calmShapes = new List<PressureShape> { PressureShape.Bloom };

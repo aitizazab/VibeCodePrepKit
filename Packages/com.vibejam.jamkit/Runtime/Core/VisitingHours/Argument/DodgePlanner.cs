@@ -227,7 +227,7 @@ namespace JamKit.Argument
     {
         readonly DodgePlanner _planner;
         readonly float _reaction;
-        readonly Vector2 _home;
+        Vector2 _home;
         int _noticed = -1;
         float _t, _since;
         int _plans, _stuck;
@@ -241,6 +241,23 @@ namespace JamKit.Argument
 
         public float Reaction => _reaction;
         public Vector2 Home => _home;
+
+        /// <summary>Moves its home (the battle's autopilot heads for the statement it means to hit). A home that moved
+        /// far re-plans at the next step.</summary>
+        public void SetHome(Vector2 home)
+        {
+            if (Vector2.DistanceSquared(home, _home) > 0.09f) _since = 1f;
+            _home = home;
+        }
+
+        /// <summary>Forgets its plan (a new phase).</summary>
+        public void Reset()
+        {
+            _noticed = -1;
+            _t = _since = 0f;
+            _plans = 0;
+            _stuck = 0;
+        }
         /// <summary>Plans made, and plans that found no way out.</summary>
         public int Plans => _plans;
         public int Stuck => _stuck;

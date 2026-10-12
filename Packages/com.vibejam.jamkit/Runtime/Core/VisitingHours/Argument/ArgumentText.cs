@@ -91,6 +91,9 @@ namespace JamKit.Argument
             return true;
         }
 
+        /// <summary>A phrase as plain words: bold stars and drawl marks taken off.</summary>
+        static string StripMarks(string s) => Typewriter.StripTags(s ?? "").Replace("*", "");
+
         /// <summary><c>*word*</c> becomes bold (rich text) when both stars hug a word.</summary>
         public static string Bold(string s)
         {
@@ -143,12 +146,12 @@ namespace JamKit.Argument
         {
             "opponent", "claim", "opening", "noTouchReply", "pressClaimLine", "pressClaimReply", "concedeClaimLine",
             "concedeClaimReply", "letItRestLine", "letItRestReply", "truthText", "personalText", "convincedReply",
-            "heardOutReply", "pressedReply", "composureLostLine",
+            "heardOutReply", "pressedReply", "composureLostLine", "composureLostReply",
         };
 
         static readonly string[] PremiseFields =
         {
-            "text", "question", "askReply", "askAgainReply", "concedeLine", "concedeReply", "concedeFalseReply",
+            "text", "weak", "question", "askReply", "askAgainReply", "concedeLine", "concedeReply", "concedeFalseReply",
             "trueReply", "noTouchReply", "unbreakableReply", "pressLine", "pressReply", "slipName",
         };
 
@@ -188,6 +191,18 @@ namespace JamKit.Argument
                 keys.Add("coachName");
                 foreach (var m in ArgumentCoach.Moments) if (def.coach.ContainsKey(m)) keys.Add("coach." + m);
             }
+            keys.AddRange(RealTimeKeys(def));
+            return keys;
+        }
+
+        /// <summary>The real-time battle's lines (docs/redesign/battle.md): the showdown's words, the barks, the words on
+        /// her walls of pressure.</summary>
+        public static List<string> RealTimeKeys(ArgumentDef def)
+        {
+            var keys = new List<string>();
+            for (int i = 1; i <= def.showdown.Count; i++) keys.Add("showdown." + i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            foreach (var b in ArgumentBarks.Ids) if (def.barks.ContainsKey(b)) keys.Add("bark." + b);
+            if (def.pressureWords.Count > 0) keys.Add("pressureWords");
             return keys;
         }
 
@@ -197,7 +212,7 @@ namespace JamKit.Argument
             switch (f)
             {
                 case "question": return p.retort != null;
-                case "askAgainReply": return p.askAgainReveals.Count > 0;
+                case "askAgainReply": return p.askAgainReveals.Count > 0 || p.askAgain;
                 case "concedeFalseReply": return p.truth == PremiseTruth.False;
                 case "trueReply": return p.truth != PremiseTruth.False && !p.unbreakable;
                 case "noTouchReply": return false; // optional per premise: the battle's noTouchReply covers it
@@ -238,12 +253,14 @@ namespace JamKit.Argument
             def.heardOutReply = Get("heardOutReply");
             def.pressedReply = Get("pressedReply");
             def.composureLostLine = Get("composureLostLine");
+            def.composureLostReply = Get("composureLostReply");
 
             foreach (var p in def.premises)
             {
                 if (p == null) continue;
                 string P(string f) => PremiseFieldApplies(p, f) ? Get(p.id + "." + f) : Opt(p.id + "." + f);
                 p.text = P("text");
+                p.weak = StripMarks(P("weak"));
                 p.question = P("question");
                 p.askReply = P("askReply");
                 p.askAgainReply = P("askAgainReply");
@@ -281,6 +298,17 @@ namespace JamKit.Argument
                 e.name = Get(e.id + ".name");
                 e.note = Get(e.id + ".note");
             }
+            // The real-time battle's lines.
+            for (int i = 0; i < def.showdown.Count; i++) def.showdown[i] = Get("showdown." + (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            var barkIds = new List<string>(def.barks.Keys);
+            foreach (var b in barkIds) def.barks[b] = Get("bark." + b);
+            if (def.pressureWords.Count > 0)
+            {
+                string words = Get("pressureWords");
+                def.pressureWords.Clear();
+                foreach (var w in words.Split('|')) if (w.Trim().Length > 0) def.pressureWords.Add(w.Trim());
+                if (def.pressureWords.Count == 0) def.pressureWords.Add(words);
+            }
             // Optional: which of their drawings stands for a game mood ("face.hurt: sad").
             foreach (var kv in lines)
                 if (kv.Key.StartsWith("face.", StringComparison.Ordinal) && kv.Key.Length > 5) def.faces[kv.Key.Substring(5)] = kv.Value.Trim();
@@ -306,13 +334,14 @@ namespace JamKit.Argument
                 ["concedeClaimReply"] = def.concedeClaimReply, ["letItRestLine"] = def.letItRestLine, ["letItRestReply"] = def.letItRestReply,
                 ["truthText"] = def.truthText, ["personalText"] = def.personalText, ["convincedReply"] = def.convincedReply,
                 ["heardOutReply"] = def.heardOutReply, ["pressedReply"] = def.pressedReply, ["composureLostLine"] = def.composureLostLine,
+                ["composureLostReply"] = def.composureLostReply,
             };
             foreach (var p in def.premises)
             {
                 if (p == null) continue;
                 var f = new Dictionary<string, string>
                 {
-                    ["text"] = p.text, ["question"] = p.question, ["askReply"] = p.askReply, ["askAgainReply"] = p.askAgainReply,
+                    ["text"] = p.text, ["weak"] = p.weak, ["question"] = p.question, ["askReply"] = p.askReply, ["askAgainReply"] = p.askAgainReply,
                     ["concedeLine"] = p.concedeLine, ["concedeReply"] = p.concedeReply, ["concedeFalseReply"] = p.concedeFalseReply,
                     ["trueReply"] = p.trueReply, ["unbreakableReply"] = p.unbreakableReply, ["pressLine"] = p.pressLine,
                     ["pressReply"] = p.pressReply, ["slipName"] = p.slipName,
@@ -334,6 +363,9 @@ namespace JamKit.Argument
                 d["coachName"] = def.coachName;
                 foreach (var kv in def.coach) d["coach." + kv.Key] = kv.Value ?? "";
             }
+            for (int i = 0; i < def.showdown.Count; i++) d["showdown." + (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)] = def.showdown[i] ?? "";
+            foreach (var kv in def.barks) d["bark." + kv.Key] = kv.Value ?? "";
+            if (def.pressureWords.Count > 0) d["pressureWords"] = string.Join("|", def.pressureWords);
             return d;
         }
 
@@ -372,6 +404,12 @@ namespace JamKit.Argument
                 Entry("coachName", "who's coaching");
                 foreach (var m in ArgumentCoach.Moments) if (def.coach.ContainsKey(m)) Entry("coach." + m, "a line or two, the first time this comes up");
             }
+            var rt = RealTimeKeys(def);
+            if (rt.Count > 0)
+            {
+                sb.Append("\n## The real-time battle\n");
+                foreach (var k in rt) Entry(k, k.StartsWith("showdown.", StringComparison.Ordinal) ? "a few words they cut back with when Nadia presses" : k == "pressureWords" ? "words on their walls of pressure, split by |" : "a short line the debate calls for");
+            }
             return sb.ToString();
         }
 
@@ -395,6 +433,7 @@ namespace JamKit.Argument
                 case "heardOutReply": return "their line when heard out: not convinced, but respected";
                 case "pressedReply": return "their line when Nadia won by force";
                 case "composureLostLine": return "Nadia at 160 bpm: panic, she has to stop";
+                case "composureLostReply": return "their answer as Nadia leaves the table (composure lost)";
             }
             return "";
         }
@@ -404,6 +443,7 @@ namespace JamKit.Argument
             switch (f)
             {
                 case "text": return "the premise card: what they claim, in their words";
+                case "weak": return "the words that glow as it flies: the evidence has to hit them (a part of the text)";
                 case "question": return "a question they put to Nadia (a retort can dodge it)";
                 case "askReply": return "their answer when Nadia asks why";
                 case "askAgainReply": return "when asked a second time: what lies under it";
@@ -512,6 +552,16 @@ namespace JamKit.Argument
             "screen.hint.browse", "screen.hint.verbs", "screen.hint.pick", "screen.hint.pressure", "screen.hint.end", "screen.hint.transcript",
             "menu.title", "menu.subtitle", "menu.normal", "menu.story", "menu.longNight", "menu.noWalt", "menu.watch", "menu.walt", "menu.forget",
             "menu.title.back", "menu.savedNone", "menu.saved", "menu.hint",
+            // The real-time battle (docs/redesign/battle.md).
+            "screen.why.askClaim", "screen.why.glance", "screen.why.burned", "screen.why.noCards", "screen.why.retortOnly",
+            "screen.why.restOnClaim", "screen.why.questionEvidence", "screen.card.retort", "screen.card.rest",
+            "logic.idle", "logic.burned", "logic.hesitate",
+            "screen.temper", "screen.bpm", "screen.earpiece", "screen.chip.true", "screen.chip.agreed", "screen.chip.forced", "screen.chip.holds",
+            "screen.statement.question", "screen.banner.debate", "screen.banner.showdown", "screen.banner.rings", "screen.banner.angry",
+            "screen.banner.pressure", "screen.banner.panic", "screen.banner.stand", "screen.showdown.prompt", "screen.hand.empty",
+            "screen.hand.burned", "screen.hand.tag", "screen.card.retortNote", "screen.card.restNote", "screen.because.patience",
+            "screen.because.noClock", "screen.case.title", "screen.case.premises", "screen.case.evidence", "screen.hint.debate",
+            "screen.end.time", "screen.end.left", "screen.end.despair", "screen.end.force",
         };
     }
 }

@@ -10,7 +10,7 @@ namespace JamKit.Argument
     /// Frames of the battle sprite's boil from a build, for a review page (like the title's -title-shot):
     /// <c>VisitingHours.exe -argument-shot "C:/…/boil" [-argument-expression angry] [-argument-boil strong] [-argument-react]
     /// [-argument-frames 12] [-argument-fps 12]</c>
-    /// jumps to the argument prototype (Story, so nothing interrupts), waits until the battle is on its premise list,
+    /// jumps to the argument prototype (Story, so nothing interrupts), waits until the debate is up,
     /// holds Lena on the expression with the boil preset (its name and values shown under her), saves the frames as
     /// <c>boil_&lt;preset&gt;_&lt;expression&gt;_NN.png</c> in the folder, then quits. Does nothing without the flag.
     /// </summary>
@@ -118,9 +118,9 @@ namespace JamKit.Argument
                 case 1:
                     // The battle settled on its premise list (the intro and the opening pressure phase over).
                     var host = ArgumentHost.Current;
-                    if (host == null || !ArgumentHost.Running || host.Screen != ArgueScreen.Browse || host.View == null || host.View.Busy || host.Engine.InPressure) return;
+                    if (host == null || !ArgumentHost.Running || host.State != BattleState.Debate || host.Stage == null || host.Stage.Busy || host.Engine.InPressure) return;
                     ArgumentHost.OverrideExpression(_request.expression);
-                    host.View.ShowBoilLabel(true);
+                    host.Stage.ShowBoilLabel(true);
                     Directory.CreateDirectory(_request.folder);
                     _next = 0.8f;
                     _phase = 2;

@@ -24,6 +24,12 @@ namespace JamKit.Argument
         {
             "sfx_nav", "sfx_confirm", "sfx_pick", "sfx_back", "sfx_break", "sfx_wrong", "sfx_angry", "sfx_hit",
             "sfx_heartbeat", "sfx_pressure_in", "sfx_pressure_out", "sfx_slip", "sfx_end_good", "sfx_end_bad", "sfx_warn",
+            // The real-time battle (docs/redesign/battle.md): a shot, a glance off, a miss, a card burned, a showdown's
+            // cut and swing, the phone of the three rings, the panic, a statement said, the last stand, a card turned,
+            // a hold starting; and the voices' blips (one per speaker; a drawl plays its blips slower).
+            "sfx_fire", "sfx_glance", "sfx_miss", "sfx_burn", "sfx_cut", "sfx_whiff", "sfx_ring", "sfx_panic",
+            "sfx_statement", "sfx_stand", "sfx_cycle", "sfx_hold",
+            "blip_lena", "blip_walt", "blip_nadia", "blip_mags",
         };
         const float FadeSeconds = 0.8f;
 
@@ -32,7 +38,8 @@ namespace JamKit.Argument
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics() => _clips.Clear();
 
-        AudioSource _music, _sfx;
+        AudioSource _music, _sfx, _voice;
+        int _blipCount;
         string _worldAmbience = "", _worldMusic = "";
         float _musicFade, _musicTarget;
         bool _ended;
@@ -60,6 +67,9 @@ namespace JamKit.Argument
             _sfx = gameObject.AddComponent<AudioSource>();
             _sfx.playOnAwake = false;
             _sfx.ignoreListenerPause = true;
+            _voice = gameObject.AddComponent<AudioSource>();
+            _voice.playOnAwake = false;
+            _voice.ignoreListenerPause = true;
             if (GameRoot.Exists)
             {
                 var a = GameRoot.Audio;
@@ -101,6 +111,20 @@ namespace JamKit.Argument
             _sfx.PlayOneShot(clip, Mathf.Clamp01(volume));
         }
 
+        /// <summary>A voice blip for <paramref name="speaker"/> ("lena", "walt", "nadia", "mags"): a little pitch wobble
+        /// so a line sounds spoken; slow for a drawl (lower, longer); quiet for a statement said again.</summary>
+        public void Blip(string speaker, bool slow, bool quiet)
+        {
+            if (_voice == null) return;
+            string id = "blip_" + (string.IsNullOrEmpty(speaker) ? "lena" : speaker.ToLowerInvariant());
+            var clip = Clip(id) ?? Clip("blip_lena");
+            if (clip == null) return;
+            _blipCount++;
+            float wobble = ((_blipCount * 7919) % 13) / 13f - 0.5f;
+            _voice.pitch = (slow ? 0.82f : 1f) * (1f + wobble * 0.12f);
+            _voice.PlayOneShot(clip, quiet ? 0.35f : slow ? 0.8f : 0.6f);
+        }
+
         void Update()
         {
             if (_music == null) return;
@@ -130,6 +154,11 @@ namespace JamKit.Argument
             {
                 _sfx.volume = master * sfx;
                 _sfx.mute = muted;
+            }
+            if (_voice != null)
+            {
+                _voice.volume = master * sfx;
+                _voice.mute = muted;
             }
         }
 
@@ -168,6 +197,22 @@ namespace JamKit.Argument
                 case "sfx_end_good": d = Chord(1.6f, new[] { 392f, 494f, 587f, 784f }, 0.2f); break;
                 case "sfx_end_bad": d = Chord(1.6f, new[] { 196f, 233f, 294f }, 0.24f); break;
                 case "sfx_warn": d = Mix(Tone(0.05f, 1180f, 0.14f, 0f), Delay(Tone(0.05f, 1180f, 0.11f, 0f), 0.09f)); break;
+                case "sfx_fire": d = Mix(Noise(0.06f, 0.35f, 21), Sweep(0.12f, 500f, 1400f, 0.2f)); break;
+                case "sfx_glance": d = Mix(Tone(0.08f, 1500f, 0.12f, -700f), Noise(0.05f, 0.2f, 5)); break;
+                case "sfx_miss": d = Sweep(0.1f, 700f, 400f, 0.08f); break;
+                case "sfx_burn": d = Mix(Noise(0.45f, 0.3f, 13), Tone(0.4f, 180f, 0.25f, -90f)); break;
+                case "sfx_cut": d = Mix(Noise(0.09f, 0.55f, 17), Sweep(0.14f, 1800f, 600f, 0.18f)); break;
+                case "sfx_whiff": d = Noise(0.12f, 0.18f, 19); break;
+                case "sfx_ring": d = Mix(Mix(Tone(0.32f, 830f, 0.18f, 0f), Tone(0.32f, 1245f, 0.1f, 0f)), Delay(Mix(Tone(0.32f, 830f, 0.18f, 0f), Tone(0.32f, 1245f, 0.1f, 0f)), 0.4f)); break;
+                case "sfx_panic": d = Mix(Sweep(1.6f, 120f, 60f, 0.35f), Noise(1.4f, 0.12f, 23)); break;
+                case "sfx_statement": d = Sweep(0.22f, 300f, 520f, 0.06f); break;
+                case "sfx_stand": d = Chord(1.1f, new[] { 147f, 175f, 220f }, 0.26f); break;
+                case "sfx_cycle": d = Tone(0.04f, 990f, 0.12f, 0f); break;
+                case "sfx_hold": d = Sweep(0.6f, 220f, 440f, 0.1f); break;
+                case "blip_lena": d = Voice(0.05f, 330f); break;
+                case "blip_walt": d = Voice(0.06f, 196f); break;
+                case "blip_nadia": d = Voice(0.045f, 392f); break;
+                case "blip_mags": d = Voice(0.045f, 440f); break;
                 default: return null;
             }
             var clip = AudioClip.Create("argument_" + id, d.Length, 1, Rate, false);
@@ -210,6 +255,13 @@ namespace JamKit.Argument
                 d[i] = last * gain * (1f - t) * (1f - t);
             }
             return d;
+        }
+
+        /// <summary>A soft spoken blip: a voiced tone with its octave and a breath of noise, quick in and out.</summary>
+        static float[] Voice(float seconds, float hz)
+        {
+            var d = Mix(Tone(seconds, hz, 0.3f, hz * 0.08f), Tone(seconds, hz * 2f, 0.1f, 0f));
+            return Mix(d, Noise(seconds * 0.6f, 0.04f, (int)hz));
         }
 
         static float[] Thump(float at)

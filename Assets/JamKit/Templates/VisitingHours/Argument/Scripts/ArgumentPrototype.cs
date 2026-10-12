@@ -88,8 +88,10 @@ namespace JamKit.Argument
             switch (chapter)
             {
                 case Story:
-                case Watch:
                     setup.difficulty = ArgumentDifficulty.Story;
+                    setup.allEvidence = true;
+                    break;
+                case Watch:
                     setup.allEvidence = true;
                     break;
                 case LongNight:
@@ -116,7 +118,8 @@ namespace JamKit.Argument
             ShowMenu(false);
             var def = chapter == Walt ? WaltNight1.Build() : DreamLenaDemo.Build();
             var host = ArgumentHost.Begin(def, SetupFor(chapter), _ => ShowMenu(true));
-            if (host != null) host.Autopilot = chapter == Watch;
+            // Watched, it plays like a first-time player (reads before it acts, and slips the way people do).
+            if (host != null && chapter == Watch) host.SetAutopilot(true, true, BattlePilot.FirstTime);
             return host;
         }
 

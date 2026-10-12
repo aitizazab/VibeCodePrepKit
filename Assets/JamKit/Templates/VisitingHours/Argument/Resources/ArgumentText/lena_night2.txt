@@ -13,6 +13,17 @@
 #   - L5's three reason cards (the drawing now breaks L5: agent placeholders, the block you wanted to discuss);
 #   - the evidence cards rewritten to docs/NIGHTS-1-2.md's memory-to-card table (two old ones gone: ded_why_lena_came,
 #     fact_chart); personalText: Lena's planisphere (a placeholder).
+# EDITED 2026-10-12 by the battle agent (the real-time redesign, docs/redesign/battle.md). Every line of yours is kept
+# word for word. Added, each marked "(battle agent)" in a ? note under it:
+#   - <id>.weak: the words that glow as each statement flies in the debate (the evidence has to hit them);
+#   - composureLostReply: Lena's answer as Nadia leaves the table at 160 bpm (the fail state's cost, in her voice);
+#   - L3's three reason cards (Theo's drawing now breaks "He chose this" and brings out L5) and L3.askAgainReply;
+#   - L5 rewritten to the bad dream as settled on 2026-10-12 (Elias in scrubs walking out of the door: he's hiding from
+#     himself; half true, can't be broken tonight, carried into Night 3), and the drawing's card note;
+#   - "The real-time battle" at the end: the showdown's words, Lena's barks, the words on her walls of pressure;
+#   - L4's [sorry=1] lines: when Nadia already said sorry at his bedside (Day 1's "the phone"), "He called you first" is
+#     on the table from the start and her admission reads that way (the sorry meter: 1 or 0).
+# The ~ in L2.question (ju~st) is now a drawl: the letter stretches as it's typed.
 # How notes read now: a // note is never shown, except after claim, opening and noTouchReply, where it's your
 # replacement line and is used. *word* is bold. These # lines are ignored by the game; they can stay or go.
 # lena_night2: every line of this battle. Edit the text after the colon; keep the id before it.
@@ -55,10 +66,14 @@ pressedReply: ...Do you ever think about what it costs to be so stubborn?
   ? their line when Nadia won by force
 composureLostLine: I can't... I can't breathe- I need to get out-
   ? Nadia at 160 bpm: panic, she has to stop
+composureLostReply: Go, then. You were always so good at not being there.
+  ? (battle agent) Lena's answer as Nadia leaves the table: the battle ends there, and she condemns her (Despair +1)
 
 ## L1 (L1): a fact, TRUE
 L1.text: Out there, Theo is dead.
   ? the premise card: what they claim, in their words
+L1.weak: Theo is dead
+  ? (battle agent) the words that glow as this flies in the debate: the evidence has to hit them
 L1.askReply: You must have read the report. You saw what those monsters did to my dear Theo...
   ? their answer when Nadia asks why
 L1.concedeLine: ...I'll spare you the details. You're right.
@@ -75,6 +90,8 @@ L1.pressReply: ...You'll never change.
 ## L1b (L1'): a link, FALSE, KEY, hidden at first
 L1b.text: So there's nothing left for him out there.
   ? the premise card: what they claim, in their words
+L1b.weak: nothing left for him
+  ? (battle agent) the words that glow as this flies in the debate: the evidence has to hit them
 L1b.askReply: What would be? His career is gone, his hands are beyond repair for a surgeon's duties. And I hope you're not mocking me by making me state the obvious.
   ? their answer when Nadia asks why
 L1b.concedeLine: ...Maybe there isn't.
@@ -107,6 +124,8 @@ L1b.antagonise.reply: Is that so? Or have you always disregarded my place in thi
 ## L1c (L1''): a fact, TRUE, hidden at first
 L1c.text: ...Where were you last Sunday, then?
   ? the premise card: what they claim, in their words
+L1c.weak: last Sunday
+  ? (battle agent) the words that glow as this flies in the debate: the evidence has to hit them
 L1c.askReply: Theo set your place anyway. Elias kept your plate warm until noon, and pretended he wasn't waiting.
   ? (agent draft, agreed 2026-10-12: judge it in play)
   ? their answer when Nadia asks why
@@ -126,6 +145,8 @@ L1c.pressReply: ...Always so stubborn. Do you fear the consequences of your acti
 ## L2 (L2): a fact, TRUE
 L2.text: You don't know where I am. And the most likely answer is a ditch in the middle of the forest.
   ? the premise card: what they claim, in their words
+L2.weak: a ditch in the middle of the forest
+  ? (battle agent) the words that glow as this flies in the debate: the evidence has to hit them
 L2.question: Then tell me I'm doing ju~st dandy. 
   ? a question they put to Nadia (a retort can dodge it)
 L2.askReply: Missing. That's the word they used, because they're cowards afraid to recognize the truth. But I suppose we're the same, in that way.
@@ -150,6 +171,8 @@ L2.retort.reply: Still looking. How noble of them. And what have *you* done in s
 ## L2b (L2'): a link, HALF, can't be broken tonight, hidden at first
 L2b.text: Waking means searching - forever.
   ? the premise card: what they claim, in their words
+L2b.weak: searching - forever
+  ? (battle agent) the words that glow as this flies in the debate: the evidence has to hit them
 L2b.askReply: Tireless, endless nights spent looking for what's most likely a decomposing corpse. It might even be better for him he never finds me.
   ? their answer when Nadia asks why
 L2b.concedeLine: ...I can't deny that.
@@ -166,10 +189,13 @@ L2b.pressReply: Naive, and I know you don't believe it either. Don't disrespect 
 ## L3 (L3): a link, HALF
 L3.text: He chose this dream. Six weeks, and he's happy here. I know he is.
   ? the premise card: what they claim, in their words
+L3.weak: he's happy here
+  ? (battle agent) the words that glow as this flies in the debate: the evidence has to hit them
 L3.askReply: We've been married twelve years, and I know this life he had... he wanted it with all his heart.
   ? their answer when Nadia asks why
-L3.askAgainReply: ...You want to know what he dreams about? The bad dream. A woman in scrubs who comes to take us away. // Needs changing. You've mentioned the 'Bad Dream' many times, usuallly with Theo or Lena as the messengers, but what does it mean? What does it represent?
-  ? when asked a second time: what lies under it
+L3.askAgainReply: ...He has one bad dream. He wakes up shaking and won't tell me what it was. Theo knows. Theo draws everything.
+  ? when asked a second time: it points Nadia to Theo's room (his drawing) without saying what's in it
+  ? (battle agent, 2026-10-12) rewritten. Your note on the old line: "Needs changing. You've mentioned the 'Bad Dream' many times, usuallly with Theo or Lena as the messengers, but what does it mean? What does it represent?" Settled today: the bad dream is Elias himself, in scrubs, walking out of the front door while Theo and Lena sit at the table (L5).
 L3.concedeLine: You know him better than anyone. Even me.
   ? Nadia conceding it
 L3.concedeReply: I do. So trust me, this is where he belongs.
@@ -180,10 +206,24 @@ L3.pressLine: ...I'm disappointed in you, Nadia. Don't belittle my intelligence.
   ? Nadia forcing it without a reason
 L3.pressReply: Force all you want, it doesn't change the facts. Do you really know what you're doing?
   ? their answer to being forced
+L3.sound: Happy men don't wake up shaking. Theo drew his bad dream, Lena: his dad in scrubs, walking out of the front door on a Saturday, while you two sit at the table.
+  ? (battle agent) the reason that follows, with Theo's drawing: he isn't simply happy here
+L3.sound.reply: ...So you went in his room. Fine. Then look at who's leaving, Nadia. He isn't hiding from out there. He's hiding from *him*.
+  ? (battle agent) she gives up "he's happy" and says what's under it (L5 comes out)
+L3.beside: Theo's afraid of the bad dream too.
+  ? (battle agent) true, but beside the point
+L3.beside.reply: Theo is ten. Ten-year-olds are afraid of the dark. That isn't what he drew, and you know it.
+  ? (battle agent) why it misses
+L3.nonsequitur: He has a nightmare here, so he wants to wake up.
+  ? (battle agent) doesn't follow
+L3.nonsequitur.reply: Nobody wakes up to walk *into* a nightmare, Nadia. Out there, it's real.
+  ? (battle agent) why it doesn't follow
 
 ## L3b (L3'): a link, FALSE, KEY, hidden at first
 L3b.text: This is the life he wants. The life he has.
   ? the premise card: what they claim, in their words
+L3b.weak: the life he wants
+  ? (battle agent) the words that glow as this flies in the debate: the evidence has to hit them
 L3b.askReply: Pancakes. All of us. What else would he want?
   ? their answer when Nadia asks why
 L3b.concedeLine: ...It is.
@@ -214,6 +254,8 @@ L3b.nonsequitur.reply[anger>=3,force>=3]: That's cruel, and false. I should cut 
 ## L3c (L3''): a link, FALSE, KEY, hidden at first
 L3c.text: Then let him have his wish.
   ? the premise card: what they claim, in their words
+L3c.weak: his wish
+  ? (battle agent) the words that glow as this flies in the debate: the evidence has to hit them
 L3c.askReply: One morning. Let him keep one morning.
   ? their answer when Nadia asks why
 L3c.concedeLine: ...Let him have it, then.
@@ -240,12 +282,18 @@ L3c.nonsequitur.reply: Walt believes we should extract cheese out of the moon. H
 ## L4 (L4): a fact, TRUE, hidden at first, painful
 L4.text: Why come for him now? You didn't pick him up then.
   ? the premise card: what they claim, in their words
+L4.weak: You didn't pick him up
+  ? (battle agent) the words that glow as this flies in the debate: the evidence has to hit them
 L4.question: Why didn't you pick the call up, Nadia?
   ? a question they put to Nadia (a retort can dodge it)
 L4.askReply: Why does it matter? Don't make me laugh.
   ? their answer when Nadia asks why
+L4.askReply[sorry=1]: You've already said it to him, haven't you? At his bed. The dream hears everything you tell him. Then say it to me.
+  ? (battle agent) when Nadia already said sorry at his bedside (Day 1's "the phone"): the honest answer is open from the start
 L4.concedeLine: ...I know. And I regret every part of it.
   ? Nadia conceding it
+L4.concedeLine[sorry=1]: I said it to him today. I'll say it to you. I didn't pick up, and I'm sorry.
+  ? (battle agent) the same admission, after she's said it at his bedside (Day 1's "the phone")
 L4.concedeReply: ...Thank you for saying it. // if low anger and not despair; "And you should know I'd forgive you for any role you think you played in this."
   ? their answer to the concession (often states the next premise)
 L4.concedeReply[anger<=1,despair=0]: ...Thank you for saying it. And you should know I'd forgive you for any role you think you played in this.
@@ -261,35 +309,30 @@ L4.retort: Stop pretending you're her. You're a dream wearing her face.
 L4.retort.reply: That may even be true, but I'm still more real than you are. I know what motivates me; do you?
   ? their angry answer
 
-## L5 (L5): a link, HALF, hidden at first // Discuss this entire block in chat.
-L5.text: To him, you're the bad dream: the woman in scrubs who takes people away.
+## L5 (L5): a link, HALF, can't be broken tonight, hidden at first // Discuss this entire block in chat.
+# (battle agent, 2026-10-12) Rewritten to the bad dream as settled today: Theo's drawing shows his dad, Elias, in surgeon's
+# scrubs walking out of the front door while Theo and Lena sit at the table. Elias isn't only hiding from a world where his
+# family is gone; he's hiding from himself, the man who took the Saturday shift and put the job first, and who can't even be
+# that man now (his hands). Half true, can't be broken tonight (like L2'), carried into Night 3, whose guardian is the
+# Doctor. It comes out when Theo's drawing breaks L3 ("He chose this"), or when Nadia catches the paper plane.
+L5.text: He isn't hiding from out there. He's hiding from *him*.
   ? the premise card: what they claim, in their words
-L5.askReply: He drew you. Theo drew you, from what his dad said in his sleep.
+L5.weak: hiding from him
+  ? (battle agent) the words that glow as this flies in the debate
+L5.askReply: The man in the scrubs. The one who took every Saturday shift and called it duty, while his son waited at the window. He chose that man for years, Nadia. Now his hands won't even let him *be* him. So he stays here, where that man never comes home.
   ? their answer when Nadia asks why
-L5.concedeLine: ...Maybe I am.
+L5.concedeLine: ...He was never any good at being off duty. Not even for you.
   ? Nadia conceding it
-L5.concedeReply: Then prove you're not.
-  ? their answer to the concession (often states the next premise)
-L5.trueReply: Look at the drawing. Look at it.
-  ? when Nadia tries to challenge something true: it's true, concede it
-L5.pressLine: I am NOT the bad dream!
+L5.concedeReply: No. So don't ask him to walk out of that door with you. You'd be asking him to put the scrubs back on.
+  ? their answer to the concession
+L5.unbreakableReply: With a child's crayons? He has to forgive that man himself, Nadia. Nothing you're holding tonight can make him.
+  ? why it can't be broken tonight (it waits for Night 3: the Doctor)
+L5.pressLine: Then he faces him. He doesn't get to hide forever.
   ? Nadia forcing it without a reason
-L5.pressReply: That's exactly what she says in the drawing.
+L5.pressReply: Spoken like a true Lasname. You both think pushing harder is the same as being right.
   ? their answer to being forced
 L5.slipName: a paper plane: THE BAD DREAM
-  ? the slip as it flies in the pressure phase
-L5.sound: It isn't me he's afraid of. It's waking: the woman in scrubs is the hospital, wearing my face. I'm not what took you. The crash was.
-  ? (agent placeholder) the reason that follows, with Theo's drawing: the proof that takes this half-truth apart
-L5.sound.reply: ...Then why does it feel like you came to take him?
-  ? (agent placeholder) their answer
-L5.beside: I'm a nurse. Of course I wear scrubs.
-  ? (agent placeholder) a reason that's true but beside the point
-L5.beside.reply: That's not what the drawing is about, and you know it.
-  ? (agent placeholder) why it misses
-L5.nonsequitur: Theo drew it, so it's only a child's fear.
-  ? (agent placeholder) a reason that doesn't follow from the evidence
-L5.nonsequitur.reply: A child's fear is still a fear. Don't wave it away.
-  ? (agent placeholder) why it doesn't follow
+  ? the slip as it flies (the debate and the pressure phases)
 
 ## The evidence cards // need to be updates according to how everythign else changed.
 # (agent) rewritten to docs/NIGHTS-1-2.md's memory-to-card table: each card is in the tray once its memory or deduction is found.
@@ -307,8 +350,8 @@ ded_same_saturday.note: The street replays the same Saturday, to the second.
   ? one line under the name: what it is. The street replaying Night 1 (and Walt's ledger, if found). Breaks L3'' (key).
 mem_bad_dream.name: Theo's drawing
   ? the card's name, as it reads in a sentence ("the fourth chair")
-mem_bad_dream.note: "THE BAD DREAM": a woman in scrubs, taking the family away. Found in his room.
-  ? one line under the name: what it is. Against L5 (half true).
+mem_bad_dream.note: "THE BAD DREAM", in crayon: Dad in his scrubs, walking out of the front door. Mum and Theo at the table. Found in his room.
+  ? one line under the name: what it is. Breaks L3 ("He chose this") and brings out L5. (battle agent: the drawing as settled 2026-10-12)
 mem_height_marks.name: Theo's height marks
   ? the card's name, as it reads in a sentence ("the fourth chair")
 mem_height_marks.note: Pencil lines up the door frame, stopping at ten.
@@ -325,3 +368,27 @@ truth_walt.name: Walt's truth
   ? the card's name, as it reads in a sentence ("the fourth chair")
 truth_walt.note: Walt died in 2015. The street is a memory.
   ? one line under the name: what it is. Won on Night 1 (Walt convinced): it also breaks L3''.
+
+## The real-time battle (battle agent, 2026-10-12: docs/redesign/battle.md)
+# The showdown: when Nadia presses, Lena cuts back with these, one at a time; Nadia cuts each as it reaches her mark.
+showdown.1: Sit down.
+  ? a few words she cuts back with (short: they fly across the table)
+showdown.2: Not in my kitchen.
+showdown.3: You weren't here.
+showdown.4: Six weeks, Nadia.
+showdown.5: He's happy.
+showdown.6: Don't you dare.
+showdown.7: You didn't pick up.
+showdown.8: I know him.
+bark.idle: Well? Cat got your tongue, Nadia?
+  ? a whole round of her statements went by and Nadia said nothing (her temper rises)
+bark.hesitate: ...That's what I thought.
+  ? Nadia showed evidence and couldn't say why before Lena's patience ran out
+bark.glance: Is that all?
+  ? Nadia's evidence glanced off (it hit the statement, not the words that matter)
+bark.ring: Hear that? It rang for you first.
+  ? the three rings begin: a phone at the table's edge (the painful phase, "He called you first")
+bark.stand: No. You don't get to take him until you answer me.
+  ? every key premise is down, but "He called you first" stands unanswered: the last stand (concede it, or answer back)
+pressureWords: Sit down|Pancakes|My kitchen|Six weeks|He's happy|Stay|Our table|Not yet
+  ? the words written along her walls of pressure, split by |

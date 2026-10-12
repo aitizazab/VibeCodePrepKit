@@ -13,10 +13,11 @@ using static JamKit.Tests.Play.ShellTestUtil;
 
 namespace JamKit.Argument.Tests
 {
-    /// <summary>The argument prototype in the running shell: the whole battle driven by a gamepad alone (one focus
-    /// model: d-pad moves, A chooses, B backs, the shortcut buttons), the transitions in and out of the pressure box,
-    /// the world's ambience silent during the battle and back after, a won battle saved for later battles, the keyboard
-    /// shortcuts and the 0.6 s Press hold, and Continue on the very frame the battle ends.</summary>
+    /// <summary>The real-time battle in the running shell (docs/redesign/battle.md): it fades in from the world and the
+    /// debate runs; a gamepad alone asks (X), concedes (Y), turns its cards (RB), shows one on the weak words (A), picks
+    /// the reason (d-pad, A), opens the case file (View), presses (hold B) and cuts the showdown (A); the keyboard does the
+    /// same (1, 3, Q / E, hold 4); the world's ambience gives way and comes back; a won battle is saved and A on the end
+    /// card returns to the menu; Continue on the frame it ends still gives the record; the fast autopilot finishes.</summary>
     public class ArgumentPrototypePlayTests
     {
         TestInput _input;
@@ -47,12 +48,22 @@ namespace JamKit.Argument.Tests
                 && ArgumentPrototype.Current != null && ArgumentHost.Running, "the prototype and its battle", 20f);
         }
 
-        /// <summary>Waits until the battle takes input on the premise list (the intro, the opening pressure phase and its
-        /// transitions are over).</summary>
-        static IEnumerator UntilBrowsing(ArgumentHost host, float timeout = 30f)
+        /// <summary>Waits until the debate is up and <paramref name="premise"/>'s statement is flying where the light can
+        /// reach it (its weak words, or its middle), then puts the light there.</summary>
+        static IEnumerator LightOn(ArgumentHost host, string premise, bool weak, float timeout = 120f)
         {
-            yield return WaitFor(() => host.Screen == ArgueScreen.Browse && !host.View.Busy && !host.Engine.InPressure, "the premise list", timeout);
-            yield return null;
+            yield return WaitFor(() =>
+            {
+                var f = host.Flow;
+                if (f.State != BattleState.Debate) return false;
+                int i = f.Debate.Find(premise, false);
+                if (i < 0) return false;
+                var s = f.Debate[i];
+                var at = weak ? Debate.WeakCentre(s) : s.position;
+                return s.age > 0.5f && s.life - s.age > 2.5f && Mathf.Abs(at.X) < 2.3f;
+            }, premise + "'s statement in reach", timeout);
+            var st = host.Flow.Debate[host.Flow.Debate.Find(premise, false)];
+            host.Flow.Debate.PlaceLight(weak ? Debate.WeakCentre(st) : st.position);
         }
 
         IEnumerator Tap(GamepadButton button)
@@ -71,44 +82,17 @@ namespace JamKit.Argument.Tests
             yield return _input.Press();
         }
 
-        /// <summary>Moves the focus to premise <paramref name="id"/> with the d-pad alone.</summary>
-        IEnumerator PadTo(ArgumentHost host, string id)
+        [UnityTest]
+        public IEnumerator TheBattleFadesInAndTheDebateRuns()
         {
-            var def = host.Engine.Def;
-            int target = def.premises.FindIndex(p => p.id == id);
-            Assert.That(target, Is.GreaterThanOrEqualTo(0), id);
-            int tLine = 1 + target / 2, tCol = target % 2;
-            for (int guard = 0; guard < 30 && host.FocusedId != id; guard++)
-            {
-                string f = host.FocusedId;
-                int i = def.premises.FindIndex(p => p.id == f);
-                int line = f == ArgumentEngine.ClaimId ? 0 : 1 + i / 2, col = f == ArgumentEngine.ClaimId ? 0 : i % 2;
-                if (line != tLine) yield return Tap(line < tLine ? GamepadButton.DpadDown : GamepadButton.DpadUp);
-                else yield return Tap(col < tCol ? GamepadButton.DpadRight : GamepadButton.DpadLeft);
-            }
-            Assert.That(host.FocusedId, Is.EqualTo(id), "the d-pad reaches " + id);
-        }
-
-        /// <summary>Challenges the focused premise with <paramref name="evidence"/> and the sound reason, by pad: A opens
-        /// its verbs, A on Challenge, the d-pad to the evidence, A, the d-pad to the sound card, A.</summary>
-        IEnumerator PadChallenge(ArgumentHost host, string evidence)
-        {
-            yield return Tap(GamepadButton.South);
-            Assert.That(host.Screen, Is.EqualTo(ArgueScreen.Verbs), "A opens the premise's verbs");
-            Assert.That(host.FocusedId, Is.EqualTo("challenge"), "focus lands on Challenge");
-            yield return Tap(GamepadButton.South);
-            Assert.That(host.Screen, Is.EqualTo(ArgueScreen.PickEvidence));
-            int at = host.TrayIds.ToList().IndexOf(evidence);
-            Assert.That(at, Is.GreaterThanOrEqualTo(0), evidence + " is in the tray");
-            for (int i = 0; i < at % 3; i++) yield return Tap(GamepadButton.DpadRight);
-            for (int i = 0; i < at / 3; i++) yield return Tap(GamepadButton.DpadDown);
-            Assert.That(host.FocusedId, Is.EqualTo(evidence));
-            yield return Tap(GamepadButton.South);
-            Assert.That(host.Screen, Is.EqualTo(ArgueScreen.PickReason));
-            int sound = host.Cards.ToList().FindIndex(c => c.reason.kind == ReasonKind.Sound);
-            for (int i = 0; i < sound; i++) yield return Tap(GamepadButton.DpadDown);
-            Assert.That(host.FocusedId, Is.EqualTo("reason" + sound));
-            yield return Tap(GamepadButton.South);
+            yield return OpenPrototype(ArgumentPrototype.Story);
+            var host = ArgumentHost.Current;
+            Assert.That(host.Stage.Busy, Is.True, "it fades in from the world, not a cut");
+            Assert.That(host.State, Is.EqualTo(BattleState.Intro), "her opening lines first");
+            yield return WaitFor(() => host.State == BattleState.Pressure, "the opening phase (laying the table)", 30f);
+            yield return WaitFor(() => host.State == BattleState.Debate && host.Stage.StatementsShown > 0, "the debate, a statement flying", 30f);
+            Assert.That(host.Stage.LineText, Is.Not.Empty, "her statement is said as it flies");
+            Assert.That(GameRoot.Input.GameplayAllowed, Is.False, "world gameplay waits while she argues");
         }
 
         [UnityTest]
@@ -117,69 +101,92 @@ namespace JamKit.Argument.Tests
             yield return OpenPrototype(ArgumentPrototype.Story);
             var host = ArgumentHost.Current;
             var e = host.Engine;
-            Assert.That(host.Screen, Is.EqualTo(ArgueScreen.Intro).Or.EqualTo(ArgueScreen.BoxIn), "it fades in from the world, not a cut");
-            yield return WaitFor(() => host.Screen == ArgueScreen.Pressure, "the opening pressure phase in its box", 10f);
-            Assert.That(host.View.BoxShown, Is.True, "the box is open");
-            yield return UntilBrowsing(host);
-            Assert.That(host.View.BoxShown, Is.False, "the box has collapsed and the claims are back");
 
-            // B on the premise list goes nowhere; the focus is on a card.
-            yield return Tap(GamepadButton.East);
-            Assert.That(host.Screen, Is.EqualTo(ArgueScreen.Browse));
-
-            // Y concedes the focused premise; A, then B, opens and closes its verbs.
-            yield return PadTo(host, "L1");
-            yield return Tap(GamepadButton.South);
-            Assert.That(host.Screen, Is.EqualTo(ArgueScreen.Verbs));
-            yield return Tap(GamepadButton.East);
-            Assert.That(host.Screen, Is.EqualTo(ArgueScreen.Browse), "B backs out");
-            Assert.That(host.FocusedId, Is.EqualTo("L1"), "focus comes back where it was");
-            yield return Tap(GamepadButton.North);
-            Assert.That(e.Status("L1"), Is.EqualTo(PremiseStatus.Conceded));
-
-            // L1': the fourth chair and the sound reason break it; she falls back to L1''.
-            yield return UntilBrowsing(host);
-            yield return PadTo(host, "L1b");
-            yield return PadChallenge(host, DreamLenaDemo.FourthChair);
-            Assert.That(e.Status("L1b"), Is.EqualTo(PremiseStatus.Broken));
-            Assert.That(host.Audio.LastSound, Is.EqualTo("sfx_break"), "the premise breaking has its sound");
-
-            // Concede L1'' (her painful L4 surfaces: the high pressure phase, then back).
-            yield return UntilBrowsing(host);
-            yield return PadTo(host, "L1c");
-            yield return Tap(GamepadButton.North);
-            yield return WaitFor(() => host.Screen == ArgueScreen.Pressure, "the painful phase", 5f);
-            yield return UntilBrowsing(host, 20f);
-            Assert.That(e.Status("L4"), Is.EqualTo(PremiseStatus.Standing));
-
-            // X asks L3 (L3' appears); L3' with Saturday off; L3'' with Walt's truth.
-            yield return PadTo(host, "L3");
+            // X asks about what the light is on.
+            yield return LightOn(host, "L3", false);
             yield return Tap(GamepadButton.West);
-            Assert.That(e.Status("L3b"), Is.EqualTo(PremiseStatus.Standing));
-            yield return UntilBrowsing(host);
-            yield return PadTo(host, "L3b");
-            yield return PadChallenge(host, DreamLenaDemo.SaturdayOff);
-            Assert.That(e.Status("L3b"), Is.EqualTo(PremiseStatus.Broken));
-            yield return UntilBrowsing(host, 20f);
-            yield return PadTo(host, "L3c");
-            yield return PadChallenge(host, DreamLenaDemo.TruthWalt);
+            Assert.That(e.TimesAsked("L3"), Is.EqualTo(1), "X: Why?");
+            Assert.That(e.Status("L3b"), Is.EqualTo(PremiseStatus.Standing), "asking L3 brought out L3'");
 
-            // Every key premise broken: Convinced; A on the end card's Continue.
-            yield return WaitFor(() => host.Screen == ArgueScreen.End && !host.View.Busy, "the end card", 10f);
-            Assert.That(e.Outcome, Is.EqualTo(ArgumentOutcome.Convinced));
-            Assert.That(host.FocusedId, Is.EqualTo("continue"), "focus on Continue");
+            // Y concedes what's true.
+            yield return LightOn(host, "L1", false);
+            yield return Tap(GamepadButton.North);
+            Assert.That(e.Status("L1"), Is.EqualTo(PremiseStatus.Conceded), "Y: That's true");
+            Assert.That(e.Status("L1b"), Is.EqualTo(PremiseStatus.Standing));
+
+            // RB to the fourth chair; A on L1''s weak words; the d-pad to the sound reason; A.
+            yield return WaitFor(() => host.State == BattleState.Debate, "the debate", 60f);
+            for (int guard = 0; guard < 20 && host.Flow.CardInHand != DreamLenaDemo.FourthChair; guard++) yield return Tap(GamepadButton.RightShoulder);
+            Assert.That(host.Flow.CardInHand, Is.EqualTo(DreamLenaDemo.FourthChair), "RB turns the cards");
+            yield return LightOn(host, "L1b", true);
             yield return Tap(GamepadButton.South);
-            Assert.That(ArgumentHost.Running, Is.False);
-            Assert.That(ArgumentHost.LoadLedger().StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Unsure));
+            Assert.That(host.State, Is.EqualTo(BattleState.Because), "A shows the card on her weak words: Because...");
+            Assert.That(host.Stage.BecauseShown, Is.True);
+            int sound = host.Flow.Because.ToList().FindIndex(c => c.reason.kind == ReasonKind.Sound);
+            for (int i = 0; i < sound; i++) yield return Tap(GamepadButton.DpadDown);
+            Assert.That(host.Flow.BecauseFocus, Is.EqualTo(sound));
+            yield return Tap(GamepadButton.South);
+            Assert.That(e.Status("L1b"), Is.EqualTo(PremiseStatus.Broken), "the sound reason breaks it");
+            Assert.That(host.Flow.Count(CueKind.Break), Is.EqualTo(1));
 
-            // The menu, same model: the d-pad moves its focus, no wrap.
-            var menu = ArgumentPrototype.Current;
-            yield return WaitFor(() => menu.MenuShown, "the menu again", 3f);
-            string first = menu.FocusedId;
-            yield return Tap(GamepadButton.DpadUp);
-            Assert.That(menu.FocusedId, Is.EqualTo(first), "no wrap-around at the top");
-            yield return Tap(GamepadButton.DpadDown);
-            Assert.That(menu.FocusedId, Is.Not.EqualTo(first), "the d-pad moves the menu's focus");
+            // View opens the case file (the battle waits); B closes it.
+            yield return WaitFor(() => host.State == BattleState.Debate, "the debate again", 60f);
+            yield return Tap(GamepadButton.Select);
+            Assert.That(host.CaseFileOpen && host.Stage.CaseFileShown, Is.True, "View: the case file");
+            float active = host.Flow.ActiveSeconds;
+            yield return Frames(20);
+            Assert.That(host.Flow.ActiveSeconds, Is.EqualTo(active), "the battle waits");
+            yield return Tap(GamepadButton.East);
+            Assert.That(host.CaseFileOpen, Is.False, "B closes it");
+
+            // Hold B on L2: the showdown; A cuts each word as it reaches the mark.
+            yield return LightOn(host, "L2", false);
+            _input.SetPad(GamepadButton.East);
+            yield return WaitFor(() => host.State == BattleState.Showdown, "the showdown (a 0.6 s hold)", 3f);
+            _input.SetPad();
+            bool held = false;
+            yield return WaitFor(() =>
+            {
+                if (host.State != BattleState.Showdown) return true;
+                bool cut = host.Flow.Showdown.InWindow && host.Flow.Showdown.UntilWindow < 0.05f && !held;
+                if (cut) { _input.SetPad(GamepadButton.South); held = true; }
+                else if (held) { _input.SetPad(); held = false; }
+                return false;
+            }, "every word cut or landed", 40f);
+            _input.SetPad();
+            Assert.That(e.Status("L2"), Is.EqualTo(PremiseStatus.Forced), "pressing forced it");
+            Assert.That(host.Flow.Count(CueKind.Cut), Is.GreaterThan(0), "A cut her words");
+        }
+
+        [UnityTest]
+        public IEnumerator TheKeyboardDoesTheSame()
+        {
+            yield return OpenPrototype(ArgumentPrototype.Story);
+            var host = ArgumentHost.Current;
+            var e = host.Engine;
+            yield return LightOn(host, "L1", false);
+            yield return Key(UnityEngine.InputSystem.Key.Digit3);
+            Assert.That(e.Status("L1"), Is.EqualTo(PremiseStatus.Conceded), "3 concedes");
+            yield return LightOn(host, "L3", false);
+            yield return Key(UnityEngine.InputSystem.Key.Digit1);
+            Assert.That(e.TimesAsked("L3"), Is.EqualTo(1), "1 asks");
+
+            // E and Q turn the cards.
+            yield return WaitFor(() => host.State == BattleState.Debate, "the debate", 60f);
+            string first = host.Flow.CardInHand;
+            yield return Key(UnityEngine.InputSystem.Key.E);
+            Assert.That(host.Flow.CardInHand, Is.Not.EqualTo(first), "E: the next card");
+            yield return Key(UnityEngine.InputSystem.Key.Q);
+            Assert.That(host.Flow.CardInHand, Is.EqualTo(first), "Q: back");
+
+            // Press is a hold: a tap does nothing, 0.6 s starts the showdown.
+            yield return LightOn(host, "L2", false);
+            yield return Key(UnityEngine.InputSystem.Key.Digit4);
+            Assert.That(host.State, Is.Not.EqualTo(BattleState.Showdown), "a tap isn't a press");
+            yield return LightOn(host, "L2", false);
+            _input.Set(UnityEngine.InputSystem.Key.Digit4);
+            yield return WaitFor(() => host.State == BattleState.Showdown, "the showdown", 3f);
+            _input.Set();
         }
 
         [UnityTest]
@@ -196,47 +203,10 @@ namespace JamKit.Argument.Tests
             Assert.That(host.Audio.WorldAmbience, Is.EqualTo("amb_rain"), "remembered");
             Assert.That(host.Audio.MusicStarted, Is.True, "the battle's own loop plays");
             new ArgumentPilot().Play(host.Engine);
-            yield return WaitFor(() => host.Screen == ArgueScreen.End, "the end card", 15f);
-            Assert.That(host.Audio.LastSound, Does.StartWith("sfx_end"), "the end card has its sound");
+            yield return WaitFor(() => host.EndCardShown, "the end card", 45f);
             host.Continue();
             yield return null;
             Assert.That(GameRoot.Audio.CurrentAmbience, Is.EqualTo("amb_rain"), "the world's ambience is back");
-        }
-
-        [UnityTest]
-        public IEnumerator TheKeyboardShortcutsAndThePressHold()
-        {
-            yield return OpenPrototype(ArgumentPrototype.Story);
-            var host = ArgumentHost.Current;
-            var e = host.Engine;
-            yield return UntilBrowsing(host);
-
-            Assert.That(host.Select("L1"), Is.True);
-            yield return Key(UnityEngine.InputSystem.Key.Digit3);
-            Assert.That(e.Status("L1"), Is.EqualTo(PremiseStatus.Conceded), "3 concedes");
-            host.Select("L3");
-            yield return Key(UnityEngine.InputSystem.Key.Digit1);
-            Assert.That(e.Status("L3b"), Is.EqualTo(PremiseStatus.Standing), "1 asks");
-
-            // Arrows and Enter through the same screens.
-            host.Select("L1b");
-            yield return Key(UnityEngine.InputSystem.Key.Digit2);
-            Assert.That(host.Screen, Is.EqualTo(ArgueScreen.PickEvidence), "2 challenges");
-            yield return Key(UnityEngine.InputSystem.Key.Backspace);
-            Assert.That(host.Screen, Is.EqualTo(ArgueScreen.Verbs), "Backspace backs out one step");
-            yield return Key(UnityEngine.InputSystem.Key.Backspace);
-            Assert.That(host.Screen, Is.EqualTo(ArgueScreen.Browse));
-
-            // Press is a hold: a tap does nothing, 0.6 s forces it.
-            host.Select("L2");
-            yield return Key(UnityEngine.InputSystem.Key.Digit4);
-            Assert.That(e.Presses, Is.EqualTo(0), "a tap isn't a press");
-            _input.Set(UnityEngine.InputSystem.Key.Digit4);
-            float until = Time.realtimeSinceStartup + 1.5f;
-            while (Time.realtimeSinceStartup < until && e.Presses == 0) yield return null;
-            _input.Set();
-            Assert.That(e.Status("L2"), Is.EqualTo(PremiseStatus.Forced));
-            Assert.That(e.Presses, Is.EqualTo(1));
         }
 
         [UnityTest]
@@ -244,16 +214,15 @@ namespace JamKit.Argument.Tests
         {
             yield return OpenPrototype(ArgumentPrototype.Story);
             var host = ArgumentHost.Current;
-            Assert.That(GameRoot.Input.GameplayAllowed, Is.False, "world gameplay waits while she argues");
             Assert.That(GameRoot.Input.Bindings.FindRow("argue-challenge").Shown, Is.True, "the argument's Controls rows show");
             Assert.That(new ArgumentPilot().Play(host.Engine), Is.EqualTo(ArgumentOutcome.Convinced));
-            yield return WaitFor(() => host.Screen == ArgueScreen.End && host.View.EndShown, "the end card", 15f);
-            Assert.That(host.View.EndTitle, Is.EqualTo(ArgumentStrings.Shared["outcome.Convinced"]));
+            yield return WaitFor(() => host.EndCardShown && host.Stage.EndShown, "the end card", 45f);
+            Assert.That(host.Stage.EndTitle, Is.EqualTo(ArgumentStrings.Shared["outcome.Convinced"]));
             var saved = ArgumentLedger.Parse(GameRoot.Save.Data.GetEntry(ArgumentLedger.SaveKey));
             Assert.That(saved.StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Unsure), "kept in the save (the creator's two endings: convinced, Lena is unsure)");
-            host.Continue();
-            yield return null;
-            Assert.That(ArgumentHost.Running, Is.False);
+            yield return Frames(45);
+            yield return Tap(GamepadButton.South);
+            Assert.That(ArgumentHost.Running, Is.False, "A on the end card continues");
             Assert.That(GameRoot.Input.GameplayAllowed, Is.True);
             Assert.That(ArgumentPrototype.Current.MenuShown, Is.True);
         }
@@ -267,13 +236,25 @@ namespace JamKit.Argument.Tests
             bool called = false;
             var host = ArgumentHost.Begin(DreamLenaDemo.Build(), ArgumentPrototype.SetupFor(ArgumentPrototype.Story), r => { called = true; got = r; });
             Assert.That(new ArgumentPilot().Play(host.Engine), Is.EqualTo(ArgumentOutcome.Convinced));
-            host.Continue(); // the same frame: the host hasn't shown the end card yet
+            host.Continue(); // the same frame: the end card isn't up yet
             Assert.That(called, Is.True);
             Assert.That(got, Is.Not.Null, "a finished battle always calls back with its record");
             Assert.That(got.outcome, Is.EqualTo(ArgumentOutcome.Convinced));
             Assert.That(ArgumentLedger.Parse(GameRoot.Save.Data.GetEntry(ArgumentLedger.SaveKey)).StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Unsure), "and it's saved");
             yield return null;
             Assert.That(ArgumentHost.Running, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator TheFastAutopilotPlaysItToTheEnd()
+        {
+            yield return OpenPrototype(ArgumentPrototype.Story);
+            var host = ArgumentHost.Current;
+            host.Autopilot = true;
+            yield return WaitFor(() => host.EndCardShown, "the fast autopilot to the end card", 120f);
+            Assert.That(host.Engine.Outcome, Is.EqualTo(ArgumentOutcome.Convinced));
+            Assert.That(host.Flow.Count(CueKind.Break), Is.GreaterThanOrEqualTo(3), "it broke the three key premises in play");
+            host.Continue();
         }
     }
 }

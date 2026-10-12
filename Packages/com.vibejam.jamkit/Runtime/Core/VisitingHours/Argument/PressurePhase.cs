@@ -32,6 +32,12 @@ namespace JamKit.Argument
         /// allows) and no fairness check on spawns ("scripted but beatable", proved by its own pilot).</summary>
         public bool exemptFromRule;
         public PressureShape[] shapes;
+        /// <summary>The three rings (the painful phase, docs/argument-ideas/SELECTION.md 3): a phone at the table's edge
+        /// rings this many times; each ring sends a wave that hurts only a light standing still ("answer me"). 0: none.</summary>
+        public int calls;
+        /// <summary>The debate's own pressure (docs/redesign/battle.md): it runs as long as the debate does, sparser
+        /// than a full phase.</summary>
+        public bool debate;
 
         /// <summary>The narrowest gap outside the Long Night: room for her light and 0.4 to spare (it was 0.12, which
         /// left a 0.16-wide lane to stop in while plates came at nearly 5 units a second: unfair). It only binds when
@@ -40,6 +46,34 @@ namespace JamKit.Argument
         public const float MinGapScripted = PressurePhase.LightRadius * 2f + 0.05f;
         public const float TelegraphNormal = 0.65f;
         public const float TelegraphStory = 1f;
+        public const float PainfulDuration = 14f;
+        /// <summary>A debate phase runs until the debate drains it.</summary>
+        public const float Endless = 100000f;
+
+        /// <summary>The debate's pressure: the same attacks as a phase at this heat and anger, sparser by
+        /// <paramref name="density"/> (0.4 Walt's tutorial, 0.55 Lena) and a little slower, running until drained.</summary>
+        public static PressureSpec ForDebate(int level, int anger, ArgumentDifficulty difficulty, float speedSetting, float density, IList<PressureShape> shapes)
+        {
+            if (difficulty == ArgumentDifficulty.ScriptedButBeatable) difficulty = ArgumentDifficulty.Normal;
+            var s = For(level, anger, difficulty, speedSetting, false, shapes);
+            density = Math.Max(0.15f, Math.Min(1f, density <= 0f ? 0.55f : density));
+            s.interval = s.interval / density;
+            s.speed *= 0.9f;
+            s.duration = Endless;
+            s.debate = true;
+            return s;
+        }
+
+        /// <summary>The painful phase as the three rings (with a few calm plates between them).</summary>
+        public static PressureSpec Call(int anger, ArgumentDifficulty difficulty, float speedSetting)
+        {
+            var s = For(1, anger, difficulty, speedSetting, false, new[] { PressureShape.Wall });
+            s.level = 3;
+            s.calls = 3;
+            s.interval = 2.6f;
+            s.duration = PainfulDuration;
+            return s;
+        }
 
         public static PressureSpec For(int level, int anger, ArgumentDifficulty difficulty, float speedSetting, bool painful, IList<PressureShape> shapes)
         {
@@ -51,7 +85,9 @@ namespace JamKit.Argument
                 level = level,
                 anger = anger,
                 difficulty = difficulty,
-                duration = painful ? 8f : Math.Min(8f, 5f + level),
+                // Longer than the prototype's 5-8 s, and longer still with her anger (the redesign: "the stretches ...
+                // were both too short"): 6 s calm, up to 14 s furious; the painful phase 14 s.
+                duration = painful ? PainfulDuration : Math.Min(14f, 6f + 2f * level + 1.5f * anger),
                 speed = (1.5f + 0.35f * level) * (1f + 0.3f * anger) * speedSetting,
                 interval = (1.5f - 0.22f * level) / (1f + 0.4f * anger),
                 gap = Math.Max(MinGapNormal, (0.95f - 0.1f * level) * (1f - 0.15f * anger)),
@@ -283,6 +319,10 @@ namespace JamKit.Argument
             public float warn, age;
             public int serial;
             public bool active;
+            /// <summary>One of the three rings' waves: it hurts only a light standing still, and has no gap.</summary>
+            public bool answerMe;
+            /// <summary>A debate statement's guard (it blooms from the words as they're said).</summary>
+            public bool guard;
             // Each gap's two edges as unit directions (cheap collision tests: inside a gap = between its edges).
             public Vector2 edge0a, edge0b, edge1a, edge1b;
         }
@@ -316,6 +356,8 @@ namespace JamKit.Argument
         static DodgePlanner _sharedCheck;
         readonly PressureSweep _reactSweep = new PressureSweep();
         int _slipsSpawned;
+        bool _draining;
+        int _callsRung;
         float _time, _nextSpawn, _invulnerable;
         int _hits, _hitsTaken, _spawned, _skipped, _refused, _serial, _touches, _telegraphs;
         bool _touching;
@@ -331,7 +373,7 @@ namespace JamKit.Argument
             int n = slips != null ? Math.Min(2, slips.Count) : 0;
             _slipSeeds = new SlipSeed[n];
             for (int i = 0; i < n; i++) _slipSeeds[i] = slips[i];
-            _nextSpawn = 0.6f;
+            _nextSpawn = spec.debate ? 1.2f : spec.calls > 0 ? Math.Max(0.6f, spec.interval) : 0.6f;
             if (!spec.exemptFromRule)
                 _check = _sharedCheck ?? (_sharedCheck = new DodgePlanner(PressureRule.PlannerCell, PressureRule.PlannerStep, PressureRule.PlannerHorizon, LightSpeed * PressureRule.PlannerSpeed, PressureRule.PlannerPad, true));
         }
@@ -339,7 +381,30 @@ namespace JamKit.Argument
         public PressureSpec Spec => _spec;
         public float Time => _time;
         public float Duration => _spec.duration;
-        public bool Finished => _time >= _spec.duration;
+        public bool Finished => _time >= _spec.duration || (_draining && Quiet);
+        /// <summary>No attack is on (or waiting to come onto) the surface.</summary>
+        public bool Quiet
+        {
+            get
+            {
+                for (int i = 0; i < _walls.Count; i++) if (_walls[i].active) return false;
+                for (int i = 0; i < _rings.Count; i++) if (_rings[i].active) return false;
+                for (int i = 0; i < _blobs.Count; i++) if (_blobs[i].active) return false;
+                return true;
+            }
+        }
+        /// <summary>No new attacks: the ones on the surface play out, then the phase is finished (the debate's breath
+        /// between rounds).</summary>
+        public void Drain() => _draining = true;
+        public bool Draining => _draining;
+        /// <summary>The three rings: waves rung so far.</summary>
+        public int CallsRung => _callsRung;
+        /// <summary>Where the phone rings from (the right-hand edge, halfway up).</summary>
+        public static readonly Vector2 CallPoint = new Vector2(HalfWidth - 0.12f, 0f);
+        /// <summary>Slower than this (surface units a second) counts as standing still.</summary>
+        public const float StillSpeed = 0.6f;
+        /// <summary>The light is moving this tick (the three rings pass a moving light).</summary>
+        public bool LightMoving => _lightVelocity.Length() > StillSpeed;
         public Vector2 Light => _light;
         public float Invulnerable => _invulnerable;
         /// <summary>Hits in this phase so far.</summary>
@@ -426,7 +491,7 @@ namespace JamKit.Argument
                 {
                     r.radius += r.growth * live;
                     if (r.radius > 8f) r.active = false;
-                    else if (RingHits(r, r.radius, _light, 0f)) hit = true;
+                    else if (RingHits(r, r.radius, _light, 0f) && !(r.answerMe && LightMoving)) hit = true;
                 }
                 _rings[i] = r;
             }
@@ -475,11 +540,41 @@ namespace JamKit.Argument
 
         void SpawnDue()
         {
+            if (_draining) return;
+            if (_spec.calls > 0) SpawnCalls();
             // Spawns stop a little before the end, so the surface clears as the phase closes.
             while (_time >= _nextSpawn && _nextSpawn < _spec.duration - 1.2f)
             {
                 Spawn(_nextSpawn);
                 _nextSpawn += Math.Max(0.15f, _spec.interval);
+            }
+        }
+
+        /// <summary>When wave <paramref name="k"/> of the three rings begins (its phone ring; the rings follow its warning).</summary>
+        public static float CallAt(int k) => 1.2f + 3.8f * k;
+        /// <summary>Rings in wave <paramref name="k"/>: one, two, three.</summary>
+        public static int CallRings(int k) => k + 1;
+
+        void SpawnCalls()
+        {
+            while (_callsRung < _spec.calls && _time >= CallAt(_callsRung))
+            {
+                int k = _callsRung++;
+                for (int i = 0; i < CallRings(k); i++)
+                {
+                    // Each wave is harder: more rings, closer together, a little faster. Warned by the ring itself (the
+                    // phone pulses) for a second, plus the gap before each following ring.
+                    var ring = new Ring
+                    {
+                        center = CallPoint, radius = 0f, growth = 1.7f + 0.35f * k,
+                        gapCount = 0, answerMe = true,
+                        warn = 1f + i * (0.75f - 0.12f * k), active = true,
+                    };
+                    if (!PressureRule.Admit(true, ring.warn, _spec)) { _refused++; continue; }
+                    int slot = Put(_rings, ring);
+                    Commit(_rings, slot);
+                    _spawned++;
+                }
             }
         }
 
@@ -511,6 +606,7 @@ namespace JamKit.Argument
             float dist = d.Length();
             if (Math.Abs(dist - radius) >= RingThickness * 0.5f + LightRadius + pad) return false;
             // In a gap when the light's centre is between the gap's two edges (at least pad from each).
+            if (r.gapCount <= 0) return true;
             if (Cross(r.edge0a, d) >= pad && Cross(d, r.edge0b) >= pad) return false;
             if (r.gapCount > 1 && Cross(r.edge1a, d) >= pad && Cross(d, r.edge1b) >= pad) return false;
             return true;
@@ -554,7 +650,8 @@ namespace JamKit.Argument
             for (int i = 0; i < _rings.Count; i++)
             {
                 var r = _rings[i];
-                if (!r.active || r.age < minAge) continue;
+                // The three rings' waves pass a moving light: no spot is unsafe for a player who keeps moving.
+                if (!r.active || r.age < minAge || r.answerMe) continue;
                 float live1 = to - r.warn;
                 if (live1 < 0f) continue;
                 float live0 = Math.Max(0f, from - r.warn);
@@ -597,7 +694,7 @@ namespace JamKit.Argument
             for (int i = 0; i < _rings.Count; i++)
             {
                 var r = _rings[i];
-                if (!r.active || r.age < minAge) continue;
+                if (!r.active || r.age < minAge || r.answerMe) continue;
                 float live1 = to - r.warn;
                 if (live1 < 0f) continue;
                 float live0 = Math.Max(0f, from - r.warn);
@@ -630,7 +727,7 @@ namespace JamKit.Argument
             for (int i = 0; i < _rings.Count; i++)
             {
                 var r = _rings[i];
-                if (!r.active || r.age < minAge || r.growth <= 0f) continue;
+                if (!r.active || r.age < minAge || r.growth <= 0f || r.answerMe) continue;
                 float fx = HalfWidth + Math.Abs(r.center.X), fy = HalfHeight + Math.Abs(r.center.Y);
                 float far = (float)Math.Sqrt(fx * fx + fy * fy) + RingThickness * 0.5f + LightRadius;
                 float t = r.warn + Math.Max(0f, (far - r.radius) / r.growth);
@@ -661,7 +758,7 @@ namespace JamKit.Argument
         {
             int s = 0;
             for (int i = 0; i < _walls.Count; i++) if (_walls[i].active && _walls[i].age >= minAge && _walls[i].serial > s) s = _walls[i].serial;
-            for (int i = 0; i < _rings.Count; i++) if (_rings[i].active && _rings[i].age >= minAge && _rings[i].serial > s) s = _rings[i].serial;
+            for (int i = 0; i < _rings.Count; i++) if (_rings[i].active && !_rings[i].answerMe && _rings[i].age >= minAge && _rings[i].serial > s) s = _rings[i].serial;
             for (int i = 0; i < _blobs.Count; i++) if (_blobs[i].active && _blobs[i].age >= minAge && _blobs[i].serial > s) s = _blobs[i].serial;
             return s;
         }
@@ -742,18 +839,31 @@ namespace JamKit.Argument
             return true;
         }
 
-        bool SpawnRing(float at)
+        /// <summary>A guard: a ring that blooms from where the opponent's words are (the debate: each statement pushes
+        /// Nadia back as it's said, so reaching its weak words takes a way through or a moment's patience). Warned,
+        /// gapped toward her and checked for an escape like any ring; none if her light is already at the words.</summary>
+        public bool Guard(Vector2 centre)
+        {
+            if (_draining || Finished) return false;
+            if (Vector2.Distance(centre, _light) < RingMinDistance) return false;
+            bool done = SpawnRing(_time, true, centre, true);
+            if (done) _spawned++;
+            else _skipped++;
+            return done;
+        }
+
+        bool SpawnRing(float at, bool fixedCentre = false, Vector2 centre = default, bool guard = false)
         {
             float warn = Warn(at);
-            float growth = Math.Max(0.2f, _spec.speed * 0.8f);
+            float growth = Math.Max(0.2f, _spec.speed * (guard ? 0.7f : 0.8f));
             // The gap's arc is the spec's gap at a radius of 1.5 (narrower near the centre, wider out).
             float half = Math.Min(1.2f, _spec.gap * 0.5f / 1.5f);
             const float band = RingThickness * 0.5f + LightRadius;
             for (int attempt = 0; attempt < SpawnTries; attempt++)
             {
-                var c = new Vector2(_rng.Range(-HalfWidth * 0.8f, HalfWidth * 0.8f), _rng.Range(-HalfHeight * 0.7f, HalfHeight * 0.7f));
+                var c = fixedCentre ? centre : new Vector2(_rng.Range(-HalfWidth * 0.8f, HalfWidth * 0.8f), _rng.Range(-HalfHeight * 0.7f, HalfHeight * 0.7f));
                 // Never on top of her or right beside her.
-                if (Vector2.Distance(c, _light) < RingMinDistance) c = new Vector2(-c.X, -c.Y);
+                if (!fixedCentre && Vector2.Distance(c, _light) < RingMinDistance) c = new Vector2(-c.X, -c.Y);
                 if (Vector2.Distance(c, _light) < RingMinDistance) continue;
                 // A gap she can reach before the ring reaches her: aimed within reach of where she is now, so the
                 // gap is never off the edge of the box on her side. (The fairness check below has the last word.)
@@ -769,7 +879,7 @@ namespace JamKit.Argument
                     gapAngle0 = a0, gapAngle1 = a0 + (float)Math.PI, gapHalfAngle = half, gapCount = Math.Max(1, _spec.gaps),
                     edge0a = Dir(a0 - half), edge0b = Dir(a0 + half),
                     edge1a = Dir(a0 + (float)Math.PI - half), edge1b = Dir(a0 + (float)Math.PI + half),
-                    warn = warn, active = true,
+                    warn = warn, active = true, guard = guard,
                 };
                 if (!PressureRule.Admit(true, warn, _spec)) { _refused++; return false; }
                 int slot = Put(_rings, ring);

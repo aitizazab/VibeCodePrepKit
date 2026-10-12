@@ -245,7 +245,9 @@ namespace JamKit.Tests.Argument
             Assert.That(lena.Premise("L1b").ChallengeFor(DreamLenaDemo.FourthChair), Is.Not.Null);
             Assert.That(lena.Premise("L3b").ChallengeFor(DreamLenaDemo.SaturdayOff), Is.Not.Null);
             Assert.That(lena.Premise("L3c").ChallengeFor(DreamLenaDemo.SameSaturday), Is.Not.Null);
-            Assert.That(lena.Premise("L5").ChallengeFor(DreamLenaDemo.BadDream), Is.Not.Null);
+            Assert.That(lena.Premise("L3").ChallengeFor(DreamLenaDemo.BadDream), Is.Not.Null, "Theo's drawing breaks \"He chose this\" (2026-10-12)");
+            Assert.That(lena.Premise("L3").ChallengeFor(DreamLenaDemo.BadDream).effectTarget, Is.EqualTo("L5"), "and brings out L5");
+            Assert.That(lena.Premise("L5").unbreakable, Is.True, "L5 can't be broken tonight: it carries into Night 3");
             Assert.That(lena.premises.Where(p => p.key).Select(p => p.id), Is.EquivalentTo(new[] { "L1b", "L3b", "L3c" }), "Convinced = L1', L3', L3''");
         }
 
@@ -323,11 +325,14 @@ namespace JamKit.Tests.Argument
         {
             var e = Walt(ArgumentDifficulty.Normal, WaltNight1.WaltDead, WaltNight1.SameSaturday);
             Assert.That(e.InPressure, Is.False, "no opening pressure: the first comes with the first misstep");
-            Assert.That(e.Coached(ArgumentCoach.Ask), Is.True);
-            Assert.That(LastSaid(e, Speaker.Supporter), Is.EqualTo(e.Def.coach[ArgumentCoach.Ask]));
+            Assert.That(e.Coached(ArgumentCoach.Debate), Is.True, "first: the debate (move, keep clear)");
+            Assert.That(LastSaid(e, Speaker.Supporter), Is.EqualTo(e.Def.coach[ArgumentCoach.Debate]));
             Assert.That(e.Transcript.Last(x => x.speaker == Speaker.Supporter).who, Is.EqualTo("Mags"));
             Assert.That(e.Coached(ArgumentCoach.Challenge), Is.False, "nothing she can break is on the table yet");
             Assert.That(e.Transcript.Count(x => x.speaker == Speaker.Supporter), Is.EqualTo(1), "one line at a time");
+            // The battle's flow coaches asking as the first statement flies.
+            Assert.That(e.CoachNow(ArgumentCoach.Ask), Is.True);
+            Assert.That(e.CoachNow(ArgumentCoach.Ask), Is.False, "once");
             e.Ask("W1");
             Assert.That(e.Status("W2"), Is.EqualTo(PremiseStatus.Standing), "asking reveals the key premise");
             Assert.That(e.Coached(ArgumentCoach.Concede), Is.True, "she's heard something true: concede it");
@@ -335,9 +340,9 @@ namespace JamKit.Tests.Argument
             e.Concede("W1");
             Assert.That(e.Status("W3"), Is.EqualTo(PremiseStatus.Standing), "conceding brings out what he hangs on it");
             Assert.That(e.Coached(ArgumentCoach.Challenge), Is.True, "now: something she has can break it");
-            // A misstep: pressure, and the word about forcing.
+            // A misstep: pressure (the flow has Mags say what it cost, and forcing at the next one: BattleFlowTests).
             e.ResolveChallenge("W3", WaltNight1.SameSaturday, Card(e, "W3", WaltNight1.SameSaturday, ReasonKind.Beside));
-            Assert.That(e.Coached(ArgumentCoach.Press), Is.True);
+            Assert.That(e.Coached(ArgumentCoach.Press), Is.False, "the real-time battle's flow coaches missteps");
             Assert.That(e.InPressure, Is.True);
             e.Tick(Dt, Vector2.Zero);
             Assert.That(e.Coached(ArgumentCoach.Pressure), Is.True);

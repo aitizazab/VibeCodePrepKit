@@ -48,6 +48,9 @@ logic.concedeClaim: Nadia gave up the claim: "{claim}"
 logic.slip: Nadia caught {slip}: something {opponent} wasn't saying.
 logic.something: something
 logic.heart: Nadia's heart reached {bpm} bpm. She has to stop.
+logic.idle: A whole round, and Nadia said nothing. {opponent} grows heated.
+logic.burned: {Evidence} is out of Nadia's hand until the round after next.
+logic.hesitate: Nadia showed {evidence} and couldn't say why in time.
 logic.outcome: {outcome}. {opponent} is {stance}.
 stance.Amenable: amenable
 stance.Unsure: unsure
@@ -91,7 +94,7 @@ screen.prompt.premise: {premise}
 screen.prompt.question: She asks you: "{question}"
 screen.prompt.pickEvidence: Which piece of evidence answers "{premise}"?
 screen.prompt.pickReason: Why does {evidence} answer it? Pick the reason that really follows.
-screen.prompt.reasonHeading: She said "{premise}". You show {evidence}. Because...
+screen.prompt.reasonHeading: {opponent} said "{premise}". You show {evidence}.
 screen.prompt.pressure: Her feeling fills the table: keep your light clear of it. {n} s
 screen.prompt.pressureAngry: She's angry: faster, denser, fewer gaps. Keep your light clear. {n} s
 screen.retortCard: Answer her question back (no evidence)
@@ -102,6 +105,15 @@ screen.why.cantPress: That can't be forced now.
 screen.why.notYet: Not yet: hear every premise first (the hidden ones too).
 screen.why.claimNoChallenge: The claim stands on its premises. Challenge those instead.
 screen.why.cantChallenge: That can't be challenged now.
+screen.why.askClaim: Ask about what holds the claim up, not the claim itself.
+screen.why.glance: It glanced off. Hit the glowing words.
+screen.why.burned: {Evidence} is out of your hand: back in {n} round(s).
+screen.why.noCards: You have nothing to show.
+screen.why.retortOnly: Answer back on their question.
+screen.why.restOnClaim: Put it on their claim.
+screen.why.questionEvidence: That's a question. Show evidence against what was said, or answer back.
+screen.card.retort: Answer back
+screen.card.rest: I hear you
 screen.heard: What she said about it
 screen.saidAbout: She said:
 screen.transcriptTitle: Everything said so far
@@ -122,6 +134,47 @@ screen.hint.pick: A / Enter: choose.   B / Backspace: back.
 screen.hint.pressure: Move: stick, d-pad, WASD or arrows. Catch the slips: they reveal what she isn't saying.
 screen.hint.end: A / Enter: continue.
 screen.hint.transcript: Up / down: scroll.   B / Backspace: back.
+
+## The real-time battle (docs/redesign/battle.md)
+screen.temper: Temper
+  ? her heat, as pips beside her name
+screen.bpm: bpm
+screen.earpiece: (earpiece)
+  ? after Mags's name in the dialogue box
+screen.chip.true: true
+screen.chip.agreed: agreed
+screen.chip.forced: forced
+screen.chip.holds: holds tonight
+  ? on a premise that can't be broken tonight
+screen.statement.question: ASKS
+  ? the tag on her question as it flies (answer it, or answer back)
+screen.banner.debate: {opponent}'s case, round the table
+  ? the first round's banner
+screen.banner.showdown: The showdown
+screen.banner.rings: He called you first
+  ? the three rings' banner
+screen.banner.angry: {opponent} means it
+screen.banner.pressure: Keep clear
+screen.banner.panic: Composure
+screen.banner.stand: {opponent} wants an answer
+  ? every key premise is down, but the painful one stands
+screen.showdown.prompt: Cut each word as it reaches your mark. {n} left.
+screen.hand.empty: NOTHING TO SHOW
+screen.hand.burned: OUT OF HAND: BACK IN {n} ROUND(S)
+screen.hand.tag: IN HAND  {n} / {keys}
+screen.card.retortNote: Throw the question back instead of answering it. It will cost you.
+screen.card.restNote: Let it rest: put it on the claim, once you've heard all of it.
+screen.because.patience: {opponent} is waiting.
+screen.because.noClock: Take your time.
+screen.case.title: The case so far
+screen.case.premises: What {opponent} says
+screen.case.evidence: What you hold
+screen.hint.debate: Why? {ask}    That's true {concede}    Show the card {show}    Force it: hold {press}    Cards {cards}    Case file {case}
+  ? the keys under the table
+screen.end.time: About {n} minute(s) at the table.
+screen.end.left: Nadia left the table.
+screen.end.despair: Despair +{n}
+screen.end.force: Force +{n}
 
 ## The prototype's menu
 menu.title: Argument battle prototype: "Take it apart"

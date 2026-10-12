@@ -1,5 +1,13 @@
 # The argument with Dream-Lena: what each line has to say
 
+> **2026-10-12, the real-time redesign (`docs/redesign/battle.md`, section 9):** new ids in both battle files:
+> `<premise>.weak` (the words that glow as a statement flies; the evidence has to hit them), `composureLostReply` (their
+> answer as Nadia leaves the table), `showdown.1`.. (the words they cut back with when Nadia presses), `bark.idle`,
+> `bark.hesitate`, `bark.glance`, `bark.ring`, `bark.stand`, `pressureWords` (split by `|`). Lena's L5 is rewritten to the
+> bad dream as settled (Elias in scrubs walking out of the door: "He's hiding from *him*"; can't be broken tonight), Theo's
+> drawing now breaks L3, and L4 has `[sorry=1]` variants for the day Nadia said sorry at his bed. Walt's file is written
+> for real. The tables below predate this and are history.
+
 This is a brief for writing the real lines. Every line in the prototype is a placeholder (in
 `Packages/com.vibejam.jamkit/Runtime/Core/VisitingHours/Argument/DreamLenaDemo.cs`; the controls agent is moving them into
 an editable text file with the same ids). For each line below: **who says it**, **when it shows**, **what it has to get

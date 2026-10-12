@@ -36,6 +36,13 @@ namespace JamKit.Argument
         public int force;
         /// <summary>The hidden Despair value, 0..3 (3 = max), for conditional lines.</summary>
         public int despair;
+        /// <summary>Where their anger starts (the day's bedside, docs/redesign/day.md): +1 starts it a step higher (Day 2's
+        /// "Lena": she waits at the window); -1 is a step gentler (Day 2's "just sit": the first thing that would anger her
+        /// doesn't, and her pressure in the debate is sparser). 0: as written.</summary>
+        public int angerStart;
+        /// <summary>Nadia has already said sorry out loud at his bedside (Day 1's "the phone"): the painful premise ("He
+        /// called you first") is on the table from the start, and her admission reads that way (the <c>sorry</c> meter).</summary>
+        public bool admitted;
     }
 
     /// <summary>What picking a piece of evidence against a premise leads to.</summary>
@@ -85,6 +92,7 @@ namespace JamKit.Argument
         readonly Dictionary<string, PremiseStatus> _status = new Dictionary<string, PremiseStatus>();
         readonly Dictionary<string, int> _asked = new Dictionary<string, int>();
         readonly HashSet<string> _heard = new HashSet<string>();
+        readonly HashSet<string> _retorted = new HashSet<string>();
         readonly List<Exchange> _transcript = new List<Exchange>(64);
         readonly List<PremiseDef> _visible = new List<PremiseDef>(16);
         readonly List<SlipSeed> _slipBuffer = new List<SlipSeed>(2);
@@ -97,6 +105,7 @@ namespace JamKit.Argument
         PressurePhase _pressure;
         bool _pending, _pendingPainful;
         int _pendingLevel;
+        float _pendingSeconds; // a gesture's length; 0: a full phase
         ulong _phaseSeed;
 
         public ArgumentEngine(ArgumentDef def, ArgumentSetup setup)
@@ -107,6 +116,19 @@ namespace JamKit.Argument
             foreach (var p in _def.premises)
                 if (p != null && !string.IsNullOrEmpty(p.id)) _status[p.id] = p.hidden ? PremiseStatus.Hidden : PremiseStatus.Standing;
             _heart = _setup.difficulty == ArgumentDifficulty.ScriptedButBeatable ? ScriptedStartStep : 0;
+            _anger = Math.Max(0, Math.Min(MaxAnger, _setup.angerStart));
+            _angerGrace = Math.Max(0, -_setup.angerStart);
+        }
+
+        int _angerGrace;
+        readonly HashSet<string> _painfulPlayed = new HashSet<string>();
+
+        /// <summary>Their anger rises a step (antagonising, a retort, a press), unless the day left them gentler: the
+        /// first rise is absorbed.</summary>
+        void RaiseAnger()
+        {
+            if (_angerGrace > 0) { _angerGrace--; return; }
+            _anger = Math.Min(MaxAnger, _anger + 1);
         }
 
         // ---------- State ----------
@@ -125,7 +147,7 @@ namespace JamKit.Argument
         public ArgumentMeters Meters => new ArgumentMeters
         {
             anger = _anger, force = _setup.force + _presses, despair = _setup.despair, presses = _presses,
-            antagonised = _antagonised, heat = _heat,
+            antagonised = _antagonised, heat = _heat, sorry = _setup.admitted ? 1 : 0,
         };
 
         /// <summary>The line to say for <paramref name="id"/>: the first conditional variant that holds now, else
@@ -169,6 +191,28 @@ namespace JamKit.Argument
                 foreach (var p in _def.premises)
                     if (p != null && Status(p.id) != PremiseStatus.Hidden) _visible.Add(p);
                 return _visible;
+            }
+        }
+
+        /// <summary>Every key premise is down, but their painful one stands, unanswered: the battle waits for Nadia to face
+        /// it (docs/redesign/battle.md, "The last stand"). A retort counts as answering (badly).</summary>
+        public bool LastStand
+        {
+            get
+            {
+                if (_ended) return false;
+                bool anyKey = false;
+                foreach (var p in _def.premises)
+                {
+                    if (p == null || !p.key) continue;
+                    anyKey = true;
+                    var s = Status(p.id);
+                    if (s != PremiseStatus.Broken && s != PremiseStatus.Forced) return false;
+                }
+                if (!anyKey) return false;
+                foreach (var p in _def.premises)
+                    if (p != null && p.painful && Status(p.id) == PremiseStatus.Standing && !_retorted.Contains(p.id)) return true;
+                return false;
             }
         }
 
@@ -226,7 +270,14 @@ namespace JamKit.Argument
                 if (SupporterHere(s) && string.IsNullOrEmpty(s.premise) && !string.IsNullOrEmpty(s.line)) Say(Speaker.Supporter, s.speaker, s.line, "");
             foreach (var p in _def.premises)
                 if (p != null && Status(p.id) == PremiseStatus.Standing) SupporterLines(p.id);
-            Coach(ArgumentCoach.Ask);
+            // The tutorial's first lesson is the debate itself (move, keep clear); asking comes when the first statement
+            // flies (the battle flow coaches it then). A battle played without the flow still hears both.
+            if (!Coach(ArgumentCoach.Debate)) Coach(ArgumentCoach.Ask);
+            // Already said sorry at his bedside: what hurts most is on the table from the start (its phase still comes
+            // when the night would have brought it out).
+            if (_setup.admitted)
+                foreach (var p in _def.premises)
+                    if (p != null && p.painful && Status(p.id) == PremiseStatus.Hidden) Reveal(p.id, false);
             if (_def.openingPressure) Queue(0, false);
             _coachedThisTurn = false;
         }
@@ -286,7 +337,7 @@ namespace JamKit.Argument
                 Say(Speaker.Opponent, _def.opponent, Or(L(p, "trueReply", p.trueReply), Line("noTouchReply", _def.noTouchReply)), "");
                 Logic(S.Format("logic.true", "premise", p.text));
                 RaiseHeat(1);
-                Coach(ArgumentCoach.Press);
+                CoachMisstep();
                 _heard.Add(id);
                 AfterExchange(false);
                 return ChallengeStep.TrueOne;
@@ -297,7 +348,7 @@ namespace JamKit.Argument
                 Say(Speaker.Opponent, _def.opponent, Or(L(p, "noTouchReply", p.noTouchReply), Line("noTouchReply", _def.noTouchReply)), "");
                 Logic(S.Format("logic.noTouch", "evidence", shown, "Evidence", Cap(shown), "premise", p.text));
                 RaiseHeat(1);
-                Coach(ArgumentCoach.Press);
+                CoachMisstep();
                 _heard.Add(id);
                 AfterExchange(false);
                 return ChallengeStep.NoTouch;
@@ -334,6 +385,7 @@ namespace JamKit.Argument
                     Logic(S.Format("logic.sound", "premise", p.text, "evidence", shown, "Evidence", Cap(shown), "reason", reason.text));
                     Set(id, PremiseStatus.Broken);
                     if (p.key) _keysBroken++;
+                    RevealUnder(p);
                     LowerHeat(1);
                     Coach(ArgumentCoach.Broken);
                     if ((c.effect == SoundEffect.FallBack || c.effect == SoundEffect.Deepen) && !string.IsNullOrEmpty(c.effectTarget))
@@ -343,7 +395,7 @@ namespace JamKit.Argument
                 case ReasonKind.Beside:
                     Logic(S.Format("logic.beside", "premise", p.text, "evidence", shown, "Evidence", Cap(shown), "reason", reason.text));
                     RaiseHeat(1);
-                    Coach(ArgumentCoach.Press);
+                    CoachMisstep();
                     AfterExchange(true);
                     break;
                 case ReasonKind.Antagonise:
@@ -353,7 +405,7 @@ namespace JamKit.Argument
                 default:
                     Logic(S.Format("logic.nonSequitur", "premise", p.text, "evidence", shown, "Evidence", Cap(shown), "reason", reason.text));
                     RaiseHeat(1);
-                    Coach(ArgumentCoach.Press);
+                    CoachMisstep();
                     AfterExchange(true);
                     break;
             }
@@ -371,6 +423,7 @@ namespace JamKit.Argument
             Say(Speaker.Nadia, "Nadia", L(p, "retort", p.retort.line), "");
             Antagonise();
             Say(Speaker.Opponent, _def.opponent, L(p, "retort.reply", p.retort.reply), p.retort.expression);
+            _retorted.Add(id);
             Logic(string.IsNullOrEmpty(p.question) ? S.Format("logic.retort", "premise", p.text, "opponent", _def.opponent) : S.Format("logic.retortQuestion", "question", p.question, "premise", p.text, "opponent", _def.opponent));
             _heard.Add(id);
             AfterExchange(true);
@@ -417,7 +470,7 @@ namespace JamKit.Argument
                 // The line is chosen before the press counts (a "tamer line while she's been gentle" means before this one).
                 string claimLine = Or(Line("pressClaimLine", _def.pressClaimLine), S["nadia.pressClaim"]);
                 _presses++;
-                if (_def.pressAngers) _anger = Math.Min(MaxAnger, _anger + 1);
+                if (_def.pressAngers) RaiseAnger();
                 Say(Speaker.Nadia, "Nadia", claimLine, "");
                 Say(Speaker.Opponent, _def.opponent, Or(Line("pressClaimReply", _def.pressClaimReply), S["opponent.silence"]), "hurt");
                 Logic(S.Format("logic.pressClaim", "claim", _def.claim, "opponent", _def.opponent));
@@ -427,18 +480,20 @@ namespace JamKit.Argument
             var p = _def.Premise(id);
             string line = Or(L(p, "pressLine", p.pressLine), S["nadia.press"]);
             _presses++;
-            if (_def.pressAngers) _anger = Math.Min(MaxAnger, _anger + 1);
+            if (_def.pressAngers) RaiseAnger();
             Say(Speaker.Nadia, "Nadia", line, "");
             Say(Speaker.Opponent, _def.opponent, Or(L(p, "pressReply", p.pressReply), S["opponent.silence"]), "hurt");
             Logic(S.Format("logic.press", "premise", p.text, "opponent", _def.opponent));
             Set(id, PremiseStatus.Forced);
+            RevealUnder(p);
             _heard.Add(id);
             RaiseHeat(2);
             AfterExchange(true);
             return true;
         }
 
-        /// <summary>Every premise, hidden ones included, has been revealed and heard.</summary>
+        /// <summary>Every premise, hidden ones included, has been revealed and heard. What only a slip reveals (something
+        /// she isn't saying) doesn't hold it up: hearing someone out can't depend on catching a paper plane.</summary>
         public bool CanLetItRest
         {
             get
@@ -447,7 +502,11 @@ namespace JamKit.Argument
                 foreach (var p in _def.premises)
                 {
                     if (p == null) continue;
-                    if (Status(p.id) == PremiseStatus.Hidden) return false;
+                    if (Status(p.id) == PremiseStatus.Hidden)
+                    {
+                        if (p.revealedBySlip) continue;
+                        return false;
+                    }
                     if (!_heard.Contains(p.id)) return false;
                 }
                 return true;
@@ -498,21 +557,7 @@ namespace JamKit.Argument
             if (_pressure == null) return;
             _pressure.Tick(dt, move);
             int hits = _pressure.TakeHits();
-            for (int i = 0; i < hits && !_ended; i++)
-            {
-                _heart++;
-                // A tutorial's composure can't run out: its heart stops a step short of panic.
-                if (_def.heartCap < PanicStep && _heart > _def.heartCap) _heart = _def.heartCap;
-                if (_heart >= PanicStep)
-                {
-                    _heart = PanicStep;
-                    Say(Speaker.Nadia, "Nadia", Line("composureLostLine", _def.composureLostLine), "");
-                    Logic(S.Format("logic.heart", "bpm", HeartRates[PanicStep].ToString(System.Globalization.CultureInfo.InvariantCulture)));
-                    _pressure = null;
-                    Finish(ArgumentOutcome.ComposureLost);
-                    return;
-                }
-            }
+            if (hits > 0 && Hurt(hits)) return;
             string slip = _pressure.TakeCaughtSlip();
             if (slip != null && Status(slip) == PremiseStatus.Hidden)
             {
@@ -527,6 +572,27 @@ namespace JamKit.Argument
             }
         }
 
+        /// <summary>A slip caught outside a pressure phase (the debate's drifting pages and planes): reveals what it hid.
+        /// False if it reveals nothing (already out).</summary>
+        public bool CatchSlip(string premiseId)
+        {
+            if (_ended || Status(premiseId) != PremiseStatus.Hidden) return false;
+            var p = _def.Premise(premiseId);
+            if (p == null || !p.revealedBySlip) return false;
+            Logic(S.Format("logic.slip", "slip", Or(p.slipName, S["logic.something"]), "opponent", _def.opponent));
+            Reveal(premiseId, true);
+            AfterExchange(false);
+            return true;
+        }
+
+        /// <summary>Hidden premises a slip would reveal (the debate seeds its pages and planes from these).</summary>
+        public void SlipsWaiting(List<SlipSeed> into)
+        {
+            into.Clear();
+            foreach (var p in _def.premises)
+                if (p != null && p.revealedBySlip && Status(p.id) == PremiseStatus.Hidden) into.Add(new SlipSeed { premise = p.id, name = p.slipName });
+        }
+
         /// <summary>Ends the current phase at once (debug skip; the view's "skip" in Off mode).</summary>
         public void SkipPressure()
         {
@@ -535,9 +601,72 @@ namespace JamKit.Argument
             CheckEnd();
         }
 
+        /// <summary>Nadia's heart steps up <paramref name="steps"/> times: a hit in the debate or the showdown, a wrong card,
+        /// a hesitation (the real-time battle, docs/redesign/battle.md). At 160 bpm her composure is gone: she says her
+        /// line, they answer, and the battle ends there (Composure lost: no retry). A tutorial's heart stops a step short.
+        /// True if it ended the battle.</summary>
+        public bool Hurt(int steps)
+        {
+            if (_ended || !_started) return _ended;
+            for (int i = 0; i < steps; i++)
+            {
+                _heart++;
+                // A tutorial's composure can't run out: its heart stops a step short of panic.
+                if (_def.heartCap < PanicStep && _heart > _def.heartCap) _heart = _def.heartCap;
+                if (_heart < PanicStep) continue;
+                _heart = PanicStep;
+                Say(Speaker.Nadia, "Nadia", Line("composureLostLine", _def.composureLostLine), "");
+                Say(Speaker.Opponent, _def.opponent, Line("composureLostReply", _def.composureLostReply), _def.composureLostExpression);
+                Logic(S.Format("logic.heart", "bpm", HeartRates[PanicStep].ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                _pressure = null;
+                _pending = false;
+                Finish(ArgumentOutcome.ComposureLost);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>A line the battle's flow adds to the transcript (a bark, a hesitation): said, not a verb.</summary>
+        public void Interject(Speaker speaker, string who, string text, string expression)
+        {
+            if (_ended) return;
+            Say(speaker, string.IsNullOrEmpty(who) ? (speaker == Speaker.Opponent ? _def.opponent : speaker == Speaker.Nadia ? "Nadia" : "") : who, text, expression);
+        }
+
+        /// <summary>A sentence for the transcript (the step spelled out) from the battle's flow.</summary>
+        public void Note(string text) => Logic(text);
+
+        /// <summary>Raises the heat (her temper) from the flow: a round of silence.</summary>
+        public void AddHeat(int n) => RaiseHeat(n);
+
+        /// <summary>Queues a pressure phase from the flow (a key premise she holds on to as it breaks).</summary>
+        public void QueuePhase(int level, bool painful) => Queue(Math.Min(MaxHeat, Math.Max(0, level)), painful);
+
+        /// <summary>The coach's line for <paramref name="moment"/> now, the first time only (the flow's moments: the first
+        /// statement, the first "Because...", the first wrong card, the first showdown, the first slip).</summary>
+        public bool CoachNow(string moment)
+        {
+            // Between exchanges: it doesn't use up the next exchange's lesson.
+            bool said = Coach(moment);
+            _coachedThisTurn = false;
+            return said;
+        }
+
+        /// <summary>What a premise hid under it comes out when it falls (asking can't reach it any more).</summary>
+        void RevealUnder(PremiseDef p)
+        {
+            foreach (var r in p.askReveals) Reveal(r, false);
+        }
+
         /// <summary>The spec the next (or current) phase plays with.</summary>
         public PressureSpec SpecFor(int level, bool painful) =>
-            PressureSpec.For(level, _anger, _setup.difficulty, _setup.pressureSpeed * _def.pressureScale, painful, level >= 2 || painful ? _def.hotShapes : _def.calmShapes);
+            painful && _def.painfulCall && _setup.difficulty != ArgumentDifficulty.ScriptedButBeatable
+                ? PressureSpec.Call(_anger, _setup.difficulty, _setup.pressureSpeed * _def.pressureScale)
+                : PressureSpec.For(level, _anger, _setup.difficulty, _setup.pressureSpeed * _def.pressureScale, painful, level >= 2 || painful ? _def.hotShapes : _def.calmShapes);
+
+        /// <summary>The spec the debate's own pressure plays with now (its heat and anger; sparser than a phase).</summary>
+        public PressureSpec DebateSpec() =>
+            PressureSpec.ForDebate(_heat, _anger, _setup.difficulty, _setup.pressureSpeed * _def.pressureScale, _def.debateDensity * (_setup.angerStart < 0 ? 0.85f : 1f), _heat >= 2 ? _def.hotShapes : _def.calmShapes);
 
         void Queue(int level, bool painful)
         {
@@ -546,12 +675,26 @@ namespace JamKit.Argument
             {
                 _pendingLevel = Math.Max(_pendingLevel, level);
                 _pendingPainful |= painful;
+                _pendingSeconds = 0f; // a full phase wins over a gesture
                 return;
             }
             _pending = true;
             _pendingLevel = level;
             _pendingPainful = painful;
+            _pendingSeconds = 0f;
         }
+
+        /// <summary>A gesture (docs/argument-ideas/SELECTION.md 2): a short phase of <paramref name="seconds"/> after one of
+        /// their replies, shaped by its feeling. Nothing if a phase is already coming.</summary>
+        public void QueueGesture(int level, float seconds)
+        {
+            if (_ended || _pending || _pressure != null) return;
+            Queue(level, false);
+            _pendingSeconds = Math.Max(2f, seconds);
+        }
+
+        /// <summary>The phase coming (or playing) is a gesture.</summary>
+        public bool GestureNext => _pending && _pendingSeconds > 0f;
 
         void BeginPhase()
         {
@@ -561,7 +704,10 @@ namespace JamKit.Argument
                 if (p != null && p.revealedBySlip && Status(p.id) == PremiseStatus.Hidden && _slipBuffer.Count < 2)
                     _slipBuffer.Add(new SlipSeed { premise = p.id, name = p.slipName });
             _phaseSeed = _phaseSeed * 6364136223846793005UL + 1442695040888963407UL;
-            _pressure = new PressurePhase(SpecFor(_pendingLevel, _pendingPainful), _phaseSeed, _slipBuffer);
+            var spec = SpecFor(_pendingLevel, _pendingPainful);
+            if (_pendingSeconds > 0f && !spec.exemptFromRule) spec.duration = _pendingSeconds;
+            _pendingSeconds = 0f;
+            _pressure = new PressurePhase(spec, _phaseSeed, _slipBuffer);
             _phases++;
             Coach(ArgumentCoach.Pressure);
         }
@@ -582,7 +728,7 @@ namespace JamKit.Argument
         void Antagonise()
         {
             _antagonised++;
-            _anger = Math.Min(MaxAnger, _anger + 1);
+            RaiseAnger();
             RaiseHeat(2);
         }
 
@@ -592,12 +738,19 @@ namespace JamKit.Argument
         /// True if it was said now.</summary>
         bool Coach(string moment)
         {
-            if (_def.coach.Count == 0 || _ended || _coached.Contains(moment)) return false;
+            if (_def.coach.Count == 0 || _ended || _coached.Contains(moment) || !_def.coach.ContainsKey(moment)) return false;
             if (!_def.coach.TryGetValue(moment, out var line) || string.IsNullOrEmpty(line)) return false;
             _coached.Add(moment);
             _coachedThisTurn = true;
             Say(Speaker.Supporter, string.IsNullOrEmpty(_def.coachName) ? "Coach" : _def.coachName, Line("coach." + moment, line), "");
             return true;
+        }
+
+        /// <summary>A misstep: the coach's word about forcing (the real-time battle's flow says what the misstep cost
+        /// instead, and forcing comes with the next one).</summary>
+        void CoachMisstep()
+        {
+            if (!_def.coach.ContainsKey(ArgumentCoach.Wrong)) Coach(ArgumentCoach.Press);
         }
 
         /// <summary>Has the coach said the line for this moment yet (tests).</summary>
@@ -614,7 +767,7 @@ namespace JamKit.Argument
             {
                 if (p == null) continue;
                 var st = Status(p.id);
-                if (st == PremiseStatus.Hidden || !_heard.Contains(p.id)) allHeard = false;
+                if (st == PremiseStatus.Hidden ? !p.revealedBySlip : !_heard.Contains(p.id)) allHeard = false;
                 if (st != PremiseStatus.Standing) continue;
                 if (p.truth == PremiseTruth.False) falseStanding = true;
                 if (_heard.Contains(p.id) && p.truth != PremiseTruth.False && !p.key && !p.unbreakable) concedable = true;
@@ -645,6 +798,9 @@ namespace JamKit.Argument
                 if (s != PremiseStatus.Broken && s != PremiseStatus.Forced) return false;
             }
             if (!anyKey) return false;
+            // Their painful question, once it's out, has to be faced before it ends (the last stand): conceded, forced,
+            // or answered back.
+            if (LastStand) return false;
             // A pressure phase already playing finishes first; a queued one is dropped (the wheel trues).
             if (_pressure != null) return false;
             _pending = false;
@@ -656,13 +812,17 @@ namespace JamKit.Argument
         {
             foreach (var p in _def.premises)
             {
-                if (p == null || Status(p.id) != PremiseStatus.Hidden || p.surfacesAfter.Count == 0) continue;
+                if (p == null || p.surfacesAfter.Count == 0) continue;
+                var own = Status(p.id);
+                // Out already (said sorry at the bedside): only its painful phase is still to come.
+                bool phaseOnly = own != PremiseStatus.Hidden && p.painful && !_painfulPlayed.Contains(p.id);
+                if (own != PremiseStatus.Hidden && !phaseOnly) continue;
                 foreach (var after in p.surfacesAfter)
                 {
                     var s = Status(after);
                     if (s != PremiseStatus.Broken && s != PremiseStatus.Conceded && s != PremiseStatus.ConcededFalse && s != PremiseStatus.Forced) continue;
-                    Reveal(p.id, true);
-                    if (p.painful) Queue(MaxHeat, true);
+                    if (!phaseOnly) Reveal(p.id, true);
+                    if (p.painful) { _painfulPlayed.Add(p.id); Queue(MaxHeat, true); }
                     break;
                 }
             }

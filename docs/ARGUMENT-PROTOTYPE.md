@@ -1,5 +1,13 @@
 # Argument battle prototype: "Take it apart"
 
+> **Superseded for play, screen and timing (2026-10-12): see `docs/redesign/battle.md`.** The battle is now real-time:
+> a debate where her statements fly as she says them and Nadia acts on them with her light (ask, concede, show a card on
+> the glowing words, hold to press), "Because..." under her patience, a showdown for pressing, longer phases, the three
+> rings, composure lost as a real end, every line typed one at a time. The menus, verb row, premise cards and focus panel
+> described below are gone (`ArgumentView` was replaced by `ArgumentStage`), and so are the old controls table and
+> transitions. **Still current here:** the logic (premises, reasons, outcomes, stances, the ledger, the hand-off API
+> `ArgumentHost.BeginBattle`), the prose files and their format, fair attacks, the boil, the sprite slots.
+
 > **Status: a playable prototype, reworked after the creator's playtest (2026-10-11).** Concept A from
 > `ARGUMENT-BATTLES.md`, built on that doc's recommended defaults plus the creator's four additions. **Every line of
 > dialogue is a placeholder**: the creator writes the real ones in a text file (below), not in code, and the screen

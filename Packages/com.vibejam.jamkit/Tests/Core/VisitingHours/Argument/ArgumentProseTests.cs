@@ -84,8 +84,8 @@ namespace JamKit.Tests.Argument
             Assert.That(def.Face("angry"), Is.EqualTo("antagonistic"));
             Assert.That(def.Face("rattled"), Is.EqualTo("rattled"), "a mood he has is used as it is");
             foreach (var k in keys) Assert.That(lines[k], Is.Not.Empty, k + " is empty");
-            Assert.That(text, Does.Contain("AGENT PLACEHOLDER"), "marked for the creator to rewrite");
-            Assert.That(def.placeholderLines, Is.True, "and the screen says so");
+            Assert.That(text, Does.Contain("WRITTEN BY THE BATTLE AGENT"), "written for real (2026-10-12), and marked as the agent's");
+            Assert.That(def.placeholderLines, Is.False, "no placeholder badge on screen");
             Assert.That(def.coachName, Is.EqualTo("Mags"));
             foreach (var m in ArgumentCoach.Moments) Assert.That(def.coach[m], Is.Not.Empty, "Mags has a line for " + m);
         }

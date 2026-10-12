@@ -8,8 +8,8 @@ using UnityEngine.UIElements;
 
 namespace JamKit.Argument.Tests
 {
-    /// <summary>The argument prototype without play mode: the screen builds on black with the opponent's sprite and
-    /// the real fonts, every expression has a sprite (a placeholder until the art lands), the prose and the sounds load
+    /// <summary>The argument battle without play mode: the stage builds on black with the opponent's sprite and the real
+    /// fonts, every state of a battle renders, the dialogue box sizes to its text, every expression has a sprite (a placeholder until the art lands), the prose and the sounds load
     /// from their files, the one focus model keeps its rules, the transitions finish, and the scene is built.</summary>
     public class ArgumentPrototypeEditorTests
     {
@@ -28,73 +28,75 @@ namespace JamKit.Argument.Tests
             ArgumentHost.OverrideExpression(null);
         }
 
-        static void Run(ArgumentView view, float seconds)
+        static BattleFlow Flow(ArgumentDifficulty d = ArgumentDifficulty.Story) =>
+            new BattleFlow(new ArgumentEngine(DreamLenaDemo.Build(), new ArgumentSetup { difficulty = d, allEvidence = true, seed = 3 }));
+
+        static void Run(ArgumentStage stage, BattleFlow flow, float seconds, BattlePilot pilot = null)
         {
-            for (float t = 0f; t < seconds; t += 0.02f) view.Tick(0.02f);
+            for (float t = 0f; t < seconds; t += 0.02f)
+            {
+                if (pilot != null) flow.Tick(0.02f, pilot.Steer(flow, 0.02f));
+                stage.Render(flow, 0.02f, "hints", null, false, 1f);
+            }
         }
 
         [Test]
-        public void TheScreenBuildsOnBlackWithTheSpriteAndRealFonts()
+        public void TheStageBuildsOnBlackWithTheSpriteAndRealFonts()
         {
             var parent = new VisualElement();
-            var view = new ArgumentView(parent);
-            Assert.That(parent.Q<VisualElement>(ArgumentView.RootName), Is.Not.Null);
+            var stage = new ArgumentStage(parent);
+            Assert.That(parent.Q<VisualElement>(ArgumentStage.RootName), Is.Not.Null);
             var black = parent.Q<VisualElement>("argument-black");
             Assert.That(black, Is.Not.Null, "the scene behind is covered");
             Assert.That(black.style.backgroundColor.value.r, Is.LessThan(0.05f), "mostly black");
-
             Assert.That(ArgumentArt.Display, Is.Not.Null, "DM Serif Display is in Resources/ArgumentFonts");
             Assert.That(ArgumentArt.Body, Is.Not.Null, "Crimson Text is in Resources/ArgumentFonts");
             Assert.That(ArgumentArt.BodyItalic, Is.Not.Null);
             var claimText = parent.Q<Label>("argument-claim-text");
             Assert.That(claimText.style.unityFontDefinition.value.font, Is.EqualTo(ArgumentArt.Display), "the claim in the display font");
 
-            var def = DreamLenaDemo.Build();
-            view.SetOpponent(def.opponent, "angry", "angry", "sprite placeholder");
-            Assert.That(view.SpriteName, Is.EqualTo("Lena_angry"));
-            Assert.That(parent.Q<VisualElement>("argument-sprite").style.backgroundImage.value.texture, Is.Not.Null);
-            view.SetClaim("THE CLAIM", def.claim, "3 key premises");
-            Assert.That(view.ClaimText, Is.EqualTo(def.claim));
-            view.SetPremise(0, "L1", "FACT", "", "standing", def.Premise("L1").text, PremiseStatus.Standing);
-            view.SetPremise(1, "?", "", "", "hidden", "", PremiseStatus.Hidden);
-            Assert.That(view.PremiseCard(0).style.display.value, Is.EqualTo(DisplayStyle.Flex));
-            view.SetFocusPanel("prompt", "L1", def.Premise("L1").text, "She said:", def.Premise("L1").askReply);
-            Assert.That(view.FocusText, Is.EqualTo(def.Premise("L1").text));
-            foreach (var v in new[] { "ask", "challenge", "concede", "press", "rest", "transcript" }) Assert.That(view.Verb(v), Is.Not.Null, v);
-            view.ShowEvidence("Which?", new[] { "the fourth chair", "Saturday off" }, new[] { "a", "b" });
-            Assert.That(view.EvidenceCard(1), Is.Not.Null);
-            view.ShowReasons("Because...", new[] { "a", "b", "c" });
-            Assert.That(view.ReasonCard(2), Is.Not.Null);
-            view.ShowEnd("Convinced", "Lena is amenable.", "Continue");
-            Assert.That(view.EndShown, Is.True);
-            Assert.That(view.ContinueButton, Is.Not.Null);
-            Assert.That(parent.Query<Button>().ToList(), Is.Empty, "no UI Toolkit buttons: one focus model, never lost");
-            view.Remove();
+            var flow = Flow();
+            stage.Render(flow, 0.02f, "hints", null, false, 1f);
+            Assert.That(stage.ClaimText, Is.EqualTo(flow.Def.claim));
+            Assert.That(stage.Face, Is.EqualTo(BattleFlow.OpeningFace), "she opens in her antagonistic pose");
+            Assert.That(parent.Q<VisualElement>("argument-portrait").style.backgroundImage.value.texture != null
+                || parent.Q<VisualElement>("argument-portrait").style.backgroundImage.value.renderTexture != null, Is.True, "her sprite is up");
+            Assert.That(parent.Q<VisualElement>("argument-table"), Is.Not.Null, "the table");
+            Assert.That(parent.Q<VisualElement>("argument-dialogue"), Is.Not.Null, "the dialogue box");
+            Assert.That(parent.Query<Button>().ToList(), Is.Empty, "no UI Toolkit buttons");
+            stage.Remove();
             Assert.That(parent.childCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TheDialogueBoxTypesALineAndNeverHasAFixedHeight()
+        {
+            var parent = new VisualElement();
+            var stage = new ArgumentStage(parent);
+            var flow = Flow();
+            Run(stage, flow, 0.3f, new BattlePilot());
+            var line = parent.Q<Label>("argument-line");
+            Assert.That(line.text, Does.Contain(Typewriter.HiddenOpen).Or.EqualTo(Typewriter.Spelled(flow.Delivery.Current.text)), "typed: the rest is there, unseen");
+            var box = parent.Q<VisualElement>("argument-dialogue");
+            Assert.That(box.style.height.value.value, Is.EqualTo(0f), "the box sizes to its text (no fixed height)");
+            Assert.That(box.style.maxHeight.value.value, Is.EqualTo(0f), "and nothing caps it");
+            Assert.That(line.style.overflow.value, Is.Not.EqualTo(Overflow.Hidden), "nothing clips the line");
+            stage.Remove();
         }
 
         [Test]
         public void TheTransitionsAreTimedAndFinish()
         {
-            var view = new ArgumentView(new VisualElement());
+            var stage = new ArgumentStage(new VisualElement());
+            var flow = Flow();
             bool inDone = false;
-            view.PlayIntro(() => inDone = true);
-            Assert.That(view.Busy, Is.True, "not a cut");
-            Run(view, 0.5f);
-            Assert.That(inDone, Is.False, "the intro takes about a second");
-            Run(view, 1f);
-            Assert.That(inDone && !view.Busy, Is.True);
-
-            bool open = false;
-            view.OpenBox(() => open = true);
-            Run(view, 0.2f);
-            Assert.That(view.BoxShown, Is.False, "the claims fold away first");
-            Run(view, 0.6f);
-            Assert.That(open && view.BoxShown, Is.True, "then the box opens");
-            bool closed = false;
-            view.CloseBox(() => closed = true);
-            Run(view, 0.8f);
-            Assert.That(closed && !view.BoxShown, Is.True, "the box collapses, the claims come back");
+            stage.PlayIntro(() => inDone = true);
+            Assert.That(stage.Busy, Is.True, "not a cut");
+            Run(stage, flow, 0.5f);
+            Assert.That(inDone, Is.False, "the intro takes over a second");
+            Run(stage, flow, 1f);
+            Assert.That(inDone && !stage.Busy, Is.True);
+            stage.Remove();
         }
 
         [Test]
@@ -289,27 +291,26 @@ namespace JamKit.Argument.Tests
         }
 
         [Test]
-        public void TheViewShowsTheBoilAndItsLabel()
+        public void TheStageShowsTheBoilAndItsLabel()
         {
             var parent = new VisualElement();
-            var view = new ArgumentView(parent);
-            view.SetOpponent("Lena", "angry", "angry", "");
-            Assert.That(view.SpriteShown, Is.Not.Null, "the sprite, boiled where there's a graphics device");
-            if (!ArgumentBoilLayer.Available) Assert.That(view.SpriteShown, Is.SameAs(ArgumentArt.Sprite("Lena", "angry", out _)), "no device: the plain sprite");
-            view.Tick(0.2f);
-            Assert.That(view.BoilLabel, Is.Empty, "hidden until F10");
-            view.ShowBoilLabel();
-            Assert.That(view.BoilLabel, Does.Contain("by her mood").And.Contain("Strong"), "angry: her mood's preset");
+            var stage = new ArgumentStage(parent);
+            var flow = Flow();
+            stage.Render(flow, 0.02f, "", "angry", false, 1f);
+            Assert.That(stage.Face, Is.EqualTo("angry"), "a capture can hold her on a face");
+            Assert.That(stage.BoilLabel, Is.Empty, "hidden until F10");
+            stage.ShowBoilLabel();
+            Assert.That(stage.BoilLabel, Does.Contain("by her mood").And.Contain("Strong"), "angry: her mood's preset");
             ArgumentBoil.Next();
             ArgumentBoil.Next();
-            view.ShowBoilLabel();
-            Assert.That(view.BoilLabel, Does.Contain("Subtle").And.Contain("F10").And.Contain("Shift+F10"));
-            view.Tick(5f);
-            Assert.That(view.BoilLabel, Is.Empty, "it goes after a few seconds");
-            view.ShowBoilLabel(true);
-            view.Tick(5f);
-            Assert.That(view.BoilLabel, Does.Contain("Subtle"), "a capture keeps it");
-            view.Remove();
+            stage.ShowBoilLabel();
+            Assert.That(stage.BoilLabel, Does.Contain("Subtle").And.Contain("F10").And.Contain("Shift+F10"));
+            for (int i = 0; i < 260; i++) stage.Render(flow, 0.02f, "", "angry", false, 1f);
+            Assert.That(stage.BoilLabel, Is.Empty, "it goes after a few seconds");
+            stage.ShowBoilLabel(true);
+            for (int i = 0; i < 260; i++) stage.Render(flow, 0.02f, "", "angry", false, 1f);
+            Assert.That(stage.BoilLabel, Does.Contain("Subtle"), "a capture keeps it");
+            stage.Remove();
         }
 
         [Test]
@@ -374,6 +375,60 @@ namespace JamKit.Argument.Tests
             var noWalt = ArgumentPrototype.SetupFor(ArgumentPrototype.NoWalt);
             Assert.That(noWalt.allEvidence, Is.False);
             Assert.That(noWalt.evidence, Does.Not.Contain(DreamLenaDemo.TruthWalt));
+        }
+
+        [Test]
+        public void TheStageDrawsAWholeBattleWithoutAnError()
+        {
+            // Every state of a battle, rendered frame by frame (no panel: the layout isn't measured, the drawing still runs).
+            var parent = new VisualElement();
+            var stage = new ArgumentStage(parent);
+            var flow = Flow();
+            var seen = new System.Collections.Generic.HashSet<BattleState>();
+            var pilot = new BattlePilot(false, BattlePilot.Mistake.WrongReason, BattlePilot.Mistake.Press);
+            for (int i = 0; i < 60 * 400 && !flow.Over; i++)
+            {
+                flow.Tick(1f / 60f, pilot.Steer(flow, 1f / 60f));
+                if (i % 3 == 0) stage.Render(flow, 3f / 60f, "hints", null, false, 1f);
+                seen.Add(flow.State);
+            }
+            Assert.That(flow.Over, Is.True, "the battle ends");
+            Assert.That(seen, Does.Contain(BattleState.Debate).And.Contain(BattleState.Because).And.Contain(BattleState.Showdown).And.Contain(BattleState.Ending));
+            stage.ShowCaseFile(flow, true);
+            Assert.That(stage.CaseFileShown, Is.True);
+            stage.ShowCaseFile(flow, false);
+            stage.ShowEnd("Convinced", "Lena is unsure.", "", "Continue", true);
+            Assert.That(stage.EndShown, Is.True);
+            stage.Remove();
+        }
+
+        [Test]
+        public void TheTableIsDrawnInTheSpritesStyle()
+        {
+            var kitchen = StageArt.Table("kitchen_table");
+            Assert.That(kitchen, Is.Not.Null);
+            Assert.That(kitchen.width, Is.EqualTo(StageArt.TableWidth));
+            Assert.That(kitchen.height, Is.EqualTo(StageArt.TableHeight));
+            Assert.That(StageArt.Table("larch_street_foot"), Is.Not.SameAs(kitchen), "Walt has his own step");
+            Assert.That(StageArt.Table("kitchen_table"), Is.SameAs(kitchen), "drawn once");
+            Assert.That(StageArt.Vignette(), Is.Not.Null);
+            Assert.That(StageArt.Grain(), Is.Not.Null);
+        }
+
+        [Test]
+        public void TheBattleCaptureFlagsParse()
+        {
+            Assert.That(ArgumentBattleShot.Parse(new[] { "VisitingHours.exe" }, out _), Is.False, "nothing without a flag");
+            Assert.That(ArgumentBattleShot.Parse(new[] { "game.exe", "-battle-shot", "C:/out/stills" }, out var r), Is.True);
+            Assert.That(r.record, Is.False);
+            Assert.That(r.folder, Is.EqualTo("C:/out/stills"));
+            Assert.That(ArgumentBattleShot.Parse(new[] { "game.exe", "-battle-record", "C:/out/run", "-battle-record-every", "0.25", "-battle-record-battle", "walt_night1" }, out r), Is.True);
+            Assert.That(r.record, Is.True);
+            Assert.That(r.every, Is.EqualTo(0.25f));
+            Assert.That(r.battle, Is.EqualTo(WaltNight1.Id));
+            Assert.That(ArgumentBattleShot.Parse(new[] { "game.exe", "-battle-record" }, out r), Is.True);
+            Assert.That(r.every, Is.EqualTo(0.5f), "a frame every half second by default");
+            Assert.That(r.battle, Is.EqualTo(ArgumentBattles.Lena));
         }
     }
 }

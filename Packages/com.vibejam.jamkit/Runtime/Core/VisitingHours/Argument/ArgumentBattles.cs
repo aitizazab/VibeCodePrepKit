@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace JamKit.Argument
@@ -21,6 +22,12 @@ namespace JamKit.Argument
         /// <summary>Debug and the prototype: every card, found or not.</summary>
         public bool allEvidence;
         public ulong seed = 1;
+        /// <summary>The day's bedside (docs/redesign/day.md): +1 her anger starts a step higher ("Lena"), -1 a step gentler
+        /// ("just sit").</summary>
+        public int angerStart;
+        /// <summary>Nadia already said sorry at his bedside (Day 1's "the phone"): the honest answer to "He called you
+        /// first" is open from the start.</summary>
+        public bool admitted;
     }
 
     /// <summary>What a battle hands back to the game.</summary>
@@ -80,6 +87,8 @@ namespace JamKit.Argument
                 force = context.force,
                 despair = context.despair < 0 ? 0 : context.despair > ArgumentMeters.DespairMax ? ArgumentMeters.DespairMax : context.despair,
                 ledger = ledger,
+                angerStart = Math.Max(-1, Math.Min(1, context.angerStart)),
+                admitted = context.admitted,
             };
             setup.evidence.AddRange(context.found);
             return setup;

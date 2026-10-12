@@ -27,7 +27,7 @@ namespace JamKit.DreamEscape
         /// Unsure or Condemns when its end card is closed (Unsure too if it couldn't start, so the night goes on).</summary>
         public static void Start(string battleId, IReadOnlyList<string> evidence, Action<HouseOutcome> done)
         {
-            var host = ArgumentHost.BeginBattle(battleId, Context(evidence), result => done?.Invoke(OutcomeOf(result)));
+            var host = ArgumentHost.BeginBattle(battleId, Context(evidence, battleId), result => done?.Invoke(OutcomeOf(result)));
             if (host != null) return;
             Debug.LogWarning("JAMKIT_DREAM no battle \"" + battleId + "\" could start: the night goes on, unsure");
             done?.Invoke(HouseOutcome.Unsure);
@@ -46,6 +46,21 @@ namespace JamKit.DreamEscape
                 seed = (ulong)Environment.TickCount,
             };
             if (evidence != null) c.found.AddRange(evidence);
+            return c;
+        }
+
+        /// <summary>As <see cref="Context(IReadOnlyList{string})"/>, plus what the day's bedside changed for this battle
+        /// (docs/redesign/day.md, read through Chain.HasDreamChange): for Lena, Day 2's "Lena" starts her anger a step
+        /// higher and "just sit" a step gentler; Day 1's "the phone" means Nadia already said sorry, so the honest answer
+        /// to "He called you first" is open from the start.</summary>
+        public static ArgumentContext Context(IReadOnlyList<string> evidence, string battleId)
+        {
+            var c = Context(evidence);
+            var save = GameRoot.Exists ? GameRoot.Save.Data : null;
+            if (save == null || battleId != ArgumentBattles.Lena) return c;
+            if (JamKit.VisitingHours.Chain.HasDreamChange(save, JamKit.VisitingHours.DreamChanges.LenaWary)) c.angerStart += 1;
+            if (JamKit.VisitingHours.Chain.HasDreamChange(save, JamKit.VisitingHours.DreamChanges.LenaSofter)) c.angerStart -= 1;
+            c.admitted = JamKit.VisitingHours.Chain.HasDreamChange(save, JamKit.VisitingHours.DreamChanges.LenaSorry);
             return c;
         }
 

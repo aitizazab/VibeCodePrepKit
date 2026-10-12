@@ -72,7 +72,8 @@ namespace JamKit.Tests.Argument
             Assert.That(e.InPressure, Is.False, "pressure only as a consequence");
             Assert.That(e.Heat, Is.EqualTo(0));
             Assert.That(e.Ask("L3"), Is.True);
-            Assert.That(e.Status("L5"), Is.EqualTo(PremiseStatus.Standing), "asking twice in the right place reveals the deepest");
+            Assert.That(e.Transcript.Last(x => x.speaker == Speaker.Opponent).text, Is.EqualTo(e.Def.Premise("L3").askAgainReply), "asked again, she points to Theo's room");
+            Assert.That(e.Status("L5"), Is.EqualTo(PremiseStatus.Hidden), "the drawing (or the paper plane) brings out the deepest, not asking (2026-10-12)");
         }
 
         [Test]
@@ -190,7 +191,8 @@ namespace JamKit.Tests.Argument
             Assert.That(e.InPressure, Is.True);
             e.Tick(Dt, Vector2.Zero);
             Assert.That(e.Pressure.Spec.level, Is.EqualTo(3), "high");
-            Assert.That(e.Pressure.Spec.duration, Is.EqualTo(8f));
+            Assert.That(e.Pressure.Spec.duration, Is.EqualTo(PressureSpec.PainfulDuration), "longer since the redesign (14 s: the three rings)");
+            Assert.That(e.Pressure.Spec.calls, Is.EqualTo(3), "the three rings");
         }
 
         [Test]
