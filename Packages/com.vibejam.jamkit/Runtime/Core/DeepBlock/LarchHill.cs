@@ -258,15 +258,17 @@ namespace JamKit.DeepBlock
             _layer = "bottom";
             // A grate across the creek and a fence on the bank at X 40: the creek can't take her round Walt.
             Box("The grate (across the creek)", BlockKind.Fence, 39.6f, CreekZ0, 40.4f, CreekZ1, CreekBed, 6f);
-            WallZ("The bank fence", BlockKind.Fence, 40f, -44f, CreekZ0, L0, 6f, 0.6f);
+            WallZ("The bank hedge", BlockKind.Hedge, 40f, -44f, CreekZ0, L0, 6f, 1.2f);
 
             // The foot's ground (Z 0-34) across the middle strip, the shop's apron and the yard; a filler west of the shop.
             Ground("The foot (ground)", MidX0, CreekZ1, RavX0, Z1, L0);
             Ground("The shop's apron", -62f, CreekZ1, -44f, 24f, L0);
             Box("The boatshed (west of the shop)", BlockKind.BrickWall, WestX, CreekZ1, -62f, 24f, -6f, 5.5f);
             Ground("The foot square", WestX, 24f, MidX0, Z1, L0);
-            // The flood wall: 5 m along the creek's north bank, so the shop's apron is the only landing.
-            Box("The flood wall", BlockKind.BrickWall, -44f, CreekZ1, RavX0, CreekZ1 + 1f, L0, 5f);
+            // The flood wall along the creek's north bank: drawn 1.2 m (so the climb shows from the far bank), held to 5 m
+            // by the dream above it, so the shop's apron is the only landing (stills of 2026-10-12: at 5 m it hid the foot).
+            Box("The flood wall", BlockKind.BrickWall, -44f, CreekZ1, RavX0, CreekZ1 + 1f, L0, 1.2f);
+            Box("The flood wall (held higher by the dream)", BlockKind.Boundary, -44f, CreekZ1, RavX0, CreekZ1 + 1f, 1.2f, 5f);
 
             // Walt's bike shop: 18 x 12 m, one storey, its garage door half open onto the apron, a back door to the yard.
             _layer = "shop";
@@ -451,6 +453,24 @@ namespace JamKit.DeepBlock
 
         void MakeBounds()
         {
+            // The world's edges as you see them (the stills of 2026-10-12 showed sky under the hill past them): the far bank
+            // past its hedge, a stone wall up the west and east sides at each level's height, a tall hedge behind the top.
+            _layer = "edges";
+            Ground("The far bank (past the hedge)", 40.6f, -44f, EastX + 4f, CreekZ0, L0);
+            Ground("The creek bed (past the grate)", RavX1, CreekZ0, EastX + 4f, CreekZ1, CreekBed);
+            float[] zs = { CreekZ1, Z1, Z2, Z3, ZEnd + 4f };
+            float[] east = { 2f, L1 + 1.2f, L2 + 1.2f, Top + 1.2f };
+            for (int i = 0; i < 4; i++)
+                Box("The ravine's east wall " + (i + 1), BlockKind.BrickWall, EastX, zs[i], EastX + 4f, zs[i + 1], -6f, east[i]);
+            for (float z = -44f; z < ZEnd; z += 6f)
+            {
+                float z1 = Math.Min(ZEnd + 4f, z + 6f);
+                float top = Math.Max(Math.Max(TopAt(WestX + 1f, z), TopAt(WestX + 1f, z1 - 0.01f)), 0f) + 2f;
+                Box("The west wall " + (int)((z + 44f) / 6f + 1f), BlockKind.BrickWall, WestX - 4f, z, WestX, z1, -6f, top);
+            }
+            Box("The tall hedge behind the top", BlockKind.Hedge, WestX - 4f, ZEnd, EastX + 4f, ZEnd + 4f, Top, Top + 7f);
+            Box("The hedge along the far bank", BlockKind.Hedge, WestX - 4f, -48f, EastX + 4f, -44f, L0, L0 + 3f);
+            _layer = "bounds";
             _layer = "bounds";
             Box("Bound (west)", BlockKind.Boundary, WestX - 4f, -44f, WestX, ZEnd + 4f, -6f, 70f);
             Box("Bound (east)", BlockKind.Boundary, EastX, -44f, EastX + 4f, ZEnd + 4f, -6f, 70f);
@@ -580,12 +600,14 @@ namespace JamKit.DeepBlock
             const float eye = 1.5f;
             views.Add(new HillView { name = "street-01-bottom-the-climb", eye = arrival + new Vector3(0f, eye, 0f), look = towerPoint + new Vector3(0f, -14f, -30f) });
             views.Add(new HillView { name = "street-02-bottom-the-shop", eye = new Vector3(-48f, eye, -12f), look = new Vector3(-53f, 2f, 6f) });
-            views.Add(new HillView { name = "street-03-middle-up-to-the-tower", eye = new Vector3(-36f, L2 + eye, 80f), look = towerPoint });
-            views.Add(new HillView { name = "street-04-middle-down-the-road", eye = new Vector3(-36f, L2 + eye, 80f), look = new Vector3(10f, 0f, 10f) });
-            views.Add(new HillView { name = "street-05-top-the-vista", eye = new Vector3(LookoutX0 + 4f, LookoutTop + eye, Z3 + 1.2f), look = new Vector3(-14f, 0f, 20f) });
+            views.Add(new HillView { name = "street-03-middle-up-to-the-tower", eye = new Vector3(42f, L1 + eye, 36f), look = towerPoint });
+            views.Add(new HillView { name = "street-04-middle-down-the-road", eye = new Vector3(-36f, L2 + eye, 70f), look = new Vector3(5f, 2f, 12f) });
+            views.Add(new HillView { name = "street-05-top-the-vista", eye = new Vector3(LookoutX0 + 4f, LookoutTop + eye, Z3 + 1.2f), look = new Vector3(-18f, 4f, 0f) });
             views.Add(new HillView { name = "street-06-top-the-house", eye = new Vector3(-2f, Top + eye, Z3 + 0.8f), look = houseOrigin + new Vector3(0f, 3f, 4f) });
-            views.Add(new HillView { name = "street-07-the-rooftops", eye = new Vector3(-50f, ShedRoof + RoofStep * 3f + eye, 55f), look = new Vector3(-53f, ShedRoof + RoofStep * 7f, 90f) });
-            views.Add(new HillView { name = "street-08-the-ravine", eye = new Vector3(54f, RavineBed + eye + 1f, 20f), look = new Vector3(54f, 4f, 60f) });
+            views.Add(new HillView { name = "street-07-the-rooftops", eye = new Vector3(-53f, ShedRoof + RoofStep * 2f + eye, 50f), look = new Vector3(-53f, ShedRoof + RoofStep * 6f, 90f) });
+            views.Add(new HillView { name = "street-08-the-ravine-culvert", eye = new Vector3(54f, RavineBed + eye, 12f), look = new Vector3(54f, RavineBed + 0.6f, 30f) });
+            float fallsEye = RavineBed + (Top - RavineBed) / 28f * 7f + eye;
+            views.Add(new HillView { name = "street-09-the-ravine-falls", eye = new Vector3(54f, fallsEye, 60f), look = new Vector3(54f, fallsEye + 12f, 110f) });
         }
     }
 }

@@ -301,5 +301,59 @@ namespace JamKit.Tests.DeepBlock
             for (float t = 0f; t < NeighbourLoop.Period; t += 0.05f) { min = Math.Min(min, a.SprinklerAngle(t)); max = Math.Max(max, a.SprinklerAngle(t)); }
             Assert.That(max - min, Is.EqualTo(NeighbourLoop.SprinklerSweep).Within(3f));
         }
+
+        /// <summary>The plan of the hill for the creator's review page (art-tools/night1_hill_plan.py draws it): every
+        /// piece's footprint and top, the routes' lines, the story's spots, as JSON next to the test assembly
+        /// (larch-plan.json; the path is printed). Explicit: it runs only when asked for by name.</summary>
+        [Test, Explicit]
+        public void ExportThePlan()
+        {
+            string path = System.IO.Path.Combine(TestContext.CurrentContext.TestDirectory, "larch-plan.json");
+            var h = LarchHill.Build();
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            string F(float v) => v.ToString("0.###", ci);
+            string Q(string v) => "\"" + (v ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+            var sb = new StringBuilder();
+            sb.Append("{\"pieces\":[");
+            for (int i = 0; i < h.pieces.Count; i++)
+            {
+                var p = h.pieces[i];
+                if (i > 0) sb.Append(',');
+                float top = p.rampAxis == 0 ? p.Max.Y : Math.Max(p.rampLow, p.rampHigh);
+                sb.Append("{\"name\":").Append(Q(p.name)).Append(",\"kind\":").Append(Q(p.kind.ToString())).Append(",\"layer\":").Append(Q(p.layer))
+                  .Append(",\"x0\":").Append(F(p.Min.X)).Append(",\"z0\":").Append(F(p.Min.Z)).Append(",\"x1\":").Append(F(p.Max.X)).Append(",\"z1\":").Append(F(p.Max.Z))
+                  .Append(",\"top\":").Append(F(top)).Append(",\"low\":").Append(F(p.rampAxis == 0 ? p.Max.Y : Math.Min(p.rampLow, p.rampHigh)))
+                  .Append(",\"solid\":").Append(p.solid ? "true" : "false").Append('}');
+            }
+            sb.Append("],\"routes\":[");
+            var all = new List<BlockRoute> { h.wayIn };
+            all.AddRange(h.routes);
+            for (int i = 0; i < all.Count; i++)
+            {
+                var r = all[i];
+                if (i > 0) sb.Append(',');
+                sb.Append("{\"name\":").Append(Q(r.name)).Append(",\"points\":[");
+                var line = r.course.route;
+                int n = Math.Max(2, (int)(line.Length / 2f));
+                for (int k = 0; k <= n; k++)
+                {
+                    var pt = line.PointAt(line.Length * k / n, 0f);
+                    if (k > 0) sb.Append(',');
+                    sb.Append('[').Append(F(pt.X)).Append(',').Append(F(pt.Z)).Append(']');
+                }
+                sb.Append("]}");
+            }
+            sb.Append("],\"spots\":[");
+            for (int i = 0; i < h.spots.Count; i++)
+            {
+                var s = h.spots[i];
+                if (i > 0) sb.Append(',');
+                sb.Append("{\"id\":").Append(Q(s.id)).Append(",\"name\":").Append(Q(s.name)).Append(",\"x\":").Append(F(s.position.X)).Append(",\"z\":").Append(F(s.position.Z))
+                  .Append(",\"sx\":").Append(F(s.size.X)).Append(",\"sz\":").Append(F(s.size.Z)).Append('}');
+            }
+            sb.Append("],\"arrival\":[").Append(F(h.arrival.X)).Append(',').Append(F(h.arrival.Z)).Append("],\"house\":[").Append(F(h.houseOrigin.X)).Append(',').Append(F(h.houseOrigin.Z)).Append("]}");
+            System.IO.File.WriteAllText(path, sb.ToString());
+            TestContext.Out.WriteLine("plan: " + path);
+        }
     }
 }

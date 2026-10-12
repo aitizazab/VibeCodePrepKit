@@ -1,0 +1,50 @@
+{
+ "name": "night1-hill/index",
+ "dir": "art/review/2026-10-13",
+ "title": "Visiting Hours: Night 1, Larch Street on a hill",
+ "subtitle": "Layout A's four routes laid on a slope, as you offered: Walt's bike shop at the bottom by the creek, the house with its tower at the top, four terraces 12 m apart. The plan first, then the stills from the bottom, the middle and the top (from the run of 2026-10-12, before the fixes listed below).",
+ "questions": [
+  "Does the hill show the size of the setting? From the far bank you see the whole climb; from the lookout at the top you see the whole street.",
+  "Keep the gold beacon? The tower alone is hidden from most of the climb (you walk under 12 m retaining walls), so a soft column of light stands up out of it: with it the house is found from 74 to 100% of every route. Without it, the tower shows from 0 to 18% of the way.",
+  "Is any route too long or too short? The road takes about 32 s (two switchbacks, 308 m), the garden stairs 10 s, the rooftops 12 s (nine double jumps), the creek ravine 30 s (the culvert slide, 28 falls). The way in, from the arrival over the creek and through the shop to Walt, takes about 4 s."
+ ],
+ "notes": [
+  "Fixed after these stills, not shown yet: the flood wall along the creek is drawn 1.2 m high now (it hid the foot of the hill from the far bank) and the dream holds it at 5 m; the world's edges have walls and hedges (there was sky under the hill past them); the hedge on the far bank replaces a white 6 m fence; the middle, rooftop and ravine cameras moved to where the view is.",
+  "Both halves of Walt's optional premise ('the same Saturday') are below his gate: the neighbours' loop plays on the far bank where you arrive, and Saturday's paper is on his yard bench.",
+  "Every line is a placeholder. Elias is a stand-in figure (there's no art of him yet); the shop's sign has no lettering."
+ ],
+ "sections": [
+  {
+   "title": "The plan: the hill from above, north (up the hill) at the top",
+   "cols": 1,
+   "items": [
+    { "file": "art/review/2026-10-13/night1-hill/night1-hill-plan.svg", "label": "Larch Street on a hill: the four routes and the way in", "note": "White dashes: the way in (arrival, the creek's double jump, the shop's garage door, Walt). Orange: the road. Green: the garden stairs and back lanes. Red: the rooftops. Blue: the creek ravine." }
+   ]
+  },
+  {
+   "title": "The bottom: the whole climb",
+   "cols": 2,
+   "items": [
+    { "file": "art/review/2026-10-13/night1-hill/street-01-bottom-the-climb.png", "label": "From the far bank, where Nadia arrives", "note": "Before the fix: the 5 m flood wall hides the foot of the hill. It's 1.2 m now." },
+    { "file": "art/review/2026-10-13/night1-hill/street-02-bottom-the-shop.png", "label": "Walt's bike shop across the creek", "note": "The half-open garage door is the first slide." }
+   ]
+  },
+  {
+   "title": "The middle",
+   "cols": 2,
+   "items": [
+    { "file": "art/review/2026-10-13/night1-hill/street-03-middle-up-to-the-tower.png", "label": "Up to the tower from the west hairpin", "note": "Badly placed camera (moved since)." },
+    { "file": "art/review/2026-10-13/night1-hill/street-07-the-rooftops.png", "label": "The rooftops: the row stepping up the hill" },
+    { "file": "art/review/2026-10-13/night1-hill/street-08-the-ravine.png", "label": "The ravine at the culvert", "note": "Before the fix: sky past the ravine's east side. It has a wall now." }
+   ]
+  },
+  {
+   "title": "The top: the vista and the house",
+   "cols": 2,
+   "items": [
+    { "file": "art/review/2026-10-13/night1-hill/street-05-top-the-vista.png", "label": "The vista from the lookout" },
+    { "file": "art/review/2026-10-13/night1-hill/street-06-top-the-house.png", "label": "The house and its beacon from the top of the road" }
+   ]
+  }
+ ]
+}

@@ -16,7 +16,11 @@ with its tower at the top.
   - `core-tests/DeepBlock` (`LarchHillTests`): the reach, the autopilot on every route at 20, 60 and 144 fps, the gate,
     the views and the story.
   - Unity: `DreamStreetEditorTests` and `DreamStreetPlayTests`.
-- **Stills:** `tools/street-capture.ps1`.
+- **Stills:** `tools/street-capture.ps1` (nine views: the bottom, the middle, the top, the rooftops, the ravine's culvert
+  and falls).
+- **The plan** for review pages: `dotnet test core-tests/DeepBlock/DeepBlock.Tests.csproj --filter "Name=ExportThePlan"`
+  writes `larch-plan.json` next to the test assembly; `uv run python tools/art/night1-hill-plan.py <json> <out.svg>` draws
+  it (north up, heights shaded, the routes over it). The review spec is `docs/art/vh-night1-hill-review.json`.
 
 ## The hill
 
@@ -36,7 +40,10 @@ World axes: X runs east, Z runs north (up the hill), Y is up. The foot is at Y 0
   stop her going round.
 - The shop's garage door is half open (1.15 m under it: the first slide). Its back door opens into the yard, where
   Walt stands in the gate to the hill. That gate is a switch that stays shut until his argument.
-- The view from the far bank takes in the whole climb, the tower at the top.
+- The view from the far bank takes in the whole climb, the tower at the top. The flood wall is drawn 1.2 m high so it
+  doesn't hide the foot (the first stills, 2026-10-12); the dream holds it at 5 m above that (an invisible wall).
+- The world's edges have walls and hedges you can see: the ravine's east wall and the west wall at each level's height,
+  a tall hedge behind the top, a hedge along the far bank, the far bank and the creek past the hedge.
 
 **The four ways up**, all from the foot square behind Walt. The times are the dotnet autopilot's at 60 fps:
 
