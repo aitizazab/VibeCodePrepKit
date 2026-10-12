@@ -756,7 +756,7 @@ namespace JamKit.VisitingHours
             if (!VhTitleTable.QuitAvailable) quit.action = VhTitleAction.None;
 
             // The notepad (Credits: written at the top of its page) at the bottom, cut by the bottom edge, the pen on it.
-            var pad = Piece(s, t, "notepad", VhTitleAction.Credits, new Vector3(-0.0125f, 0.75f, -0.218f), Quaternion.Euler(0f, 12f, 0f));
+            var pad = Piece(s, t, "notepad", VhTitleAction.Credits, new Vector3(-0.0125f, 0.75f, -0.205f), Quaternion.Euler(0f, 12f, 0f));
             VhMeshKit.Show(pad.transform, "Pad", s.meshes.RoundedBox(new Vector3(0.15f, 0.014f, 0.21f), 0.003f, 3), st.Mat(VhWakingStyle.Paper), new Vector3(0f, 0.007f, 0f), Quaternion.identity);
             var pageArt = s.boot != null ? s.boot.Art("notepad_page") : null;
             if (pageArt == null && !s.missingArt.Contains("notepad_page")) s.missingArt.Add("notepad_page");
@@ -764,7 +764,8 @@ namespace JamKit.VisitingHours
             VhMeshKit.Show(pad.transform, "Page", s.meshes.Quad(0.144f, 0.2f), Crop(st.Mat(Color.white, page, 0f), page, 0.144f / 0.2f), new Vector3(0f, 0.0143f, -0.003f), Quaternion.Euler(90f, 0f, 0f), false);
             VhMeshKit.Show(pad.transform, "Binding", s.meshes.RoundedBox(new Vector3(0.152f, 0.012f, 0.02f), 0.004f, 3), st.Mat(new Color(0.22f, 0.24f, 0.28f)), new Vector3(0f, 0.013f, 0.1f), Quaternion.identity);
             FinishPiece(pad, true);
-            var pen = Piece(s, t, "pen", VhTitleAction.Credits, new Vector3(0.035f, 0.769f, -0.15f), Quaternion.Euler(0f, 70f, 90f), "notepad");
+            // The pen along the pad's right side, clear of "Credits".
+            var pen = Piece(s, t, "pen", VhTitleAction.Credits, new Vector3(0.062f, 0.769f, -0.158f), Quaternion.Euler(0f, 100f, 90f), "notepad");
             var navy = st.Mat(new Color(0.18f, 0.21f, 0.32f));
             VhMeshKit.Show(pen.transform, "Barrel", s.meshes.Cylinder(0.0045f, 0.0045f, 0.12f, 12), navy, new Vector3(0f, -0.06f, 0f), Quaternion.identity);
             VhMeshKit.Show(pen.transform, "Tip", s.meshes.Cylinder(0.0045f, 0.0008f, 0.018f, 12), st.Mat(VhWakingStyle.Metal), new Vector3(0f, 0.06f, 0f), Quaternion.identity);
@@ -774,7 +775,7 @@ namespace JamKit.VisitingHours
 
             // Nadia's ID badge on its lanyard (Settings: a gear and the word on the card), bottom right, cut by the bottom
             // edge; a little larger than life so "Settings" reads from above. The lanyard arches up from the clip and curls left.
-            var badge = Piece(s, t, "badge", VhTitleAction.Settings, new Vector3(0.258f, 0.75f, -0.131f), Quaternion.Euler(0f, -6f, 0f));
+            var badge = Piece(s, t, "badge", VhTitleAction.Settings, new Vector3(0.225f, 0.75f, -0.115f), Quaternion.Euler(0f, -6f, 0f));
             badge.transform.localScale = Vector3.one * 1.4f;
             VhMeshKit.Show(badge.transform, "Card", s.meshes.RoundedBox(new Vector3(0.056f, 0.002f, 0.088f), 0.0015f, 2), st.Mat(new Color(0.9f, 0.9f, 0.88f)), new Vector3(0f, 0.001f, 0f), Quaternion.identity);
             var photo = s.boot != null ? s.boot.Art("badge_photo") : null;
@@ -787,12 +788,12 @@ namespace JamKit.VisitingHours
             Box(s, badge.transform, "Clip", new Vector3(0.016f, 0.004f, 0.012f), new Vector3(0f, 0.003f, 0.05f), st.Mat(VhWakingStyle.Metal));
             // The lanyard: from the clip, a smooth loop lying to the card's left (towards the middle of the table).
             var lanyard = new List<Vector3>();
-            Vector3 loopCentre = new Vector3(-0.065f, 0.003f, 0.035f);
+            Vector3 loopCentre = new Vector3(-0.04f, 0.003f, 0.072f);
             float start = Mathf.Atan2(0.056f - loopCentre.z, 0f - loopCentre.x);
             for (int i = 0; i <= 36; i++)
             {
                 float ang = start + i / 36f * Mathf.PI * 1.55f;
-                lanyard.Add(loopCentre + new Vector3(Mathf.Cos(ang) * 0.065f, 0f, Mathf.Sin(ang) * 0.055f));
+                lanyard.Add(loopCentre + new Vector3(Mathf.Cos(ang) * 0.04f, 0f, Mathf.Sin(ang) * 0.03f));
             }
             VhMeshKit.Show(badge.transform, "Lanyard", s.meshes.Tube(lanyard, 0.0036f, 10), st.Mat(VhWakingStyle.Lanyard, null, 0.6f), Vector3.zero, Quaternion.identity);
             FinishPiece(badge, true);
@@ -811,10 +812,11 @@ namespace JamKit.VisitingHours
 
         // ---------- Camera poses ----------
 
-        /// <summary>The title's camera (table space): straight down over the table, 0.37 m above it, the far side of the
-        /// table at the top of the frame (the creator's sketch); its field of view.</summary>
-        static readonly Vector3 TableCamera = new Vector3(0f, 1.12f, 0f), TableLook = new Vector3(0f, 0.75f, 0f);
-        const float TableFov = 50f;
+        /// <summary>The title's camera (table space): straight down over the table, 1 m above it with a narrow lens (the
+        /// sketch is nearly flat: from 0.37 m the mug's rim swelled out of the frame), the far side of the table at the top;
+        /// the frame shows the table from x -0.31 to 0.31 m and z -0.17 to 0.17 m.</summary>
+        static readonly Vector3 TableCamera = new Vector3(0f, 1.75f, 0f), TableLook = new Vector3(0f, 0.75f, 0f);
+        const float TableFov = 19.6f;
 
         /// <summary>The light over the title table (the editor's "title-lamp"; the lighting places it).</summary>
         public const string TableLampName = "Lamp over the table (light)";
@@ -862,7 +864,7 @@ namespace JamKit.VisitingHours
             switch (QuitPiece)
             {
                 default:
-                    return BuildMug(s, t, new Vector3(0.245f, 0.75f, 0.0665f), 0f);
+                    return BuildMug(s, t, new Vector3(0.215f, 0.75f, 0.0665f), 0f);
             }
         }
 

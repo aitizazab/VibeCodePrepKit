@@ -45,8 +45,8 @@ namespace JamKit.VisitingHours
         public static readonly Color TableNightSky = new Color(0.050f, 0.058f, 0.085f), TableNightGround = new Color(0.026f, 0.024f, 0.026f);
         /// <summary>The lamp: warm tungsten, off the frame's upper right, about half a metre above the table, aimed across it.</summary>
         public static readonly Color LampColor = new Color(1f, 0.74f, 0.46f);
-        public const float LampIntensity = 0.75f;
-        public static readonly Vector3 LampPosition = new Vector3(0.42f, 1.25f, 0.32f), LampTarget = new Vector3(-0.02f, 0.75f, -0.02f);
+        public const float LampIntensity = 1.0f;
+        public static readonly Vector3 LampPosition = new Vector3(0.42f, 1.25f, 0.32f), LampTarget = new Vector3(0.08f, 0.75f, 0f);
         /// <summary>A faint cold moonlight from the other side, so the shadows aren't black.</summary>
         public const float MoonFillIntensity = 0.07f;
         // (The morning set-up, kept for reference: the title was a morning table before the creator's sketch.)
