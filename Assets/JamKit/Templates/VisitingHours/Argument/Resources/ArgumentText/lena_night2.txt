@@ -1,3 +1,20 @@
+# EDITED 2026-10-13 by the argument agent, after the creator's rewrite of 2026-10-12. The creator's text is kept word
+# for word (typos, notes and the empty L1c.askReply too); where a line was shortened, the creator's whole line is kept as
+# the conditional line below it, and every original stays as a // note;
+# what's added or changed, each marked "(agent)" in a ? note under it:
+#   - conditional lines pulled out of your // notes, in the new format  id[condition]: text  (the first that holds
+#     replaces the plain line). Meters: anger (Lena's, 0-3: antagonising, retorts and presses raise it), force (the
+#     game-wide tally, plus this battle's presses), despair (0-3, 3 = max), presses, antagonised, heat.
+#     "," is and, "|" is or. Thresholds used: angry = anger 2+, max anger = 3, low anger = 1 or less;
+#     low force = 1 or less, high force = 3+; max despair = 3, no despair = 0.
+#   - where your note asked for a line's latter part to be conditional, the plain line is the first part and the
+#     conditional line is your whole line;
+#   - L2.pressLine's tamer line (you asked for one: an agent placeholder);
+#   - L5's three reason cards (the drawing now breaks L5: agent placeholders, the block you wanted to discuss);
+#   - the evidence cards rewritten to docs/NIGHTS-1-2.md's memory-to-card table (two old ones gone: ded_why_lena_came,
+#     fact_chart); personalText: Lena's planisphere (a placeholder).
+# How notes read now: a // note is never shown, except after claim, opening and noTouchReply, where it's your
+# replacement line and is used. *word* is bold. These # lines are ignored by the game; they can stay or go.
 # lena_night2: every line of this battle. Edit the text after the colon; keep the id before it.
 # Indented lines starting with ? are notes (what the line must say); the game ignores them. \n is a line break.
 # The flow and every line in detail: docs/ARGUMENT-PROSE-BRIEF.md.
@@ -27,8 +44,9 @@ letItRestReply: ...Yeah. And I see yours. So take it. Something to help convince
   ? their answer; they hand over their keepsake
 truthText: Lena wouldn't let him cower behind your likely death; even he knows that. You'd want him to push forward.
   ? the truth Nadia wins (Convinced): what she now understands, kept for later battles
-personalText: [keepsake: undecided]
+personalText: Her planisphere, the star wheel, set to her last Thursday night. // was "[keepsake: undecided]"
   ? the keepsake Nadia gets (Heard out): names the object
+  ? (agent placeholder, docs/NIGHTS-1-2.md) Lena's planisphere: what Nadia brings to the stargazing in Morning, chosen.
 convincedReply: ...I know. And I hate that.
   ? their line when convinced
 heardOutReply: I hear you. But I don't feel the same. 
@@ -77,8 +95,10 @@ L1b.beside.reply: So in tune with my own son's thoughts. Don't make me laugh.
   ? why it misses
 L1b.nonsequitur: He set a chair, so he's ready to leave.
   ? a reason that doesn't follow from the evidence
-L1b.nonsequitur.reply: Setting a table isn't packing a bag... Are you feeling alright, Nadia? You're better at structuring your words than this.
-  ? why it doesn't follow // latter part of this line should be conditional on something else.
+L1b.nonsequitur.reply: Setting a table isn't packing a bag... // latter part of this line should be conditional on something else. (original: Setting a table isn't packing a bag... Are you feeling alright, Nadia? You're better at structuring your words than this.)
+  ? why it doesn't follow
+L1b.nonsequitur.reply[despair>=2,anger<=1]: Setting a table isn't packing a bag... Are you feeling alright, Nadia? You're better at structuring your words than this.
+  ? (agent) your whole line, when Nadia's despair is 2 or more and Lena's anger is 1 or less (she notices Nadia isn't herself). Your call on the condition.
 L1b.antagonise: You're a dream. A dream doesn't get a say in his life.
   ? an antagonising card: dismisses them instead of answering (angers them)
 L1b.antagonise.reply: Is that so? Or have you always disregarded my place in this family? Get out of my kitchen.
@@ -95,6 +115,8 @@ L1c.concedeReply: ...I can forgive you for a day. But it hurt Elias too.
   ? their answer to the concession (often states the next premise)
 L1c.trueReply: You know it's true. Don't argue with me about it. // Replace second line with "I don't need your silver tongue to say otherwise." when she's angry, or close to condemning Nadia.
   ? when Nadia tries to challenge something true: it's true, concede it
+L1c.trueReply[anger>=1|presses>=1]: You know it's true. I don't need your silver tongue to say otherwise.
+  ? (agent) when she's angry or close to condemning: any antagonising or press so far (either already makes her condemn).
 L1c.pressLine: I wasn't here, and it's not your business to know why.
   ? Nadia forcing it without a reason
 L1c.pressReply: ...Always so stubborn. Do you fear the consequences of your actions, Nadia?
@@ -115,6 +137,8 @@ L2.trueReply: Then where am I? Go on. I grow tired of your flonudering, Nadia. Y
   ? when Nadia tries to challenge something true: it's true, concede it
 L2.pressLine: I told you to stop spouting nonsense. Get it through your thick head. // tamer line used when less aggressive
   ? Nadia forcing it without a reason
+L2.pressLine[anger=0,presses=0,force<=1]: Please, Lena. Stop saying that. You don't know that.
+  ? (agent placeholder) the tamer line, while Nadia's been gentle: no antagonising, no presses yet, low Force.
 L2.pressReply: You scream, and you yell. Once more, you get what you want, but you're blind to see nothing really changes.
   ? their answer to being forced
 L2.retort: You don't get to ask me that. You know we have to try, we owe it to the real Lena.
@@ -175,12 +199,16 @@ L3b.sound.reply: ...Fine. Then let him have his wish.
   ? their answer: concedes, falls back or digs deeper
 L3b.beside: He loved Saturdays with you.
   ? a reason that's true but beside the point
-L3b.beside.reply: Yes. That's my point... Are you sure you're feeling Nadia? W-We don't need to continue if you're falling ill. // latter part exclusive to max despair counter, and low anger or 'force'.
+L3b.beside.reply: Yes. That's my point... // latter part exclusive to max despair counter, and low anger or 'force'. (original: Yes. That's my point... Are you sure you're feeling Nadia? W-We don't need to continue if you're falling ill.)
   ? why it misses
+L3b.beside.reply[despair>=3,anger<=1,force<=1]: Yes. That's my point... Are you sure you're feeling Nadia? W-We don't need to continue if you're falling ill.
+  ? (agent) your whole line: max despair, with low anger and low Force.
 L3b.nonsequitur: He worked that day, so he never really wanted a family.
   ? a reason that doesn't follow from the evidence
 L3b.nonsequitur.reply: That's cruel, and false. Why would you even say that? (// max anger and 'force' pathing replaces the latter part of this line with "I should cut your tongue out for that.")
   ? why it doesn't follow
+L3b.nonsequitur.reply[anger>=3,force>=3]: That's cruel, and false. I should cut your tongue out for that.
+  ? (agent) max anger and high Force.
 
 ## L3c (L3''): a link, FALSE, KEY, hidden at first
 L3c.text: Then let him have his wish.
@@ -219,6 +247,8 @@ L4.concedeLine: ...I know. And I regret every part of it.
   ? Nadia conceding it
 L4.concedeReply: ...Thank you for saying it. // if low anger and not despair; "And you should know I'd forgive you for any role you think you played in this."
   ? their answer to the concession (often states the next premise)
+L4.concedeReply[anger<=1,despair=0]: ...Thank you for saying it. And you should know I'd forgive you for any role you think you played in this.
+  ? (agent) low anger and no despair.
 L4.trueReply: Why lie straight to my face? You know it wouldn't work.
   ? when Nadia tries to challenge something true: it's true, concede it
 L4.pressLine: That's not the case. You're wrong, and I won't hear anymore of it.
@@ -247,37 +277,50 @@ L5.pressReply: That's exactly what she says in the drawing.
   ? their answer to being forced
 L5.slipName: a paper plane: THE BAD DREAM
   ? the slip as it flies in the pressure phase
+L5.sound: It isn't me he's afraid of. It's waking: the woman in scrubs is the hospital, wearing my face. I'm not what took you. The crash was.
+  ? (agent placeholder) the reason that follows, with Theo's drawing: the proof that takes this half-truth apart
+L5.sound.reply: ...Then why does it feel like you came to take him?
+  ? (agent placeholder) their answer
+L5.beside: I'm a nurse. Of course I wear scrubs.
+  ? (agent placeholder) a reason that's true but beside the point
+L5.beside.reply: That's not what the drawing is about, and you know it.
+  ? (agent placeholder) why it misses
+L5.nonsequitur: Theo drew it, so it's only a child's fear.
+  ? (agent placeholder) a reason that doesn't follow from the evidence
+L5.nonsequitur.reply: A child's fear is still a fear. Don't wave it away.
+  ? (agent placeholder) why it doesn't follow
 
 ## The evidence cards // need to be updates according to how everythign else changed.
+# (agent) rewritten to docs/NIGHTS-1-2.md's memory-to-card table: each card is in the tray once its memory or deduction is found.
 mem_fourth_chair.name: the fourth chair
   ? the card's name, as it reads in a sentence ("the fourth chair")
-mem_fourth_chair.note: A place set for someone who isn't here.
-  ? one line under the name: what it is
+mem_fourth_chair.note: Nadia's place card at the table, in Theo's handwriting.
+  ? one line under the name: what it is. Breaks L1' (key).
 ded_saturday_off.name: Saturday off
   ? the card's name, as it reads in a sentence ("the fourth chair")
-ded_saturday_off.note: He was on shift the day this breakfast never happened.
-  ? one line under the name: what it is
-truth_walt.name: Walt's truth
-  ? the card's name, as it reads in a sentence ("the fourth chair")
-truth_walt.note: "Patching it isn't fixing it."
-  ? one line under the name: what it is
+ded_saturday_off.note: "Pancakes!" is on every Sunday on the calendar. Last night's paper says it's Saturday.
+  ? one line under the name: what it is. The fridge calendar + Night 1's Saturday paper. Breaks L3' (key).
 ded_same_saturday.name: the same Saturday
   ? the card's name, as it reads in a sentence ("the fourth chair")
-ded_same_saturday.note: The same day, every night: the same flat tyre.
-  ? one line under the name: what it is
-ded_why_lena_came.name: why Lena came out
+ded_same_saturday.note: The street replays the same Saturday, to the second.
+  ? one line under the name: what it is. The street replaying Night 1 (and Walt's ledger, if found). Breaks L3'' (key).
+mem_bad_dream.name: Theo's drawing
   ? the card's name, as it reads in a sentence ("the fourth chair")
-ded_why_lena_came.note: The call log and the voicemail.
-  ? one line under the name: what it is
-fact_chart.name: his chart
+mem_bad_dream.note: "THE BAD DREAM": a woman in scrubs, taking the family away. Found in his room.
+  ? one line under the name: what it is. Against L5 (half true).
+mem_height_marks.name: Theo's height marks
   ? the card's name, as it reads in a sentence ("the fourth chair")
-fact_chart.note: Bed 14.
-  ? one line under the name: what it is
-fact_police_report.name: the police report
-  ? the card's name, as it reads in a sentence ("the fourth chair")
-fact_police_report.note: The crash on Route 9.
-  ? one line under the name: what it is
+mem_height_marks.note: Pencil lines up the door frame, stopping at ten.
+  ? one line under the name: what it is. Backs L1 (true: concede it).
 fact_photo.name: the family photo
   ? the card's name, as it reads in a sentence ("the fourth chair")
 fact_photo.note: Four of them, at the lake.
-  ? one line under the name: what it is
+  ? one line under the name: what it is. The "four" includes Nadia.
+fact_police_report.name: the police report
+  ? the card's name, as it reads in a sentence ("the fourth chair")
+fact_police_report.note: The call log: 3:04 to Nadia, unanswered. 3:07 to Lena, two minutes.
+  ? one line under the name: what it is. L4 is true and painful: it stays.
+truth_walt.name: Walt's truth
+  ? the card's name, as it reads in a sentence ("the fourth chair")
+truth_walt.note: Walt died in 2015. The street is a memory.
+  ? one line under the name: what it is. Won on Night 1 (Walt convinced): it also breaks L3''.

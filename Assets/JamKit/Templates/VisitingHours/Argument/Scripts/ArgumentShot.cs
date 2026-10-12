@@ -71,6 +71,9 @@ namespace JamKit.Argument
         public static string FrameName(string preset, string expression, int index) =>
             "boil_" + Slug(preset) + "_" + Slug(expression) + "_" + index.ToString("00", CultureInfo.InvariantCulture) + ".png";
 
+        /// <summary>The frames' preset part: the preset in effect ("mood-" and her mood's preset when following it).</summary>
+        static string ShotName => ArgumentBoil.Reacting ? "mood-" + ArgumentBoil.For(ArgumentHost.ExpressionOverride ?? ArgumentArt.Opening).name : ArgumentBoil.Preset.name;
+
         static string Slug(string s)
         {
             var b = new System.Text.StringBuilder();
@@ -81,10 +84,11 @@ namespace JamKit.Argument
         void Start()
         {
             if (!Path.IsPathRooted(_request.folder)) _request.folder = Path.Combine(Application.persistentDataPath, _request.folder);
+            ArgumentBoil.SetReacting(true);
             if (_request.preset != null && !ArgumentBoil.Use(_request.preset))
-                Debug.LogWarning("JAMKIT_ARGUMENT_SHOT unknown boil preset \"" + _request.preset + "\"; using " + ArgumentBoil.Preset.name);
-            ArgumentBoil.SetReacting(_request.react);
-            Debug.Log("JAMKIT_ARGUMENT_SHOT " + _request.folder + " (" + _request.expression + ", " + ArgumentBoil.Preset.name + (_request.react ? ", reacting" : "")
+                Debug.LogWarning("JAMKIT_ARGUMENT_SHOT unknown boil preset \"" + _request.preset + "\"; following her mood");
+            if (_request.react) ArgumentBoil.SetReacting(true);
+            Debug.Log("JAMKIT_ARGUMENT_SHOT " + _request.folder + " (" + _request.expression + ", " + ArgumentBoil.Mode
                 + ", " + _request.frames + " frames at " + _request.fps + " fps)");
             _wait = 90f;
             _next = 1f;
@@ -124,7 +128,7 @@ namespace JamKit.Argument
                 case 2:
                     _next -= dt;
                     if (_next > 0f) return;
-                    string path = Path.Combine(_request.folder, FrameName(ArgumentBoil.Preset.name, _request.expression, _taken));
+                    string path = Path.Combine(_request.folder, FrameName(ShotName, _request.expression, _taken));
                     if (_taken == 0) _first = path;
                     if (File.Exists(path)) File.Delete(path);
                     ScreenCapture.CaptureScreenshot(path);
@@ -135,7 +139,7 @@ namespace JamKit.Argument
                     _phase = 3;
                     return;
                 case 3:
-                    string last = Path.Combine(_request.folder, FrameName(ArgumentBoil.Preset.name, _request.expression, _request.frames - 1));
+                    string last = Path.Combine(_request.folder, FrameName(ShotName, _request.expression, _request.frames - 1));
                     if (!File.Exists(last) && _wait > 0f) return;
                     Debug.Log(File.Exists(last) ? "JAMKIT_ARGUMENT_SHOT_OK " + _request.folder + " " + _taken + " frames from " + _first : "JAMKIT_ARGUMENT_SHOT_FAIL no frames in " + _request.folder);
                     _phase = 4;

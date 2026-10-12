@@ -6,33 +6,135 @@ namespace JamKit.Argument
 {
     /// <summary>
     /// The battle's words live in text files the creator edits directly (docs/ARGUMENT-PROTOTYPE.md, "The prose files"),
-    /// not in code: one file per battle (lena_night2.txt) and one for the screen (screen.txt), under
+    /// not in code: one file per battle (lena_night2.txt, walt_night1.txt) and one for the screen (screen.txt), under
     /// Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentText/. The format, one entry per line:
     /// <code>
     /// # a heading (ignored)
-    /// L1.text: Out there, Theo is dead.
+    /// // a note (ignored)
+    /// L1.text: Out there, Theo is dead. // a note after a line is never shown
     ///   ? what the line must say (a note: any indented line, ignored)
+    /// L1c.trueReply[anger>=1|presses>=1]: a line used instead while the condition holds
     /// </code>
-    /// The id before the first colon, the line after it; "\n" in a line is a line break. Ids match docs/ARGUMENT-PROSE-BRIEF.md.
+    /// The id before the first colon, the line after it; "\n" in a line is a line break; <c>*word*</c> is bold. A "//"
+    /// note after a line is never shown, except on <see cref="ReplacedByNote"/> (the claim, the opening, noTouchReply),
+    /// where the creator wrote their replacement line as the note: there the note is the line. Conditions:
+    /// <see cref="ArgumentCondition"/>. Ids match docs/ARGUMENT-PROSE-BRIEF.md.
     /// </summary>
     public static class ArgumentText
     {
-        /// <summary>Reads a file's entries (later duplicates win). Null or "" gives none.</summary>
+        /// <summary>The ids whose "//" note is the creator's replacement for the line (their rewrite, 2026-10-12).</summary>
+        public static readonly string[] ReplacedByNote = { "claim", "opening", "noTouchReply" };
+
+        /// <summary>Reads a file's entries (later duplicates win). Null or "" gives none. Conditional lines are left out
+        /// (<see cref="ParseVariants"/> reads them).</summary>
         public static Dictionary<string, string> Parse(string text)
         {
             var d = new Dictionary<string, string>(StringComparer.Ordinal);
             if (string.IsNullOrEmpty(text)) return d;
             foreach (var raw in text.Split('\n'))
             {
-                string line = raw.TrimEnd('\r');
-                if (line.Length == 0 || char.IsWhiteSpace(line[0]) || line[0] == '#' || line[0] == '?' || line[0] == '>') continue;
-                int colon = line.IndexOf(':');
-                if (colon <= 0) continue;
-                string key = line.Substring(0, colon).Trim();
-                if (key.Length == 0 || key.IndexOf(' ') >= 0) continue;
-                d[key] = line.Substring(colon + 1).Trim().Replace("\\n", "\n");
+                if (!Entry(raw, out string key, out string condition, out string value)) continue;
+                if (condition != null) continue;
+                d[key] = value;
             }
             return d;
+        }
+
+        /// <summary>The file's conditional lines (<c>id[condition]: text</c>), in file order.</summary>
+        public static List<LineVariant> ParseVariants(string text)
+        {
+            var list = new List<LineVariant>();
+            if (string.IsNullOrEmpty(text)) return list;
+            foreach (var raw in text.Split('\n'))
+            {
+                if (!Entry(raw, out string key, out string condition, out string value) || condition == null) continue;
+                list.Add(new LineVariant { id = key, condition = condition, text = value });
+            }
+            return list;
+        }
+
+        /// <summary>One line of a file: its id, its condition (null for a plain line) and its text, notes taken off.</summary>
+        static bool Entry(string raw, out string key, out string condition, out string value)
+        {
+            key = condition = value = null;
+            string line = raw.TrimEnd('\r');
+            if (line.Length == 0 || char.IsWhiteSpace(line[0]) || line[0] == '#' || line[0] == '?' || line[0] == '>') return false;
+            if (line.StartsWith("//", StringComparison.Ordinal)) return false;
+            int open = line.IndexOf('['), colon = line.IndexOf(':');
+            if (open > 0 && open < colon)
+            {
+                int close = line.IndexOf(']', open);
+                if (close < 0) return false;
+                colon = line.IndexOf(':', close);
+                if (colon < 0) return false;
+                condition = line.Substring(open + 1, close - open - 1).Trim();
+                key = line.Substring(0, open).Trim();
+            }
+            else
+            {
+                if (colon <= 0) return false;
+                key = line.Substring(0, colon).Trim();
+            }
+            if (key.Length == 0 || key.IndexOf(' ') >= 0) return false;
+            string text = line.Substring(colon + 1);
+            string note = "";
+            int slashes = text.IndexOf("//", StringComparison.Ordinal);
+            if (slashes >= 0)
+            {
+                note = text.Substring(slashes + 2).Trim().TrimEnd(')').Trim();
+                text = text.Substring(0, slashes).TrimEnd();
+                if (text.EndsWith("(", StringComparison.Ordinal)) text = text.Substring(0, text.Length - 1);
+            }
+            text = text.Trim();
+            if (condition == null && note.Length > 0 && Array.IndexOf(ReplacedByNote, key) >= 0) text = note;
+            value = Bold(text).Replace("\\n", "\n");
+            return true;
+        }
+
+        /// <summary><c>*word*</c> becomes bold (rich text) when both stars hug a word.</summary>
+        public static string Bold(string s)
+        {
+            if (string.IsNullOrEmpty(s) || s.IndexOf('*') < 0) return s ?? "";
+            var b = new StringBuilder(s.Length + 8);
+            int i = 0;
+            while (i < s.Length)
+            {
+                int start = s.IndexOf('*', i);
+                if (start < 0) { b.Append(s, i, s.Length - i); break; }
+                int end = start + 1 < s.Length ? s.IndexOf('*', start + 1) : -1;
+                bool ok = end > start + 1 && !char.IsWhiteSpace(s[start + 1]) && !char.IsWhiteSpace(s[end - 1]);
+                if (!ok) { b.Append(s, i, start - i + 1); i = start + 1; continue; }
+                b.Append(s, i, start - i).Append("<b>").Append(s, start + 1, end - start - 1).Append("</b>");
+                i = end + 1;
+            }
+            return b.ToString();
+        }
+
+        /// <summary>Fills a battle's conditional lines from a file's text (replacing any it had). Returns the problems:
+        /// a condition that doesn't read, or an id the battle has no line for.</summary>
+        public static List<string> ApplyVariants(ArgumentDef def, string text)
+        {
+            var problems = new List<string>();
+            def.variants.Clear();
+            var keys = new HashSet<string>(Keys(def), StringComparer.Ordinal);
+            foreach (var v in ParseVariants(text))
+            {
+                v.parsed = ArgumentCondition.Parse(v.condition, out string error);
+                if (v.parsed == null) { problems.Add(v.id + "[" + v.condition + "]: " + error); continue; }
+                if (!keys.Contains(v.id) && !IsReasonKey(def, v.id)) { problems.Add(v.id + "[" + v.condition + "]: no such line in this battle"); continue; }
+                def.variants.Add(v);
+            }
+            return problems;
+        }
+
+        static bool IsReasonKey(ArgumentDef def, string id)
+        {
+            foreach (var p in def.premises)
+                if (p != null)
+                    foreach (var c in p.challenges)
+                        foreach (var r in c.reasons)
+                            if (r != null && (r.id == id || r.id + ".reply" == id)) return true;
+            return false;
         }
 
         // ---------- A battle's lines ----------
@@ -81,6 +183,11 @@ namespace JamKit.Argument
             }
             foreach (var e in def.evidence)
                 if (e != null) { keys.Add(e.id + ".name"); keys.Add(e.id + ".note"); }
+            if (def.coach.Count > 0)
+            {
+                keys.Add("coachName");
+                foreach (var m in ArgumentCoach.Moments) if (def.coach.ContainsKey(m)) keys.Add("coach." + m);
+            }
             return keys;
         }
 
@@ -161,7 +268,9 @@ namespace JamKit.Argument
                         if (r == null) continue;
                         string k = Kind(r.kind);
                         string specific = p.id + "." + c.evidence + "." + k;
-                        r.text = lines.TryGetValue(specific, out var st) ? st : Get(p.id + "." + k);
+                        bool own = lines.ContainsKey(specific);
+                        r.id = own ? specific : p.id + "." + k;
+                        r.text = own ? lines[specific] : Get(p.id + "." + k);
                         r.reply = lines.TryGetValue(specific + ".reply", out var sr) ? sr : Get(p.id + "." + k + ".reply");
                     }
                 }
@@ -171,6 +280,15 @@ namespace JamKit.Argument
                 if (e == null) continue;
                 e.name = Get(e.id + ".name");
                 e.note = Get(e.id + ".note");
+            }
+            // Optional: which of their drawings stands for a game mood ("face.hurt: sad").
+            foreach (var kv in lines)
+                if (kv.Key.StartsWith("face.", StringComparison.Ordinal) && kv.Key.Length > 5) def.faces[kv.Key.Substring(5)] = kv.Value.Trim();
+            if (def.coach.Count > 0)
+            {
+                def.coachName = Get("coachName");
+                var moments = new List<string>(def.coach.Keys);
+                foreach (var m in moments) def.coach[m] = Get("coach." + m);
             }
             // A reason shared by several challenges of one premise is asked for once.
             var unique = new List<string>();
@@ -211,6 +329,11 @@ namespace JamKit.Argument
             }
             foreach (var e in def.evidence)
                 if (e != null) { d[e.id + ".name"] = e.name; d[e.id + ".note"] = e.note; }
+            if (def.coach.Count > 0)
+            {
+                d["coachName"] = def.coachName;
+                foreach (var kv in def.coach) d["coach." + kv.Key] = kv.Value ?? "";
+            }
             return d;
         }
 
@@ -243,6 +366,12 @@ namespace JamKit.Argument
             sb.Append("\n## The evidence cards\n");
             foreach (var e in def.evidence)
                 if (e != null) { Entry(e.id + ".name", "the card's name, as it reads in a sentence (\"the fourth chair\")"); Entry(e.id + ".note", "one line under the name: what it is"); }
+            if (def.coach.Count > 0)
+            {
+                sb.Append("\n## The coach on the earpiece\n");
+                Entry("coachName", "who's coaching");
+                foreach (var m in ArgumentCoach.Moments) if (def.coach.ContainsKey(m)) Entry("coach." + m, "a line or two, the first time this comes up");
+            }
             return sb.ToString();
         }
 
@@ -381,7 +510,7 @@ namespace JamKit.Argument
             "screen.heard", "screen.saidAbout", "screen.transcriptTitle", "screen.placeholder", "screen.heart", "screen.heat", "screen.anger",
             "screen.end.continue", "screen.end.stance", "screen.end.truth", "screen.end.personal", "screen.end.tally", "screen.end.saved",
             "screen.hint.browse", "screen.hint.verbs", "screen.hint.pick", "screen.hint.pressure", "screen.hint.end", "screen.hint.transcript",
-            "menu.title", "menu.subtitle", "menu.normal", "menu.story", "menu.longNight", "menu.noWalt", "menu.watch", "menu.forget",
+            "menu.title", "menu.subtitle", "menu.normal", "menu.story", "menu.longNight", "menu.noWalt", "menu.watch", "menu.walt", "menu.forget",
             "menu.title.back", "menu.savedNone", "menu.saved", "menu.hint",
         };
     }

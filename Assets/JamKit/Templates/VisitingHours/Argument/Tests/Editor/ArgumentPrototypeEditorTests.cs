@@ -18,15 +18,13 @@ namespace JamKit.Argument.Tests
         {
             ArgumentContent.Ensure();
             ArgumentArt.Forget(); // no sprite (or placeholder) left over from another test
-            ArgumentBoil.Use("gentle");
-            ArgumentBoil.SetReacting(false);
+            ArgumentBoil.SetReacting(true);
         }
 
         [TearDown]
         public void BoilBack()
         {
-            ArgumentBoil.Use("gentle");
-            ArgumentBoil.SetReacting(false);
+            ArgumentBoil.SetReacting(true);
             ArgumentHost.OverrideExpression(null);
         }
 
@@ -141,6 +139,16 @@ namespace JamKit.Argument.Tests
                 Assert.That(t.height, Is.EqualTo(1536), path + " height");
             }
             Assert.That(files, Is.GreaterThanOrEqualTo(7), "Lena's seven poses are in " + ArtDir + " (104f4ea, 98f02e0)");
+
+            // Walt's six (b36a366), kind and sad among them.
+            foreach (var e in new[] { "antagonistic", "neutral", "kind", "rattled", "softened", "sad" })
+            {
+                Assert.That(ArgumentArt.Expressions, Does.Contain(e));
+                var t = ArgumentArt.Sprite("Walt", e, out bool placeholder);
+                Assert.That(placeholder, Is.False, "walt_" + e);
+                Assert.That(t.name, Is.EqualTo("walt_" + e), "his own drawing");
+            }
+            Assert.That(ArgumentArt.Sprite("Lena", "kind", out _).name, Is.EqualTo("lena_neutral"), "Lena has no kind drawing: her neutral");
         }
 
         [Test]
@@ -180,7 +188,7 @@ namespace JamKit.Argument.Tests
         {
             string[] names = { "Gentle", "Subtle", "Lily-equivalent", "Strong", "Slow and heavy", "Off" };
             Assert.That(ArgumentBoil.Presets.Select(x => x.name), Is.EqualTo(names));
-            Assert.That(ArgumentBoil.Preset.name, Is.EqualTo("Gentle"), "the default");
+            Assert.That(ArgumentBoil.Reacting, Is.True, "by default her mood picks the boil");
             foreach (var p in ArgumentBoil.Presets.Where(x => x.name != "Off"))
             {
                 Assert.That(p.style, Is.EqualTo(BoilStyle.Boil), p.name + " is a boil");
@@ -208,10 +216,13 @@ namespace JamKit.Argument.Tests
             Assert.That(heavy.rate, Is.LessThan(gentle.rate));
             Assert.That(ArgumentBoil.Presets[ArgumentBoil.Find("subtle")].strength, Is.LessThan(gentle.strength));
 
-            // F10 cycles and wraps; names are found loosely.
-            for (int i = 1; i <= ArgumentBoil.Presets.Length; i++) Assert.That(ArgumentBoil.Next().name, Is.EqualTo(names[i % names.Length]));
-            Assert.That(ArgumentBoil.Use("Slow-Heavy") && ArgumentBoil.Preset.name == "Slow and heavy", Is.True);
+            // F10: each preset in turn, then back to her mood; names are found loosely.
+            for (int i = 0; i < names.Length; i++) Assert.That(ArgumentBoil.Next(), Is.EqualTo(names[i]));
+            Assert.That(ArgumentBoil.Next(), Is.EqualTo("by her mood"));
+            Assert.That(ArgumentBoil.Reacting, Is.True);
+            Assert.That(ArgumentBoil.Use("Slow-Heavy") && ArgumentBoil.Preset.name == "Slow and heavy" && !ArgumentBoil.Reacting, Is.True);
             Assert.That(ArgumentBoil.Use("strong") && ArgumentBoil.Preset.name == "Strong", Is.True);
+            Assert.That(ArgumentBoil.Use("mood") && ArgumentBoil.Reacting, Is.True);
             Assert.That(ArgumentBoil.Use("no such boil"), Is.False);
             Assert.That(gentle.Describe(), Does.Contain("Gentle").And.Contain("4 px").And.Contain("8/s"));
         }
@@ -260,17 +271,21 @@ namespace JamKit.Argument.Tests
         }
 
         [Test]
-        public void HerMoodChangesTheBoilOnlyWhenReacting()
+        public void HerMoodPicksTheBoilUnlessF10Overrides()
         {
-            var gentle = ArgumentBoil.Preset;
-            Assert.That(ArgumentBoil.Reacting, Is.False, "off by default");
-            Assert.That(ArgumentBoil.For("angry").Same(gentle), Is.True);
+            Assert.That(ArgumentBoil.Reacting, Is.True, "on by default (the creator's pick)");
+            Assert.That(ArgumentBoil.For("neutral").name, Is.EqualTo("Gentle"));
+            Assert.That(ArgumentBoil.For("antagonistic").name, Is.EqualTo("Lily-equivalent"));
+            Assert.That(ArgumentBoil.For("angry").name, Is.EqualTo("Strong"));
+            Assert.That(ArgumentBoil.For("rattled").name, Is.EqualTo("Slow and heavy"));
+            Assert.That(ArgumentBoil.For("softened").name, Is.EqualTo("Subtle"));
+            Assert.That(ArgumentBoil.For("hurt").name, Is.EqualTo("Subtle"));
+            Assert.That(ArgumentBoil.For("pleading").name, Is.EqualTo("Gentle"));
+            foreach (var e in ArgumentArt.Expressions) Assert.That(ArgumentBoil.For(e).Visible, Is.True, e + " boils");
+            ArgumentBoil.Next();
+            Assert.That(ArgumentBoil.For("angry").name, Is.EqualTo("Gentle"), "F10 overrides her mood");
             ArgumentBoil.SetReacting(true);
-            Assert.That(ArgumentBoil.For("angry").strength, Is.GreaterThan(gentle.strength));
-            Assert.That(ArgumentBoil.For("rattled").rate, Is.GreaterThan(gentle.rate));
-            Assert.That(ArgumentBoil.For("softened").strength, Is.LessThan(gentle.strength));
-            Assert.That(ArgumentBoil.For("neutral").Same(gentle), Is.True);
-            Assert.That(ArgumentBoil.For("angry").name, Is.EqualTo(gentle.name), "the same preset");
+            Assert.That(ArgumentBoil.For("angry").name, Is.EqualTo("Strong"), "Shift+F10: back to her mood");
         }
 
         [Test]
@@ -283,6 +298,9 @@ namespace JamKit.Argument.Tests
             if (!ArgumentBoilLayer.Available) Assert.That(view.SpriteShown, Is.SameAs(ArgumentArt.Sprite("Lena", "angry", out _)), "no device: the plain sprite");
             view.Tick(0.2f);
             Assert.That(view.BoilLabel, Is.Empty, "hidden until F10");
+            view.ShowBoilLabel();
+            Assert.That(view.BoilLabel, Does.Contain("by her mood").And.Contain("Strong"), "angry: her mood's preset");
+            ArgumentBoil.Next();
             ArgumentBoil.Next();
             view.ShowBoilLabel();
             Assert.That(view.BoilLabel, Does.Contain("Subtle").And.Contain("F10").And.Contain("Shift+F10"));
@@ -349,7 +367,8 @@ namespace JamKit.Argument.Tests
         [Test]
         public void TheChaptersAreNamedForEverySetting()
         {
-            Assert.That(ArgumentPrototype.Chapters, Has.Length.EqualTo(5));
+            Assert.That(ArgumentPrototype.Chapters, Has.Length.EqualTo(6));
+            Assert.That(ArgumentPrototype.SetupFor(ArgumentPrototype.Walt).evidence, Does.Contain(WaltNight1.WaltDead), "the tutorial with Night 1's deduction");
             Assert.That(ArgumentPrototype.SetupFor(ArgumentPrototype.LongNight).difficulty, Is.EqualTo(ArgumentDifficulty.ScriptedButBeatable));
             Assert.That(ArgumentPrototype.SetupFor(ArgumentPrototype.Story).difficulty, Is.EqualTo(ArgumentDifficulty.Story));
             var noWalt = ArgumentPrototype.SetupFor(ArgumentPrototype.NoWalt);

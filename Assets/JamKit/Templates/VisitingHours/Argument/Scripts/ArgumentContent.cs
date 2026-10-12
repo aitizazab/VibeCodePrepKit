@@ -3,8 +3,8 @@ using UnityEngine;
 namespace JamKit.Argument
 {
     /// <summary>
-    /// Points the core at the prose files the creator edits (Resources/ArgumentText/: lena_night2.txt for the battle's
-    /// lines, screen.txt for the screen's words; docs/ARGUMENT-PROTOTYPE.md, "The prose files"). Runs before the first
+    /// Points the core at the prose files the creator edits (Resources/ArgumentText/: lena_night2.txt and walt_night1.txt
+    /// for the battles' lines, screen.txt for the screen's words; docs/ARGUMENT-PROTOTYPE.md, "The prose files"). Runs before the first
     /// scene; <see cref="Ensure"/> does the same for editor code and tests. The text is read once per play session
     /// (edit the file, press Play again).
     /// </summary>
@@ -13,13 +13,14 @@ namespace JamKit.Argument
         public const string Folder = "ArgumentText/";
         public const string ScreenFile = "screen";
 
-        static string _screen, _lena;
+        static string _screen, _lena, _walt;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
             _screen = null;
             _lena = null;
+            _walt = null;
             Ensure();
         }
 
@@ -28,6 +29,7 @@ namespace JamKit.Argument
         {
             ArgumentStrings.SharedSource = () => _screen ?? (_screen = Load(ScreenFile));
             DreamLenaDemo.ProseSource = () => _lena ?? (_lena = Load(DreamLenaDemo.ProseFile));
+            WaltNight1.ProseSource = () => _walt ?? (_walt = Load(WaltNight1.ProseFile));
         }
 
         /// <summary>A prose file's text from Resources/ArgumentText/ ("" if it's missing: every line then shows as its id).</summary>

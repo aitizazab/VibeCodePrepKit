@@ -157,16 +157,18 @@ bigger, that's a strong wobble, so the default is gentler.
 | Slow and heavy | 12 px | 0.007 | 3/s | broad, slow lurches |
 | Off | | | | the plain sprite, to compare |
 
-**Keys in the battle:**
-- **F10** cycles the presets. The name and values show under her for a few seconds.
-- **Shift+F10** makes the boil react to her mood:
-  - angry: x1.4 strength, x1.25 rate;
-  - rattled: x1.3 strength, x1.5 rate;
-  - antagonistic: x1.15 strength;
-  - softened: x0.6 strength, x0.75 rate;
-  - hurt or pleading: x0.85 strength.
+**Her mood picks the boil** (the creator's choice, 2026-10-13; the mapping is mine, any can be swapped in
+`ArgumentBoil.MoodPreset`):
+- neutral and pleading: Gentle;
+- antagonistic (her opening pose): Lily-equivalent, her guard up, a steady strong tremble;
+- angry: Strong, busy and quick;
+- rattled: Slow and heavy, lurching and off balance;
+- softened and hurt: Subtle, almost still.
 
-  Reacting is off by default until someone has seen it.
+**Keys in the battle (debug overrides):**
+- **F10** overrides her mood with each preset in turn, then goes back to her mood. The name and values show above
+  her name for a few seconds.
+- **Shift+F10** goes straight back to her mood.
 
   F10 because every other function key is taken: F1 the debug menu, F3/F4/F6/F7 movement, F5/F9 the Story
   template, F7/F8 the dream house's argument skips, F9 the opening editor. F11 is a browser's fullscreen.
@@ -309,6 +311,102 @@ Phase lengths are unchanged.
    - A brutal walls-only phase follows every exchange, with a gap only just wider than her light.
    - It's winnable by construction: a perfect dodger survives every phase, and standing still loses.
 4. **Supporters** (`SupporterDef`): a data slot for a line and a card. No content yet.
+
+## Nights 1 and 2 (2026-10-12; the plan: docs/NIGHTS-1-2.md)
+
+### Starting a battle from the game (the hand-off)
+```csharp
+// Unity, JamKit.Argument. Ids: ArgumentBattles.Walt ("walt_night1"), ArgumentBattles.Lena ("lena_night2").
+var context = new ArgumentContext { force = forceTally, despair = despair0to3 };
+context.found.AddRange(journalIdsFound);        // memories, deductions, facts, truths: they gate the cards
+ArgumentHost.BeginBattle("lena_night2", context, result =>
+{
+    // result.outcome     Convinced, HeardOut, Pressed, ComposureLost, Yielded (None: closed before it ended)
+    // result.stance      Lena: Unsure or Condemns. Walt: Amenable, Unsure or Condemns
+    // result.Condemns    true when she condemns Nadia
+    // result.forceAdded  presses this battle: add to the Force tally
+    // result.despairAdded 1 when Lena condemns (ArgumentBattles.DespairOnCondemn), else 0: add to Despair
+    // result.truth / result.keepsake  journal ids won ("" if none)
+    // result.record      already saved in the ledger (vh_arguments)
+});
+```
+- **Cards appear only once found:** a card is in the tray when its id (or one of its `unlockedBy` ids) is among
+  `context.found`. Other ids are ignored, so pass the whole journal. `allEvidence` is for debug and the prototype.
+- **Lena's cards** (the plan's memory-to-card table), by journal id:
+
+  | Card | Where it comes from | What it does |
+  |---|---|---|
+  | `mem_fourth_chair` | the place card | breaks L1' (key) |
+  | `ded_saturday_off` | the calendar + Night 1's paper | breaks L3' (key) |
+  | `ded_same_saturday` | the street replay (+ Walt's ledger) | breaks L3'' (key) |
+  | `mem_bad_dream` | Theo's drawing, in his room | against L5 (half true) |
+  | `mem_height_marks` | the height marks | backs L1 (true: concede it) |
+  | `fact_photo` | the photo wall | worldbuilding |
+  | `fact_police_report` | Day 1's police report | L4 (true, painful) |
+  | `truth_walt` | won from Walt (Convinced) | also breaks L3'' |
+- **Walt's cards:** `ded_walt_dead` (the key), `ded_same_saturday` (the optional one), `mem_walt_alive` (touches
+  nothing: a lesson).
+
+### The creator's notes, bold and conditional lines (the prose files)
+- **`//` is a note**, never shown, whether on its own line or after a line, even inside brackets.
+- **Replacement lines:** after `claim`, `opening` and `noTouchReply`, the creator's note is their rewrite of the line,
+  so the note is used instead (`ArgumentText.ReplacedByNote`).
+- **`*word*` is bold.**
+- **Conditional lines:** `id[condition]: text` replaces the plain line while the condition holds. The first one in
+  file order that holds wins.
+  - Comparisons: `>= <= > < = !=`. `,` is *and*, `|` is *or*.
+  - Meters:
+    - `anger`: Lena's, this battle, 0-3. Antagonising, retorts and, in her battle, presses raise it.
+    - `force`: the game's tally plus this battle's presses.
+    - `despair`: 0-3.
+    - `presses`, `antagonised`, `heat`.
+  - Thresholds used for her variants:
+    - angry is anger 2+, max anger is 3, low anger is 1 or less;
+    - low Force is 1 or less, high Force is 3+;
+    - max despair is 3, no despair is 0;
+    - "close to condemning" is any antagonising or press so far (either already means she condemns).
+- **Lena's variants** (pulled out of the creator's notes, in `lena_night2.txt`; their originals stay as `//` notes,
+  so nothing they wrote is lost):
+  - `L1b.nonsequitur.reply`: the latter part only at Despair 2+ with anger 1 or less (my call; theirs to change);
+  - `L1c.trueReply`: the "silver tongue" line when angry or close to condemning;
+  - `L2.pressLine`: a tamer line (an agent placeholder) while Nadia's been gentle (no anger, no presses, low Force);
+  - `L3b.beside.reply`: the latter part only at max Despair with low anger and low Force;
+  - `L3b.nonsequitur.reply`: "I should cut your tongue out for that." at max anger and high Force;
+  - `L4.concedeReply`: the forgiveness at low anger and no Despair.
+
+### Lena's two endings
+- **Unsure:** Convinced, Heard out, or Yielded.
+- **Condemns:** Pressed, Composure lost, or any antagonising card or retort that landed (`StanceRule.TwoEndings`).
+  Condemning hands the game +1 Despair (`result.despairAdded`).
+- **Her keepsake** (Heard out) is a placeholder: her planisphere (`pers_lena_planisphere`).
+
+### Night 1: Walt's tutorial (`WaltNight1`, `walt_night1.txt`, an agent placeholder for the creator to rewrite)
+**Walt** is the gatekeeper: "Let him have his good day. Come back tomorrow." He argues and doesn't teach.
+
+**Mags teaches** on the earpiece, one line per exchange, the first time each moment comes (`ArgumentCoach`):
+1. ask (at the start);
+2. concede (once she's heard something true);
+3. challenge (once she holds something that breaks a premise);
+4. the first pressure phase;
+5. press (at the first misstep, or once only premises she can't break are left);
+6. the first break;
+7. let it rest.
+
+**The premises:**
+- W1 is true: asking it reveals W2, conceding it reveals W3.
+- W2 is the false key link: `ded_walt_dead` breaks it.
+- W3 is false and optional: `ded_same_saturday` breaks it.
+
+**Gentle:**
+- no opening pressure phase;
+- pressure at 0.7 speed;
+- plates only until the heat rises;
+- composure stops a step short of panic, so it can't be lost.
+
+**The ending:** Walt steps aside in every outcome, and the ledger remembers his stance for the ending.
+- Convinced wins `truth_walt`, which also works against Lena's L3''.
+- Heard out wins his wrench (`pers_wrench`).
+- The prototype has a "Walt" chapter.
 
 ## For code (calling a battle)
 ```csharp

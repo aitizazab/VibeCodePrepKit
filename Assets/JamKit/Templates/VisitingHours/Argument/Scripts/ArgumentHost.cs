@@ -76,6 +76,9 @@ namespace JamKit.Argument
         // A forced expression (the boil capture, ArgumentShot): null = what she last showed.
         static string _expressionOverride;
 
+        /// <summary>The expression she's held on (null: none).</summary>
+        public static string ExpressionOverride => _expressionOverride;
+
         /// <summary>Holds her on one expression whatever she says (null lets it follow her again): the boil capture.</summary>
         public static void OverrideExpression(string expression)
         {
@@ -127,6 +130,25 @@ namespace JamKit.Argument
         }
 
         static ArgumentStrings S => ArgumentStrings.Shared;
+
+        /// <summary>
+        /// The game's hand-off (docs/ARGUMENT-PROTOTYPE.md, "Starting a battle from the game"): starts battle
+        /// <paramref name="battleId"/> (<see cref="ArgumentBattles.Ids"/>: "walt_night1", "lena_night2") with what the game
+        /// passes in (the journal ids found, which gate the cards; Force; Despair), and calls <paramref name="done"/> with
+        /// the result once the end card is closed (outcome, stance, what to add to Force and Despair, what was won). The
+        /// result is already in the save's ledger. Null for an unknown id or without the shell.
+        /// </summary>
+        public static ArgumentHost BeginBattle(string battleId, ArgumentContext context, Action<ArgumentResult> done)
+        {
+            ArgumentContent.Ensure();
+            var def = ArgumentBattles.Build(battleId);
+            if (def == null)
+            {
+                Debug.LogWarning("Argument: no battle \"" + battleId + "\" (known: " + string.Join(", ", ArgumentBattles.Ids) + ")");
+                return null;
+            }
+            return Begin(def, ArgumentBattles.Setup(context), record => done?.Invoke(ArgumentBattles.Result(def, record)));
+        }
 
         /// <summary>Starts a battle now (replacing one already running). Null without the shell.</summary>
         public static ArgumentHost Begin(ArgumentDef def, ArgumentSetup setup, Action<ArgumentRecord> onClosed = null)
@@ -261,14 +283,14 @@ namespace JamKit.Argument
             if (!UnityEngine.Cursor.visible && GameRoot.Input.HoverAllowed) UnityEngine.Cursor.visible = true;
         }
 
-        /// <summary>F10 cycles the sprite's boil presets, Shift+F10 makes it react to her mood (debug keys: the creator compares
+        /// <summary>F10 overrides her mood's boil with each preset in turn (then back to her mood), Shift+F10 goes back to her mood (debug keys: the creator compares
         /// them; the preset and its values show under her).</summary>
         void BoilKeys()
         {
             var kb = Keyboard.current;
             if (kb == null || !InputAllowed) return;
             if (!kb[ArgumentBoil.CycleKey].wasPressedThisFrame) return;
-            if (kb.shiftKey.isPressed) ArgumentBoil.SetReacting(!ArgumentBoil.Reacting);
+            if (kb.shiftKey.isPressed) ArgumentBoil.SetReacting(true);
             else ArgumentBoil.Next();
             _view.ShowBoilLabel();
         }

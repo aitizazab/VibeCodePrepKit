@@ -13,37 +13,53 @@ namespace JamKit.Argument
     /// the Resources file, tests read it from disk). The lines there are placeholders until the creator writes them;
     /// the brief is docs/ARGUMENT-PROSE-BRIEF.md (its ids are these).
     ///
-    /// The map: claim "He stays. This is his home."
-    ///   L1   fact TRUE   their son is dead out there           concede: reveals L1'
+    /// The map (the creator's rewrite, 2026-10-12; docs/NIGHTS-1-2.md, "The memories, mapped to the creator's battle"):
+    ///   L1   fact TRUE   out there, Theo is dead                concede: reveals L1' (Theo's height marks back it)
     ///   L1b  link FALSE  so nothing's left for him out there   KEY: the fourth chair (falls back to L1'')
-    ///   L1c  fact TRUE   you stopped coming on Sundays          concede
-    ///   L2   fact TRUE   nobody knows where I am                concede: reveals L2'. She asks a question (retort)
+    ///   L1c  fact TRUE   where were you last Sunday?            concede
+    ///   L2   fact TRUE   you don't know where I am              concede: reveals L2'. She asks a question (retort)
     ///   L2b  link HALF   so waking means searching forever      can't be broken tonight (the lesson)
     ///   L3   link HALF   he chose this                          ask: reveals L3'; ask again: L5
-    ///   L3b  link FALSE  this is the life he wanted              KEY: Saturday off (falls back to L3'')
-    ///   L3c  link FALSE  then let him have his wish              KEY: only Walt's truth or "the same Saturday"
-    ///   L4   fact TRUE   he called you first                    surfaces by script (painful) after L1'' or L3'
-    ///   L5   link HALF   to him you're the bad dream            hidden deepest: a slip, or asking L3 twice
+    ///   L3b  link FALSE  this is the life he wants              KEY: Saturday off (falls back to L3'')
+    ///   L3c  link FALSE  then let him have his wish             KEY: the same Saturday (or Walt's truth, if won)
+    ///   L4   fact TRUE   he called you first                    surfaces by script (painful) after L1'' or L3'; the police report
+    ///   L5   link HALF   to him you're the bad dream            hidden deepest: a slip, or asking L3 twice; Theo's drawing
+    /// Her anger rises with antagonising, retorts and presses (<see cref="ArgumentDef.pressAngers"/>), and her stance is
+    /// the creator's two endings (<see cref="StanceRule.TwoEndings"/>): unsure, or condemning Nadia.
+    /// Each card is in the tray only once its memory or deduction is found (the setup's journal ids).
     /// </summary>
     public static class DreamLenaDemo
     {
         public const string Id = "lena_night2";
+        // The cards (docs/NIGHTS-1-2.md, the memory-to-card table): each is in the tray once the journal has its id.
+        /// <summary>Nadia's place card at the fourth chair, in Theo's handwriting (found in the house). Breaks L1' (KEY).</summary>
         public const string FourthChair = "mem_fourth_chair";
+        /// <summary>The fridge calendar's Sunday pancakes + Night 1's Saturday paper. Breaks L3' (KEY).</summary>
         public const string SaturdayOff = "ded_saturday_off";
-        public const string TruthWalt = "truth_walt";
+        /// <summary>The street replaying Night 1 to the second (and Walt's ledger). Breaks L3'' (KEY).</summary>
         public const string SameSaturday = "ded_same_saturday";
-        public const string WhyLenaCame = "ded_why_lena_came";
-        public const string Chart = "fact_chart";
-        public const string PoliceReport = "fact_police_report";
+        /// <summary>Theo's drawing, "THE BAD DREAM", found in his room. Against L5 (half true).</summary>
+        public const string BadDream = "mem_bad_dream";
+        /// <summary>Theo's height marks, stopping at ten. Backs L1 (true: concede it).</summary>
+        public const string HeightMarks = "mem_height_marks";
+        /// <summary>The photo wall: four of them at the lake (the "four" includes Nadia). Worldbuilding.</summary>
         public const string Photo = "fact_photo";
+        /// <summary>Day 1's police report and its call log. L4 is true and painful: it stays.</summary>
+        public const string PoliceReport = "fact_police_report";
+        /// <summary>Walt's truth, if Night 1's battle convinced him: it also breaks L3''.</summary>
+        public const string TruthWalt = WaltNight1.TruthId;
         public const string TruthLena = "truth_lena";
-        public const string HairTie = "pers_lena_hair_tie";
+        /// <summary>Her keepsake (Heard out), a placeholder: her planisphere, the star wheel, set to her last Thursday night.</summary>
+        public const string Planisphere = "pers_lena_planisphere";
 
         /// <summary>The prose file's name (Resources/ArgumentText/lena_night2).</summary>
         public const string ProseFile = Id;
 
         /// <summary>Every card but Walt's truth and "the same Saturday": without them L3'' can't break (Heard out at best).</summary>
-        public static readonly string[] EvidenceWithoutWalt = { FourthChair, SaturdayOff, WhyLenaCame, Chart, PoliceReport, Photo };
+        public static readonly string[] EvidenceWithoutWalt = { FourthChair, SaturdayOff, BadDream, HeightMarks, Photo, PoliceReport };
+
+        /// <summary>Every card of the battle, in tray order.</summary>
+        public static readonly string[] Cards = { FourthChair, SaturdayOff, SameSaturday, BadDream, HeightMarks, Photo, PoliceReport, TruthWalt };
 
         /// <summary>Where the prose file's text comes from (set by the Unity side, or by tests). Null: every line
         /// shows as its id in brackets.</summary>
@@ -57,6 +73,7 @@ namespace JamKit.Argument
         {
             var d = Structure();
             ArgumentText.Apply(d, ArgumentText.Parse(prose));
+            ArgumentText.ApplyVariants(d, prose);
             return d;
         }
 
@@ -68,20 +85,22 @@ namespace JamKit.Argument
                 id = Id,
                 arena = "kitchen_table",
                 truthId = TruthLena,
-                personalId = HairTie,
-                placeholderLines = true,
+                personalId = Planisphere,
+                placeholderLines = false,
+                stanceRule = StanceRule.TwoEndings,
+                pressAngers = true,
                 calmShapes = new List<PressureShape> { PressureShape.Bloom, PressureShape.Wall },
                 hotShapes = new List<PressureShape> { PressureShape.Wall, PressureShape.Bloom, PressureShape.Arc },
             };
 
             d.evidence.Add(new EvidenceDef { id = FourthChair, style = EvidenceStyle.Doodled });
             d.evidence.Add(new EvidenceDef { id = SaturdayOff, style = EvidenceStyle.Pinned });
-            d.evidence.Add(new EvidenceDef { id = TruthWalt, style = EvidenceStyle.Gold });
             d.evidence.Add(new EvidenceDef { id = SameSaturday, style = EvidenceStyle.Pinned });
-            d.evidence.Add(new EvidenceDef { id = WhyLenaCame, style = EvidenceStyle.Pinned });
-            d.evidence.Add(new EvidenceDef { id = Chart, style = EvidenceStyle.Stamped });
-            d.evidence.Add(new EvidenceDef { id = PoliceReport, style = EvidenceStyle.Stamped });
+            d.evidence.Add(new EvidenceDef { id = BadDream, style = EvidenceStyle.Doodled });
+            d.evidence.Add(new EvidenceDef { id = HeightMarks, style = EvidenceStyle.Doodled });
             d.evidence.Add(new EvidenceDef { id = Photo, style = EvidenceStyle.Stamped });
+            d.evidence.Add(new EvidenceDef { id = PoliceReport, style = EvidenceStyle.Stamped });
+            d.evidence.Add(new EvidenceDef { id = TruthWalt, style = EvidenceStyle.Gold });
 
             d.premises.Add(new PremiseDef { id = "L1", label = "L1", kind = PremiseKind.Fact, truth = PremiseTruth.True, concedeReveals = { "L1b" } });
             d.premises.Add(new PremiseDef
@@ -126,6 +145,9 @@ namespace JamKit.Argument
             d.premises.Add(new PremiseDef
             {
                 id = "L5", label = "L5", kind = PremiseKind.Link, truth = PremiseTruth.Half, hidden = true, revealedBySlip = true, parent = "L3",
+                // Half true: he does fear the woman in scrubs, but she isn't what took them (the crash did). The drawing
+                // takes it apart; conceding it is also fair. (The creator asked to talk this block through.)
+                challenges = { Challenge(BadDream, SoundEffect.Break, "", "hurt", "neutral", "angry", null) },
             });
             return d;
         }

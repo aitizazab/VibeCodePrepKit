@@ -53,9 +53,9 @@ namespace JamKit.Argument
     /// which stands about 860 px tall on a 1080p screen (Lily stood about 360 px tall on the 1280 x 720 stage).
     /// It distorts whatever <see cref="ArgumentArt.Sprite"/> returns, so it stacks with <see cref="ArgumentArt.SetTreatment"/>.
     ///
-    /// Presets (F10 in the battle cycles them, the name and values shown under her): Gentle (the default), Subtle,
-    /// Lily-equivalent (Lily's 4 px / 0.02 scaled by the two figures' heights), Strong, Slow and heavy, Off.
-    /// Shift+F10 turns on <see cref="Reacting"/>: a little stronger and quicker when she's angry or rattled, calmer when softened.
+    /// Presets: Gentle, Subtle, Lily-equivalent (Lily's 4 px / 0.02 scaled by the two figures' heights), Strong, Slow and
+    /// heavy, Off. By default her mood picks one (<see cref="MoodPreset"/>); F10 in the battle overrides it with each preset
+    /// in turn and then back to her mood, Shift+F10 goes straight back to her mood (the name and values show above her).
     /// (F10 because the other function keys are taken: F1 the debug menu, F3/F4/F6/F7 movement, F5/F9 the Story
     /// template, F7/F8 the dream house's argument skips, F9 the opening editor; F11 is a browser's fullscreen.)
     /// </summary>
@@ -81,35 +81,65 @@ namespace JamKit.Argument
         };
 
         static int _preset;
-        static bool _reacting;
+        static bool _reacting = true;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
             _preset = 0;
-            _reacting = false;
+            _reacting = true;
         }
 
+        /// <summary>
+        /// Her mood picks the boil (the creator's choice, 2026-10-13): each expression has its preset. The mapping
+        /// (the argument agent's call, any can be swapped): neutral and pleading Gentle; antagonistic Lily-equivalent (her
+        /// guard up, a steady strong tremble); angry Strong (busy and quick); rattled Slow and heavy (lurching, off
+        /// balance); softened, hurt and sad Subtle (almost still); kind (Walt) Gentle.
+        /// </summary>
+        public static int MoodPreset(string expression)
+        {
+            switch (expression)
+            {
+                case "antagonistic": return Find("lily");
+                case "angry": return Find("strong");
+                case "rattled": return Find("slow-heavy");
+                case "softened":
+                case "hurt":
+                case "sad": return Find("subtle");
+                default: return Find("gentle");
+            }
+        }
+
+        /// <summary>The preset F10 chose (while not following her mood).</summary>
         public static int PresetIndex => _preset;
         public static BoilSettings Preset => Presets[_preset];
-        /// <summary>Whether her mood changes the boil (off by default: see <see cref="For"/>).</summary>
+        /// <summary>Following her mood (the default); false while F10 has picked a preset.</summary>
         public static bool Reacting => _reacting;
 
+        /// <summary>True: follow her mood. False: keep the preset F10 last chose.</summary>
         public static void SetReacting(bool on) => _reacting = on;
 
-        /// <summary>The next preset (wraps); returns it.</summary>
-        public static BoilSettings Next()
+        /// <summary>F10: her mood, then each preset in turn, then her mood again. Returns what's in effect now.</summary>
+        public static string Next()
         {
-            _preset = (_preset + 1) % Presets.Length;
-            return Preset;
+            if (_reacting) { _reacting = false; _preset = 0; }
+            else if (_preset == Presets.Length - 1) { _reacting = true; _preset = 0; }
+            else _preset++;
+            return Mode;
         }
 
-        /// <summary>Chooses a preset by name, case and spaces and dashes ignored ("lily", "slow-heavy"); false if none.</summary>
+        /// <summary>"by her mood", or the preset F10 chose.</summary>
+        public static string Mode => _reacting ? "by her mood" : Preset.name;
+
+        /// <summary>Chooses a preset by name, case and spaces and dashes ignored ("lily", "slow-heavy"), or "mood" to follow
+        /// her mood again; false if none.</summary>
         public static bool Use(string name)
         {
+            if (NameKey(name) == "mood") { _reacting = true; return true; }
             int i = Find(name);
             if (i < 0) return false;
             _preset = i;
+            _reacting = false;
             return true;
         }
 
@@ -134,27 +164,8 @@ namespace JamKit.Argument
             return k.StartsWith("slowheavy", StringComparison.Ordinal) ? "slowandheavy" + k.Substring(9) : k;
         }
 
-        /// <summary>The settings for an expression: the preset, changed by her mood only when <see cref="Reacting"/>.</summary>
-        public static BoilSettings For(string expression) => _reacting ? React(Preset, expression) : Preset;
-
-        /// <summary>The mood's change: angry or rattled boils harder and quicker, antagonistic a little; softened
-        /// calmer and slower; hurt and pleading a touch quieter.</summary>
-        public static BoilSettings React(BoilSettings s, string expression)
-        {
-            float k = 1f, r = 1f;
-            switch (expression)
-            {
-                case "angry": k = 1.4f; r = 1.25f; break;
-                case "rattled": k = 1.3f; r = 1.5f; break;
-                case "antagonistic": k = 1.15f; break;
-                case "softened": k = 0.6f; r = 0.75f; break;
-                case "hurt":
-                case "pleading": k = 0.85f; break;
-            }
-            s.strength *= k;
-            s.rate *= r;
-            return s;
-        }
+        /// <summary>The settings for an expression: her mood's preset, or the one F10 chose.</summary>
+        public static BoilSettings For(string expression) => _reacting ? Presets[MoodPreset(expression)] : Preset;
 
         /// <summary>
         /// What the shader needs, for a sprite of <paramref name="texture"/> pixels shown at <paramref name="shownPx"/>

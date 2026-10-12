@@ -1,0 +1,150 @@
+# walt_night1: every line of Night 1's argument tutorial. Edit the text after the colon; keep the id before it.
+# Indented lines starting with ? are notes (what the line must say); the game ignores them. \n is a line break.
+# A note after a line ( // like this ) is never shown. *word* is bold. A line with a condition, id[anger>=2]: text,
+# replaces the plain one while the condition holds (meters: anger, force, despair, presses, antagonised, heat).
+#
+# AGENT PLACEHOLDER: every line in this file was written by an agent for the creator to rewrite (2026-10-12),
+# from docs/NIGHTS-1-2.md ("The argument tutorial"). Walt argues; he doesn't teach. Mags teaches, on the earpiece,
+# a line or two the first time each thing comes up. The tutorial can't be lost (composure stops a step short).
+
+## The claim and the frame
+opponent: Walt
+  ? who Nadia is arguing with
+claim: Let him have his good day. Come back tomorrow.
+  ? their position in one short line: the centre of the screen
+opening: Your brother's having a good day, kiddo. Let him have it. Come back tomorrow.
+  ? their first line as the battle starts, ending in the claim
+noTouchReply: That's a fine thing to carry around, but it's got nothing to do with what I said.
+  ? when Nadia's evidence doesn't touch the premise: a redirect
+pressClaimLine: I'm going up, Walt. Move.
+  ? Nadia forcing the claim itself
+pressClaimReply: ...Alright. Alright. Mind the loose step, then.
+  ? their answer to being forced (it ends the battle)
+concedeClaimLine: ...Fine. Tomorrow.
+  ? Nadia giving in on the claim
+concedeClaimReply: Good. Tomorrow, then. He'll be right where you left him.
+  ? their answer (it ends the battle)
+letItRestLine: I hear you, Walt. You're looking out for him. You always did.
+  ? Nadia, once she's heard every premise: she stops fighting and hears them
+letItRestReply: Somebody has to. Here, take this up with you. You'll need it more than me.
+  ? their answer; they hand over their keepsake
+truthText: Walt died in 2015. This street is a memory, and Elias is hiding in it.
+  ? the truth Nadia wins (Convinced): what she now understands, kept for later battles
+personalText: Walt's wrench, the one with the taped handle.
+  ? the keepsake Nadia gets (Heard out): names the object
+convincedReply: ...Twenty-fifteen. Huh. I suppose it was. Go on up, then. He's at the top.
+  ? their line when convinced
+heardOutReply: You always did listen better than him. Go on, then.
+  ? their line when heard out: not convinced, but respected
+pressedReply: You've got your father's temper. Go on, then.
+  ? their line when Nadia won by force
+composureLostLine: Mags... I can't... I can't breathe-
+  ? Nadia at 160 bpm: panic, she has to stop (the tutorial never gets there)
+
+## W1 (W1): a fact, TRUE
+W1.text: He's having a good day.
+  ? the premise card: what they claim, in their words
+W1.askReply: Look at him up there. Burgers on, music going, not a care in the world. When did you last see him like that? Nothing's wrong with him here.
+  ? their answer when Nadia asks why
+W1.concedeLine: ...He is. He looks happy.
+  ? Nadia conceding it
+W1.concedeReply: There. So let him be. Come back tomorrow.
+  ? their answer to the concession (often states the next premise)
+W1.trueReply: Don't argue with what you can see with your own two eyes.
+  ? when Nadia tries to challenge something true: it's true, concede it
+W1.pressLine: He isn't, Walt!
+  ? Nadia forcing it without a reason
+W1.pressReply: Raising your voice doesn't make it so.
+  ? their answer to being forced
+
+## W2 (W2): a link, FALSE, KEY, hidden at first
+W2.text: Nothing's wrong on this street. He's safe here.
+  ? the premise card: what they claim, in their words
+W2.askReply: Nothing bad has ever happened on Larch Street. Not once. That's the beauty of it.
+  ? their answer when Nadia asks why
+W2.concedeLine: ...Maybe he is safe.
+  ? Nadia conceding it
+W2.concedeFalseReply: Course he is. So off you go.
+  ? when Nadia agrees with something false
+W2.pressLine: Something *is* wrong!
+  ? Nadia forcing it without a reason
+W2.pressReply: Then show me, instead of shouting it.
+  ? their answer to being forced
+W2.sound: You died in 2015, Walt. I was at the funeral. This street is a memory.
+  ? the reason that follows: the proof that breaks this premise
+W2.sound.reply: ...Twenty-fifteen. The spring. ...Huh. I did, didn't I?
+  ? their answer: concedes, falls back or digs deeper
+W2.beside: He hasn't been back here in years.
+  ? a reason that's true but beside the point
+W2.beside.reply: People come home when they need to. That's no crime.
+  ? why it misses
+W2.nonsequitur: The shop looks older than I remember, so none of this is real.
+  ? a reason that doesn't follow from the evidence
+W2.nonsequitur.reply: Everything looks older than you remember. That's not proof of anything.
+  ? why it doesn't follow
+
+## W3 (W3): a link, FALSE, hidden at first (conceding W1 brings it out; optional: not needed to win)
+W3.text: Come back tomorrow. He'll still be here.
+  ? the premise card: what they claim, in their words
+W3.askReply: Tomorrow's Sunday. Pancakes at the top of the hill. You'll see him then.
+  ? their answer when Nadia asks why
+W3.concedeLine: ...Tomorrow, then.
+  ? Nadia conceding it
+W3.concedeFalseReply: That's the spirit.
+  ? when Nadia agrees with something false
+W3.pressLine: There is no tomorrow!
+  ? Nadia forcing it without a reason
+W3.pressReply: There's always a tomorrow, kiddo.
+  ? their answer to being forced
+W3.sound: There won't be a tomorrow. It's the same Saturday, over and over: the sprinkler, the ball, your same line.
+  ? the reason that follows: the proof that breaks this premise
+W3.sound.reply: ...My same line? Now that's... no. No, that can't be right.
+  ? their answer: concedes, falls back or digs deeper
+W3.beside: I've got a shift tomorrow.
+  ? a reason that's true but beside the point
+W3.beside.reply: Then come after. Nothing's going anywhere.
+  ? why it misses
+W3.nonsequitur: The sun hasn't moved, so you're lying to me.
+  ? a reason that doesn't follow from the evidence
+W3.nonsequitur.reply: The sun does what it likes. I don't lie, Nadia. Never have.
+  ? why it doesn't follow
+
+## The evidence cards
+ded_walt_dead.name: Walt is dead
+  ? the card's name, as it reads in a sentence ("the fourth chair")
+ded_walt_dead.note: Walter Abernathy, 1941-2015. This street is memory.
+  ? one line under the name: what it is
+ded_same_saturday.name: the same Saturday
+  ? the card's name, as it reads in a sentence ("the fourth chair")
+ded_same_saturday.note: The sprinkler, the dog's ball, the same line: the street repeats, to the second.
+  ? one line under the name: what it is
+mem_walt_alive.name: Walt, waving
+  ? the card's name, as it reads in a sentence ("the fourth chair")
+mem_walt_alive.note: Alive, at his shop, as if it were years ago.
+  ? one line under the name: what it is
+
+## His faces (Resources/ArgumentArt/walt_*.png: antagonistic, neutral, kind, rattled, softened, sad)
+# He opens in antagonistic (palm raised: "not today"). His reasons' answers use kind (the beside-the-point ones), rattled
+# and sad (the moment he remembers he died). These lines say which drawing stands in for the game's other moods.
+face.hurt: sad
+  ? when he's pushed (a press): the game's "hurt"
+face.angry: antagonistic
+  ? the game's "angry" (he has no angry drawing): his firm "not today"
+
+## The coach on the earpiece
+coachName: Mags
+  ? who's coaching
+coach.ask: Ask him why. People tell you more than they mean to when they explain themselves.
+  ? the battle has started: ask why
+coach.challenge: You've got something that says otherwise. Challenge it: show it, then say why it matters. Pick the reason that actually follows.
+  ? a premise she can break is on the table
+coach.concede: That part's true. Say so. Agreeing with the truth steadies you, and it costs you nothing.
+  ? she has heard a premise that's true
+coach.pressure: Your heart's up. Keep your light out of the way and breathe. It passes.
+  ? the first pressure phase
+coach.press: If you can't break something, you can force it. It works. It also costs, him and you. Use it sparingly.
+  ? the first misstep, or only what she can't break is left
+coach.rest: You've heard all of it. You can let it rest: tell him you hear him. Sometimes that's enough.
+  ? everything's been heard
+coach.broken: That's it. When one of their reasons falls, the rest has to stand without it.
+  ? the first premise she breaks

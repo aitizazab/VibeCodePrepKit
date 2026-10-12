@@ -131,6 +131,7 @@ menu.story: Play (Story: nothing hurts, slips collect themselves)
 menu.longNight: Play (Long Night: scripted but beatable)
 menu.noWalt: Play without Walt's truth (Heard out at best)
 menu.watch: Watch it play (the autopilot)
+menu.walt: Night 1: Walt's tutorial (Mags on the earpiece)
 menu.forget: Forget the saved results
 menu.title.back: Back to the title
 menu.savedNone: Saved: nothing yet. Each battle's result is kept, and a later battle reads it (Lena's blessing, or not).

@@ -43,11 +43,26 @@ namespace JamKit.Argument
         public EvidenceStyle style = EvidenceStyle.Stamped;
         /// <summary>One line for the tray's tooltip ("Theo's chair, set every Sunday").</summary>
         public string note = "";
+        /// <summary>The journal ids (memories, deductions, facts) that put this card in the tray, any one of them; the
+        /// card's own id always does. Until one is found the card isn't there (unless the setup gives every card).</summary>
+        public List<string> unlockedBy = new List<string>();
+
+        /// <summary>True if any of <paramref name="found"/> unlocks this card.</summary>
+        public bool UnlockedBy(ICollection<string> found)
+        {
+            if (found == null) return false;
+            if (found.Contains(id)) return true;
+            foreach (var u in unlockedBy) if (!string.IsNullOrEmpty(u) && found.Contains(u)) return true;
+            return false;
+        }
     }
 
     [Serializable]
     public class ReasonDef
     {
+        /// <summary>Its id in the prose file ("L1b.sound", or "L3c.truth_walt.sound" for one piece of evidence): the reply's
+        /// is this plus ".reply" (for conditional variants).</summary>
+        public string id = "";
         /// <summary>The card, written as the second half of "You said X. But this shows Y, so...".</summary>
         public string text = "";
         public ReasonKind kind = ReasonKind.Sound;
@@ -158,6 +173,30 @@ namespace JamKit.Argument
         public string reasonEvidence = "";
     }
 
+    /// <summary>
+    /// A line that replaces another while a condition holds (the prose file's <c>id[condition]: text</c>). The condition
+    /// reads the battle's meters (<see cref="ArgumentCondition"/>): Lena's anger, the Force tally, Despair...
+    /// The first variant in file order whose condition holds wins; none: the plain line.
+    /// </summary>
+    [Serializable]
+    public class LineVariant
+    {
+        public string id = "";
+        public string condition = "";
+        public string text = "";
+        [NonSerialized] public ArgumentCondition parsed;
+    }
+
+    /// <summary>How a battle's end becomes the opponent's stance.</summary>
+    public enum StanceRule
+    {
+        /// <summary><see cref="ArgumentEngine.StanceFor"/>: amenable, unsure or condemning, by outcome, anger and presses.</summary>
+        Graded,
+        /// <summary>The creator's two endings (Lena, Night 2): Convinced, Heard out or Yielded leave them unsure; Pressed,
+        /// Composure lost or any antagonising that landed (a card or a retort) make them condemn Nadia.</summary>
+        TwoEndings,
+    }
+
     [Serializable]
     public class ArgumentDef
     {
@@ -198,6 +237,31 @@ namespace JamKit.Argument
 
         /// <summary>Every line is a placeholder for the creator's writing pass (the view says so on screen).</summary>
         public bool placeholderLines;
+
+        /// <summary>Lines that replace others under a condition (<see cref="LineVariant"/>), from the prose file.</summary>
+        public List<LineVariant> variants = new List<LineVariant>();
+        /// <summary>How the end becomes their stance.</summary>
+        public StanceRule stanceRule = StanceRule.Graded;
+        /// <summary>Pressing a premise also angers them (Lena: antagonising, retorting and pressing raise her anger).</summary>
+        public bool pressAngers;
+        /// <summary>The highest heart step her composure can reach (5 = 160 bpm, panic). The tutorial caps it at 4, so
+        /// it can't be lost.</summary>
+        public int heartCap = ArgumentEngine.PanicStep;
+        /// <summary>Scales every pressure phase's speed (1 = as set; the tutorial's are gentler).</summary>
+        public float pressureScale = 1f;
+        /// <summary>The battle opens with a low pressure phase (the tutorial doesn't: its first comes with the first misstep).</summary>
+        public bool openingPressure = true;
+        /// <summary>Which of this opponent's drawings stands for one of the game's moods (the prose file's
+        /// <c>face.hurt: sad</c>): Walt has no "hurt" or "angry" drawing. A mood with no entry is used as it is.</summary>
+        public Dictionary<string, string> faces = new Dictionary<string, string>();
+
+        /// <summary>The drawing for <paramref name="mood"/> (through <see cref="faces"/>).</summary>
+        public string Face(string mood) => !string.IsNullOrEmpty(mood) && faces.TryGetValue(mood, out var f) && !string.IsNullOrEmpty(f) ? f : mood ?? "";
+
+        /// <summary>A coach on the earpiece (Mags in the Night 1 tutorial): a line the first time each moment comes
+        /// (<see cref="ArgumentCoach"/>), by moment id. Empty: no coach.</summary>
+        public Dictionary<string, string> coach = new Dictionary<string, string>();
+        public string coachName = "";
 
         /// <summary>This battle's screen words, or null for the shared screen file (ArgumentStrings.Shared).</summary>
         [NonSerialized] public ArgumentStrings strings;

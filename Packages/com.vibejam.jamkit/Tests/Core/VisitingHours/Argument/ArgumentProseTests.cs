@@ -7,21 +7,25 @@ using NUnit.Framework;
 namespace JamKit.Tests.Argument
 {
     /// <summary>Finds the prose files (Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentText/) from the
-    /// test run and makes the demo and the screen read them, as the game does from Resources.</summary>
+    /// test run and makes the battles and the screen read them, as the game does from Resources. A copy waiting in
+    /// docs/_pending/ArgumentText/ (edits made while the creator had the file open; it's swapped in once their tab is
+    /// closed) is read instead: the tests check what the game will have.</summary>
     public static class ArgumentTestFiles
     {
         public const string Folder = "Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentText";
+        public const string PendingFolder = "docs/_pending/ArgumentText";
 
         public static string Path(string name)
         {
-            foreach (var start in new[] { TestContext.CurrentContext.TestDirectory, Directory.GetCurrentDirectory() })
-            {
-                for (var dir = new DirectoryInfo(start); dir != null; dir = dir.Parent)
+            foreach (var folder in new[] { PendingFolder, Folder })
+                foreach (var start in new[] { TestContext.CurrentContext.TestDirectory, Directory.GetCurrentDirectory() })
                 {
-                    string p = System.IO.Path.Combine(dir.FullName, Folder, name + ".txt");
-                    if (File.Exists(p)) return p;
+                    for (var dir = new DirectoryInfo(start); dir != null; dir = dir.Parent)
+                    {
+                        string p = System.IO.Path.Combine(dir.FullName, folder, name + ".txt");
+                        if (File.Exists(p)) return p;
+                    }
                 }
-            }
             Assert.Fail("Can't find " + Folder + "/" + name + ".txt above " + TestContext.CurrentContext.TestDirectory);
             return null;
         }
@@ -32,10 +36,15 @@ namespace JamKit.Tests.Argument
         public static void Use()
         {
             string prose = Read(DreamLenaDemo.ProseFile);
+            string walt = Read(WaltNight1.ProseFile);
             string screen = Read("screen");
             DreamLenaDemo.ProseSource = () => prose;
+            WaltNight1.ProseSource = () => walt;
             ArgumentStrings.SharedSource = () => screen;
         }
+
+        /// <summary>Lines the creator left blank on purpose (flagged to them, not filled by an agent).</summary>
+        public static readonly string[] CreatorBlanks = { "L1c.askReply" };
     }
 
     /// <summary>Every word of the battle is in the creator's files, not in code: the battle's file has a line for every
@@ -56,7 +65,28 @@ namespace JamKit.Tests.Argument
             var keys = ArgumentText.Keys(DreamLenaDemo.Structure());
             var stray = lines.Keys.Where(k => !keys.Contains(k) && !k.EndsWith(".noTouchReply", StringComparison.Ordinal) && k.Count(c => c == '.') < 2).ToList();
             Assert.That(stray, Is.Empty, "ids in the file the battle doesn't use (a typo?)");
+            foreach (var k in keys)
+                if (!ArgumentTestFiles.CreatorBlanks.Contains(k)) Assert.That(lines[k], Is.Not.Empty, k + " is empty");
+            Assert.That(ArgumentText.ApplyVariants(def, ArgumentTestFiles.Read(DreamLenaDemo.ProseFile)), Is.Empty, "every conditional line reads and has a line to replace");
+        }
+
+        [Test]
+        public void WaltsFileHasEveryLineAndIsMarkedAsAPlaceholder()
+        {
+            string text = ArgumentTestFiles.Read(WaltNight1.ProseFile);
+            var lines = ArgumentText.Parse(text);
+            var def = WaltNight1.Structure();
+            Assert.That(ArgumentText.Apply(def, lines), Is.Empty, "lines missing from walt_night1.txt");
+            var keys = ArgumentText.Keys(WaltNight1.Structure());
+            Assert.That(lines.Keys.Where(k => !keys.Contains(k) && !k.StartsWith("face.", StringComparison.Ordinal)), Is.Empty, "ids Walt's battle doesn't use");
+            Assert.That(def.Face("hurt"), Is.EqualTo("sad"), "his drawings stand in for the game's moods");
+            Assert.That(def.Face("angry"), Is.EqualTo("antagonistic"));
+            Assert.That(def.Face("rattled"), Is.EqualTo("rattled"), "a mood he has is used as it is");
             foreach (var k in keys) Assert.That(lines[k], Is.Not.Empty, k + " is empty");
+            Assert.That(text, Does.Contain("AGENT PLACEHOLDER"), "marked for the creator to rewrite");
+            Assert.That(def.placeholderLines, Is.True, "and the screen says so");
+            Assert.That(def.coachName, Is.EqualTo("Mags"));
+            foreach (var m in ArgumentCoach.Moments) Assert.That(def.coach[m], Is.Not.Empty, "Mags has a line for " + m);
         }
 
         [Test]

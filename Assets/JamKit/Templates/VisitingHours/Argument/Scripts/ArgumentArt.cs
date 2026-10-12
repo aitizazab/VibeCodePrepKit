@@ -30,7 +30,9 @@ namespace JamKit.Argument
     {
         public const string ArtFolder = "ArgumentArt/";
         public const string FontFolder = "ArgumentFonts/";
-        public static readonly string[] Expressions = { "antagonistic", "neutral", "angry", "rattled", "softened", "hurt", "pleading" };
+        /// <summary>Every mood a sprite can be drawn in. Lena: the first seven. Walt adds kind and sad (no angry, hurt or
+        /// pleading: his battle file maps those). A missing drawing falls back to that opponent's neutral.</summary>
+        public static readonly string[] Expressions = { "antagonistic", "neutral", "angry", "rattled", "softened", "hurt", "pleading", "kind", "sad" };
         /// <summary>Every opponent starts the battle in this pose, until a reply changes her expression (no file: neutral).</summary>
         public const string Opening = "antagonistic";
 
@@ -184,6 +186,8 @@ namespace JamKit.Argument
                 case "rattled": browTilt = -0.3f; browLift = 0.12f; mouthCurve = -0.15f; eyeOpen = 1.2f; break;
                 case "softened": browTilt = -0.12f; browLift = 0.05f; mouthCurve = 0.45f; eyeOpen = 0.6f; break;
                 case "hurt": browTilt = -0.45f; browLift = 0.08f; mouthCurve = -0.35f; eyeOpen = 0.7f; break;
+                case "kind": browTilt = -0.08f; browLift = 0.06f; mouthCurve = 0.35f; eyeOpen = 0.75f; break;
+                case "sad": browTilt = -0.4f; browLift = 0.1f; mouthCurve = -0.25f; eyeOpen = 0.65f; break;
                 case "pleading": browTilt = -0.5f; browLift = 0.15f; mouthCurve = -0.1f; eyeOpen = 1.05f; break;
                 default: browTilt = 0f; browLift = 0.04f; mouthCurve = 0.05f; eyeOpen = 0.9f; break;
             }

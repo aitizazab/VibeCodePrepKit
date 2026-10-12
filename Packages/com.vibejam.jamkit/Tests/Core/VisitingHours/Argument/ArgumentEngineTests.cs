@@ -51,7 +51,7 @@ namespace JamKit.Tests.Argument
             Assert.That(outcome, Is.EqualTo(ArgumentOutcome.Convinced));
             Assert.That(e.KeysBroken, Is.EqualTo(3), "L1', L3' and L3''");
             Assert.That(e.Presses, Is.EqualTo(0));
-            Assert.That(e.Stance, Is.EqualTo(ArgumentStance.Amenable));
+            Assert.That(e.Stance, Is.EqualTo(ArgumentStance.Unsure), "the creator's two endings: convinced, she's unsure (open to her blessing later)");
             var rec = e.Record();
             Assert.That(rec.truth, Is.EqualTo(DreamLenaDemo.TruthLena));
             Assert.That(rec.outcome, Is.EqualTo(ArgumentOutcome.Convinced));
@@ -130,11 +130,11 @@ namespace JamKit.Tests.Argument
         {
             var e = Engine();
             SitOutPressure(e);
-            Assert.That(e.BeginChallenge("L1", DreamLenaDemo.Chart, new List<ReasonCard>()), Is.EqualTo(ChallengeStep.TrueOne));
+            Assert.That(e.BeginChallenge("L1", DreamLenaDemo.HeightMarks, new List<ReasonCard>()), Is.EqualTo(ChallengeStep.TrueOne));
             Assert.That(e.Heat, Is.EqualTo(1), "challenging a true premise costs a little");
             e.Concede("L1");
             Assert.That(e.BeginChallenge("L1b", DreamLenaDemo.Photo, new List<ReasonCard>()), Is.EqualTo(ChallengeStep.NoTouch));
-            Assert.That(LastOpponentLine(e), Is.EqualTo(e.Def.noTouchReply));
+            Assert.That(LastOpponentLine(e), Is.EqualTo(e.Line("noTouchReply", e.Def.noTouchReply)));
             e.Concede("L2");
             Assert.That(e.BeginChallenge("L2b", DreamLenaDemo.FourthChair, new List<ReasonCard>()), Is.EqualTo(ChallengeStep.Unbreakable));
             Assert.That(e.Status("L2b"), Is.EqualTo(PremiseStatus.Standing), "can't be broken tonight");
@@ -148,7 +148,7 @@ namespace JamKit.Tests.Argument
             var outcome = new ArgumentPilot().Play(e);
             Assert.That(e.Status("L3c"), Is.EqualTo(PremiseStatus.Standing), "L3'' needs Night 1's truth");
             Assert.That(outcome, Is.EqualTo(ArgumentOutcome.HeardOut), "Heard out at best");
-            Assert.That(e.Record().personal, Is.EqualTo(DreamLenaDemo.HairTie));
+            Assert.That(e.Record().personal, Is.EqualTo(DreamLenaDemo.Planisphere), "her keepsake (a placeholder)");
         }
 
         [Test]
@@ -335,7 +335,8 @@ namespace JamKit.Tests.Argument
             Assert.That(ArgumentEngine.StanceFor(ArgumentOutcome.HeardOut, 1, 0), Is.EqualTo(ArgumentStance.Unsure));
             Assert.That(ArgumentEngine.StanceFor(ArgumentOutcome.Pressed, 1, 1), Is.EqualTo(ArgumentStance.Condemns));
 
-            // In a real battle: the antagonising card, then the retort, then the honest path. Convinced, but only unsure.
+            // In Lena's battle (the creator's two endings): the antagonising card, then the retort, then the honest path.
+            // Convinced, but an antagonising card that landed means she condemns Nadia.
             var e = Engine();
             SitOutPressure(e);
             e.Concede("L1");
@@ -348,8 +349,9 @@ namespace JamKit.Tests.Argument
             Assert.That(e.Anger, Is.EqualTo(2));
             SitOutPressure(e);
             Assert.That(new ArgumentPilot().Play(e), Is.EqualTo(ArgumentOutcome.Convinced));
-            Assert.That(e.Stance, Is.EqualTo(ArgumentStance.Unsure));
+            Assert.That(e.Stance, Is.EqualTo(ArgumentStance.Condemns));
             Assert.That(e.Record().anger, Is.EqualTo(2));
+            Assert.That(e.Antagonised, Is.EqualTo(2));
         }
 
         [Test]
@@ -365,10 +367,10 @@ namespace JamKit.Tests.Argument
             var r = back.Get(DreamLenaDemo.Id);
             Assert.That(r, Is.Not.Null);
             Assert.That(r.outcome, Is.EqualTo(ArgumentOutcome.Convinced));
-            Assert.That(r.stance, Is.EqualTo(ArgumentStance.Amenable));
+            Assert.That(r.stance, Is.EqualTo(ArgumentStance.Unsure));
             Assert.That(r.truth, Is.EqualTo(DreamLenaDemo.TruthLena));
             Assert.That(r.plays, Is.EqualTo(1));
-            Assert.That(back.StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Amenable), "a later battle reads Lena's blessing");
+            Assert.That(back.StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Unsure), "a later battle reads where Lena stands");
             Assert.That(back.HasTruth(DreamLenaDemo.TruthLena), Is.True);
             Assert.That(back.StanceOf("doctor_night3"), Is.EqualTo(ArgumentStance.None));
 

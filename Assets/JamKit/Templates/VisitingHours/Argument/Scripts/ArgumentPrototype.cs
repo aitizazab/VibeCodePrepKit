@@ -25,7 +25,8 @@ namespace JamKit.Argument
         public const string LongNight = "Dream-Lena: Long Night (scripted but beatable)";
         public const string NoWalt = "Dream-Lena: without Walt's truth";
         public const string Watch = "Dream-Lena: watch it play";
-        public static readonly string[] Chapters = { Normal, Story, LongNight, NoWalt, Watch };
+        public const string Walt = "Walt: Night 1 tutorial (Mags coaching)";
+        public static readonly string[] Chapters = { Normal, Story, LongNight, NoWalt, Watch, Walt };
 
         /// <summary>The chapter in Visiting Hours' and the Dream Escape's lists that jumps to the prototype.</summary>
         public const string FromElsewhere = "Argument prototype (Dream-Lena)";
@@ -67,6 +68,7 @@ namespace JamKit.Argument
             PresenterMode.Register(Scene, LongNight, () => Play(LongNight), this);
             PresenterMode.Register(Scene, NoWalt, () => Play(NoWalt), this);
             PresenterMode.Register(Scene, Watch, () => Play(Watch), this);
+            PresenterMode.Register(Scene, Walt, () => Play(Walt), this);
             BuildMenu();
             ShowMenu(true);
         }
@@ -97,6 +99,10 @@ namespace JamKit.Argument
                 case NoWalt:
                     setup.evidence.AddRange(DreamLenaDemo.EvidenceWithoutWalt);
                     break;
+                case Walt:
+                    // Night 1's tutorial with what the street gives her by then.
+                    setup.evidence.AddRange(new[] { WaltNight1.WaltDead, WaltNight1.SameSaturday, WaltNight1.WaltAlive });
+                    break;
                 default:
                     setup.allEvidence = true;
                     break;
@@ -108,7 +114,8 @@ namespace JamKit.Argument
         public ArgumentHost Play(string chapter)
         {
             ShowMenu(false);
-            var host = ArgumentHost.Begin(DreamLenaDemo.Build(), SetupFor(chapter), _ => ShowMenu(true));
+            var def = chapter == Walt ? WaltNight1.Build() : DreamLenaDemo.Build();
+            var host = ArgumentHost.Begin(def, SetupFor(chapter), _ => ShowMenu(true));
             if (host != null) host.Autopilot = chapter == Watch;
             return host;
         }
@@ -139,6 +146,7 @@ namespace JamKit.Argument
             Add("argument-play-longnight", S["menu.longNight"], () => Play(LongNight));
             Add("argument-play-nowalt", S["menu.noWalt"], () => Play(NoWalt));
             Add("argument-play-watch", S["menu.watch"], () => Play(Watch));
+            Add("argument-play-walt", S["menu.walt"], () => Play(Walt));
             Add("argument-forget", S["menu.forget"], Forget);
             Add("argument-title", S["menu.title.back"], () => GameRoot.Instance.QuitToTitle());
 

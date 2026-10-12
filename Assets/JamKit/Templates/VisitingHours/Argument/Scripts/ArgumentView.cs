@@ -339,8 +339,9 @@ namespace JamKit.Argument
             if (always) _boilLabelAlways = true;
             _boilLabelFor = 4f;
             var s = ArgumentBoil.For(_spriteExpression);
-            _boilLabel.text = "Boil (" + ArgumentBoil.CycleKeyName + "): " + s.Describe()
-                + (ArgumentBoil.Reacting ? "  ·  reacting to her mood (" + ArgumentBoil.ReactKeyName + ")" : "  ·  " + ArgumentBoil.ReactKeyName + ": react to her mood");
+            _boilLabel.text = ArgumentBoil.Reacting
+                ? "Boil (" + ArgumentBoil.CycleKeyName + "): by her mood, " + _spriteExpression + ": " + s.Describe()
+                : "Boil (" + ArgumentBoil.CycleKeyName + "): " + s.Describe() + "  ·  " + ArgumentBoil.ReactKeyName + ": back to her mood";
             _boilLabel.style.display = DisplayStyle.Flex;
         }
 
