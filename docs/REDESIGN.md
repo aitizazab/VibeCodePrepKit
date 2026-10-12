@@ -168,3 +168,7 @@ Every builder follows this; the Perf agent owns the shared tools and the measure
 - **Quality tiers:** a default that hits 120 fps here, and a lower tier for weaker machines.
 - **Measured, not guessed:** the perf probe flies set camera paths in a build and logs average, 1% low and worst frame
   times; every milestone reports them per scene.
+- **The cast, settled further (the creator, 2026-10-13):** Rafael is generated with Tripo from his own sheet. The LeBaget
+  representative is built from a 3D Lena (from Lena's approved art), altered with different hair colour, clothing and
+  accessories; the plain 3D Lena stays as a prefab "so we have Lena as a base in case we need her later". The dream's
+  cut-out art stays as drawn ("I like most of it"); only technical paper fixes.
