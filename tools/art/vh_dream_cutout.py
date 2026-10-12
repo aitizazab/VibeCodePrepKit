@@ -2,6 +2,7 @@
 # a sketchbook (the dream's billboards). Light work (no rembg): the paper is flood-filled from the image's edges.
 #   uv run --with pillow --with numpy --with scipy python tools/art/vh_dream_cutout.py <src.jpg> <out name> [x0 x1]
 #   (x0 x1: optional fractions of the width to keep, to drop anything drifting at the sides)
+#   [--close 8] close gaps in the outline (white hair on white paper); [--hole-max 0.01] keep big enclosed paper pockets open
 # Writes Assets/JamKit/Templates/VisitingHours/Art/Dream/<out name>.png (the name DreamArt looks for), at most 1024 tall.
 import os, sys
 import numpy as np
@@ -13,13 +14,19 @@ INC = r"C:\Users\User\Desktop\yougotgamesonyophone\FableAnimationTests\art\incom
 OUT = os.path.join(VJ, "Assets", "JamKit", "Templates", "VisitingHours", "Art", "Dream")
 
 
-def cutout(src, name, x0=0.0, x1=1.0, tol=34, border_frac=0.012):
+def cutout(src, name, x0=0.0, x1=1.0, tol=34, border_frac=0.012, close=0, hole_max=None):
+    """close: radius (px) to close gaps in the outline before the flood fill, so white parts drawn on the paper (white
+    hair) aren't flooded away. hole_max: paper-coloured pockets enclosed by the figure (a hose looped back to the legs)
+    bigger than this fraction of the figure stay transparent instead of being filled with paper. Both off by default."""
     im = Image.open(src if os.path.isabs(src) else os.path.join(INC, src)).convert("RGB")
     W, H = im.size; im = im.crop((int(x0 * W), 0, int(x1 * W), H))
     a = np.asarray(im, dtype=np.int16)
     edge = np.concatenate([a[:6].reshape(-1, 3), a[-6:].reshape(-1, 3), a[:, :6].reshape(-1, 3), a[:, -6:].reshape(-1, 3)])
     paper = np.median(edge, axis=0)
-    near = np.abs(a - paper).max(-1) <= tol                       # paper-coloured pixels
+    near0 = near = np.abs(a - paper).max(-1) <= tol               # paper-coloured pixels
+    if close:
+        yy, xx = np.ogrid[-close:close + 1, -close:close + 1]
+        near = ~ndimage.binary_closing(~near, structure=(xx * xx + yy * yy) <= close * close)
     lab, _ = ndimage.label(near)
     border_labels = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
     bg = np.isin(lab, border_labels[border_labels > 0])           # paper reachable from the edges
@@ -28,7 +35,15 @@ def cutout(src, name, x0=0.0, x1=1.0, tol=34, border_frac=0.012):
     if n > 1:                                                     # keep the figure, drop specks
         sizes = ndimage.sum(fig, lab2, range(1, n + 1))
         fig = np.isin(lab2, 1 + np.nonzero(sizes >= sizes.max() * 0.02)[0])
-    fig = ndimage.binary_fill_holes(fig)
+    filled = ndimage.binary_fill_holes(fig)
+    if hole_max is not None:
+        hl, hn = ndimage.label(filled & near & ~bg)                # paper the figure encloses
+        if hn:
+            idx = range(1, hn + 1)
+            area = ndimage.sum(np.ones(fig.shape), hl, idx); paperish = ndimage.mean(near0, hl, idx)
+            keep_open = 1 + np.nonzero((area > hole_max * filled.sum()) & (paperish > 0.8))[0]
+            filled &= ~np.isin(hl, keep_open)
+    fig = filled
     r = max(3, int(border_frac * a.shape[0]))
     yy, xx = np.ogrid[-r:r + 1, -r:r + 1]
     sticker = ndimage.binary_dilation(fig, structure=(xx * xx + yy * yy) <= r * r)
@@ -45,8 +60,10 @@ def cutout(src, name, x0=0.0, x1=1.0, tol=34, border_frac=0.012):
 
 
 if __name__ == "__main__":
-    a = sys.argv[1:]
-    cutout(a[0], a[1], *(float(v) for v in a[2:4]))
+    a = sys.argv[1:]; kw = {}
+    for flag, key, typ in (("--close", "close", int), ("--hole-max", "hole_max", float)):
+        if flag in a: i = a.index(flag); kw[key] = typ(a[i + 1]); del a[i:i + 2]
+    cutout(a[0], a[1], *(float(v) for v in a[2:4]), **kw)
 
 
 def pattern(src, name, contrast=0.22, size=512):
