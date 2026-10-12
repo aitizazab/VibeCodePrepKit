@@ -7,6 +7,7 @@ using JamKit.Flow;
 using JamKit.Movement;
 using JamKit.Presenting;
 using JamKit.Shell;
+using JamKit.VisitingHours.Characters;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -47,6 +48,8 @@ namespace JamKit.DreamEscape
         public Transform patchedBike, garageDoor, shutter, wave;
         public GameObject eliasOutside;
         public Transform eliasInside, theoInside, lenaInside, frontDoor;
+        [Tooltip("The front door hinge's yaw while the door stands open (shut is 0): +90 for the house builder's door.")]
+        public float frontDoorOpenYaw = -95f;
         public Light porchLight;
         public GameObject porchGlow;
         public Transform houseRoot;
@@ -62,6 +65,16 @@ namespace JamKit.DreamEscape
         public bool assumeDay1Facts = true;
         [Tooltip("Play Walt's argument (the argument agent's battle). Off, or under the autopilot: the debug choice.")]
         public bool useArgumentBattle = true;
+        [Tooltip("Lena's star watch on Nadia's right wrist (People's VhKeepsakeWatch), built hidden; shown while the keepsake is hers.")]
+        public VhKeepsakeWatch keepsakeWatch;
+        [Tooltip("Whether Nadia has Lena's watch tonight (the keepsake: a Night 4 mechanic; the chain or a test sets it).")]
+        public bool keepsakeOwned;
+        [Tooltip("Night 2: the scene her reaching the gate goes on to when nothing listens to Night2AtTheDoor (the House agent's night).")]
+        public string night2HouseScene = "DreamHouse";
+
+        /// <summary>The night the next DreamStreetGame to start plays (0: its own <see cref="night"/>). Set it to 2 before
+        /// loading DreamStreet for Night 2 (the chain); it's used once.</summary>
+        public static int NextNight;
 
         static DreamStreetGame _current;
         static Action _nightEnded, _night2AtTheDoor;
@@ -70,6 +83,7 @@ namespace JamKit.DreamEscape
         static void ResetStatics()
         {
             _current = null;
+            NextNight = 0;
             _nightEnded = null;
             _night2AtTheDoor = null;
         }
@@ -115,6 +129,10 @@ namespace JamKit.DreamEscape
         Func<bool> _skip;
         MoveProfile _wade;
         bool _ledgerOut, _plank, _hospitalLit, _waltWarm;
+        Collider _shutterCollider;
+        VhCharacter _eliasModel;
+        // The spots the frame asks about, looked up once (LarchHill.Spot allocated a lambda per call: Perf's find).
+        HillSpot _spotChatter, _spotYard, _spotRowan, _spotGate, _spotCreekWater, _spotPool, _spotDitch, _spotLoopZone;
 
         public LarchHill Hill => _h;
         public LarchStreetStory Story => _story;
@@ -154,6 +172,18 @@ namespace JamKit.DreamEscape
             }
             _current = this;
             _h = LarchHill.Build();
+            _spotChatter = _h.Spot(LarchHill.SpotChatter);
+            _spotYard = _h.Spot(LarchHill.SpotYard);
+            _spotRowan = _h.Spot(LarchHill.SpotRowan);
+            _spotGate = _h.Spot(LarchHill.SpotGate);
+            _spotCreekWater = _h.Spot(LarchHill.SpotCreekWater);
+            _spotPool = _h.Spot(LarchHill.SpotPool);
+            _spotDitch = _h.Spot(LarchHill.SpotDitch);
+            _spotLoopZone = _h.Spot(LarchHill.SpotLoopZone);
+            if (shutter != null) _shutterCollider = shutter.GetComponent<Collider>();
+            if (eliasOutside != null) _eliasModel = eliasOutside.GetComponent<VhCharacter>();
+            // Night 2 on the hill: whoever loads the scene for Night 2 says so first (NextNight), as the scene is the same.
+            if (NextNight > 0) { night = NextNight; NextNight = 0; }
             _loop = new NeighbourLoop(1);   // Night 2 replays Night 1's loop exactly
             _hold = sim => new MoveInput { yaw = sim.Yaw };
             _wade = new MoveProfile { doubleJump = false, wallrun = false, slide = false, airStrafeScale = 0.3f, speedCap = 2.6f };
@@ -246,8 +276,10 @@ namespace JamKit.DreamEscape
             if (nail != null) nail.SetActive(true);
             if (treehouseMemory != null) treehouseMemory.SetActive(true);
             if (eliasOutside != null) { eliasOutside.SetActive(true); eliasOutside.transform.position = _eliasHome; }
+            if (_eliasModel != null) _eliasModel.Play("idle");
+            SetKeepsakeOwned(keepsakeOwned);
             SetWindow(false);
-            if (frontDoor != null) frontDoor.localRotation = Quaternion.Euler(0f, -95f, 0f);
+            if (frontDoor != null) frontDoor.localRotation = Quaternion.Euler(0f, frontDoorOpenYaw, 0f);
             if (porchLight != null) porchLight.enabled = true;
             if (porchGlow != null) porchGlow.SetActive(true);
             ShowWave(false);
@@ -343,7 +375,7 @@ namespace JamKit.DreamEscape
             TickWave(dt, p);
             TickMemories(p);
             TickBand(feet);
-            if (!_said.Contains("chatter") && _h.Spot(LarchHill.SpotChatter).Contains(feet)) { _said.Add("chatter"); Say(LarchStreetLines.Chatter, null); }
+            if (!_said.Contains("chatter") && _spotChatter != null && _spotChatter.Contains(feet)) { _said.Add("chatter"); Say(LarchStreetLines.Chatter, null); }
         }
 
         /// <summary>Says <paramref name="lines"/> the first time she stands in spot <paramref name="spot"/>.</summary>
@@ -369,7 +401,7 @@ namespace JamKit.DreamEscape
                     }
                     break;
                 case StreetPhase.Shop:
-                    if (_h.Spot(LarchHill.SpotYard).Contains(feet))
+                    if (_spotYard != null && _spotYard.Contains(feet))
                     {
                         _story.Advance(StreetPhase.Yard);
                         Learn(LarchStreetStory.MemWaltAlive, LarchStreetLines.WaltAlive);
@@ -387,12 +419,12 @@ namespace JamKit.DreamEscape
                     Once(LarchHill.SpotLane, feet, LarchStreetLines.Lane);
                     Once(LarchHill.SpotShutter, feet, LarchStreetLines.Shutter);
                     Once(LarchHill.SpotOak, feet, LarchStreetLines.Oak);
-                    if (feet.Y > LarchHill.RowanY - 0.3f && _h.Spot(LarchHill.SpotRowan).Contains(feet)) BeginRewind();
+                    if (feet.Y > LarchHill.RowanY - 0.3f && _spotRowan != null && _spotRowan.Contains(feet)) BeginRewind();
                     break;
                 case StreetPhase.Top:
-                    if (_h.Spot(LarchHill.SpotGate).Contains(feet))
+                    if (_spotGate != null && _spotGate.Contains(feet))
                     {
-                        if (night == 2) { _story.Advance(StreetPhase.Ending); Debug.Log("JAMKIT_STREET Night 2 at the door"); _night2AtTheDoor?.Invoke(); }
+                        if (night == 2) { _story.Advance(StreetPhase.Ending); Debug.Log("JAMKIT_STREET Night 2 at the door"); Night2Door(); }
                         else StartCoroutine(TheDoorCloses());
                     }
                     break;
@@ -408,13 +440,32 @@ namespace JamKit.DreamEscape
                 : feet.Z > LarchHill.YardZ0 && feet.X < LarchHill.WaltX0 ? "rowa" : feet.Z > LarchHill.CreekZ1 ? "walt" : "farbank";
         }
 
+        /// <summary>Shows or hides Lena's watch on Nadia's wrist (the keepsake is hers, or not).</summary>
+        public void SetKeepsakeOwned(bool owned)
+        {
+            keepsakeOwned = owned;
+            if (keepsakeWatch != null) keepsakeWatch.SetOwned(owned);
+        }
+
+        /// <summary>Night 2 at the Lasnames' gate: whoever listens takes the night on (the chain, a test); with nobody
+        /// listening, the House agent's scene loads (the house, hide-and-seek, the escape).</summary>
+        void Night2Door()
+        {
+            if (_night2AtTheDoor != null) { _night2AtTheDoor.Invoke(); return; }
+            if (!string.IsNullOrEmpty(night2HouseScene) && SceneService.Exists(night2HouseScene) && GameRoot.Exists)
+            {
+                Debug.Log("JAMKIT_STREET Night 2 goes into the house: " + night2HouseScene);
+                GameRoot.Instance.SceneService.Load(night2HouseScene);
+            }
+        }
+
         // ---------- Water: wading is slow ----------
 
         void TickWater(System.Numerics.Vector3 feet)
         {
-            bool creek = _h.Spot(LarchHill.SpotCreekWater).Contains(feet);
-            bool pool = _h.Spot(LarchHill.SpotPool).Contains(feet);
-            bool ditch = _h.Spot(LarchHill.SpotDitch).Contains(feet) && feet.Y < LarchHill.LaneY - 2f;
+            bool creek = _spotCreekWater != null && _spotCreekWater.Contains(feet);
+            bool pool = _spotPool != null && _spotPool.Contains(feet);
+            bool ditch = _spotDitch != null && _spotDitch.Contains(feet) && feet.Y < LarchHill.LaneY - 2f;
             SetWading(creek || pool);
             if (creek && _said.Add("creekfall")) Say(LarchStreetLines.CreekFall, null);
             if (pool && _said.Add("poolfall")) Say(LarchStreetLines.PoolFall, null);
@@ -464,7 +515,7 @@ namespace JamKit.DreamEscape
             bool said = _loop.LineBetween(_loopPrev, t);
             _loopPrev = t;
             if (!said || player == null) return;
-            if (!_h.Spot(LarchHill.SpotLoopZone).Contains(N(player.transform.position))) return;
+            if (_spotLoopZone == null || !_spotLoopZone.Contains(N(player.transform.position))) return;
             _heardLine++;
             Say(new[] { new StreetLine(LarchStreetLines.Neighbour, night == 2 ? "Morning, Nadia! " + LarchStreetLines.LoopLine : LarchStreetLines.LoopLine, 2.4f) }, null);
             if (_heardLine >= 2) Learn(LarchStreetStory.MemNeighboursLoop, LarchStreetLines.LoopHeard);
@@ -478,8 +529,8 @@ namespace JamKit.DreamEscape
             float h = LarchHill.ArchTop - LarchHill.LaneY - gap;
             shutter.localScale = new Vector3(1f, Mathf.Max(0.02f, h), 1f);
             shutter.position = new Vector3(shutter.position.x, LarchHill.LaneY + gap, shutter.position.z);
-            var c = shutter.GetComponent<Collider>();
-            if (c != null) c.enabled = h > 0.05f;
+            bool solid = h > 0.05f;
+            if (_shutterCollider != null && _shutterCollider.enabled != solid) _shutterCollider.enabled = solid;
         }
 
         // ---------- Walt ----------
@@ -648,13 +699,19 @@ namespace JamKit.DreamEscape
             if (eliasOutside == null) yield break;
             var from = eliasOutside.transform.position;
             var to = from + new Vector3(-4.5f, 0f, 2.5f);
+            var homeRotation = eliasOutside.transform.rotation;
+            if (_eliasModel != null)
+            {
+                _eliasModel.transform.rotation = Quaternion.LookRotation(to - from, Vector3.up);
+                _eliasModel.Play("walk", 0.2f);
+            }
             for (float t = 0f; t < 2f; t += Time.deltaTime)
             {
                 eliasOutside.transform.position = Vector3.Lerp(from, to, t / 2f);
                 yield return null;
             }
             eliasOutside.SetActive(false);
-            eliasOutside.transform.position = from;
+            eliasOutside.transform.SetPositionAndRotation(from, homeRotation);
             SetWindow(true);
         }
 
@@ -706,7 +763,7 @@ namespace JamKit.DreamEscape
             yield return Wait(0.5f);
             if (frontDoor != null)
             {
-                for (float t = 0f; t < 0.6f; t += Time.deltaTime) { frontDoor.localRotation = Quaternion.Euler(0f, Mathf.Lerp(-95f, 0f, t / 0.6f), 0f); yield return null; }
+                for (float t = 0f; t < 0.6f; t += Time.deltaTime) { frontDoor.localRotation = Quaternion.Euler(0f, Mathf.Lerp(frontDoorOpenYaw, 0f, t / 0.6f), 0f); yield return null; }
                 frontDoor.localRotation = Quaternion.identity;
             }
             GameRoot.Audio.Play("ui_back", 0.8f);

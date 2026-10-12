@@ -145,7 +145,14 @@ namespace JamKit.DeepBlock
         /// <summary>The switches for a moment of the night: Walt aside (his low wall open), the lane's shutter up, the plank.</summary>
         public static bool[] Gates(bool waltAside, bool shutterOpen = true, bool plank = false) => new[] { waltAside, shutterOpen, plank };
 
-        public HillSpot Spot(string id) => spots.Find(s => s.id == id);
+        /// <summary>The spot with this id, or null. No allocation (the game asks several times a frame: the Perf agent's
+        /// find, a lambda per call before).</summary>
+        public HillSpot Spot(string id)
+        {
+            for (int i = 0; i < spots.Count; i++)
+                if (string.Equals(spots[i].id, id, StringComparison.Ordinal)) return spots[i];
+            return null;
+        }
         public HillBand Band(string id) => bands.Find(b => b.id == id);
 
         // ---------- The shutter's timer (the loop's clock) ----------

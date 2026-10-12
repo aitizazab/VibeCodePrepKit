@@ -9,7 +9,8 @@
         "Unity.RenderPipelines.Universal.Runtime",
         "JamKit.Look",
         "JamKit.Look.Editor",
-        "JamKit.Perf.Editor"
+        "JamKit.Perf.Editor",
+        "JamKit.VisitingHours.Characters"
     ],
     "includePlatforms": [
         "Editor"

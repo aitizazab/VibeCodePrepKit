@@ -67,7 +67,12 @@ namespace JamKit.DreamEscape.Tests
                     colliders += go.GetComponentsInChildren<Collider>(true).Length;
                     foreach (var r in go.GetComponentsInChildren<MeshRenderer>(true))
                         foreach (var m in r.sharedMaterials)
-                            if (m != null && m.mainTexture != null && m.mainTexture.name == "gen_noise_color") fallback++;
+                        {
+                            // Only materials that have a colour map: reading mainTexture on a shader without one (the house
+                            // builder's JamKit/Dream/Glow, e.g. Glow_PorchLantern) logs an error, which fails the test.
+                            var tex = m == null ? null : m.HasProperty("_BaseMap") ? m.GetTexture("_BaseMap") : m.HasProperty("_MainTex") ? m.GetTexture("_MainTex") : null;
+                            if (tex != null && tex.name == "gen_noise_color") fallback++;
+                        }
                 }
                 Assert.That(game, Is.Not.Null);
                 Assert.That(game.player, Is.Not.Null);

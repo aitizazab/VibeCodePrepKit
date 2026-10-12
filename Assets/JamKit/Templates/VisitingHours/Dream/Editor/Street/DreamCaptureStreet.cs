@@ -41,12 +41,16 @@ namespace JamKit.DreamEscape.EditorTools
 
         public static string CaptureStreet(bool dreamChanges = false)
         {
+            var report = new HillBuildReport("capture");
             var h = LarchHill.Build();
             var shots = new List<VhLookCapture.Shot>();
             foreach (var v in h.views)
                 shots.Add(new VhLookCapture.Shot(v.name, new Vector3(v.eye.X, v.eye.Y, v.eye.Z), new Vector3(v.look.X, v.look.Y, v.look.Z), 70f));
-            return VhLookCapture.Capture(DreamStreetBuilder.ScenePath, shots, dreamChanges ? "hill-captures-changed" : "hill-captures", scene =>
+            report.Phase("open the scene");
+            string dir = VhLookCapture.Capture(DreamStreetBuilder.ScenePath, shots, dreamChanges ? "hill-captures-changed" : "hill-captures", scene =>
             {
+                report.Phase("set up the shots", "the scene is open");
+                report.SceneTotals(scene);
                 var eyes = new List<Vector3>();
                 foreach (var s in shots) eyes.Add(s.eye);
                 // The cut-outs turn to the camera at runtime: here, each to its nearest shot.
@@ -66,7 +70,10 @@ namespace JamKit.DreamEscape.EditorTools
                     if (game.hospitalLit != null) game.hospitalLit.SetActive(true);
                 }
                 if (game != null && game.ledger != null) game.ledger.SetActive(true);
+                report.Phase("render " + shots.Count + " shots");
             });
+            report.Finish();
+            return dir;
         }
     }
 }

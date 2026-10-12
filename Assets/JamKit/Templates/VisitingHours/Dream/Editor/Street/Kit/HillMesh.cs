@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -36,13 +37,33 @@ namespace JamKit.DreamEscape.EditorTools
         readonly Stack<Matrix4x4> _stack = new Stack<Matrix4x4>();
         Matrix4x4 _m = Matrix4x4.identity;
         int _vertexCount;
+        readonly bool _discard;
 
         public HillMesh(string name) { this.name = name; }
+
+        HillMesh(string name, bool discard) { this.name = name; _discard = discard; }
+
+        /// <summary>A sink that keeps nothing (the builder draws the hill in bands of chunks: whatever falls outside the
+        /// band being built goes here and costs no memory).</summary>
+        public static HillMesh Discarding(string name) => new HillMesh(name, true);
+
+        public bool Discards => _discard;
+
+        /// <summary>
+        /// The bevel rule (World round 2, the memory and frame-time fix): a chamfer of less than <see cref="MinBevel"/>, or
+        /// on a box thinner than <see cref="MinBevelThickness"/> in any direction (trim, boards, rails, sills), is drawn
+        /// sharp. A bevelled box is 96 vertices, a sharp one 24: on milestone 1's hill the chamfers of copings, trim and
+        /// fence boards were three quarters of all 5.3M vertices, and a 1 cm chamfer doesn't read past a few metres.
+        /// </summary>
+        public static float MinBevel = 0.015f, MinBevelThickness = 0.1f;
 
         public Matrix4x4 Matrix => _m;
         public int VertexCount => _vertexCount;
         public bool Empty => _vertexCount == 0;
         public IEnumerable<string> Materials => _parts.Keys;
+
+        /// <summary>Vertices drawn into material <paramref name="mat"/> so far.</summary>
+        public int VerticesOf(string mat) => _parts.TryGetValue(mat, out var p) ? p.v.Count : 0;
 
         // ---------- Transform ----------
 
@@ -84,7 +105,7 @@ namespace JamKit.DreamEscape.EditorTools
         /// clockwise from the front). UVs world-planar.</summary>
         public void Poly(string mat, IList<Vector3> pts, Vector3 outward = default)
         {
-            if (pts.Count < 3) return;
+            if (_discard || pts.Count < 3) return;
             var w = new Vector3[pts.Count];
             for (int i = 0; i < w.Length; i++) w[i] = P(pts[i]);
             Vector3 n = Normal(w);
@@ -104,7 +125,7 @@ namespace JamKit.DreamEscape.EditorTools
         /// <summary>A planar convex polygon with its own UVs (cards, signs, the rooms behind windows).</summary>
         public void PolyUV(string mat, IList<Vector3> pts, IList<Vector2> uvs, Vector3 outward = default, Vector3 normalOverride = default)
         {
-            if (pts.Count < 3) return;
+            if (_discard || pts.Count < 3) return;
             var w = new Vector3[pts.Count];
             var u = new Vector2[pts.Count];
             for (int i = 0; i < w.Length; i++) { w[i] = P(pts[i]); u[i] = uvs[i]; }
@@ -161,10 +182,13 @@ namespace JamKit.DreamEscape.EditorTools
         /// chamfered by <paramref name="bevel"/> m (0: sharp), leaving out the sides in <paramref name="skip"/>.</summary>
         public void Box(string mat, Vector3 min, Vector3 max, float bevel = 0f, Side skip = Side.None)
         {
+            if (_discard) return;
             var c = (min + max) * 0.5f;
             var h = (max - min) * 0.5f;
             if (h.x <= 0f || h.y <= 0f || h.z <= 0f) return;
-            float b = Mathf.Clamp(bevel, 0f, Mathf.Min(h.x, Mathf.Min(h.y, h.z)) * 0.45f);
+            float thinnest = Mathf.Min(h.x, Mathf.Min(h.y, h.z));
+            if (bevel < MinBevel || thinnest * 2f < MinBevelThickness) bevel = 0f;
+            float b = Mathf.Clamp(bevel, 0f, thinnest * 0.45f);
             if (b < 1e-4f)
             {
                 Face(mat, c, h, 0, +1, skip); Face(mat, c, h, 0, -1, skip);
@@ -307,7 +331,7 @@ namespace JamKit.DreamEscape.EditorTools
         /// branches, pipes, railings); <paramref name="vScale"/> m of length per V repeat.</summary>
         public void Tube(string mat, IList<Vector3> path, IList<float> radius, int sides = 8, bool capEnd = false, float vScale = 1f)
         {
-            if (path.Count < 2) return;
+            if (_discard || path.Count < 2) return;
             var part = Get(mat);
             Vector3 prevSide = Vector3.zero;
             float along = 0f;
@@ -389,6 +413,7 @@ namespace JamKit.DreamEscape.EditorTools
         /// lumpy foliage masses and stones).</summary>
         public void Ellipsoid(string mat, Vector3 center, Vector3 radii, int segments = 10, Func<Vector3, float> displace = null, bool sphereNormals = true)
         {
+            if (_discard) return;
             var part = Get(mat);
             int start = part.v.Count;
             int rows = Mathf.Max(3, segments / 2), cols = Mathf.Max(4, segments);
@@ -424,6 +449,7 @@ namespace JamKit.DreamEscape.EditorTools
         /// <summary>Adds another sink's geometry (its world positions, under this one's current transform).</summary>
         public void Append(HillMesh other)
         {
+            if (_discard) return;
             foreach (var kv in other._parts)
             {
                 var dst = Get(kv.Key);
@@ -443,9 +469,9 @@ namespace JamKit.DreamEscape.EditorTools
 
         // ---------- Building ----------
 
-        /// <summary>One child per material under <paramref name="parent"/> (named "<see cref="name"/> (material)"), its
-        /// mesh saved as an asset in <paramref name="assetFolder"/> when given (scenes stay small). Returns the chunk's
-        /// root (empty when nothing was added).</summary>
+        /// <summary>One child per material under <paramref name="parent"/> (named "<see cref="name"/> (material)"). Its mesh
+        /// goes into <see cref="HillMeshStore.Current"/> when the builder has one (one asset per chunk, freed after saving),
+        /// else as its own asset in <paramref name="assetFolder"/> when given. Returns the chunk's root.</summary>
         public GameObject Build(Transform parent, string assetFolder = null, int layer = 0)
         {
             var root = new GameObject(name);
@@ -455,20 +481,8 @@ namespace JamKit.DreamEscape.EditorTools
             {
                 var part = kv.Value;
                 if (part.t.Count == 0) continue;
-                var mesh = new Mesh { name = name + " (" + kv.Key + ")" };
-                if (part.v.Count > 65000) mesh.indexFormat = IndexFormat.UInt32;
-                mesh.SetVertices(part.v);
-                mesh.SetNormals(part.n);
-                mesh.SetUVs(0, part.uv);
-                mesh.SetTriangles(part.t, 0);
-                mesh.RecalculateBounds();
-                mesh.RecalculateTangents();
-                JamKit.Perf.EditorTools.VhPerfMesh.Compact(mesh);   // Perf: 36 bytes a vertex, not 48 (RAM, VRAM, disk)
-                if (!string.IsNullOrEmpty(assetFolder))
-                {
-                    string path = assetFolder + "/" + Safe(name) + "__" + Safe(kv.Key) + ".asset";
-                    AssetDatabase.CreateAsset(mesh, AssetDatabase.GenerateUniqueAssetPath(path));
-                }
+                var mesh = MakeMesh(name + " (" + kv.Key + ")", part);
+                Save(mesh, assetFolder, Safe(name) + "__" + Safe(kv.Key));
                 var go = new GameObject(name + " (" + kv.Key + ")") { layer = layer };
                 go.transform.SetParent(root.transform, false);
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
@@ -482,6 +496,143 @@ namespace JamKit.DreamEscape.EditorTools
                 GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.ReflectionProbeStatic | StaticEditorFlags.OccludeeStatic);
             }
             return root;
+        }
+
+        /// <summary>Everything drawn as ONE mesh with a sub-mesh per material (a shared kit piece: a prop drawn once and
+        /// placed many times). <paramref name="materialIds"/> lists the sub-meshes' material ids in order. Null if empty.</summary>
+        public Mesh BuildShared(string meshName, out string[] materialIds)
+        {
+            var ids = new List<string>();
+            foreach (var kv in _parts) if (kv.Value.t.Count > 0) ids.Add(kv.Key);
+            materialIds = ids.ToArray();
+            if (ids.Count == 0) return null;
+            var all = new Part();
+            var starts = new int[ids.Count];
+            var counts = new int[ids.Count];
+            for (int s = 0; s < ids.Count; s++)
+            {
+                var p = _parts[ids[s]];
+                int b0 = all.v.Count;
+                starts[s] = all.t.Count;
+                all.v.AddRange(p.v);
+                all.n.AddRange(p.n);
+                all.uv.AddRange(p.uv);
+                for (int i = 0; i < p.t.Count; i++) all.t.Add(b0 + p.t[i]);
+                counts[s] = p.t.Count;
+            }
+            return MakeMesh(meshName, all, starts, counts);
+        }
+
+        static void Save(Mesh mesh, string assetFolder, string fileName)
+        {
+            if (HillMeshStore.Current != null) { HillMeshStore.Current.Add(mesh); return; }
+            if (string.IsNullOrEmpty(assetFolder)) return;
+            AssetDatabase.CreateAsset(mesh, AssetDatabase.GenerateUniqueAssetPath(assetFolder + "/" + fileName + ".asset"));
+        }
+
+        // The compact vertex (36 bytes: position float3, normal and tangent half4, uv float2), written straight into the
+        // mesh's vertex buffer: no 48-byte readable copy first and no re-layout afterwards (the old path made both, plus
+        // eight managed copies of every mesh's arrays in VhPerfMesh.Compact).
+        [StructLayout(LayoutKind.Sequential)]
+        struct Vtx
+        {
+            public Vector3 p;
+            public ushort nx, ny, nz, nw;
+            public ushort tx, ty, tz, tw;
+            public Vector2 uv;
+        }
+
+        static readonly VertexAttributeDescriptor[] Layout =
+        {
+            new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+            new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float16, 4),
+            new VertexAttributeDescriptor(VertexAttribute.Tangent, VertexAttributeFormat.Float16, 4),
+            new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2),
+        };
+
+        /// <summary>Bytes a vertex takes in the meshes this sink makes.</summary>
+        public const int VertexBytes = 36;
+
+        // Scratch buffers reused across meshes (the build makes thousands; none allocates its own).
+        static Vtx[] _vb = new Vtx[0];
+        static Vector3[] _tan = new Vector3[0], _bit = new Vector3[0];
+        static ushort[] _ib16 = new ushort[0];
+        static int[] _ib32 = new int[0];
+
+        const MeshUpdateFlags NoChecks = MeshUpdateFlags.DontValidateIndices | MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontNotifyMeshUsers;
+
+        static Mesh MakeMesh(string meshName, Part part, int[] starts = null, int[] counts = null)
+        {
+            int nv = part.v.Count, ni = part.t.Count;
+            if (_vb.Length < nv)
+            {
+                int cap = Mathf.NextPowerOfTwo(nv);
+                _vb = new Vtx[cap];
+                _tan = new Vector3[cap];
+                _bit = new Vector3[cap];
+            }
+            Tangents(part, nv, ni);
+            var bounds = new Bounds(part.v[0], Vector3.zero);
+            for (int i = 0; i < nv; i++)
+            {
+                var n = part.n[i];
+                var t = _tan[i] - n * Vector3.Dot(n, _tan[i]);
+                if (t.sqrMagnitude < 1e-12f) t = Mathf.Abs(n.y) < 0.99f ? Vector3.Cross(Vector3.up, n) : Vector3.right;
+                t.Normalize();
+                float w = Vector3.Dot(Vector3.Cross(n, t), _bit[i]) < 0f ? -1f : 1f;
+                _vb[i] = new Vtx
+                {
+                    p = part.v[i],
+                    nx = Mathf.FloatToHalf(n.x), ny = Mathf.FloatToHalf(n.y), nz = Mathf.FloatToHalf(n.z), nw = 0,
+                    tx = Mathf.FloatToHalf(t.x), ty = Mathf.FloatToHalf(t.y), tz = Mathf.FloatToHalf(t.z), tw = Mathf.FloatToHalf(w),
+                    uv = part.uv[i],
+                };
+                bounds.Encapsulate(part.v[i]);
+            }
+            var mesh = new Mesh { name = meshName };
+            mesh.SetVertexBufferParams(nv, Layout);
+            mesh.SetVertexBufferData(_vb, 0, 0, nv, 0, NoChecks);
+            bool small = nv <= 65535;
+            mesh.SetIndexBufferParams(ni, small ? IndexFormat.UInt16 : IndexFormat.UInt32);
+            if (small)
+            {
+                if (_ib16.Length < ni) _ib16 = new ushort[Mathf.NextPowerOfTwo(ni)];
+                for (int i = 0; i < ni; i++) _ib16[i] = (ushort)part.t[i];
+                mesh.SetIndexBufferData(_ib16, 0, 0, ni, NoChecks);
+            }
+            else
+            {
+                if (_ib32.Length < ni) _ib32 = new int[Mathf.NextPowerOfTwo(ni)];
+                part.t.CopyTo(_ib32);
+                mesh.SetIndexBufferData(_ib32, 0, 0, ni, NoChecks);
+            }
+            if (starts == null) { starts = new[] { 0 }; counts = new[] { ni }; }
+            mesh.subMeshCount = counts.Length;
+            for (int s = 0; s < counts.Length; s++)
+                mesh.SetSubMesh(s, new SubMeshDescriptor(starts[s], counts[s], MeshTopology.Triangles) { bounds = bounds, firstVertex = 0, vertexCount = nv }, NoChecks);
+            mesh.bounds = bounds;
+            HillMeshStore.Count(nv, ni, small);
+            return mesh;
+        }
+
+        /// <summary>Per-vertex tangents from the UVs (Lengyel's method), into the scratch arrays.</summary>
+        static void Tangents(Part part, int nv, int ni)
+        {
+            Array.Clear(_tan, 0, nv);
+            Array.Clear(_bit, 0, nv);
+            for (int i = 0; i + 2 < ni; i += 3)
+            {
+                int a = part.t[i], b = part.t[i + 1], c = part.t[i + 2];
+                Vector3 e1 = part.v[b] - part.v[a], e2 = part.v[c] - part.v[a];
+                Vector2 d1 = part.uv[b] - part.uv[a], d2 = part.uv[c] - part.uv[a];
+                float det = d1.x * d2.y - d2.x * d1.y;
+                if (Mathf.Abs(det) < 1e-12f) continue;
+                float r = 1f / det;
+                var sdir = (e1 * d2.y - e2 * d1.y) * r;
+                var tdir = (e2 * d1.x - e1 * d2.x) * r;
+                _tan[a] += sdir; _tan[b] += sdir; _tan[c] += sdir;
+                _bit[a] += tdir; _bit[b] += tdir; _bit[c] += tdir;
+            }
         }
 
         static string Safe(string s)

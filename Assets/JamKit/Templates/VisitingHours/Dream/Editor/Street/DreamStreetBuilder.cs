@@ -5,6 +5,7 @@ using JamKit.EditorTools;
 using JamKit.Look.EditorTools;
 using JamKit.Movement;
 using JamKit.Shell;
+using JamKit.VisitingHours.Characters;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -18,10 +19,12 @@ namespace JamKit.DreamEscape.EditorTools
     /// "DreamStreet" (the name the chain looks for): every collider of the hill (boxes, and convex wedges for its slopes;
     /// every wall runs: onlyMarkedWalls is off), the hill drawn in 40 m chunks (the ground, its retaining walls and kerbs,
     /// the houses, buildings, props, trees, fences and the scatter, in the CC0 PBR materials of <see cref="HillMaterials"/>),
-    /// the Look agent's golden-hour rig (<see cref="VhLook"/>), the Lasname house (the house builder's outside, this scene's
-    /// window and door), the cast (cut-outs until the People agent's prefabs land), the Saturday-life spots, the moving
-    /// things (the shutter, the Rewind's wave), the memories, Nadia and the game. A step of "JamKit/Rebuild Shell Scenes";
-    /// "JamKit/Dream Street/Rebuild Scene" rebuilds only it.
+    /// the Look agent's golden-hour rig (<see cref="VhLook"/>), trees, grass, terrain ring and soundscape, the Lasname house
+    /// (the house builder's own, <c>DreamHouseExterior.Build</c>), the cast (paper cut-outs; Elias at his grill in 3D), the
+    /// Saturday-life spots, the moving things (the shutter, the Rewind's wave), the memories, Nadia (with Lena's watch) and
+    /// the game. Built a band of chunks at a time within the memory cap (DreamHillStreaming.cs), with a memory and size
+    /// report in the log (<see cref="HillBuildReport"/>). A step of "JamKit/Rebuild Shell Scenes"; "JamKit/Dream
+    /// Street/Rebuild Scene" rebuilds only it.
     /// </summary>
     public static partial class DreamStreetBuilder
     {
@@ -111,6 +114,17 @@ namespace JamKit.DreamEscape.EditorTools
 
         static string BuildScene()
         {
+            var report = new HillBuildReport("build");
+            HillMeshStore.ResetCounts();
+            HillLods.Made = 0;
+            var store = new HillMeshStore(MeshFolder);
+            HillMeshStore.Current = store;
+            try { return BuildScene(report, store); }
+            finally { HillMeshStore.Current = null; }
+        }
+
+        static string BuildScene(HillBuildReport report, HillMeshStore store)
+        {
             var h = LarchHill.Build();
             var scene = SceneBuilder.NewScene(Sky, out var cam);
 
@@ -118,12 +132,13 @@ namespace JamKit.DreamEscape.EditorTools
             var body = DreamEscapeBuilder.BuildPlayer(cam, first);
             body.transform.rotation = Quaternion.Euler(0f, h.arrivalYaw, 0f);
             body.onlyMarkedWalls = false;   // every wall runs (unless a MovementSurface says no): the creator's "most walls you can't run on"
-            cam.farClipPlane = 1500f;
+            var watch = KeepsakeWatch(body);
 
             // The light: the Look agent's golden hour (sun low in the west-south-west, the hill side-lit, its top catching the
-            // last light), its sky, post and haze.
+            // last light), its sky, post and haze; the camera sees to the terrain ring (4 km).
             var rig = VhLook.ApplyGoldenHour(scene, new VhLook.Options { sunAzimuth = 250f, sunElevation = 10f, hazeBaseHeight = 0f });
             VhLook.SetupCamera(cam);
+            cam.farClipPlane = Mathf.Max(cam.farClipPlane, 4000f);
             _ = rig;
 
             var root = new GameObject("Larch Hill").transform;
@@ -131,11 +146,12 @@ namespace JamKit.DreamEscape.EditorTools
             colliders.SetParent(root, false);
             var drawn = new GameObject("Drawn").transform;
             drawn.SetParent(root, false);
-            var backdrop = new GameObject("The hills around (backdrop)").transform;
-            backdrop.SetParent(root, false);
+            report.Phase("colliders");
 
             // Colliders for every solid piece; the switches' (Walt, the shutter, the plank) kept apart for the game.
             GameObject waltGate = null, shutter = null, plank = null;
+            var houseStandIn = new List<GameObject>();
+            store.Begin("Colliders");
             foreach (var p in h.pieces)
             {
                 if (!p.solid) continue;
@@ -143,41 +159,43 @@ namespace JamKit.DreamEscape.EditorTools
                 if (p.switchIndex == LarchHill.WaltGateSwitch) waltGate = go;
                 if (p.switchIndex == LarchHill.ShutterSwitch) shutter = go;
                 if (p.switchIndex == LarchHill.CreekPlankSwitch) plank = go;
+                if (p.style == "lasname_house") houseStandIn.Add(go);
             }
+            store.Flush(false);
+            report.Phase("the hill, band by band");
 
-            // The drawing: chunks of the hill.
+            // The drawing: the hill's chunks, two rows at a time (built, LODs, saved, unloaded, collected).
             var grid = new PieceGrid(h.pieces);
-            var chunks = new Chunks();
-            DrawGround(h, grid, chunks);
-            DrawScatter(h, grid, chunks);
-            DrawRoadMarkings(h, chunks);
-            var oak = h.trees.Find(t => t.kind == 4);
-            var oakFoot = oak != null ? U(oak.foot) : Vector3.zero;
-            foreach (var hh in h.houses) Safely("house " + hh.name, () => HillHouses.Draw(chunks.At(U(hh.center)), hh));
-            foreach (var b in h.buildings) Safely("building " + b.name, () => HillLandmarks.Draw(chunks.At((b.min.X + b.max.X) * 0.5f, (b.min.Y + b.max.Y) * 0.5f), b));
-            foreach (var prop in h.props) Safely("prop " + prop.kind, () => HillProps.Draw(chunks.At(U(prop.position)), prop));
-            foreach (var t in h.trees) Safely("tree " + t.name, () => HillTrees.Draw(chunks.At(U(t.foot)), t));
-            DrawPieces(h, chunks, oakFoot);
-            Safely("wires", () => DrawWires(h, chunks));
-            DrawBunting(chunks);
-            var back = new Chunks();
-            DrawBackdrop(back);
-            foreach (var m in chunks.All) if (!m.Empty) m.Build(drawn, MeshFolder);
-            foreach (var m in back.All) if (!m.Empty) { var go = m.Build(backdrop, MeshFolder); foreach (var r in go.GetComponentsInChildren<MeshRenderer>()) r.shadowCastingMode = ShadowCastingMode.Off; }
+            int chunks = DrawHill(h, grid, drawn, store, report, HillRange(h));
+            report.Phase("props", chunks + " chunks, " + HillLods.Made + " LOD meshes");
+            var props = Props(h, root, store);
+            store.Flush(true);
+            report.Phase("trees");
+            var trees = Trees(h, root);
+            report.Phase("grass");
+            var grass = DrawTufts(h, grid, root);
+            PersistMeshes(grass.transform, store, "Grass");
+            store.Flush(true);
+            report.Phase("the terrain ring");
+            var ring = Backdrop(h, root);
+            PersistMeshes(ring.transform, store, "Backdrop");
+            store.Flush(true);
+            report.Phase("the house, the cast, the game");
 
             // The pieces the game moves or switches: drawn on their own objects.
+            store.Begin("Pieces");
             if (shutter != null) ShutterLook(shutter.transform);
             if (plank != null) PlankLook(h, plank.transform);
             var hospitalLit = HospitalLit(h, root);
 
             // The house, the cast, the loop, the memories, the Rewind's wave, Saturday's life.
-            var house = House(h, root, out var parts);
-            var cast = new GameObject("The cast (cut-outs until the People agent's prefabs)").transform;
+            var house = House(h, root, houseStandIn, out var parts);
+            var cast = new GameObject("The cast (paper cut-outs; Elias in 3D)").transform;
             cast.SetParent(root, false);
             var walt = CutOut("Walt (on his wall)", DreamArt.Walt, cast, U(h.Spot(LarchHill.SpotWalt).position), WaltEye / (1f - WaltEyeFromTop), h.Spot(LarchHill.SpotWalt).yaw);
             var neighbour = CutOut("Mrs. Lindqvist (her roses)", DreamArt.NeighbourRoses, cast, U(h.Spot(LarchHill.SpotNeighbour).position), 1.7f, h.Spot(LarchHill.SpotNeighbour).yaw);
             var dog = CutOut("The dog", DreamArt.Dog, cast, U(h.Spot(LarchHill.SpotDog).position), 0.75f);
-            var eliasOut = CutOut("Elias (at his barbecue: his 3D model takes over when it lands)", DreamArt.Elias, cast, U(h.Spot(LarchHill.SpotBarbecue).position), EliasCardHeight, h.Spot(LarchHill.SpotBarbecue).yaw);
+            var eliasOut = EliasAtTheGrill(h, cast);
             var sprinkler = Sprinkler(root, U(h.Spot(LarchHill.SpotSprinkler).position));
             var ball = Small("The dog's ball", root, U(h.Spot(LarchHill.SpotBallFrom).position), 0.22f, HillMat.CanvasRed);
             var paper = Memory("Memory: Saturday's paper", root, U(h.Spot(LarchHill.SpotPaper).position), new Vector3(0.42f, 0.05f, 0.3f));
@@ -186,7 +204,9 @@ namespace JamKit.DreamEscape.EditorTools
             var treehouse = Memory("Memory: the treehouse sign", root, U(h.Spot(LarchHill.SpotTreehouse).position) + Vector3.up * 0.9f, new Vector3(0.6f, 0.3f, 0.04f));
             var wave = Wave(root);
             SaturdayLife(h, root);
+            Soundscape(h, root);
             Probes(scene);
+            store.Flush(true);
 
             var game = new GameObject("Larch Hill (the night)").AddComponent<DreamStreetGame>();
             game.player = body;
@@ -212,12 +232,70 @@ namespace JamKit.DreamEscape.EditorTools
             game.theoInside = parts.theo;
             game.lenaInside = parts.lena;
             game.frontDoor = parts.door;
+            game.frontDoorOpenYaw = parts.doorOpenYaw;
             game.porchLight = parts.light;
             game.porchGlow = parts.glow;
             game.houseRoot = house;
+            game.keepsakeWatch = watch;
 
+            // Occlusion and probes: the hill's chunks, props, trees and the ring are static (main bakes occlusion after this).
+            MarkStatic(drawn);
+            MarkStatic(props);
+            MarkStatic(trees);
+            MarkStatic(ring.transform);
+
+            report.Phase("save");
             EditorSceneManager.SaveScene(scene, ScenePath);
+            report.Phase("totals");
+            report.SceneTotals(scene);
+            report.Disk(MeshFolder, ScenePath);
+            report.Finish();
             return ScenePath;
+        }
+
+        /// <summary>Lena's star watch on Nadia's right wrist (People's <c>VhKeepsakeWatch</c>), built on her first-person body
+        /// and hidden: the game shows it when the keepsake is hers (<see cref="DreamStreetGame.SetKeepsakeOwned"/>).</summary>
+        static VhKeepsakeWatch KeepsakeWatch(MovementController body)
+        {
+            Transform model = null;
+            foreach (var t in body.GetComponentsInChildren<Transform>(true))
+                if (t.name == "Nadia (body)") { model = t; break; }
+            if (model == null) { Debug.LogWarning("JAMKIT_STREET no first-person body ('Nadia (body)') for Lena's watch"); return null; }
+            var w = VhKeepsakeWatch.Ensure(model, false);
+            Debug.Log("JAMKIT_STREET Lena's watch " + (w != null ? "on Nadia's right wrist (hidden until the keepsake is hers)" : "MISSING (no right forearm on the body)"));
+            return w;
+        }
+
+        /// <summary>Elias at his barbecue: the People agent's 3D model (Resources/People/Elias, idle at the grill); a paper
+        /// cut-out if the prefab isn't built yet.</summary>
+        static GameObject EliasAtTheGrill(LarchHill h, Transform cast)
+        {
+            var spot = h.Spot(LarchHill.SpotBarbecue);
+            var prefab = Resources.Load<GameObject>("People/Elias");
+            if (prefab != null)
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                go.name = "Elias (at his barbecue, 3D)";
+                go.transform.SetParent(cast, false);
+                go.transform.SetPositionAndRotation(U(spot.position), Quaternion.Euler(0f, spot.yaw, 0f));
+                Debug.Log("JAMKIT_STREET Elias at the grill: the 3D model");
+                return go;
+            }
+            Debug.LogWarning("JAMKIT_STREET no Resources/People/Elias prefab (run VhPeopleBuild): Elias stays a cut-out");
+            return CutOut("Elias (at his barbecue: a cut-out until his 3D prefab is built)", DreamArt.Elias, cast, U(spot.position), EliasCardHeight, spot.yaw);
+        }
+
+        /// <summary>The Look agent's golden-hour Saturday (bed, birds, wind in the trees, a far mower, the little-league
+        /// game, the ice-cream van) over the middle of Night 1, plus the hill's own: the Lindqvists' sprinkler, the
+        /// Fairbanks' mower, a dog by the dog, birds over the middle band, wind in the trees above Rowan Street.</summary>
+        static void Soundscape(LarchHill h, Transform root)
+        {
+            var amb = VhLookAmbience.AddSaturdayDefault(root, new Vector3(40f, LarchHill.MillY + 3f, 40f), 3);
+            VhLookAmbience.AddEmitter(amb, VhLookAmbience.Kind.Sprinkler, U(h.Spot(LarchHill.SpotSprinkler).position) + Vector3.up * 0.3f, 0.9f);
+            VhLookAmbience.AddEmitter(amb, VhLookAmbience.Kind.Lawnmower, new Vector3(99f, 4.6f, 56f), 0.8f);
+            VhLookAmbience.AddEmitter(amb, VhLookAmbience.Kind.Dog, U(h.Spot(LarchHill.SpotDog).position) + Vector3.up * 0.5f, 0.7f, 0);
+            VhLookAmbience.AddEmitter(amb, VhLookAmbience.Kind.Birds, new Vector3(0f, 30f, 200f), 0.9f);
+            VhLookAmbience.AddEmitter(amb, VhLookAmbience.Kind.TreeWind, new Vector3(-20f, 14f, 100f), 0.8f);
         }
 
         static void Safely(string what, Action draw)
@@ -253,7 +331,8 @@ namespace JamKit.DreamEscape.EditorTools
                 };
                 mesh.triangles = new[] { 0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6, 7, 2, 7, 3, 3, 7, 4, 3, 4, 0 };
                 mesh.RecalculateBounds();
-                AssetDatabase.CreateAsset(mesh, AssetDatabase.GenerateUniqueAssetPath(MeshFolder + "/wedge.asset"));
+                if (HillMeshStore.Current != null) HillMeshStore.Current.Add(mesh, true);
+                else AssetDatabase.CreateAsset(mesh, AssetDatabase.GenerateUniqueAssetPath(MeshFolder + "/wedge.asset"));
                 var mc = go.AddComponent<MeshCollider>();
                 mc.sharedMesh = mesh;
                 mc.convex = true;
@@ -275,6 +354,10 @@ namespace JamKit.DreamEscape.EditorTools
             box.center = new Vector3(0f, 0.5f, 0f);
             box.size = new Vector3(size.x, 1f, size.z);
             shutter.localScale = new Vector3(1f, LarchHill.ArchTop - LarchHill.LaneY, 1f);
+            // It moves every frame: a kinematic body, so physics does not rebuild the static scene for it (the Perf agent's find).
+            var moving = shutter.gameObject.AddComponent<Rigidbody>();
+            moving.isKinematic = true;
+            moving.useGravity = false;
             var m = new HillMesh("The shutter (look)");
             m.Box(HillMat.Corrugated, new Vector3(-size.x * 0.5f, 0f, -size.z * 0.5f), new Vector3(size.x * 0.5f, 1f, size.z * 0.5f));
             var look = m.Build(shutter, MeshFolder);
@@ -521,15 +604,21 @@ namespace JamKit.DreamEscape.EditorTools
         public struct HouseParts
         {
             public Transform elias, theo, lena, door;
+            public float doorOpenYaw;
             public Light light;
             public GameObject glow;
         }
 
-        /// <summary>The Lasname house at its anchor: the house builder's outside (DreamHouseExterior.Build, called by name so
-        /// its changes don't break this build; a kit house of the same footprint stands in if it's missing), this scene's
-        /// front wall with the window, the warm room behind it with Theo, Eli and Lena, the door on its hinge, the porch
-        /// light.</summary>
-        static Transform House(LarchHill h, Transform root, out HouseParts parts)
+        /// <summary>
+        /// The Lasname house at its anchor: the house builder's own house (<c>DreamHouseExterior.Build</c>, called by name so
+        /// its changes don't break this build; a kit house of the same footprint stands in if it's missing), with what the
+        /// night needs on top: the family through the front window (cut-outs placed in the house's front room), its open
+        /// front door put on a hinge so the night can shut it, and the porch light by its lantern. Round 2 (the House
+        /// agent's request): this scene's own front wall and the room behind the window are gone (they overlapped the
+        /// house); when the house builder's house is there, the core's stand-in box colliders are removed too (its own
+        /// colliders are the house).
+        /// </summary>
+        static Transform House(LarchHill h, Transform root, List<GameObject> standIn, out HouseParts parts)
         {
             var house = new GameObject("The Lasname house").transform;
             house.SetParent(root, false);
@@ -543,7 +632,30 @@ namespace JamKit.DreamEscape.EditorTools
             }
             foreach (var c in house.GetComponentsInChildren<Transform>(true))
                 if (c != null && c != house && c.name.StartsWith("Lawn (beyond")) Object.DestroyImmediate(c.gameObject);
-            if (!built)
+            Transform door = null;
+            float openYaw = -95f;
+            if (built)
+            {
+                foreach (var go in standIn) if (go != null) Object.DestroyImmediate(go);
+                // Its lamps: two keep their shadows at most (Perf), small things don't cast.
+                JamKit.Perf.EditorTools.VhPerfShadows.LimitShadowedLights(house, 2);
+                JamKit.Perf.EditorTools.VhPerfShadows.Apply(house, JamKit.Perf.EditorTools.VhPerfShadows.Rules.Indoor);
+                // The house builder's front door stands open against the hall (a leaf at x 0.6-0.65, z 0.17-1.37, hinged at
+                // the right jamb): on a hinge there, shut it swings 90 degrees across the doorway.
+                foreach (var c in house.GetComponentsInChildren<Transform>(true))
+                    if (c.name == "The front door (open)") { door = c; break; }
+                if (door != null)
+                {
+                    var hinge = new GameObject("The front door (on its hinge)").transform;
+                    hinge.SetParent(house, false);
+                    hinge.localPosition = new Vector3(0.625f, 0f, 0.17f);
+                    openYaw = 90f;
+                    hinge.localRotation = Quaternion.Euler(0f, openYaw, 0f);
+                    door.SetParent(hinge, true);
+                    door = hinge;
+                }
+            }
+            else
             {
                 var stand = new HillHouse
                 {
@@ -554,47 +666,37 @@ namespace JamKit.DreamEscape.EditorTools
                 HillHouses.Draw(m, stand);
                 m.Build(house, MeshFolder);
             }
-            var warm = DreamEscapeBuilder.Glow("StreetRoomGlow", new Color(1f, 0.86f, 0.64f), 0.55f, 0f, 0.05f);
-            var room = new GameObject("The room behind the window").transform;
-            room.SetParent(house, false);
-            var rm = new HillMesh("The room behind the window (look)");
-            rm.Rect(HillMat.Interior, new Vector3(-3.3f, 1.5f, 4.2f), new Vector3(6f, 0f, 0f), new Vector3(0f, 3f, 0f), Vector3.back, HillAtlas.Interior(1));
-            rm.Rect(HillMat.Deck, new Vector3(-3.3f, 0.02f, 2.3f), new Vector3(6f, 0f, 0f), new Vector3(0f, 0f, 3.8f), Vector3.up);
-            rm.Box(HillMat.MetalPaint, new Vector3(-5.1f, 0f, 3.25f), new Vector3(-4.1f, 0.9f, 3.95f), 0.02f);
-            rm.Box(HillMat.Deck, new Vector3(-3.4f, 0.72f, 1.7f), new Vector3(-1.8f, 0.78f, 2.7f), 0.01f);
-            rm.Build(room, MeshFolder);
-            var lamp = new GameObject("The room's light").AddComponent<Light>();
-            lamp.transform.SetParent(room, false);
-            lamp.transform.localPosition = new Vector3(-3.5f, 2.6f, 2.4f);
-            lamp.type = LightType.Point;
-            lamp.color = new Color(1f, 0.8f, 0.55f);
-            lamp.range = 6f;
-            lamp.intensity = 2.2f;
-            lamp.shadows = LightShadows.None;
-            var theo = CutOut("Theo (setting the table)", DreamArt.Theo, room, new Vector3(-2.4f, 0f, 2.6f), TheoCardHeight);
-            var elias = CutOut("Elias (at the stove)", DreamArt.Elias, room, new Vector3(-4.5f, 0f, 2.7f), EliasCardHeight);
-            var lena = CutOut("Lena (out of sight)", DreamArt.Lena, room, new Vector3(-7.0f, 0f, 2.4f), LenaCardHeight);
-            var hinge = new GameObject("The front door (on its hinge)").transform;
-            hinge.SetParent(house, false);
-            hinge.localPosition = new Vector3(-0.95f, 0f, 0.3f);
-            var dm = new HillMesh("The front door (look)");
-            dm.Box(HillMat.DoorRed, new Vector3(0f, 0f, -0.04f), new Vector3(1.9f, 2.4f, 0.04f), 0.01f);
-            dm.Build(hinge, MeshFolder);
-            hinge.localRotation = Quaternion.Euler(0f, -95f, 0f);
+            if (door == null)
+            {
+                var hinge = new GameObject("The front door (on its hinge)").transform;
+                hinge.SetParent(house, false);
+                hinge.localPosition = new Vector3(-0.6f, 0f, 0.2f);
+                var dm = new HillMesh("The front door (look)");
+                dm.Box(HillMat.DoorRed, new Vector3(0f, 0f, -0.025f), new Vector3(1.2f, 2.22f, 0.025f), 0.01f);
+                dm.Build(hinge, MeshFolder);
+                hinge.localRotation = Quaternion.Euler(0f, openYaw, 0f);
+                door = hinge;
+            }
+            // The family in the front room, seen through its window from the gate (the game shows them at the end).
+            var family = new GameObject("The family (through the front window)").transform;
+            family.SetParent(house, false);
+            var theo = CutOut("Theo (setting the table)", DreamArt.Theo, family, new Vector3(-2.4f, 0f, 2.6f), TheoCardHeight);
+            var elias = CutOut("Elias (at the stove)", DreamArt.Elias, family, new Vector3(-4.5f, 0f, 2.7f), EliasCardHeight);
+            var lena = CutOut("Lena (out of sight)", DreamArt.Lena, family, new Vector3(-7.0f, 0f, 2.4f), LenaCardHeight);
+            // The porch light by the house builder's lantern (x 0.95-1.25, y 1.95-2.35, z -0.37 to -0.15), its glow inside it.
             var porch = new GameObject("The porch light").AddComponent<Light>();
             porch.transform.SetParent(house, false);
-            porch.transform.localPosition = new Vector3(1.85f, 2.2f, -0.6f);
+            porch.transform.localPosition = new Vector3(1.1f, 2.15f, -0.55f);
             porch.type = LightType.Point;
             porch.color = new Color(1f, 0.84f, 0.58f);
             porch.range = 7f;
             porch.intensity = 2.4f;
             porch.shadows = LightShadows.None;
             var gm = new HillMesh("The porch light (glow)");
-            gm.Ellipsoid(HillMat.LampGlow, new Vector3(1.85f, 2.3f, -0.12f), Vector3.one * 0.14f, 8);
+            gm.Ellipsoid(HillMat.LampGlow, built ? new Vector3(1.1f, 2.15f, -0.26f) : new Vector3(1.85f, 2.3f, -0.12f), Vector3.one * (built ? 0.07f : 0.14f), 8);
             var glow = gm.Build(house, MeshFolder);
-            _ = warm;
             house.position = U(h.houseOrigin);
-            parts = new HouseParts { elias = elias.transform, theo = theo.transform, lena = lena.transform, door = hinge, light = porch, glow = glow };
+            parts = new HouseParts { elias = elias.transform, theo = theo.transform, lena = lena.transform, door = door, doorOpenYaw = openYaw, light = porch, glow = glow };
             return house;
         }
 

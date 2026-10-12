@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using JamKit.DeepBlock;
+using JamKit.Look.EditorTools;
 using UnityEngine;
 using Random = System.Random;
 
@@ -18,18 +19,46 @@ namespace JamKit.DreamEscape.EditorTools
     {
         const float ChunkSize = 40f;
 
+        /// <summary>
+        /// The hill's 40 m chunks, drawn a few at a time (World round 2, the memory fix): <see cref="Only"/> limits drawing to
+        /// a range of chunks (a band of rows for the scene build, an area for the house's surroundings); everything that
+        /// falls outside goes to a sink that keeps nothing. The drawing code asks <see cref="Overlaps"/> to skip whole
+        /// pieces, houses and props outside the range.
+        /// </summary>
         sealed class Chunks
         {
             readonly Dictionary<long, HillMesh> _map = new Dictionary<long, HillMesh>();
+            readonly HillMesh _discard = HillMesh.Discarding("(outside the chunks being drawn)");
+            int _x0 = int.MinValue, _x1 = int.MaxValue, _z0 = int.MinValue, _z1 = int.MaxValue;
+
+            public static int Cell(float v) => Mathf.FloorToInt(v / ChunkSize);
+
+            /// <summary>Draw only chunks x0..x1, z0..z1 (inclusive, chunk coordinates).</summary>
+            public void Only(int x0, int x1, int z0, int z1) { _x0 = x0; _x1 = x1; _z0 = z0; _z1 = z1; }
+
+            public bool Accepts(float x, float z)
+            {
+                int cx = Cell(x), cz = Cell(z);
+                return cx >= _x0 && cx <= _x1 && cz >= _z0 && cz <= _z1;
+            }
+
+            /// <summary>Whether a world box (x/z extents, with a metre's margin) touches the chunks being drawn.</summary>
+            public bool Overlaps(float minX, float maxX, float minZ, float maxZ) =>
+                Cell(maxX + 1f) >= _x0 && Cell(minX - 1f) <= _x1 && Cell(maxZ + 1f) >= _z0 && Cell(minZ - 1f) <= _z1;
+
+            public bool Overlaps(BlockPiece p) => Overlaps(p.Min.X, p.Max.X, p.Min.Z, p.Max.Z);
+
             public HillMesh At(float x, float z)
             {
-                int cx = Mathf.FloorToInt(x / ChunkSize), cz = Mathf.FloorToInt(z / ChunkSize);
+                int cx = Cell(x), cz = Cell(z);
+                if (cx < _x0 || cx > _x1 || cz < _z0 || cz > _z1) return _discard;
                 long key = ((long)cx << 32) ^ (uint)cz;
                 if (!_map.TryGetValue(key, out var m)) { m = new HillMesh("Chunk " + cx + "," + cz); _map[key] = m; }
                 return m;
             }
             public HillMesh At(Vector3 p) => At(p.x, p.z);
             public IEnumerable<HillMesh> All => _map.Values;
+            public void Clear() => _map.Clear();
         }
 
         /// <summary>A coarse grid over the hill's pieces, for the drawing's height questions (TopAt over thousands of pieces).</summary>
@@ -112,7 +141,7 @@ namespace JamKit.DreamEscape.EditorTools
         {
             foreach (var p in h.pieces)
             {
-                if (p.kind != BlockKind.Ground || !p.style.Contains("|")) continue;
+                if (p.kind != BlockKind.Ground || !p.style.Contains("|") || !chunks.Overlaps(p)) continue;
                 var parts = p.style.Split('|');
                 string surface = parts[0], side = parts.Length > 1 ? parts[1] : "stone_retaining";
                 if (surface == "steps") DrawSteps(p, chunks);
@@ -169,7 +198,9 @@ namespace JamKit.DreamEscape.EditorTools
         }
 
         /// <summary>A tile's sides where it stands above its neighbours: a retaining wall (stone, with a coping on anything
-        /// over 0.6 m) or a kerb, in 2 m segments down to the neighbour's top.</summary>
+        /// over 0.6 m) or a kerb, in 2 m segments down to the neighbour's top. The copings and kerb edges run on as one
+        /// piece while their height holds (round 2: one 2 m bevelled coping stone per segment was 1.2M of the hill's 5.3M
+        /// vertices).</summary>
         static void DrawSides(BlockPiece p, string side, PieceGrid grid, Chunks chunks)
         {
             for (int s = 0; s < 4; s++)
@@ -180,6 +211,32 @@ namespace JamKit.DreamEscape.EditorTools
                 float a0 = alongX ? p.Min.X : p.Min.Z, a1 = alongX ? p.Max.X : p.Max.Z;
                 int n = Mathf.Max(1, Mathf.CeilToInt((a1 - a0) / 2f));
                 var outward = alongX ? new Vector3(0f, 0f, outSign) : new Vector3(outSign, 0f, 0f);
+                // The run being collected: kind 1 a coping, 2 a kerb's edge; from ra0 to ra1 at height ry.
+                int runKind = 0;
+                float ra0 = 0f, ra1 = 0f, ry = 0f;
+                void Flush()
+                {
+                    if (runKind == 0) return;
+                    float mid = (ra0 + ra1) * 0.5f, len = ra1 - ra0;
+                    var m = chunks.At(alongX ? mid : fixedC, alongX ? fixedC : mid);
+                    if (runKind == 1)
+                    {
+                        var c = alongX ? new Vector3(mid, ry + 0.015f, fixedC - outSign * 0.09f) : new Vector3(fixedC - outSign * 0.09f, ry + 0.015f, mid);
+                        m.BoxC(HillMat.StoneCoping, c, alongX ? new Vector3(len, 0.2f, 0.34f) : new Vector3(0.34f, 0.2f, len), 0.02f);
+                    }
+                    else
+                    {
+                        var c = alongX ? new Vector3(mid, ry - 0.03f, fixedC) : new Vector3(fixedC, ry - 0.03f, mid);
+                        m.BoxC(HillMat.Kerb, c, alongX ? new Vector3(len, 0.06f, 0.16f) : new Vector3(0.16f, 0.06f, len), 0.025f);
+                    }
+                    runKind = 0;
+                }
+                void Run(int kind, float b0, float b1, float y)
+                {
+                    if (runKind == kind && Mathf.Abs(b0 - ra1) < 0.01f && Mathf.Abs(y - ry) < 0.02f && ra1 - ra0 < 24f) { ra1 = b1; return; }
+                    Flush();
+                    runKind = kind; ra0 = b0; ra1 = b1; ry = y;
+                }
                 for (int i = 0; i < n; i++)
                 {
                     float b0 = a0 + (a1 - a0) * i / n, b1 = a0 + (a1 - a0) * (i + 1) / n, mid = (b0 + b1) * 0.5f;
@@ -189,61 +246,42 @@ namespace JamKit.DreamEscape.EditorTools
                     float nb = grid.TopAt(ox, oz, top - 0.02f, q => q.style.Contains("|") || q.kind == BlockKind.House);
                     if (nb < p.Min.Y) nb = p.Min.Y;
                     float hgt = Mathf.Max(t0, t1) - nb;
-                    if (hgt < 0.03f) continue;
+                    if (hgt < 0.03f) { Flush(); continue; }
                     bool kerb = side == "kerb" || hgt < 0.35f;
                     string mat = kerb ? HillMat.Kerb : HillMat.StoneWall;
                     var m = chunks.At(alongX ? mid : fixedC, alongX ? fixedC : mid);
                     Vector3 P(float a, float y) => alongX ? new Vector3(a, y, fixedC) : new Vector3(fixedC, y, a);
                     m.Quad(mat, P(b0, nb), P(b0, t0), P(b1, t1), P(b1, nb), outward);
-                    if (!kerb && hgt > 0.6f)
-                    {
-                        // The coping: a bevelled cap along the top edge, overhanging the face by 4 cm.
-                        float cy = (t0 + t1) * 0.5f;
-                        var c = alongX ? new Vector3(mid, cy - 0.09f, fixedC - outSign * 0.13f) : new Vector3(fixedC - outSign * 0.13f, cy - 0.09f, mid);
-                        var size = alongX ? new Vector3(b1 - b0, 0.2f, 0.34f) : new Vector3(0.34f, 0.2f, b1 - b0);
-                        if (Mathf.Abs(t0 - t1) < 0.05f) m.BoxC(HillMat.StoneCoping, c + new Vector3(0f, 0.105f, 0f) + outward * 0.04f, size, 0.02f);
-                    }
-                    else if (kerb && hgt < 0.35f)
-                    {
-                        // A kerb's rounded top edge (a chamfer strip).
-                        float cy = (t0 + t1) * 0.5f;
-                        var c = alongX ? new Vector3(mid, cy - 0.03f, fixedC) : new Vector3(fixedC, cy - 0.03f, mid);
-                        if (Mathf.Abs(t0 - t1) < 0.05f) m.BoxC(HillMat.Kerb, c, alongX ? new Vector3(b1 - b0, 0.06f, 0.16f) : new Vector3(0.16f, 0.06f, b1 - b0), 0.025f);
-                    }
+                    float cy = (t0 + t1) * 0.5f;
+                    bool flat = Mathf.Abs(t0 - t1) < 0.05f;
+                    // The coping (a bevelled cap along the top edge, overhanging the face by 4 cm) or a kerb's rounded edge.
+                    if (!kerb && hgt > 0.6f && flat) Run(1, b0, b1, cy);
+                    else if (kerb && hgt < 0.35f && flat) Run(2, b0, b1, cy);
+                    else Flush();
                 }
+                Flush();
             }
         }
 
         // ---------- Scatter: grass, flowers, leaves, cracks, manholes, drains, road markings ----------
 
+        /// <summary>The hard ground's wear: cracks, a few fallen leaves and stains (decals; each tile seeded by its index, so a
+        /// tile drawn in two bands of chunks comes out the same in both). The grass is the Look library's tufts
+        /// (<see cref="DrawTufts"/>).</summary>
         static void DrawScatter(LarchHill h, PieceGrid grid, Chunks chunks)
         {
-            var r = new Random(1234);
-            foreach (var p in h.pieces)
+            for (int pi = 0; pi < h.pieces.Count; pi++)
             {
-                if (p.kind != BlockKind.Ground || !p.style.Contains("|")) continue;
+                var p = h.pieces[pi];
+                if (p.kind != BlockKind.Ground || !p.style.Contains("|") || !chunks.Overlaps(p)) continue;
+                var r = new Random(1234 + pi * 7919);
                 string surface = p.style.Split('|')[0];
                 float area = p.size.X * p.size.Z;
-                if (surface == "grass")
+                if (surface == "asphalt" || surface == "paving" || surface == "cobbles" || surface == "concrete")
                 {
-                    int tufts = Mathf.Min(4000, Mathf.RoundToInt(area * 0.28f));
-                    int flowers = Mathf.Min(600, Mathf.RoundToInt(area * 0.025f));
-                    for (int i = 0; i < tufts + flowers; i++)
-                    {
-                        float x = p.Min.X + 0.3f + (float)r.NextDouble() * (p.size.X - 0.6f), z = p.Min.Z + 0.3f + (float)r.NextDouble() * (p.size.Z - 0.6f);
-                        float y = p.TopAt(x, z);
-                        if (grid.TopAt(x, z, y + 3f) > y + 0.05f || grid.Occupied(x, z, y, y + 1.6f, 0.25f)) continue;
-                        bool flower = i >= tufts;
-                        float s = flower ? 0.3f + (float)r.NextDouble() * 0.25f : 0.22f + (float)r.NextDouble() * 0.3f;
-                        var uv = HillAtlas.Tuft(r.Next(4));
-                        HillKit.Tuft(chunks.At(x, z), flower ? HillMat.Flowers : HillMat.GrassCards, new Vector3(x, y, z), s * 1.3f, s, (float)r.NextDouble() * 180f, uv, (float)(r.NextDouble() - 0.5) * 0.3f);
-                    }
-                }
-                else if (surface == "asphalt" || surface == "paving" || surface == "cobbles" || surface == "concrete")
-                {
-                    int cracks = Mathf.Min(200, Mathf.RoundToInt(area * (surface == "asphalt" ? 0.012f : 0.008f)));
-                    int leaves = Mathf.Min(200, Mathf.RoundToInt(area * 0.01f));
-                    int stains = surface == "asphalt" ? Mathf.Min(80, Mathf.RoundToInt(area * 0.004f)) : 0;
+                    int cracks = Mathf.Min(120, Mathf.RoundToInt(area * (surface == "asphalt" ? 0.008f : 0.005f)));
+                    int leaves = Mathf.Min(80, Mathf.RoundToInt(area * 0.004f));
+                    int stains = surface == "asphalt" ? Mathf.Min(30, Mathf.RoundToInt(area * 0.0015f)) : 0;
                     for (int i = 0; i < cracks + leaves + stains; i++)
                     {
                         float x = p.Min.X + 0.6f + (float)r.NextDouble() * Mathf.Max(0.1f, p.size.X - 1.2f), z = p.Min.Z + 0.6f + (float)r.NextDouble() * Mathf.Max(0.1f, p.size.Z - 1.2f);
@@ -255,6 +293,33 @@ namespace JamKit.DreamEscape.EditorTools
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// The lawns' grass: the Look library's tufts (<see cref="VhLookGround.Tufts"/>: drifts clumped by noise, mostly
+        /// green with dry, weeds and a few wildflowers; no shadows; chunked per 24 m), on every grass tile clear of what
+        /// stands on it. Replaces milestone 1's evenly spread grass and flower cards (the judges' "confetti").
+        /// </summary>
+        static GameObject DrawTufts(LarchHill h, PieceGrid grid, Transform parent, Rect? only = null)
+        {
+            float Ground(float x, float z) => grid.TopAt(x, z, 200f, q => q.style.Contains("|"));
+            var tufts = new VhLookGround.Tufts(17, Ground);
+            foreach (var p in h.pieces)
+            {
+                if (p.kind != BlockKind.Ground || !p.style.StartsWith("grass|", StringComparison.Ordinal)) continue;
+                var rect = new Rect(p.Min.X + 0.3f, p.Min.Z + 0.3f, p.size.X - 0.6f, p.size.Z - 0.6f);
+                if (rect.width <= 0f || rect.height <= 0f) continue;
+                if (only.HasValue && !only.Value.Overlaps(rect)) continue;
+                var tile = p;
+                tufts.Scatter(rect, 0.16f, (x, z) =>
+                {
+                    float y = tile.TopAt(x, z);
+                    return grid.TopAt(x, z, y + 3f) <= y + 0.05f && !grid.Occupied(x, z, y, y + 1.6f, 0.25f);
+                }, 0.06f, 0.22f);
+            }
+            var go = tufts.Build(parent, "Grass (tufts)");
+            Debug.Log("JAMKIT_STREET tufts: " + tufts.count);
+            return go;
         }
 
         /// <summary>A flat decal 1.5 cm over the ground (following a ramp's slope).</summary>
@@ -274,7 +339,7 @@ namespace JamKit.DreamEscape.EditorTools
         {
             foreach (var p in h.pieces)
             {
-                if (p.kind != BlockKind.Ground || !p.style.StartsWith("asphalt|")) continue;
+                if (p.kind != BlockKind.Ground || !p.style.StartsWith("asphalt|") || !chunks.Overlaps(p)) continue;
                 if (p.name.Contains("(footpath)") || p.name.Contains("forecourt") || p.name.Contains("grounds") || p.name.Contains("car park")) continue;
                 bool alongX = p.size.X >= p.size.Z;
                 float len = alongX ? p.size.X : p.size.Z, width = alongX ? p.size.Z : p.size.X;
@@ -310,7 +375,7 @@ namespace JamKit.DreamEscape.EditorTools
         {
             foreach (var p in h.pieces)
             {
-                if (!p.solid || p.kind == BlockKind.Boundary || p.style.StartsWith("@") || p.style.Contains("|")) continue;
+                if (!p.solid || p.kind == BlockKind.Boundary || p.style.StartsWith("@") || p.style.Contains("|") || !chunks.Accepts(p.center.X, p.center.Z)) continue;
                 if (p.style == "walt" || p.style == "shutter" || p.style == "lasname_house") continue;
                 var m = chunks.At(U(p.center));
                 try { DrawPiece(m, p, oakFoot); }
@@ -319,7 +384,7 @@ namespace JamKit.DreamEscape.EditorTools
             // Water surfaces (the creek, the pool, the ditch): not solid, drawn as a sheet at their top.
             foreach (var p in h.pieces)
             {
-                if (p.kind != BlockKind.Water) continue;
+                if (p.kind != BlockKind.Water || !chunks.Overlaps(p)) continue;
                 DrawTop(new BlockPiece { center = p.center, size = p.size, name = p.name }, HillMat.Water, chunks);
             }
         }
@@ -576,56 +641,6 @@ namespace JamKit.DreamEscape.EditorTools
                     m.Poly(flags[f++ % flags.Length], new[] { p - along, p + along, p + Vector3.down * 0.32f }, Vector3.Cross(along, Vector3.up));
                     m.Poly(flags[f % flags.Length], new[] { p + along, p - along, p + Vector3.down * 0.32f }, -Vector3.Cross(along, Vector3.up));
                 }
-            }
-        }
-
-        // ---------- The backdrop past the edges ----------
-
-        /// <summary>What you see past the hill: the town below the far bank and the neighbouring slopes, as low-detail
-        /// houses and trees (no colliders; the fog softens them).</summary>
-        static void DrawBackdrop(Chunks chunks)
-        {
-            var r = new Random(99);
-            string[] walls = { HillMat.SidingWhite, HillMat.BrickRed, HillMat.SidingBlue, HillMat.Stucco, HillMat.SidingButter, HillMat.BrickCream };
-            string[] roofs = { HillMat.RoofGrey, HillMat.RoofRed, HillMat.RoofSlate, HillMat.RoofClay };
-            void Patch(float x0, float x1, float z0, float z1, Func<float, float, float> ground)
-            {
-                for (float x = x0; x < x1; x += 14f + (float)r.NextDouble() * 6f)
-                    for (float z = z0; z < z1; z += 16f + (float)r.NextDouble() * 6f)
-                    {
-                        float y = ground(x, z);
-                        var m = chunks.At(x, z);
-                        if (r.Next(3) == 0)
-                        {
-                            float th = 6f + (float)r.NextDouble() * 6f;
-                            m.Cylinder(HillMat.Bark, new Vector3(x, y, z), new Vector3(x, y + th * 0.4f, z), 0.25f, 6, false);
-                            m.Ellipsoid(HillMat.LeavesDark, new Vector3(x, y + th * 0.6f, z), new Vector3(th * 0.3f, th * 0.35f, th * 0.3f), 8);
-                            continue;
-                        }
-                        float w = 8f + (float)r.NextDouble() * 4f, d = 8f + (float)r.NextDouble() * 3f, hh = 5f + (float)r.NextDouble() * 3f;
-                        m.Box(walls[r.Next(walls.Length)], new Vector3(x - w * 0.5f, y - 2f, z - d * 0.5f), new Vector3(x + w * 0.5f, y + hh, z + d * 0.5f), 0.05f);
-                        float ridge = y + hh + d * 0.35f;
-                        string roof = roofs[r.Next(roofs.Length)];
-                        m.Quad(roof, new Vector3(x - w * 0.5f - 0.3f, y + hh, z - d * 0.5f - 0.3f), new Vector3(x - w * 0.5f - 0.3f, ridge, z), new Vector3(x + w * 0.5f + 0.3f, ridge, z), new Vector3(x + w * 0.5f + 0.3f, y + hh, z - d * 0.5f - 0.3f), new Vector3(0f, 1f, -1f));
-                        m.Quad(roof, new Vector3(x + w * 0.5f + 0.3f, y + hh, z + d * 0.5f + 0.3f), new Vector3(x + w * 0.5f + 0.3f, ridge, z), new Vector3(x - w * 0.5f - 0.3f, ridge, z), new Vector3(x - w * 0.5f - 0.3f, y + hh, z + d * 0.5f + 0.3f), new Vector3(0f, 1f, 1f));
-                        m.Tri(walls[0], new Vector3(x - w * 0.5f, y + hh, z - d * 0.5f), new Vector3(x - w * 0.5f, ridge, z), new Vector3(x - w * 0.5f, y + hh, z + d * 0.5f), Vector3.left);
-                        m.Tri(walls[0], new Vector3(x + w * 0.5f, y + hh, z + d * 0.5f), new Vector3(x + w * 0.5f, ridge, z), new Vector3(x + w * 0.5f, y + hh, z - d * 0.5f), Vector3.right);
-                    }
-            }
-            // The ground under the backdrop: the town falls away south of the far bank; the slopes rise with the hill east and west.
-            float South(float x, float z) => LarchHill.FarRiseY - (LarchHill.SouthZ - z) * 0.08f;
-            float Side(float x, float z) => Mathf.Clamp((z + 20f) * 0.13f, 0f, 46f) - 4f;
-            foreach (var (x0, x1, z0, z1, top) in new[] { (-420f, 420f, -420f, LarchHill.SouthZ, 0), (-420f, LarchHill.WestX - 4f, LarchHill.SouthZ, 440f, 1), (LarchHill.EastX + 4f, 420f, LarchHill.SouthZ, 440f, 1) })
-            {
-                Func<float, float, float> g = top == 0 ? (Func<float, float, float>)South : Side;
-                int nx = Mathf.CeilToInt((x1 - x0) / 40f), nz = Mathf.CeilToInt((z1 - z0) / 40f);
-                for (int i = 0; i < nx; i++)
-                    for (int j = 0; j < nz; j++)
-                    {
-                        float a0 = x0 + (x1 - x0) * i / nx, a1 = x0 + (x1 - x0) * (i + 1) / nx, b0 = z0 + (z1 - z0) * j / nz, b1 = z0 + (z1 - z0) * (j + 1) / nz;
-                        chunks.At((a0 + a1) * 0.5f, (b0 + b1) * 0.5f).Quad(HillMat.Grass, new Vector3(a0, g(a0, b0), b0), new Vector3(a0, g(a0, b1), b1), new Vector3(a1, g(a1, b1), b1), new Vector3(a1, g(a1, b0), b0), Vector3.up);
-                    }
-                Patch(x0 + 6f, x1 - 6f, z0 + 6f, z1 - 6f, g);
             }
         }
     }

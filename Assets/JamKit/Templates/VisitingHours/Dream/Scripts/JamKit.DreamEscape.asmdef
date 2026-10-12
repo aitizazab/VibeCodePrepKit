@@ -8,7 +8,8 @@
         "JamKit.Argument",
         "Unity.InputSystem",
         "Unity.RenderPipelines.Universal.Runtime",
-        "Unity.RenderPipelines.Core.Runtime"
+        "Unity.RenderPipelines.Core.Runtime",
+        "JamKit.VisitingHours.Characters"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

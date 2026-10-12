@@ -1,9 +1,12 @@
 # World: Larch Hill, one hill for Nights 1-3 (the World agent's level design)
 
-Status (2026-10-12): **milestone 1 built, not yet seen in Unity.** The whole hill is laid out as data and drawn in code in
-CC0 PBR materials; Night 1's critical path is proven end to end by the dotnet autopilot at 20, 60 and 144 fps; the anchors
-are published; the shared geometry lint exists; the captures and the recorded run are ready for main to run. Nothing here
-is "good" until a judge has seen the captures.
+Status (2026-10-13): **round 2: the hill is rebuilt to fit the memory cap; still not seen in Unity.** Milestone 1 couldn't
+be built (the build died at 6.8 GB, the capture at 4.6 GB): round 2 builds it a band at a time without graphics, with far
+less geometry, shared props and trees, levels of detail and a memory report in the log ("Memory and frame time" below).
+It also takes the Look library (trees, grass, the terrain ring, the soundscape), the House agent's house (and leaves its
+escape's space empty), Elias in 3D at his grill and Lena's watch on Nadia's wrist. It compiles and every dotnet suite
+passes; whether it fits under the cap is for the first build's report to say. Nothing here is "good" until a judge has
+seen the captures.
 
 ![The plan](world-plan.png)
 
@@ -87,13 +90,18 @@ Night 2 replays it); Mr. Okonkwo's car wash, the Fairbanks' mower, the Ruizes' y
 Street, the old man in the allotments, the block party (dancers, a grill, the lemonade stall), barbecue smoke over the
 party and Eli's grill, the shutter's clock, the Route 9 bus waiting. Each is a `HillPersonSpot` (role, activity, a loop
 path): **billboards** (docs/REDESIGN.md section 7: only Nadia and Elias are 3D in the dream) through the People agent's
-`DreamCutoutView`; Eli at his grill becomes his 3D model when it lands.
+`DreamCutoutView` (lit paper since People's round); **Eli at his grill is the People agent's 3D `Elias` prefab**
+(`Resources/People/Elias`, idle; he turns and walks in when she calls him), a cut-out only if the prefab isn't built.
 
 ## Nights 2 and 3 on the hill
 
 - **Night 2** starts on Rowan Street outside the house (`HillAnchors.Night2Start`, `DreamStreetGame.night = 2`): the loop
   replays exactly ("Morning, Nadia! Lovely Saturday for it!"), the party is there, no Rewind; reaching the gate fires
-  `DreamStreetGame.Night2AtTheDoor` for the House agent's night. The escape bursts out of the house onto **Chapel Row**
+  `DreamStreetGame.Night2AtTheDoor` for the House agent's night, and with nobody listening the game loads the House
+  agent's scene itself (`DreamStreetGame.night2HouseScene`, "DreamHouse"). **To start Night 2 on the hill** whoever loads
+  DreamStreet for Night 2 sets `DreamStreetGame.NextNight = 2` first (used once). For main/Day (not World's files): the
+  chain's `Chain.Night2Scenes` is `{ "DreamHouse" }`; make it `{ "DreamStreet", "DreamHouse" }` and set `NextNight = 2` in
+  `VhChainRunner.StartNight` before the load, and Night 2 starts on the hill and walks into the house. The escape bursts out of the house onto **Chapel Row**
   (`HillAnchors.EscapeExit`) and its line runs up the middle band to the **Route 9 stop on Hill Road** at Bell Row
   (`HillAnchors.EscapeEnd`): the Chapel Steps behind the Lasnames', the terrace walls (6-7 m between terraces: wall-jumps
   and the steps), the rooftops of the rows, St. Anne's buttresses and roofs, the school's playground and flat roof, Hill
@@ -122,9 +130,32 @@ the hill), Y up; the creek's north bank is Y 0.
 | `HospitalEntrance` | (0, 46, 322), yaw 180 | St. Brigid's main doors on the summit (Night 3). |
 
 Band heights: the foot 0, Mill Street 4 (Back Lane B 5), Rowan Street 9, the middle band's terraces 15 / 22 / 29 / 36,
-Crest Road 42, the summit 46. In the hill scene the house's outside is `DreamHouseExterior.Build` (called by name; a kit
-house of the same footprint stands in if it's missing) and its colliders are the round 5 body (walls 4.5 m, a roof to
-7.1 m, the tower to 10.9 m): tell World if the house's outside changes shape.
+Crest Road 42, the summit 46.
+
+### The house on the hill, and where House stops and the street begins (round 2)
+
+- **In the hill scene** the house is the House agent's own: `DreamHouseExterior.Build(Transform)` (called by name; a kit
+  house of the same footprint stands in only if it's missing). When it's there, the hill removes the core's stand-in box
+  colliders for the house (style `lasname_house`): the house's own colliders are the house. World's own front wall and
+  the room behind the window are gone (they overlapped the house). What World adds to it: the family's cut-outs in the
+  front room (Theo, Elias, Lena, seen through the front window at the night's end), **the house's own open front door put
+  on a hinge** at its right jamb (house-local (0.625, 0, 0.17); open = 90 degrees, shut = 0: the night shuts it), the porch
+  light beside House's lantern, and Perf's rules on its lamps (2 shadowed at most) and small parts (no shadows).
+- **The boundary.** House owns everything of the house itself, and the escape. World owns the ground everywhere, the lot's
+  fences and gates, Rowan Street, the Chapel Steps and **Chapel Row** (a real terrace street at Y 15 with its two rows of
+  houses at Z 158-182 and Hill Road at its east end; `EscapeExit` (24, 15, 153) is on its paving), the neighbours and
+  everything further out. House builds only what the escape needs at its exit (the dream's door Nadia bursts out of, the
+  rain) and nothing else on Chapel Row.
+- **In the House agent's own scene** (DreamHouse), the judge's round 1 found the lot ending in a cut dirt edge over a void
+  and Chapel Row an empty plane: House's stand-ins. World's answer is a call: **`DreamStreetBuilder.BuildSurroundings(root,
+  radius = 140)`** (`JamKit.DreamEscape.EditorTools`, call it by name as World calls `DreamHouseExterior.Build`) draws the
+  real hill round the house in the house's own frame (the hill shifted by -`HouseOrigin`): every chunk within the radius
+  (ground, retaining walls, steps, Rowan Street, Chapel Row and its rows, the neighbours' houses, props, the Look library's
+  trees and grass) with their colliders, and the terrain ring round everything; only the house's stand-in is left out.
+  Its meshes go to `Dream/Street/Generated/HouseSurroundings/` (rebuilt each call). House should then drop its own lot,
+  street and Chapel Row stand-ins.
+- **The escape's space** (house-local (0, -260, 400), world about (24, -250, 522)) stays empty on the hill: nothing of the
+  hill or the terrain ring goes below Y -12 there (the ring never dips more than 10 m under its centre's level).
 
 ## How the hill is made
 
@@ -135,10 +166,13 @@ house of the same footprint stands in if it's missing) and its colliders are the
   (the night's state and every line). Ground tiles never overlap and cover the whole hill; a tile's sides that stand above
   its neighbours are drawn as retaining walls or kerbs.
 - **The drawing** (`Assets/JamKit/Templates/VisitingHours/Dream/Editor/Street/`): `DreamStreetBuilder.cs` (the scene),
-  `DreamHillDrawing.cs` (ground, steps, retaining walls with copings, kerbs, scatter of grass tufts, flowers, leaves,
-  cracks, stains, manholes and drains, road markings, the party's things, wires, bunting, the backdrop), and the kit in
+  `DreamHillDrawing.cs` (ground, steps, retaining walls with copings, kerbs, cracks, stains, leaves, manholes and drains,
+  road markings, the party's things, wires, bunting; the grass is the Look library's tufts), `DreamHillStreaming.cs`
+  (round 2: the band-by-band build, shared props, the Look library's trees and terrain ring, the house's surroundings for
+  House), `HillLods.cs` (each chunk's levels of detail), `HillBuildReport.cs` (the memory and size report), and the kit in
   `Kit/`: `HillMesh` (a mesh sink: bevelled boxes, tubes, cards, world-metre UVs, one renderer per material per 40 m
-  chunk), `HillMat`/`HillMaterials` (every material id, its CC0 texture pack, tint and tiling; URP Lit/Unlit only; a Look
+  chunk, or one multi-material mesh for a shared kit piece; writes compact 36-byte vertices directly), `HillMeshStore`
+  (one asset per chunk, saved and unloaded band by band), `HillMat`/`HillMaterials` (every material id, its CC0 texture pack, tint and tiling; URP Lit/Unlit only; a Look
   material at `Look/Materials/Hill/<id>.mat` overrides one), `HillAtlas` (the generated atlases' cells), and the drawings
   `HillHouses`, `HillTrees`, `HillFences`, `HillProps`, `HillLandmarks` (`HillKitPreview` builds a preview scene of them).
   Every wall runs (`onlyMarkedWalls` off); slopes are convex wedge colliders.
@@ -147,6 +181,71 @@ house of the same footprint stands in if it's missing) and its colliders are the
   interiors, signs in the repo's OFL fonts, awnings, leaf clusters, grass and flower cards, ivy, decals).
 - **Light** is the Look agent's: `VhLook.ApplyGoldenHour` (sun at bearing 250, 10 degrees up), `VhLook.SetupCamera`,
   reflection probes per street; the far scenery is named "(backdrop)" for their bake.
+
+## Memory and frame time (round 2)
+
+The bar (docs/REDESIGN.md sections 3 and 9): the hill builds, opens and captures within the session cap (30% of RAM,
+4.6 GB), and plays at 120 fps at 1080p on the RTX 3050 (60 fps floor).
+
+**Why milestone 1 couldn't be built.** The build died at 6.8 GB committed (the 45% cap), allocating vertex data, after the
+asset database's own memory had run out ("Not enough space [12]" is ENOMEM). Unity's own allocators held only ~0.7 GB then
+(default 276 MB, graphics 394 MB), so ~6 GB was outside them. The build ran **with graphics (DirectX 12)**, made every
+mesh twice over (built at 48 bytes a vertex, then re-laid by `VhPerfMesh.Compact` with eight managed copies of its
+arrays), wrote 3,876-4,997 separate asset files (an asset refresh each) and held all of it until the scene was saved.
+The likeliest culprit is the D3D12 upload memory of thousands of meshes in a batch editor that never presents a frame;
+the managed heap's churn is the second. Neither is certain until a real run reports: hence the report.
+
+**What round 2 changes.**
+- **Builds without graphics** (`tools/street-capture.ps1 -Build` runs the build with `-nographics`; the capture still
+  renders, with `-D3D11` as a fallback).
+- **Band by band** (`DreamHillStreaming.cs`): two chunk rows (80 m) at a time are drawn, built, given LODs and shadow
+  rules, saved as **one asset per chunk** (its meshes as sub-assets), marked not readable, unloaded, and the heap
+  collected (`GC.Collect`, `EditorUtility.UnloadUnusedAssetsImmediate`) before the next band. Whatever falls outside the
+  band goes to a sink that keeps nothing (`HillMesh.Discarding`).
+- **Compact meshes made once**: `HillMesh` writes position float3, normal and tangent half4 and uv float2 (36 bytes)
+  straight into the vertex buffer, with 16-bit indices under 65,536 vertices and its own tangents: no readable 48-byte
+  copy, no re-layout.
+- **Far less geometry.** Milestone 1's 5.32M vertices were 77% chamfers on small boxes: copings 1.23M, window trim 0.94M,
+  fences 0.78M, props' metal 0.58M, kerbs 0.27M (counted from the play checkout's generated hill). Round 2: a chamfer under
+  1.5 cm, or on anything thinner than 10 cm, is drawn sharp (24 vertices, not 96: `HillMesh.MinBevel`,
+  `MinBevelThickness`); copings and kerb edges run on as one piece up to 24 m instead of a bevelled stone every 2 m.
+- **Shared meshes.** Props: one mesh per kind, variant and size (388 props, a few dozen meshes), each instance culled by
+  its size (`VhPerfLod.CullBeyond`: 70 m per metre, 35-320 m). Trees: the Look library's (`VhLookTrees.Place`: four
+  species, three variants, LODs down to a painted billboard, no shadows past LOD1); only the climbable oak and the conifer
+  are still the hill's own. Their trunk colliders stay the core's (the library's own are removed).
+- **Levels of detail per chunk** (`HillLods`, on Perf's `Simplify`/`ThinCards`): full detail to 70 m; then 0.2 m
+  clustering of the heavy solids, one card in three, no decals or flowers; from 190 m 0.9 m clustering, no cards, no
+  shadows. Renderers are shared between levels where nothing is gained, so a chunk gains at most two renderers per heavy
+  material (Perf's `ChunkLods` adds two for every material: three times the objects).
+- **Shadows**: `VhPerfShadows.Apply(Rules.Outdoor)` per chunk (small things, cards and the ring cast none), props under
+  0.6 m cast none, the house's lamps limited to 2 shadowed (`LimitShadowedLights`) and its small parts on Indoor rules.
+- **Static for occlusion**: the chunks, props, trees and ring through Perf's `MarkStatic` (occludees; big solids
+  occluders) but **not** batching-static (that would copy every shared mesh once per instance into the build). Main bakes
+  occlusion after the build.
+- **Not readable**: every generated render mesh (the colliders' wedges stay readable); the geometry lint reads vertices
+  through `Mesh.AcquireReadOnlyMeshData` when a mesh isn't readable, and skips a big mesh it can't read rather than
+  guessing from its bounds.
+- **The old backdrop** (210 chunks, 1,554 renderers of boxes and blobs) is replaced by the Look library's terrain ring.
+
+**The report** (`HillBuildReport`). In the log, for each phase (colliders, each band, props, trees, grass, the ring, the
+house and cast, save): `JAMKIT_STREET_MEM <phase> done at <s>: commit <GB> (phase peak, process peak), native <MB> of <MB>
+reserved (phase peak), managed <MB> of heap (phase peak), gfx driver <MB>; meshes made, vertices, triangles, MB`. Then
+`JAMKIT_STREET_SIZE scene:` (objects, renderers, shadow casters, LOD groups, colliders, lights, unique meshes and how many
+are readable, vertices, triangles, MB), `vertices by part`, and `JAMKIT_STREET_SIZE disk:` (files, MB). The capture logs
+the same when the scene is open and after rendering. Each run also writes `out/street-report/<time>-build|capture.txt`.
+
+**Estimates** (from milestone 1's measured counts and the rules above; the first report replaces them):
+
+| | Milestone 1 (measured) | Round 2 (estimated) |
+|---|---|---|
+| Full-detail vertices | 5.32M (hill 5.23M, backdrop 0.08M) | ~2.0-2.6M, plus ~0.4-0.6M in LOD meshes |
+| Mesh data (one copy) | ~255 MB (48 bytes a vertex, 32-bit indices) | ~90-120 MB (36 bytes, 16-bit) |
+| Mesh asset files on disk | 4,997 files, 555 MB of text | ~120 files, ~200-260 MB |
+| Renderers | ~4,700 (3,111 hill, 1,554 backdrop) | ~4,000-4,800 hill and LOD, ~390 props, ~370 tree parts, the ring |
+| Build peak commit | over 6.8 GB (died) | expected 2-3.5 GB without graphics: the report will say |
+
+Fps: the LODs, the culled props, the billboard trees and the shadow rules cut the far hill's triangles and shadow passes;
+the first number is Perf's probe (`hill1`, `hill2`).
 
 ## The geometry lint (shared with the House agent)
 
@@ -178,12 +277,34 @@ menu JamKit/QA/Geometry Lint (open scene).
 - **Recorded run**: the PlayMode test `JamKit.DreamEscape.Tests.DreamStreetPlayTests.RecordTheNight1CriticalPath` (a frame
   every 0.5 s and `timeline.csv`) to `out/hill-run/<time>/`.
 
+## Unity steps for main (round 2; one GPU job at a time, each through the session cap)
+
+1. **Build** (no graphics) **and capture** (graphics) in one go:
+   `uv run python ~/.local/bin/capped-run.py --session VibeJamKit -- powershell -NoProfile -ExecutionPolicy Bypass -File tools/street-capture.ps1 -Build`
+   Expect `JAMKIT_STREET_OK`, the `JAMKIT_STREET_MEM` lines (read the peaks) and 25 stills in `out/hill-captures/<time>/`.
+   If the capture runs out of memory, run the capture alone with `-D3D11`.
+2. **The lint**: `Unity.exe -batchmode -nographics -projectPath . -executeMethod JamKit.DreamEscape.EditorTools.DreamGeometryLint.RunFromCommandLine -lintScene Assets/JamKit/Templates/VisitingHours/Dream/Scenes/DreamStreet.unity -logFile out/lint-street.log -quit`
+3. **Occlusion bake**: `Unity.exe -batchmode -nographics -projectPath . -executeMethod JamKit.Perf.EditorTools.VhPerfOcclusion.BakeFromCommandLine -perfScene Assets/JamKit/Templates/VisitingHours/Dream/Scenes/DreamStreet.unity -logFile out/perf/occlusion-street.log -quit`
+4. **The recorded Night 1 run** (PlayMode, graphics): `Unity.exe -batchmode -projectPath . -runTests -testPlatform PlayMode -testFilter JamKit.DreamEscape.Tests.DreamStreetPlayTests.RecordTheNight1CriticalPath -testResults out/hill-run-results.xml -logFile out/hill-run.log`
+   (frames and `timeline.csv` in `out/hill-run/<time>/`).
+5. Then the EditMode tests (`DreamStreetEditorTests`) and Perf's probe (`hill1`, `hill2`).
+
+Commit after the build: the `.meta` files Unity writes for the new scripts (`Dream/Editor/Street/HillBuildReport.cs`,
+`HillLods.cs`, `DreamHillStreaming.cs`, `Kit/HillMeshStore.cs`) and, as before, whatever main keeps of the scene and
+`Dream/Street/Generated/Hill/` (now ~120 files).
+
 ## Known gaps (milestone 1)
 
 - **Thin fences can't be vaulted**: the movement's mantle probes 0.35 m past a face, so anything thinner (a 12 cm board
   fence) is a wall, not a ledge. The lessons use 0.5 m garden walls. Suggested movement fix: probe at several depths.
 - The middle band's rows are regular and its challenge lines aren't designed yet (milestone 2, with the House agent's
   escape). The top band is blocked out only.
-- Characters are billboards and spots; no 3D Elias at the grill yet.
+- Characters are billboards and spots (Elias at the grill is 3D since round 2).
+- Round 2: the family's cut-outs stand where milestone 1's room was (house-local x -2.4 to -7, z 2.4-2.7): check in the
+  captures that they're in a room you see through the front window. Lena's watch is built hidden on Nadia's body
+  (`DreamStreetGame.SetKeepsakeOwned(true)` shows it); nothing owns the keepsake yet (a Night 4 mechanic).
+- Round 2 left for later: VhLookHouses for a far town south of the far bank; the Look library's litter, stains and storm
+  drains (the hill keeps its own decals, fewer of them); impostors for the hill's own oak and conifer; milestone 2's
+  middle-band challenge lines and the top band.
 - Unseen in Unity: shapes, materials and performance (1080p/60 on the RTX 3050) wait on main's captures and the
   frame-time probe.

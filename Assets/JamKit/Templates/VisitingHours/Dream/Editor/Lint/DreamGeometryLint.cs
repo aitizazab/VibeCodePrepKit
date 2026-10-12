@@ -857,20 +857,50 @@ namespace JamKit.DreamEscape.EditorTools
                 return best * 2f;
             }
 
+            /// <summary>A mesh's vertices: read directly when it's readable, else through Unity's MeshData (the hill's
+            /// generated meshes are not readable since World round 2, to save their CPU copy in a build); null if neither works.</summary>
+            Vector3[] VerticesOf(Mesh mesh)
+            {
+                if (vertsCache.TryGetValue(mesh, out var verts)) return verts;
+                verts = null;
+                if (mesh.isReadable) verts = mesh.vertices;
+                else
+                {
+                    try
+                    {
+                        using (var data = Mesh.AcquireReadOnlyMeshData(mesh))
+                        {
+                            var md = data[0];
+                            if (md.vertexCount > 0)
+                            {
+                                var arr = new Unity.Collections.NativeArray<Vector3>(md.vertexCount, Unity.Collections.Allocator.Temp);
+                                md.GetVertices(arr);
+                                verts = arr.ToArray();
+                                arr.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception) { verts = null; }
+                }
+                vertsCache[mesh] = verts;
+                return verts;
+            }
+
             /// <summary>Up to max points spread over the renderer's mesh vertices (world), or its bounds' corners and face
-            /// centres when the mesh is not readable.</summary>
+            /// centres when they can't be read (none at all for a big mesh: a merged chunk's bounds say nothing).</summary>
             void SamplePoints(Renderer r, int max, List<Vector3> pts)
             {
                 pts.Clear();
                 var mesh = MeshOf(r);
                 var m = r.transform.localToWorldMatrix;
-                if (mesh != null && mesh.isReadable && mesh.vertexCount > 0)
+                var verts = mesh != null && mesh.vertexCount > 0 ? VerticesOf(mesh) : null;
+                if (verts != null && verts.Length > 0)
                 {
-                    if (!vertsCache.TryGetValue(mesh, out var verts)) vertsCache[mesh] = verts = mesh.vertices;
                     int step = Mathf.Max(1, verts.Length / max);
                     for (int i = 0; i < verts.Length && pts.Count < max; i += step) pts.Add(m.MultiplyPoint3x4(verts[i]));
                     return;
                 }
+                if (mesh != null && mesh.bounds.size.magnitude > 6f) return;
                 var lb = mesh != null ? mesh.bounds : new Bounds(r.transform.InverseTransformPoint(r.bounds.center), Vector3.one * 0.01f);
                 var c = lb.center;
                 var e = lb.extents;
