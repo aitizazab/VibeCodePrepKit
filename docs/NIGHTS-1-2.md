@@ -37,7 +37,7 @@ she finds him, and the dream closes the door on her.
    vitals).
 2. **Room 14:** the chart ("Charting: GCS 6..."), the effects bag (the keyring tagged "W.A. workshop", the memorial
    card for Walter Abernathy, 1941-2015), the family photo, LeBaget's bouquet ("Community Partnerships").
-3. **The station:** the police envelope. The call log reads 3:04 to Nadia, unanswered, then 3:07 to Lena, 2 minutes.
+3. **The station:** the police envelope. The call log reads 3:03 to Nadia, unanswered (the opening's phone), then 3:06 to Lena, 2 minutes.
    Nobody comments on it.
 4. **The phone:** "Not now."
 5. **11 PM, the booth:** **the creator's Mags scene, word for word** (STORY-PROSE 83-92: "Dream Walking isn't that
