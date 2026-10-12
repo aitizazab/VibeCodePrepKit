@@ -430,8 +430,9 @@ namespace JamKit.VisitingHours
             Color ink = new Color(0.17f, 0.30f, 0.34f);
             Gear(px, W, H, 0.21f * W, barV * H, 0.05f * W, ink);
             var brush = new Brush(px, W, H);
-            // Narrow enough that the final "s" stays on the card face (the title shot showed "Setting" cut at the edge).
-            StrokeText.Draw(brush, "Settings", new Vector2(0.56f, barV - 0.006f), 0.10f, 0f, W, W / 140f, ink, 0.95f, (float)H / W);
+            // Narrow enough that the final "s" stays on the card face (the round-2 title shot showed "Setting" cut at its edge;
+            // the word came out about a third wider on the card than its advances add up to, so this leaves room).
+            StrokeText.Draw(brush, "Settings", new Vector2(0.555f, barV - 0.006f), 0.085f, 0f, W, W / 150f, ink, 0.95f, (float)H / W);
             return Make("badge_settings", W, H, px, false);
         }
 
