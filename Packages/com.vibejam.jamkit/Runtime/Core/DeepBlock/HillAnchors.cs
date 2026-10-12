@@ -23,7 +23,7 @@ namespace JamKit.DeepBlock
         /// <summary>Rowan Street, the house's street (Y 9): the top of the lower band.</summary>
         public const float RowanY = 9f;
         /// <summary>The middle band's terraces, one above the other (Chapel Row, School Lane, Bell Row, Upper Row).</summary>
-        public const float M1Y = 15f, M2Y = 22f, M3Y = 30f, M4Y = 37f;
+        public const float M1Y = 15f, M2Y = 22f, M3Y = 29f, M4Y = 36f;
         /// <summary>Crest Road and its shops (Y 42); the hospital's forecourt on the summit (Y 46).</summary>
         public const float CrestY = 42f, SummitY = 46f;
 
@@ -52,8 +52,8 @@ namespace JamKit.DeepBlock
         public static readonly Vector3 FrontGate = new Vector3(24f, RowanY, 116.3f);
         /// <summary>The back door, in the house's back wall (the House agent may move it along that wall).</summary>
         public static readonly Vector3 BackDoor = new Vector3(24f, 9.6f, 137.4f);
-        /// <summary>The back garden's gate at the foot of the Chapel Steps (the stairs up the first middle-band wall).</summary>
-        public static readonly Vector3 BackGate = new Vector3(24f, 9.6f, 145.6f);
+        /// <summary>The back garden's gate at the foot of the Chapel Steps, the stairs that climb east along the first middle-band wall (X 30-40) to Chapel Row.</summary>
+        public static readonly Vector3 BackGate = new Vector3(29f, 9.6f, 144f);
 
         // ---------- Night 2 ----------
 
@@ -66,13 +66,13 @@ namespace JamKit.DeepBlock
         public static readonly Vector3 EscapeExit = new Vector3(24f, M1Y, 153f);
         public const float EscapeExitYaw = 0f;
         /// <summary>Where the middle band's escape line ends: the Route 9 bus stop on Hill Road (M3's level).</summary>
-        public static readonly Vector3 EscapeEnd = new Vector3(104f, M3Y, 238f);
+        public static readonly Vector3 EscapeEnd = new Vector3(110f, M3Y + 0.15f, 226f);
 
         // ---------- Night 1 ----------
 
         /// <summary>Night 1 starts here: the creek's far bank, the whole hill ahead.</summary>
-        public static readonly Vector3 Night1Arrival = new Vector3(21f, FootY, -38f);
-        public const float Night1ArrivalYaw = -4f;
+        public static readonly Vector3 Night1Arrival = new Vector3(128f, 3f, -42f);
+        public const float Night1ArrivalYaw = -28f;
 
         // ---------- Night 3 ----------
 
