@@ -13,7 +13,7 @@ colour per character).
 | Access: Mixamo | **BLOCKED** the same way: not signed in on port 9333. |
 | Access: CC0 animation library (Quaternius Universal Animation Library) | **BLOCKED**: its free download goes through itch.io's download flow, which the permission system refused to script. A person can download `Universal Animation Library[Standard].zip` (free, CC0, 15 MB) from quaternius.itch.io/universal-animation-library. |
 | Access: Gemini (Flow, Nano Banana Pro) | Works (0 credits). |
-| Model sheets for Tripo | Made: Lena, Theo, Elias (dream), Walt, Elias in the hospital gown. Picks below. |
+| Model sheets for Tripo | Picked and cropped for all five: Lena, Theo, Elias (dream), Elias in the hospital gown, Walt (below). |
 | Component, builder, capture | Written and compile-checked (dotnet); not yet run in Unity. |
 | Meshes, rigs, animations, prefabs | Waiting on the sign-ins above. |
 
@@ -103,32 +103,28 @@ git until main has run it). Models: `Models/<Name>/<Name>.fbx` with Tripo's text
 
 | Prefab | Height | Defining colour | Sheet pick (art/incoming) | Notes |
 |---|---|---|---|---|
-| Lena | 1.88 m (6'2") | deep wine-red trousers on cream | `vh3d-lena-take1` | the pencil on her right ear; the watch face-in; nothing on her chest; notebook a separate prop |
+| Lena | 1.88 m (6'2") | deep wine-red trousers on cream | `vh3d-lena2-take1` | the pencil on her right ear; the watch face-in; nothing on her chest; notebook a separate prop |
 | Theo | 1.38 m | mustard hoodie | `vh3d-theo-take1` | ten; patched right knee, red sneakers |
 | Elias | 1.83 m | cornflower-blue apron on white | `vh3d-elias-dream-take1` | the dream Elias at the barbecue; tongs a separate prop |
-| EliasBed | 1.83 m | pale hospital blue | (see "Sheets") | the waking Elias, hospital gown, head bandage, eyes closed; posed lying |
-| Walt | 1.86 m | tan apron, red rag, brown tweed cap | retake pending (see "Sheets") | tall, thin; the rag tucked in his apron so the hands rig cleanly; a hand-held rag prop for `wipe-hands` |
+| EliasBed | 1.83 m | pale hospital blue | `vh3d-elias-bed2-take2` | the waking Elias, hospital gown, head bandage, eyes closed; posed lying |
+| Walt | 1.86 m | tan apron, red rag, brown tweed cap | `vh3d-walt2-take2` | tall, thin; the rag tucked in his apron so the hands rig cleanly; a hand-held rag prop for `wipe-hands` |
 | Nadia | 1.65 m | olive jacket, navy scrubs | (existing) | `Models/Nadia/Nadia.fbx` stays as the World agent's first-person body (Generic import). The builder does **not** touch it; a third-person Nadia gets a copy. |
 
 Not started (after the first milestone): Mags, Rafael, 6-10 Saturday neighbours, 2-3 ward visitors and staff.
 
 ## Sheets (2026-10-12)
 
-Take 1 of Lena, Theo and Elias (dream) is the pick: closer to a stylized 3D game render (clean forms, hand-painted cloth)
-than take 2, which drifts towards painterly realism (the creator turned that down for portraits). Their views are cropped
-for Tripo in `tools/tripo/sheets/<name>/{front,side,back}.png`. Weak spots, to check on the meshes: Lena's face is a
-little generic (her freckles and wide mouth are faint), Elias's dream face is cuter than the waking design.
+All in `FableAnimationTests/art/incoming/`; each pick is cropped for Tripo into `tools/tripo/sheets/<name>/{front,side,back}.png`.
+Prompts: `tools/tripo/sheets/*.txt`; batches `run-sheets.sh` (first takes) and `run-retakes.sh` (retakes, with the dream
+Elias sheet attached as a style reference so the cast reads as one game).
 
-**Walt: retake needed.** Both takes (`vh3d-walt-take1/2`) came out realistic and gritty, with a stern face (take 2 angry),
-out of style with the rest of the cast and not the kind old man of his design. The retake prompt attaches Elias's sheet
-as a style reference and asks for a kind face; not run yet:
-
-    cd FableAnimationTests
-    node art-tools/flow.mjs --image --out vh3d-walt2 --prompt-file ../VibeJamKit/tools/tripo/sheets/walt2.prompt.txt \
-      --attach "art/incoming/sheet-walt-bb-take1.jpg|art/incoming/vh3d-elias-dream-take1.jpg" --takes 2
-
-**Elias in the gown:** `vh3d-elias-bed-take1/2` were generating when this pass stopped; not reviewed yet (if they drift
-out of style, retake with the same style-reference trick).
+| Who | Pick | Why, and what's still weak |
+|---|---|---|
+| Lena | `vh3d-lena2-take1` | The retake. The first pick (`vh3d-lena-take1`) had a generic cartoon-heroine face (big round grey-blue eyes, small mouth). This one is hers: green-grey almond eyes with calm, slightly heavy lids, generous freckles, full cheeks, a closed half-smile; pencil on her right ear in all three views. Weak: the mouth is still not as wide as the design; her rendering is a shade more painterly than Theo and Elias. `vh3d-lena2-take2` was rejected: its side view turns the head to camera (bad for multi-view) and the pencil swaps ears between views. |
+| Theo | `vh3d-theo-take1` | Saturated mustard hoodie, patched right knee, red sneakers; clean stylized render. |
+| Elias (dream) | `vh3d-elias-dream-take1` | Cornflower apron on white, rolled sleeves, steel watch. Weak: his face is cuter than the waking design. |
+| Elias (gown) | `vh3d-elias-bed2-take2` | The retake with the dream sheet as reference: unmistakably the same man as the dream Elias (face, hair, beard), same render style; bandage, eyes closed, gown ties at the back, cannula and wristband. Weak: he looks too healthy (not thin or wasted, no bruise); the illness has to come from a paler skin tint in the material and the bed's lighting. The gaunter first takes (`vh3d-elias-bed-take1/2`) are painterly-realistic and don't read as the same person. |
+| Walt | `vh3d-walt2-take2` | The retake. The first takes were gritty and stern. This one has the approved design's round, kind face (soft brows, warm eyes, white walrus moustache), the brown tweed cap, the stained tan apron with the red rag tucked at the hip, and matches the cast's style. Weak: he reads shorter and sturdier than "tall and thin" (the builder scales him to 1.86 m, so the head will be a bit large); the alternate `vh3d-walt2-take1` has the tall thin build but a worn, slightly sad face. |
 
 ## Building the prefabs (main, in Unity)
 
