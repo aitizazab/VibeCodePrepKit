@@ -48,24 +48,35 @@ construction = hiring subcontractors with abilities; floor changes = CONCIERGE's
 lights out); skipping = express-elevator keys bought for later runs; weapons = bailiff-issue guns upgraded with the
 corporate prototypes you find.
 
-## The creator's fix to the pitch: horizontal, not vertical
+## The creator's fix to the pitch: across the skyline, with verticality as the obstacle
 
-The first pitch was one 100-floor tower climbed upward. The creator rejected that: "It's almost fully vertical, but our
-movement engine thrives in horizontally expedient spaces the most. Verticality is great, but as a novelty, because the
-way the movement engine works, an enemy far above you has a great advantage on you compared to the enemy next to you or
-below you."
+The first pitch was one 100-floor tower climbed upward. The creator: "It's almost fully vertical, but our movement
+engine thrives in horizontally expedient spaces the most. Verticality is great, but as a novelty, because the way the
+movement engine works, an enemy far above you has a great advantage on you compared to the enemy next to you or below
+you." Then, clarifying: "Verticality as an obstacle is good, but the entire game built around scaling upwards was not.
+So our design should still involve moving up during combat as well, perhaps once every 5 to 10 floors? And the game
+should heavily emphasize verticality as an obstacle too, and we can just add in some tools the player can use, like a
+naive grappling hook, a true grappling hook, a glider or a jumping upgrade."
 
-So the run goes **across** the skyline, not up it:
-- **The run crosses the Row tower to tower.** Each "floor" of the run is a wide horizontal space: an office floor, a mall
-  concourse, a sky-bridge, a rooftop garden, a monorail platform. The rooms are long and wide, built for momentum
-  (wall-runs along glass façades, slides down concourses, gaps between rooftops of about the same height).
-- **Height changes happen between rooms, not inside fights:** an elevator ride, a monorail hop or a short climb is the
-  transition (and a natural place for the room's reward and a breather).
-- **Inside a combat space, elevation stays within about one storey,** and anything higher is a deliberate, rare set piece
-  that the player can reach and flank (a wall-run route up to a sniper's perch), never an untouchable enemy overhead.
-- **Enemies fight on the player's plane:** flankers, chargers, area denial on the floor, projectiles that lead the
-  player's movement, enemies that punish one way of moving (e.g. a sweeper that rewards jumping, a mine-layer that
-  punishes long wall-runs).
+So:
+- **The run crosses the Row, tower to tower, and rises as it goes.** Most floors are wide horizontal spaces built for
+  momentum (office floors, mall concourses, sky-bridges, rooftop gardens, monorail platforms: wall-runs along glass
+  façades, slides down concourses).
+- **Verticality is a heavy, constant obstacle in traversal:** gaps to cross, walls and shafts to get up, drops to read,
+  routes that need the right tool. Getting up and across is a puzzle and a skill test in itself.
+- **Combat that climbs, every 5-10 floors:** a set-piece floor where you fight your way upward (an atrium, an elevator
+  shaft, a façade under construction). Since enemies above have the advantage with this engine, those floors are built
+  so the high ground is earned and fair: enemies above telegraph their fire, there's cover from above, and the tools give
+  ways to reach and flank them fast. Ordinary combat floors keep most fighting near the player's level.
+- **Traversal tools** (upgrades found or bought, some possibly permanent unlocks):
+  - **a naive grappling hook:** pulls you straight to marked anchor points;
+  - **a true grappling hook:** attaches anywhere it hits and swings, with momentum;
+  - **a glider:** crosses the gaps between towers and slows falls;
+  - **a jump upgrade:** a higher or extra jump.
+  Design rooms so each tool opens shortcuts and optional routes, and so a run without one is still finishable.
+- **Enemies punish lazy movement:** flankers, chargers, area denial on the floor, projectiles that lead the player's
+  movement, and enemies that punish one habit (a sweeper that forces a jump, a mine-layer that punishes long
+  wall-runs, a sniper who covers a grapple point).
 
 ## Open questions for your brainstorm with the creator
 
