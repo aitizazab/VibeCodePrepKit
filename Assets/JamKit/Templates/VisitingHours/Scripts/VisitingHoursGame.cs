@@ -136,6 +136,7 @@ namespace JamKit.VisitingHours
             GameRoot.Dialogue.EventRaised += _onInkEvent;
             GameRoot.Dialogue.Ended += _onDialogueEnded;
             GameRoot.Dialogue.StoryCreated += _bindInk;
+            HookCast();
             _skipHandler = DebugSkip;
             DebugMenu.SkipHandler = _skipHandler;
             _smokeDriver = SmokeDrive;
@@ -173,6 +174,7 @@ namespace JamKit.VisitingHours
             GameRoot.Dialogue.EventRaised -= _onInkEvent;
             GameRoot.Dialogue.Ended -= _onDialogueEnded;
             GameRoot.Dialogue.StoryCreated -= _bindInk;
+            UnhookCast();
             if (DebugMenu.SkipHandler == _skipHandler) DebugMenu.SkipHandler = null;
             if (SmokeRunner.GameplayDriver == _smokeDriver) SmokeRunner.GameplayDriver = null;
             TeardownPresenter();

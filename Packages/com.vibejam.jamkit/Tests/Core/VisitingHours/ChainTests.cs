@@ -28,6 +28,34 @@ namespace JamKit.Tests.VisitingHours
         }
 
         [Test]
+        public void NightTwoStartsOnTheHillThenTheHouse()
+        {
+            Assert.That(Chain.NightScenes(ChainSegment.Night2), Is.EqualTo(new[] { "DreamStreet", "DreamHouse" }), "World's request: the hill first");
+            Assert.That(Chain.NightOnTheHill(ChainSegment.Night2, "DreamStreet"), Is.EqualTo(2));
+            Assert.That(Chain.NightOnTheHill(ChainSegment.Night1, "DreamStreet"), Is.EqualTo(1), "Night 1 still tells the hill it's Night 1");
+            Assert.That(Chain.NightOnTheHill(ChainSegment.Night2, "DreamHouse"), Is.EqualTo(0), "the house plays its own night");
+            Assert.That(Chain.NightOnTheHill(ChainSegment.Night1, "DreamEscape"), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TheThrownOutFlagAndLenasWatchBelongToOneRun()
+        {
+            var save = new SaveData();
+            Chain.Reset(save);
+            Assert.That(Chain.ThrownOutOfNight2(save), Is.False);
+            Assert.That(Chain.HasLenaWatch(save), Is.False);
+            save.SetFlag(Chain.ThrownOutFlag);
+            Assert.That(Chain.ThrownOutOfNight2(save), Is.True);
+            Chain.Record(save, JamKit.Argument.DreamLenaDemo.Planisphere);
+            Assert.That(Chain.HasLenaWatch(save), Is.True, "the keepsake's journal entry carries the watch");
+            Chain.Reset(save);
+            Assert.That(Chain.ThrownOutOfNight2(save), Is.False, "a new run forgets the last run's fall");
+            Assert.That(Chain.HasLenaWatch(save), Is.False);
+            save.SetFlag(Chain.KeepsakeWatchFlag);
+            Assert.That(Chain.HasLenaWatch(save), Is.True, "or the flag itself");
+        }
+
+        [Test]
         public void TheSaveCarriesTheJournalAndTheTallies()
         {
             var save = new SaveData();

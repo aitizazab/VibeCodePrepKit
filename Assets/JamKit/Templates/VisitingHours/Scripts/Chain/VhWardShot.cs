@@ -9,7 +9,8 @@ using UnityEngine.UIElements;
 namespace JamKit.VisitingHours
 {
     /// <summary>
-    /// Stills of the waking days for the judge (docs/redesign/day.md, "Captures"), from a build or the editor:
+    /// Stills of the waking days for the judge (docs/redesign/day.md, "Captures"), from a built player only (never a windowed
+    /// editor):
     /// <c>VisitingHours.exe -ward-shot "C:/…/folder" -screen-width 1920 -screen-height 1080 -screen-fullscreen 0</c>. It
     /// skips the opening, starts the Visiting Hours scene and takes, at 1920x1080 and at her eye height:
     /// <list type="number">
@@ -58,7 +59,7 @@ namespace JamKit.VisitingHours
             new Framing("11-family-room-june-and-the-tv", SliceArea.Hospital, 38.4f, 3.4f, 40f, 4f),
             new Framing("12-lobby-the-directory", SliceArea.Hospital, 30.8f, 7.6f, -100f, 0f),
             new Framing("13-day2-room16-mr-brandt", SliceArea.HospitalDay2, 34.3f, 15.5f, 38f, 10f),
-            new Framing("14-day2-family-room-the-man-from-lebaget", SliceArea.HospitalDay2, 35.6f, 5.4f, 78f, 2f),
+            new Framing("14-day2-family-room-the-woman-from-lebaget", SliceArea.HospitalDay2, 35.6f, 5.4f, 78f, 2f),
             new Framing("15-day2-staff-room-rafael-on-his-break", SliceArea.HospitalDay2, 14.2f, 9.9f, -150f, 10f),
             new Framing("16-day2-room14-the-new-bag", SliceArea.HospitalDay2, 20.2f, 16.2f, 20f, 12f),
             new Framing("17-booth-mags", SliceArea.Booth, -0.8f, 1.0f, 62f, 6f),
@@ -84,6 +85,13 @@ namespace JamKit.VisitingHours
         {
             if (!Parse(System.Environment.GetCommandLineArgs(), out _folder))
             {
+                enabled = false;
+                return;
+            }
+            // A player flag only: never a windowed editor (one took focus from the creator, 2026-10-12).
+            if (Application.isEditor)
+            {
+                Debug.LogWarning("JAMKIT_VH ward shots: " + ShotFlag + " is a player flag (run the built VisitingHours.exe); ignored in the editor");
                 enabled = false;
                 return;
             }

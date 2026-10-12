@@ -1,7 +1,11 @@
 using System.Collections.Generic;
 using System.IO;
+using JamKit.Look.EditorTools;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 
 namespace JamKit.VisitingHours.EditorTools
 {
@@ -53,6 +57,20 @@ namespace JamKit.VisitingHours.EditorTools
             Debug.Log("JamKit: the ward library has " + (lib != null ? lib.surfaces.Count : 0) + " surfaces (" + LibraryPath + ")");
         }
 
+        /// <summary>-executeMethod JamKit.VisitingHours.EditorTools.VhWardLibraryBuilder.BuildFromCommandLine (batch mode): the
+        /// materials, Look's rig prefab and sky, the library. Logs JAMKIT_VH_WARD_LIBRARY_OK (or _FAIL) and exits.</summary>
+        public static void BuildFromCommandLine()
+        {
+            VhWardLibrary lib = null;
+            try { lib = Ensure(); }
+            catch (System.Exception e) { Debug.LogException(e); }
+            bool ok = lib != null && lib.surfaces.Count > 0;
+            Debug.Log((ok ? "JAMKIT_VH_WARD_LIBRARY_OK " : "JAMKIT_VH_WARD_LIBRARY_FAIL ") + (lib != null ? lib.surfaces.Count : 0) +
+                      " surfaces, Look rig " + (lib != null && lib.dayRig != null ? "yes" : "no") + ", sky " + (lib != null && lib.daySky != null ? lib.daySky.name : "none") +
+                      ", baked probes " + (lib != null && lib.probes != null ? lib.probes.Count : 0));
+            EditorApplication.Exit(ok ? 0 : 1);
+        }
+
         /// <summary>Makes (or refreshes) the materials and the library. Returns null when the textures aren't there.</summary>
         public static VhWardLibrary Ensure()
         {
@@ -84,31 +102,23 @@ namespace JamKit.VisitingHours.EditorTools
                     continue;
                 }
                 var mat = Material(s.key, lit);
-                mat.SetTexture("_BaseMap", albedo);
-                mat.SetColor("_BaseColor", Color.white);
-                // The meshes' UVs are in metres: one repeat every s.metres.
-                mat.SetTextureScale("_BaseMap", Vector2.one / s.metres);
-                if (normal != null)
-                {
-                    mat.SetTexture("_BumpMap", normal);
-                    mat.SetFloat("_BumpScale", s.bump);
-                    mat.EnableKeyword("_NORMALMAP");
-                }
-                if (mask != null)
-                {
-                    mat.SetTexture("_MetallicGlossMap", mask);
-                    mat.EnableKeyword("_METALLICSPECGLOSSMAP");
-                    mat.SetTexture("_OcclusionMap", mask);
-                    mat.SetFloat("_OcclusionStrength", 1f);
-                    mat.EnableKeyword("_OCCLUSIONMAP");
-                    mat.SetFloat("_SmoothnessTextureChannel", 0f);
-                }
-                mat.SetFloat("_Smoothness", s.smooth);
-                mat.SetFloat("_GlossMapScale", s.smooth);
-                mat.SetFloat("_Metallic", s.key == "metal" ? 1f : 0f);
-                mat.enableInstancing = true;
+                // Look's set-up (docs/redesign/look.md): URP Lit from albedo, normal and packed mask, the meshes' UVs in metres
+                // (one repeat every s.metres), and Look's macro colour variation over it, so no surface reads flat or tiled
+                // (judge/look-1.md and look-2.md).
+                VhLookLibrary.SetupLit(mat, albedo, normal, mask, Color.white, s.bump, s.smooth, 1f, 1f / s.metres, true);
+                if (s.key == "metal") mat.SetFloat("_Metallic", 1f);
                 EditorUtility.SetDirty(mat);
                 lib.surfaces.Add(new VhWardLibrary.Surface { key = s.key, material = mat, metresPerTile = s.metres, mean = s.mean });
+            }
+
+            // Look's library where it has the ward's surfaces (its plaster for the walls, its ceiling tiles, its terrazzo for
+            // the corridor, the station and the lobby): the same materials the house and the hospital's exterior use.
+            foreach (var pair in LookSurfaces)
+            {
+                var look = LookMaterial(pair.Value);
+                if (look == null) continue;
+                lib.surfaces.RemoveAll(x => x.key == pair.Key);
+                lib.surfaces.Add(new VhWardLibrary.Surface { key = pair.Key, material = look, metresPerTile = VhLookLibrary.TileMetres(pair.Value), mean = LookMean(pair.Value) });
             }
 
             // Glass (window glazing, screens off): smooth and dark, no texture needed.
@@ -140,9 +150,166 @@ namespace JamKit.VisitingHours.EditorTools
                     var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guid));
                     if (tex != null) lib.pictures.Add(tex);
                 }
+            // Look's hospital by day: its rig as a prefab, and its sky (docs/redesign/look.md).
+            try
+            {
+                lib.dayRig = BuildLookRig();
+                lib.daySky = lib.dayRig != null ? VhLookSky.Material(HospitalSky) : null;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("JamKit: Look's hospital rig wasn't built (the ward keeps its own light): " + e.Message);
+            }
             EditorUtility.SetDirty(lib);
             AssetDatabase.SaveAssets();
             return lib;
+        }
+
+        // ---------- Look (docs/redesign/look.md) ----------
+
+        /// <summary>The ward's surface keys that come from Look's library, and the library entry for each.</summary>
+        static readonly KeyValuePair<string, string>[] LookSurfaces =
+        {
+            new KeyValuePair<string, string>("wall", "Plaster_Interior"),
+            new KeyValuePair<string, string>("ceiling", "Ceiling_Tile"),
+            new KeyValuePair<string, string>("terrazzo", "Hospital_Terrazzo"),
+        };
+
+        /// <summary>The sky Look's ApplyHospitalDay uses (the bluest of its HDRIs).</summary>
+        public const string HospitalSky = "Sky_EveningRoad01_2k";
+        public const string GeneratedDir = WardRoot + "/Generated";
+        public const string RigPath = GeneratedDir + "/VH_WardLookRig.prefab";
+        public const string ProbesDir = GeneratedDir + "/Probes";
+
+        static Material LookMaterial(string name)
+        {
+            if (!VhLookLibrary.TryFind(name, out _)) return null;
+            if (!File.Exists(VhLookLibrary.TexRoot + name + "/" + name + "_Albedo.jpg")) return null;
+            return VhLookLibrary.Get(name);
+        }
+
+        /// <summary>The library albedo's mean colour (sRGB), read from the file (the imported texture isn't readable).</summary>
+        static Color LookMean(string name)
+        {
+            string path = VhLookLibrary.TexRoot + name + "/" + name + "_Albedo.jpg";
+            if (!File.Exists(path)) return Color.white;
+            var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            try
+            {
+                if (!tex.LoadImage(File.ReadAllBytes(path))) return Color.white;
+                var px = tex.GetPixels32();
+                double r = 0, g = 0, b = 0;
+                int step = Mathf.Max(1, px.Length / 65536);
+                int n = 0;
+                for (int i = 0; i < px.Length; i += step) { r += px[i].r; g += px[i].g; b += px[i].b; n++; }
+                // (The ward's Colour() replaces the entry's own tint with colour / mean, so the mean is the albedo's alone.)
+                return new Color((float)(r / n / 255.0), (float)(g / n / 255.0), (float)(b / n / 255.0), 1f);
+            }
+            finally { Object.DestroyImmediate(tex); }
+        }
+
+        /// <summary>
+        /// Look's <c>VhLook.ApplyHospitalDay</c> in a scratch scene with the ward's sun (24 degrees up from the west-south-west,
+        /// down the corridor from its end window) and an indoor ambient, kept as a prefab the ward instantiates at runtime
+        /// (the ward is built in code when a day starts, so Look's editor call can't run there).
+        /// </summary>
+        static GameObject BuildLookRig()
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            try
+            {
+                var o = new VhLook.Options
+                {
+                    // Look's hospital day (VhLook.ApplyHospitalDay's own values), with the ward's late-afternoon sun angle.
+                    sunElevation = 24f, sunAzimuth = VhWardLight.SunEuler.y + 180f, sky = HospitalSky, sunIntensity = 2.4f,
+                    sunColor = new Color(1f, 0.96f, 0.9f), bounceIntensity = 0.12f, bounceColor = new Color(0.9f, 0.95f, 1f),
+                    shadowDistance = 60f, lensFlare = false, ambientIntensity = 0.55f,
+                };
+                var rig = VhLook.ApplyHospitalDay(scene, o);
+                if (rig == null) return null;
+                VisitingHoursBuilder.EnsureFolder(GeneratedDir);
+                var prefab = PrefabUtility.SaveAsPrefabAsset(rig.gameObject, RigPath);
+                Debug.Log("JamKit: Look's hospital-day rig for the ward: " + RigPath);
+                return prefab;
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        // ---------- The reflection probes, baked (perf.md, Day item 5) ----------
+
+        /// <summary>
+        /// Builds Day 1's ward in a scratch scene (all rooms shown, Look's light on) and bakes each of its box-projected
+        /// reflection probes to a cubemap (Ward/Generated/Probes), kept in the library: the ward's probes use them instead
+        /// of realtime ones (which never render: realtime probes are off in the quality levels). Needs a GPU (not
+        /// -nographics). Run again after the ward or its materials change.
+        /// </summary>
+        [MenuItem("JamKit/Visiting Hours/Bake the Ward Probes")]
+        public static void BakeProbes()
+        {
+            var lib = Ensure();
+            if (lib == null) { Debug.LogError("JamKit: no ward library (the ward's textures are missing)"); return; }
+            var config = FindConfig();
+            if (config == null) { Debug.LogError("JamKit: no VisitingHoursConfig asset found; the ward can't be built to bake"); return; }
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            var previous = SceneManager.GetActiveScene();
+            SceneManager.SetActiveScene(scene);
+            bool realtime = QualitySettings.realtimeReflectionProbes;
+            try
+            {
+                QualitySettings.realtimeReflectionProbes = true;
+                var keep = lib.probes;
+                lib.probes = new List<Texture>();   // build with realtime probes, then bake each
+                var area = VhWorld.Build(SliceArea.Hospital, config, null);
+                if (area.rooms != null) area.rooms.ShowAll();
+                VisitingHoursBuilder.EnsureFolder(ProbesDir);
+                var probes = area.root.GetComponentsInChildren<ReflectionProbe>(true);
+                System.Array.Sort(probes, (a, b) => string.CompareOrdinal(a.name, b.name));
+                var baked = new List<Texture>();
+                for (int i = 0; i < probes.Length; i++)
+                {
+                    string path = ProbesDir + "/VH_WardProbe_" + i + ".exr";
+                    probes[i].mode = ReflectionProbeMode.Baked;
+                    if (!Lightmapping.BakeReflectionProbe(probes[i], path))
+                    {
+                        Debug.LogError("JamKit: the ward's probe " + i + " didn't bake (no GPU?)");
+                        lib.probes = keep;
+                        return;
+                    }
+                    AssetDatabase.ImportAsset(path);
+                    baked.Add(AssetDatabase.LoadAssetAtPath<Texture>(path));
+                }
+                lib.probes = baked;
+                EditorUtility.SetDirty(lib);
+                AssetDatabase.SaveAssets();
+                Debug.Log("JAMKIT_VH_PROBES_OK " + baked.Count + " probes baked into " + ProbesDir);
+            }
+            finally
+            {
+                QualitySettings.realtimeReflectionProbes = realtime;
+                if (previous.IsValid()) SceneManager.SetActiveScene(previous);
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        /// <summary>-executeMethod JamKit.VisitingHours.EditorTools.VhWardLibraryBuilder.BakeProbesFromCommandLine (batch mode,
+        /// with graphics).</summary>
+        public static void BakeProbesFromCommandLine()
+        {
+            BakeProbes();
+            EditorApplication.Exit(0);
+        }
+
+        static VisitingHoursConfig FindConfig()
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:VisitingHoursConfig"))
+            {
+                var c = AssetDatabase.LoadAssetAtPath<VisitingHoursConfig>(AssetDatabase.GUIDToAssetPath(guid));
+                if (c != null) return c;
+            }
+            return null;
         }
 
         static Material Material(string key, Shader shader)

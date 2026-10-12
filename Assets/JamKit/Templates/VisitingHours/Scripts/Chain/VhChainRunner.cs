@@ -138,13 +138,28 @@ namespace JamKit.VisitingHours
             // Nothing of the waking day's sound goes under with her (each night sets its own).
             GameRoot.Audio.StopAmbience(0.8f);
             GameRoot.Audio.StopMusic(0.8f);
+            TellTheHill(night, scene);
             if (!GameRoot.Instance.SceneService.Load(scene))
             {
+                DreamStreetGame.NextNight = 0;
                 Unhook();
                 return false;
             }
             Say(Chain.Title(night) + ": loading " + scene + " (journal " + Chain.Known(save).Count + ", force " + Chain.Force(save) + ")");
             return true;
+        }
+
+        /// <summary>
+        /// The hill plays both nights (World's request, docs/redesign/world.md): whoever loads it says which night first
+        /// (<see cref="DreamStreetGame.NextNight"/>, used once). Night 1 says 1, Night 2 says 2: on Night 2 she starts on Rowan
+        /// Street outside the house, and reaching the gate loads DreamHouse (the street does it; nothing here listens to
+        /// <see cref="DreamStreetGame.Night2AtTheDoor"/>). Any other scene: nothing to say.
+        /// </summary>
+        static void TellTheHill(ChainSegment night, string scene)
+        {
+            int n = Chain.NightOnTheHill(night, scene);
+            DreamStreetGame.NextNight = n;
+            if (n > 0) Say(Chain.Title(night) + ": the hill plays night " + n);
         }
 
         void Hook(ChainSegment night)
@@ -225,8 +240,13 @@ namespace JamKit.VisitingHours
                     return;
                 }
                 Hook(segment);
+                TellTheHill(segment, scene);
                 if (GameRoot.Instance.StartRunAt(scene)) Say("jump: " + Chain.Title(segment) + " (" + scene + ")");
-                else Unhook();
+                else
+                {
+                    DreamStreetGame.NextNight = 0;
+                    Unhook();
+                }
                 return;
             }
             Unhook();

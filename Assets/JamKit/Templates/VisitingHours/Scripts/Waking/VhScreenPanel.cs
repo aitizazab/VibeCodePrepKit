@@ -48,14 +48,41 @@ namespace JamKit.VisitingHours
             _go = new GameObject(name);
             _go.SetActive(false);
             _go.transform.SetParent(parent, false);
-            var doc = _go.AddComponent<UIDocument>();
-            doc.panelSettings = _settings;
+            _doc = _go.AddComponent<UIDocument>();
+            _doc.panelSettings = _settings;
+            _shell = shell;
             _go.SetActive(true);
-            if (shell != null)
-                foreach (var sheet in shell.styleSheets)
-                    if (sheet != null) doc.rootVisualElement.styleSheets.Add(sheet);
-            doc.rootVisualElement.pickingMode = PickingMode.Ignore;
-            doc.rootVisualElement.Add(Root);
+            Attach();
+        }
+
+        UIDocument _doc;
+        ShellAssets _shell;
+        bool _drawing = true;
+
+        /// <summary>The panel is drawing into its texture (false while its screen is out of view).</summary>
+        public bool Drawing => _drawing;
+
+        /// <summary>
+        /// Stops (or restarts) drawing the panel into its texture: off while nothing shows its screen (docs/redesign/perf.md,
+        /// Day item 6: the title's panels redrew off camera). The texture keeps its last picture; the UI is put back as it was.
+        /// </summary>
+        public void SetDrawing(bool on)
+        {
+            if (_go == null || _drawing == on) return;
+            _drawing = on;
+            _go.SetActive(on);
+            if (on) Attach();
+        }
+
+        void Attach()
+        {
+            var root = _doc != null ? _doc.rootVisualElement : null;
+            if (root == null) return;
+            if (_shell != null)
+                foreach (var sheet in _shell.styleSheets)
+                    if (sheet != null && !root.styleSheets.Contains(sheet)) root.styleSheets.Add(sheet);
+            root.pickingMode = PickingMode.Ignore;
+            if (Root.parent != root) root.Add(Root);
         }
 
         public void Dispose()

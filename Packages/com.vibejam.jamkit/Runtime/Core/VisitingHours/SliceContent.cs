@@ -87,8 +87,8 @@ namespace JamKit.VisitingHours
             },
             new JournalEntryDef
             {
-                id = FactVisitor, kind = EntryKind.Fact, title = "The man from LeBaget",
-                text = "A man from LeBaget's Community Partnerships, with fruit Elias can't eat. \"Has he said anything?\"",
+                id = FactVisitor, kind = EntryKind.Fact, title = "The woman from LeBaget",
+                text = "Corinne Vasseur, LeBaget's Community Partnerships, with fruit Elias can't eat. \"Has he said anything?\"",
                 sayLine = "LeBaget came asking what you've said.",
                 icon = "",
             },

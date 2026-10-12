@@ -12,7 +12,9 @@
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.RenderPipelines.Universal.Runtime",
         "Ink",
-        "Ink-Libraries"
+        "Ink-Libraries",
+        "JamKit.VisitingHours.Characters",
+        "JamKit.Perf"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

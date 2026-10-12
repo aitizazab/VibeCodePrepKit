@@ -87,7 +87,11 @@ namespace JamKit.VisitingHours
             public VhMeshKit meshes;
             public VhWardLibrary lib;
             public readonly List<Material> mats = new List<Material>();
+            /// <summary>Where the parts being built go: the place's root, or the room being built (VhWardFloor.Room).</summary>
             public Transform root;
+            /// <summary>The place's root (it owns the materials and meshes).</summary>
+            public Transform place;
+            public VhWardRooms rooms;
             public VisitingHoursConfig config;
             public VhArea area;
             public VisitingHoursBoot boot;
@@ -119,7 +123,7 @@ namespace JamKit.VisitingHours
             var k = new Kit
             {
                 style = new VhWakingStyle(boot != null ? boot.wakingMaterial : null), meshes = new VhMeshKit(), root = a.root,
-                config = c, area = a, boot = boot, lib = VhWardLibrary.Load(), day2 = day2,
+                place = a.root, config = c, area = a, boot = boot, lib = VhWardLibrary.Load(), day2 = day2,
             };
             var owned = a.root.gameObject.AddComponent<Owned>();
             owned.style = k.style;
@@ -131,7 +135,7 @@ namespace JamKit.VisitingHours
 
         static void Own(Kit k, Object o)
         {
-            var owned = k.root.GetComponent<Owned>();
+            var owned = k.place.GetComponent<Owned>();
             if (owned != null) owned.extra.Add(o);
         }
 
@@ -154,9 +158,16 @@ namespace JamKit.VisitingHours
         {
             var mesh = round > 0f ? k.meshes.RoundedBox(size, round, 3) : k.meshes.Box(size);
             var r = VhMeshKit.Show(k.root, name, mesh, M(k, color, surface), center, rot ?? Quaternion.identity);
+            // The judges' "mismatched seams" (judge/look-2.md): walls, floors and the ceiling are built from many boxes, each
+            // with its texture starting at its own corner. Their UVs come from the place's own frame instead, so the plaster,
+            // the floor and the tiles run on across every joint.
+            if (round <= 0f && IsShell(surface ?? SurfaceFor(color))) VhMeshKit.PlaceUv(mesh, r.transform, k.place);
             if (solid) r.gameObject.AddComponent<BoxCollider>().size = size;
             return r;
         }
+
+        static bool IsShell(string surface) =>
+            surface == "wall" || surface == "floor" || surface == "ceiling" || surface == "carpet" || surface == "terrazzo";
 
         /// <summary>A picture on a quad (the chart's page, a photo, a notice): the art's own colours.</summary>
         static MeshRenderer Picture(Kit k, Transform parent, string name, Texture tex, Color fallback, float w, float h, Vector3 at, Quaternion rot)
@@ -338,6 +349,8 @@ namespace JamKit.VisitingHours
             l.intensity = intensity;
             l.range = range;
             l.shadows = shadows ? LightShadows.Soft : LightShadows.None;
+            // On the ward the lights that may cast shadows take turns: only the nearest two do (perf.md, Day item 1).
+            if (shadows && k.rooms != null) k.rooms.AddShadowCandidate(l);
         }
 
         /// <summary>A recessed ceiling panel: the diffuser glowing, and the light it gives.</summary>
@@ -722,8 +735,12 @@ namespace JamKit.VisitingHours
             VhWakingStyle.SetAmbient(new Color(0.12f, 0.14f, 0.19f), new Color(0.06f, 0.06f, 0.07f), new Color(0.05f, 0.06f, 0.08f), 0f, 0.15f);
             a.spawn = new Vector3(-0.8f, 0.05f, 1.2f);
             a.spawnYaw = 45f;
+            // Where she wakes when the house threw her out (the chair; she looks across at Mags).
+            a.chairEye = new Vector3(-1.4f, 1.12f, 4.93f);
+            a.chairYaw = 131f;
+            JamKit.Perf.VhPerfTiers.CapNow();
         }
 
-        static VhWardPeople People(Kit k) => new VhWardPeople(k.root, k.meshes, k.style, k.lib, k.mats);
+        static VhWardPeople People(Kit k) => new VhWardPeople(k.root, k.meshes, k.style, k.lib, k.mats, k.area.cast);
     }
 }

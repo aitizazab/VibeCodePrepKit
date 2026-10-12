@@ -12,6 +12,89 @@ yet** (see "Not verified" at the end).
 `dotnet run -c Release --project tools/house-plan -- plan.json` then
 `uv run --with pillow python tools/art/vh_house_plan.py plan.json docs/redesign`.
 
+## Round 2 (2026-10-13): after the first judging
+
+The first render was judged a FAIL (`docs/redesign/judge/house-1.md`: lighting 4, materials 3, art direction 3, level
+design 4, physical integrity 2, scale 6), and the recorded hide-and-seek stalled at the front-hall stairs. What changed,
+defect by defect. **None of it has been seen in Unity yet** (no agent can run it); the dotnet suites are green.
+
+| Defect (house-1.md, the recorded run) | What was done |
+|---|---|
+| **Models lying on their sides** (chairs, coffee table, armchair, Theo's chair and desk, the den TV, the jar, the yard chair and fire pit) | `HouseFurnishing.Fit` overwrote the FBX root's rotation. Single-mesh Poly Haven models carry Blender's -90° axis conversion on that root, so they lay down. Fit now puts each model under a holder and keeps the import's own transform. Per-model fit specs live in `house-assets.json` `fit` / `kenney_fit` (`rotate`, `yaw`, `stretch`, `dims_m`). Kenney's kit faces -z (measured from the FBX geometry) and is turned round. Each axis may stretch up to 12 %, so beds and sofas fill their boxes. |
+| **The lint only checked the plan's boxes** | **The mesh lint** (below): what was actually drawn, checked by bounds. It runs in every rebuild and fails loudly. |
+| **Memory glows: hard spheres cutting through solids** | Each memory is a readable lit thing, facing where she stands to take it: the calendar on the fridge door (card, magnet, rings), the framed lake photo, THE BAD DREAM pinned to the wall over Theo's desk (it lay flat on top of his bookcase), the folded place card, the height marks on the casing, the star wheel on its easel, the paper hat, the radio. Each glows with `JamKit/House/MemoryGlow`, a soft camera-facing disc pulled toward the camera and faded against the scene's depth (no hard edge), and has a small warm light. The umbrella's halo uses the same shader. |
+| **Sconces / eyeball pendants** | The "sconces" were the memory glows (fixed above). The "eyeballs" were the pendant model lying on its side (fixed by Fit). |
+| **Stairs: treads past the stringer; the recorded run's z-fighting "slab", the dark band, the stall** | Thin treads with nosings and risers on the slope line, a closed stringer each side, and the soffit 6 cm under the line; no two faces shared. The ramp stays the hidden collider. The dark band at head height was each lamp's shade casting its bulb's shadow; fixtures cast none now. The stall had three causes: the lake photo was out of the autopilot's reach (measured from her feet); coming down, she met the slab's edge at head height and mantled into the balustrade; Theo's map had points over the stairwell. Stairwells are longer, the attic stairs' door is a full-height arch, and Theo no longer replans on a flight. The under-stair panelling is a sloped painted spandrel. **New test:** every flight and the treehouse ladder walked up and down at a walk and a sprint. |
+| **Treehouse: an adult staircase** | It is drawn as a ladder: two rails running on past the deck as handholds, open slats. The collider is still a 45° ramp. |
+| **23 built-in-place primitives** | Replaced. `HouseProps` builds real-reading furniture where no model fits, using `HouseShapes` (rounded boxes, lathes, tubes, cloth) in clean enamel, chrome, brass, painted and natural wood, and fabric. The list: the counters (panelled doors, handles, a recessed plinth, worktop overhang), the sink (sunk steel basin, gooseneck tap), the fridge (rounded enamel, chrome handles, the calendar), the basin, vanity and bath (taps), the beds (frames, mattresses, puffed duvets, pillows, throws), the telescope (a brass refractor on a wooden tripod, aimed up through the round window), washer and dryer, furnace, water heater, freezer, crib, ping-pong table, pegboard, umbrella stand, window seat, pancakes, and bookcases with books as books. Cloth: curtains on a rod, the shower curtain, coats on hooks, and the sheets and washing pegged on lines that now exist. Balustrades have balusters; the trampoline has a padded rim, springs and legs; the oak is Look's whole oak. From Poly Haven (CC0, 1k, `tools/house/ph-fetch.py`): the stove, the porch's wall lantern, a desk lamp, bulb sockets, the workshop pendant, a wicker basket, a book set, cushions, a plant, a clock, a watering can, a hose. Kenney's leftovers (toilet, lamps, coat stand, toaster, desk chair) are in clean colours, not plaster noise. |
+| **Lighting: blown hotspots, murky rooms, peach void sky** | Room lights are spots pointing down from a visible fixture (a glass dome, a pendant, a bare bulb on its socket), so the ceilings aren't blasted. Table lamps, Lena's reading lamp and the basement bulbs are new. Outside is Look's golden-hour rig and HDRI sky (the camera cleared to solid peach before). Inside, the interior grade is a local volume round the house. The fork's stand-in hill, Rowan and Chapel Row and Look's backdrop ring close the lot. The escape's attic has a night-sky dome. |
+| **Oxblood everywhere** | Each room has its own finish: sage stripe in the living room, blue paper over white panelling in the dining room, green in the den, dove grey in their room, Theo's stars, a trellis in the guest room. The creator's oxblood stripe stays in the halls. The wallpaper now tiles: DreamArt imported it Clamped, which made one 0.5 m tile with smeared edges (also the escape's "seam"). |
+| **No line-of-sight breakers** | A linen press halfway along the upper hall's 10 m run; a dressing screen and an armchair in their room; a free-standing bookcase in the rec room; in the attic, two runs of shelving across it, the old wardrobe, suitcases and a rolled rug. Theo's map, the reach tests and the round still pass. |
+| **Scale** | Their bed is 1.8 x 2.1 with a 1.1 m headboard (beds' boxes now hold their headboards). The attic is broken into bays. The treehouse is a ladder. |
+| **The round window looking at the roof** | It looked onto the roof's underside because it sat below the roof line. Raised to 2.35-3.95 m above the attic floor, drawn round: the corners filled, a round reveal, ring frames, a disc of glass with a cross of glazing bars. |
+| **Chapel Row empty; no Lena at the window** | The escape fork built Chapel Row as a street (`HouseEscapeChapelRow`): the wall and railing, wet pavements, kerbs, a road with a crossing, 13 lamps, houses, a lane up the hill, the stand-in hill under the house, Look's backdrop. Lena stands on a dais in the round window, lit (`lenaWindow`). |
+| **The escape: one recoloured corridor box** | Escape fork (`HouseEscapeBuilder`, `HouseEscapeDressing`, `HouseEscapeKit`, `HouseEscapeLook`; runtime `EscapeRoomTip`, `EscapeSwing`, `EscapeDoubleDoor`). Each room is furnished as the room it was, with the house's own props placed by its roll, and its own paper. Each tips 40° into its roll as she reaches it, then settles; pendants swing. The corridor repeats a brass threshold, a side door, the same photo and a sconce pair every bay, ending in the lit red double door (sidelights, fanlight, lantern, light under it). The dado is one sloped piece: no steps, no seams. The attic has a starry night with a Milky Way, the family's things drifting. The last hall's open door shows warm light, not the void. |
+| **Captions** | Rewritten to match the shots. seek-01 says the counting pose isn't drawn (Theo stands beside his chair now, not in it). seek-02 hides Lena. seek-04 looks into the workshop. Shot 13 looks at the drawing over the desk. The escape captions say what each room now is. |
+| **Recorded runs opened a windowed editor** | `-house-record` in the built player (`HouseRecordFlag`, like `-day-run`); `tools/house-capture.ps1` launches it minimized. |
+| **Perf** (perf.md, House) | `HouseLightBudget` gives realtime shadows only to the two nearest "(main)" room lights; every other light, the memories and the escape included, is shadowless. Small things cast no shadow (`VhPerfShadows.Rules.Indoor`) and cull with distance (`VhPerfLod.CullSmall` on the furniture). Structure, furniture and outside details are `MarkStatic` for batching and the occlusion bake; the escape's rolling rooms are not. Reflection probes are Baked (the realtime ones never rendered). The HUD makes no per-frame strings or layout. |
+
+### The mesh lint
+
+`HouseMeshLint` (core, `Runtime/Core/DreamEscape/HouseMeshLint.cs`, tested in `HouseMeshLintTests`) checks what the
+builder drew, by bounds, against the plan's solids and each other.
+- **What's recorded.** Every `MeshBuilder` box and smooth shape is recorded with its part and its kind:
+  - Owned: built furniture, stairs;
+  - Mounted: trims, casings, fixtures, outside details;
+  - Model: fitted models, their real bounds in the house's frame;
+  - Free: the cut-outs;
+  - Hanging: pendants and the memories' things.
+- **The rules.**
+  - Nothing goes more than 2 cm into a solid that isn't its own (3.5 cm for trims and casings).
+  - Built things stay inside their part.
+  - Models, cut-outs and memories rest on a floor or surface, or touch the wall or ceiling they hang from.
+  - Each fitted model's height-to-width ratio matches its real one (Poly Haven's dimensions) within 35 %, or it's
+    "sideways".
+  - Each model is drawn at 0.55-1.8 of its real size, or it's "scale".
+  - Models and free things don't go into each other.
+  - Each mesh of a several-mesh model touches the rest of it (the den TV's floating box).
+  - At plan level, every furniture, cupboard, picture, rug, cloth and rail part rests on or touches a solid. The sheets
+    and the washing used to hang from nothing; now they have lines.
+- **Where it shows.** The rebuild logs every issue as an error (`JAMKIT_HOUSE_MESHLINT [kind] ...`), then
+  `JAMKIT_HOUSE_MESHLINT 0 issues in N drawn things (M models)` or `FAIL: n issues`. With issues,
+  `RebuildFromCommandLine` **exits 3** (the scene is still saved, so the captures can show it).
+- **Its result so far.** It has never run in Unity, so it is unknown. In dotnet, the plan-level rules pass on the real
+  plan, and the synthetic cases catch sideways, floating, overlapping and outside.
+
+### For Battle: the cards Night 2 gives
+
+| Card id | What | Made by |
+|---|---|---|
+| `mem_fourth_chair` | Her place card at the fourth chair | sitting at the table |
+| `mem_calendar` | The fridge calendar: "Pancakes!" on Sundays, a key on Thursdays | finding it |
+| `fact_photo` | The photo of the four of them at the lake | finding it |
+| `mem_height_marks` | Theo's height marks, stopping at ten | finding it |
+| `mem_bad_dream` | THE BAD DREAM: Elias in surgeon's scrubs leaving, Theo and Lena at the table (redrawn, not a monster) | finding it |
+| `ded_same_saturday` | Elias's radio: the same forecast, word for word (memory id `mem_radio_loop`) | finding the radio |
+| **`mem_lena_thursdays`** | **New.** Lena's star wheel, set to a Thursday (Lena's Thursdays) | finding it |
+| `ded_saturday_off` | The calendar plus today's paper (the paper hat in the treehouse, or Night 1's Saturday paper) | holding both |
+
+The paper hat is half of `ded_saturday_off`, not a card itself. The ids are `DreamHouseStory.Mem*` /
+`HideAndSeekRound`'s card list (test `TheMemoriesBecomeTheBattlesCards`).
+
+### What House needs from World
+
+1. **An API that builds the real middle band (Chapel Row to School Lane) into a given root at HillAnchors.** The
+   DreamHouse scene could then use the real hill instead of the stand-in (`HouseEscapeChapelRow`). Until then, keep
+   `EscapeExit` (24, 15, 153), the 7 m terraces and Chapel Row running east-west.
+2. **The house's outside changed shape slightly:**
+   - the round window moved up the tower's north wall (2.35-3.95 m over the attic floor);
+   - the porch light is a wall lantern;
+   - the attic stair's opening is full height.
+
+   The body's footprint and heights are unchanged (HouseMax* still holds).
+3. **The first-person body.** World owns the first-person body. If its head or hair ever shows in the camera (the dark
+   translucent band was the lamp shades, not the body), the house can't fix that.
+
 ## 1. The house
 
 A real family house, in its own frame (front door at the origin, facing the street at -z), placed on the hill at World's
@@ -21,7 +104,7 @@ A real family house, in its own frame (front door at the origin, facing the stre
 |---|---|---|
 | Basement | -2.8 m | the rec room (ping-pong, the old couch), the furnace room, the basement corridor, Elias's workshop (his bench, his radio), the laundry |
 | Ground | 0 | the front hall (the stairs, the photo wall), the living room (the fire, the window seat), the dining room (the table set for four), the kitchen, the pantry, the den (Elias's desk), the back hall (the coats, the basement stairs), the cupboard under the stairs; the mudroom and the garage (the car under its cover) |
-| Upper | 3.2 m | the upper hall, Theo's room (his desk, THE BAD DREAM on his bookcase, the height marks on his door frame), the bathroom, the guest room made up for her, Elias and Lena's room with its walk-in closet and en-suite, the attic stairs |
+| Upper | 3.2 m | the upper hall, Theo's room (his desk, THE BAD DREAM pinned over his desk, the height marks on his door frame), the bathroom, the guest room made up for her, Elias and Lena's room with its walk-in closet and en-suite, the attic stairs |
 | Attic | 6.1 m | the attic (the family's stored life, the dormer), the top of the attic stairs, Lena's observatory in the tower (the telescope at the round window) |
 | Outside | | the front garden and path, the back yard (the oak and Theo's treehouse, the sheets on the line, the trampoline, the shed), Rowan Street |
 
@@ -35,7 +118,7 @@ for overlap (separating axis); the only allowances are stair ends into floors (<
 dotnet (`DreamHouseTests`), by `tools/house-plan` (exit code 2 on any) and logged on every rebuild (`JAMKIT_HOUSE_LINT`).
 `DreamHouse.WalkClear` and the walking-graph tests prove every room and every hiding place is reachable on foot.
 
-**What it looks like** (`Dream/Editor/House/`): the Look agent's house-interior lighting (`VhLook.ApplyHouseInterior`),
+**What it looks like** (`Dream/Editor/House/`; round 2 changed much of this, see above): Look's golden-hour rig with the interior grade as a local volume,
 Look's materials and metre UVs; 50 Poly Haven CC0 models (sofas, beds, tables, chairs, the fridge, lamps, shelves...)
 fitted into their boxes (`Dream/House/house-assets.json`, `LICENSES.md`) and 16 CC0 surfaces (floorboards, tiles,
 plaster, brick, carpet); built where no free model fit (the wardrobes, the washer and dryer, the telescope, the
@@ -88,7 +171,7 @@ the treehouse.
 | 2 | The fridge calendar ("Pancakes!" on Sundays, a key on Thursdays) | kitchen | den, laundry | `mem_calendar`; with the Saturday paper (found tonight or carried from Night 1) it becomes `ded_saturday_off` |
 | 3 | The photo of the four of them at the lake | front hall | guest room, rec room | `fact_photo` |
 | 4 | Theo's height marks, stopping at ten | Theo's door frame | kitchen, basement corridor | `mem_height_marks` |
-| 5 | THE BAD DREAM (Elias in scrubs walking out of the door; Theo and Lena at the table) | Theo's bookcase | rec room, guest room | `mem_bad_dream` |
+| 5 | THE BAD DREAM (Elias in scrubs walking out of the door; Theo and Lena at the table) | pinned over Theo's desk | rec room, guest room | `mem_bad_dream` |
 | 6 | Today's paper, folded into Theo's hat | the treehouse | front garden, garage | half of `ded_saturday_off` (not a card itself) |
 | 7 | Elias's radio: the same forecast, word for word | the workshop | kitchen, garage | `ded_same_saturday` |
 | 8 | Lena's star wheel, set to a Thursday | the observatory | their room, the attic | `mem_lena_thursdays` |
@@ -100,9 +183,12 @@ the treehouse.
 the hall wall already, found; "Theo's team" opens Theo's room from the start; "Lena" has her waiting at the window,
 colder; "just sit" makes her gentler and gives Nadia 5 s more each count.
 
-**How long:** the dotnet round (`TheWholeRoundPlaysOut`: a sprinting bot that ignores stealth going for the nearest
-memory) is caught three times in 111-202 s with 5 of 8 memories. A player who crouches, hides and reads the lines should
-take the 5-8 minutes asked for, but **that's an estimate, not measured**.
+**How long:** the dotnet round (`TheWholeRoundPlaysOut`) uses a sprinting bot that knows where every memory is and
+ignores stealth. Round 1 had it caught three times in 111-202 s. It was mostly standing under memories it couldn't
+reach. Now that every memory is in reach and Theo no longer turns back on the stairs, it takes all 8 in 46-67 s, caught
+0-1 times. A player who has to find the memories, crouches, hides and reads the lines should take the 5-8 minutes asked
+for. **That's an estimate, not measured.** If the recorded run finds it too easy, tune Theo's `LevelSpeed`,
+`LevelFill`, the count or the memories' places.
 
 ## 3. The argument
 
@@ -172,33 +258,82 @@ bedside variants. No placeholders. Day's booth can play `ThrownOutBooth` when `v
 ## 7. Where things are
 
 - Core (dotnet-tested): `Runtime/Core/DreamEscape/` `DreamHouse.cs` (types and kit), `DreamHousePlan.cs` (the plan),
-  `DreamHouseFurnish.cs` (furniture, spots, memories, Theo's nodes, lamps), `HouseLint.cs`, `HideAndSeekRound.cs`,
-  `TheoBrain.cs`, `HouseWalker.cs` (the autopilot's legs), `HouseEscape.cs`, `DreamHouseStory.cs` (phases and lines).
+  `DreamHouseFurnish.cs` (furniture, spots, memories, Theo's nodes, lamps), `HouseLint.cs` (the plan's boxes),
+  `HouseMeshLint.cs` (what was drawn), `HideAndSeekRound.cs`, `TheoBrain.cs`, `HouseWalker.cs` (the autopilot's legs),
+  `HouseEscape.cs`, `DreamHouseStory.cs` (phases and lines).
 - Unity: `Dream/Scripts/House/` (`DreamHouseGame` and its partials `.HideAndSeek`, `.Escape`, `.Drive` (chapters,
-  autopilot, recorder); `TheoView`, `HouseMemoryView`, `HouseHud`, `HouseCameraFx`); `Dream/Editor/House/`
-  (`DreamHouseBuilder`, `HouseGeometry`, `HouseFurnishing`, `HouseMaterials`, `HouseMeshes`, `HouseEscapeBuilder`,
-  `DreamHouseExterior` (World calls `Build(Transform)` to put the house on the hill), `DreamHouseCapture`).
-- Assets: `Dream/House/` (Poly Haven models and surfaces, CC0; `house-assets.json`, `LICENSES.md`).
-- Tests: `core-tests/DreamEscape` (`DreamHouseTests`, `HouseEscapeTests`), EditMode `DreamHouseEditorTests`, PlayMode
-  `DreamHousePlayTests`.
+  autopilot, recorder); `TheoView`, `HouseMemoryView`, `HouseHud`, `HouseCameraFx`, `HouseLightBudget`,
+  `HouseRecordFlag`, the escape's `EscapeRoomTip`, `EscapeSwing`, `EscapeDoubleDoor`); `Dream/Editor/House/`
+  (`DreamHouseBuilder`, `HouseGeometry`, `HouseFurnishing`, `HouseProps`, `HouseShapes`, `HouseMaterials`,
+  `HouseMeshes` (`MeshBuilder`), `HouseMeshLintRun`, the escape's `HouseEscapeBuilder`, `HouseEscapeDressing`,
+  `HouseEscapeKit`, `HouseEscapeLook`, `HouseEscapeChapelRow`, `DreamHouseExterior` (World calls `Build(Transform)` to
+  put the house on the hill), `DreamHouseCapture`).
+- Assets: `Dream/House/` (Poly Haven models and surfaces, CC0; `house-assets.json` with the per-model `fit` specs,
+  `LICENSES.md`), `Dream/House/Shaders/HouseMemoryGlow.shader`, `Dream/House/Escape/` (the night sky shader, the
+  papers; `tools/art/vh_escape_textures.py` makes them).
+- Tools: `tools/house/ph-fetch.py` (Poly Haven models at 1k into the manifest), `tools/house-plan`,
+  `tools/art/vh_house_plan.py`, `tools/house-capture.ps1`.
+- Tests: `core-tests/DreamEscape` (`DreamHouseTests`, `HouseEscapeTests`, `HouseMeshLintTests`, `HousePeekTests`),
+  EditMode `DreamHouseEditorTests`, PlayMode `DreamHousePlayTests`.
 
 ## 8. Captures
 
-`tools/house-capture.ps1` (through the memory cap; `-Rebuild` rebuilds the scene first):
-- **stills** (`DreamHouseCapture.StillsFromCommandLine`), 1920x1080 at her eye height (1.5 m), into
-  `out/house-captures/<time>/` with `shots.txt`: 25 of the house (Rowan Street, the porch, every room, THE BAD DREAM from
-  the desk, the height marks, the attic, the observatory, the basement, the garage, the yard, the treehouse, the house from
-  the garden), 4 hide-and-seek moments (Theo counting; Theo in the kitchen seen from the pantry; Theo in his room seen from
-  his wardrobe; a memory's glow in the dark basement), each escape room from its start plus the corridor's door and the
-  umbrella, and Chapel Row (the path in the rain; Lena at the window);
-- **recorded runs** (`DreamHouseCapture.RecordFromCommandLine`, `-houseRecord <dir> -houseRecordRun all|hideandseek|escape`):
-  the scene plays itself on the autopilot, a JPG every 0.5 s of game time into `out/house-runs/<time>/hide-and-seek/`
-  and `escape/`, with `run.txt` (memories, catches, stretches, by time).
+`tools/house-capture.ps1` (through the memory cap; `-Rebuild` rebuilds the scene first and goes on to capture when the
+mesh lint exits 3):
+- **stills** (`DreamHouseCapture.StillsFromCommandLine`, batch mode with graphics, no window), 1920x1080 at her eye
+  height (1.5 m), into `out/house-captures/<time>/` with `shots.txt`: 25 of the house, 4 hide-and-seek moments, each
+  escape room from its start plus the corridor's last bays and the umbrella's door, and Chapel Row (the street in the
+  rain; Lena in the round window);
+- **recorded runs in the built player** (`HouseRecordFlag`): `VisitingHours.exe -house-record "<abs>/out/house-runs/<time>"
+  -house-record-run all|hideandseek|escape -screen-width 1920 -screen-height 1080 -screen-fullscreen 0 -logFile
+  "<abs>/out/house-runs/<time>/player.log"`. It goes to the house through the presenter, plays the night on the
+  autopilot (the hide-and-seek, on through the argument, the escape), writes a JPG every 0.5 s of game time into
+  `hide-and-seek/` and `escape/` with `run.txt`, and quits (`JAMKIT_HOUSE_RUN_OK`; `JAMKIT_HOUSE_RUN_FAIL` and exit 1 if
+  the house never came up). The script runs it minimized from `Builds/Play/VisitingHours/VisitingHours.exe` (`-Exe` to
+  change). The editor's `-houseRecord` (play mode in a window) still works but isn't used.
 `tools/dream-capture.ps1` shoots the same house stills and then the dream escape's.
+
+## 9. Unity steps (main; one GPU job at a time, through the memory cap)
+
+1. **Rebuild and stills** (the rebuild imports the new models and scripts first; GPU for the stills):
+   `powershell -NoProfile -ExecutionPolicy Bypass -File tools/house-capture.ps1 -Rebuild -Only stills`.
+   - Read `out/house-rebuild.log` for `JAMKIT_HOUSE_LINT 0 overlaps`, the `JAMKIT_HOUSE_MESHLINT` lines and
+     `JAMKIT_HOUSE_OK`. Exit 3 means the mesh lint found issues; the script captures anyway.
+   - The stills go to `out/house-captures/<time>/` with `shots.txt`.
+   - Batch rebuild alone:
+     `Unity.exe -batchmode -projectPath . -executeMethod JamKit.DreamEscape.EditorTools.DreamHouseBuilder.RebuildFromCommandLine -logFile out/house-rebuild.log`.
+2. **Optional bake** (GPU, minutes):
+   - `Unity.exe -batchmode -projectPath . -executeMethod JamKit.Look.EditorTools.VhLook.BakeFromCommandLine -vhScene Assets/JamKit/Templates/VisitingHours/Dream/Scenes/DreamHouse.unity -logFile out/house-bake.log`
+     bakes the reflection probes and APV.
+   - Then the occlusion bake, CPU:
+     `Unity.exe -batchmode -nographics -projectPath . -executeMethod JamKit.Perf.EditorTools.VhPerfOcclusion.BakeFromCommandLine -perfScene Assets/JamKit/Templates/VisitingHours/Dream/Scenes/DreamHouse.unity -logFile out/perf/occlusion-house.log`.
+   - A later rebuild drops both: bake again after it.
+3. **The player:**
+   - Build it with `powershell -File tools/play-builds.ps1 -Templates VisitingHours -RestoreTo VisitingHours`. DreamHouse
+     must be in its scenes.
+   - Then record: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/house-capture.ps1 -Only runs` (`-Run hideandseek|escape`
+     for one), into `out/house-runs/<time>/` (`hide-and-seek/`, `escape/`, `run.txt`, `player.log`). No editor window
+     opens; the player runs minimized and quits by itself.
+4. **Commit what Unity made** after the first import and rebuild:
+   - the `.meta` files: `HouseProps.cs`, `HouseShapes.cs`, `HouseLightBudget.cs`, `HouseRecordFlag.cs`, the 12 new
+     model folders under `Dream/House/Models/`;
+   - the materials under `Dream/Materials/House/` and `Dream/House/Escape/Materials/`;
+   - `Dream/Generated/House/` and `Dream/House/Escape/StandIn/HillStandIn_Terrain.asset`;
+   - Look's tinted variants (`VhLookLibrary.Tinted`: the wet street, the papers' plaster variants);
+   - the rebuilt `DreamHouse.unity`.
 
 ## Not verified
 
-None of this has been opened in Unity: the look (model scale and axes, URP Lit setup of the downloaded textures, the
-lamps), the gable and roof windings, ramp and OBB collider orientation, frame time with this many objects (35 lamps,
-175 model parts), the escape's lighting and fog far below, the recorder in play mode, and Theo's tuning against a human.
-The lint, the reach and the timings above are dotnet's.
+None of this has been opened in Unity. Round 1's first render found real problems, and round 2 is still blind. Most
+likely to need a look:
+- the mesh lint's first real result;
+- the Kenney yaw turn, and the new models' fit;
+- the spot lights' levels (blind numbers);
+- the interior volume's blend at the doors;
+- the round window's winding;
+- the memory glow shader on the GPU (it passed `tools/look/shader-check.py`);
+- the escape's tipping in play;
+- the player flag in a build;
+- frame time.
+
+The lint, the reach, the stairs, the round and the escape's timings are dotnet's.

@@ -107,7 +107,7 @@ the stars, the last hall), the house folding shut behind her; falling or being c
 **What happens, in order:**
 1. At s 446 on the lit porch, the chase ends: the time, the chime, and "It's raining past the door."
 2. The doorway in the house front past the light, at s 461.6, is the front door.
-3. A closed coral umbrella leans beside it, on the right (x 2.75). It glows gold, with a gold pool at its foot.
+3. A closed coral umbrella leans beside it, on the right (x 2.75). It glows gold (a soft camera-facing glow, `JamKit/House/MemoryGlow`, since House round 2: the old hard sphere read as a flat disc), with a gold pool at its foot.
 4. **Taking it** uses the dream tool from the Movement Lab:
    - the same Fire action (left mouse, RT), rebindable;
    - the same aim assist (6° on a mouse, 8° on a pad, measured from its edge, 40 m range);

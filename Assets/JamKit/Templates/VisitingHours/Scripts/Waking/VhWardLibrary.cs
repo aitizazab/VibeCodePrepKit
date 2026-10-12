@@ -34,6 +34,21 @@ namespace JamKit.VisitingHours
         [Tooltip("The ward's printed and handwritten pictures (signs, notices, the round board, the TV, the remembrance book, the monitor's digits), from Ward/Textures/Pictures.")]
         public List<Texture2D> pictures = new List<Texture2D>();
 
+        [Header("Look (docs/redesign/look.md): the hospital by day")]
+        [Tooltip("Look's ApplyHospitalDay rig, saved as a prefab by the builder (the sun at the ward's angle, the bounce, VhLookRig, the VH_HospitalDay post volume). The ward instantiates it; without it the ward's own light stands in.")]
+        public GameObject dayRig;
+        [Tooltip("Look's sky for the hospital (its HDRI on JamKit/Look/Sky, turned by the rig).")]
+        public Material daySky;
+        [Tooltip("The sky's ambient indoors (Look's house interior uses 0.55: a ward's rooms are lit by their windows, not the whole sky).")]
+        public float dayAmbient = 0.55f;
+
+        [Header("Reflection probes, baked (JamKit > Visiting Hours > Bake the Ward Probes)")]
+        [Tooltip("One cubemap per VhWakingWard.ProbeRooms entry, in order (realtime probes never render: realtime probes are off in the quality levels).")]
+        public List<Texture> probes = new List<Texture>();
+
+        /// <summary>The baked cubemap for probe <paramref name="index"/>, or null.</summary>
+        public Texture Probe(int index) => probes != null && index >= 0 && index < probes.Count ? probes[index] : null;
+
         /// <summary>A picture by its file name (sign_ward, board_day1...), or null.</summary>
         public Texture2D Picture(string name)
         {

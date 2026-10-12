@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using JamKit.Doomlike;
+using JamKit.VisitingHours.Characters;
 using UnityEngine;
 
 namespace JamKit.VisitingHours
@@ -32,8 +33,42 @@ namespace JamKit.VisitingHours
         // ---------- The ward's bedside (docs/redesign/day.md) ----------
         /// <summary>Room 14's live monitor (its beeps are its own).</summary>
         public VhPatientMonitor patientMonitor;
-        /// <summary>Elias's near hand on the blanket (it answers her: the fingers move).</summary>
+        /// <summary>Elias's near hand on the blanket, the stand-in's (it answers her: the fingers move). Null when the 3D
+        /// model lies there (<see cref="eliasFingers"/>).</summary>
         public VhHandRig eliasHand;
+        /// <summary>The 3D Elias (People's EliasBed) and his near hand's fingers, when the model is in the build.</summary>
+        public VhCharacter elias;
+        public VhBedHand eliasFingers;
+        /// <summary>The place's 3D people (People's prefabs): heads turn to her, mouths move when they speak.</summary>
+        public readonly List<VhCharacter> cast = new List<VhCharacter>();
+        /// <summary>The rooms (per-room culling: their props and lights go when she can't see into them).</summary>
+        public VhWardRooms rooms;
+
+        /// <summary>His hand is there to hold (the model's or the stand-in's).</summary>
+        public bool HasEliasHand => eliasHand != null || (eliasFingers != null && eliasFingers.Ready);
+
+        /// <summary>His fingers move against hers (<paramref name="amount"/> 0..1 over <paramref name="seconds"/>).</summary>
+        public void TwitchElias(float amount, float seconds)
+        {
+            if (eliasHand != null) eliasHand.Twitch(amount, seconds);
+            if (eliasFingers != null) eliasFingers.Twitch(amount, seconds);
+        }
+
+        /// <summary>His hand at rest again (she let go).</summary>
+        public void RestEliasHand()
+        {
+            if (eliasHand != null) eliasHand.curl = 0.22f;
+            if (eliasFingers != null) eliasFingers.curl = 0.1f;
+        }
+
+        /// <summary>The 3D person for a speaker's model name ("Mags", "Rafael", "Representative"), or null.</summary>
+        public VhCharacter Person(string model)
+        {
+            if (string.IsNullOrEmpty(model)) return null;
+            for (int i = 0; i < cast.Count; i++)
+                if (cast[i] != null && cast[i].characterName == model) return cast[i];
+            return null;
+        }
         /// <summary>Where her eyes are when she sits in the chair by his bed, and which way she looks (yaw, pitch down).</summary>
         public Vector3 bedsideEye;
         public float bedsideYaw, bedsidePitch;
@@ -44,6 +79,10 @@ namespace JamKit.VisitingHours
         public Vector3 bedsideHandForward = Vector3.forward;
         /// <summary>The bedside's shallow focus (weight 0 until she sits).</summary>
         public UnityEngine.Rendering.Volume bedsideFocus;
+        /// <summary>The booth: where her eyes are in the dream chair (she wakes there when the house threw her out) and
+        /// which way she looks.</summary>
+        public Vector3 chairEye;
+        public float chairYaw;
 
         public VhSpot Spot(string id)
         {

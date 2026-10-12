@@ -26,8 +26,71 @@ and the slips wear her down (the Long Night's slope).
 | **Room 16** | Mr. Brandt (asleep on Day 1; awake on Day 2) | Day 2's band check; "too stubborn to die" |
 | **Staff room** | Nadia's locker (**the creek photo**), the rota (seven lates in a row), her phone ("Not now."), the kettle, Rafael on his break (Day 2) | the creek topic; "Did Lena get out?" |
 | **Quiet room** | candles, **the remembrance book** (Theo's team: "We kept your shirt. Number 4.") | Theo's topic |
-| **Family room** | the muted TV ("ROUTE 9: SIX WEEKS ON, NO ARRESTS"), the vending machine, **June Brandt** knitting (Day 1), **the man from LeBaget** (Day 2) | the patients topic; the visitor |
+| **Family room** | the muted TV ("ROUTE 9: SIX WEEKS ON, NO ARRESTS"), the vending machine, **June Brandt** knitting (Day 1), **the woman from LeBaget**, Corinne Vasseur (Day 2) | the patients topic; the visitor |
 | **Stairwell B** | down to the booth at 11 PM (only after the round) | the exit |
+
+## Round 2 (2026-10-13): the 3D cast, the chain on the hill, Look's light, Perf's list
+
+Not yet seen in Unity (agents can't run it); compile checks and the dotnet suites are green on these files.
+
+**The cast** (People's `VhCharacter`, docs/redesign/people.md; `VhWardPeople.Cast`): **Mags** in the booth by the desk
+(idle; she turns her head to Nadia within 5.5 m), **Rafael** behind the station's counter on Day 1 (idle) and in the
+staff room's chair on Day 2 ("sit"), **the representative** (Corinne Vasseur) standing by the family room's door on Day
+2, her fruit basket now on the chair beside her (the model's hands are empty), and **Elias** in bed (EliasBed, "lie").
+When one of them speaks in the ink, their mouth moves for the line (`Say`), they play "talk" ("sit-talk" seated) and look
+at her; they go still when the line or the dialogue ends. Off screen their skinning and animation stop
+(`updateWhenOffscreen` off, `CullUpdateTransforms`). **Still stand-ins (no model yet):** Mrs. Okafor (room 12), Mr.
+Brandt (room 16, both days), June Brandt (family room, Day 1), the man waiting in the family room (both days).
+
+**Elias in bed** (`VhWardFloor.EliasModel`): the clip's pose is laid along the bed (feet-to-head turned towards the
+headboard, his head on the pillow, his hips on the mattress), a blanket over his legs to the waist, the nasal cannula to
+his face and the drip line to his far hand. His near hand (the chair's side, found from the pose) is driven by
+`VhBedHand`: after the animation, its finger joints bend by a resting curl and `Twitch` flexes them twice (his fingers
+move against hers); the bedside holds the back of that hand (`HoldPoint`), re-read when she sits. The monitor climbs and
+settles as before. **What the model can't do:** open his eyes (painted shut, no lids), move his face (left still: he's
+in a coma), or close his hand round hers (only the fingers flex). Without the prefab, the stand-in and its `VhHandRig`
+hand lie there as before.
+
+**The chain on the hill** (World's request): `Chain.Night2Scenes = { "DreamStreet", "DreamHouse" }`; `VhChainRunner`
+sets `DreamStreetGame.NextNight` (1 for Night 1, 2 for Night 2, `Chain.NightOnTheHill`) before loading the hill, on the
+dive and on the presenter's jumps. On Night 2 the gate loads DreamHouse (the street does it); the dive's card says
+"Rowan Street". **Thrown out of Night 2** (`vh_n2_thrown_out`, now cleared by `Chain.Reset`): before the end card she
+comes to in the booth's chair (`VhArea.chairEye`), Mags beside her, the house's lines play (`booth_thrown_out`) with
+`DreamHouseLines.ThrownOutCosts` on screen; `Chain.ForceOut`'s cost is the runner's as before. **Lena's watch:**
+`Chain.HasLenaWatch(save)` (the flag `vh_lena_watch`, the keepsake's journal entry, or Lena's battle ending with a
+keepsake) puts People's `VhKeepsakeWatch` on Nadia's right wrist at the bedside (her code-built arm carries Mixamo-named
+`RightForeArm` / `RightHand` transforms for it). In the normal order nothing earns it before Day 2 (Lena's battle is
+Night 2); it shows from any later waking day, or when a test or the debug menu sets the flag.
+
+**Look** (docs/redesign/look.md): the library builder makes Look's `ApplyHospitalDay` rig in a scratch scene (its sun
+colour and intensity, bounce, `VhLookRig`, the `VH_HospitalDay` post volume; the ward's sun angle, 24 degrees up from
+the west-south-west; shadows to 60 m) and saves it as `Ward/Generated/VH_WardLookRig.prefab`; the ward instantiates it
+(volume priority 20), uses Look's sky (`Sky_EveningRoad01_2k`) and the sky's ambient at 0.55 (indoors). Without the
+prefab, the ward's own sun and grade stand in. Surfaces: the walls are Look's `Plaster_Interior`, the ceiling its
+`Ceiling_Tile`, the corridor, station and lobby floors its `Hospital_Terrazzo`; the ward's own textures (vinyl, fabrics,
+metal, wood...) are set up the Look way (`VhLookLibrary.SetupLit`, its macro colour variation against flat or tiled
+reads). The judges' indoor lessons: no untextured surface (every shell and prop surface is a textured PBR material; only
+glows and screens are flat), no hard-edged decal (the ward has none; its pictures are framed prints), and **no
+mismatched seams**: walls, floors and the ceiling take their UVs from the place's own frame (`VhMeshKit.PlaceUv`), so
+the plaster and the floor run on across every joint between boxes.
+
+**Perf's list** (docs/redesign/perf.md, Day): (1) shadowed lights: of the four that may cast shadows only the two nearest
+her do (`VhWardRooms`; none on a tier without point-light shadows), and `VhPerfTiers.CapNow()` runs after the ward and the
+booth are built; (2) parts under 15 cm cast no shadow (`VhMeshKit.Show`); (3) the floor is built a room a frame under the
+day's black card (`VhWakingWard.HospitalSteps`, `VisitingHoursGame.EnterAreaStaged`), and the meshes static batching
+replaced are freed; (4) per-room culling (`VhWardRooms`: each room's props, people and lights under its own root; from a
+closed room only that room draws, from the corridor, station or lobby the rooms within 16 m); (5) the title: Nadia's
+skinning only on screen, lights at intensity 0 off, the phone's and tablet's panels stop redrawing off camera
+(`VhTitlePerf`); (6) the stand-in pictures compressed and non-readable (`VhTextures.Seal`); (7) reflection probes:
+*JamKit > Visiting Hours > Bake the Ward Probes* (or `-executeMethod
+JamKit.VisitingHours.EditorTools.VhWardLibraryBuilder.BakeProbesFromCommandLine`, needs a GPU) bakes the six probes into
+`Ward/Generated/Probes` and the library; the ward uses them as custom probes. Until baked, realtime probes render once
+with realtime probes switched on for the ward. Not done: the prompt-string cache (`PromptFor`) and the HUD's readable
+textures (`Scripts/UI`, not this round's files).
+
+**For the House agent:** `DreamHouseGame.Escape.cs` still plays `ThrownOutBooth` over black before `Chain.ForceOut`; with
+the chain running, the booth now plays the same lines, so they're heard twice. Skip yours when `VhChainRunner` is up
+(or keep only the costs card).
 
 **Minutes:** Day 1 about 7 to 10 minutes played normally (the handover, a three-task round, about twelve finds, the
 bedside); Day 2 about 6 to 9 (a five-task round, Rafael, Brandt, the visitor, the bedside).
@@ -120,13 +183,12 @@ the round board, the TV, the remembrance book and the vending machine are printe
 Caveat, OFL). The windows show a CC0 HDRI sky (Poly Haven). The light (`VhWardLight`): a late-afternoon sun 24 degrees
 up from the west-south-west, pouring down the corridor from the end window and through the south windows; cool
 fluorescent panels; trilight ambient; six realtime box-projected reflection probes; ACES, bloom, warm white balance, a
-light vignette; a shallow focus at the bedside. The booth at 11 PM gets the night version. When the Look agent's
-hospital-day rig lands (docs/redesign/look.md), the ward can swap to it.
+light vignette; a shallow focus at the bedside. The booth at 11 PM gets the night version. Round 2: Look's hospital-day
+rig replaces the ward's own sun, sky and grade when the library has it (see "Round 2"); the probes are baked.
 
-**People** (`VhWardPeople`): the People agent's models are placed by id from `Resources/VhPeople/<id>` (rafael, mags,
-june_brandt, okafor, brandt, lebaget_visitor, waiting_man, elias); the prefab gets `SendMessage("SetPose", "Standing" |
-"Sitting" | "InBed" | "LyingInBed")`. Until they land, stand-ins in their clothes (PBR fabric and skin), standing,
-sitting or in bed. Elias's near hand is a real hand with fingers (`VhHandRig`) so it can answer her.
+**People** (`VhWardPeople`): since round 2 the People agent's 3D cast (`VhCharacter.Spawn` of Mags, Rafael,
+Representative, EliasBed; `VhWardPeople.ModelFor`), posed by animation state (standing "idle", sitting "sit", Elias
+"lie"); the people without a model are stand-ins in their clothes (PBR fabric and skin). See "Round 2" above.
 
 ## 6. The lines
 
@@ -134,12 +196,17 @@ Every line of the days is in `Assets/JamKit/Templates/VisitingHours/Dialogue/Vis
 scene (STORY-PROSE 83-92) is kept word for word; everything else on the days is mine, in the voice of their lines
 (short, dry, tired, proud; Mags brisk and warm). Rafael: the handover, Day 2's "Did Lena get out?". Mrs. Okafor, June
 and Harold Brandt, the man from LeBaget (Daniel Arce, "Community Partnerships", "Has he said anything?", no transfer
-clock). The round's decisions and slips. The nine bedside topics. Mags's booth reactions.
+clock). The round's decisions and slips. The nine bedside topics. Mags's booth reactions. **Round 2:** the man from
+LeBaget is now a woman (the creator's call): **Corinne Vasseur**, Community Partnerships (speaker "The woman from
+LeBaget"), still asking "Has he said anything?", still no transfer clock; the journal's entry follows ("The woman from
+LeBaget"). The booth's `booth_thrown_out` is the House agent's `DreamHouseLines.ThrownOutBooth`, word for word.
 
 ## 7. Captures for the judge (main runs them)
 
-- **Stills:** `VisitingHours.exe -ward-shot "<folder>" -screen-width 1920 -screen-height 1080 -screen-fullscreen 0`
-  (or the editor with the same arguments): 18 framed stills of every area on both days and the booth (UI hidden),
+Recordings are **player flags only**: never a windowed editor (one took focus from the creator, 2026-10-12).
+
+- **Stills:** `VisitingHours.exe -ward-shot "<folder>" -screen-width 1920 -screen-height 1080 -screen-fullscreen 0`:
+  18 framed stills of every area on both days and the booth (UI hidden),
   9 bedside frames (sitting, her hand coming in, the topics, his fingers, the second topic, his heart on the monitor,
   "E  Stand up", rising, standing), then one still per examinable on each day. `shots.txt` lists them.
 - **A recorded day:** `VisitingHours.exe -day-run "<folder>" [-day-run-day 2] -screen-width 1920 -screen-height 1080
@@ -148,8 +215,10 @@ clock). The round's decisions and slips. The nine bedside topics. Mags's booth r
 
 ## 8. Built in
 
-`Scripts/World/VhWakingWard.cs` (the kit, the booth), `Scripts/World/VhWardFloor.cs` (the floor), `Scripts/Waking/`
-(`VhWardLibrary`, `VhWardLight`, `VhWardPeople`, `VhHandRig`, `VhPatientMonitor`, `VhBedside`),
+`Scripts/World/VhWakingWard.cs` (the kit, the booth), `Scripts/World/VhWardFloor.cs` (the floor, built in steps),
+`Scripts/World/VhWardRooms.cs` (per-room culling, the shadow budget), `Scripts/Waking/` (`VhWardLibrary`, `VhWardLight`,
+`VhWardPeople`, `VhHandRig`, `VhBedHand`, `VhPatientMonitor`, `VhBedside`), `Scripts/Opening/VhTitlePerf.cs`,
+`Editor/VhWardLibraryBuilder.cs` (the materials, Look's rig prefab, the probe bake),
 `Scripts/VisitingHoursGame.Day.cs` (the round, the bedside, the ink's `vh_state` and `vh_topic`), `Scripts/Chain/`
 (`VhWardShot`, `VhDayRun`, `VhChainRunner`: forced out, sound hand-offs), the core's `DayContent.cs` and `Chain.cs`, and
 the shell's title sound fix (`GameRoot`: the ambience and a battle's restored music no longer carry into the title).

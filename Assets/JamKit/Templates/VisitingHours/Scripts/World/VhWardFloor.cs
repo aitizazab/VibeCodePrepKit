@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -22,18 +23,35 @@ namespace JamKit.VisitingHours
         const float WardH = 2.8f, CeilY = 2.7f;
 
         /// <summary>The ward on the late shift (3 PM to 11 PM; the sun low in the west). <paramref name="day2"/>: the second
-        /// day's people and things (Rafael on his break, the man from LeBaget, Mr. Brandt awake, the round's new tasks).</summary>
+        /// day's people and things (Rafael on his break, the woman from LeBaget, Mr. Brandt awake, the round's new tasks).
+        /// Built all at once (tests, the captures); the game builds it a room a frame with <see cref="HospitalSteps"/>.</summary>
         public static void Hospital(VhArea a, VisitingHoursConfig c, bool day2)
         {
+            var steps = HospitalSteps(a, c, day2);
+            while (steps.MoveNext()) { }
+        }
+
+        /// <summary>
+        /// The ward, a room at a time (docs/redesign/perf.md, Day item 3: built in one frame it hitched 0.3-1.5 s): the shell,
+        /// then each room under its own root (per-room culling, <see cref="VhWardRooms"/>), then the light and the batching.
+        /// Each step is one frame's work; VisitingHoursGame runs them under the day's black card.
+        /// </summary>
+        public static IEnumerator HospitalSteps(VhArea a, VisitingHoursConfig c, bool day2)
+        {
             var k = Begin(a, c, day2);
+            var rooms = a.root.gameObject.AddComponent<VhWardRooms>();
+            rooms.enabled = false;
+            a.rooms = rooms;
+            k.rooms = rooms;
 
             // ---------- Floors and the ceiling ----------
-            Floor(k, "Floor (corridor)", 0f, 48f, 11f, 14f, Vinyl);
+            // The open spaces' floors are Look's terrazzo; the rooms keep the ward's vinyl (and the carpets).
+            Floor(k, "Floor (corridor)", 0f, 48f, 11f, 14f, Vinyl, "terrazzo");
             Floor(k, "Floor (rooms)", 0f, 48f, 14f, 23f, VinylRoom);
             Floor(k, "Floor (quiet room)", 0f, 6f, 0f, 11f, CarpetWarm, "carpet");
             Floor(k, "Floor (staff room)", 6f, 15f, 0f, 11f, VinylRoom);
-            Floor(k, "Floor (station)", 15f, 27f, 0f, 11f, Vinyl);
-            Floor(k, "Floor (lobby)", 27f, 37f, 0f, 11f, Vinyl);
+            Floor(k, "Floor (station)", 15f, 27f, 0f, 11f, Vinyl, "terrazzo");
+            Floor(k, "Floor (lobby)", 27f, 37f, 0f, 11f, Vinyl, "terrazzo");
             Floor(k, "Floor (family room)", 37f, 48f, 0f, 11f, CarpetBlue, "carpet");
             SuspendedCeiling(k, 0f, 48f, 0f, 23f, CeilY);
 
@@ -62,31 +80,65 @@ namespace JamKit.VisitingHours
             Wall(k, 15.06f, 4f, 26.94f, 4f, WardH, WallPaint);
             Wall(k, 27f, 0.06f, 27f, 10.94f, WardH, WallPaint);
             WallRun(k, 37f, 0.06f, 37f, 10.94f, WardH, WallPaint, Doorway(4.2f, 2.2f));
+            yield return null;
 
-            Corridor(k);
-            Station(k);
-            Room14(k);
-            Room12(k);
-            Room16(k);
-            StaffRoom(k);
-            QuietRoom(k);
-            Lobby(k);
-            FamilyRoom(k);
+            // ---------- The rooms, a frame each (each under its own root: per-room culling) ----------
+            Room(k, "Corridor", 0f, 48f, 11f, 14f, true, Corridor);
+            yield return null;
+            Room(k, "Station", 15f, 27f, 0f, 11f, true, Station);
+            yield return null;
+            Room(k, "Room 14", 19f, 27f, 14f, 23f, false, Room14);
+            yield return null;
+            Room(k, "Room 12", 6.5f, 13f, 14f, 23f, false, Room12);
+            yield return null;
+            Room(k, "Room 16", 33f, 40f, 14f, 23f, false, Room16);
+            yield return null;
+            Room(k, "Staff room", 6f, 15f, 0f, 11f, false, StaffRoom);
+            yield return null;
+            Room(k, "Quiet room", 0f, 6f, 0f, 11f, false, QuietRoom);
+            yield return null;
+            Room(k, "Lift lobby", 27f, 37f, 0f, 11f, true, Lobby);
+            yield return null;
+            Room(k, "Family room", 37f, 48f, 0f, 11f, false, FamilyRoom);
+            yield return null;
 
-            var focus = VhWardLight.Day(k.root, k.lib, new[]
-            {
-                new Bounds(new Vector3(8f, 1.5f, 12.5f), new Vector3(16f, 3f, 3f)),
-                new Bounds(new Vector3(24f, 1.5f, 12.5f), new Vector3(16f, 3f, 3f)),
-                new Bounds(new Vector3(40f, 1.5f, 12.5f), new Vector3(16f, 3f, 3f)),
-                new Bounds(new Vector3(23f, 1.5f, 18.5f), new Vector3(8f, 3f, 9f)),
-                new Bounds(new Vector3(10.5f, 1.5f, 5.5f), new Vector3(9f, 3f, 11f)),
-                new Bounds(new Vector3(37f, 1.5f, 6f), new Vector3(20f, 3f, 10f)),
-            });
+            var focus = VhWardLight.Day(k.root, k.lib, ProbeRooms);
             a.bedsideFocus = focus;
             Batch(k);
-            VhWakingStyle.SetAmbient(new Color(0.46f, 0.5f, 0.55f), new Color(0.28f, 0.26f, 0.24f), new Color(0.2f, 0.22f, 0.23f), 0f, 0.3f);
+            // Without Look's rig the ward's own trilight stands (the rig's sky ambient replaces it).
+            if (k.lib == null || k.lib.dayRig == null)
+                VhWakingStyle.SetAmbient(new Color(0.46f, 0.5f, 0.55f), new Color(0.28f, 0.26f, 0.24f), new Color(0.2f, 0.22f, 0.23f), 0f, 0.3f);
             a.spawn = new Vector3(32f, 0.05f, 4.2f);
             a.spawnYaw = 0f;
+            rooms.enabled = true;
+            JamKit.Perf.VhPerfTiers.CapNow();
+        }
+
+        /// <summary>The reflection probes' spaces (box-projected; baked by JamKit > Visiting Hours > Bake the Ward Probes, in
+        /// this order).</summary>
+        public static readonly Bounds[] ProbeRooms =
+        {
+            new Bounds(new Vector3(8f, 1.5f, 12.5f), new Vector3(16f, 3f, 3f)),
+            new Bounds(new Vector3(24f, 1.5f, 12.5f), new Vector3(16f, 3f, 3f)),
+            new Bounds(new Vector3(40f, 1.5f, 12.5f), new Vector3(16f, 3f, 3f)),
+            new Bounds(new Vector3(23f, 1.5f, 18.5f), new Vector3(8f, 3f, 9f)),
+            new Bounds(new Vector3(10.5f, 1.5f, 5.5f), new Vector3(9f, 3f, 11f)),
+            new Bounds(new Vector3(37f, 1.5f, 6f), new Vector3(20f, 3f, 10f)),
+        };
+
+        /// <summary>One room of the floor: what <paramref name="build"/> makes goes under the room's own root (so it can be
+        /// culled with the room), over the floor area x0..x1, z0..z1. <paramref name="open"/>: a space she sees the others
+        /// from (the corridor, the station, the lobby).</summary>
+        static void Room(Kit k, string name, float x0, float x1, float z0, float z1, bool open, System.Action<Kit> build)
+        {
+            var root = new GameObject("Room: " + name).transform;
+            root.SetParent(k.place, false);
+            var keep = k.root;
+            k.root = root;
+            try { build(k); }
+            finally { k.root = keep; }
+            if (k.rooms != null)
+                k.rooms.Add(name, root, new Bounds(new Vector3((x0 + x1) * 0.5f, 1.4f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, 2.8f, z1 - z0)), open);
         }
 
         /// <summary>
@@ -96,15 +148,27 @@ namespace JamKit.VisitingHours
         static void Batch(Kit k)
         {
             var keep = new List<GameObject>();
+            var sources = new List<Mesh>();
             foreach (var r in k.root.GetComponentsInChildren<MeshRenderer>(true))
             {
                 var f = r.GetComponent<MeshFilter>();
                 if (f == null || f.sharedMesh == null || !f.sharedMesh.isReadable) continue;
                 if (r.GetComponentInParent<VhHandRig>() != null || r.GetComponentInParent<VhPatientMonitor>() != null) continue;
                 if (r.GetComponentInParent<CapsuleCollider>() != null) continue;
+                if (r.GetComponentInParent<JamKit.VisitingHours.Characters.VhCharacter>() != null) continue;
                 keep.Add(r.gameObject);
+                if (!sources.Contains(f.sharedMesh)) sources.Add(f.sharedMesh);
             }
-            if (keep.Count > 1) StaticBatchingUtility.Combine(keep.ToArray(), k.root.gameObject);
+            if (keep.Count <= 1) return;
+            StaticBatchingUtility.Combine(keep.ToArray(), k.root.gameObject);
+            // perf.md (Day item 3): the combined mesh draws them now; the source meshes are tens of MB of copies. Free the
+            // ones no mesh filter points at any more (the kit's Dispose skips what's already gone); anything still
+            // referenced stays.
+            var stillShown = new HashSet<Mesh>();
+            foreach (var f in k.root.GetComponentsInChildren<MeshFilter>(true))
+                if (f.sharedMesh != null) stillShown.Add(f.sharedMesh);
+            foreach (var m in sources)
+                if (!stillShown.Contains(m)) VhUtil.Kill(m);
         }
 
         // ---------- The corridor ----------
@@ -312,8 +376,12 @@ namespace JamKit.VisitingHours
             Part(k, k.root, "Drip bag", k.meshes.RoundedBox(new Vector3(0.14f, 0.22f, 0.035f), 0.03f, 3, 0.01f), new Color(0.86f, 0.9f, 0.92f), drip + new Vector3(0.1f, 1.86f, 0f), Quaternion.identity, true, "glass");
             Box(k, "Infusion pump", drip + new Vector3(0f, 1.22f, -0.07f), new Vector3(0.16f, 0.2f, 0.12f), Plastic, false, 0.02f, null, "plastic");
             Glow(k, "Pump display", k.meshes.Quad(0.1f, 0.05f), Color.black, new Color(0.4f, 0.8f, 0.6f), drip + new Vector3(0f, 1.26f, -0.131f), Quaternion.identity);
-            var line = new List<Vector3> { drip + new Vector3(0.1f, 1.74f, 0f), drip + new Vector3(0.05f, 1.35f, -0.05f), drip + new Vector3(0.1f, 1.0f, -0.12f), drip + new Vector3(0.4f, 0.82f, -0.4f), new Vector3(22.25f, 0.8f, 21.3f) };
-            Part(k, k.root, "Drip line", k.meshes.Tube(line, 0.0035f, 5), new Color(0.85f, 0.88f, 0.9f), Vector3.zero, Quaternion.identity, false, "glass");
+            if (k.area.elias == null)
+            {
+                // (The 3D model's line is drawn to his own hand, in EliasModel.)
+                var line = new List<Vector3> { drip + new Vector3(0.1f, 1.74f, 0f), drip + new Vector3(0.05f, 1.35f, -0.05f), drip + new Vector3(0.1f, 1.0f, -0.12f), drip + new Vector3(0.4f, 0.82f, -0.4f), new Vector3(22.25f, 0.8f, 21.3f) };
+                Part(k, k.root, "Drip line", k.meshes.Tube(line, 0.0035f, 5), new Color(0.85f, 0.88f, 0.9f), Vector3.zero, Quaternion.identity, false, "glass");
+            }
             if (k.day2)
             {
                 // The round's two bags on the trolley by the drip.
@@ -388,6 +456,7 @@ namespace JamKit.VisitingHours
         /// near hand (the bedside's) a real hand with fingers that answer her.</summary>
         static void Elias(Kit k, Vector3 bed)
         {
+            if (EliasModel(k, bed)) return;
             var skin = new Color(0.78f, 0.62f, 0.52f);
             Part(k, k.root, "Elias (under the blanket)", k.meshes.RoundedBox(new Vector3(0.48f, 0.2f, 1.45f), 0.1f, 5, 0.04f), HospitalBlanket, bed + new Vector3(0f, 0.73f, -0.25f), Quaternion.identity, true, "fabric");
             Part(k, k.root, "Blanket", k.meshes.RoundedBox(new Vector3(0.94f, 0.06f, 1.5f), 0.03f, 4, 0.012f), HospitalBlanket, bed + new Vector3(0f, 0.67f, -0.28f), Quaternion.identity, true, "fabric");
@@ -431,6 +500,98 @@ namespace JamKit.VisitingHours
             k.area.bedsideHandForward = near.forward;
             Spot(k, "elias", bed + new Vector3(0f, 0.9f, 0.4f), 1.1f);
             Spot(k, k.day2 ? "wristband2" : "wristband", bed + new Vector3(0.31f, 0.78f, -0.07f), 0.35f);
+        }
+
+        /// <summary>
+        /// Elias in bed as the People agent's 3D model (EliasBed: the gown, the head bandage, eyes painted shut, the wristband
+        /// and cannula; animation "lie"). The clip's pose is laid along the bed (his head on the pillow, his back on the
+        /// mattress), whatever way the clip lies; a blanket over his legs to the waist; the nasal cannula to his face and the
+        /// drip to his far hand; and his near hand (the chair's side) bound to <see cref="VhBedHand"/> so his fingers answer
+        /// her. What the model can't do: open his eyes (painted shut, no lids), move his face (he's in a coma: it stays
+        /// still), or grip her hand back (the fingers flex; the hand doesn't close round hers). False: no model in the build.
+        /// </summary>
+        static bool EliasModel(Kit k, Vector3 bed)
+        {
+            var c = People(k).Cast(VhWardPeople.Elias, bed + new Vector3(0f, 0.66f, 0f), 0f, VhWardPeople.Pose.LyingInBed);
+            if (c == null) return false;
+            var an = c.animator;
+            if (an == null || !an.isHuman || an.GetBoneTransform(HumanBodyBones.Hips) == null || an.GetBoneTransform(HumanBodyBones.Head) == null)
+            {
+                Debug.LogWarning("JAMKIT_VH ward: EliasBed has no humanoid pose; the stand-in lies there");
+                k.area.cast.Remove(c);
+                VhUtil.Kill(c.gameObject);
+                return false;
+            }
+            c.breathe = 0.5f;
+            an.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            an.Update(0f);
+
+            var bedWorld = k.root.TransformPoint(bed);
+            var bedRot = k.root.rotation;
+            var bedFwd = bedRot * Vector3.forward;
+            var bedRight = bedRot * Vector3.right;
+            var hips = an.GetBoneTransform(HumanBodyBones.Hips);
+            var head = an.GetBoneTransform(HumanBodyBones.Head);
+            var lf = an.GetBoneTransform(HumanBodyBones.LeftFoot);
+            var rf = an.GetBoneTransform(HumanBodyBones.RightFoot);
+            var feet = lf != null && rf != null ? (lf.position + rf.position) * 0.5f : hips.position - (head.position - hips.position);
+            // Along the bed: feet to head towards the headboard.
+            var axis = head.position - feet;
+            axis.y = 0f;
+            if (axis.sqrMagnitude > 1e-4f)
+                c.transform.RotateAround(hips.position, Vector3.up, Vector3.SignedAngle(axis, bedFwd, Vector3.up));
+            // His head on the pillow, his hips on the mattress.
+            var headAt = bedWorld + bedFwd * 0.8f;
+            var d = headAt - head.position;
+            d.y = 0f;
+            c.transform.position += d;
+            c.transform.position += Vector3.up * (bedWorld.y + 0.77f - hips.position.y);
+            an.Update(0f);
+
+            // The near hand: the one on the chair's side (+X of the bed).
+            var lh = an.GetBoneTransform(HumanBodyBones.LeftHand);
+            var rh = an.GetBoneTransform(HumanBodyBones.RightHand);
+            bool nearLeft = lh != null && (rh == null || Vector3.Dot(lh.position - rh.position, bedRight) >= 0f);
+            var fingers = c.gameObject.AddComponent<VhBedHand>();
+            fingers.Bind(an, nearLeft);
+            an.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+            k.area.elias = c;
+            k.area.eliasFingers = fingers;
+            var nearHand = nearLeft ? lh : rh;
+            var farHand = nearLeft ? rh : lh;
+            k.area.bedsideHold = fingers.Ready ? fingers.HoldPoint : nearHand != null ? nearHand.position + Vector3.up * 0.03f : bedWorld + bedRight * 0.3f + Vector3.up * 0.75f;
+            k.area.bedsideHandForward = fingers.Ready ? fingers.Fingers : -bedFwd;
+
+            // The blanket over his legs, folded back at his waist; the sheet's turned edge.
+            var hipsLocal = k.root.InverseTransformPoint(hips.position);
+            float top = Mathf.Clamp(hipsLocal.z - bed.z + 0.12f, -0.4f, 0.4f);
+            float foot = -0.98f;
+            Part(k, k.root, "Blanket (over his legs)", k.meshes.RoundedBox(new Vector3(0.92f, 0.2f, top - foot), 0.06f, 5, 0.03f), HospitalBlanket, bed + new Vector3(0f, 0.75f, (top + foot) * 0.5f), Quaternion.identity, true, "fabric");
+            Part(k, k.root, "Sheet turned down", k.meshes.RoundedBox(new Vector3(0.94f, 0.05f, 0.16f), 0.02f, 3, 0.01f), VhWakingStyle.Sheet, bed + new Vector3(0f, 0.84f, top - 0.04f), Quaternion.identity, false, "linen");
+
+            // The nasal cannula from the oxygen outlet over his ears to his nose; the drip to his far hand.
+            var h = k.root.InverseTransformPoint(head.position);
+            var up = Vector3.up;
+            var toTop = k.root.InverseTransformDirection(bedFwd);
+            var side = k.root.InverseTransformDirection(bedRight);
+            var cannula = new List<Vector3>
+            {
+                new Vector3(23.4f, 1.4f, 22.78f), new Vector3(23.2f, 1.0f, 22.6f),
+                h + side * 0.1f + up * 0.05f, h + up * 0.11f - toTop * 0.07f, h - side * 0.1f + up * 0.05f,
+            };
+            Part(k, k.root, "Nasal cannula", k.meshes.Tube(cannula, 0.004f, 5), new Color(0.82f, 0.9f, 0.9f), Vector3.zero, Quaternion.identity, false, "glass");
+            if (farHand != null)
+            {
+                var drip = new Vector3(21.55f, 0f, 21.9f);
+                var to = k.root.InverseTransformPoint(farHand.position) + up * 0.03f;
+                var line = new List<Vector3> { drip + new Vector3(0.1f, 1.74f, 0f), drip + new Vector3(0.05f, 1.35f, -0.05f), drip + new Vector3(0.1f, 1.0f, -0.12f), Vector3.Lerp(drip + new Vector3(0.4f, 0.9f, -0.4f), to, 0.5f) + up * 0.08f, to };
+                Part(k, k.root, "Drip line (to his hand)", k.meshes.Tube(line, 0.0035f, 5), new Color(0.85f, 0.88f, 0.9f), Vector3.zero, Quaternion.identity, false, "glass");
+            }
+            Box(k, "Nurse call", bed + new Vector3(0.18f, 0.71f, -0.5f), new Vector3(0.05f, 0.03f, 0.14f), Plastic, false, 0.01f, Quaternion.Euler(0f, 20f, 0f), "plastic");
+            var wrist = nearHand != null ? k.root.InverseTransformPoint(nearHand.position) : bed + new Vector3(0.31f, 0.78f, -0.07f);
+            Spot(k, "elias", bed + new Vector3(0f, 0.9f, 0.4f), 1.1f);
+            Spot(k, k.day2 ? "wristband2" : "wristband", wrist + Vector3.up * 0.04f, 0.35f);
+            return true;
         }
 
         /// <summary>A live monitor screen on a monitor's face (<paramref name="beeps"/>: room 14's, heard).</summary>
@@ -560,7 +721,8 @@ namespace JamKit.VisitingHours
             Chair(k, new Vector3(9.4f, 0f, 5.6f), 90f, ChairBlue, false);
             if (k.day2)
             {
-                People(k).Place(VhWardPeople.Rafael, new Vector3(11.75f, 0f, 5.6f), -90f, VhWardPeople.Pose.Sitting);
+                // On his break, in the chair at the table's end (the model sits on the seat's centre).
+                People(k).Place(VhWardPeople.Rafael, new Vector3(11.85f, 0f, 5.6f), -90f, VhWardPeople.Pose.Sitting);
                 Chair(k, new Vector3(11.85f, 0f, 5.6f), -90f, ChairBlue, false);
                 Part(k, k.root, "Rafael's mug", k.meshes.Cylinder(0.042f, 0.042f, 0.1f, 14), new Color(0.86f, 0.3f, 0.26f), new Vector3(11.1f, 0.75f, 5.7f), Quaternion.identity, true, "plastic");
                 Spot(k, "rafael2", new Vector3(11.75f, 1.1f, 5.6f), 0.9f);
@@ -685,9 +847,10 @@ namespace JamKit.VisitingHours
             }
             else
             {
-                // The man from LeBaget, waiting by the door with his basket of fruit.
-                var v = People(k).Place(VhWardPeople.Visitor, new Vector3(38.4f, 0f, 8.6f), -100f, VhWardPeople.Pose.Standing);
-                var basket = new Vector3(38.15f, 0.95f, 8.55f);
+                // The woman from LeBaget (People's representative), waiting by the door; her basket of fruit on the chair
+                // beside her (the model's hands are empty).
+                People(k).Place(VhWardPeople.Visitor, new Vector3(38.4f, 0f, 8.6f), -100f, VhWardPeople.Pose.Standing);
+                var basket = new Vector3(39.6f, 0.565f, 7.6f);
                 Part(k, k.root, "Fruit basket", k.meshes.RoundedBox(new Vector3(0.32f, 0.12f, 0.22f), 0.04f, 3), Laminate, basket, Quaternion.Euler(0f, -100f, 0f), true, "wood");
                 Part(k, k.root, "Cellophane", k.meshes.RoundedBox(new Vector3(0.3f, 0.16f, 0.2f), 0.07f, 3, 0.02f), new Color(0.85f, 0.88f, 0.9f), basket + Vector3.up * 0.1f, Quaternion.Euler(0f, -100f, 0f), false, "glass");
                 Color[] fruit = { new Color(0.78f, 0.45f, 0.22f), new Color(0.62f, 0.2f, 0.18f), new Color(0.82f, 0.74f, 0.3f) };

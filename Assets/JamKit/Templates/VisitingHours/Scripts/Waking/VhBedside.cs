@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using JamKit.Doomlike;
+using JamKit.VisitingHours.Characters;
 using UnityEngine;
 
 namespace JamKit.VisitingHours
@@ -33,8 +34,9 @@ namespace JamKit.VisitingHours
         float _seatEye;
 
         // Her arm: the shoulder (fixed under the view), the upper arm, the forearm, the hand.
-        Transform _armRoot, _upperSleeve, _upperSkin, _fore;
+        Transform _armRoot, _upperSleeve, _upperSkin, _fore, _foreBone;
         VhHandRig _hand;
+        VhKeepsakeWatch _watch;
         Vector3 _shoulder, _restWrist, _holdWrist, _pole;
         Quaternion _restRot, _holdRot;
         float _squeeze, _squeezeLeft;
@@ -62,6 +64,12 @@ namespace JamKit.VisitingHours
             _seatEye = _area.bedsideEye.y - 0.05f;
             _phase = Phase.Sitting;
             _t = 0f;
+            // The 3D model's hand is where its animation put it: hold it there (the back of his hand, along his fingers).
+            if (_area.eliasFingers != null && _area.eliasFingers.Ready)
+            {
+                _area.bedsideHold = _area.eliasFingers.HoldPoint;
+                _area.bedsideHandForward = _area.eliasFingers.Fingers;
+            }
             BuildArm();
             SetArm(0f);
         }
@@ -89,7 +97,7 @@ namespace JamKit.VisitingHours
             switch (kind)
             {
                 case "fingers":
-                    if (_area.eliasHand != null) _area.eliasHand.Twitch(0.55f, 1.8f);
+                    _area.TwitchElias(0.55f, 1.8f);
                     if (mon != null) mon.Raise(rest + 8f, 9f);
                     _squeeze = 0.2f;
                     _squeezeLeft = 1.4f;
@@ -200,12 +208,17 @@ namespace JamKit.VisitingHours
             _upperSleeve = Segment("Upper arm (scrubs)", _meshes.Cylinder(0.056f, 0.05f, 1f, 16), sleeve);
             _upperSkin = Segment("Upper arm", _meshes.Cylinder(0.042f, 0.04f, 1f, 16), skin);
             _fore = Segment("Forearm", _meshes.Cylinder(0.038f, 0.03f, 1f, 16), skin);
-            var handGo = new GameObject("Hand");
+            // Named as a Mixamo rig's bones (RightForeArm, RightHand...), so People's VhKeepsakeWatch can sit on this arm too.
+            _foreBone = new GameObject("RightForeArm").transform;
+            _foreBone.SetParent(_armRoot, false);
+            var handGo = new GameObject("RightHand");
             handGo.transform.SetParent(_armRoot, false);
             _hand = handGo.AddComponent<VhHandRig>();
             _hand.Build(_meshes, skin, null, 0.96f, -1f, 0.02f);
             _hand.curl = 0.12f;
             _hand.thumbCurl = 0.1f;
+            Marker("RightHandMiddle1", handGo.transform, new Vector3(0f, 0f, 0.09f));
+            Marker("RightHandThumb1", handGo.transform, new Vector3(-0.04f, -0.005f, 0.025f));
 
             // Where it all hangs, from the seated view: the shoulder below and right of her eyes; the rest pose below the
             // frame; the hold on the back of his hand, her fingers over its far edge.
@@ -222,7 +235,40 @@ namespace JamKit.VisitingHours
             _holdRot = Quaternion.LookRotation(along, Vector3.up) * Quaternion.Euler(8f, 0f, 0f);
             _holdWrist = _area.bedsideHold - _holdRot * new Vector3(0f, 0f, 0.05f) + Vector3.up * 0.018f;
             _pole = _shoulder + right * 0.35f + Vector3.down * 0.25f;
+            WearTheWatch();
         }
+
+        static void Marker(string name, Transform parent, Vector3 at)
+        {
+            var t = new GameObject(name).transform;
+            t.SetParent(parent, false);
+            t.localPosition = at;
+        }
+
+        /// <summary>Her forearm's radius at the wrist (the strap has to go round it).</summary>
+        const float WristRadius = 0.031f;
+
+        /// <summary>
+        /// Lena's keepsake (Heard out), her star-shaped watch, on Nadia's right wrist when the chain carries it into the waking
+        /// world (<see cref="Chain.HasLenaWatch"/>): People's <see cref="VhKeepsakeWatch"/> on this arm (docs/redesign/people.md).
+        /// </summary>
+        void WearTheWatch()
+        {
+            if (!JamKit.Shell.GameRoot.Exists || !Chain.HasLenaWatch(JamKit.Shell.GameRoot.Save.Data)) return;
+            SetArm(1f);
+            _watch = VhKeepsakeWatch.Attach(_armRoot);
+            if (_watch == null) return;
+            // This forearm is rounder than a rig's wrist: the strap a little wider, the case lifted onto it.
+            float lift = WristRadius + 0.002f - _watch.wrist.y;
+            _watch.wrist = new Vector2(WristRadius + 0.002f, WristRadius + 0.002f);
+            _watch.Build();
+            _watch.transform.position += _watch.transform.up * lift;
+            _watch.Apply();
+            _watch.SetOwned(true);
+        }
+
+        /// <summary>The watch on her wrist now (null: the keepsake isn't hers).</summary>
+        public VhKeepsakeWatch Watch => _watch;
 
         Transform Segment(string name, Mesh unitCylinder, Material mat)
         {
@@ -244,6 +290,8 @@ namespace JamKit.VisitingHours
             Stretch(_upperSkin, sleeveEnd, elbow);
             Stretch(_fore, elbow, w);
             _hand.transform.SetPositionAndRotation(w, rot);
+            var along = w - elbow;
+            if (along.sqrMagnitude > 1e-8f) _foreBone.SetPositionAndRotation(elbow, Quaternion.LookRotation(along, rot * Vector3.up));
             float grip = Mathf.Clamp01((u - 0.75f) / 0.25f);
             if (_squeezeLeft > 0f) _squeezeLeft -= Time.deltaTime;
             float squeeze = _squeezeLeft > 0f ? _squeeze * Mathf.Sin(Mathf.Clamp01(_squeezeLeft / 1.4f) * Mathf.PI) : 0f;
@@ -263,7 +311,7 @@ namespace JamKit.VisitingHours
         void HideArm()
         {
             if (_armRoot != null) _armRoot.gameObject.SetActive(false);
-            if (_area.eliasHand != null) _area.eliasHand.curl = 0.22f;
+            _area.RestEliasHand();
         }
 
         /// <summary>Frees her arm (meshes, materials).</summary>

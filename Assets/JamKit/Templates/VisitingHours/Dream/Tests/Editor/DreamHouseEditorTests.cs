@@ -180,5 +180,18 @@ namespace JamKit.DreamEscape.Tests
             Assert.That(run, Is.EqualTo("all"));
             Assert.That(DreamHouseGame.RecordArgs(new[] { "Unity.exe" }, out _, out _), Is.False);
         }
+
+        /// <summary>The built player's flag (no editor window): -house-record [folder] [-house-record-run ...].</summary>
+        [Test]
+        public void ThePlayersRecordFlagReadsItsArguments()
+        {
+            Assert.That(HouseRecordFlag.Parse(new[] { "VisitingHours.exe", "-house-record", "C:/out/house-runs/x", "-house-record-run", "hideandseek" }, out var dir, out var run), Is.True);
+            Assert.That(dir, Is.EqualTo("C:/out/house-runs/x"));
+            Assert.That(run, Is.EqualTo("hideandseek"));
+            Assert.That(HouseRecordFlag.Parse(new[] { "VisitingHours.exe", "-house-record", "-house-record-run", "nonsense" }, out dir, out run), Is.True);
+            Assert.That(dir, Is.EqualTo("house-run"));
+            Assert.That(run, Is.EqualTo("all"));
+            Assert.That(HouseRecordFlag.Parse(new[] { "VisitingHours.exe", "-day-run" }, out _, out _), Is.False);
+        }
     }
 }

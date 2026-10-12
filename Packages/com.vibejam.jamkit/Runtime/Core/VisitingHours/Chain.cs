@@ -41,7 +41,23 @@ namespace JamKit.VisitingHours
         /// <summary>The scenes each night can be (the first one in the build wins). Night 1's own scene is being built (the
         /// movement agent's Larch Street on a hill); until it's in the build, the dream escape stands in for it.</summary>
         public static readonly string[] Night1Scenes = { "LarchStreet", "DreamStreet", "DreamEscape" };
-        public static readonly string[] Night2Scenes = { "DreamHouse" };
+        /// <summary>Night 2 starts on the hill (World's request, docs/redesign/world.md): DreamStreet, told it's Night 2
+        /// (<see cref="NightOnTheHill"/>), on Rowan Street outside the house; reaching the gate loads DreamHouse. Without the
+        /// hill in the build, the house itself.</summary>
+        public static readonly string[] Night2Scenes = { "DreamStreet", "DreamHouse" };
+
+        /// <summary>The scene that is the hill (it plays more than one night: whoever loads it says which first).</summary>
+        public const string HillScene = "DreamStreet";
+
+        /// <summary>
+        /// Which night the hill should play when <paramref name="scene"/> is loaded for <paramref name="night"/>: 1 or 2 for the
+        /// hill (DreamStreetGame.NextNight), 0 for any other scene (it plays its own night).
+        /// </summary>
+        public static int NightOnTheHill(ChainSegment night, string scene)
+        {
+            if (scene != HillScene) return 0;
+            return night == ChainSegment.Night2 ? 2 : night == ChainSegment.Night1 ? 1 : 0;
+        }
 
         static Action _done;
 
@@ -205,8 +221,30 @@ namespace JamKit.VisitingHours
         /// <summary>The dream's Despair flag (DreamRain.DespairFlag, the same text: the dream core needs the movement core, so the keys are copied; ChainKeysTests checks they match).</summary>
         public const string DespairFlag = "vh_despair";
 
-        /// <summary>The house's keys (DreamHouseStory.CondemnsFlag, .TheoAnswerKey; the same text).</summary>
-        public const string CondemnsFlag = "vh_lena_condemns", TheoAnswerKey = "vh_theo_dad_sad";
+        /// <summary>The house's keys (DreamHouseStory.CondemnsFlag, .TheoAnswerKey, .ThrownOutFlag; the same text).</summary>
+        public const string CondemnsFlag = "vh_lena_condemns", TheoAnswerKey = "vh_theo_dad_sad", ThrownOutFlag = "vh_n2_thrown_out";
+
+        /// <summary>She was thrown out of Night 2's house (the house's flag): the booth plays the house's lines for it.</summary>
+        public static bool ThrownOutOfNight2(SaveData save) => save != null && save.HasFlag(ThrownOutFlag);
+
+        // ---------- Lena's keepsake: her star-shaped watch (docs/REDESIGN.md, the creator 2026-10-12) ----------
+
+        /// <summary>The keepsake carried into the waking world: set when it's hers (any code that gives it can set it).</summary>
+        public const string KeepsakeWatchFlag = "vh_lena_watch";
+
+        /// <summary>
+        /// Lena's keepsake is Nadia's (Heard out): her star-shaped watch, worn on Nadia's right wrist, in the dream and in the
+        /// ward. True when the flag is set, when the carried journal has the keepsake's entry, or when Lena's battle in the
+        /// ledger ended with a keepsake.
+        /// </summary>
+        public static bool HasLenaWatch(SaveData save)
+        {
+            if (save == null) return false;
+            if (save.HasFlag(KeepsakeWatchFlag)) return true;
+            if (Knows(save, DreamLenaDemo.Planisphere)) return true;
+            var lena = BattleResult(save, DreamLenaDemo.Id);
+            return lena != null && !string.IsNullOrEmpty(lena.keepsake);
+        }
 
         /// <summary>Despair: she went on into the rain without the umbrella (the dream's flag; carried to Night 2).</summary>
         public static bool Despair(SaveData save) => save != null && save.HasFlag(DespairFlag);
@@ -230,6 +268,8 @@ namespace JamKit.VisitingHours
             save.ClearFlag(DespairFlag);
             save.ClearFlag(CondemnsFlag);
             save.ClearFlag(Night1DoneFlag);
+            save.ClearFlag(ThrownOutFlag);
+            save.ClearFlag(KeepsakeWatchFlag);
             save.SetEntry(DreamChangesKey, "");
             save.SetEntry(ToldKey, "");
             save.SetEntry(SlipsKey, "0");

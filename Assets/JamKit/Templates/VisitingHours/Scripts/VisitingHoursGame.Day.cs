@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using JamKit.Flow;
 using JamKit.Shell;
+using JamKit.VisitingHours.Characters;
 using UnityEngine;
 
 namespace JamKit.VisitingHours
@@ -84,7 +85,7 @@ namespace JamKit.VisitingHours
         /// <summary>The bedside starts (the chair's E, the smoke run, the captures).</summary>
         public void StartBedside()
         {
-            if (_area == null || _area.eliasHand == null || _bedside != null) return;
+            if (_area == null || !_area.HasEliasHand || _bedside != null) return;
             _bedsideStyle = new VhWakingStyle(VhBoot.Config != null ? VhBoot.Config.wakingMaterial : null);
             _bedside = new VhBedside(player, _area, _bedsideStyle);
             _sat = true;
@@ -252,6 +253,7 @@ namespace JamKit.VisitingHours
         /// <summary>When a dialogue ends: the round's last task says so; at the bedside, what comes next.</summary>
         void DayDialogueEnded(string knot)
         {
+            CastDialogueEnded();
             if (_mode == Mode.Bedside)
             {
                 if (knot == "bedside_intro" || knot == "bedside_more") AfterBedsideTalk();
@@ -289,6 +291,120 @@ namespace JamKit.VisitingHours
             _bedsideStyle = null;
             player.ResetView();
             if (_mode == Mode.Bedside) _mode = Mode.Explore;
+        }
+
+        // ---------- The 3D cast (docs/redesign/people.md): heads turn to her, mouths move when they speak ----------
+
+        /// <summary>How near (metres) a person has to be to turn their head to her.</summary>
+        const float LookRange = 5.5f;
+        System.Action<DialogueLineInfo> _onCastLine;
+        VhCharacter _talker;
+
+        /// <summary>The ward's and the booth's people listen to the dialogue (Start calls this).</summary>
+        void HookCast()
+        {
+            _onCastLine = OnCastLine;
+            GameRoot.Dialogue.LineShown += _onCastLine;
+        }
+
+        void UnhookCast()
+        {
+            if (_onCastLine != null && GameRoot.Exists) GameRoot.Dialogue.LineShown -= _onCastLine;
+            _onCastLine = null;
+        }
+
+        /// <summary>A place is up: nobody's talking yet.</summary>
+        void CastEntered()
+        {
+            _talker = null;
+            TickCast();
+        }
+
+        /// <summary>Heads turn to her when she's near (EliasBed sleeps).</summary>
+        void TickCast()
+        {
+            if (_area == null || cam == null) return;
+            var eye = cam.transform.position;
+            for (int i = 0; i < _area.cast.Count; i++)
+            {
+                var c = _area.cast[i];
+                if (c == null || c == _area.elias) continue;
+                bool near = c == _talker || (c.transform.position - eye).sqrMagnitude < LookRange * LookRange;
+                if (near && !c.IsLooking) c.LookAt(cam.transform);
+                else if (!near && c.IsLooking) c.StopLooking();
+            }
+        }
+
+        /// <summary>A line of dialogue: its speaker, if they're one of the 3D cast here, says it (mouth, a talking gesture,
+        /// eyes on her); whoever spoke before goes quiet.</summary>
+        void OnCastLine(DialogueLineInfo line)
+        {
+            if (_area == null) return;
+            string who = !string.IsNullOrEmpty(line.speakerId) ? line.speakerId : line.speaker;
+            var c = _area.Person(VhWardPeople.ModelForSpeaker(who));
+            if (_talker != null && _talker != c) Quiet(_talker);
+            _talker = c;
+            if (c == null) return;
+            int chars = line.text != null ? line.text.Length : 20;
+            c.Say(Mathf.Clamp(chars / 14f, 0.8f, 7f));
+            if (cam != null) c.LookAt(cam.transform);
+            bool sitting = c.IsPlaying("sit") || c.IsPlaying("sit-talk");
+            c.Play(sitting ? "sit-talk" : "talk", 0.35f);
+        }
+
+        static void Quiet(VhCharacter c)
+        {
+            if (c == null) return;
+            c.Talk(false);
+            bool sitting = c.IsPlaying("sit") || c.IsPlaying("sit-talk");
+            c.Play(sitting ? "sit" : "idle", 0.5f);
+        }
+
+        /// <summary>The dialogue ended: the speaker goes back to standing (or sitting) still.</summary>
+        void CastDialogueEnded()
+        {
+            if (_talker == null) return;
+            Quiet(_talker);
+            _talker = null;
+        }
+
+        // ---------- Thrown out of Night 2: the booth plays the house's lines (docs/redesign/house.md, section 5) ----------
+
+        /// <summary>The knot with DreamHouseLines.ThrownOutBooth, word for word (VisitingHoursInkTests checks it).</summary>
+        public const string KnotThrownOutBooth = "booth_thrown_out";
+
+        /// <summary>
+        /// She was thrown out of the house (the save's vh_n2_thrown_out; the cost itself is Chain.ForceOut's, kept by the
+        /// runner): she comes to in the booth's chair, Mags beside her, and the house's lines play (House's
+        /// DreamHouseLines.ThrownOutBooth), with the costs said plainly. Then the end card, as after any Night 2.
+        /// </summary>
+        IEnumerator ThrownOutBooth()
+        {
+            yield return Card("The booth", "11 PM", () =>
+            {
+                EnterArea(SliceArea.BoothDay2);
+                SitInTheDreamChair();
+            }, 1.6f, true);
+            _hud.Toast(JamKit.DreamEscape.DreamHouseLines.ThrownOutCosts, 6f);
+            yield return PlayWhenFree(KnotThrownOutBooth);
+            float give = Time.realtimeSinceStartup + 3f;
+            while (!GameRoot.Dialogue.IsActive && Time.realtimeSinceStartup < give) yield return null;
+            while (GameRoot.Dialogue.IsActive) yield return null;
+            float t = 0f;
+            while (t < (Fast ? 0.05f : 1.2f)) { t += Time.unscaledDeltaTime; yield return null; }
+        }
+
+        /// <summary>Her view from the booth's reclined chair, turned to Mags (she can't walk until the end card).</summary>
+        void SitInTheDreamChair()
+        {
+            if (_area == null || _area.chairEye == Vector3.zero) return;
+            var e = _area.root.TransformPoint(_area.chairEye);
+            player.Teleport(new Vector3(e.x, _area.root.position.y + 0.05f, e.z));
+            if (player.head != null) player.head.localPosition = new Vector3(0f, e.y - _area.root.position.y - 0.05f, 0f);
+            player.Look(0f, 6f - player.Pitch);
+            player.FaceYaw(_area.chairYaw);
+            var mags = _area.Person("Mags");
+            if (mags != null && cam != null) mags.LookAt(cam.transform);
         }
 
         /// <summary>Tests and the captures: the round done (every task right), today's finds made.</summary>

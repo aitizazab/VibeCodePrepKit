@@ -362,7 +362,12 @@ namespace JamKit.VisitingHours
             mesh.AddBlendShapeFrame(shape, 100f, deltas, null, null);
         }
 
-        /// <summary>A child object showing <paramref name="mesh"/> with <paramref name="mat"/>.</summary>
+        /// <summary>Parts smaller than this (metres, their longest side) cast no shadow, whatever the caller asked: a mug, a
+        /// tick on a clock, a lever, a petal (docs/redesign/perf.md, Day item 2: 1-2 ms of shadow passes for nothing seen).</summary>
+        public const float NoShadowBelow = 0.15f;
+
+        /// <summary>A child object showing <paramref name="mesh"/> with <paramref name="mat"/>. Shadows only when asked and the
+        /// part is at least <see cref="NoShadowBelow"/> long.</summary>
         public static MeshRenderer Show(Transform parent, string name, Mesh mesh, Material mat, Vector3 localPos, Quaternion localRot, bool shadows = true)
         {
             var go = new GameObject(name);
@@ -372,9 +377,44 @@ namespace JamKit.VisitingHours
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var r = go.AddComponent<MeshRenderer>();
             r.sharedMaterial = mat;
+            if (shadows && mesh != null)
+            {
+                var s = mesh.bounds.size;
+                if (Mathf.Max(s.x, Mathf.Max(s.y, s.z)) < NoShadowBelow) shadows = false;
+            }
             r.shadowCastingMode = shadows ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = true;
             return r;
+        }
+
+        /// <summary>
+        /// Gives a box's faces UVs in metres from <paramref name="frame"/>'s axes (the place's own), by each face's direction:
+        /// walls run on in x or z and up in y, floors and ceilings in x and z. Neighbouring boxes then meet without a seam in
+        /// the texture (judge/look-2.md's "mismatched seams"). The mesh must be this box's own (the kit makes one per box).
+        /// </summary>
+        public static void PlaceUv(Mesh mesh, Transform t, Transform frame)
+        {
+            if (mesh == null || t == null) return;
+            var v = mesh.vertices;
+            var n = mesh.normals;
+            if (n == null || n.Length != v.Length) return;
+            var uv = new Vector2[v.Length];
+            for (int i = 0; i < v.Length; i++)
+            {
+                Vector3 p = t.TransformPoint(v[i]);
+                Vector3 d = t.TransformDirection(n[i]);
+                if (frame != null)
+                {
+                    p = frame.InverseTransformPoint(p);
+                    d = frame.InverseTransformDirection(d);
+                }
+                float ax = Mathf.Abs(d.x), ay = Mathf.Abs(d.y), az = Mathf.Abs(d.z);
+                if (ay >= ax && ay >= az) uv[i] = new Vector2(p.x, p.z);
+                else if (ax >= az) uv[i] = new Vector2(p.z, p.y);
+                else uv[i] = new Vector2(p.x, p.y);
+            }
+            mesh.uv = uv;
+            mesh.RecalculateTangents();
         }
     }
 

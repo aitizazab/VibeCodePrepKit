@@ -20,6 +20,21 @@ namespace JamKit.VisitingHours
             _made.Clear();
         }
 
+        /// <summary>
+        /// Compresses every picture made so far and drops its CPU copy (docs/redesign/perf.md, Day item 7: readable RGBA32
+        /// stand-ins hold their pixels twice). Call once the set is built: a sealed picture can't be read back (the drawing
+        /// code checks <c>isReadable</c> and draws afresh instead). Pictures made later stay readable until the next call.
+        /// </summary>
+        public void Seal()
+        {
+            foreach (var t in _made)
+            {
+                if (t == null || !t.isReadable) continue;
+                if (t.width % 4 == 0 && t.height % 4 == 0) t.Compress(true);
+                t.Apply(false, true);
+            }
+        }
+
         Texture2D Make(string name, int w, int h, Color[] px, bool repeat)
         {
             var t = new Texture2D(w, h, TextureFormat.RGBA32, true) { name = "vh_" + name + " (stand-in)" };

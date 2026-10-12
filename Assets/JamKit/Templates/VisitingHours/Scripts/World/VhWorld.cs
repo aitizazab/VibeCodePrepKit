@@ -12,19 +12,39 @@ namespace JamKit.VisitingHours
     {
         public static VhArea Build(SliceArea which, VisitingHoursConfig config, Transform parent)
         {
+            var area = NewArea(which, parent);
+            var steps = BuildSteps(area, config);
+            while (steps.MoveNext()) { }
+            return area;
+        }
+
+        /// <summary>An empty place (its root under <paramref name="parent"/>); <see cref="BuildSteps"/> fills it.</summary>
+        public static VhArea NewArea(SliceArea which, Transform parent)
+        {
             var root = new GameObject(which.ToString()).transform;
             root.SetParent(parent, false);
-            var area = new VhArea { area = which, root = root };
-            switch (which)
+            return new VhArea { area = which, root = root };
+        }
+
+        /// <summary>Builds a place a step at a time (one step a frame: the ward is built room by room, perf.md Day item 3);
+        /// the small places in one step.</summary>
+        public static System.Collections.IEnumerator BuildSteps(VhArea area, VisitingHoursConfig config)
+        {
+            switch (area.area)
             {
                 // The waking world in style E (VhWakingWard); the slice's painted versions below are kept for reference.
-                case SliceArea.Hospital: VhWakingWard.Hospital(area, config, false); break;
-                case SliceArea.HospitalDay2: VhWakingWard.Hospital(area, config, true); break;
+                case SliceArea.Hospital: return VhWakingWard.HospitalSteps(area, config, false);
+                case SliceArea.HospitalDay2: return VhWakingWard.HospitalSteps(area, config, true);
                 case SliceArea.Booth: VhWakingWard.Booth(area, config, false); break;
                 case SliceArea.BoothDay2: VhWakingWard.Booth(area, config, true); break;
                 default: Street(area, config); break;
             }
-            return area;
+            return Done();
+        }
+
+        static System.Collections.IEnumerator Done()
+        {
+            yield break;
         }
 
         static void AddSpot(VhArea area, VisitingHoursConfig config, string id, Vector3 at, float radius, JamKit.Doomlike.Billboard billboard = null)

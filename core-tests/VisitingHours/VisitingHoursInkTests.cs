@@ -197,9 +197,16 @@ namespace JamKit.Tests
             var tags = new List<string>();
             Play("day2_rafael", lines, tags);
             Assert.That(string.Join(" ", lines), Does.Contain("Did Lena get out?"));
+            lines.Clear();
+            tags.Clear();
             Play("day2_visitor", lines, tags);
             Assert.That(string.Join(" ", lines), Does.Contain("Community Partnerships").And.Contain("Has he said anything?"));
             Assert.That(string.Join(" ", lines), Does.Not.Contain("transfer").IgnoreCase, "no transfer clock");
+            // LeBaget's representative is a woman now (the creator, 2026-10-13): Corinne Vasseur; the man is gone.
+            Assert.That(string.Join(" ", lines), Does.Contain("Corinne Vasseur"));
+            Assert.That(string.Join(" ", lines), Does.Not.Contain("Daniel Arce"));
+            Assert.That(tags, Does.Contain("speaker:The woman from LeBaget"));
+            Assert.That(tags, Does.Not.Contain("speaker:The man from LeBaget"));
             tags.Clear();
             Play("day2_stairwell", lines, tags);
             Assert.That(tags, Does.Not.Contain("event:vh:to_booth"), "the round first (the Day agent's redesign)");
@@ -209,6 +216,41 @@ namespace JamKit.Tests
             Play("day1_phone", lines, tags);
             Assert.That(string.Join(" ", lines), Does.Contain("Not now."));
         }
+
+        /// <summary>The booth plays the House agent's thrown-out lines (DreamHouseLines.ThrownOutBooth), word for word, in the
+        /// same order: they're read out of DreamHouseStory.cs and matched against the knot's lines.</summary>
+        [Test]
+        public void TheThrownOutBoothIsTheHousesLinesWordForWord()
+        {
+            var dir = new DirectoryInfo(Path.GetDirectoryName(InkFile()));
+            while (dir != null && !Directory.Exists(Path.Combine(dir.FullName, "Packages"))) dir = dir.Parent;
+            Assert.That(dir, Is.Not.Null);
+            string src = File.ReadAllText(Path.Combine(dir.FullName, "Packages", "com.vibejam.jamkit", "Runtime", "Core", "DreamEscape", "DreamHouseStory.cs"));
+            int at = src.IndexOf("ThrownOutBooth =", StringComparison.Ordinal);
+            Assert.That(at, Is.GreaterThan(0), "DreamHouseLines.ThrownOutBooth");
+            int end = src.IndexOf("};", at, StringComparison.Ordinal);
+            var house = new List<string>();
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(src.Substring(at, end - at), "new HouseLine\\((\\w+), \"((?:[^\"\\\\]|\\\\.)*)\"\\)"))
+                house.Add(m.Groups[1].Value + "|" + m.Groups[2].Value.Replace("\\\"", "\""));
+            Assert.That(house.Count, Is.EqualTo(4));
+
+            var lines = new List<string>();
+            var tags = new List<string>();
+            var s = NewStory(new HashSet<string>());
+            s.ChoosePathString(VisitingHoursGame_KnotThrownOutBooth);
+            var said = new List<string>();
+            string speaker = "";
+            while (s.canContinue)
+            {
+                string line = s.Continue().Trim();
+                foreach (var t in s.currentTags) if (t.StartsWith("speaker:")) speaker = t.Substring(8).Trim();
+                if (line.Length > 0) said.Add(speaker + "|" + line);
+            }
+            Assert.That(said, Is.EqualTo(house), "the booth's knot is the house's lines, in order, with their speakers");
+        }
+
+        /// <summary>VisitingHoursGame.KnotThrownOutBooth (the game's Unity side isn't compiled here).</summary>
+        const string VisitingHoursGame_KnotThrownOutBooth = "booth_thrown_out";
 
         [Test]
         public void TheStairwellWaitsForTheRound()

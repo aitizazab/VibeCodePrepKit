@@ -28,6 +28,7 @@ namespace JamKit.DreamEscape.EditorTools
             colliders.SetParent(root, false);
             // One mesh per storey band and outside (fewer draw calls, still culled in pieces).
             var builders = new Dictionary<string, MeshBuilder>();
+            var hedges = new List<HousePart>();
             MeshBuilder B(string key)
             {
                 if (!builders.TryGetValue(key, out var b)) { b = new MeshBuilder(); builders[key] = b; }
@@ -70,7 +71,11 @@ namespace JamKit.DreamEscape.EditorTools
                         else B("Outside").Box(U(p.Min), U(p.Max), HouseMaterials.Deck());
                         break;
                     case HouseLook.Fence: Fence(part, B("Outside")); break;
-                    case HouseLook.Hedge: B("Outside").Box(U(p.Min), U(p.Max), HouseMaterials.Hedge()); break;
+                    case HouseLook.Hedge:
+                        // A dark core (so no gaps show through) under a row of Look's shrubs (a green box before).
+                        B("Outside").Box(U(p.Min) + new Vector3(0.18f, 0f, 0.18f), U(p.Max) - new Vector3(0.18f, 0.25f, 0.18f), HouseMaterials.Look("Plaster_Painted", "HedgeCore", new Color(0.12f, 0.2f, 0.1f)));
+                        hedges.Add(part);
+                        break;
                     case HouseLook.Wood:
                         if (p.kind == LabPieceKind.Ramp) Stair(h, part, B("Outside"));
                         else B("Outside").Box(U(p.Min), U(p.Max), HouseMaterials.Deck());
@@ -88,6 +93,27 @@ namespace JamKit.DreamEscape.EditorTools
             if (glass != null) { glass.gameObject.layer = 2; var r = glass.GetComponent<MeshRenderer>(); if (r != null) r.shadowCastingMode = ShadowCastingMode.Off; }
             Trims(h, structure);
             Openings(h, structure);
+            if (hedges.Count > 0)
+            {
+                var hroot = new GameObject("Hedges").transform;
+                hroot.SetParent(root, false);
+                int seed = 11;
+                foreach (var part in hedges)
+                {
+                    var p = part.piece;
+                    bool alongX = p.size.X >= p.size.Z;
+                    float len = alongX ? p.size.X : p.size.Z;
+                    int n = Mathf.Max(2, Mathf.RoundToInt(len / 1.0f));
+                    for (int k = 0; k < n; k++)
+                    {
+                        float t = (k + 0.5f) / n;
+                        var at = alongX ? new Vector3(p.Min.X + p.size.X * t, p.Min.Y, p.center.Z) : new Vector3(p.center.X, p.Min.Y, p.Min.Z + p.size.Z * t);
+                        var shrub = Look.EditorTools.VhLookTrees.Place(hroot, at, Look.EditorTools.VhLookTrees.Species.Shrub, seed++ % 3, p.size.Y, false, (seed * 47) % 360);
+                        if (shrub == null) continue;
+                        foreach (var c in shrub.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
+                    }
+                }
+            }
         }
 
         static string Band(float y) => y < -0.4f ? "basement" : y < 3.0f ? "ground" : y < 5.9f ? "upper" : "attic";

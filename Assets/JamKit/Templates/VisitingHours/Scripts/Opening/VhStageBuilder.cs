@@ -85,6 +85,9 @@ namespace JamKit.VisitingHours
                 _loggedMissing = true;
                 Debug.Log("JAMKIT_VH art missing (opening and title; stand-ins drawn in code): " + string.Join(", ", s.missingArt));
             }
+            // perf.md (Day items 6 and 7): the stand-in pictures compressed and off the CPU; Nadia's skinning only on screen.
+            s.textures.Seal();
+            VhTitlePerf.Settle(s);
             return s;
         }
 

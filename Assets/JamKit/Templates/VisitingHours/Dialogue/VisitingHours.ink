@@ -504,19 +504,22 @@ That they were looking. Then they put him under.
 <i>Did she?</i> #thought
 -> END
 
+// LeBaget's representative is a woman (the creator, 2026-10-13): Corinne Vasseur, Community Partnerships, mid-forties,
+// the aubergine blazer and the gold glasses on their chain (docs/redesign/people.md). She asks what he's said; there is
+// no transfer clock.
 === day2_visitor ===
-#speaker:The man from LeBaget
-Ms. Lasname? Daniel Arce, from LeBaget. Community Partnerships. We were so sorry to hear.
-Dr. Lasname has been a friend to the foundation for years. I brought fruit. I wasn't sure what he's allowed.
+#speaker:The woman from LeBaget
+Ms. Lasname? Corinne Vasseur, from LeBaget. Community Partnerships. I'm so sorry. We all are.
+Dr. Lasname has been a friend to the foundation for years. I brought fruit. Nobody could tell me what he's allowed.
 #speaker:Nadia
 He's on a drip.
-#speaker:The man from LeBaget
-Of course. Of course he is.
+#speaker:The woman from LeBaget
+Of course. Of course he is. That was silly of me.
 Has he said anything? #event:vh:record:fact_visitor #sfx:page
 #speaker:Nadia
 He's in a coma.
-#speaker:The man from LeBaget
-Naturally. Forgive me. If he does, anything at all, we'd want to help. My card.
+#speaker:The woman from LeBaget
+Yes. Forgive me. I only meant, if he does. Anything at all. We'd want to help. My card.
 #speaker:Nadia
 <i>Who asks what a man in a coma has said?</i> #thought
 -> END
@@ -640,6 +643,19 @@ Stairwell B. Down to the closed wing.
 }
 Again, then. You found the house. Tonight you go inside.
 -> booth_heard
+
+// Thrown out of Night 2 (the house's fall): she wakes in the booth's chair. The House agent's lines
+// (DreamHouseLines.ThrownOutBooth in Runtime/Core/DreamEscape/DreamHouseStory.cs), word for word; the Day agent's booth
+// plays them when the save has vh_n2_thrown_out. VisitingHoursInkTests checks they still match.
+=== booth_thrown_out ===
+#speaker:Mags #portrait:Mags neutral right
+Breathe. You're out. You're in the booth.
+#speaker:Nadia
+Lena-- Theo--
+#speaker:Mags
+His heart went through the roof when you fell. I had to. That's a night we don't get back.
+And they'll remember how you left.
+-> END
 
 // ---------- Night 1: Walt's street (the dream) ----------
 

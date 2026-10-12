@@ -10,7 +10,12 @@
         "Ink",
         "InkEditor",
         "Ink-Libraries",
-        "Unity.RenderPipelines.Universal.Runtime"
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "JamKit.Look",
+        "JamKit.Look.Editor",
+        "JamKit.VisitingHours.Characters",
+        "JamKit.Perf"
     ],
     "includePlatforms": [
         "Editor"

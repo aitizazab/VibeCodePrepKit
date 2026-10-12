@@ -23,6 +23,103 @@ namespace JamKit.VisitingHours
         public static Volume Day(Transform root, VhWardLibrary lib, Bounds[] probeRooms)
         {
             var cam = MainCamera();
+            bool look = lib != null && lib.dayRig != null;
+            if (look) LookRig(root, lib);
+            else OwnSun(root, lib);
+
+            if (cam != null)
+            {
+                cam.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0.62f, 0.68f, 0.74f);
+                cam.allowHDR = true;
+                var cd = cam.GetUniversalAdditionalCameraData();
+                cd.renderPostProcessing = true;
+                cd.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+                cd.antialiasingQuality = AntialiasingQuality.High;
+                cd.stopNaN = true;
+                cd.renderShadows = true;
+            }
+
+            // Reflection probes, box-projected to each space: the baked cubemaps when the library has them (perf.md, Day
+            // item 5: realtime probes never render, they're off in the quality levels); otherwise realtime, rendered once
+            // with realtime probes switched on for the ward (put back when it goes).
+            if (probeRooms != null)
+            {
+                bool anyRealtime = false;
+                for (int i = 0; i < probeRooms.Length; i++)
+                {
+                    var b = probeRooms[i];
+                    var pg = new GameObject("Reflection probe " + i);
+                    pg.transform.SetParent(root, false);
+                    pg.transform.localPosition = new Vector3(b.center.x, 1.5f, b.center.z);
+                    var p = pg.AddComponent<ReflectionProbe>();
+                    p.boxProjection = true;
+                    p.size = new Vector3(b.size.x, 3.2f, b.size.z);
+                    p.center = Vector3.zero;
+                    p.resolution = 128;
+                    p.hdr = true;
+                    p.intensity = 1f;
+                    p.blendDistance = 1f;
+                    p.clearFlags = ReflectionProbeClearFlags.Skybox;
+                    var baked = lib != null ? lib.Probe(i) : null;
+                    if (baked != null)
+                    {
+                        p.mode = ReflectionProbeMode.Custom;
+                        p.customBakedTexture = baked;
+                    }
+                    else
+                    {
+                        p.mode = ReflectionProbeMode.Realtime;
+                        p.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
+                        p.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
+                        pg.AddComponent<RenderOnce>();
+                        anyRealtime = true;
+                    }
+                }
+                if (anyRealtime && Application.isPlaying) root.gameObject.AddComponent<RealtimeProbesOn>();
+            }
+
+            // Look's rig carries its own grade (VH_HospitalDay); without it, the ward's.
+            if (!look) Volume(root, "Ward day grade (volume)", OwnGrade(root), 1f, 20f);
+
+            // The bedside's shallow focus (her hand and his; the rest of the room soft).
+            var dofProfile = Profile(root, "Bedside focus");
+            var dof = dofProfile.Add<DepthOfField>();
+            dof.mode.Override(DepthOfFieldMode.Gaussian);
+            dof.gaussianStart.Override(1.3f);
+            dof.gaussianEnd.Override(4.5f);
+            dof.gaussianMaxRadius.Override(0.8f);
+            dof.highQualitySampling.Override(true);
+            return Volume(root, "Bedside focus (volume)", dofProfile, 0f, 30f);
+        }
+
+        /// <summary>
+        /// Look's hospital-by-day rig (docs/redesign/look.md: <c>VhLook.ApplyHospitalDay</c>, built in the editor and kept as a
+        /// prefab in the library): the sun (white, 2.4) at the ward's angle, the bounce fill, VhLookRig (it aims them, turns
+        /// the sky to the sun and caps its shadows to the quality tier), and the VH_HospitalDay post volume; Look's sky, and
+        /// the sky's ambient at an indoor level.
+        /// </summary>
+        static void LookRig(Transform root, VhWardLibrary lib)
+        {
+            var rig = Object.Instantiate(lib.dayRig, root);
+            rig.name = "Look: hospital day";
+            Light sun = null;
+            foreach (var l in rig.GetComponentsInChildren<Light>(true))
+                if (l.type == LightType.Directional && l.shadows != LightShadows.None) { sun = l; break; }
+            foreach (var v in rig.GetComponentsInChildren<Volume>(true)) v.priority = 20f;
+            if (sun != null) RenderSettings.sun = sun;
+            RenderSettings.skybox = lib.daySky != null ? lib.daySky : lib.sky;
+            RenderSettings.ambientMode = AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = lib.dayAmbient;
+            RenderSettings.fog = false;
+            RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
+            RenderSettings.reflectionIntensity = 0.8f;
+            DynamicGI.UpdateEnvironment();
+        }
+
+        /// <summary>The ward's own light when Look's rig isn't in the library: the late-afternoon sun, the sky, a trilight.</summary>
+        static void OwnSun(Transform root, VhWardLibrary lib)
+        {
             var sunGo = new GameObject("Sun (late afternoon)");
             sunGo.transform.SetParent(root, false);
             sunGo.transform.rotation = Quaternion.Euler(SunEuler);
@@ -45,42 +142,11 @@ namespace JamKit.VisitingHours
             RenderSettings.fog = false;
             RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
             RenderSettings.reflectionIntensity = 0.8f;
+        }
 
-            if (cam != null)
-            {
-                cam.clearFlags = lib != null && lib.sky != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.62f, 0.68f, 0.74f);
-                cam.allowHDR = true;
-                var cd = cam.GetUniversalAdditionalCameraData();
-                cd.renderPostProcessing = true;
-                cd.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
-                cd.antialiasingQuality = AntialiasingQuality.High;
-                cd.stopNaN = true;
-                cd.renderShadows = true;
-            }
-
-            // Realtime reflection probes, rendered once the place is built (box-projected to each space).
-            if (probeRooms != null)
-                foreach (var b in probeRooms)
-                {
-                    var pg = new GameObject("Reflection probe");
-                    pg.transform.SetParent(root, false);
-                    pg.transform.localPosition = new Vector3(b.center.x, 1.5f, b.center.z);
-                    var p = pg.AddComponent<ReflectionProbe>();
-                    p.mode = ReflectionProbeMode.Realtime;
-                    p.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
-                    p.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
-                    p.boxProjection = true;
-                    p.size = new Vector3(b.size.x, 3.2f, b.size.z);
-                    p.center = new Vector3(0f, 0f, 0f);
-                    p.resolution = 128;
-                    p.hdr = true;
-                    p.intensity = 1f;
-                    p.blendDistance = 1f;
-                    p.clearFlags = ReflectionProbeClearFlags.Skybox;
-                    pg.AddComponent<RenderOnce>();
-                }
-
+        /// <summary>The ward's own grade (without Look's rig): ACES, a little bloom, a warm white balance, a light vignette.</summary>
+        static VolumeProfile OwnGrade(Transform root)
+        {
             var grade = Profile(root, "Ward day grade");
             grade.Add<Tonemapping>().mode.Override(TonemappingMode.ACES);
             var ca = grade.Add<ColorAdjustments>();
@@ -101,17 +167,7 @@ namespace JamKit.VisitingHours
             var vig = grade.Add<Vignette>();
             vig.intensity.Override(0.2f);
             vig.smoothness.Override(0.5f);
-            Volume(root, "Ward day grade (volume)", grade, 1f, 20f);
-
-            // The bedside's shallow focus (her hand and his; the rest of the room soft).
-            var dofProfile = Profile(root, "Bedside focus");
-            var dof = dofProfile.Add<DepthOfField>();
-            dof.mode.Override(DepthOfFieldMode.Gaussian);
-            dof.gaussianStart.Override(1.3f);
-            dof.gaussianEnd.Override(4.5f);
-            dof.gaussianMaxRadius.Override(0.8f);
-            dof.highQualitySampling.Override(true);
-            return Volume(root, "Bedside focus (volume)", dofProfile, 0f, 30f);
+            return grade;
         }
 
         /// <summary>The booth at 11 PM: no sun, no sky, a dark cool ambient, the grade of a night room.</summary>
@@ -202,6 +258,24 @@ namespace JamKit.VisitingHours
             {
                 foreach (var p in profiles) VhUtil.Kill(p);
             }
+        }
+
+        /// <summary>
+        /// The probes aren't baked yet: realtime reflection probes are switched on in the quality settings while the ward is
+        /// up (they're off in every Visiting Hours quality level, so a realtime probe would never render), and put back as
+        /// they were when it goes. Run JamKit > Visiting Hours > Bake the Ward Probes and this isn't needed.
+        /// </summary>
+        sealed class RealtimeProbesOn : MonoBehaviour
+        {
+            bool _was;
+
+            void Awake()
+            {
+                _was = QualitySettings.realtimeReflectionProbes;
+                QualitySettings.realtimeReflectionProbes = true;
+            }
+
+            void OnDestroy() => QualitySettings.realtimeReflectionProbes = _was;
         }
 
         /// <summary>Renders its reflection probe once, a frame after the place is built (everything's in by then).</summary>

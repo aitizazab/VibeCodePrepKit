@@ -1,14 +1,15 @@
 using System.Collections.Generic;
+using JamKit.VisitingHours.Characters;
 using UnityEngine;
 
 namespace JamKit.VisitingHours
 {
     /// <summary>
     /// The people on the ward and in the booth (docs/redesign/day.md, "People"). Each has an id; <see cref="Place"/> puts
-    /// the People agent's model there when it exists (<c>Resources/VhPeople/&lt;id&gt;</c>: a prefab with its root at the
-    /// feet, facing +Z; it gets <c>SendMessage("SetPose", "Standing" | "Sitting" | "InBed" | "LyingInBed")</c>, so a
-    /// component on it can pose it), and a stand-in until then: a figure in their clothes (PBR fabric and skin), standing,
-    /// sitting or in a hospital bed. The stand-ins are interim by design (REDESIGN.md: the People agent swaps them).
+    /// the People agent's 3D cast there (docs/redesign/people.md: <see cref="VhCharacter.Spawn"/> of Mags, Rafael, the
+    /// LeBaget representative and EliasBed, rigged and animated, with talking faces), posed by animation state (standing:
+    /// "idle"; sitting: "sit"; Elias: "lie"). The people with no model yet (Mrs. Okafor, Mr. and Mrs. Brandt, the man
+    /// waiting in the family room) are stand-ins in their clothes (PBR fabric and skin), standing, sitting or in a bed.
     /// </summary>
     public sealed class VhWardPeople
     {
@@ -17,6 +18,41 @@ namespace JamKit.VisitingHours
             Visitor = "lebaget_visitor", WaitingMan = "waiting_man", Elias = "elias";
 
         public enum Pose { Standing, Sitting, InBed, LyingInBed }
+
+        /// <summary>The People agent's prefab for a ward id (Resources/People/&lt;name&gt;), or null: no model, a stand-in.</summary>
+        public static string ModelFor(string id)
+        {
+            switch (id)
+            {
+                case Rafael: return "Rafael";
+                case Mags: return "Mags";
+                case Visitor: return "Representative";
+                case Elias: return "EliasBed";
+                default: return null;
+            }
+        }
+
+        /// <summary>The animation state a pose plays (every prefab's controller has the same names; EliasBed defaults to lie).</summary>
+        public static string StateFor(Pose pose)
+        {
+            switch (pose)
+            {
+                case Pose.Sitting: return "sit";
+                case Pose.InBed:
+                case Pose.LyingInBed: return "lie";
+                default: return "idle";
+            }
+        }
+
+        /// <summary>The speakers in the ink who are one of the 3D cast (so their mouths move when they speak).</summary>
+        public static string ModelForSpeaker(string speaker)
+        {
+            if (string.IsNullOrEmpty(speaker)) return null;
+            if (speaker == "Mags") return "Mags";
+            if (speaker == "Rafael") return "Rafael";
+            if (speaker.Contains("LeBaget") || speaker.Contains("Vasseur")) return "Representative";
+            return null;
+        }
 
         struct Look
         {
@@ -37,7 +73,8 @@ namespace JamKit.VisitingHours
                 case June: return new Look { height = 1.6f, top = new Color(0.58f, 0.48f, 0.62f), legs = new Color(0.36f, 0.36f, 0.4f), hair = new Color(0.86f, 0.85f, 0.84f), skin = new Color(0.86f, 0.72f, 0.66f), topSurface = "fabric", glasses = true };
                 case Okafor: return new Look { height = 1.62f, top = gown, legs = gown, hair = new Color(0.2f, 0.18f, 0.17f), skin = new Color(0.36f, 0.24f, 0.18f), topSurface = "linen", wrap = true, accent = new Color(0.72f, 0.32f, 0.2f) };
                 case Brandt: return new Look { height = 1.75f, top = gown, legs = gown, hair = new Color(0.86f, 0.86f, 0.84f), skin = new Color(0.86f, 0.68f, 0.6f), topSurface = "linen", bald = true };
-                case Visitor: return new Look { height = 1.82f, top = new Color(0.22f, 0.23f, 0.27f), legs = new Color(0.2f, 0.21f, 0.24f), hair = new Color(0.45f, 0.43f, 0.42f), skin = new Color(0.82f, 0.68f, 0.58f), topSurface = "fabric", tie = true, accent = new Color(0.42f, 0.18f, 0.2f) };
+                // LeBaget's representative (a woman since 2026-10-13): the aubergine blazer, charcoal trousers, dark brown hair.
+                case Visitor: return new Look { height = 1.72f, top = new Color(0.36f, 0.2f, 0.3f), legs = new Color(0.22f, 0.22f, 0.24f), hair = new Color(0.22f, 0.15f, 0.11f), skin = new Color(0.86f, 0.72f, 0.64f), topSurface = "fabric", bun = true, glasses = true };
                 case WaitingMan: return new Look { height = 1.72f, top = new Color(0.42f, 0.32f, 0.22f), legs = new Color(0.3f, 0.32f, 0.38f), hair = new Color(0.55f, 0.53f, 0.5f), skin = new Color(0.78f, 0.6f, 0.5f), topSurface = "fabric", bald = true };
                 default: return new Look { height = 1.72f, top = scrubs, legs = scrubs, hair = new Color(0.2f, 0.16f, 0.13f), skin = VhWakingStyle.Skin, topSurface = "fabric" };
             }
@@ -48,14 +85,16 @@ namespace JamKit.VisitingHours
         readonly VhWakingStyle _style;
         readonly VhWardLibrary _lib;
         readonly List<Material> _mats;
+        readonly List<VhCharacter> _cast;
 
-        public VhWardPeople(Transform root, VhMeshKit meshes, VhWakingStyle style, VhWardLibrary lib, List<Material> mats)
+        public VhWardPeople(Transform root, VhMeshKit meshes, VhWakingStyle style, VhWardLibrary lib, List<Material> mats, List<VhCharacter> cast = null)
         {
             _root = root;
             _meshes = meshes;
             _style = style;
             _lib = lib;
             _mats = mats;
+            _cast = cast;
         }
 
         Material Mat(Color c, string surface)
@@ -78,17 +117,36 @@ namespace JamKit.VisitingHours
         /// </summary>
         public Transform Place(string id, Vector3 at, float yaw, Pose pose)
         {
-            var prefab = Resources.Load<GameObject>(PrefabFolder + id);
-            if (prefab != null)
-            {
-                var go = Object.Instantiate(prefab, _root);
-                go.name = id;
-                go.transform.localPosition = at;
-                go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
-                go.SendMessage("SetPose", pose.ToString(), SendMessageOptions.DontRequireReceiver);
-                return go.transform;
-            }
+            var c = Cast(id, at, yaw, pose);
+            if (c != null) return c.transform;
             return StandIn(id, at, yaw, pose);
+        }
+
+        /// <summary>
+        /// The 3D person for <paramref name="id"/> (People's prefab), placed and posed, or null when the id has no model or the
+        /// prefab isn't in the build (then <see cref="Place"/> builds the stand-in). The model is listed in the place's cast
+        /// (the game turns their heads to her and moves their mouths when they speak). A collider stands where they stand.
+        /// </summary>
+        public VhCharacter Cast(string id, Vector3 at, float yaw, Pose pose)
+        {
+            string model = ModelFor(id);
+            if (model == null || Resources.Load<GameObject>(VhCharacter.ResourceFolder + model) == null) return null;
+            var c = VhCharacter.Spawn(model, _root.TransformPoint(at), _root.rotation * Quaternion.Euler(0f, yaw, 0f), _root);
+            if (c == null) return null;
+            c.gameObject.name = model + " (" + id + ")";
+            c.Play(StateFor(pose), 0f);
+            if (pose == Pose.Standing || pose == Pose.Sitting)
+            {
+                var col = c.gameObject.AddComponent<CapsuleCollider>();
+                col.center = new Vector3(0f, pose == Pose.Sitting ? 0.6f : 0.85f, pose == Pose.Sitting ? 0.15f : 0f);
+                col.height = pose == Pose.Sitting ? 1.2f : 1.7f;
+                col.radius = 0.25f;
+            }
+            // The animator off-screen: no skinning (the ward has a dozen rooms; most people are out of view).
+            foreach (var smr in c.GetComponentsInChildren<SkinnedMeshRenderer>(true)) smr.updateWhenOffscreen = false;
+            if (c.animator != null) c.animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+            _cast?.Add(c);
+            return c;
         }
 
         Transform StandIn(string id, Vector3 at, float yaw, Pose pose)

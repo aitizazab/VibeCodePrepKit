@@ -27,7 +27,7 @@ namespace JamKit.VisitingHours
         {
             _mode = Mode.Transition;
             StartDayState();
-            yield return Card("St. Brigid's", "Six weeks later", () => EnterArea(SliceArea.Hospital), 2.4f, true);
+            yield return Card("St. Brigid's", "Six weeks later", null, 2.4f, true, EnterAreaStaged(SliceArea.Hospital));
             _mode = Mode.Explore;
             _hud.ShowControls(16f);
             yield return PlayWhenFree(SliceContent.KnotDay1Intro);
@@ -39,13 +39,14 @@ namespace JamKit.VisitingHours
         {
             _mode = Mode.Transition;
             StartDayState();
-            yield return Card("St. Brigid's", "Day 2", () => EnterArea(SliceArea.HospitalDay2), 2.4f, true);
+            yield return Card("St. Brigid's", "Day 2", null, 2.4f, true, EnterAreaStaged(SliceArea.HospitalDay2));
             _mode = Mode.Explore;
             yield return PlayWhenFree(SliceContent.KnotDay2Intro);
         }
 
-        /// <summary>Black, the place's name, <paramref name="middle"/> while it's dark, then the fade back.</summary>
-        IEnumerator Card(string title, string sub, Action middle, float hold, bool startBlack = false)
+        /// <summary>Black, the place's name, <paramref name="middle"/> while it's dark (or <paramref name="staged"/>, a frame a
+        /// step: the hold counts from when it's done), then the fade back.</summary>
+        IEnumerator Card(string title, string sub, Action middle, float hold, bool startBlack = false, IEnumerator staged = null)
         {
             float k = Fast ? 0.03f : 1f;
             _hud.SetCard(startBlack ? 1f : 0f, title, sub);
@@ -57,6 +58,13 @@ namespace JamKit.VisitingHours
                 }
             _hud.SetCard(1f, null, null);
             middle?.Invoke();
+            if (staged != null)
+            {
+                float started = Time.realtimeSinceStartup;
+                while (staged.MoveNext()) yield return staged.Current;
+                // The building took part of the hold already (it happened under the same black).
+                hold = Mathf.Max(0.3f, hold - (Time.realtimeSinceStartup - started) / Mathf.Max(0.01f, k));
+            }
             for (float t = 0f; t < hold * k; t += Time.unscaledDeltaTime) yield return null;
             for (float t = 0f; t < 1.2f * k; t += Time.unscaledDeltaTime)
             {
@@ -71,6 +79,27 @@ namespace JamKit.VisitingHours
         {
             if (_area != null && _area.root != null) Destroy(_area.root.gameObject);
             _area = VhWorld.Build(which, config, worldRoot);
+            AreaBuilt(which);
+        }
+
+        /// <summary>
+        /// <see cref="EnterArea"/> a step a frame (the ward room by room, docs/redesign/perf.md Day item 3), for building under
+        /// a black card: the old place goes now, the new one is complete (and she's in it) when this ends.
+        /// </summary>
+        IEnumerator EnterAreaStaged(SliceArea which)
+        {
+            if (_area != null && _area.root != null) Destroy(_area.root.gameObject);
+            _area = null;
+            var area = VhWorld.NewArea(which, worldRoot);
+            var steps = VhWorld.BuildSteps(area, config);
+            while (steps.MoveNext()) yield return null;
+            _area = area;
+            AreaBuilt(which);
+        }
+
+        /// <summary>A place is up: she's at its start, its look and sound are set, its people are hooked up.</summary>
+        void AreaBuilt(SliceArea which)
+        {
             _areaTime = 0f;
             _target = null;
             player.Spawn(_area.spawn, _area.spawnYaw);
@@ -90,6 +119,7 @@ namespace JamKit.VisitingHours
             bool ward = which == SliceArea.Hospital || which == SliceArea.HospitalDay2;
             SetMonitor(ward && _area.patientMonitor == null ? _area.monitor : (Vector3?)null);
             RefreshRoundSheet();
+            CastEntered();
         }
 
         void SetMonitor(Vector3? at)
@@ -141,7 +171,9 @@ namespace JamKit.VisitingHours
             if (runner != null && VhChainRunner.Enabled && VhChainRunner.NightScene(night) != null)
             {
                 bool started = false;
-                string title = night == ChainSegment.Night2 ? "The house" : "Larch Street";
+                // Night 2 starts on the hill, outside the house on Rowan Street (World's request), when the hill's in the build.
+                string title = night == ChainSegment.Night1 ? "Larch Street"
+                    : VhChainRunner.NightScene(night) == Chain.HillScene ? "Rowan Street" : "The house";
                 yield return CardThenHold(title, night == ChainSegment.Night2 ? "Night 2" : "Night 1", () => started = runner.StartNight(night, _state.journal, _state.force), 2f);
                 if (started) yield break;
                 _hud.SetCard(0f, "", "");
@@ -180,6 +212,8 @@ namespace JamKit.VisitingHours
         IEnumerator ChainEnd()
         {
             _mode = Mode.Transition;
+            // Thrown out of the house: she comes to in the booth first, and Mags says what it cost (the house's lines).
+            if (Chain.ThrownOutOfNight2(SaveData)) yield return ThrownOutBooth();
             if (_area == null) EnterArea(SliceArea.BoothDay2);
             _hud.SetDim(1f);
             GameRoot.Audio.StopAmbience(1f);
@@ -222,6 +256,7 @@ namespace JamKit.VisitingHours
         void TickArea(float dt)
         {
             _areaTime += dt;
+            TickCast();
             if (_area == null || _area.area != SliceArea.Street) return;
             if (_area.dog != null)
             {

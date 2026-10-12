@@ -233,6 +233,15 @@ The creator asked for a severe overhaul: "it's not at all cinematic", and the ti
 - **WebGL** (the Mobile quality level) gets the same picture: cookies, Gaussian depth of field, bloom, tonemapping, SMAA. It has no SSAO and harder main-light shadows.
 - **Safety:** the camera stops NaNs, and bloom is clamped at 20, so one blown pixel can't flood the frame.
 
+### Cost (the Perf agent's list, docs/redesign/perf.md; the Day agent, 2026-10-13)
+- **Nadia and the blanket** skin only while on screen (`updateWhenOffscreen` off, inside their mesh bounds plus 0.8 m, so
+  her arm reaching for the phone never pops out); play mode only, the editor's captures still re-skin every render.
+- **A light dimmed to nothing is switched off** (the title's lights were left drawing at intensity 0).
+- **The phone's and the tablet's UI panels** stop redrawing into their textures while their screens are out of view
+  (`VhScreenPanel.SetDrawing`; the picture stays, the UI is put back when they're seen).
+- **The stand-in pictures** (`VhTextures`) are compressed and drop their CPU copy once the set is built (`Seal`).
+- All in `Scripts/Opening/VhTitlePerf.cs`, settled by `VhStageBuilder.Build`. Unmeasured until the Perf agent's probe runs.
+
 ### Iterating
 - `tools/vh-lighting-capture.ps1` (or *JamKit > Visiting Hours > Capture the Lighting* in the editor) renders seven moments at 1920x1080 to `out/vh-lighting/<time>/`, on PC and on WebGL quality:
   1. the dark room

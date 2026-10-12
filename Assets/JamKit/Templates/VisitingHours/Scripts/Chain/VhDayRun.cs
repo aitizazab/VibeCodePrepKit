@@ -54,6 +54,13 @@ namespace JamKit.VisitingHours
                 enabled = false;
                 return;
             }
+            // A player flag only: never a windowed editor (one took focus from the creator, 2026-10-12).
+            if (Application.isEditor)
+            {
+                Debug.LogWarning("JAMKIT_VH day run: " + Flag + " is a player flag (run the built VisitingHours.exe); ignored in the editor");
+                enabled = false;
+                return;
+            }
             if (!Path.IsPathRooted(_folder)) _folder = Path.Combine(Application.persistentDataPath, _folder);
             VhBoot.SkipOpening = true;
             Screen.SetResolution(1920, 1080, FullScreenMode.Windowed);
