@@ -1,0 +1,262 @@
+{
+ "name": "visiting-hours-house-round5",
+ "title": "Visiting Hours: the house, round 5 (the observatory tower, the crescent skylight, the garden-side windows, colours)",
+ "subtitle": "Your notes on round 4: the garden-facing wall's tiny windows, the observatory's colour and shape (\"more like a tower ... dark polished wood, or a dark stone\"), a skylight worth using (\"like a crescent\"), the holes next to the door, and recolouring what the oxblood made clash (the ramp out of the kitchen). Grey = round 4, green = round 5. All tests pass (EditMode 912, PlayMode 154); a build passed smoke.",
+ "questions": [
+  "The tower: dark stone (my pick: it reads as a different, older material than the clapboard) or dark polished wood?",
+  "Does the crescent read as a skylight you'd use (it's 2.6 m across, right over the telescope)?",
+  "The recolours: green sofa and armchair, navy blanket, mustard and teal rugs, ochre curtains, a walnut slide. Anything else that still clashes?"
+ ],
+ "notes": [
+  "The tower is 5 m across over the middle of the attic's west end; inside, its ceiling is 5 m up (a double jump fits under it); outside it stands 2.2 m taller (a lantern storey with tall windows under the slate roof).",
+  "The holes by the door were the wall's jambs flickering against the door frame (two faces in one plane): the frame now wraps them, and the outside walls no longer share a plane with the front wall anywhere.",
+  "Only the furniture's pink fabric was recoloured; its wood and pillows keep their colours."
+ ],
+ "sections": [
+  {
+   "title": "The tower: dark stone (my pick) | dark polished wood",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r5/after-tower-0-dark-stone-chosen-garden-left.png",
+     "label": "Round 5: dark stone, from the garden",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-tower-1-dark-polished-wood-garden-left.png",
+     "label": "Round 5: dark polished wood, from the garden",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-tower-0-dark-stone-chosen-side-garden.png",
+     "label": "Round 5: dark stone, from the side garden",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-tower-1-dark-polished-wood-side-garden.png",
+     "label": "Round 5: dark polished wood, from the side garden",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-tower-0-dark-stone-chosen-from-the-street.png",
+     "label": "Round 5: dark stone, from the street",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-tower-1-dark-polished-wood-from-the-street.png",
+     "label": "Round 5: dark polished wood, from the street",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The observatory: before and after",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r5/before-exterior-02-garden-left.png",
+     "label": "Round 4: a full-width block in shingles",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-exterior-02-garden-left.png",
+     "label": "Round 5: a tower over the middle, the roof running on either side, a lantern storey and a slate roof",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/before-exterior-05-observatory-roof.png",
+     "label": "Round 4: the block from the side garden",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-exterior-05-observatory-roof.png",
+     "label": "Round 5: the tower from the side garden",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The crescent skylight (from the telescope's spot)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r5/before-house-12f-observatory-skylight.png",
+     "label": "Round 4: a small square skylight",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-12h-crescent-from-the-telescope.png",
+     "label": "Round 5: the crescent: 2.6 m across, over the telescope, a pane of night with stars",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-12f-observatory-skylight.png",
+     "label": "Round 5: looking up in the tower",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-12g-observatory-across.png",
+     "label": "Round 5: across the tower (5 m high inside)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-12c-attic-observatory.png",
+     "label": "Round 5: the telescope at the round window",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-12bc-attic-through-the-sheets.png",
+     "label": "Round 5: through the sheets",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The garden-facing wall: windows as big as the other side's",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r5/before-exterior-03-garden-right.png",
+     "label": "Round 4: small windows",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-exterior-03-garden-right.png",
+     "label": "Round 5: the parents' room, the bath and Theo's room, each window bigger (inside too)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-11-theos-room.png",
+     "label": "Round 5: Theo's bigger window from inside",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-10b-bath.png",
+     "label": "Round 5: the bath's window",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The holes by the door (gone)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r5/before-exterior-04-porch.png",
+     "label": "Round 4: jagged pale gaps beside the door (two faces fighting in one plane)",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-exterior-04-porch.png",
+     "label": "Round 5: the door frame wraps the jambs",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/before-house-01-front-garden-door.png",
+     "label": "Round 4: the front",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-01-front-garden-door.png",
+     "label": "Round 5: the front",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Colours for the oxblood and walnut",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r5/before-house-04-table-and-lena.png",
+     "label": "Round 4: the slide out of the kitchen, pale; a light blue rug",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-04-table-and-lena.png",
+     "label": "Round 5: the slide in walnut, a navy rug",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/before-house-08-living-room.png",
+     "label": "Round 4: a pink sofa and armchair on a coral rug",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-08-living-room.png",
+     "label": "Round 5: a deep green sofa and armchair on a mustard rug",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/before-house-08c-bay-window.png",
+     "label": "Round 4: coral curtains",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-08c-bay-window.png",
+     "label": "Round 5: ochre curtains",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/before-house-09-hall.png",
+     "label": "Round 4: a lilac runner",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-09-hall.png",
+     "label": "Round 5: a teal runner",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/before-house-10-parents-room.png",
+     "label": "Round 4: a pink blanket on a lavender rug",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/after-house-10-parents-room.png",
+     "label": "Round 5: a navy blanket on a cream rug",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The plans",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r5/house-plan-main.png",
+     "label": "The main floor",
+     "verdict": "pick"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r5/house-plan-attic.png",
+     "label": "The attic: the observatory tower in the middle of its west end, the crescent over the telescope",
+     "verdict": "pick"
+    }
+   ]
+  }
+ ]
+}

@@ -21,7 +21,7 @@ static class Program
         sb.Append("\"hub\":[" + F(DreamHouse.HubX0) + "," + F(DreamHouse.HubX1) + "," + F(DreamHouse.HubZ0) + "," + F(DreamHouse.HubZ1) + "],");
         sb.Append("\"hatch\":[" + F(DreamHouse.HatchX0) + "," + F(DreamHouse.HatchX1) + "," + F(DreamHouse.HatchZ0) + "," + F(DreamHouse.HatchZ1) + "],");
         sb.Append("\"stairs\":[" + F(DreamHouse.StairX0) + "," + F(DreamHouse.StairX1) + "," + F(DreamHouse.StairZ0) + "," + F(DreamHouse.StairZ1) + "],");
-        sb.Append("\"ridgeZ\":" + F(DreamHouse.RidgeZ) + ",\"dormer\":[" + F(DreamHouse.DormerX0) + "," + F(DreamHouse.DormerX1) + "," + F(DreamHouse.DormerZ0) + "],\"obsX1\":" + F(DreamHouse.ObsX1) + ",\"obsHeight\":" + F(DreamHouse.ObsHeight) + ",");
+        sb.Append("\"ridgeZ\":" + F(DreamHouse.RidgeZ) + ",\"dormer\":[" + F(DreamHouse.DormerX0) + "," + F(DreamHouse.DormerX1) + "," + F(DreamHouse.DormerZ0) + "],\"obsX1\":" + F(DreamHouse.ObsX1) + ",\"obsHeight\":" + F(DreamHouse.ObsHeight) + ",\"obsZ\":[" + F(DreamHouse.ObsZ0) + "," + F(DreamHouse.ObsZ1) + "],\"sky\":[" + F(DreamHouse.SkyX) + "," + F(DreamHouse.SkyZ) + "," + F(DreamHouse.SkyR) + "],");
         sb.Append("\"rooms\":[");
         for (int i = 0; i < h.rooms.Count; i++)
         {
