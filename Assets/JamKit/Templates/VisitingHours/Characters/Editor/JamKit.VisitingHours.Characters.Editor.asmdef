@@ -4,7 +4,10 @@
     "references": [
         "JamKit.VisitingHours.Characters",
         "Unity.RenderPipelines.Core.Runtime",
-        "Unity.RenderPipelines.Universal.Runtime"
+        "Unity.RenderPipelines.Universal.Runtime",
+        "JamKit.Look",
+        "JamKit.Look.Editor",
+        "JamKit.DreamEscape"
     ],
     "includePlatforms": [
         "Editor"

@@ -1,0 +1,485 @@
+{
+ "name": "Rafael",
+ "src": "elias",
+ "height": 1.76,
+ "colour": "surgical-teal scrubs under a white ward apron",
+ "note": "Rafael Duarte, 31, the intern: altered from the dream Elias (olive skin, black hair cut shorter, the beard trimmed, slimmer, teal scrubs, white trainers, a pen behind each ear, an ID badge)",
+ "alter": {
+  "classes": [
+   {
+    "name": "skin",
+    "sample": [
+     0.0,
+     0.895,
+     0.012
+    ],
+    "target": [
+     0.74,
+     0.52,
+     0.4
+    ]
+   },
+   {
+    "name": "skin-shade",
+    "proto": [
+     0.8,
+     0.56,
+     0.5
+    ],
+    "target": [
+     0.66,
+     0.44,
+     0.33
+    ]
+   },
+   {
+    "name": "hair",
+    "sample": [
+     0.0,
+     0.945,
+     0.012
+    ],
+    "zmin": 0.76,
+    "target": [
+     0.095,
+     0.072,
+     0.066
+    ]
+   },
+   {
+    "name": "beard",
+    "sample": [
+     0.0,
+     0.778,
+     0.008
+    ],
+    "zmin": 0.74,
+    "target": [
+     0.12,
+     0.09,
+     0.08
+    ],
+    "flatten": 0.2
+   },
+   {
+    "name": "eyewhite",
+    "proto": [
+     0.96,
+     0.96,
+     0.96
+    ],
+    "zmin": 0.83,
+    "zmax": 0.875,
+    "target": null
+   },
+   {
+    "name": "iris",
+    "proto": [
+     0.36,
+     0.2,
+     0.1
+    ],
+    "zmin": 0.84,
+    "zmax": 0.865,
+    "target": [
+     0.2,
+     0.12,
+     0.07
+    ]
+   },
+   {
+    "name": "shirt",
+    "sample": [
+     -0.2,
+     0.57,
+     0.02
+    ],
+    "zmax": 0.765,
+    "zmin": 0.3,
+    "target": [
+     0.1,
+     0.46,
+     0.48
+    ]
+   },
+   {
+    "name": "apron",
+    "sample": [
+     0.0,
+     0.5,
+     0.03
+    ],
+    "zmax": 0.765,
+    "zmin": 0.25,
+    "target": [
+     0.91,
+     0.94,
+     0.96
+    ],
+    "flatten": 0.5,
+    "roughness": 0.3
+   },
+   {
+    "name": "trousers",
+    "sample": [
+     -0.064,
+     0.2,
+     0.02
+    ],
+    "zmax": 0.5,
+    "target": [
+     0.09,
+     0.4,
+     0.42
+    ]
+   },
+   {
+    "name": "shoes",
+    "sample": [
+     -0.08,
+     0.03,
+     0.015
+    ],
+    "zmax": 0.09,
+    "target": [
+     0.9,
+     0.9,
+     0.88
+    ]
+   },
+   {
+    "name": "watch",
+    "sample": [
+     0.244,
+     0.495,
+     0.008
+    ],
+    "zmin": 0.4,
+    "zmax": 0.56,
+    "target": null
+   }
+  ],
+  "vertex_moves": [
+   {
+    "class": [
+     "beard",
+     "hair"
+    ],
+    "inward": 0.0045,
+    "zmax": 0.83,
+    "smooth": 6
+   },
+   {
+    "class": "hair",
+    "inward": 0.007,
+    "zmin": 0.865,
+    "smooth": 4
+   }
+  ],
+  "back_of_head": {
+   "center": [
+    0.002,
+    0.0,
+    0.865
+   ],
+   "y0": 0.02,
+   "y1": 0.04,
+   "zmin": 0.745,
+   "radius": 0.14,
+   "hairline": 0.8,
+   "hair": "hair",
+   "skin": "skin",
+   "pattern": "strands",
+   "smooth": 12,
+   "neck": {
+    "center_y": -0.02,
+    "rx": 0.05,
+    "ry": 0.048
+   },
+   "z_occ": 0.83,
+   "zramp": 0.012,
+   "pattern_strength": 0.55
+  },
+  "back_paint": [
+   {
+    "zmin": 0.51,
+    "zmax": 0.765,
+    "xmax": 0.17,
+    "ymin": 0.01,
+    "class": "shirt",
+    "pattern": "plain",
+    "strength": 0.1
+   }
+  ]
+ },
+ "proportions": {
+  "Spine": [
+   0.92,
+   1.0,
+   0.92
+  ],
+  "LeftArm": [
+   0.92,
+   1.0,
+   0.92
+  ],
+  "RightArm": [
+   0.92,
+   1.0,
+   0.92
+  ],
+  "Head": [
+   0.96,
+   0.96,
+   0.96
+  ]
+ },
+ "no_inherit": [
+  "Neck",
+  "LeftShoulder",
+  "RightShoulder",
+  "LeftHand",
+  "RightHand"
+ ],
+ "accessories": [
+  {
+   "name": "PenLeft",
+   "bone": "Head",
+   "prim": "cylinder",
+   "location": [
+    0.076,
+    0.006,
+    0.862
+   ],
+   "rotation": [
+    105,
+    0,
+    0
+   ],
+   "scale": [
+    0.0022,
+    0.0022,
+    0.034
+   ],
+   "color": [
+    0.12,
+    0.2,
+    0.62
+   ],
+   "smoothness": 0.7
+  },
+  {
+   "name": "PenLeftCap",
+   "bone": "Head",
+   "prim": "cylinder",
+   "location": [
+    0.076,
+    0.03,
+    0.8685
+   ],
+   "rotation": [
+    105,
+    0,
+    0
+   ],
+   "scale": [
+    0.0026,
+    0.0026,
+    0.007
+   ],
+   "color": [
+    0.85,
+    0.85,
+    0.88
+   ],
+   "smoothness": 0.8,
+   "metallic": 0.8
+  },
+  {
+   "name": "PenRight",
+   "bone": "Head",
+   "prim": "cylinder",
+   "location": [
+    -0.076,
+    0.006,
+    0.862
+   ],
+   "rotation": [
+    105,
+    0,
+    0
+   ],
+   "scale": [
+    0.0022,
+    0.0022,
+    0.034
+   ],
+   "color": [
+    0.06,
+    0.06,
+    0.07
+   ],
+   "smoothness": 0.7
+  },
+  {
+   "name": "PenRightCap",
+   "bone": "Head",
+   "prim": "cylinder",
+   "location": [
+    -0.076,
+    0.03,
+    0.8685
+   ],
+   "rotation": [
+    105,
+    0,
+    0
+   ],
+   "scale": [
+    0.0026,
+    0.0026,
+    0.007
+   ],
+   "color": [
+    0.85,
+    0.85,
+    0.88
+   ],
+   "smoothness": 0.8,
+   "metallic": 0.8
+  },
+  {
+   "name": "Badge",
+   "bone": "Spine2",
+   "prim": "cube",
+   "bevel": 0.0006,
+   "location": [
+    -0.036,
+    -0.0935,
+    0.655
+   ],
+   "rotation": [
+    0,
+    0,
+    4
+   ],
+   "scale": [
+    0.012,
+    0.0012,
+    0.017
+   ],
+   "color": [
+    0.95,
+    0.95,
+    0.93
+   ],
+   "smoothness": 0.6
+  },
+  {
+   "name": "BadgeStripe",
+   "bone": "Spine2",
+   "prim": "cube",
+   "location": [
+    -0.0358,
+    -0.0948,
+    0.666
+   ],
+   "rotation": [
+    0,
+    0,
+    4
+   ],
+   "scale": [
+    0.0121,
+    0.0004,
+    0.004
+   ],
+   "color": [
+    0.1,
+    0.46,
+    0.48
+   ],
+   "smoothness": 0.5
+  },
+  {
+   "name": "BadgeClip",
+   "bone": "Spine2",
+   "prim": "cube",
+   "location": [
+    -0.0362,
+    -0.0935,
+    0.6735
+   ],
+   "rotation": [
+    0,
+    0,
+    4
+   ],
+   "scale": [
+    0.004,
+    0.0016,
+    0.0035
+   ],
+   "color": [
+    0.6,
+    0.62,
+    0.65
+   ],
+   "smoothness": 0.8,
+   "metallic": 0.9
+  }
+ ],
+ "face": {
+  "rect": [
+   -60,
+   772,
+   64,
+   896
+  ],
+  "eyes": [
+   [
+    -28,
+    853
+   ],
+   [
+    32,
+    853
+   ]
+  ],
+  "eyebox": [
+   32,
+   22
+  ],
+  "brows": [
+   [
+    -30,
+    874
+   ],
+   [
+    30,
+    874
+   ]
+  ],
+  "mouth": [
+   1,
+   799
+  ],
+  "mouthL": [
+   -22,
+   801
+  ],
+  "mouthR": [
+   24,
+   801
+  ],
+  "lips": [
+   19,
+   6
+  ],
+  "lids": true,
+  "jaw": 0.16,
+  "smile": 0.2,
+  "brow": 0.14,
+  "frown": 0.15
+ }
+}

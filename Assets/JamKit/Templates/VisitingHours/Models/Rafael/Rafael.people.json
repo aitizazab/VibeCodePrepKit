@@ -1,0 +1,191 @@
+{
+ "name": "Rafael",
+ "height": 1.76,
+ "idle": "idle",
+ "colour": "surgical-teal scrubs under a white ward apron",
+ "note": "Rafael Duarte, 31, the intern: altered from the dream Elias (olive skin, black hair cut shorter, the beard trimmed, slimmer, teal scrubs, white trainers, a pen behind each ear, an ID badge)",
+ "hasFace": true,
+ "decal": "Rafael_FaceDecal",
+ "atlas": "Rafael_FaceAtlas.png",
+ "columns": 6,
+ "rows": 1,
+ "blink": true,
+ "expressions": [
+  {
+   "name": "neutral",
+   "shapes": []
+  },
+  {
+   "name": "warm",
+   "shapes": [
+    {
+     "shape": "Smile",
+     "weight": 45
+    }
+   ]
+  },
+  {
+   "name": "happy",
+   "shapes": [
+    {
+     "shape": "Smile",
+     "weight": 90
+    },
+    {
+     "shape": "BrowsUp",
+     "weight": 25
+    }
+   ]
+  },
+  {
+   "name": "sad",
+   "shapes": [
+    {
+     "shape": "Frown",
+     "weight": 60
+    },
+    {
+     "shape": "BrowsSad",
+     "weight": 85
+    }
+   ]
+  },
+  {
+   "name": "worried",
+   "shapes": [
+    {
+     "shape": "BrowsSad",
+     "weight": 70
+    },
+    {
+     "shape": "Frown",
+     "weight": 25
+    }
+   ]
+  },
+  {
+   "name": "hurt",
+   "shapes": [
+    {
+     "shape": "BrowsSad",
+     "weight": 100
+    },
+    {
+     "shape": "Frown",
+     "weight": 55
+    }
+   ]
+  },
+  {
+   "name": "angry",
+   "shapes": [
+    {
+     "shape": "BrowsDown",
+     "weight": 85
+    },
+    {
+     "shape": "Frown",
+     "weight": 45
+    }
+   ]
+  },
+  {
+   "name": "surprised",
+   "shapes": [
+    {
+     "shape": "BrowsUp",
+     "weight": 95
+    }
+   ]
+  },
+  {
+   "name": "doubtful",
+   "shapes": [
+    {
+     "shape": "BrowsDown",
+     "weight": 35
+    },
+    {
+     "shape": "Frown",
+     "weight": 20
+    },
+    {
+     "shape": "Smile",
+     "weight": 15
+    }
+   ]
+  }
+ ],
+ "accessories": [
+  {
+   "name": "PenLeft",
+   "color": [
+    0.12,
+    0.2,
+    0.62
+   ],
+   "smoothness": 0.7,
+   "metallic": 0.0
+  },
+  {
+   "name": "PenLeftCap",
+   "color": [
+    0.85,
+    0.85,
+    0.88
+   ],
+   "smoothness": 0.8,
+   "metallic": 0.8
+  },
+  {
+   "name": "PenRight",
+   "color": [
+    0.06,
+    0.06,
+    0.07
+   ],
+   "smoothness": 0.7,
+   "metallic": 0.0
+  },
+  {
+   "name": "PenRightCap",
+   "color": [
+    0.85,
+    0.85,
+    0.88
+   ],
+   "smoothness": 0.8,
+   "metallic": 0.8
+  },
+  {
+   "name": "Badge",
+   "color": [
+    0.95,
+    0.95,
+    0.93
+   ],
+   "smoothness": 0.6,
+   "metallic": 0.0
+  },
+  {
+   "name": "BadgeStripe",
+   "color": [
+    0.1,
+    0.46,
+    0.48
+   ],
+   "smoothness": 0.5,
+   "metallic": 0.0
+  },
+  {
+   "name": "BadgeClip",
+   "color": [
+    0.6,
+    0.62,
+    0.65
+   ],
+   "smoothness": 0.8,
+   "metallic": 0.9
+  }
+ ]
+}

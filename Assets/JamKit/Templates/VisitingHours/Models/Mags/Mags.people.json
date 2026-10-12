@@ -1,0 +1,120 @@
+{
+ "name": "Mags",
+ "height": 1.62,
+ "idle": "idle",
+ "colour": "oatmeal cardigan over pale-blue scrubs, the brick-red glasses cord",
+ "note": "Marguerite Ilunga (Tripo, sheet vh3d-mags-take2)",
+ "hasFace": true,
+ "decal": "Mags_FaceDecal",
+ "atlas": "Mags_FaceAtlas.png",
+ "columns": 6,
+ "rows": 1,
+ "blink": true,
+ "expressions": [
+  {
+   "name": "neutral",
+   "shapes": []
+  },
+  {
+   "name": "warm",
+   "shapes": [
+    {
+     "shape": "Smile",
+     "weight": 45
+    }
+   ]
+  },
+  {
+   "name": "happy",
+   "shapes": [
+    {
+     "shape": "Smile",
+     "weight": 90
+    },
+    {
+     "shape": "BrowsUp",
+     "weight": 25
+    }
+   ]
+  },
+  {
+   "name": "sad",
+   "shapes": [
+    {
+     "shape": "Frown",
+     "weight": 60
+    },
+    {
+     "shape": "BrowsSad",
+     "weight": 85
+    }
+   ]
+  },
+  {
+   "name": "worried",
+   "shapes": [
+    {
+     "shape": "BrowsSad",
+     "weight": 70
+    },
+    {
+     "shape": "Frown",
+     "weight": 25
+    }
+   ]
+  },
+  {
+   "name": "hurt",
+   "shapes": [
+    {
+     "shape": "BrowsSad",
+     "weight": 100
+    },
+    {
+     "shape": "Frown",
+     "weight": 55
+    }
+   ]
+  },
+  {
+   "name": "angry",
+   "shapes": [
+    {
+     "shape": "BrowsDown",
+     "weight": 85
+    },
+    {
+     "shape": "Frown",
+     "weight": 45
+    }
+   ]
+  },
+  {
+   "name": "surprised",
+   "shapes": [
+    {
+     "shape": "BrowsUp",
+     "weight": 95
+    }
+   ]
+  },
+  {
+   "name": "doubtful",
+   "shapes": [
+    {
+     "shape": "BrowsDown",
+     "weight": 35
+    },
+    {
+     "shape": "Frown",
+     "weight": 20
+    },
+    {
+     "shape": "Smile",
+     "weight": 15
+    }
+   ]
+  }
+ ],
+ "accessories": []
+}

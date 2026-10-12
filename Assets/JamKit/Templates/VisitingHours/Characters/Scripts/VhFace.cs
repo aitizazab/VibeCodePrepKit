@@ -14,6 +14,10 @@ namespace JamKit.VisitingHours.Characters
     ///   mouth closed, mouth half open, mouth open, then the same three with the eyes closed. The atlas cell is picked
     ///   through a MaterialPropertyBlock (_BaseMap_ST), so no material is copied.
     ///
+    /// The cast uses both at once (docs/redesign/people.md "Faces"): blendshapes move the jaw, the mouth corners and the
+    /// brows; the decal, a skinned copy of the face's front carrying the same blendshapes (listed in <see cref="followers"/>),
+    /// draws the closed lids and the mouth's inside, which stretches open with the jaw.
+    ///
     /// Talking is a syllable rhythm (a new mouth target every 70-150 ms, eased), not lip-sync to audio.
     /// Nothing here allocates per frame.
     /// </summary>
@@ -42,6 +46,8 @@ namespace JamKit.VisitingHours.Characters
 
         [Header("Blendshape backend")]
         public SkinnedMeshRenderer shapes;
+        [Tooltip("Meshes that copy the face's blendshape weights by name (the face decal): they move with it.")]
+        public SkinnedMeshRenderer[] followers = new SkinnedMeshRenderer[0];
         public string mouthOpenShape = "MouthOpen";
         public string blinkShape = "Blink";
 
@@ -64,6 +70,7 @@ namespace JamKit.VisitingHours.Characters
         float nextBlink, blinkUntil;
         int mouthIndex = -1, blinkIndex = -1;
         float[] weights;
+        int[][] followerMap;
         MaterialPropertyBlock block;
         static readonly int BaseMapSt = Shader.PropertyToID("_BaseMap_ST");
         static readonly int MainTexSt = Shader.PropertyToID("_MainTex_ST");
@@ -88,6 +95,15 @@ namespace JamKit.VisitingHours.Characters
                         e.indices = new int[e.shapes == null ? 0 : e.shapes.Length];
                         for (int i = 0; i < e.indices.Length; i++) e.indices[i] = mesh.GetBlendShapeIndex(e.shapes[i].shape);
                     }
+                // Each follower's blendshape index for each of ours (-1 = it has none of that name).
+                followerMap = new int[followers == null ? 0 : followers.Length][];
+                for (int f = 0; f < followerMap.Length; f++)
+                {
+                    var fm = followers[f] != null ? followers[f].sharedMesh : null;
+                    followerMap[f] = new int[mesh.blendShapeCount];
+                    for (int i = 0; i < mesh.blendShapeCount; i++)
+                        followerMap[f][i] = fm == null ? -1 : fm.GetBlendShapeIndex(mesh.GetBlendShapeName(i));
+                }
             }
             ScheduleBlink(Time.time);
         }
@@ -176,6 +192,14 @@ namespace JamKit.VisitingHours.Characters
             if (mouthIndex >= 0) weights[mouthIndex] = Mathf.Max(weights[mouthIndex], mouth * 100f);
             if (blinkIndex >= 0 && eyesClosed) weights[blinkIndex] = 100f;
             for (int i = 0; i < weights.Length; i++) shapes.SetBlendShapeWeight(i, weights[i]);
+            if (followerMap == null) return;
+            for (int f = 0; f < followerMap.Length; f++)
+            {
+                var fr = followers[f];
+                if (fr == null) continue;
+                var map = followerMap[f];
+                for (int i = 0; i < map.Length; i++) if (map[i] >= 0) fr.SetBlendShapeWeight(map[i], weights[i]);
+            }
         }
 
         void Accumulate(Expression e, float k)

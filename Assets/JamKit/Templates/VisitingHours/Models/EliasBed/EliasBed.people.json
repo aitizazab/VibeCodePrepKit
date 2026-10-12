@@ -1,0 +1,120 @@
+{
+ "name": "EliasBed",
+ "height": 1.83,
+ "idle": "lie",
+ "colour": "pale hospital blue",
+ "note": "the waking Elias in the hospital gown, asleep (Tripo, sheet vh3d-elias-bed2-take2); eyes painted shut",
+ "hasFace": true,
+ "decal": "EliasBed_FaceDecal",
+ "atlas": "EliasBed_FaceAtlas.png",
+ "columns": 6,
+ "rows": 1,
+ "blink": false,
+ "expressions": [
+  {
+   "name": "neutral",
+   "shapes": []
+  },
+  {
+   "name": "warm",
+   "shapes": [
+    {
+     "shape": "Smile",
+     "weight": 45
+    }
+   ]
+  },
+  {
+   "name": "happy",
+   "shapes": [
+    {
+     "shape": "Smile",
+     "weight": 90
+    },
+    {
+     "shape": "BrowsUp",
+     "weight": 25
+    }
+   ]
+  },
+  {
+   "name": "sad",
+   "shapes": [
+    {
+     "shape": "Frown",
+     "weight": 60
+    },
+    {
+     "shape": "BrowsSad",
+     "weight": 85
+    }
+   ]
+  },
+  {
+   "name": "worried",
+   "shapes": [
+    {
+     "shape": "BrowsSad",
+     "weight": 70
+    },
+    {
+     "shape": "Frown",
+     "weight": 25
+    }
+   ]
+  },
+  {
+   "name": "hurt",
+   "shapes": [
+    {
+     "shape": "BrowsSad",
+     "weight": 100
+    },
+    {
+     "shape": "Frown",
+     "weight": 55
+    }
+   ]
+  },
+  {
+   "name": "angry",
+   "shapes": [
+    {
+     "shape": "BrowsDown",
+     "weight": 85
+    },
+    {
+     "shape": "Frown",
+     "weight": 45
+    }
+   ]
+  },
+  {
+   "name": "surprised",
+   "shapes": [
+    {
+     "shape": "BrowsUp",
+     "weight": 95
+    }
+   ]
+  },
+  {
+   "name": "doubtful",
+   "shapes": [
+    {
+     "shape": "BrowsDown",
+     "weight": 35
+    },
+    {
+     "shape": "Frown",
+     "weight": 20
+    },
+    {
+     "shape": "Smile",
+     "weight": 15
+    }
+   ]
+  }
+ ],
+ "accessories": []
+}

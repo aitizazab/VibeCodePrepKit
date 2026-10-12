@@ -14,7 +14,10 @@ namespace JamKit.VisitingHours.Characters.EditorTools
     /// metallic/smoothness map built from Tripo's separate roughness and metallic maps), imports every clip in
     /// Models/Animations as Humanoid (baked in place, looping by name), builds one Animator Controller with a state per
     /// clip, and saves Characters/Resources/People/&lt;Name&gt;.prefab with <see cref="VhCharacter"/>, <see cref="VhFace"/>
-    /// and a capsule collider. Re-running it rebuilds everything (safe to repeat).
+    /// and a capsule collider. The model's sidecar, Models/&lt;Name&gt;/&lt;Name&gt;.people.json (written by
+    /// tools/tripo/vh_make.py), gives the face (the decal mesh's name, its expression atlas, whether it blinks, the
+    /// expressions as blendshape weights), the idle state and the accessories' colours. Re-running it rebuilds everything
+    /// (safe to repeat).
     ///
     /// Menu: JamKit > Visiting Hours > People > Build the Cast. Batch:
     /// -executeMethod JamKit.VisitingHours.Characters.EditorTools.VhPeopleBuild.BuildFromCommandLine
@@ -30,22 +33,46 @@ namespace JamKit.VisitingHours.Characters.EditorTools
 
         public sealed class Spec
         {
-            public string name, model, note;
+            public string name, model, note, idle;
             public float height;
-            public Spec(string name, string model, float height, string note) { this.name = name; this.model = model; this.height = height; this.note = note; }
+            public Spec(string name, string model, float height, string note, string idle = "idle")
+            { this.name = name; this.model = model; this.height = height; this.note = note; this.idle = idle; }
+        }
+
+        // The sidecar (Models/<Name>/<Name>.people.json). Public fields for JsonUtility.
+        [Serializable] public sealed class SideShape { public string shape; public float weight; }
+        [Serializable] public sealed class SideExpression { public string name; public SideShape[] shapes = new SideShape[0]; }
+        [Serializable] public sealed class SideAccessory { public string name; public float[] color = { 0.5f, 0.5f, 0.5f }; public float smoothness = 0.4f, metallic; }
+        [Serializable]
+        public sealed class Sidecar
+        {
+            public string name, idle = "idle", colour, note, decal, atlas;
+            public float height;
+            public bool hasFace, blink = true;
+            public int columns = 6, rows = 1;
+            public SideExpression[] expressions = new SideExpression[0];
+            public SideAccessory[] accessories = new SideAccessory[0];
+        }
+
+        public static Sidecar ReadSidecar(string modelPath)
+        {
+            string p = Path.ChangeExtension(modelPath, null) + ".people.json";
+            return File.Exists(p) ? JsonUtility.FromJson<Sidecar>(File.ReadAllText(p)) : null;
         }
 
         /// <summary>The cast: prefab name, model path under Models/, standing height in metres.</summary>
-        /// <remarks>Nadia is not here: Models/Nadia/Nadia.fbx is imported as Generic for the World agent's first-person body
-        /// (MovementBody / MixamoBodyRig), and switching it to Humanoid would break that. A third-person Nadia gets her own
-        /// copy of the model when one is needed.</remarks>
+        /// <remarks>docs/REDESIGN.md section 7: in the dream only Nadia and Elias are 3D (Lena, Theo, Walt and the
+        /// neighbours are paper cut-outs, DreamCutoutView); in the waking world Mags and Elias in bed, with Rafael altered
+        /// from Elias and LeBaget's representative from Mags (tools/tripo/people/*.json). Nadia is not here:
+        /// Models/Nadia/Nadia.fbx is imported as Generic for the World agent's first-person body (MovementBody /
+        /// MixamoBodyRig), and switching it to Humanoid would break that.</remarks>
         public static readonly Spec[] Cast =
         {
-            new Spec("Lena", "Lena/Lena.fbx", 1.88f, "6'2\" (the creator: fine)"),
-            new Spec("Theo", "Theo/Theo.fbx", 1.38f, "ten years old"),
-            new Spec("Elias", "Elias/Elias.fbx", 1.83f, "the dream Elias: barbecue apron"),
-            new Spec("EliasBed", "EliasBed/EliasBed.fbx", 1.83f, "the waking Elias in the hospital gown, posed lying"),
-            new Spec("Walt", "Walt/Walt.fbx", 1.86f, "tall, thin, old"),
+            new Spec("Elias", "Elias/Elias.fbx", 1.83f, "the dream Elias at the barbecue: cornflower apron on white"),
+            new Spec("EliasBed", "EliasBed/EliasBed.fbx", 1.83f, "the waking Elias in the hospital gown, asleep", "lie"),
+            new Spec("Mags", "Mags/Mags.fbx", 1.62f, "Marguerite Ilunga: oatmeal cardigan over pale-blue scrubs"),
+            new Spec("Rafael", "Rafael/Rafael.fbx", 1.76f, "the intern: teal scrubs, white apron, two pens"),
+            new Spec("Representative", "Representative/Representative.fbx", 1.72f, "LeBaget's Community Partnerships representative"),
         };
 
         /// <summary>States that loop (a clip name starting with any of these). Everything else is a one-shot.</summary>
@@ -172,8 +199,10 @@ namespace JamKit.VisitingHours.Characters.EditorTools
             foreach (var o in AssetDatabase.LoadAllAssetsAtPath(modelPath)) if (o is Avatar a) avatar = a;
             string avatarNote = avatar == null ? "NO AVATAR" : avatar.isHuman && avatar.isValid ? "humanoid avatar ok" : "avatar not humanoid/valid";
 
+            var side = ReadSidecar(modelPath);
             var mat = BuildMaterial(spec, modelPath);
-            var controller = BuildController(spec, clips);
+            var decalMat = side != null && side.hasFace ? DecalMaterial(spec, modelPath, side) : null;
+            var controller = BuildController(spec, clips, side != null && !string.IsNullOrEmpty(side.idle) ? side.idle : spec.idle);
 
             // The prefab: root (VhCharacter, VhFace, capsule) > the model (Animator).
             var root = new GameObject(spec.name);
@@ -190,24 +219,51 @@ namespace JamKit.VisitingHours.Characters.EditorTools
                 anim.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
 
                 int shapeCount = 0;
-                SkinnedMeshRenderer shapes = null;
+                SkinnedMeshRenderer shapes = null, decal = null;
+                string accNote = "";
                 foreach (var r in body.GetComponentsInChildren<Renderer>(true))
                 {
+                    var use = mat;
+                    bool isDecal = side != null && side.hasFace && r.gameObject.name == side.decal;
+                    var acc = Accessory(side, r.gameObject.name);
+                    if (isDecal) use = decalMat;
+                    else if (acc != null) { use = AccessoryMaterial(spec, acc); accNote += " " + acc.name; }
                     var mats = r.sharedMaterials;
-                    for (int i = 0; i < mats.Length; i++) mats[i] = mat;
+                    for (int i = 0; i < mats.Length; i++) mats[i] = use;
                     r.sharedMaterials = mats;
-                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                    r.shadowCastingMode = isDecal ? UnityEngine.Rendering.ShadowCastingMode.Off : UnityEngine.Rendering.ShadowCastingMode.On;
                     if (r is SkinnedMeshRenderer smr)
                     {
                         smr.updateWhenOffscreen = false;
+                        if (isDecal) { decal = smr; continue; }
                         if (smr.sharedMesh != null && smr.sharedMesh.blendShapeCount > shapeCount) { shapes = smr; shapeCount = smr.sharedMesh.blendShapeCount; }
                     }
                 }
 
                 var face = root.AddComponent<VhFace>();
                 face.shapes = shapes;
+                if (decal != null)
+                {
+                    face.decal = decal;
+                    face.followers = new[] { decal };
+                    face.decalColumns = Mathf.Max(1, side.columns);
+                    face.decalRows = Mathf.Max(1, side.rows);
+                }
+                face.blinking = side == null || side.blink;
+                if (side != null && side.expressions != null && side.expressions.Length > 0)
+                {
+                    face.expressions = new VhFace.Expression[side.expressions.Length];
+                    for (int i = 0; i < side.expressions.Length; i++)
+                    {
+                        var se = side.expressions[i];
+                        var e = new VhFace.Expression { name = se.name, shapes = new VhFace.ShapeWeight[se.shapes == null ? 0 : se.shapes.Length] };
+                        for (int k = 0; k < e.shapes.Length; k++) e.shapes[k] = new VhFace.ShapeWeight { shape = se.shapes[k].shape, weight = se.shapes[k].weight };
+                        face.expressions[i] = e;
+                    }
+                }
                 var ch = root.AddComponent<VhCharacter>();
                 ch.characterName = spec.name;
+                ch.idleState = side != null && !string.IsNullOrEmpty(side.idle) ? side.idle : spec.idle;
                 ch.animator = anim;
                 ch.face = face;
 
@@ -218,7 +274,9 @@ namespace JamKit.VisitingHours.Characters.EditorTools
 
                 string prefabPath = PeopleDir + spec.name + ".prefab";
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
-                return spec.name + ": " + prefabPath + " · " + h.ToString("0.00") + " m · " + avatarNote + " · " + controller.layers[0].stateMachine.states.Length + " states · " + shapeCount + " blendshapes";
+                return spec.name + ": " + prefabPath + " · " + h.ToString("0.00") + " m · " + avatarNote + " · " + controller.layers[0].stateMachine.states.Length
+                    + " states (default " + ch.idleState + ") · " + shapeCount + " blendshapes · face decal " + (decal != null ? "yes" : "no")
+                    + " · " + face.ExpressionCount + " expressions" + (accNote.Length > 0 ? " · accessories" + accNote : "");
             }
             finally { UnityEngine.Object.DestroyImmediate(root); }
         }
@@ -249,11 +307,11 @@ namespace JamKit.VisitingHours.Characters.EditorTools
             {
                 string p = AssetDatabase.GUIDToAssetPath(guid);
                 string n = Path.GetFileNameWithoutExtension(p).ToLowerInvariant();
-                if (n.EndsWith("_metallicsmoothness")) continue;
+                if (n.EndsWith("_metallicsmoothness") || n.EndsWith("_faceatlas")) continue;
                 if (n.Contains("normal")) normal = Normal(p);
                 else if (n.Contains("rough")) rough = Linear(p, true);
                 else if (n.Contains("metal")) metal = Linear(p, true);
-                else if (n.Contains("color") || n.Contains("albedo") || n.Contains("diffuse") || n.Contains("base")) baseMap = AssetDatabase.LoadAssetAtPath<Texture2D>(p);
+                else if (n.Contains("color") || n.Contains("albedo") || n.Contains("diffuse") || n.Contains("base")) baseMap = BaseColour(p);
             }
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
@@ -280,6 +338,77 @@ namespace JamKit.VisitingHours.Characters.EditorTools
             }
             mat.SetFloat("_EnvironmentReflections", 1f);
             mat.SetFloat("_SpecularHighlights", 1f);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>The base colour at 4K: faces are painted into it and the close-ups need every texel.</summary>
+        static Texture2D BaseColour(string path)
+        {
+            var ti = (TextureImporter)AssetImporter.GetAtPath(path);
+            if (ti.maxTextureSize != 4096 || !ti.sRGBTexture) { ti.maxTextureSize = 4096; ti.sRGBTexture = true; ti.SaveAndReimport(); }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        static SideAccessory Accessory(Sidecar side, string objectName)
+        {
+            if (side == null || side.accessories == null) return null;
+            foreach (var a in side.accessories) if (a != null && a.name == objectName) return a;
+            return null;
+        }
+
+        /// <summary>The face decal: URP Lit, transparent (alpha-blended over the painted face), the expression atlas as the
+        /// base map; VhFace picks the cell through _BaseMap_ST in a property block.</summary>
+        static Material DecalMaterial(Spec spec, string modelPath, Sidecar side)
+        {
+            string atlasPath = Path.GetDirectoryName(modelPath).Replace('\\', '/') + "/" + side.atlas;
+            var ti = AssetImporter.GetAtPath(atlasPath) as TextureImporter;
+            if (ti != null && (!ti.alphaIsTransparency || ti.wrapMode != TextureWrapMode.Clamp || ti.maxTextureSize < 4096 || ti.textureCompression != TextureImporterCompression.CompressedHQ))
+            {
+                ti.alphaIsTransparency = true; ti.wrapMode = TextureWrapMode.Clamp; ti.maxTextureSize = 4096;
+                ti.textureCompression = TextureImporterCompression.CompressedHQ; ti.mipmapEnabled = true;
+                ti.SaveAndReimport();
+            }
+            var atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(atlasPath);
+            string matPath = GeneratedDir + spec.name + "_FaceDecal.mat";
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            if (mat == null) { mat = new Material(shader); AssetDatabase.CreateAsset(mat, matPath); }
+            else mat.shader = shader;
+            mat.SetTexture("_BaseMap", atlas);
+            mat.SetColor("_BaseColor", Color.white);
+            mat.SetFloat("_Surface", 1f);
+            mat.SetFloat("_Blend", 0f);
+            mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
+            mat.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetFloat("_ZWrite", 0f);
+            mat.SetFloat("_Cull", 2f);
+            mat.SetFloat("_Smoothness", 0.35f);
+            mat.SetFloat("_Metallic", 0f);
+            mat.SetFloat("_ReceiveShadows", 1f);
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.DisableKeyword("_ALPHATEST_ON");
+            mat.SetOverrideTag("RenderType", "Transparent");
+            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent - 10;
+            mat.SetShaderPassEnabled("ShadowCaster", false);
+            mat.SetShaderPassEnabled("DepthOnly", false);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        static Material AccessoryMaterial(Spec spec, SideAccessory a)
+        {
+            string matPath = GeneratedDir + spec.name + "_" + a.name + ".mat";
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            if (mat == null) { mat = new Material(shader); AssetDatabase.CreateAsset(mat, matPath); }
+            else mat.shader = shader;
+            var c = a.color != null && a.color.Length >= 3 ? new Color(a.color[0], a.color[1], a.color[2]) : Color.gray;
+            mat.SetColor("_BaseColor", c);
+            mat.SetFloat("_Smoothness", a.smoothness);
+            mat.SetFloat("_Metallic", a.metallic);
             EditorUtility.SetDirty(mat);
             return mat;
         }
@@ -348,7 +477,7 @@ namespace JamKit.VisitingHours.Characters.EditorTools
 
         // ---- Controller ----
 
-        static AnimatorController BuildController(Spec spec, List<AnimationClip> clips)
+        static AnimatorController BuildController(Spec spec, List<AnimationClip> clips, string idleName)
         {
             string path = GeneratedDir + spec.name + ".controller";
             AssetDatabase.DeleteAsset(path);
@@ -373,7 +502,7 @@ namespace JamKit.VisitingHours.Characters.EditorTools
                 var st = sm.AddState(n);
                 st.motion = clip;
                 st.writeDefaultValues = true;
-                if (n == "idle") idle = st;
+                if (n == idleName) idle = st;
             }
             if (idle == null && sm.states.Length == 0) idle = sm.AddState("idle");   // an empty idle: the bind pose
             if (idle != null) sm.defaultState = idle;

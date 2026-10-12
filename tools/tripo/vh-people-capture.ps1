@@ -19,7 +19,7 @@ foreach ($s in $steps) {
     $p = Start-Process -FilePath $unity -ArgumentList $unityArgs -PassThru -NoNewWindow
     $null = $p.Handle
     $p.WaitForExit()
-    Select-String -Path $log -Pattern 'JAMKIT_VH_PEOPLE|^(Lena|Theo|Elias|EliasBed|Walt|animations)|error CS|Exception' | Select-Object -Last 40 | ForEach-Object { Write-Host "  $($_.Line)" }
+    Select-String -Path $log -Pattern 'JAMKIT_VH_PEOPLE|^(Elias|EliasBed|Mags|Rafael|Representative|animations)|error CS|Exception|Shader error' | Select-Object -Last 40 | ForEach-Object { Write-Host "  $($_.Line)" }
     if ($p.ExitCode -ne 0) { Write-Host "Unity exited with $($p.ExitCode); see $log"; exit $p.ExitCode }
 }
 exit 0

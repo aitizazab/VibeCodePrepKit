@@ -1,184 +1,182 @@
-# People: the 3D cast (the People agent, 2026-10-12)
+# People: the 3D cast, the paper cut-outs, Lena's watch (the People agent)
 
-The redesign's 3D characters (REDESIGN.md, section 5: People). The bar is REDESIGN.md section 3; the look is stylized AAA
-(It Takes Two, Psychonauts 2, Life is Strange: True Colors): stylized shapes and colour at high fidelity, not photoreal,
-keeping what the creator valued in the 2D designs (a sketchbook-like individuality, unique posing, a strong defining
-colour per character).
+The redesign's people (REDESIGN.md, section 5: People; section 7: who is 3D). The bar is REDESIGN.md section 3; the
+look is stylized AAA (It Takes Two, Psychonauts 2, Life is Strange: True Colors), keeping what the creator valued in the
+2D designs: individuality, unique posing, a strong defining colour per character.
 
-## Status (2026-10-12, first pass)
+- **3D (Tripo models, rigged, animated, talking faces):** Elias (the dream, at the barbecue), EliasBed (the waking Elias,
+  asleep), Mags, Rafael (altered from Elias), LeBaget's representative (a woman, altered from Mags). Nadia's existing
+  model stays the World agent's first-person body.
+- **Paper cut-outs (billboards):** Lena, Theo, Walt, the neighbours, the dog: `DreamCutoutView`.
+- **Lena's keepsake:** her star-shaped watch on Nadia's right wrist: `VhKeepsakeWatch`.
+
+## Status (2026-10-12, milestone 1: built, compile-checked, NOT yet seen in Unity)
 
 | | State |
 |---|---|
-| Access: Tripo | **BLOCKED.** Our automation Chrome (port 9333) is not signed in to Tripo. Signing in from automation was refused by the permission system, so a person has to do it once (below). The earlier Tripo work (Nadia) used a different Chrome profile that belongs to BasilDownfall, which is off-limits to this project's agents. |
-| Access: Mixamo | **BLOCKED** the same way: not signed in on port 9333. |
-| Access: CC0 animation library (Quaternius Universal Animation Library) | **BLOCKED**: its free download goes through itch.io's download flow, which the permission system refused to script. A person can download `Universal Animation Library[Standard].zip` (free, CC0, 15 MB) from quaternius.itch.io/universal-animation-library. |
-| Access: Gemini (Flow, Nano Banana Pro) | Works (0 credits). |
-| Model sheets for Tripo | Picked and cropped for all five: Lena, Theo, Elias (dream), Elias in the hospital gown, Walt (below). |
-| Component, builder, capture | Written and compile-checked (dotnet); not yet run in Unity. |
-| Meshes, rigs, animations, prefabs | Waiting on the sign-ins above. |
+| Models | Five FBX in `Models/<Name>/` (rigged, Mixamo skeleton, shape keys, face decal mesh, accessories), with textures and a sidecar. Previewed in numpy renders (front/side/back, the face sheets); never in Unity. |
+| Animations | 31 Mixamo clips (no skin, 30 fps, in place where it matters) in `Models/Animations/`. |
+| Prefabs | `VhPeopleBuild` builds them; **main must run it** (below). |
+| Billboards | `DreamCutoutView` + `JamKit/Dream/Cutout` rewritten: paper with a cut edge, lit and shadowed, sway, boil, flips. Existing call sites unchanged. |
+| Lena's watch | `VhKeepsakeWatch` (code-built). |
+| Captures | `VhPeopleCapture` rewritten on the Look agent's rigs; **main runs them**. |
+| Compile | UnityLayerEditor, UnityLayerPlayer, UnityApi: green (2026-10-12). Shaders are not compile-checked outside Unity. |
 
-### Unblocking (one-time, a person at the keyboard)
-1. `powershell -File FableAnimationTests/art-tools/chrome.ps1 start`, then bring that Chrome window on screen (it lives
-   left of the monitors; Win+Shift+Arrow moves it), and in its one tab:
-   - https://studio.tripo3d.ai: sign in to the Tripo account with the credits (the one Nadia was made on).
-   - https://www.mixamo.com: sign in with the Adobe account.
-2. `powershell -File FableAnimationTests/art-tools/chrome.ps1 hide` (or `close`).
-3. Optional, for a CC0 animation set that needs no account: download the Quaternius Universal Animation Library
-   (Standard) zip into `FableAnimationTests/.work/downloads/` and say so.
+Tripo credits: 350 before this pass, 310 after (two auto-rigs, 20 each). No new generations: Rafael and the representative
+cost nothing.
 
-After that, the People agent runs the whole pipeline below without anyone.
+## The models
 
-## Scope change and resume point (2026-10-12, evening)
+| Prefab | Height | Defining colour | What they look like | Made from |
+|---|---|---|---|---|
+| Elias | 1.83 m | cornflower-blue apron on white | brown swept hair, full beard, rolled white sleeves, grey trousers, brown shoes, steel watch | Tripo (sheet `vh3d-elias-dream-take1`) |
+| EliasBed | 1.83 m | pale hospital blue | the same man in a patterned gown, head bandage, eyes painted shut, wristband, cannula, socks; idle `lie` | Tripo (`vh3d-elias-bed2-take2`) |
+| Mags | 1.62 m | oatmeal cardigan over pale-blue scrubs, brick-red beaded glasses cord | close-cropped grey curls, dark-framed glasses low on the nose, kind lined face, grey clogs | Tripo (`vh3d-mags-take2`) |
+| Rafael | 1.76 m | surgical-teal scrubs under a white apron | 31; olive skin, black hair (flattened, shorter), beard trimmed close, slimmer chest and arms, smaller head, white trainers, a pen behind each ear (blue and black, silver caps), a white ID badge with a teal stripe | **altered from Elias** |
+| Representative | 1.72 m | aubergine blazer-cardigan over a cream blouse; gold | mid-forties; fair skin, dark brown hair, berry lipstick, gold glasses on a gold chain, charcoal trousers, black shoes, a gold wristband, taller and slimmer than Mags (longer legs, narrower body), a red-striped visitor badge and a gold pin on the lapel | **altered from Mags** |
 
-REDESIGN.md section 7: in the dream only **Nadia and Elias** are 3D; Lena, Theo, Walt and the neighbours stay billboards
-(their 3D sheets are parked). In the waking world: **Mags** and **Elias in bed** are Tripo models; **Rafael** is made
-by altering Elias's model and the **LeBaget representative** (a woman) by altering Mags's, no extra credits. People now
-also owns the dream's billboards (DreamCutoutView and the cut-out art).
+### How Rafael and the representative differ from their bases
+All in `tools/tripo/people/<Name>.json` (the recipe), run by `tools/tripo/vh_make.py`:
+- **Texture recolour by class** (`vh_alter.py`): every texel is classified by colour (nearest prototype sampled from the
+  model at given 3D points; for the representative a shading-invariant metric, luminance + hue ratios) and gated by its
+  3D position (height, depth), then recoloured to the target keeping its shading (`flatten` drops some of it, e.g. the
+  apron's old print). Majority-filter despeckle; UV padding takes its island's class.
+- **Geometry**: per-vertex moves (Rafael's beard pulled in 4.5 mm, hair 7 mm), **bone-scale proportions baked into the
+  rest pose** in Blender (Rafael: spine 0.92 wide, arms 0.92, head 0.96; the representative: thighs 1.07 long and 0.95
+  slim, spine 0.9 wide and 1.04 long, arms 0.94, head 0.94), then the importer scales each to its height.
+- **Accessories**: small meshes skinned 100% to a bone (pens, caps, badges, a pin), own materials from the sidecar.
+- Faces: the same face pipeline as the bases, so they talk and emote the same way.
 
-**Done this pass**
-- Tripo and Mixamo are signed in on the 9333 Chrome (by the creator). Credits 550 → 350.
-- Mags's 3D sheet: `art/incoming/vh3d-mags-take2.jpg` (Nano Banana 2.1: Nano Banana Pro hit its usage limit), cropped to
-  `tools/tripo/sheets/mags/`. She keeps the approved design (close-cropped grey hair, glasses low on the nose with a
-  brick-red beaded cord, oatmeal cardigan over pale-blue scrubs, grey clogs); a touch more painterly than Elias.
-- Tripo generations (multi-view, H3.1, Ultra, 4K, Remove Lighting, PBR, Quad 30k, Private), in the account's Assets:
-  **Elias (dream)** 27,451 quad faces, looked at in Tripo's viewer: clean, stylized, reads as his sheet; **Elias (gown)**
-  and **Mags** generated, not yet looked at. Elias (dream) is auto-rigged (Humanoid, Mixamo skeleton, 20 credits).
-- `tools/tripo/gen.mjs sheets/<name>`: one call uploads the three views and starts a generation (60 credits).
-- The Quaternius Universal Animation Library (CC0) is in `C:/Users/User/Downloads/Universal Animation Library[Standard].zip`;
-  its Unity FBX (one file, every clip, no root motion) and licence are unpacked to
-  `FableAnimationTests/.work/ual-unpacked/` (nothing in it was run).
+### Fixes applied to every Tripo model
+- **Two-faced heads.** Tripo's multi-view generation put a second, mirrored face on the back of every head (in the mesh
+  and the paint) and painted the front of the clothes onto their backs (the apron bib, the cardigan's opening). The
+  pipeline rounds the back of the skull onto a fitted ellipsoid curving into the neck, repaints it (hair with a strand or
+  curl pattern above a wavy nape line, skin below, the bandage carried round for EliasBed), flattens the normal map
+  there, clears Tripo's custom normals, and repaints the garment backs plain (`back_of_head`, `back_paint`). Seen in the
+  numpy renders: clean. **Not yet seen in Unity.**
 
-**Blocker: no Blender for this agent.** The only Blender on this PC is inside BasilDownfall/, which agents spawned in
-FableAnimationTests may not touch. So the alterations (Rafael, the representative) and the talking faces will be done in
-Unity editor code instead: texture recolouring by UV masks, bone-scale proportions saved in the prefab, blendshapes added
-to a mesh copy with Mesh.AddBlendShapeFrame. If main can run Blender for this project, say so and the faces get a Blender pass.
+### Faces (talking and emoting)
+Both backends at once, built in Blender by `vh_blender.py` from landmarks read off a gridded front render
+(`vh_headgrid.py`; eyes found automatically in a search box):
+- **Shape keys** on the body mesh: `MouthOpen` (the jaw drops, everything under the lip line), `Smile`, `Frown`,
+  `BrowsUp`, `BrowsDown`, `BrowsSad`.
+- **A face decal**: a skinned copy of the face's front (pushed out 0.6 mm, carrying the same shape keys), UV-projected
+  from the front onto an atlas (`<Name>_FaceAtlas.png`, 6 cells: mouth closed / half / open, then the same with the
+  eyes shut). The cells add the mouth's inside (teeth, tongue, lip rim), which stretches open with `MouthOpen`, and
+  closed lids drawn from the lid's own skin with a lash line. EliasBed's eyes are painted shut (no lids, no blinking).
+- Expressions (blendshape weights, from the sidecar): neutral, warm, happy, sad, worried, hurt, angry, surprised,
+  doubtful. Talking: `VhFace`'s syllable rhythm drives `MouthOpen` and the decal's mouth cell together.
+Judged on numpy renders only (`.work/people-src/out/<Name>/faces.png`): the talking mouth and the blink read; the
+brows read; the smile is modest. Judge again on the Unity capture.
 
-**Next (exact)**
-1. Tripo: rig Elias (gown) and Mags (Rig panel, Humanoid, Mixamo, Auto Rig 20 each); export all three as FBX (Blender
-   preset, 4K, skeleton on) into `Models/Elias/`, `Models/EliasBed/`, `Models/Mags/` with their `.fbm` texture folders.
-2. Animations: Mixamo (idle, talking, listening, nod, shake head, sitting idle, sleeping/lying, walking; "without skin")
-   plus the Quaternius clips, into `Models/Animations/`.
-3. Add Mags, Rafael and the representative to `VhPeopleBuild.Cast` (Lena, Theo and Walt leave the 3D cast); write the
-   alteration and face steps; then the billboard upgrade (paper with a real edge, lit and shadowed, a living idle, pose
-   swaps) and a capture of a billboard next to the 3D Elias under the Look lighting.
+## Animations (`Models/Animations/`, one clip per file, state = file name)
+Mixamo, exported without skin through Mixamo's own web API by `tools/tripo/mixamo.mjs` (list: `mixamo-clips.json`):
+`idle` (breathing idle), `idle-happy`, `idle-sad`, `idle-tablet`, `listen` (weight shift), `talk` (general conversation),
+`talk-2` (asking with one hand), `talk-amused`, `talk-meeting`, `talk-phone`, `think`, `nod`, `nod-thoughtful`,
+`shake-head`, `agree`, `wave`, `shrug`, `point`, `laugh`, `disappointed`, `walk` (in place), `walk-female`,
+`walk-briefcase`, `sit`, `sit-talk`, `sit-down`, `stand-up`, `lie` (asleep on a bed), `lie-awake`, `type`, `write`.
+Every prefab's controller has them all; EliasBed's default state is `lie`. The Quaternius library (CC0, in
+`FableAnimationTests/.work/ual-unpacked/`) is not used yet.
 
-## The pipeline
+## The component (for World, House, Day and Battle): unchanged
 
-1. **Model sheets (Gemini).** One 16:9 sheet per character: front, right profile, back, in a neutral A-pose with open
-   empty hands, rendered as a stylized 3D game character with hand-painted textures and flat even light (Tripo's input
-   wants clean silhouettes and no baked lighting). Each sheet is made from the approved 2D designs, attached as
-   pictures. Prompts: `tools/tripo/sheets/<name>.txt` (+ `_common.txt`, joined into `<name>.prompt.txt`); the batch:
-   `sh tools/tripo/sheets/run-sheets.sh` (FableAnimationTests/art-tools/flow.mjs, Nano Banana Pro, 0 credits). Outputs:
-   `FableAnimationTests/art/incoming/vh3d-<name>-take<N>.jpg`.
-2. **Views.** `uv run --with pillow --with numpy python tools/tripo/crop_turnaround.py <sheet> tools/tripo/sheets/<name>`
-   gives `front.png`, `side.png`, `back.png` (1536 squares).
-3. **Tripo** (as Nadia's README, Models/Nadia/README.md "How it was made"): multi-view input (Front, Right, Back), HD
-   Model, H3.1, Ultra mesh, 4K texture, Remove Lighting on, PBR on, Quad topology, about 30k polygons, Private; then Auto
-   Rig, Humanoid, Mixamo skeleton; export FBX (Blender preset, 4K, skeleton on). About 80 credits a character.
-   `tools/tripo/chrome.mjs` now drives **our** automation Chrome on port 9333 (it used to start a second Chrome on
-   BasilDownfall's profile). Each `drive.mjs` / `steps.mjs` call holds `FableAnimationTests/.work/gemini.lock` while it
-   runs, the same lock flow.mjs takes, so the two never fight over the one tab.
-4. **Animations** (Mixamo, or a CC0 humanoid library): FBX files dropped into `Models/Animations/`, one clip per file,
-   named for the state they become (below). Unity's Humanoid retargeting plays any of them on any character.
-5. **Faces.** Tripo paints the face into the texture (no eyes, lids or mouth geometry). Two backends are built into
-   `VhFace` (blendshapes, or a face decal with an expression atlas); which one each character gets is decided once the
-   meshes exist and the close-ups have been judged. Plan: blendshapes for mouth-open and blink, made in Blender around
-   the face, if they read at conversation distance; otherwise the decal (the eyes and mouth painted out of the base
-   texture and drawn on an atlas: rows = expressions, columns = mouth closed / half / open, then the same with eyes
-   closed).
-6. **Unity:** `JamKit > Visiting Hours > People > Build the Cast` (below) makes the prefabs; `Capture the Cast` makes the
-   judge's stills.
-
-## The component (for World, House, Day and Battle)
-
-Assembly `JamKit.VisitingHours.Characters` (`Characters/Scripts/`, no dependencies). **To use it, add
-`"JamKit.VisitingHours.Characters"` to your asmdef's `references`** (JamKit.VisitingHours, JamKit.DreamEscape, ...).
-Namespace `JamKit.VisitingHours.Characters`.
+Assembly `JamKit.VisitingHours.Characters` (add it to your asmdef's `references`). Namespace `JamKit.VisitingHours.Characters`.
 
 ```csharp
-var lena = VhCharacter.Spawn("Lena", position, rotation, parent);   // Resources/People/Lena.prefab
-lena.Play("idle");                    // cross-fade to a looping state (default fade 0.25 s; Play("talk", 0.4f))
-lena.PlayOnce("wave");                // a one-shot, then back to idle;  PlayOnce("sit-down", "sit")
-lena.Has("sit");  lena.IsPlaying("walk");
-lena.LookAt(player.transform);        // or LookAt(worldPoint); StopLooking(). Chest, neck and head, eased, clamped
-lena.Talk(true);  lena.Talk(false);   // mouth moving / still
-lena.Say(2.4f);                       // mouth moving for 2.4 s (e.g. per line of text), then still
-lena.SetExpression("hurt");           // blend to a named expression (VhFace.expressions); false if she has none
-lena.Blink();
+var mags = VhCharacter.Spawn("Mags", position, rotation, parent);   // Resources/People/Mags.prefab
+mags.Play("talk");  mags.PlayOnce("nod");  mags.Play("idle", 0.4f);
+mags.LookAt(player.transform);  mags.StopLooking();
+mags.Talk(true);  mags.Say(2.4f);  mags.SetExpression("worried");  mags.Blink();
 ```
+Names: `Elias`, `EliasBed`, `Mags`, `Rafael`, `Representative`. New in `VhFace`: `followers` (meshes that copy the face's
+blendshape weights by name; the prefab builder sets the decal there). Missing states warn once and are ignored.
 
-- Root: `VhCharacter`, `VhFace`, a `CapsuleCollider` (the character's height). Child `Body`: the model, with the
-  `Animator` (Humanoid avatar, the character's controller, root motion off). Clips are baked in place: code moves the
-  character; play "walk" while moving it at walking speed.
-- Look-at and breathing run in LateUpdate after the animation, so they work over any clip. Tuning fields: `lookWeight`,
-  `maxYaw` (70), `maxPitch` (30), `lookSharpness`, `lookShares` (chest/neck/head), `breathe`.
-- A missing state logs one warning and is ignored (no exception), so code can ask any character for any state.
-- No per-frame allocation.
+## Billboards: `DreamCutoutView` (JamKit.DreamEscape)
 
-### State names (the same on every character)
-Lower-case, from the clip file names (`Talk Gesture 2.fbx` → `talk-gesture-2`). Looping: names starting with idle, talk,
-walk, run, jog, sit, lie, sleep, listen, think, breath, mow, wash, grill, water, ride, bike, browse, sweep, rake, type,
-write, read. Everything else is a one-shot. The planned set (filled in when the animations exist):
+Every cut-out the builders already make (a Quad child "Card" with a `JamKit/Dream/Cutout` material, the component's
+`card` pointing at it) now becomes paper by itself, in play mode and in edit mode (a DontSave child, so saved scenes keep
+only the quad). Nothing to change at the call sites. New code can use:
+```csharp
+var walt = DreamCutoutView.Create("Walt", waltTexture, parent, feet, 1.86f, restYaw: 180f, material: null);
+walt.Watch(playerCamera);              // optional: it finds Camera.main
+walt.Flip(waltWavingTexture);          // the paper flip: edge-on, swap, back (0.32 s); draw poses at the same height
+walt.thickness = 0.016f; walt.sway = 0.9f; walt.breath = 0.006f;   // tuning
+DreamCutoutView.PaperMesh(texture, thickness);   // the shared mesh for a picture
+```
+- **Paper:** the picture on the front, card stock on the back (the print faintly showing through, mirrored), and an
+  edge of real thickness (1.6 cm, foam-board) cut along the figure's outline, traced from the picture's alpha
+  (marching squares at 192 px tall, read back through the GPU, so the pictures need not be readable; one mesh per
+  picture, shared).
+- **Light:** `JamKit/Dream/Cutout` is now a lit URP shader: the sun with wrap diffuse and its cascaded soft shadows,
+  the additional lights through the Forward+ cluster loop (the house's lamps), ambient from the probes/sky, SSAO, fog,
+  light through the paper when backlit (warm), a faint fibre grain, a sheen; it casts and receives shadows; depth and
+  depth-normals passes. Properties kept (`_MainTex`, `_Color`, `_Cutoff`, `_BackShade`), so existing materials work.
+- **Alive:** a slow sway and breath about the feet; the boil (the picture shifts by a hair 8 times a second, per
+  cut-out phase); the turn to watch you (as before: a beat late). In edit mode the transform stays exactly as built.
 
-| Who | States |
-|---|---|
-| Everyone | `idle`, `talk`, `listen`, `walk`, `sit`, `sit-down`, `stand-up`, `nod`, `shake-head`, `wave`, `shrug`, `point` |
-| Lena | + `idle-arms-crossed`, `notebook` (writing in it), `hurt`, `angry` |
-| Theo | + `idle-fidget`, `hide` (crouched), `laugh` |
-| Elias (dream) | + `grill` (turning things with the tongs), `laugh` |
-| Elias (bed) | `lie` (asleep in the bed: the one state) |
-| Walt | + `wipe-hands` (the rag), `lean`, `fix-bike` |
-| Neighbours | `mow`, `wash-car`, `grill`, `water`, `ride-bike`, `browse` (yard sale), `sweep` |
+## Lena's watch: `VhKeepsakeWatch` (JamKit.VisitingHours.Characters)
 
-## The cast
+```csharp
+var watch = VhKeepsakeWatch.Ensure(nadiaBodyRoot, owned: true);   // builds it on the right forearm once; shows / hides
+watch.SetOwned(false);                                           // hide (the keepsake not earned / lost)
+watch.SetTime(9, 41);  watch.running = true;  watch.rate = 1f;    // the hands; or drive hourHand / minuteHand / secondHand
+```
+A gold five-pointed star case (35 mm point to point, bevelled), a cream enamel star dial with a fine gold inner star,
+twelve markers and a tiny wine-red star under twelve, hour, minute and second hands (each its own Transform, rotating
+about the face's normal: free for the Night 4 mechanic), a centre cap, lugs, and a wine-red leather strap (Lena's colour)
+round the wrist. It finds the Mixamo bones (`RightForeArm`, `RightHand`, `RightHandMiddle1`, `RightHandThumb1`), sits on
+the back of the wrist 3.5 cm up the forearm, twelve toward the little finger (upright when she lifts the forearm across
+her body), real size whatever the rig's scale. `faceIn = true` before attaching wears it face-in, as Lena did.
+The World agent owns the first-person body: call `Ensure(body, owned)` wherever that body is built or the keepsake changes.
 
-Prefabs: `Assets/JamKit/Templates/VisitingHours/Characters/Resources/People/<Name>.prefab` (built by the builder; not in
-git until main has run it). Models: `Models/<Name>/<Name>.fbx` with Tripo's texture folder beside it.
+## Unity steps (main)
 
-| Prefab | Height | Defining colour | Sheet pick (art/incoming) | Notes |
-|---|---|---|---|---|
-| Lena | 1.88 m (6'2") | deep wine-red trousers on cream | `vh3d-lena2-take1` | the pencil on her right ear; the watch face-in; nothing on her chest; notebook a separate prop |
-| Theo | 1.38 m | mustard hoodie | `vh3d-theo-take1` | ten; patched right knee, red sneakers |
-| Elias | 1.83 m | cornflower-blue apron on white | `vh3d-elias-dream-take1` | the dream Elias at the barbecue; tongs a separate prop |
-| EliasBed | 1.83 m | pale hospital blue | `vh3d-elias-bed2-take2` | the waking Elias, hospital gown, head bandage, eyes closed; posed lying |
-| Walt | 1.86 m | tan apron, red rag, brown tweed cap | `vh3d-walt2-take2` | tall, thin; the rag tucked in his apron so the hands rig cleanly; a hand-held rag prop for `wipe-hands` |
-| Nadia | 1.65 m | olive jacket, navy scrubs | (existing) | `Models/Nadia/Nadia.fbx` stays as the World agent's first-person body (Generic import). The builder does **not** touch it; a third-person Nadia gets a copy. |
+1. **Import:** open the project (or let the batch run import): Unity writes the `.meta` files for `Models/Elias`,
+   `EliasBed`, `Mags`, `Rafael`, `Representative`, `Models/Animations` and `Characters/Scripts/VhKeepsakeWatch.cs`.
+   Commit those metas.
+2. **Build the prefabs** (no graphics needed):
+   `-executeMethod JamKit.VisitingHours.Characters.EditorTools.VhPeopleBuild.BuildFromCommandLine`, or
+   `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tripo/vh-people-capture.ps1 -BuildOnly`.
+   Log `JAMKIT_VH_PEOPLE_BUILD_OK`, then a line per character: prefab, height, avatar check, states (default),
+   blendshapes, "face decal yes", expressions, accessories. Writes `Characters/Resources/People/*.prefab` and
+   `Characters/Generated/*` (materials, controllers, metallic maps): commit them.
+3. **Captures** (graphics on; one GPU job): `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tripo/vh-people-capture.ps1`
+   (build + capture), through capped-run. Output `out/vh-people/<time>/`: `golden-` and `hospital-` lineup, pairs
+   (Elias/Rafael, Mags/Representative, wide and close), turntables, face sheets; `hospital-bed-EliasBed*.png`;
+   `paper-front/edge/back/close-walt-elias.png`; `watch-first-person.png`, `watch-close.png`, `watch-close-2-05.png`.
+   Logs `out/vh-people-build.log`, `out/vh-people-capture.log` (grep `JAMKIT_VH_PEOPLE`, `Shader error`).
 
-Not started (after the first milestone): Mags, Rafael, 6-10 Saturday neighbours, 2-3 ward visitors and staff.
+## The pipeline (to make or change a person)
 
-## Sheets (2026-10-12)
+Sources: Tripo's FBX exports (free to re-export from Tripo's Assets panel) and their mesh dumps live in
+`FableAnimationTests/.work/people-src/<src>/` (not in git). Per character, `tools/tripo/people/<Name>.json`:
+```
+uv run --with pillow --with numpy python tools/tripo/vh_make.py prep <Name>      # recolour, back fixes, face atlas, build spec
+node C:/Users/User/.claude/hooks/gpu-short-run.mjs -- <blender> -b --factory-startup -P tools/tripo/vh_blender.py -- build <spec>
+uv run --with pillow --with numpy python tools/tripo/vh_make.py finish <Name>    # into Models/<Name>/, preview renders
+```
+(`prep` prints the exact Blender line; Blender is `FableAnimationTests/BasilDownfall/tools/blender/blender.exe`, used in
+place.) A new Tripo model: `tools/tripo/gen.mjs sheets/<name>` (60 credits), rig in Tripo (Humanoid, Mixamo, 20),
+export FBX (Blender preset, 4K, skeleton), unzip into `.work/people-src/<src>/`, then
+`blender ... vh_blender.py -- dump <fbx> <src>/dump.npz`; read landmarks with
+`uv run ... vh_headgrid.py <dump> <Color.jpg> <out.png>` (5 mm grid, mm labels). Tools: `vh_tex.py` (mesh dump
+renderer and UV rasteriser), `vh_alter.py`, `vh_face.py`, `vh_preview.py`, `mixamo.mjs`.
 
-All in `FableAnimationTests/art/incoming/`; each pick is cropped for Tripo into `tools/tripo/sheets/<name>/{front,side,back}.png`.
-Prompts: `tools/tripo/sheets/*.txt`; batches `run-sheets.sh` (first takes) and `run-retakes.sh` (retakes, with the dream
-Elias sheet attached as a style reference so the cast reads as one game).
-
-| Who | Pick | Why, and what's still weak |
-|---|---|---|
-| Lena | `vh3d-lena2-take1` | The retake. The first pick (`vh3d-lena-take1`) had a generic cartoon-heroine face (big round grey-blue eyes, small mouth). This one is hers: green-grey almond eyes with calm, slightly heavy lids, generous freckles, full cheeks, a closed half-smile; pencil on her right ear in all three views. Weak: the mouth is still not as wide as the design; her rendering is a shade more painterly than Theo and Elias. `vh3d-lena2-take2` was rejected: its side view turns the head to camera (bad for multi-view) and the pencil swaps ears between views. |
-| Theo | `vh3d-theo-take1` | Saturated mustard hoodie, patched right knee, red sneakers; clean stylized render. |
-| Elias (dream) | `vh3d-elias-dream-take1` | Cornflower apron on white, rolled sleeves, steel watch. Weak: his face is cuter than the waking design. |
-| Elias (gown) | `vh3d-elias-bed2-take2` | The retake with the dream sheet as reference: unmistakably the same man as the dream Elias (face, hair, beard), same render style; bandage, eyes closed, gown ties at the back, cannula and wristband. Weak: he looks too healthy (not thin or wasted, no bruise); the illness has to come from a paler skin tint in the material and the bed's lighting. The gaunter first takes (`vh3d-elias-bed-take1/2`) are painterly-realistic and don't read as the same person. |
-| Walt | `vh3d-walt2-take2` | The retake. The first takes were gritty and stern. This one has the approved design's round, kind face (soft brows, warm eyes, white walrus moustache), the brown tweed cap, the stained tan apron with the red rag tucked at the hip, and matches the cast's style. Weak: he reads shorter and sturdier than "tall and thin" (the builder scales him to 1.86 m, so the head will be a bit large); the alternate `vh3d-walt2-take1` has the tall thin build but a worn, slightly sad face. |
-
-## Building the prefabs (main, in Unity)
-
-1. Let Unity import the new folders (it writes the .meta files; commit them).
-2. `JamKit > Visiting Hours > People > Build the Cast`, or batch:
-   `-executeMethod JamKit.VisitingHours.Characters.EditorTools.VhPeopleBuild.BuildFromCommandLine` (log line
-   `JAMKIT_VH_PEOPLE_BUILD_OK` then one line per character: prefab path, measured height, avatar check, states,
-   blendshapes). It skips characters whose model isn't there yet. Safe to re-run.
-   Per character it: sets the FBX to Humanoid at the character's height, makes `Characters/Generated/<Name>.mat`
-   (URP Lit: base colour, normal map, and `<Name>_MetallicSmoothness.png` built from Tripo's roughness/metallic maps),
-   imports every FBX in `Models/Animations/` as a Humanoid clip baked in place, builds `Characters/Generated/<Name>.controller`
-   (one state per clip, default `idle`) and saves the prefab.
-
-## Captures (for the judge)
-
-`JamKit > Visiting Hours > People > Capture the Cast`, or batch with graphics:
-`powershell -NoProfile -ExecutionPolicy Bypass -File tools/tripo/vh-people-capture.ps1` (through capped-run).
-Writes `out/vh-people/<time>/`, all 1920×1080, for two lights (a neutral stand-in until the Look agent's lighting exists):
-`golden` (low warm sun, cool rim, procedural sky, haze) and `hospital` (cool overhead light, ward-green wall):
-- `<light>-lineup.png`: the cast side by side in their idle;
-- `<light>-turn-<Name>.png`: eight angles, 45° apart;
-- `<light>-face-<Name>.png`: conversation-distance close-ups: neutral, mouth half open, mouth open, a blink, then each
-  expression.
+## Risks and open points
+- **Nothing here has been seen in Unity.** The FBX round-trip through Blender (axes, scale, the Humanoid avatar from the
+  re-exported skeleton), the decal's transparency sorting over the skin, the paper shader (not compiled outside Unity),
+  and the watch's placement on Nadia's real rig are all unverified until the captures come back.
+- **Mixamo clips are committed** to the repo (30 MB). Mixamo's licence allows them in a game; it doesn't allow
+  redistributing the files on their own. If the repo is public, consider keeping `Models/Animations/` out of it.
+- Mags's back of head: a few tiny folded triangles remain where the second face's glasses were (visible only very close
+  from behind). The representative's lenses keep a pale glare from Mags's paint; her glasses' arms stay dark.
+- The talking mouth is a painted inside on the decal plus the jaw shape key: it reads at conversation distance in the
+  numpy renders; at extreme close-up the teeth are a flat band.
+- Rafael's proportions are subtle (he's still clearly built on Elias's frame; the colour, skin, hair, beard and
+  accessories carry most of the difference).
+- `DreamCutoutView` now runs in edit mode (`[ExecuteAlways]`); its edit-mode work is building the DontSave paper child
+  and keeping the card at its built transform. Cut-outs created and captured in one batch call without a scene reload
+  get their paper only if the builder sets `card` before adding the component (use `Create`), else they render as the
+  lit two-sided quad until the scene is reopened.
+- No billboards were redrawn: the paper look uses the existing art (`Art/Dream/dream_*.png`, with its white sticker
+  border, which now reads as the paper's printed margin). Pose pictures for `Flip` don't exist yet.

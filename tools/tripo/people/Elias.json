@@ -1,0 +1,129 @@
+{
+ "name": "Elias",
+ "src": "elias",
+ "height": 1.83,
+ "colour": "cornflower-blue apron on white",
+ "note": "the dream Elias at the barbecue (Tripo, sheet vh3d-elias-dream-take1)",
+ "face": {
+  "rect": [
+   -60,
+   772,
+   64,
+   896
+  ],
+  "eyes": [
+   [
+    -28,
+    853
+   ],
+   [
+    32,
+    853
+   ]
+  ],
+  "eyebox": [
+   32,
+   22
+  ],
+  "brows": [
+   [
+    -30,
+    874
+   ],
+   [
+    30,
+    874
+   ]
+  ],
+  "mouth": [
+   1,
+   799
+  ],
+  "mouthL": [
+   -22,
+   801
+  ],
+  "mouthR": [
+   24,
+   801
+  ],
+  "lips": [
+   19,
+   6
+  ],
+  "lids": true,
+  "jaw": 0.16,
+  "smile": 0.2,
+  "brow": 0.14,
+  "frown": 0.15
+ },
+ "alter": {
+  "classes": [
+   {
+    "name": "skin",
+    "sample": [
+     0.0,
+     0.895,
+     0.012
+    ],
+    "target": null
+   },
+   {
+    "name": "hair",
+    "sample": [
+     0.0,
+     0.945,
+     0.012
+    ],
+    "zmin": 0.76,
+    "target": null
+   },
+   {
+    "name": "shirt",
+    "sample": [
+     -0.2,
+     0.57,
+     0.02
+    ],
+    "zmax": 0.765,
+    "zmin": 0.3,
+    "target": null
+   }
+  ],
+  "back_of_head": {
+   "center": [
+    0.002,
+    0.0,
+    0.865
+   ],
+   "y0": 0.02,
+   "y1": 0.04,
+   "zmin": 0.745,
+   "radius": 0.14,
+   "hairline": 0.8,
+   "hair": "hair",
+   "skin": "skin",
+   "pattern": "strands",
+   "smooth": 12,
+   "neck": {
+    "center_y": -0.02,
+    "rx": 0.05,
+    "ry": 0.048
+   },
+   "z_occ": 0.83,
+   "zramp": 0.012,
+   "pattern_strength": 0.55
+  },
+  "back_paint": [
+   {
+    "zmin": 0.51,
+    "zmax": 0.765,
+    "xmax": 0.17,
+    "ymin": 0.01,
+    "class": "shirt",
+    "pattern": "plain",
+    "strength": 0.1
+   }
+  ]
+ }
+}
