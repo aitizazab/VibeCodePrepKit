@@ -123,7 +123,7 @@ namespace JamKit.Look.EditorTools
             {
                 probeSet = ScriptableObject.CreateInstance<ProbeVolumeBakingSet>();
                 probeSet.skyOcclusion = true;
-                AssetDatabase.CreateAsset(probeSet, setPath);
+                { VhLookLibrary.EnsureAssetFolder(setPath); AssetDatabase.CreateAsset(probeSet, setPath); }
             }
             probeSet.simplificationLevels = 3;       // bricks of 1, 3, 9, 27 spacings: dense near geometry, sparse in the open
             probeSet.minDistanceBetweenProbes = minProbeSpacing;
@@ -135,7 +135,7 @@ namespace JamKit.Look.EditorTools
             if (lighting == null)
             {
                 lighting = new LightingSettings { name = name + " Lighting" };
-                AssetDatabase.CreateAsset(lighting, lightingPath);
+                { VhLookLibrary.EnsureAssetFolder(lightingPath); AssetDatabase.CreateAsset(lighting, lightingPath); }
             }
             ConfigureLighting(lighting);
             Lightmapping.lightingSettings = lighting;
@@ -214,7 +214,7 @@ namespace JamKit.Look.EditorTools
                 Element(SRPLensFlareType.Circle, 1.7f, 0.05f, new Color(1f, 0.8f, 0.5f), 0.06f, 0.4f),
             };
             data.elements = list.ToArray();
-            AssetDatabase.CreateAsset(data, FlarePath);
+            { VhLookLibrary.EnsureAssetFolder(FlarePath); AssetDatabase.CreateAsset(data, FlarePath); }
             return data;
         }
 

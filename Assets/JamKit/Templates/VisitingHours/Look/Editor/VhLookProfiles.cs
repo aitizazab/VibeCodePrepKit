@@ -37,7 +37,7 @@ namespace JamKit.Look.EditorTools
             if (p == null)
             {
                 p = ScriptableObject.CreateInstance<VolumeProfile>();
-                AssetDatabase.CreateAsset(p, path);
+                { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(p, path); }
             }
             return p;
         }

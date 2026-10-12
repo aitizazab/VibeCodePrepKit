@@ -295,7 +295,7 @@ namespace JamKit.Look.EditorTools
         {
             string path = VhLookLibrary.MatRoot + "VHM_Road_LaneLine__8m.mat";
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (m == null) { m = new Material(lane); AssetDatabase.CreateAsset(m, path); }
+            if (m == null) { m = new Material(lane); { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); } }
             else m.CopyPropertiesFromMaterial(lane);
             // The texture is one two-lane road across its width: stretch it over the road's 8 m (and 8 m per repeat along it).
             m.SetTextureScale("_BaseMap", new Vector2(1f / 8f, 1f / 8f));

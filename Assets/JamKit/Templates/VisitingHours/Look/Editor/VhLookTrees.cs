@@ -53,8 +53,8 @@ namespace JamKit.Look.EditorTools
             crown = AssetDatabase.LoadAssetAtPath<Mesh>(cp);
             if (trunk != null && crown != null) return;
             Build(seed, height, out trunk, out crown);
-            AssetDatabase.CreateAsset(trunk, tp);
-            AssetDatabase.CreateAsset(crown, cp);
+            { VhLookLibrary.EnsureAssetFolder(tp); AssetDatabase.CreateAsset(trunk, tp); }
+            { VhLookLibrary.EnsureAssetFolder(cp); AssetDatabase.CreateAsset(crown, cp); }
         }
 
         static float TrunkRadius(float height) => 0.035f * height + 0.06f;

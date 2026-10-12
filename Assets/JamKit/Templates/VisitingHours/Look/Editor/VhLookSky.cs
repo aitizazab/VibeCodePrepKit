@@ -107,7 +107,7 @@ namespace JamKit.Look.EditorTools
             m.SetFloat("_Exposure", exposure);
             m.SetColor("_HorizonColor", s.horizon * exposure);
             m.SetColor("_GroundColor", Color.Lerp(s.ground, new Color(0.46f, 0.43f, 0.4f), 0.5f) * exposure * 0.85f);
-            if (fresh) AssetDatabase.CreateAsset(m, path);
+            if (fresh) { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
             EditorUtility.SetDirty(m);
             return m;
         }

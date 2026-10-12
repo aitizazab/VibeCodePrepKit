@@ -94,6 +94,17 @@ namespace JamKit.Look.EditorTools
         /// <summary>Metres one repeat of the material covers (1 if unknown).</summary>
         public static float TileMetres(string name) => TryFind(name, out var e) ? e.tile : 1f;
 
+        /// <summary>Makes sure the asset path's folder exists in the AssetDatabase (a folder made only on disk isn't
+        /// known to Unity until a refresh, and CreateAsset into it fails: the scene rebuild on a fresh checkout, 2026-10-12).</summary>
+        public static void EnsureAssetFolder(string assetPath)
+        {
+            string folder = System.IO.Path.GetDirectoryName(assetPath).Replace('\\', '/');
+            if (string.IsNullOrEmpty(folder) || AssetDatabase.IsValidFolder(folder)) return;
+            string parent = System.IO.Path.GetDirectoryName(folder).Replace('\\', '/');
+            EnsureAssetFolder(folder);   // its parent first
+            if (!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder(parent, System.IO.Path.GetFileName(folder));
+        }
+
         public static string MaterialPath(string name) => MatRoot + "VHM_" + name + ".mat";
 
         /// <summary>The library material by name (built on first use). Logs and returns null for an unknown name.</summary>
@@ -123,7 +134,7 @@ namespace JamKit.Look.EditorTools
             if (m == null)
             {
                 m = new Material(baseMat);
-                AssetDatabase.CreateAsset(m, path);
+                { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
             }
             else m.CopyPropertiesFromMaterial(baseMat);
             TryFind(name, out var e);
@@ -255,7 +266,7 @@ namespace JamKit.Look.EditorTools
             if (fresh) m = new Material(Lit) { name = "VHM_" + e.name };
             SetupLit(m, Load(d + "_Albedo.jpg"), Load(d + "_Normal.jpg"), Load(d + "_Mask.png"), e.tint, e.normalScale,
                 e.smoothness, e.occlusion, 1f / e.tile, true);
-            if (fresh) AssetDatabase.CreateAsset(m, path);
+            if (fresh) { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
             EditorUtility.SetDirty(m);
             return m;
         }
@@ -361,7 +372,7 @@ namespace JamKit.Look.EditorTools
             m.SetFloat("_BlendModePreserveSpecular", 1f);
             m.SetFloat("_Cull", (float)CullMode.Back);
             ValidateLit(m);
-            AssetDatabase.CreateAsset(m, path);
+            { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
             return m;
         }
 
@@ -392,7 +403,7 @@ namespace JamKit.Look.EditorTools
             t.diffuseRemapMax = new Vector4(e.tint.r, e.tint.g, e.tint.b, 1f);
             t.maskMapRemapMin = Vector4.zero;
             t.maskMapRemapMax = new Vector4(1f, 1f, 1f, e.smoothness);
-            if (fresh) AssetDatabase.CreateAsset(t, path);
+            if (fresh) { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(t, path); }
             EditorUtility.SetDirty(t);
             return t;
         }
@@ -418,7 +429,7 @@ namespace JamKit.Look.EditorTools
             m.SetTexture("_BaseMap", Load(LeafAtlasPath));
             m.SetColor("_BaseColor", tint);
             m.enableInstancing = true;
-            if (fresh) AssetDatabase.CreateAsset(m, path);
+            if (fresh) { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
             EditorUtility.SetDirty(m);
             return m;
         }
@@ -448,7 +459,7 @@ namespace JamKit.Look.EditorTools
                 bool fresh = m == null;
                 if (fresh) m = new Material(Lit);
                 SetupLit(m, Load(d + "_Albedo.jpg"), Load(d + "_Normal.jpg"), Load(d + "_Mask.png"), Color.white, 1f, 1f, 1f, 1f, false);
-                if (fresh) AssetDatabase.CreateAsset(m, path);
+                if (fresh) { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
                 EditorUtility.SetDirty(m);
             }
         }
