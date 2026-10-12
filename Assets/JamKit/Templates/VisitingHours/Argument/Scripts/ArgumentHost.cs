@@ -40,7 +40,11 @@ namespace JamKit.Argument
         static ArgumentHost _current;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() => _current = null;
+        static void ResetStatics()
+        {
+            _current = null;
+            _expressionOverride = null;
+        }
 
         /// <summary>The battle running now, or null.</summary>
         public static ArgumentHost Current => _current;
@@ -68,6 +72,16 @@ namespace JamKit.Argument
         // A warning sound for each new attack (the standing rule: they're all warned before they can hurt).
         PressurePhase _warnedPhase;
         int _lastWarned;
+
+        // A forced expression (the boil capture, ArgumentShot): null = what she last showed.
+        static string _expressionOverride;
+
+        /// <summary>Holds her on one expression whatever she says (null lets it follow her again): the boil capture.</summary>
+        public static void OverrideExpression(string expression)
+        {
+            _expressionOverride = string.IsNullOrEmpty(expression) ? null : expression;
+            if (_current != null) _current._dirty = true;
+        }
         Gamepad _keysPad;
         bool _dirty = true;
         readonly StringBuilder _sb = new StringBuilder(256);
@@ -203,6 +217,7 @@ namespace JamKit.Argument
             if (_engine == null || _closed) return;
             float dt = Time.deltaTime;
             _view.Tick(Time.unscaledDeltaTime);
+            BoilKeys();
             var input = GameRoot.Input;
             bool allowed = InputAllowed;
 
@@ -244,6 +259,16 @@ namespace JamKit.Argument
             if (_closed || !InputAllowed) return;
             if (UnityEngine.Cursor.lockState != CursorLockMode.None) UnityEngine.Cursor.lockState = CursorLockMode.None;
             if (!UnityEngine.Cursor.visible && GameRoot.Input.HoverAllowed) UnityEngine.Cursor.visible = true;
+        }
+
+        /// <summary>F8 cycles the sprite's boil presets, F9 makes it react to her mood (debug keys: the creator compares
+        /// them; the preset and its values show under her).</summary>
+        void BoilKeys()
+        {
+            var kb = Keyboard.current;
+            if (kb == null || !InputAllowed) return;
+            if (kb.f8Key.wasPressedThisFrame) { ArgumentBoil.Next(); _view.ShowBoilLabel(); }
+            if (kb.f9Key.wasPressedThisFrame) { ArgumentBoil.SetReacting(!ArgumentBoil.Reacting); _view.ShowBoilLabel(); }
         }
 
         void TickPressure(InputService input, bool allowed, float dt)
@@ -672,6 +697,7 @@ namespace JamKit.Argument
             string expression = ArgumentArt.Opening;
             for (int i = e.Transcript.Count - 1; i >= 0; i--)
                 if (e.Transcript[i].speaker == Speaker.Opponent && e.Transcript[i].expression.Length > 0) { expression = e.Transcript[i].expression; break; }
+            if (_expressionOverride != null) expression = _expressionOverride;
             _view.SetOpponent(def.opponent, expression, expression, S["screen.placeholder"]);
             _view.SetPlaceholderBadge(def.placeholderLines ? S["screen.placeholder"] : "");
             _view.SetVitals(S.Format("screen.heart", "bpm", e.HeartRate.ToString(CultureInfo.InvariantCulture)) + "  " + Pips(e.HeartStep, 5),

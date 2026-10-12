@@ -18,6 +18,16 @@ namespace JamKit.Argument.Tests
         {
             ArgumentContent.Ensure();
             ArgumentArt.Forget(); // no sprite (or placeholder) left over from another test
+            ArgumentBoil.Use("gentle");
+            ArgumentBoil.SetReacting(false);
+        }
+
+        [TearDown]
+        public void BoilBack()
+        {
+            ArgumentBoil.Use("gentle");
+            ArgumentBoil.SetReacting(false);
+            ArgumentHost.OverrideExpression(null);
         }
 
         static void Run(ArgumentView view, float seconds)
@@ -163,6 +173,131 @@ namespace JamKit.Argument.Tests
             Assert.That(ArgumentStrings.Required.All(k => ArgumentStrings.Shared.Has(k)), Is.True, "screen.txt from Resources");
             Assert.That(ArgumentAudio.Clip(ArgumentAudio.MusicFile), Is.Not.Null, "the battle loop (Resources/ArgumentAudio/argument_battle_loop)");
             foreach (var s in ArgumentAudio.Sounds) Assert.That(ArgumentAudio.Clip(s), Is.Not.Null, s);
+        }
+
+        [Test]
+        public void TheBoilHasItsPresetsWithLilysFourVariables()
+        {
+            string[] names = { "Gentle", "Subtle", "Lily-equivalent", "Strong", "Slow and heavy", "Off" };
+            Assert.That(ArgumentBoil.Presets.Select(x => x.name), Is.EqualTo(names));
+            Assert.That(ArgumentBoil.Preset.name, Is.EqualTo("Gentle"), "the default");
+            foreach (var p in ArgumentBoil.Presets.Where(x => x.name != "Off"))
+            {
+                Assert.That(p.style, Is.EqualTo(BoilStyle.Boil), p.name + " is a boil");
+                Assert.That(p.strength, Is.GreaterThan(0f), p.name);
+                Assert.That(p.freq, Is.InRange(0.002f, 0.08f), p.name + ": the range of Lily's slider");
+                Assert.That(p.rate, Is.InRange(1f, 24f), p.name);
+                Assert.That(p.Visible, Is.True, p.name);
+            }
+            Assert.That(ArgumentBoil.Presets[ArgumentBoil.Find("off")].Visible, Is.False);
+
+            // Lily's 4 px / 0.02 / 8 per second, scaled by the two figures' heights on screen.
+            var lily = ArgumentBoil.Presets[ArgumentBoil.Find("lily")];
+            float scale = ArgumentBoil.LenaFigurePx / ArgumentBoil.LilyFigurePx;
+            Assert.That(lily.strength, Is.EqualTo(ArgumentBoil.Lily.strength * scale).Within(1e-4f));
+            Assert.That(lily.freq, Is.EqualTo(ArgumentBoil.Lily.freq / scale).Within(1e-6f));
+            Assert.That(lily.rate, Is.EqualTo(8f));
+            Assert.That(ArgumentBoil.Lily.strength, Is.EqualTo(4f));
+            Assert.That(ArgumentBoil.Lily.freq, Is.EqualTo(0.02f));
+
+            // Gentle is gentler than Lily's own, relative to the sprite; slow-heavy is slower and heavier than gentle.
+            var gentle = ArgumentBoil.Presets[0];
+            Assert.That(gentle.strength, Is.LessThan(lily.strength));
+            var heavy = ArgumentBoil.Presets[ArgumentBoil.Find("slow-heavy")];
+            Assert.That(heavy.strength, Is.GreaterThan(gentle.strength));
+            Assert.That(heavy.rate, Is.LessThan(gentle.rate));
+            Assert.That(ArgumentBoil.Presets[ArgumentBoil.Find("subtle")].strength, Is.LessThan(gentle.strength));
+
+            // F8 cycles and wraps; names are found loosely.
+            for (int i = 1; i <= ArgumentBoil.Presets.Length; i++) Assert.That(ArgumentBoil.Next().name, Is.EqualTo(names[i % names.Length]));
+            Assert.That(ArgumentBoil.Use("Slow-Heavy") && ArgumentBoil.Preset.name == "Slow and heavy", Is.True);
+            Assert.That(ArgumentBoil.Use("strong") && ArgumentBoil.Preset.name == "Strong", Is.True);
+            Assert.That(ArgumentBoil.Use("no such boil"), Is.False);
+            Assert.That(gentle.Describe(), Does.Contain("Gentle").And.Contain("4 px").And.Contain("8/s"));
+        }
+
+        [Test]
+        public void TheBoilsPixelsBecomeTheShadersScale()
+        {
+            // Lena's 1024 x 1536 sprite fit into the 640 x 860 slot: 573 x 860 on a 1080p screen.
+            var shown = ArgumentBoil.Shown(new Vector2(1024f, 1536f), new Vector2(640f, 860f));
+            Assert.That(shown.y, Is.EqualTo(860f).Within(1e-3f));
+            Assert.That(shown.x, Is.EqualTo(1024f * 860f / 1536f).Within(1e-3f));
+            Assert.That(ArgumentBoil.Shown(new Vector2(1024f, 1536f), new Vector2(float.NaN, 0f)), Is.EqualTo(new Vector2(1024f, 1536f)), "no layout yet: the texture's own size");
+
+            var s = new BoilSettings("t", BoilStyle.Boil, 4f, 0.01f, 8f, 0.6f);
+            var k = ArgumentBoil.ShaderScale(s, new Vector2(1024f, 1536f), shown);
+            Assert.That(k.x * shown.x, Is.EqualTo(4f).Within(1e-4f), "4 px across, as a share of the shown width");
+            Assert.That(k.y * shown.y, Is.EqualTo(4f).Within(1e-4f), "and of its height");
+            Assert.That(k.z, Is.EqualTo(0.01f * shown.x).Within(1e-4f), "noise cycles across the sprite");
+            Assert.That(k.w, Is.EqualTo(0.01f * shown.y).Within(1e-4f));
+
+            // Stepped, not smooth: a new seed rate times a second.
+            Assert.That(ArgumentBoil.Step(0f, 8f), Is.EqualTo(0));
+            Assert.That(ArgumentBoil.Step(0.124f, 8f), Is.EqualTo(0));
+            Assert.That(ArgumentBoil.Step(0.126f, 8f), Is.EqualTo(1));
+            Assert.That(ArgumentBoil.Step(1f, 8f), Is.EqualTo(8));
+            Assert.That(ArgumentBoil.Step(1f, 3f), Is.EqualTo(3));
+            var b = ArgumentBoil.BreatheFreq(s, 0f, 0f);
+            Assert.That(b.x, Is.EqualTo(0.01f).Within(1e-6f));
+            Assert.That(b.y, Is.EqualTo(0.0135f).Within(1e-5f));
+
+            Assert.That(Resources.Load<Shader>(ArgumentBoilLayer.ShaderPath), Is.Not.Null, "Resources/ArgumentShaders/ArgumentBoil.shader (in builds too)");
+        }
+
+        [Test]
+        public void HerMoodChangesTheBoilOnlyWhenReacting()
+        {
+            var gentle = ArgumentBoil.Preset;
+            Assert.That(ArgumentBoil.Reacting, Is.False, "off by default");
+            Assert.That(ArgumentBoil.For("angry").Same(gentle), Is.True);
+            ArgumentBoil.SetReacting(true);
+            Assert.That(ArgumentBoil.For("angry").strength, Is.GreaterThan(gentle.strength));
+            Assert.That(ArgumentBoil.For("rattled").rate, Is.GreaterThan(gentle.rate));
+            Assert.That(ArgumentBoil.For("softened").strength, Is.LessThan(gentle.strength));
+            Assert.That(ArgumentBoil.For("neutral").Same(gentle), Is.True);
+            Assert.That(ArgumentBoil.For("angry").name, Is.EqualTo(gentle.name), "the same preset");
+        }
+
+        [Test]
+        public void TheViewShowsTheBoilAndItsLabel()
+        {
+            var parent = new VisualElement();
+            var view = new ArgumentView(parent);
+            view.SetOpponent("Lena", "angry", "angry", "");
+            Assert.That(view.SpriteShown, Is.Not.Null, "the sprite, boiled where there's a graphics device");
+            if (!ArgumentBoilLayer.Available) Assert.That(view.SpriteShown, Is.SameAs(ArgumentArt.Sprite("Lena", "angry", out _)), "no device: the plain sprite");
+            view.Tick(0.2f);
+            Assert.That(view.BoilLabel, Is.Empty, "hidden until F8");
+            ArgumentBoil.Next();
+            view.ShowBoilLabel();
+            Assert.That(view.BoilLabel, Does.Contain("Subtle").And.Contain("F8"));
+            view.Tick(5f);
+            Assert.That(view.BoilLabel, Is.Empty, "it goes after a few seconds");
+            view.ShowBoilLabel(true);
+            view.Tick(5f);
+            Assert.That(view.BoilLabel, Does.Contain("Subtle"), "a capture keeps it");
+            view.Remove();
+        }
+
+        [Test]
+        public void TheBoilCaptureFlagsParse()
+        {
+            Assert.That(ArgumentShot.Parse(new[] { "VisitingHours.exe" }, out _), Is.False, "nothing without the flag");
+            Assert.That(ArgumentShot.Parse(new[] { "VisitingHours.exe", "-argument-shot", "C:/out/boil", "-argument-expression", "Angry", "-argument-boil", "slow-heavy",
+                "-argument-react", "-argument-frames", "24", "-argument-fps", "24" }, out var r), Is.True);
+            Assert.That(r.folder, Is.EqualTo("C:/out/boil"));
+            Assert.That(r.expression, Is.EqualTo("angry"));
+            Assert.That(r.preset, Is.EqualTo("slow-heavy"));
+            Assert.That(r.react, Is.True);
+            Assert.That(r.frames, Is.EqualTo(24));
+            Assert.That(r.fps, Is.EqualTo(24f));
+            Assert.That(ArgumentShot.Parse(new[] { "game.exe", "-argument-shot" }, out r), Is.True);
+            Assert.That(r.expression, Is.EqualTo(ArgumentArt.Opening), "her opening pose by default");
+            Assert.That(r.frames, Is.EqualTo(12));
+            Assert.That(r.fps, Is.EqualTo(12f));
+            Assert.That(r.preset, Is.Null, "the current preset");
+            Assert.That(ArgumentShot.FrameName("Slow and heavy", "angry", 3), Is.EqualTo("boil_slow-and-heavy_angry_03.png"));
         }
 
         [Test]

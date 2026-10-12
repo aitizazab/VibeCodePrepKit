@@ -124,6 +124,64 @@ played nothing of its own. So the previous scene's ambience went on.
   sketch-style pencil silhouette (a different face per expression) and notes that it's a placeholder.
 - The slot is 640 x 860 px on screen, bottom-aligned, scaled to fit.
 
+## The boil (Lena's sprite)
+Lily's hand-drawn distortion from the scene 2 prototype (`FableAnimationTests/demos/lily-warp.html` and
+`scene2-prototype-v2.html`) runs on Lena's battle sprite.
+
+**How it works:**
+- Fractal noise (two octaves, like `feTurbulence type="fractalNoise"`) pushes each pixel, like `feDisplacementMap`.
+- The noise is re-seeded in steps, `rate` times a second, so the lines jitter like a redrawn drawing rather than
+  swim. That's the boil.
+- The shader is `Argument/Resources/ArgumentShaders/ArgumentBoil.shader`; the settings and presets live in
+  `ArgumentBoil.cs`.
+- It distorts whatever `ArgumentArt.Sprite` returns, so it stacks with a treatment (`SetTreatment`).
+- The sprite is redrawn into a render texture only when the boil steps (8 times a second at the defaults).
+- Without a graphics device (batch test runs) the plain sprite shows.
+
+**The four variables** (the same as Lily's):
+- `strength`: the furthest a pixel moves, in pixels on a 1080p screen.
+- `freq`: noise cycles per screen pixel. Lower means broader waves; 0.01 is a 100 px wave.
+- `rate`: re-rolls per second.
+- `speed`: only for the smooth "breathe" style, which is there but not used.
+
+**Tuning.** Lena stands about 860 px tall on screen, waist up; Lily stood about 362 px tall, full figure, on the
+1280 x 720 stage. Lily's 4 px at 0.02 scaled by that ratio is 9.5 px at 0.0084. On Lena's face, which is much
+bigger, that's a strong wobble, so the default is gentler.
+
+| Preset | strength | freq | rate | |
+|---|---|---|---|---|
+| **Gentle** (default) | 4 px | 0.011 | 8/s | a light hand-drawn tremble; the ink lines stay crisp |
+| Subtle | 2.5 px | 0.012 | 6/s | barely there |
+| Lily-equivalent | 9.5 px | 0.0084 | 8/s | Lily's own, scaled to this sprite |
+| Strong | 8 px | 0.016 | 12/s | busier and quicker |
+| Slow and heavy | 12 px | 0.007 | 3/s | broad, slow lurches |
+| Off | | | | the plain sprite, to compare |
+
+**Keys in the battle:**
+- **F8** cycles the presets. The name and values show under her for a few seconds.
+- **F9** makes the boil react to her mood:
+  - angry: x1.4 strength, x1.25 rate;
+  - rattled: x1.3 strength, x1.5 rate;
+  - antagonistic: x1.15 strength;
+  - softened: x0.6 strength, x0.75 rate;
+  - hurt or pleading: x0.85 strength.
+
+  Reacting is off by default until someone has seen it.
+
+**Capture** (from a Visiting Hours build, like the title's `-title-shot`):
+
+    VisitingHours.exe -argument-shot "<folder>" [-argument-expression angry] [-argument-boil strong] [-argument-react] [-argument-frames 12] [-argument-fps 12]
+
+It:
+1. jumps to the prototype's Story battle;
+2. waits for the premise list;
+3. holds Lena on the expression with the preset (the label stays on);
+4. saves `boil_<preset>_<expression>_NN.png` (12 frames at 12 fps by default: one second);
+5. quits.
+
+The log line is `JAMKIT_ARGUMENT_SHOT_OK` or `_FAIL`. Expressions: antagonistic (the default), neutral, angry,
+rattled, softened, hurt, pleading. Presets by name: gentle, subtle, lily, strong, slow-heavy, off.
+
 ## The prose files (for the creator)
 Every word of the battle is in two text files, read at runtime from
 `Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentText/`:

@@ -42,6 +42,14 @@ namespace JamKit.Argument
         readonly Label[] _slipLabels = new Label[2];
         readonly VisualElement _endContinue;
         string _shownSprite = "";
+        // The sprite's boil (ArgumentBoil): what it distorts, for which expression, and the label F8 shows.
+        readonly ArgumentBoilLayer _boil = new ArgumentBoilLayer();
+        Texture2D _spriteTexture;
+        Texture _spriteShown;
+        string _spriteExpression = "";
+        readonly Label _boilLabel;
+        float _boilLabelFor;
+        bool _boilLabelAlways;
         PressurePhase _phase;
 
         /// <summary>Hover and click on any of its items (the host maps them to its focus model).</summary>
@@ -76,6 +84,12 @@ namespace JamKit.Argument
             _content.Add(_sprite);
             _spriteNote = ArgueUi.Text(_content, "", ArgumentArt.BodyItalic, 16, ArgueUi.Dim, "argument-sprite-note");
             ArgueUi.Place(_spriteNote, 40, 880, 600, 24);
+            _boilLabel = ArgueUi.Text(_content, "", ArgumentArt.Body, 17, ArgueUi.Dim, "argument-boil-label");
+            // At the foot of her slot (over her waist, never her face), on a dark band so it reads.
+            ArgueUi.Place(_boilLabel, 24, 846, 660, 28);
+            _boilLabel.style.backgroundColor = new Color(0f, 0f, 0f, 0.65f);
+            _boilLabel.style.paddingLeft = 8;
+            _boilLabel.style.display = DisplayStyle.None;
             _name = ArgueUi.Text(_content, "", ArgumentArt.Display, 54, ArgueUi.Ink, "argument-name");
             ArgueUi.Place(_name, 40, 24, 420, 70);
             _expression = ArgueUi.Text(_content, "", ArgumentArt.BodyItalic, 22, ArgueUi.Dim, "argument-expression");
@@ -306,9 +320,48 @@ namespace JamKit.Argument
             string key = (name ?? "") + "_" + (expression ?? "");
             if (key == _shownSprite) return;
             _shownSprite = key;
+            _spriteExpression = expression ?? "";
             var tex = ArgumentArt.Sprite(name, expression, out bool placeholder);
-            _sprite.style.backgroundImage = new StyleBackground(tex);
+            _spriteTexture = tex;
+            ShowSprite(_boil.Tick(0f, tex, SpriteShownPx(), ArgumentBoil.For(_spriteExpression)));
             _spriteNote.text = placeholder ? placeholderNote : "";
+        }
+
+        // ---------- The boil ----------
+
+        /// <summary>What the sprite slot shows: the boiled render texture, or the sprite itself (tests).</summary>
+        public Texture SpriteShown => _spriteShown;
+        public string BoilLabel => _boilLabel.style.display == DisplayStyle.Flex ? _boilLabel.text : "";
+
+        /// <summary>Shows the boil's preset and values under her for a few seconds (F8, F9), or for good (captures).</summary>
+        public void ShowBoilLabel(bool always = false)
+        {
+            if (always) _boilLabelAlways = true;
+            _boilLabelFor = 4f;
+            var s = ArgumentBoil.For(_spriteExpression);
+            _boilLabel.text = "Boil (F8): " + s.Describe() + (ArgumentBoil.Reacting ? "  ·  reacting to her mood (F9)" : "  ·  F9: react to her mood");
+            _boilLabel.style.display = DisplayStyle.Flex;
+        }
+
+        void ShowSprite(Texture t)
+        {
+            if (ReferenceEquals(t, _spriteShown))
+            {
+                if (t is RenderTexture) _sprite.MarkDirtyRepaint();
+                return;
+            }
+            _spriteShown = t;
+            if (t is RenderTexture rt) _sprite.style.backgroundImage = new StyleBackground(Background.FromRenderTexture(rt));
+            else _sprite.style.backgroundImage = new StyleBackground(t as Texture2D);
+        }
+
+        /// <summary>How big the sprite stands on screen (1080p pixels: the panel's reference size).</summary>
+        Vector2 SpriteShownPx()
+        {
+            if (_spriteTexture == null) return Vector2.zero;
+            var r = _sprite.contentRect;
+            var slot = float.IsNaN(r.width) || r.width <= 0f ? new Vector2(640f, 860f) : new Vector2(r.width, r.height);
+            return ArgumentBoil.Shown(new Vector2(_spriteTexture.width, _spriteTexture.height), slot);
         }
 
         public void SetPlaceholderBadge(string text) => _placeholder.text = text ?? "";
@@ -504,9 +557,15 @@ namespace JamKit.Argument
             _anims.Add(new Anim { duration = Mathf.Max(0.01f, duration), apply = apply, done = done });
         }
 
-        /// <summary>Advances the transitions (unscaled time: they finish even if the game is slowed).</summary>
+        /// <summary>Advances the transitions (unscaled time: they finish even if the game is slowed) and the boil.</summary>
         public void Tick(float dt)
         {
+            if (_spriteTexture != null) ShowSprite(_boil.Tick(dt, _spriteTexture, SpriteShownPx(), ArgumentBoil.For(_spriteExpression)));
+            if (_boilLabelFor > 0f && !_boilLabelAlways)
+            {
+                _boilLabelFor -= dt;
+                if (_boilLabelFor <= 0f) _boilLabel.style.display = DisplayStyle.None;
+            }
             for (int i = 0; i < _anims.Count; i++)
             {
                 var a = _anims[i];
@@ -592,7 +651,11 @@ namespace JamKit.Argument
             });
         }
 
-        public void Remove() => Root.RemoveFromHierarchy();
+        public void Remove()
+        {
+            Root.RemoveFromHierarchy();
+            _boil.Dispose();
+        }
 
         // ---------- The surface (pressure phases) ----------
 
