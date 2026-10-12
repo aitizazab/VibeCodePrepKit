@@ -3,11 +3,17 @@
 #  - dream_pic_place_card.png: Nadia's place card, her name in Theo's handwriting (the fourth chair).
 #  - dream_pic_calendar_n2.png: the fridge calendar, "Pancakes!" on every Sunday, small stars on Lena's Thursdays.
 #  - dream_pic_bad_dream.png: Theo's drawing "THE BAD DREAM": the family, and a woman in scrubs who comes to take them.
-#   uv run --with pillow python tools/art/vh_night2_props.py <Art/Dream dir>
+#   uv run --with pillow python tools/art/vh_night2_props.py <Art/Dream dir> [--force]
+# A picture that's already there is skipped (2026-10-13: the place card and THE BAD DREAM are real drawings now, deba0c3,
+# and a re-run must not overwrite them); --force redraws all three placeholders over whatever is there.
 import math, os, random, sys
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-ART = sys.argv[1]
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+FORCE = "--force" in sys.argv[1:]
+if not ARGS:
+    sys.exit("usage: vh_night2_props.py <Art/Dream dir> [--force]")
+ART = ARGS[0]
 HAND = "C:/Windows/Fonts/Inkfree.ttf"
 rnd = random.Random(7)
 
@@ -174,7 +180,13 @@ def bad_dream():
     img.convert("RGB").save(os.path.join(ART, "dream_pic_bad_dream.png"))
 
 
-place_card()
-calendar()
-bad_dream()
-print("written: dream_pic_place_card.png, dream_pic_calendar_n2.png, dream_pic_bad_dream.png")
+written, skipped = [], []
+for name, draw in (("dream_pic_place_card.png", place_card), ("dream_pic_calendar_n2.png", calendar), ("dream_pic_bad_dream.png", bad_dream)):
+    if os.path.exists(os.path.join(ART, name)) and not FORCE:
+        skipped.append(name)
+        continue
+    draw()
+    written.append(name)
+print("written: " + (", ".join(written) or "nothing"))
+if skipped:
+    print("skipped (already there; --force to redraw): " + ", ".join(skipped))
