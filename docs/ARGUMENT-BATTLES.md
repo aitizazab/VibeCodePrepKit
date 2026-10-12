@@ -1,23 +1,25 @@
+
 # *Visiting Hours*: argument battles, rebuilt from the ground up
 
-> **Status: a proposal for the creator (overnight draft, 2026-10-11).** Replaces the slice's battle (the box with a
-> Listening half and a Pressing half, objects drifting in to be touched; `SLICE-VISITING-HOURS.md`). The story
-> context is `STORY-BIBLE.md`; who's arguing is `CHARACTER-BIBLE.md`; when each battle happens is
-> `NIGHTS-GAMEPLAY.md`. **All quoted lines are placeholders** that show the logic each line must carry; the creator
-> writes the words.
+> **Status: a proposal for the creator (overnight draft, 2026-10-11; brought in line with the creator's notes on
+> 2026-10-12).** The creator's own writing (their `//` notes and prose in `STORY-PROSE.md`, their scripts, their
+> endings) outranks everything here. Replaces the slice's battle (the box with a Listening half and a Pressing half,
+> objects drifting in to be touched; `SLICE-VISITING-HOURS.md`). The story context is `STORY-BIBLE.md`; who's arguing
+> is `CHARACTER-BIBLE.md`; when each battle happens is `NIGHTS-GAMEPLAY.md`. **All quoted lines are placeholders**
+> that show the logic each line must carry; the creator writes the words.
 
 ## Decisions for the creator
 | # | Decision | Recommendation |
 |---|---|---|
-| 1 | **Which concept** (section 2) | **A, "Take it apart"**: the opponent's case is a physical object in their arena, built from labelled premises; Nadia breaks premises with evidence **and a stated reason** |
+| 1 | **Which concept** (section 2) | **A, "Take it apart"** (approved by the creator: the prototype's "structure isn't bad"): the opponent's case is a physical object in their arena, built from labelled premises; Nadia breaks premises with evidence **and a stated reason** |
 | 2 | **Reasons as a choice of three** ("because..." cards: one sound, one true but beside the point, one that doesn't follow) | Keep: it's the step that makes the player say *why*, which is exactly what the old box never asked |
-| 3 | **Keep a short action part** (pressure phases: 5–8 s of the opponent's emotion, themed to them, played on their arena's surface) | Keep, but only as a consequence (wrong reasons and pressing make it worse; good arguing makes it calmer), and with a meaning: **slips** in the pattern reveal what they aren't saying |
-| 4 | **Composure is Nadia's heart rate** (70 to 160 bpm in five steps) | Keep: a nurse would read it that way, and it's legible to a judge |
+| 3 | **Keep a short action part** (pressure phases: 5–8 s of the opponent's emotion, themed to them, played on their arena's surface) | Keep, but only as a consequence (wrong reasons and pressing make it worse; good arguing makes it calmer), and with a meaning: **slips** in the pattern reveal what they aren't saying. The creator's rule: except in the Long Night, every attack enters from off-screen or is telegraphed. They find the dodge phase small next to the thinking |
+| 4 | **Composure is Nadia's heart rate** (70 to 160 bpm in five steps) | Keep: a nurse would read it that way, and it's legible to a judge. It fits Mags's "stay calm" |
 | 5 | **Press is a hold** (0.6 s), never a click | Keep: forcing should be a decision, never an accident |
 | 6 | **"Let it rest" is how you get Heard out**: available once you've heard every premise | Keep |
-| 7 | **Tell** (offering a truth instead of attacking) arrives on Night 4 with Theo and decides the final talk | Keep: the game teaches you to win, then asks you to stop |
+| 7 | **Tell** (offering a truth instead of attacking) arrives on Night 4 with Theo | Yes: Theo stays (the creator) |
 | 8 | **No pressure phases in waking-world arguments** (only the dream turns feelings into things) | Keep |
-| 9 | **The verbs are the endings** in the car (Press, Tell, Let it rest, Concede) | Keep; see `STORY-BIBLE.md`, section 9 |
+| 9 | **The final talk decides the ending** | The endings are the creator's (`STORY-PROSE.md`, PROSE:56) and Elias's decision is granular; see section 5, "The final talk" |
 
 ---
 
@@ -40,24 +42,23 @@ opponent never answered back with a reason. It conveyed the mood of an argument,
 Every battle in this design is built from those parts, and every step is shown as a sentence a judge can read.
 
 ## 2. Three concepts
-| | **A. Take it apart** (recommended) | **B. Testimony** | **C. The floor** |
+| | **A. Take it apart** (chosen) | **B. Testimony** | **C. The floor** |
 |---|---|---|---|
 | **Idea** | The opponent's case is an object in their arena (Walt's wheel, Lena's breakfast table, the Doctor's lightbox). Premises are its pieces (spokes, plates, X-ray films). Ask, challenge with evidence and a reason, concede, press, or let it rest. Short themed pressure phases in between | Cross-examination: the opponent's statements scroll as testimony; press a line for detail or present evidence at a contradiction (the *Ace Attorney* model) | First person, in the real 3D arena: premises are objects in the room; you run (with the movement system) to carry evidence to them while the room moves with their emotion |
 | **Logic on screen** | High: structure, reasons and replies are all visible | High for single contradictions; no structure (one line at a time) | Low: fetching hides the reasoning |
 | **Action** | Short, meaningful (slips reveal subtext; bad arguing makes it worse) | None | High |
 | **Originality** | A new mix: argument mapping, skinned per character, with emotional patterns | Judges will know *Phoenix Wright* | High |
 | **Unique arenas** | Built in: the arena *is* the argument | Backdrop only | Built in |
-| **Teach in one battle** | Yes: Walt teaches it as truing a wheel | Yes | Hard |
+| **Teach in one battle** | Yes | Yes | Hard |
 | **Build (UI Toolkit + core)** | Yes: core rules, a UI layer over a 3D arena view, the existing pattern emitters for pressure | Easiest | No: per-arena 3D gameplay, physics, camera |
-| **Verdict** | **Recommended** | A fallback if time runs out | Borrow one idea: the arena is the real 3D set behind the UI. And the Force route's rule-break can spill into the 3D world |
+| **Verdict** | **Chosen** | A fallback if time runs out | Borrow one idea: the arena is the real 3D set behind the UI. And the Force route's rule-break can spill into the 3D world |
 
 **Why A:** it makes the logic visible as a structure, gives each opponent a place and a metaphor of their own,
-keeps the action short and meaningful, can be taught by Walt in his own words, and its verbs become the game's
-endings.
+and keeps the action short and meaningful.
 
 ---
 
-## 3. The recommended concept, "Take it apart", in full
+## 3. The chosen concept, "Take it apart", in full
 
 ### 3.1 The screen
 ```
@@ -108,13 +109,16 @@ endings.
 | **Concede** ("That's true.") | an open hand | On a true premise: acknowledge it. Heart rate down one step; often reveals the link hung on it | They relax and say what they hang on it. Conceding something false closes that line (a misplay, never a dead end) |
 | **Press** (hold 0.6 s) | a hand pushing flat | Force a premise down without evidence. Pressing the claim ends the battle | They're hurt. The piece breaks "forced". Force +1. A harsh pressure phase |
 | **Let it rest** ("I hear you.") | a closed journal | Appears once every premise (hidden ones included) has been heard: asked, conceded or answered | They soften and step aside (Heard out) |
-| **Tell** (Night 4 on) | a phone with a speech line | Place a truth **beside** a premise, not on it: an offering, not an attack | Used with Theo and in the car (section 5) |
+| **Tell** (Night 4 on) | a phone with a speech line | Place a truth **beside** a premise, not on it: an offering, not an attack | Used with Theo and in the final talk (section 5) |
 
 **The reason step is the heart of it.** For a sound challenge the player must pick, from three cards, the one reason
 that actually connects that evidence to that premise:
 - one is **sound** (it follows);
 - one is **true but beside the point** (it's real, but it doesn't touch this premise);
 - one **doesn't follow** (a leap, a misreading, an insult dressed as a reason).
+
+Some premises also get an **antagonising** card: Nadia dismisses the opponent instead of answering (the creator asked
+for one against Dream-Lena: she's in the wrong for acting like she's real). It angers them.
 
 Evidence that has nothing to do with a premise gets no reason cards, just the opponent's one-line "That doesn't touch
 what I said" (in their voice) and a small heat rise. So guessing is possible, but costly and visible.
@@ -123,7 +127,8 @@ what I said" (in their voice) and a small heat rise. So guessing is possible, bu
 **What they are:** 5–8 seconds in which the opponent's feeling takes over the arena's **surface** (the workbench top,
 the table, the lightbox) and Nadia's presence, a small light, moves to avoid it. Hits raise her heart rate. The shapes
 are **the opponent's things moving the way their emotion moves**, never rectangles: Walt's ball bearings roll in
-patient rows; Lena's flour blooms and her plates slide; the Doctor's ECG traces sweep on the beat.
+patient rows; Lena's flour blooms and her plates slide; the Doctor's ECG traces sweep on the beat. Except in the Long
+Night, every attack enters from off-screen or is telegraphed (the creator's rule).
 
 **When they happen** (they're a consequence, not a timer):
 | Trigger | Intensity |
@@ -131,44 +136,46 @@ patient rows; Lena's flour blooms and her plates slide; the Doctor's ECG traces 
 | The opening statement (their feeling as they make the claim) | Low |
 | After an unsound challenge | +1 heat |
 | After a press | +2 heat |
-| When a painful hidden premise surfaces (scripted, e.g. Lena's "He called you first") | High |
+| When a painful hidden premise surfaces | High |
 
 Heat (0–3) falls by one for each concession and each sound challenge. **Arguing well makes the room calmer.** Arguing
 badly or forcing makes it louder. A judge can see that in ten seconds.
 
 **Slips (why dodging means something).** Each pattern carries one or two **slips**, small glowing things of theirs
-(Walt's brass bell, Theo's paper planes, a patient wristband). Catching a slip reveals a hidden premise: what they
-aren't saying. Most hidden premises can also be revealed by Ask; the **deepest** one in each battle is revealed only by
-a slip or by asking twice in the right place. So the action is *listening under pressure*: avoid the hurt, catch the
-subtext. In Story mode slips collect themselves.
+(Walt's brass bell, a patient wristband). Catching a slip reveals a hidden premise: what they aren't saying. Most
+hidden premises can also be revealed by Ask; the **deepest** one in each battle is revealed only by a slip or by asking
+twice in the right place. So the action is *listening under pressure*: avoid the hurt, catch the subtext. In Story
+mode slips collect themselves.
 
 ### 3.4 Outcomes
 | Outcome | How | Gives | Story effect |
 |---|---|---|---|
-| **Convinced** | Every **key** premise broken by a sound reason, or conceded and its link broken. No presses | A **truth** (the opponent's revised claim, in their words) | Truths release Elias's holds in the car. The guardian **helps** the escape (a shortcut) |
+| **Convinced** | Every **key** premise broken by a sound reason, or conceded and its link broken. No presses | A **truth** (the opponent's revised claim, in their words) | Truths can sway Elias's decision in the final talk. The guardian **helps** the escape (a shortcut) |
 | **Heard out** | Let it rest after hearing every premise. No presses | A **personal** entry (an object of theirs) and their trust | They soften; the escape is normal; some personal entries open optional routes later |
 | **Pressed** | Any press | Nothing; Force +1 per press | They're hurt; the escape is harsher (the pursuer runs closer); doubt lines (`STORY-BIBLE.md`, section 7) |
 | **Composure lost** | Heart rate reaches 160 | — | Mags pulls her out; she re-dives from the guardian; a small cost to Elias's heart |
 
+Antagonising pushes the opponent toward condemning Nadia. For Lena, the creator's outcome is a stance: **unsure** of
+her conviction (open to giving her blessing in later battles) or **condemning** Nadia; condemning makes the Despair
+route easier to get onto.
+
 Progression never needs Convinced. Truths only shape the endings.
 
-### 3.5 Teaching: one battle, by Walt, in his own metaphor
-Walt is a bike mechanic, and an argument is a wheel: the claim is the hub, the premises are spokes, a weak premise is
-a loose spoke, and getting to the truth is **truing** the wheel. He teaches each verb at the moment it's needed:
-| Verb | Walt's lesson (placeholder) |
-|---|---|
-| Ask | "When a wheel wobbles you don't hit it. You find the loose spoke. Ask me about one." |
-| Challenge | "Think it's loose? Show me. And tell me why, or you're just guessing." |
-| Concede | "That one's true, Bell. You leave a true spoke alone. Look at what's hanging off it." |
-| Press | "Or you can bend it straight. Works. Once. Weakens the rim." |
-| Let it rest | (it simply appears when he's said everything) "That's all of it. Your call." |
-| The pressure phase | "Easy. Watch the pattern first." (a practice volley that can't hurt) |
+### 3.5 Teaching
+What teaches the argument, and where, is undecided. The creator rejected Walt's tutorial "the way it's currently
+built" and wants to discuss it after the setting talk (PROSE:104). Whatever teaches it should teach each verb at the
+moment it's needed, in the teacher's own metaphor, with a practice pressure phase that can't hurt.
 
 ---
 
-## 4. Walt's battle, written out (the example)
-**Setting.** Night 1. Walt's garage at golden hour. Elias's rear wheel on the truing stand; through the open door,
-Elias laughing at the barbecue. Walt wipes his hands on his red rag.
+## 4. Walt's battle, written out (the worked example of the rules)
+Whether Walt's battle survives, in another form, and whether it stays the model of an argument that makes sense, is
+undecided. It's kept here because it shows every rule working.
+
+**Setting.** Walt's garage at golden hour. Elias's rear wheel on the truing stand; through the open door, Elias
+laughing at the barbecue. Walt wipes his hands on his red rag. Walt is a bike mechanic, and his argument is a wheel:
+the claim is the hub, the premises are spokes, a weak premise is a loose spoke, and getting to the truth is **truing**
+the wheel.
 
 **Evidence Nadia can have by now:** the chart (`fact_chart`), the memorial card and keyring (`fact_effects`), the police
 report and call log, the family photo, the newspaper, the shop sign, "Saturday", Walt waving, **Walt's ledger**
@@ -187,14 +194,13 @@ CLAIM (hub): "He's fine here. Go home, Bell."
 Key premises for Convinced: **A'**, **B**, **C'**. A and C are true: the honest moves are to concede them.
 
 ### 4.2 The flow (the sound path, with every branch)
-**0. The claim and the practice.** Walt: "He's fine here. Go home, Bell." Ball bearings roll down the tilted
-workbench in slow rows (practice; they can't hurt). "Easy. Watch the pattern first."
+**0. The claim.** Walt: "He's fine here. Go home, Bell." Ball bearings roll down the tilted workbench in slow rows.
 
-**1. Walt sets three spokes** (A, B, C) and teaches **Ask**. Nadia asks about B.
+**1. Walt sets three spokes** (A, B, C). Nadia asks about B.
 > Walt: "Forty years at the bottom of this hill. I know every house, every dog. If something was wrong here, I'd
 > know it."
 
-**2. Challenge B** (teaches Challenge). Evidence: the memorial card (or `ded_walt_dead`).
+**2. Challenge B.** Evidence: the memorial card (or `ded_walt_dead`).
 
 | Reason card | Kind | Walt's answer |
 |---|---|---|
@@ -202,9 +208,9 @@ workbench in slow rows (practice; they can't hurt). "Easy. Watch the pattern fir
 | "You're dead, so you don't get a say." | True, beside the point | "Dead men give advice all the time, Bell. It's most of what we do." (+heat: the wheel spins and its spoke shadows sweep the bench) |
 | "The sign says 1971, so you haven't always been here." | Doesn't follow | "Since '71 is as close to always as a street gets." (+heat) |
 
-**3. A is true** (teaches Concede). If she challenges A ("Look at him. He's happy.") with anything, Walt: "You can
-see him, Bell. Is he faking? That's a true spoke. Leave it." She **concedes**: "He is happy." Heart rate down a step.
-Walt relaxes and says what hangs on it, revealing **A'**:
+**3. A is true.** If she challenges A ("Look at him. He's happy.") with anything, Walt: "You can see him, Bell. Is he
+faking? That's a true spoke. Leave it." She **concedes**: "He is happy." Heart rate down a step. Walt relaxes and says
+what hangs on it, revealing **A'**:
 > Walt: "Then what's the trouble? Happy's the same as fine. Fine's all anyone wants for him."
 
 **4. Challenge A'** with the chart. Nadia speaks as a nurse.
@@ -267,7 +273,11 @@ weaker claim, exactly as a person would.
 ## 5. The other battles
 Each in outline: the claim, the premise map, the key evidence and why it works. Same rules, new arena, a new twist.
 
-### Lena, at the kitchen table (Night 2). Twist: a premise that can't be broken, and a hidden one that breaks *her*
+### Lena, at the kitchen table (Night 2). Twist: a premise that can't be broken
+**How it starts (the creator's re-plot, PROSE:140):** Nadia has sat down for pancakes and played hide-and-seek with
+Theo, waiting for Elias to join them. He never comes. Nadia questions Lena, and Lena admits she isn't willing to let
+Elias go: she's been keeping him away from Nadia, afraid Nadia would convince him to leave the place where he's happy.
+
 **Arena:** breakfast for four. **Claim** (the centrepiece, the pancake stack): "He stays. This is his home." **Pieces:**
 plates at each seat (cleared and turned over when broken, smashed when forced). **Win image:** she puts the spatula
 down and sits; the fourth chair is pulled out.
@@ -275,35 +285,39 @@ down and sits; the fourth chair is pulled out.
 | Premise | Kind | The honest move and why |
 |---|---|---|
 | L1 "Out there, Theo is dead." | fact, TRUE | **Concede.** Reveals L1' "So out there, there's nothing left for him." |
-| L1' "There's nothing left for him out there." | link, KEY | Challenge with the fourth chair (`mem_fourth_chair`): "He sets a place for me in here. There's someone out there." Lena **falls back**: "He set it every Sunday for a year. You stopped coming." (L1'', fact, TRUE: concede it) |
+| L1' "There's nothing left for him out there." | link, KEY | Challenge with the fourth chair (`mem_fourth_chair`): "He sets a place for me in here. There's someone out there." What Lena falls back to is undecided (Nadia never stopped coming to Sunday pancakes) |
 | L2 "You don't know where I am. Neither does he." | fact, TRUE | **Concede.** Reveals L2' "So waking means searching forever." **It can't be broken tonight**: nothing Nadia has answers it, and that's the lesson (not key) |
 | L3 "He chose this. I know him." | link, KEY | **Ask** reveals L3' "This is the life he wanted." Challenge L3' with `ded_saturday_off`: "He worked that Saturday. This is the day he didn't have. That's a regret, not a choice." Lena **falls back**: "Then let him have his wish." (L3'') |
-| L3'' "Then let him have his wish." | link, KEY | Challenge with `truth_walt` or `ded_same_saturday`: "He's had it forty-two times, and Walt patches the same flat every morning. A wish you have to repair every night isn't peace." **Without either, it can't be broken** (Heard out at best): Night 1's result matters here |
-| L4 (hidden, surfaces by script) "You're not here for him. **He called you first. You didn't pick up. So he called me.**" | fact, TRUE | The big pressure phase. If Nadia already has `ded_why_lena_came` (the call log and the voicemail, Day 1) she can **Concede** at once: "I know." If not, it lands as the reveal, the deduction is written, and she can concede after. Conceding it, plus Convinced, opens Lena's partner path; pressing it closes that path |
+| L3'' "Then let him have his wish." | link, KEY | Challenge with `truth_walt` or `ded_same_saturday`: "He's had it forty-one times, and Walt patches the same flat every morning. A wish you have to repair every night isn't peace." **Without either, it can't be broken** (Heard out at best) |
+| L4 (hidden, surfaces by script) "He called you first. You didn't pick up. So he called me." | fact, TRUE | It stays in the argument (the creator). The big pressure phase; with `ded_why_lena_came` (the call log and the voicemail, Day 1) she can **Concede** at once: "I know." |
 
-- **Truth (`truth_lena`):** "The Lena he remembers wouldn't let him hide. She'd want him to live, even without her."
-- **Personal (Heard out):** Lena's apron hair tie. **Pressure:** flour blooms (slow rings), batter arcs, pan spatter,
-  plates sliding across the table (walls with gaps). **Slips:** Theo's drawings as paper planes; one is **THE BAD
-  DREAM**, a woman in scrubs (the inversion, caught in her hand).
+- **Antagonising:** alongside the options that pacify her, there's one that antagonises her further: arguing that
+  Dream-Lena is in the wrong for acting like she's real, avoiding her question. It pushes her toward condemning Nadia.
+- **Outcome:** Lena ends **unsure** of her conviction (open to giving her blessing in later battles) or **condemns**
+  Nadia. Either way, the house kicks Nadia out.
+- **Truth (`truth_lena`, a placeholder):** "The Lena he remembers wouldn't let him hide. She'd want him to live, even
+  without her." What Lena's truth really is, and where she gives it (a later battle, or the back seat), is undecided.
+- **Personal (Heard out):** undecided (no apron, so not the hair tie). **Pressure:** flour blooms (slow rings), batter
+  arcs, pan spatter, plates sliding across the table (walls with gaps). **Slips:** undecided (Theo's drawings as an
+  attack are out of character for how Elias would remember his son, PROSE:134).
 
 ### The Doctor, at the lightbox (Night 3). Twist: the half truth
-**Arena:** the trauma bay; a lightbox of X-ray films; the patient board. **Claim** (on the board): "Comfort care only.
-Let him go." **Pieces:** X-ray films (taken down when broken, cracked when forced). **Win image:** he wipes the board
-and writes "ASK HIS PROXY".
+Undecided, and it needs expanding: the creator calls it "possibly the most important battle, since it's the player's
+first introduction to Elias' character" (PROSE:167). The proxy form it rested on is cut. What the Doctor argues, and
+what truth wins it, are open (the creator asked whether the paperwork about Rafael's position could be it, PROSE:213).
 
+**Arena:** the trauma bay; a lightbox of X-ray films; the patient board. **Pieces:** X-ray films (taken down when
+broken, cracked when forced). The claim and the win image are undecided.
+
+What survives from the draft, as material:
 | Premise | Kind | The honest move and why |
 |---|---|---|
-| D1 "His right hand is finished. He won't practise again." | fact, TRUE | **Concede** (`fact_hand`). Reveals D1' "A doctor who can't practise has nothing to come back to" (link; breakable with `fact_patients`: "They come to St. Brigid's for him, not his hands"; not key) |
-| D2 "His family is dead." | fact, FALSE, KEY | Challenge with the police report or `fact_did_lena_get_out`: "Lena is missing, not dead. You asked if she got out." He **deepens**: "Missing is worse. A search that never ends." (true: concede) |
-| D3 "He'd have said what he wanted. Every doctor does." | link, KEY | Challenge with `fact_proxy`: "He didn't. He left it blank, and named me." He **falls back**: "Then do your job. What would the patient want? And you're not the one to judge it." (reveals D4) |
-| D4 "**You only got this job because you're my sister.**" | fact, HALF TRUE | Challenging it fails ("I was the best candidate": "Was it? Ask the panel."). **Concede:** "You broke the tie. Rafael was as good as me." Reveals D4' "So you're not qualified to decide this." |
-| D4' "You're not qualified to decide this." | link, KEY | Challenge with `fact_proxy`: "You named me anyway. At 2:47, the night you said it. Not as your nurse: as the one you trusted." |
+| D1 "His right hand is finished. He won't practise again." | fact, TRUE | **Concede** (`fact_hand`). Reveals D1' "A doctor who can't practise has nothing to come back to" (link; breakable with `fact_patients`: "They come to St. Brigid's for him, not his hands") |
+| D2 "His family is dead." | fact, FALSE | Challenge with the police report or `fact_did_lena_get_out`: "Lena is missing, not dead. You asked if she got out." He **deepens**: "Missing is worse. A search that never ends." (true: concede) |
+| D4 "**You only got this job because you're my sister.**" | fact, HALF TRUE | Challenging it fails. **Concede** the half truth. What link hangs on it is undecided |
 
-- **Truth (`truth_doctor`):** "He didn't think she was only his sister. The night he hurt her, he named her the one
-  person he trusted to decide for him."
 - **Personal (Heard out):** his pen light. **Pressure:** ECG traces sweeping across on the beat (the spike is the
-  danger), pill capsules ricocheting, curtain rails closing in. **Slips:** patient wristbands; the deep one reads
-  "LASNAME, N. / STAFF / PROXY".
+  danger), pill capsules ricocheting, curtain rails closing in. **Slips:** patient wristbands.
 
 ### Rafael, at the nurses' station (Day 3, optional, waking). Twist: no pressure, real stakes
 Only if she's skipped duties. **Claim:** "Tell someone where you go at night, or I will." Premises: "You've missed
@@ -324,41 +338,42 @@ Not a battle: a conversation with one rule. Theo asks; each answer is a card. On
 comforting lies are allowed but don't count. "Is Dad going to be sad?" → Tell: "Yes. For a long time." → Theo, after a
 while: "Okay. Tell him it's okay to be sad." (`truth_theo`). No arena object, no heat: just the rain and his torch.
 
-### Elias, in the car (Night 5). The verbs become the endings
-**Arena:** the car's interior; rain on the windscreen; the dashboard clock at 3:48 (the claim object: it moves only
-when something is decided). **Claim:** "Let me stay." (Long Night route: "Stay with me.") **No pressure phases:** he
-isn't fighting her. **His four holds are things in the car:**
+### Elias, the final talk (Night 5)
+**Arena:** the car's interior, if the car is the final arena (undecided: the creator wants a reason they're back at the
+beginning); rain on the windscreen; the dashboard clock at 3:48 (the claim object: it moves only when something is
+decided). **Claim:** "Let me stay." (Despair route: "Stay with me.") **No pressure phases** in the standard route: he
+isn't fighting her. An idea of the creator's: Lena and Theo appear in the back seat to support Nadia's arguments,
+instead of Nadia passing on their wishes.
 
-| Hold | Object | His premise (true, all of them) | Released by a Tell of |
+**What holds him** (the draft's four holds; what each really is and what releases it is undecided):
+| Hold | Object | His premise | Released by |
 |---|---|---|---|
-| Guilt | His hands on the wheel | "I called her. I made them come out. I drove." | **The confession**: "You called her because I didn't come. I heard you ask, and I went back to sleep." |
-| Theo | The booster seat | "If I go, I leave him." | `truth_theo` |
-| Lena | Her hair tie on the mirror | "She's here. Out there she's nowhere." | `truth_lena`, or Lena in the back seat (partner), or **the hope** ("She got out of the car.") |
-| Purpose | His ID on the sun visor | "What am I without my hands?" | `truth_doctor`, `fact_patients` or `fact_shrine` |
+| Guilt | His hands on the wheel | "Guilty for getting his wife and son killed in his mind" (the creator); the driving doesn't matter (PROSE:38) | Undecided. Nadia's confession that she heard him ask and went back to sleep is rejected (PROSE:208) |
+| Theo | The booster seat | "If I go, I leave him." | `truth_theo`, or Theo in the back seat |
+| Lena | A keepsake of hers (undecided) | "She's here. Out there she's nowhere." | `truth_lena`, Lena in the back seat, or the hope (waits on the Night 4 truth) |
+| Purpose | His ID on the sun visor | "What am I without my hands?" | The Doctor's truth (undecided), `fact_patients` or `fact_shrine` |
 
-When a hold is released, its object changes (his hands leave the wheel; the booster seat is buckled neatly, empty;
-he takes the hair tie off the mirror and holds it; he pockets the ID). All his premises are true, so there's nothing to
-break: **Challenge is greyed in the car.** Once the confession is told, a new verb appears: **"Ask what he wants."**
-
-| Verb | Result |
+**His decision is granular** (the creator, SB:22): anything that could affect it does, and for the major ones he says
+so. There's no threshold. The endings are the creator's (PROSE:56):
+| Ending | How it's reached |
 |---|---|
-| **Press** (hold on the clock) | The windscreen cracks. **Morning, forced** |
-| **Tell**, then **Ask what he wants** | Guilt plus two other holds released (three in the Force route): "...Drive me home, Nads?" **Morning, chosen.** Otherwise: "I want to stay." Then **accept** (**Evening**, his way) or **press** (**Morning, forced**, after asking) |
-| **Let it rest** (available from the start) | **Evening** |
-| **Concede** "Stay with me" (Long Night route: the evidence tray is blank) | **The Long Night** |
+| **Morning, chosen** | She convinces him that Lena wouldn't want either of them to succumb to their darkness ("...Drive me home, Nads?" is a placeholder). The rest of the ending is to be redone |
+| **Morning, forced** | She forces him out when he won't see reason (Press). How it plays is to be redone |
+| **Evening** | She fails to convince him, or she lets it rest (both, the creator) |
+| **The Long Night** | On the Despair route, Elias doesn't let her finish her argument, seeing her lack of conviction. The battle is a scripted loss: technically beatable, near impossible. Defeated, he asks her to stay; no dialogue gets her off the path, and she takes his hand |
 
 ---
 
 ## 6. Arenas and art, battle by battle
 | Battle | Arena (3D set, fixed camera) | Claim object | Pieces and their states | Opponent billboard expressions | Pressure sprites | Slip | Win image | UI skin |
 |---|---|---|---|---|---|---|---|---|
-| **Walt** | Garage workbench, truing stand, pegboard, radio, ledger | Bicycle wheel (hub tag) | Spokes: standing / pulled / bent / glowing | Neutral, rattled, conceding, hurt, softened | Bearings, spoke shadows, chain, grease drops | Brass bell | The wheel spins true | Stamped metal tags |
-| **Lena** | Kitchen table set for four, fridge with drawings | Pancake stack centrepiece | Plates: in place / cleared / smashed / glowing | Same five | Flour clouds, batter arcs, spatter, sliding plates | Theo's paper planes (one: THE BAD DREAM) | She sits; the fourth chair pulled out | Recipe cards |
-| **The Doctor** | Trauma bay, lightbox, patient board, curtains | The board's verdict | X-ray films: up / taken down / cracked / glowing | Same five | ECG sweeps, capsules, curtain rails | Wristbands | "ASK HIS PROXY" | A clipboard |
+| **Walt** (the worked example) | Garage workbench, truing stand, pegboard, radio, ledger | Bicycle wheel (hub tag) | Spokes: standing / pulled / bent / glowing | Neutral, rattled, conceding, hurt, softened | Bearings, spoke shadows, chain, grease drops | Brass bell | The wheel spins true | Stamped metal tags |
+| **Lena** | Kitchen table set for four, fridge with drawings | Pancake stack centrepiece | Plates: in place / cleared / smashed / glowing | Same five | Flour clouds, batter arcs, spatter, sliding plates | Undecided | She sits; the fourth chair pulled out | Recipe cards |
+| **The Doctor** | Trauma bay, lightbox, patient board, curtains | Undecided | X-ray films: up / taken down / cracked / glowing | Same five | ECG sweeps, capsules, curtain rails | Wristbands | Undecided | A clipboard |
 | **Rafael** (waking) | Nurses' station, shift board | The shift board | Med cups: full / emptied / knocked over | 3D model's face (no billboard) | None | None | He hands her the marker | Ward forms |
 | **Lena** (rule-break) | The rainy road, kitchen tiles spreading over the asphalt | — | Plates on the car bonnet | Hurt, furious | Plates and flour from outside the arena, over the buttons | None | None (she leaves) | The UI itself, defaced |
 | **Theo** | The guardrail, his torch | — | — | Curious, serious, brave | None | None | He switches the torch off | Crayon |
-| **Elias** | The car interior, 3:48 | The dashboard clock | Hands, booster seat, hair tie, ID | Soft Elias: warm, tired, breaking, decided | None (rain streaks only if pressed) | None | The clock moves | The dashboard |
+| **Elias** | The car interior (if kept), 3:48 | The dashboard clock | Hands, booster seat, Lena's keepsake (undecided), ID | Soft Elias: warm, tired, breaking, decided | None (rain streaks only if pressed) | None | The clock moves | The dashboard |
 
 **Shared art:** the five verb icons plus Tell; a battle icon for every journal entry (in the four styles above); Nadia's
 presence light; the heart-rate monitor; the reason cards; the "argument line" that draws from evidence to premise with
@@ -383,9 +398,9 @@ touch model):
 |---|---|
 | `ArgumentDef` | id, arena id, claim (text, icon), premises, opening pattern, heat patterns (1–3), slips, outcome entries (truth, personal), flags (no pressure, rule-break, final) |
 | `PremiseDef` | id, kind (Fact, Link), text, truth (True, False, Half), key?, starts hidden?, revealed by (Ask on a parent, a slip, a concession), Ask reply, Concede reply and reveals, challenges, a generic "doesn't touch it" line, a press line |
-| `ChallengeDef` | evidence id(s), three reasons (text, kind: Sound / Beside / NonSequitur), each reason's reply, and the sound one's effect (Break, FallBack to a premise, Deepen to a premise) |
-| `ArgumentState` | premise statuses, heat, heart-rate step, presses, heard set, the transcript |
-| `ArgumentEngine` | Ask, Challenge, Concede, Press, LetItRest, Tell, AskWhatHeWants; events for the view; the outcome rules (section 3.4); the car's decision (holds, Force route) |
+| `ChallengeDef` | evidence id(s), three reasons (text, kind: Sound / Beside / NonSequitur, plus an optional Antagonise card), each reason's reply, and the sound one's effect (Break, FallBack to a premise, Deepen to a premise) |
+| `ArgumentState` | premise statuses, heat, heart-rate step, presses, heard set, anger, the transcript |
+| `ArgumentEngine` | Ask, Challenge, Concede, Press, LetItRest, Tell; events for the view; the outcome rules (section 3.4); the final talk's decision (granular, once its rules are designed) |
 
 - **Pressure phases** reuse the core `Patterns` / `Emitter` and the bullet hell's `BulletPool`, drawn with each arena's
   sprites instead of rectangles, inside a **surface mask** (a polygon per arena: the bench top, the round table, the
@@ -394,8 +409,8 @@ touch model):
 - **Tests (dotnet):** Walt's battle as data: the sound path reaches Convinced; each wrong reason gets its own reply and
   raises heat; conceding reveals A'; Ask and the bell both reveal C'; Let it rest appears only when all five are heard;
   any press gives Pressed; heart rate 160 gives Composure lost. Lena: L3'' can't break without `truth_walt` or
-  `ded_same_saturday`. The car: every combination of holds gives the right ending, in both routes. A pilot plays each
-  battle's sound path for the smoke run (as `BattlePilot` does today).
+  `ded_same_saturday`. The final talk: once its granular rules are written, every route reaches the right ending. A
+  pilot plays each battle's sound path for the smoke run (as `BattlePilot` does today).
 
 **Unity side (UI Toolkit):**
 - `ArgumentView.uxml` / `.uss` over the arena: the 3D arena set renders behind the UI (its own camera, fixed framing);
@@ -404,7 +419,8 @@ touch model):
   win animation, the UI skin (a USS class).
 - The evidence tray reads the journal; battle icons come from each entry's art.
 - The ink dialogue service plays replies with the opponent's expression state.
-- Authoring cost, roughly: Walt about 25 reply lines, Lena about 30, the Doctor about 30, the car about 20 per route.
+- Authoring cost, roughly: Walt about 25 reply lines, Lena about 30, the Doctor about 30, the final talk about 20 per
+  route.
 
 ## 9. What a judge sees in 60 seconds
 1. An old man in a garage with a bicycle wheel; his claim is on the hub, his reasons are on the spokes.

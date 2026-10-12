@@ -26,7 +26,7 @@ Read from `PressurePhase.cs`, `ArgumentEngine.cs` and `ArgumentView.cs`:
 - **Three shapes:** walls of plates sliding in from the sides (each next gap is placed so it can be reached), flour
   rings blooming **from a point inside the box** with no warning (the unfair ones; being fixed separately), and batter
   lobbed from the side edges at where she is.
-- **Slips** (Theo's paper plane, which reveals "to him, you're the bad dream") bounce around inside the box from 1.5 s.
+- **Slips** (Theo's paper plane, which reveals the deepest hidden premise) bounce around inside the box from 1.5 s.
 - **Difficulty:** Normal; Story (nothing hurts, slips collect themselves); Scripted-but-beatable (the Long Night: full
   heat, walls only, gaps that only just fit). A speed setting runs from 50 to 100%.
 - **When phases happen:** the opening (heat 0, 5 s); after a wrong reason, a retort or a press (5–8 s at the current
@@ -222,11 +222,12 @@ patients", "the fourth chair". Three named lights end the phase early and calm h
 - **Fair:** the lights enter from the window edge; the hazards are the normal ones.
 - **Lena:** the stars through the window (those lights *are* stars).
 
-### 19. You're the bad dream (M)
-When "To him, you're the bad dream" surfaces, one phase **inverts**: Lena's things (Theo's planes, the cups, the
+### 19. You're the intruder (M)
+When the deepest hidden premise surfaces (that to Elias's dream, Nadia is the intruder; the prototype's Theo-drawing
+version of it is cut as out of character), one phase **inverts**: Lena's things (Theo's planes, the cups, the
 chairs) flee from Nadia's light, and touching them **hurts them**: heat rises, Lena flinches. The task is to cross the
 table **without touching anything she loves**.
-- **As an argument:** the buried root, felt: Nadia is the one who takes people away. The player is the danger.
+- **As an argument:** the buried root, felt: to this dream, Nadia is the intruder. The player is the danger.
 - **Fair:** nothing hurts Nadia in this phase; it can only go badly for Lena. Things enter from the edges.
 - **Lena:** fierce about the people she loves.
 
@@ -373,7 +374,7 @@ streak shares its angle, so one look tells you the whole shower.
 ### 35. Star trails (M)
 Arcs of light turn slowly around a pole star **beyond the box's corner**, like a long-exposure photo of the night sky:
 concentric arcs with gaps, sweeping in from the edge.
-- **As an argument:** time going round and round, the same morning forty-two times; and for her fall-back, "let him have his
+- **As an argument:** time going round and round, the same morning forty-one times; and for her fall-back, "let him have his
   wish": a wish that circles forever.
 - **Fair:** the centre is outside the box, so arcs always enter from an edge, and their gaps are visible all the way.
 - **Lena:** stargazing, and its patience.
@@ -444,19 +445,18 @@ A set that's coherent and buildable for the jam, if the creator wants a starting
 - **Is "curious" really her?** The bible calls her quick, warm, teasing, plain-spoken and fierce. Curiosity is implied
   only by the art notes (the pencil "shows a curious, ordered mind", the notebook). If curiosity is central, the
   bible's personality section should say so, because several ideas here lean on it.
-- **The stars are settled only as a hobby.** The creator settled stargazing in `STORY-PROSE.md`, but the observatory
-  is still a proposal (`DREAM-HOUSE.md`), and the Thursdays still need "a new carrier" (`STORY-FACTS.md`). Ideas 31,
-  32 and 39 depend on whether the stars are where she went on Thursdays.
+- **The stars are settled; the Thursdays aren't.** The creator settled stargazing in `STORY-PROSE.md` and approved
+  the attic observatory (with a raised roof section over it). What she said she was doing on Thursdays, and what the
+  fridge keys mean, are undecided. Ideas 31, 32 and 39 depend on whether the stars are where she went on Thursdays.
 - **The Thursday key or a moon phase?** `STORY-TALK.md` offers both, and the key necklace was cut from her design.
   Idea 32 works with either mark.
-- **The ceramicist is gone, but the docs still say so.** `CHARACTER-BIBLE.md` and `ARGUMENT-BATTLES.md` still call her
-  a ceramicist with an apron and a hair tie. The art notes say no clay, no workwear and no apron, and propose a
-  notebook of the city's vanishing places as her passion instead. Her keepsake (the apron hair tie) and the flour and
-  batter patterns may need rethinking if she isn't the one cooking.
+- **Her keepsake.** She's a stargazer, with no clay, no workwear and no apron, so the Heard-out keepsake (the apron
+  hair tie in the prototype) needs replacing; what replaces it is undecided. The flour and batter patterns may need
+  rethinking if she isn't the one cooking.
 - **Is she the cook?** Related: the battle is staged around her making pancakes. If she "doesn't need to work" and has
   a private, guarded style, is the domestic scene hers or Elias's memory of Sundays?
 - **How much does dream-Lena know about her own secrets?** The bible says none (she's built from what Elias knew). So
   her star life should appear in the dream only as Elias saw it from outside: a closed notebook, a locked attic, an
   empty Thursday. Ideas 32 and 39 assume that; idea 13 (her own words) has to respect it too.
-- **"Caring" toward whom?** She's fierce about Elias and Theo, and "fond" of Nadia but hurt by her absence. Whether
+- **"Caring" toward whom?** She's fierce about Elias and Theo, and "fond" of Nadia. Whether
   her attacks ever **protect** Nadia (say, from the dream's static) isn't settled, and it would change ideas 26 and 36.

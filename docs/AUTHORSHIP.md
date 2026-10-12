@@ -16,7 +16,7 @@ words are theirs.
 
 | Text | Who | Lines | Evidence |
 |---|---|---|---|
-| `Argument/Resources/ArgumentText/lena_night2.txt` (the Lena battle) | **Agent** (all of it) | 1-281 | Created in e94c1e3 ("every line of the battle out of code, into text files the creator edits"): the controls agent moved its own placeholders out of `DreamLenaDemo.cs`. The only later change is 28f11b0 (an agent: the keepsake placeholder and Route 9). The creator: "I never touched that file." **Wrongly treated as the creator's in 28f11b0's framing.** |
+| `Argument/Resources/ArgumentText/lena_night2.txt` (the Lena battle) | **Mixed** since 3d4a773 | Creator: the lines changed in 3d4a773 ("the creator's rewrite of Lena's Night 2 battle"), at HEAD about 85 lines, among them `opening`'s `//` note, `pressedReply`, `L1b.sound.reply`, `L1c`, `L4.text`, plus `//` notes on 16 lines (`git blame` the file for the exact lines). Agent: everything else, which is still e94c1e3's placeholders (for example `L3.askAgainReply`, the `L5` lines, `truth_walt`) and 28f11b0's two data fixes | Created in e94c1e3 by the controls agent, moving its own placeholders out of `DreamLenaDemo.cs`. Until 3d4a773 the creator had never touched it ("I never touched that file"), so 28f11b0 was **wrong to treat it as theirs**. The argument agent now edits the live file. |
 | `Argument/Resources/ArgumentText/screen.txt` (the battle's interface words) | **Agent** (all of it) | all | e94c1e3 and 7d2600c, both agent commits; no creator edit recorded. |
 | `script/opening-script.md` | **Mixed** | Creator: line 9 (the voicemail), line 12 (the news report) and line 15 (the headline). Agent: lines 1-7 (title, instructions and headings, 43cb3f6), lines 17-26 (the notes on broadcast style, 43cb3f6), and the words "a crossfire involving the Larpaca gang" in line 12 (28f11b0) | 43cb3f6 created the file with the **agent's** draft voicemail ("Could I bother you for a... it's five in the morning"), news and headline. 9872706 ("the creator's edited opening script") replaced all three with the creator's text. 06e0330 ("the creator's edit (Larpaca for WeWork; her condolences)") changed two words. WORKLOG:48 shows the audio agent had already swapped both at generation time, so whether the creator typed those two words themselves is worth a confirm. |
 | `Dialogue/VisitingHours.ink` (the slice's Day 1 and Night 1 lines) | **Agent** (all of it) | all | One commit, 4c0ceea (2026-10-09). Its own header says "placeholder writing in the creator's direction ... the creator rewrites them". This pass fixed its surname ("VOSS, E." and "Nadia Voss" became Lasname). |
@@ -34,7 +34,7 @@ words are theirs.
 |---|---|---|---|
 | `docs/STORY-PROSE.md` | **Mixed** | Agent: the prose (c6fbdd1). Creator: every `//` note, and the Mags scene at lines 81-92 (732485f, on lines 24, 33, 37-38, 45, 48, 51, 56-58, 76-77, 81-92, 99-100, 104, 109-110, 114-116, 124-125, 132-134, 138-140, 152, 160, 167, 173-174, 180, 184, 186-187, 208-209, 211, 213, 233, 244-245, 253, 266) | 732485f ("Story notes from the creator") only added text: its word diff removes nothing but two words where a note was inserted mid-line. On a mixed line, only the part after `//` is the creator's (on line 45, only "// as an intern"). |
 | `docs/STORY-BIBLE.md` | **Mixed** | Agent: everything but the `//` notes (dd72559). Creator: the `//` notes on lines 12-13, 19-26, 28-29 and 36 (732485f) | The same commit; in the decisions table the creator's note shares a row with the agent's text. |
-| `docs/DESIGN-DECISIONS.md` | **Agent**, with the creator's notes arriving | all; a creator `//` at the end of question 1 (uncommitted, in their editor) | Written by an agent on 2026-10-11 (WORKLOG:1016: "opened in the creator's editor for their answers"). |
+| `docs/DESIGN-DECISIONS.md` | **Agent**, with one creator note | all; a creator `//` at the end of question 1 (3d4a773) | Written by an agent on 2026-10-11 (WORKLOG:1016: "opened in the creator's editor for their answers"). |
 | `docs/VISITING-HOURS.md` ("the premise (the creator's)") | **Agent** (a record of the creator's chat decisions) | all | The creator's premise of 2026-10-10 came in chat; agents wrote it down (f9fe474, 69c91a7). The facts are theirs, the wording isn't. |
 | `docs/CHARACTERS.md` ("the creator's rules for Lena's look", rounds 2-4) | **Agent** (records of chat) | all; only the quoted phrases are the creator's words (e.g. "4-a is what we'll work with") | 9872706, 88c9662, 31748db, c7d6c5f: agent commits recording the creator's art notes. |
 | `docs/SLICE-VISITING-HOURS.md` ("story decisions since draft 1 (the creator, 2026-10-09)") | **Agent** (a record of chat) | all | The examples in it are agent wording, such as "Your phone is at 3%", which the creator later sent back (SB:28). |
@@ -42,12 +42,15 @@ words are theirs.
 | `docs/ARGUMENT-PROTOTYPE.md` ("the creator's additions", "Fair attacks") | **Agent** (a record of chat) | all; the quoted rule is the creator's words | WORKLOG:1154, WORKLOG:1190, WORKLOG:1391. |
 | `docs/MUSIC-SKETCHES.md` | **Agent**, quoting the creator | the `>` quotes are the creator's | |
 | `docs/argument-ideas/SELECTION.md` | **Agent**; one quoted line is the creator's (line 28) | | |
-| Everything else under `docs/` (CHARACTER-BIBLE, NIGHTS-GAMEPLAY, ARGUMENT-BATTLES, ARGUMENT-PROSE-BRIEF, STORY-TALK, STORY-FACTS, DESIGN-DECISIONS-STATUS, DREAM-HOUSE, the other argument-ideas, WORKLOG) | **Agent** | all | Agent commits only; none records a creator edit. |
+| `docs/DESIGN-DECISIONS-STATUS.md` | **Mixed** | Creator: the `//` answers under "Still open" and the answers quoted under "Answered" (from 3d4a773, kept word for word) | 3d4a773 committed the creator's answers into the agent's page. |
+| `docs/NIGHTS-1-2.md` | **Agent** (main's plan) | all | 3d4a773; its [MAIN'S CALL] items are agent decisions the creator can veto. |
+| Everything else under `docs/` (CHARACTER-BIBLE, NIGHTS-GAMEPLAY, ARGUMENT-BATTLES, ARGUMENT-PROSE-BRIEF, STORY-TALK, STORY-FACTS, DREAM-HOUSE, the other argument-ideas, WORKLOG) | **Agent** | all | Agent commits only; none records a creator edit. |
 
 ## What was wrongly treated as the creator's
 - **The Lena battle text** (`lena_night2.txt`, and by extension `screen.txt`). 28f11b0 and the earlier DESIGN-DECISIONS-
-  STATUS framed its relic lines as if the creator had left them stale. They're agent placeholders the creator never
-  touched. `ARGUMENT-PROSE-BRIEF.md` now says so.
+  STATUS framed its relic lines as if the creator had left them stale. At the time they were agent placeholders the
+  creator had never touched. `ARGUMENT-PROSE-BRIEF.md` now says so. The creator has since rewritten much of
+  `lena_night2.txt` (3d4a773), so the file is now mixed.
 - **Nothing else was claimed as the creator's text** beyond the script's three lines and the `//` notes, which check
   out. The agent "records of the creator's decisions" (VISITING-HOURS, CHARACTERS, SLICE) carry the creator's facts in
   agent wording. Where their wording has gone stale (such as the 3% example), it's agent text and can be fixed.

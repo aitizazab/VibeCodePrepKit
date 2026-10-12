@@ -13,7 +13,7 @@ decisions in WORKLOG and chat. An agent doc that disagrees is stale and gets upd
   LeBaget may become a big part of the story (undecided), and if it shares the blame for the crash, that stays
   hidden behind its well-intentioned face. The spelling is LeBaget (confirmed by the creator, 2026-10-12).
 - **Elias Lasname** (the surname is a placeholder) is an ER doctor who **founded Saint Brigid's** for the local
-  community. He comes from money; where it came from is never said. A good man with an abrasive personality.
+  community. He comes from money; where it came from is never said (and doesn't matter). A good man with an abrasive personality.
 - **Nadia**, his younger sister, is a nurse at Saint Brigid's and **usually picks him up from work.**
 - **The day before:** Elias implied Nadia only got her job because she's his sister. It hurt because it's half
   true: she was qualified, but the other candidate was just as good.
@@ -23,7 +23,7 @@ decisions in WORKLOG and chat. An agent doc that disagrees is stale and gets upd
   asleep as it plays to its end. Driving home, **his car is caught in the crossfire** on Route 9; the news calls
   it gang violence (the Larpaca gang). The cause is external, which leaves room for more later.
 - **Lena**, his wife, is **missing, not dead**: her body was never found. She's a **stargazer** (her small
-  observatory is the house's attic). **Theo** (10) was killed.
+  observatory is the house's attic, under a stone tower). **Theo** (10) was killed; he stays in the story.
 - **Elias is in a coma** at his own hospital. **Mags** runs a **secret, off-the-books** Dream Bridge; Nadia
   goes into his dream.
 - The design story (layers, the dilemma, endings, the Force and Long Night spectrum) is in
@@ -41,9 +41,9 @@ decisions in WORKLOG and chat. An agent doc that disagrees is stale and gets upd
     - **chosen:** she convinces Elias; when it's amicable she takes him out of the city to go stargazing, to show him
       that Lena lives on in his heart;
     - **forced:** she's willing to force him out if he won't see reason.
-    - The creator wants both paths redone; the rest of each is undecided.
-  - **Evening:** she fails to convince him, and he dies. It ends with a memorial and a funeral, Nadia left on her own
-    as it rains. Whether she can also choose it by not arguing is undecided.
+    - The stargazing is Morning, chosen's last image. The forced path is still to be redone.
+  - **Evening:** he dies. She reaches it either by failing to convince him or by choosing to let it rest. It ends
+    with a memorial and a funeral, Nadia left on her own as it rains.
   - **The Long Night** (the Despair route, built by a hidden despair value): Nadia, worn down by guilt until she
     thinks she's unredeemable, dives in anyway, loses a scripted, near-unbeatable battle and takes Elias's hand, while
     Mags tells her this Elias already died near the start of the battle. The lock-in rule and the last image are
@@ -52,6 +52,24 @@ decisions in WORKLOG and chat. An agent doc that disagrees is stale and gets upd
   - The design docs (`STORY-BIBLE.md`, `CHARACTER-BIBLE.md`, `NIGHTS-GAMEPLAY.md`, `ARGUMENT-BATTLES.md`) are agent
     proposals; where they disagree with the creator's writing, the creator wins. What's still open:
     `DESIGN-DECISIONS-STATUS.md`.
+- **The plan for Nights 1 and 2** is `NIGHTS-1-2.md`: what each night is for, what it holds, and the build plan.
+
+## Decisions (the creator, 2026-10-12)
+- **Theo stays.**
+- **"He called you first" stays** in Night 2's argument (the creator rewrote the battle's script), and that argument
+  is what lets Lena change her mind later.
+- **Elias's guilt:** "Guilty for getting his wife and son killed in his mind."
+- **Julian Cho is cut,** with no replacement.
+- **The family money doesn't matter** (inherited or earned).
+- **Larpaca is the gang, and the news doesn't name LeBaget.** The spelling is LeBaget.
+- **Rafael** is a man, an intern at the hospital.
+- **Evening** comes both ways: by choosing to let it rest, and by failing to convince him.
+- **Morning, chosen** ends on the stargazing.
+- **The dream house's tower is stone.**
+- **The argument battle's boil** (the wobble of its lines) **follows Lena's mood.**
+- Still open, with the creator's answers so far: `DESIGN-DECISIONS-STATUS.md`. Who wrote which text: `AUTHORSHIP.md`.
+
+## The argument battles
 - **The argument battles get rebuilt from the ground up:**
   - **Unique art per battle**, stylised battle icons and **arenas**: no dodging rectangles in the green or red
     half of a plain box.

@@ -33,8 +33,8 @@ too.
 |---|---|---|
 | **Curious** | The creator, above. Art notes, round 3 (`CHARACTERS.md`): "The pencil shows a curious, ordered mind: neat, sharpened, always in the same place ... the habit of someone who notes things down and keeps things in order." The closed notebook. *Not* in the bible's personality line | She watches, notes and sketches. Her attention is a force in the box |
 | **Ordered** | The same pencil note | Her attacks are drawn before they're made: tidy, legible patterns. Fairness as her character, not a rule laid over her |
-| **Caring** | The creator. The bible: "Fierce about the people she loves", calls Elias "love". Toward Nadia (bible matrix): "Fond; hurt she stopped coming; sees Nadia's guilt before Nadia does". Her Heard-out reply: "...You do, don't you." Her flaw: **"Protects by keeping out"** | Care that holds you in, and care that invites you to sit. Both can be a trap |
-| **The stars** | The creator settled a stargazing hobby (note in `STORY-PROSE.md`: "We'd settled on giving her a stargazing hobby, so maybe a small observatory in the attic?"). `DREAM-HOUSE.md`: the attic observatory (a proposal) with its round window full of stars, "always night in Lena's attic". `STORY-TALK.md`: her telescope in the Morning ending | The sky is her place in the battle, and a constellation is the shape of her case |
+| **Caring** | The creator. The bible: "Fierce about the people she loves", calls Elias "love". Toward Nadia (bible matrix): "Fond; sees Nadia's guilt before Nadia does". Her Heard-out reply: "...You do, don't you." Her flaw: **"Protects by keeping out"** | Care that holds you in, and care that invites you to sit. Both can be a trap |
+| **The stars** | The creator settled a stargazing hobby (note in `STORY-PROSE.md`: "We'd settled on giving her a stargazing hobby, so maybe a small observatory in the attic?"). `DREAM-HOUSE.md`: the attic observatory (approved by the creator, with a raised roof section over it) with its round window full of stars, "always night in Lena's attic". The creator's Morning, chosen: Nadia takes Elias out of the city to go stargazing | The sky is her place in the battle, and a constellation is the shape of her case |
 | **Quick, warm, teasing** | The bible: "Laughs at her own jokes before the end. Stops joking mid-sentence when something matters." | The rhythm of her gestures: tease, then mean it |
 | **Plain-spoken** | The bible: "Short, warm, direct." | What she says is what you dodge, and her own words can be held to |
 | **Fierce** | The bible; "Get out of my kitchen." | The hard phases, when she means it |
@@ -45,12 +45,9 @@ too.
 creator calls her that and this selection leans on both.
 
 **Conflicts the creator must settle**
-1. **Her job.** The character bible (decision 4, and her history) and the story bible make her a **ceramicist** at a kiln
-   co-op; `ARGUMENT-BATTLES.md` and the prose brief give her an **apron hair tie** as the Heard-out keepsake;
-   `BORROWED-MECHANICS.md`'s trait list still has bowls, glaze and the kiln. The creator's art notes (round 3) say **"no
-   workwear, no apron, no clay"** and that she doesn't need to work; the creator later settled on **stargazing**, and
-   `STORY-FACTS.md` says the studio and the friend were replaced. `DESIGN-DECISIONS.md` still lists it as open. **This
-   selection assumes the stars, not clay: nothing selected uses clay.**
+1. **Her passion: settled.** She's a stargazer (the creator, 2026-10-12: the ceramics material is scrapped). Her
+   art notes (round 3) say **"no workwear, no apron, no clay"** and that she doesn't need to work. The Heard-out keepsake
+   (the apron hair tie in the prototype) needs replacing; what replaces it is undecided. Nothing selected uses clay.
 2. **The flour and batter.** They don't depend on clay; they depend on her being the cook in the dream's kitchen, which
    the creator endorsed ("Sunday pancakes", `DREAM-HOUSE.md`). They survive if the kitchen is read as **Elias's memory of
    Sundays** (it is his dream). What doesn't survive "no apron": the apron hair tie, and wind-ups like "dusts flour from her
@@ -59,8 +56,8 @@ creator calls her that and this selection leans on both.
    kept of her), and her own things (the pencil, the notebook, the stars) are the *telegraphs, the pages and the sky*
    (what she was). If she isn't the cook at all, the hazards need new material, but mechanics 1 to 6 still stand,
    because they're about *how* she attacks, not *with what*.
-3. **Who her care covers.** Fierce for Elias and Theo. For Nadia: fond, hurt, and she aims at Nadia's absence (her
-   flaw: "Makes it personal"). Mechanics 3, 5 and 8 show a care that reaches Nadia (a hug if you hold still, a seat, a
+3. **Who her care covers.** Fierce for Elias and Theo. For Nadia: fond, and she makes it personal (her
+   flaw). Mechanics 3, 5 and 8 show a care that reaches Nadia (a hug if you hold still, a seat, a
    shared sky). If it doesn't reach her, they still work, but they read as **control** (holding her still, sitting her
    down) rather than kindness. See question 2.
 
@@ -187,7 +184,7 @@ your distance, Nadia."), caught her page ("...You saw that."), sat down (see 5: 
 - **Lena:** curiosity turned on you. She watches, she notes it down, and she's right. A player feels it the second time a
   cross lands exactly where they always hide.
 - **As an argument:** her case is "He chose this. I know him." This shows she knows Nadia too. Her line about distance
-  is the case against Nadia, her absence, read off how the player actually played. The counterplay (change your habits)
+  is her case against Nadia, read off how the player actually played. The counterplay (change your habits)
   is Nadia's lesson too.
 - **Fair:** the crosses are the telegraph (0.8 s at least), the volley lands only where they're drawn, and the planner
   checks for a way out.
@@ -210,12 +207,12 @@ never go there either. The seat is **closed during the three rings**: that quest
   who sits feels both: safe, and left out of everything that matters.
 - **As an argument:** a real choice. Sitting is safe and comfortable and hears nothing; staying at the table's edge is
   where the truth comes out. It's the fourth chair turned into a choice about how to spend the night. It can also count
-  toward the Despair route's comfort choices, if the creator wants.
+  toward the Despair route's hidden value, if the creator wants.
 - **Fair:** a safe zone, drawn soft (dashed); nothing to telegraph.
 - **Small:** it adds no hazards; it adds a decision to every phase after it (sit, or go out for the page), and it makes
   the pages something you leave safety to get.
 - **Where:** from the fourth chair's challenge to the end. In the sky act it's her chair by the telescope.
-- **Teach:** it draws itself while her rattled reply plays ("He set it every Sunday for a year. You stopped coming."),
+- **Teach:** it draws itself while her rattled reply to the fourth chair plays,
   and the light is free to try it. In the next phase, a page drifts past outside it.
 - **Cost and risks:** S–M. A zone the spawns and the planner leave alone, slip paths that avoid it, a seat sprite, a
   line. Risk: a cautious player could sit out every gesture; mechanic 4's lines notice, and the three rings close it.
@@ -325,18 +322,18 @@ the sky opens with "He called you first", which every good ending reaches.
 | | **The kitchen act** | | | |
 | 1 | The opening: "Sit down, Nadia. Pancakes are nearly done. He stays. This is his home." | Laying the table; a page in the quiet last second | 6 s | **1**, **6**, 2 (the written line) |
 | 2 | Nadia asks why "He chose this" → "This is the life he wanted" appears | A tease | 2–3 s | **2** |
-| 3 | She asks again → "To him, you're the bad dream" | She stops joking mid-pattern: one real throw | 3 s | 2 |
+| 3 | She asks again → the deepest hidden premise (its words undecided) | She stops joking mid-pattern: one real throw | 3 s | 2 |
 | 4 | She takes up "You don't know where I am" → "Then tell me where I am, Nadia." | One answer-me plate | 3 s | **3 (answer me)** |
 | 5 | Concedes "Out there, Theo is dead" → "So there's nothing left for him" | One hush ring | 3 s | **3 (hush)** |
-| 6 | Breaks "nothing left" with the fourth chair → "You stopped coming." | Rattled; the seat draws itself | 3 s | **5**, 2 |
-| 7 | Concedes "You stopped coming." | Soft; the first pencil crosses | 3 s | **4** |
+| 6 | Breaks "nothing left" with the fourth chair → her rattled fallback (its words undecided) | Rattled; the seat draws itself | 3 s | **5**, 2 |
+| 7 | Concedes the fallback | Soft; the first pencil crosses | 3 s | **4** |
 | 8 | "He called you first" surfaces | **The three rings**; the seat closed | 9 s | 3, 1, 4 |
 | | **The sky act** | | | |
 | 9 | Concedes it ("...I know. I didn't pick up.") → "Thank you for saying it." The ceiling lifts | The first sky phase; a page | 6 s | **7**, 6, 4 |
 | 10 | Concedes "You don't know where I am" → "So waking means searching forever" | One streak | 2–3 s | 7 |
 | 11 | Concedes "searching forever" (it can't be broken tonight) | One streak along her line | 2–3 s | 7 |
 | 12 | Breaks "the life he wanted" with Saturday off → "Then let him have his wish." | She stops joking; a line rubbed out | 3 s | 7, 2 |
-| 13 | Breaks "his wish" with Walt's truth → "...Forty-two. I thought it was the first time." | Soft; one line left | 3 s | 7, 2 |
+| 13 | Breaks "his wish" with the same Saturday → "...I thought it was the first time. Every time." | Soft; one line left | 3 s | 7, 2 |
 | 14 | **Convinced** | **The last constellation**: she erases her last line | 6–8 s | **8** |
 
 **The count, clean run:** about **55 seconds of dodging** and **about 50 hazards** (the opening about 6, ten gestures
@@ -361,16 +358,16 @@ and a quiet last second where the page or plane floats across.
 ## 4. Left out
 | Idea | Why not here | Where it would suit |
 |---|---|---|
-| **What a bad reason looks like** (brainstorm 14) | Strong, but it's about the three kinds of reason, not about Lena | **Walt's battle**, which teaches the reasons; every battle could then inherit it |
+| **What a bad reason looks like** (brainstorm 14) | Strong, but it's about the three kinds of reason, not about Lena | Whichever battle teaches the reasons (Walt's tutorial is rejected as built; what teaches the argument is undecided); every battle could then inherit it |
 | **Grazing feeds the thinking** / **Lean in** (borrowed 8, brainstorm 22) | The most systemic answer to "small", but a meter and two ways to spend it are M, and it's Nadia's skill, not Lena's character | Game-wide, after the jam |
 | **Locks before the painful phase** (borrowed 21) | It's Nadia preparing, not Lena | **The Doctor**: foreshadow "You only got this job because you're my sister" |
 | **Nadia's pulse** (brainstorm 25) | Nadia's, not Lena's | **The Doctor**, whose patterns are ECG traces on the beat |
-| **Star trails** (brainstorm 35) | Starry, but redundant with 7, and its meaning (the same morning, round and round) is someone else's | **Walt**, whose spoke shadows already sweep like clock hands |
+| **Star trails** (brainstorm 35) | Starry, but redundant with 7, and its meaning (the same morning, round and round) is someone else's | **Walt**, if his battle survives in another form: his spoke shadows already sweep like clock hands |
 | **The empty Thursday** (brainstorm 32, on the brainstorm's shortlist) | Very her, but the Thursdays' mark isn't settled (a key or a moon phase; `STORY-FACTS.md` says they need a new carrier), and dream-Lena doesn't know what they were. A safe lane could say more than the story has decided | This battle, later, if question 5 says yes (M) |
 | **Answer under fire** (brainstorm 12) | M–L, and hush, answer me and the three rings carry the same choice for less | — |
 | **Old light** (brainstorm 30) | Beautiful and very her ("You don't know where I am"), but hollow after-images in a dodge box are a readability risk the jam can't test enough | A cutscene or the Morning ending's sky, not a hazard |
 | **The round window** (brainstorm 31), **the box changes shape** (borrowed 6) | The sky act takes their place; a round box needs new collision and a new planner | — |
-| **You're the bad dream** (brainstorm 19) | The inversion (Nadia is the danger) is about Nadia, and a rule where nothing can hurt you is a different register | **The Long Night** ("wrong, in a way you feel in your hands") or the Force route |
+| **You're the intruder** (brainstorm 19) | The inversion (Nadia is the danger) is about Nadia, and a rule where nothing can hurt you is a different register | **The Long Night** ("wrong, in a way you feel in your hands") or the Force route |
 | **Her side of the table** (brainstorm 40), **Rebuttal Showdown** (borrowed 24) | L each | **Lena's Night 4 rule-break** and the Force route (borrowed 24 already says Force only) |
 | **Every door leads back to the kitchen** (brainstorm 38) | The house obeys her, but wrapping edges muddles "enters from outside" | **Lena's Night 4 rule-break**, where breaking the rules is the point |
 | **Nonstop Debate** (borrowed 23) | L, text as hazards, and judges will call it Danganronpa | — |
@@ -387,14 +384,14 @@ with shadows and laying the table are part of 1.
 ---
 
 ## 5. Questions for the creator
-1. **Her passion and the kitchen.** Is it settled that she's a stargazer and not a ceramicist? If so, the kitchen is
-   Elias's memory of Sundays (the flour and plates stay as hazards), and the Heard-out keepsake needs to be something of
-   hers instead of the apron hair tie (her pencil? a page from her notebook?).
+1. **The kitchen and the keepsake.** She's a stargazer (settled). Is the kitchen Elias's memory of Sundays (the flour
+   and plates stay as hazards)? And what is the Heard-out keepsake, now that the apron hair tie is gone (her pencil? a
+   page from her notebook?).
 2. **Does her care reach Nadia?** The hug that passes if you hold still, the seat, and the shared sky at the end all
    assume some of it does. If it's only for Elias and Theo, they stay but read as control, and "Take it" stays out.
 3. **The sky.** Should the ceiling open after "He called you first", and is the constellation worth the battle's one
    large build? The fallback is the night sky with her lines as hazards and normal movement (medium).
 4. **Her own words.** May a page of hers open a second way to break "This is the life he wanted", or should each key
-   link keep only the evidence the nights give you? ("Then let him have his wish" stays tied to Night 1 either way.)
+   link keep only the evidence the nights give you? (How "Then let him have his wish" breaks depends on what Night 1 becomes, which is undecided.)
 5. **The Thursdays.** Can they appear in this battle at all (for example as the one empty lane on the fridge
    calendar), or should they stay out until their mark and meaning are settled?

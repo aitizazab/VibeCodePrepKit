@@ -36,8 +36,8 @@ separately); the dodging feels slight next to the time spent thinking.
 - **Caring:** fierce about the people she loves; calls Elias "love". Her flaw is that she *protects by keeping out*.
 - **Voice:** quick, warm and teasing; stops joking mid-sentence when something matters.
 - **What she knows:** she knows she's a memory. The dream house obeys her (rooms rearrange).
-- **Her things:** the kitchen (flour, plates, the pancake stack), her ceramics (bowls, glaze, the kiln) and Theo's
-  paper planes.
+- **Her things:** the kitchen (flour, plates, the pancake stack), her stargazing (the telescope, the star charts, the
+  pencil log) and Theo's paper planes.
 
 **Build cost** is measured against that code:
 - **S:** a new hazard or rule inside `PressurePhase`, with its drawing, in about a day;
@@ -472,11 +472,11 @@ Where a detail couldn't be confirmed on the web, the entry says so.
 - **Source:** *Danganronpa*. You reveal a key word by picking the right letters as they float past. *V3*'s version
   has you shine a light to find letters in the dark. A wrong letter costs you.
 - **Why it works there:** It turns "the word on the tip of your tongue" into play.
-- **The argument version:** The **deepest hidden premise** ("To him, you're the bad dream") is revealed today by a
-  paper-plane slip or by asking twice. Add a third way:
+- **The argument version:** The **deepest hidden premise** (its words are undecided: the prototype's Theo-drawing
+  premise is cut as out of character) is revealed today by a paper-plane slip or by asking twice. Add a third way:
   - stars appear one by one in the box;
   - each one Nadia touches, *in order*, draws a line;
-  - the finished constellation is the shape of the words (or of a woman in scrubs, Theo's drawing).
+  - the finished constellation is the shape of the words.
   - Wrong stars cost nothing but time.
 - **Fairness:** Stars are harmless; the phase's hazards still follow the rules.
 - **Lena trait:** **The stars**; curious: finding meaning by joining points.
@@ -490,7 +490,8 @@ Where a detail couldn't be confirmed on the web, the entry says so.
   evidence: it's how arguments really unravel.
 - **The argument version:** Two of Lena's premises that pull against each other enter the box as two different hazards:
   - "He chose this", and
-  - the hidden one, "To him, you're the bad dream" (a choice made out of fear isn't a free choice).
+  - a hidden premise that pulls against it (which one is undecided: the prototype's pair used the cut Theo-drawing
+    premise).
 
   Steering them into each other **cancels both** in a burst and highlights the pair on the premise map: a hint that
   they contradict. **This is the brief's "challenging inconsistencies", played in the box.**
@@ -580,7 +581,7 @@ where it's close.
 | 5 | **Constellation lines** (2, *Undertale*'s purple SOUL), **with the constellation hangman** (26) as its reveal | The most *Lena* mode on the list: the box is her star chart, Nadia moves along her lines, and the deepest hidden premise is found by joining stars | M |
 | 6 | **The duet on the Heard-out path** (20, *Sayonara Wild Hearts*) | Her caring side, played: once everything is heard, she draws a constellation and Nadia follows it. The gentle ending gets its own action beat | S–M |
 | 7 | **Hush and Answer-me** (1, *Undertale*'s blue and orange) | One rule that puts the argument's choice (listen or push back) into the dodge. Her "hold still, love" is caring and keeping out at once | S |
-| 8 | **Pit two of her lines against each other** (27, *The Great Ace Attorney*) | The brief's "challenging inconsistencies", done in the box: lure "He chose this" into "to him you're the bad dream" and the map flags the contradiction. It's curious play, not just evasion | M |
+| 8 | **Pit two of her lines against each other** (27, *The Great Ace Attorney*) | The brief's "challenging inconsistencies", done in the box: lure "He chose this" into a premise that pulls against it and the map flags the contradiction. It's curious play, not just evasion | M |
 
 **Close runners-up:**
 - **Locks before the painful phase** (21, *Sea of Stars*): the strongest *two-way* link between thinking and dodging.
