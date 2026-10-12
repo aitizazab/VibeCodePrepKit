@@ -28,6 +28,40 @@ colour per character).
 
 After that, the People agent runs the whole pipeline below without anyone.
 
+## Scope change and resume point (2026-10-12, evening)
+
+REDESIGN.md section 7: in the dream only **Nadia and Elias** are 3D; Lena, Theo, Walt and the neighbours stay billboards
+(their 3D sheets are parked). In the waking world: **Mags** and **Elias in bed** are Tripo models; **Rafael** is made
+by altering Elias's model and the **LeBaget representative** (a woman) by altering Mags's, no extra credits. People now
+also owns the dream's billboards (DreamCutoutView and the cut-out art).
+
+**Done this pass**
+- Tripo and Mixamo are signed in on the 9333 Chrome (by the creator). Credits 550 → 350.
+- Mags's 3D sheet: `art/incoming/vh3d-mags-take2.jpg` (Nano Banana 2.1: Nano Banana Pro hit its usage limit), cropped to
+  `tools/tripo/sheets/mags/`. She keeps the approved design (close-cropped grey hair, glasses low on the nose with a
+  brick-red beaded cord, oatmeal cardigan over pale-blue scrubs, grey clogs); a touch more painterly than Elias.
+- Tripo generations (multi-view, H3.1, Ultra, 4K, Remove Lighting, PBR, Quad 30k, Private), in the account's Assets:
+  **Elias (dream)** 27,451 quad faces, looked at in Tripo's viewer: clean, stylized, reads as his sheet; **Elias (gown)**
+  and **Mags** generated, not yet looked at. Elias (dream) is auto-rigged (Humanoid, Mixamo skeleton, 20 credits).
+- `tools/tripo/gen.mjs sheets/<name>`: one call uploads the three views and starts a generation (60 credits).
+- The Quaternius Universal Animation Library (CC0) is in `C:/Users/User/Downloads/Universal Animation Library[Standard].zip`;
+  its Unity FBX (one file, every clip, no root motion) and licence are unpacked to
+  `FableAnimationTests/.work/ual-unpacked/` (nothing in it was run).
+
+**Blocker: no Blender for this agent.** The only Blender on this PC is inside BasilDownfall/, which agents spawned in
+FableAnimationTests may not touch. So the alterations (Rafael, the representative) and the talking faces will be done in
+Unity editor code instead: texture recolouring by UV masks, bone-scale proportions saved in the prefab, blendshapes added
+to a mesh copy with Mesh.AddBlendShapeFrame. If main can run Blender for this project, say so and the faces get a Blender pass.
+
+**Next (exact)**
+1. Tripo: rig Elias (gown) and Mags (Rig panel, Humanoid, Mixamo, Auto Rig 20 each); export all three as FBX (Blender
+   preset, 4K, skeleton on) into `Models/Elias/`, `Models/EliasBed/`, `Models/Mags/` with their `.fbm` texture folders.
+2. Animations: Mixamo (idle, talking, listening, nod, shake head, sitting idle, sleeping/lying, walking; "without skin")
+   plus the Quaternius clips, into `Models/Animations/`.
+3. Add Mags, Rafael and the representative to `VhPeopleBuild.Cast` (Lena, Theo and Walt leave the 3D cast); write the
+   alteration and face steps; then the billboard upgrade (paper with a real edge, lit and shadowed, a living idle, pose
+   swaps) and a capture of a billboard next to the 3D Elias under the Look lighting.
+
 ## The pipeline
 
 1. **Model sheets (Gemini).** One 16:9 sheet per character: front, right profile, back, in a neutral A-pose with open
