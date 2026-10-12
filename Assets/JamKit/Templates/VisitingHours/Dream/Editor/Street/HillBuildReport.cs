@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -34,15 +35,44 @@ namespace JamKit.DreamEscape.EditorTools
         static string Gb(long bytes) => (bytes / (1024.0 * 1024 * 1024)).ToString("0.00") + " GB";
         static string Mb(long bytes) => (bytes / (1024.0 * 1024)).ToString("0") + " MB";
 
+        // Unity's Mono returns 0 for Process.PrivateMemorySize64 on Windows (the judged report read "0.00 GB" throughout):
+        // ask Windows directly (psapi GetProcessMemoryInfo: PrivateUsage is the commit charge, PeakPagefileUsage its peak).
+        [StructLayout(LayoutKind.Sequential)]
+        struct MemoryCounters
+        {
+            public uint cb, pageFaultCount;
+            public UIntPtr peakWorkingSet, workingSet, quotaPeakPagedPool, quotaPagedPool, quotaPeakNonPagedPool, quotaNonPagedPool,
+                pagefileUsage, peakPagefileUsage, privateUsage;
+        }
+
+        [DllImport("psapi.dll", SetLastError = true)]
+        static extern bool GetProcessMemoryInfo(IntPtr process, out MemoryCounters counters, uint size);
+
+        [DllImport("kernel32.dll")]
+        static extern IntPtr GetCurrentProcess();
+
+        static bool Counters(out MemoryCounters c)
+        {
+            c = default;
+            try
+            {
+                if (Application.platform != RuntimePlatform.WindowsEditor) return false;
+                return GetProcessMemoryInfo(GetCurrentProcess(), out c, (uint)Marshal.SizeOf<MemoryCounters>());
+            }
+            catch { return false; }
+        }
+
         /// <summary>The process's committed (private) memory: what the Job Object cap counts.</summary>
         public static long Commit()
         {
+            if (Counters(out var c)) return (long)c.privateUsage.ToUInt64();
             try { using (var p = Process.GetCurrentProcess()) return p.PrivateMemorySize64; }
             catch { return 0; }
         }
 
         static long PeakCommit()
         {
+            if (Counters(out var c)) return (long)c.peakPagefileUsage.ToUInt64();
             try { using (var p = Process.GetCurrentProcess()) return p.PeakPagedMemorySize64; }
             catch { return 0; }
         }

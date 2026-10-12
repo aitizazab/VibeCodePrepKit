@@ -264,8 +264,8 @@ namespace JamKit.DeepBlock
             // The strip along the wall's top: a tall hedge over Back Lane B (no garage roof or scaffold reaches its top; the
             // old oak's limb comes through a gap in it), a railing over the green's east half and the gardens.
             Ground("Rowan Street (the wall's top)", WestX, LaneZ1, EastX, RowanHedgeZ1, RowanFoot, "paving");
-            Box("Rowan Street's hedge", BlockKind.Hedge, WestX, LaneZ1, -112f, RowanHedgeZ1, RowanFoot, RowanFoot + RowanHedge, runnable: false, style: "hedge");
-            Box("Rowan Street's hedge", BlockKind.Hedge, -109f, LaneZ1, 0f, RowanHedgeZ1, RowanFoot, RowanFoot + RowanHedge, runnable: false, style: "hedge");
+            Box("Rowan Street's railing", BlockKind.Fence, WestX, LaneZ1, -112f, LaneZ1 + 0.12f, RowanFoot, RowanFoot + RowanHedge, runnable: false, style: "railing_tall");
+            Box("Rowan Street's railing", BlockKind.Fence, -109f, LaneZ1, 0f, LaneZ1 + 0.12f, RowanFoot, RowanFoot + RowanHedge, runnable: false, style: "railing_tall");
             FenceX("Rowan Street's railing", "railing", 0f, EastX, LaneZ1 + 0.35f, RowanFoot, 1.1f, 0.08f, runnable: false);
             // The footpath, cut by the trench by the truck and the trench across the street.
             Ground("Rowan Street (south footpath)", WestX, RowanHedgeZ1, TrenchX0, RowanRoadZ0, RowanFoot, "paving");
@@ -374,7 +374,7 @@ namespace JamKit.DeepBlock
             FenceZ("The Lasnames' side fence (west)", "board", lx0 + 0.06f, RowanNorthZ + 0.4f, HillAnchors.LotZ1, y, 1.8f);
             FenceZ("The Lasnames' side fence (east)", "board", lx1 - 0.06f, RowanNorthZ + 0.4f, HillAnchors.LotZ1, y, 1.8f);
             // The side garden: Elias's barbecue, the big maple with its rope swing, the porch light.
-            Prop(HillPropKind.Grill, 34.5f, y, 125f, 200f, 0, "elias's barbecue");
+            Prop(HillPropKind.Grill, 40.2f, y, 124.8f, 200f, 0, "elias's barbecue");
             Prop(HillPropKind.PicnicTable, 37.5f, y, 129.5f, 90f, 0, "lasnames");
             Tree("The Lasnames' maple (the big tree)", 38f, y, 136f, 0, 14f, 6f, 1);
             Prop(HillPropKind.FlowerBed, 12.5f, y, 119.5f, 90f, 2);

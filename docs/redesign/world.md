@@ -272,6 +272,24 @@ menu JamKit/QA/Geometry Lint (open scene).
 
 ## Captures
 
+**Round 3 (after docs/redesign/judge/hill-1.md):** the capture is World's own now (`DreamCaptureStreet`). It first
+compiles the shaders for every material the scene uses on a small lit stage, one material at a time, before the hill is
+loaded. The judged capture's magenta was "out of memory during compilation": the shader compiler runs inside the
+session's cap, and compiling with the whole hill open ran out. The capture then clears the camera to the Look sky, hides
+Nadia's own body (the arrival shot stood inside it), turns the cut-outs to each shot, and checks every still: more than
+0.1% magenta fails the run (exit 3; `check.txt` and `JAMKIT_STREET_CHECK` lines also give each shot's sky variation).
+The report's commit figures read Windows' own counters (Mono returned 0). Also in round 3:
+- Eli's barbecue moved out of the house builder's garage into the east side garden (39, 124).
+- Mill Street's barrier is an iron railing you see through (`railing_tall` used to fall through to a solid board fence).
+- Rowan Street's hedge is now an iron railing at the wall's edge. It keeps the same height because the band-skip test
+  needs it.
+- The lock-up garages have no parapets, so the roof gaps show.
+- The party's gazebo is three tents.
+- Pickets are 18 vertices each instead of 30.
+- A neighbour stands at the party's grill.
+- The creek, ditch, trench, Elias and top views are re-aimed.
+
+
 - **Stills**: `tools/street-capture.ps1 [-Build] [-DreamChanges]` (25 views at 1920 x 1080 through the Look rig) to
   `out/hill-captures/<time>/` (`hill-captures-changed` with the bedside's changes on).
 - **Recorded run**: the PlayMode test `JamKit.DreamEscape.Tests.DreamStreetPlayTests.RecordTheNight1CriticalPath` (a frame

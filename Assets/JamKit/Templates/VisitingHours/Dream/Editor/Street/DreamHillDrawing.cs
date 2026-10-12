@@ -415,9 +415,23 @@ namespace JamKit.DreamEscape.EditorTools
                     m.Box(HillMat.CanvasRed, mn, mx, 0.01f);
                     return;
                 case "gazebo":
-                    m.Box(HillMat.CanvasGreen, mn, mx, 0.02f);
-                    m.Box(HillMat.Steel, new Vector3(mn.x, mn.y - 0.06f, mn.z), new Vector3(mx.x, mn.y, mx.z), 0.01f, HillMesh.Side.YPos);
+                {
+                    // A row of party tents across the street (the collider is one flat roof over all of them; drawn as one
+                    // canvas it read as a 25 m awning): three canopies with gaps, each with its valance.
+                    const int tents = 3;
+                    const float gap = 0.35f;
+                    float depth = (mx.z - mn.z - gap * (tents - 1)) / tents;
+                    for (int i = 0; i < tents; i++)
+                    {
+                        float z0 = mn.z + i * (depth + gap), z1 = z0 + depth;
+                        string canvas = i % 2 == 0 ? HillMat.CanvasGreen : HillMat.Canvas;
+                        m.Box(canvas, new Vector3(mn.x, mn.y, z0), new Vector3(mx.x, mx.y, z1), 0.02f);
+                        m.Box(HillMat.CanvasRed, new Vector3(mn.x - 0.02f, mn.y - 0.28f, z0), new Vector3(mn.x, mn.y, z1), 0f, HillMesh.Side.YPos);
+                        m.Box(HillMat.CanvasRed, new Vector3(mx.x, mn.y - 0.28f, z0), new Vector3(mx.x + 0.02f, mn.y, z1), 0f, HillMesh.Side.YPos);
+                        m.Box(HillMat.Steel, new Vector3(mn.x, mn.y - 0.06f, z0), new Vector3(mx.x, mn.y, z1), 0.01f, HillMesh.Side.YPos);
+                    }
                     return;
+                }
                 case "gazebo_leg": m.Box(HillMat.Steel, mn, mx, 0.01f); return;
                 case "hay": Hay(m, mn, mx); return;
                 case "truck": Truck(m, mn, mx); return;

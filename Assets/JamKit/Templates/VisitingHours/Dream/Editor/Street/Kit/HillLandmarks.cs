@@ -989,7 +989,7 @@ namespace JamKit.DreamEscape.EditorTools
                 string wall = Or(b.wall, HillMat.BrickRed);
                 int n = Mathf.Max(1, Mathf.RoundToInt(FL / 2.9f));
                 float bw = FL / n;
-                var j = Job(0, wall, -1.2f, H + 0.6f - 0.08f);
+                var j = Job(0, wall, -1.2f, H);
                 string[] doors = { HillMat.Corrugated, HillMat.DoorGreen, HillMat.DoorBlue, HillMat.MetalPaint, HillMat.DoorRed, HillMat.Corrugated };
                 for (int i = 0; i < n; i++)
                 {
@@ -1021,11 +1021,11 @@ namespace JamKit.DreamEscape.EditorTools
                 Run(j);
                 for (int f = 1; f < 4; f++)
                 {
-                    var jj = Job(f, wall, -1.2f, H + 0.6f - 0.08f);
+                    var jj = Job(f, wall, -1.2f, H);
                     jj.after.Add(() => PlinthBand(FLen(jj.face), 0f, HillMat.Concrete));
                     Run(jj);
                 }
-                FlatTop(0.6f, 0.3f, HillMat.Concrete, wall);
+                FlatTop(0f, 0f, HillMat.Concrete, wall);
             }
 
             void Kiosk()

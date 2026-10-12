@@ -139,6 +139,7 @@ namespace JamKit.DreamEscape.EditorTools
             var rig = VhLook.ApplyGoldenHour(scene, new VhLook.Options { sunAzimuth = 250f, sunElevation = 10f, hazeBaseHeight = 0f });
             VhLook.SetupCamera(cam);
             cam.farClipPlane = Mathf.Max(cam.farClipPlane, 4000f);
+            cam.clearFlags = CameraClearFlags.Skybox;   // the Look sky (BuildPlayer clears to a flat colour)
             _ = rig;
 
             var root = new GameObject("Larch Hill").transform;
@@ -473,10 +474,13 @@ namespace JamKit.DreamEscape.EditorTools
                 Spot("party_" + (i + 1), i % 3 == 0 ? "Dance" : i % 3 == 1 ? "ChatStanding" : "SitAtTable", new Vector3(x, rowan, 109f + (i % 2) * 2f), i * 45f);
             }
             Spot("party_grill", "Barbecue", new Vector3(-50f, rowan, 112.4f), 180f);
+            // The one neighbour we have a picture for at the party: the man at its grill (the rest wait for their cut-out art).
+            CutOut("A neighbour at the party's grill", DreamArt.NeighbourGrill, life, new Vector3(-50f, rowan, 112.4f), 1.78f, 180f);
             Spot("lemonade_kid", "Stall", new Vector3(-44f, rowanFoot, 114.6f), 180f);
             Spot("bus_driver", "SitInBus", new Vector3(114f, HillAnchors.M3Y + 1f, 230f), 180f);
             // Barbecue smoke over Eli's grill and the party's.
-            Smoke(root, new Vector3(34.5f, LarchHill.RowanY + 1.6f, 125f));
+            var grill = h.props.Find(p => p.kind == HillPropKind.Grill && p.tag == "elias's barbecue");
+            Smoke(root, grill != null ? U(grill.position) + Vector3.up * 1.1f : new Vector3(40.2f, LarchHill.RowanY + 1.6f, 124.8f));
             Smoke(root, new Vector3(-50f, LarchHill.RowanY + 1.0f, 111.5f));
         }
 

@@ -54,7 +54,7 @@ namespace JamKit.DeepBlock
             AddSpot(SpotParty, "the block party", -50f, RowanY + 1f, 108f, 120f, 5f, 16f);
             // The house: the gate where Night 1 ends, Elias at his barbecue in the side garden, the window, the door.
             AddSpot(SpotGate, "the Lasnames' gate", HillAnchors.FrontGate.X, RowanFoot + 1f, RowanNorthZ - 0.9f, 5f, 3f, 2.2f);
-            AddSpot(SpotBarbecue, "Elias at his barbecue", 33.4f, y, 124.6f, yaw: 210f);
+            AddSpot(SpotBarbecue, "Elias at his barbecue", 39.1f, y, 124.3f, yaw: 160f);
             AddSpot(SpotElias, "Elias, at the stove (through the window)", houseOrigin.X - 4.5f, y, houseOrigin.Z + 2.7f, yaw: 180f);
             AddSpot(SpotWindow, "the front window", houseOrigin.X - 4.3f, y + 1.65f, houseOrigin.Z);
             AddSpot(SpotDoor, "the front door", houseOrigin.X, y, houseOrigin.Z);
@@ -199,7 +199,7 @@ namespace JamKit.DeepBlock
         {
             const float e = 1.5f;
             View("hill-01-arrival-the-whole-hill", arrival.X, arrival.Y + e, arrival.Z, 40f, 26f, 150f);
-            View("hill-02-the-creek-and-walts-shop", 102f, e, -26f, 95f, 2.6f, 0f);
+            View("hill-02-the-creek-and-walts-shop", 101f, FarBankY + e + 0.4f, -19.5f, 95f, -1.5f, 1f);
             View("hill-03-the-lindqvists-loop", 116f, FarRiseY + e, -46f, 128f, FarRiseY + 1f, -68f);
             View("hill-04-inside-walts-shop", 104.5f, e, 0.6f, 87f, 1f, 6.5f);
             View("hill-05-walts-yard-walt-on-the-wall", 106f, e, 17f, WaltX0, 1.2f, 36f);
@@ -209,20 +209,20 @@ namespace JamKit.DeepBlock
             View("hill-09-mill-street-looking-back-down", 15f, MillFoot + e, 42.4f, 100f, 0f, -30f);
             View("hill-10-larch-green-up-to-the-house", 0f, MillFoot + e + 0.3f, 60f, 24f, 14f, 125f);
             View("hill-11-back-lane-garage-roofs", -17f, GarageRoof + e, 91f, -60f, GarageRoof, 92f);
-            View("hill-12-the-ditch", -46f, GarageRoof + e, 91f, -72f, 5f, 96f);
+            View("hill-12-the-ditch", -49.5f, GarageRoof + e, 91f, -63f, 1.5f, 93f);
             View("hill-13-the-old-mill-shutter", -71f, LaneY + e, 97f, -86f, LaneY + 1.6f, 97f);
             View("hill-14-the-old-oak", -95f, LaneY + e, 96.5f, -110f, 9f, 98.5f);
             View("hill-15-rowan-block-party-the-rewind", -108f, RowanFoot + e, 103.4f, -40f, RowanY + 1.5f, 108f);
-            View("hill-16-the-truck-and-the-trench", -78f, RowanFoot + e, 103.4f, -60f, RowanY + 1.2f, 104.5f);
+            View("hill-16-the-truck-and-the-trench", -77f, RowanFoot + e + 0.4f, 108.5f, -66f, RowanY - 1.2f, 103.2f);
             View("hill-17-the-house-and-its-block", 6f, RowanFoot + e, 104f, 24f, 13f, 128f);
-            View("hill-18-elias-at-the-barbecue", 29f, RowanFoot + e, 114.4f, 33.4f, RowanGround + 1.4f, 124.6f);
+            View("hill-18-elias-at-the-barbecue", 33f, RowanFoot + e, 113.6f, 39.4f, RowanGround + 1.2f, 124.6f);
             View("hill-19-the-middle-band-from-chapel-row", -24f, HillAnchors.M1Y + e + 0.15f, 152f, 40f, 28f, 210f);
             View("hill-20-st-annes-and-the-school", -2f, HillAnchors.M2Y + e + 0.15f, 189f, 50f, 30f, 206f);
             View("hill-21-route-9-bus-stop", 100f, HillAnchors.M3Y + e + 0.15f, 216f, 113f, HillAnchors.M3Y + 1.6f, 228f);
             View("hill-22-crest-road-shops", -30f, HillAnchors.CrestY + e + 0.15f, 286f, 20f, HillAnchors.CrestY + 4f, 300f);
             View("hill-23-st-brigids-hospital", 0f, HillAnchors.SummitY + e, 302f, 0f, HillAnchors.SummitY + 22f, 340f);
-            View("hill-24-the-hospital-on-the-skyline-from-the-yards", 58f, e, 20f, 0f, 72f, 330f);
-            View("hill-25-the-top-looking-down-the-hill", 30f, HillAnchors.SummitY + e, 312f, 70f, 0f, -20f);
+            View("hill-24-the-hospital-on-the-skyline-from-the-yards", 58f, e, 20f, 0f, 55f, 330f);
+            View("hill-25-the-top-looking-down-the-hill", 0f, HillAnchors.SummitY + e + 0.2f, 309.5f, 8f, 10f, 80f);
         }
 
         // ---------- Bands ----------

@@ -41,7 +41,8 @@ namespace JamKit.DreamEscape.EditorTools
                     case "picket": f.Picket(); break;
                     case "lattice": f.Board(true); break;
                     case "chainlink": f.Chainlink(); break;
-                    case "railing": f.Railing(); break;
+                    case "railing":
+                    case "railing_tall": f.Railing(); break;
                     case "brick_low": f.Masonry(Chance(r, 0.7f) ? HillMat.BrickRed : HillMat.BrickDark, HillMat.StoneCoping, true); break;
                     case "garden_wall": f.Masonry(Chance(r, 0.6f) ? HillMat.Stucco : HillMat.StuccoWarm, HillMat.StoneCoping, false); break;
                     case "stone_low": f.DryStone(); break;
@@ -117,7 +118,15 @@ namespace JamKit.DreamEscape.EditorTools
                     float top = H - 0.03f - R(r, 0f, 0.015f);
                     outline[0] = new Vector2(x, 0.04f); outline[1] = new Vector2(x + pw, 0.04f); outline[2] = new Vector2(x + pw, top - 0.05f);
                     outline[3] = new Vector2(x + pw * 0.5f, top); outline[4] = new Vector2(x, top - 0.05f);
-                    Extrude(m, mat, outline, Vector3.right, Vector3.up, Vector3.forward, zr1, zp1);
+                    // Its two faces and two edges (18 vertices, not an extrusion's 30: pickets were a tenth of the hill's
+                    // vertices; the slanted tops are 2 cm wide and never show).
+                    var front = new Vector3[5];
+                    var back = new Vector3[5];
+                    for (int k = 0; k < 5; k++) { front[k] = new Vector3(outline[k].x, outline[k].y, zr1); back[k] = new Vector3(outline[k].x, outline[k].y, zp1); }
+                    m.Poly(mat, front, Vector3.back);
+                    m.Poly(mat, back, Vector3.forward);
+                    m.Quad(mat, new Vector3(x, 0.04f, zr1), new Vector3(x, top - 0.05f, zr1), new Vector3(x, top - 0.05f, zp1), new Vector3(x, 0.04f, zp1), Vector3.left);
+                    m.Quad(mat, new Vector3(x + pw, 0.04f, zr1), new Vector3(x + pw, top - 0.05f, zr1), new Vector3(x + pw, top - 0.05f, zp1), new Vector3(x + pw, 0.04f, zp1), Vector3.right);
                 }
             }
 
