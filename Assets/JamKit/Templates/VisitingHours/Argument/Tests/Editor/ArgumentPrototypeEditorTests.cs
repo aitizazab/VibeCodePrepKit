@@ -393,7 +393,7 @@ namespace JamKit.Argument.Tests
                 seen.Add(flow.State);
             }
             Assert.That(flow.Over, Is.True, "the battle ends");
-            Assert.That(seen, Does.Contain(BattleState.Debate).And.Contain(BattleState.Because).And.Contain(BattleState.Showdown).And.Contain(BattleState.Ending));
+            foreach (var st in new[] { BattleState.Debate, BattleState.Because, BattleState.Showdown, BattleState.Ending }) Assert.That(seen, Does.Contain(st), st.ToString());
             stage.ShowCaseFile(flow, true);
             Assert.That(stage.CaseFileShown, Is.True);
             stage.ShowCaseFile(flow, false);
