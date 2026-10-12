@@ -1,0 +1,292 @@
+// Visiting Hours' stylized foliage (the Look library's trees and hedges: VhLookTrees). URP-standard HLSL.
+// Leaf-cluster cards, alpha-tested, double-sided. The mesh carries canopy normals (pointing out from the crown's centre),
+// so a whole crown shades as one soft volume, the stylized-AAA way, instead of as hundreds of flat cards.
+// Lighting: the main light with wrap diffuse and its shadows (cascades, soft), sun translucency (the crown glows gold
+// when the sun is behind it), ambient from the probes/sky (SH), SSAO, fog. Vertex colour: rgb = per-cluster tint,
+// a = sway weight (0 at the trunk, 1 at the crown's edge) for a gentle wind.
+// Passes: UniversalForward, ShadowCaster, DepthOnly, DepthNormals (for SSAO and the depth prepass).
+Shader "JamKit/Look/Foliage"
+{
+    Properties
+    {
+        [MainTexture] _BaseMap ("Leaf atlas (RGBA)", 2D) = "white" {}
+        [MainColor] _BaseColor ("Tint", Color) = (1, 1, 1, 1)
+        _Cutoff ("Alpha cutoff", Range(0, 1)) = 0.45
+        _Wrap ("Wrap diffuse", Range(0, 1)) = 0.45
+        _ShadowFloor ("Light kept in self-shadow", Range(0, 1)) = 0.12
+        _TranslucencyColor ("Translucency colour", Color) = (0.95, 0.85, 0.25, 1)
+        _Translucency ("Translucency", Range(0, 3)) = 1.1
+        _TranslucencyFocus ("Translucency focus", Range(1, 16)) = 5
+        _AmbientBoost ("Ambient boost", Range(0, 2)) = 1.1
+        _WindStrength ("Wind strength (m)", Range(0, 0.3)) = 0.05
+        _WindSpeed ("Wind speed", Range(0, 4)) = 1.2
+    }
+    SubShader
+    {
+        Tags { "RenderType" = "TransparentCutout" "Queue" = "AlphaTest" "RenderPipeline" = "UniversalPipeline" }
+        Cull Off
+
+        HLSLINCLUDE
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+        TEXTURE2D(_BaseMap);
+        SAMPLER(sampler_BaseMap);
+
+        CBUFFER_START(UnityPerMaterial)
+        float4 _BaseMap_ST;
+        float4 _BaseColor;
+        float _Cutoff;
+        float _Wrap;
+        float _ShadowFloor;
+        float4 _TranslucencyColor;
+        float _Translucency;
+        float _TranslucencyFocus;
+        float _AmbientBoost;
+        float _WindStrength;
+        float _WindSpeed;
+        CBUFFER_END
+
+        float3 VhWind(float3 positionWS, float weight)
+        {
+            float t = _Time.y * _WindSpeed;
+            float phase = dot(positionWS, float3(0.37, 0.11, 0.29));
+            float3 sway = float3(sin(t + phase), sin(t * 1.7 + phase * 1.3) * 0.35, cos(t * 0.8 + phase * 0.7));
+            return positionWS + sway * _WindStrength * weight;
+        }
+        ENDHLSL
+
+        Pass
+        {
+            Name "ForwardLit"
+            Tags { "LightMode" = "UniversalForward" }
+
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
+            #pragma multi_compile_instancing
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Fog.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                float2 uv : TEXCOORD0;
+                float4 color : COLOR;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                float3 positionWS : TEXCOORD1;
+                float3 normalWS : TEXCOORD2;
+                float4 color : TEXCOORD3;
+                float fogFactor : TEXCOORD4;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
+
+            Varyings vert(Attributes v)
+            {
+                Varyings o = (Varyings)0;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_TRANSFER_INSTANCE_ID(v, o);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+                float3 ws = VhWind(TransformObjectToWorld(v.positionOS.xyz), v.color.a);
+                o.positionWS = ws;
+                o.positionCS = TransformWorldToHClip(ws);
+                o.normalWS = TransformObjectToWorldNormal(v.normalOS);
+                o.uv = TRANSFORM_TEX(v.uv, _BaseMap);
+                o.color = v.color;
+                o.fogFactor = ComputeFogFactor(o.positionCS.z);
+                return o;
+            }
+
+            half4 frag(Varyings i) : SV_Target
+            {
+                UNITY_SETUP_INSTANCE_ID(i);
+                float4 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv);
+                clip(tex.a - _Cutoff);
+                float3 albedo = tex.rgb * _BaseColor.rgb * i.color.rgb;
+                float3 n = normalize(i.normalWS);
+                float4 shadowCoord = TransformWorldToShadowCoord(i.positionWS);
+                Light light = GetMainLight(shadowCoord);
+                float atten = light.shadowAttenuation * light.distanceAttenuation;
+                float ndl = dot(n, light.direction);
+                float wrap = saturate((ndl + _Wrap) / (1.0 + _Wrap));
+                float lit = lerp(_ShadowFloor, 1.0, atten);
+                float3 v = normalize(GetWorldSpaceViewDir(i.positionWS));
+                float back = pow(saturate(dot(v, -light.direction)), _TranslucencyFocus);
+                float3 trans = _TranslucencyColor.rgb * light.color * _Translucency *
+                               (back * 0.85 + 0.15 * saturate(-ndl)) * lerp(0.3, 1.0, atten);
+                float3 direct = light.color * wrap * lit;
+                float3 ambient = SampleSH(n) * _AmbientBoost;
+            #if defined(_SCREEN_SPACE_OCCLUSION)
+                AmbientOcclusionFactor ao = GetScreenSpaceAmbientOcclusion(GetNormalizedScreenSpaceUV(i.positionCS));
+                ambient *= ao.indirectAmbientOcclusion;
+                direct *= ao.directAmbientOcclusion;
+            #endif
+                float3 col = albedo * (direct + ambient) + albedo * trans;
+                col = MixFog(col, i.fogFactor);
+                return half4(col, 1.0);
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags { "LightMode" = "ShadowCaster" }
+            ZWrite On ZTest LEqual ColorMask 0
+
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing
+            #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
+
+            float3 _LightDirection;
+            float3 _LightPosition;
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                float2 uv : TEXCOORD0;
+                float4 color : COLOR;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 uv : TEXCOORD0;
+            };
+
+            Varyings vert(Attributes v)
+            {
+                Varyings o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                float3 ws = VhWind(TransformObjectToWorld(v.positionOS.xyz), v.color.a);
+                float3 nws = TransformObjectToWorldNormal(v.normalOS);
+            #if _CASTING_PUNCTUAL_LIGHT_SHADOW
+                float3 l = normalize(_LightPosition - ws);
+            #else
+                float3 l = _LightDirection;
+            #endif
+                o.positionCS = ApplyShadowClamping(TransformWorldToHClip(ApplyShadowBias(ws, nws, l)));
+                o.uv = TRANSFORM_TEX(v.uv, _BaseMap);
+                return o;
+            }
+
+            half4 frag(Varyings i) : SV_Target
+            {
+                clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).a - _Cutoff);
+                return 0;
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            ZWrite On ColorMask R
+
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float2 uv : TEXCOORD0;
+                float4 color : COLOR;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
+
+            Varyings vert(Attributes v)
+            {
+                Varyings o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+                o.positionCS = TransformWorldToHClip(VhWind(TransformObjectToWorld(v.positionOS.xyz), v.color.a));
+                o.uv = TRANSFORM_TEX(v.uv, _BaseMap);
+                return o;
+            }
+
+            half frag(Varyings i) : SV_Target
+            {
+                clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).a - _Cutoff);
+                return i.positionCS.z;
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            ZWrite On
+
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                float2 uv : TEXCOORD0;
+                float4 color : COLOR;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                float3 normalWS : TEXCOORD1;
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
+
+            Varyings vert(Attributes v)
+            {
+                Varyings o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+                o.positionCS = TransformWorldToHClip(VhWind(TransformObjectToWorld(v.positionOS.xyz), v.color.a));
+                o.uv = TRANSFORM_TEX(v.uv, _BaseMap);
+                o.normalWS = TransformObjectToWorldNormal(v.normalOS);
+                return o;
+            }
+
+            half4 frag(Varyings i) : SV_Target
+            {
+                clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).a - _Cutoff);
+                return half4(NormalizeNormalPerPixel(i.normalWS), 0.0);
+            }
+            ENDHLSL
+        }
+    }
+    Fallback Off
+}

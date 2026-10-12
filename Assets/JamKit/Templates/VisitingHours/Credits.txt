@@ -15,6 +15,7 @@ ART
 Concept art and pictures: made for the game with Gemini
 Nadia's 3D model: Tripo Studio, from our character sheet
 Furniture models: Kenney, Furniture Kit (CC0), kenney.nl
+Skies, textures and props: Poly Haven (CC0), polyhaven.com, and ambientCG (CC0), ambientcg.com
 
 
 MUSIC AND SOUND

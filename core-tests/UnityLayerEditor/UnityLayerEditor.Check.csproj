@@ -14,6 +14,10 @@
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Dream\Tests\**\*.cs" />
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Argument\Editor\**\*.cs" />
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Argument\Tests\**\*.cs" />
+    <!-- Visiting Hours' look: its runtime scripts are checked here only, since a VolumeComponent subclass needs
+         UnityEditor.CoreModule against the editor-built URP assemblies (the player check can't resolve it). -->
+    <Compile Include="$(ProjectAssets)Templates\VisitingHours\Look\Scripts\**\*.cs" />
+    <Compile Include="$(ProjectAssets)Templates\VisitingHours\Look\Editor\**\*.cs" />
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Characters\Editor\**\*.cs" />
     <EditorDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEditor*.dll" />
     <Reference Include="@(EditorDll)" Private="false" />

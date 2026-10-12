@@ -1,0 +1,210 @@
+using UnityEngine;
+using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
+using UnityEngine.Rendering.Universal;
+
+namespace JamKit.Look
+{
+    /// <summary>
+    /// URP renderer feature (Render Graph) for Visiting Hours' atmosphere: height/distance haze and screen-space sun shafts,
+    /// driven by the <see cref="VhAtmosphere"/> volume override and the scene's sun (RenderSettings.sun). Does nothing unless
+    /// that override is active, so it is safe on the shared PC renderer (other templates don't use the override).
+    /// Installed by JamKit.Look.EditorTools.VhLookSetup.InstallRendererFeatures. Shader: JamKit/Look/Atmosphere.
+    /// <para>Passes (before post-processing, in HDR): shaft mask at half resolution (bright sky near the sun), two radial blurs
+    /// towards the sun, then one full-resolution composite that adds the haze and the shafts into a new colour target,
+    /// which becomes the camera colour.</para>
+    /// </summary>
+    public sealed class VhAtmosphereFeature : ScriptableRendererFeature
+    {
+        public Shader shader;
+        public RenderPassEvent passEvent = RenderPassEvent.BeforeRenderingPostProcessing;
+
+        Material _material;
+        AtmospherePass _pass;
+
+        public override void Create()
+        {
+            _pass = new AtmospherePass { renderPassEvent = passEvent };
+        }
+
+        public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+        {
+            var type = renderingData.cameraData.cameraType;
+            if (type != CameraType.Game && type != CameraType.SceneView) return;
+            if (!renderingData.cameraData.postProcessEnabled) return;
+            var stack = VolumeManager.instance.stack;
+            var atmo = stack?.GetComponent<VhAtmosphere>();
+            if (atmo == null || !atmo.IsActive()) return;
+            if (_material == null)
+            {
+                if (shader == null) shader = Shader.Find("JamKit/Look/Atmosphere");
+                if (shader == null) return;
+                _material = CoreUtils.CreateEngineMaterial(shader);
+            }
+            _pass.Setup(_material, atmo);
+            _pass.ConfigureInput(ScriptableRenderPassInput.Depth);
+            renderer.EnqueuePass(_pass);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            CoreUtils.Destroy(_material);
+            _material = null;
+        }
+
+        sealed class AtmospherePass : ScriptableRenderPass
+        {
+            static readonly int BlitTextureId = Shader.PropertyToID("_BlitTexture");
+            static readonly int BlitScaleBiasId = Shader.PropertyToID("_BlitScaleBias");
+            static readonly int ShaftTexId = Shader.PropertyToID("_VhShaftTex");
+            static readonly int SunScreenId = Shader.PropertyToID("_VhSunScreen");
+            static readonly int SunWorldDirId = Shader.PropertyToID("_VhAtmoSunDir");
+            static readonly int HazeParamsId = Shader.PropertyToID("_VhHazeParams");
+            static readonly int HazeParams2Id = Shader.PropertyToID("_VhHazeParams2");
+            static readonly int HazeColorId = Shader.PropertyToID("_VhHazeColor");
+            static readonly int HazeSunColorId = Shader.PropertyToID("_VhHazeSunColor");
+            static readonly int ShaftParamsId = Shader.PropertyToID("_VhShaftParams");
+            static readonly int ShaftTintId = Shader.PropertyToID("_VhShaftTint");
+            static readonly int BlurStepId = Shader.PropertyToID("_VhBlurStep");
+
+            const int PassMask = 0, PassBlur = 1, PassComposite = 2;
+
+            Material _material;
+            VhAtmosphere _atmo;
+
+            sealed class PassData
+            {
+                public Material material;
+                public TextureHandle source;
+                public TextureHandle shafts;
+                public TextureHandle depth;
+                public int pass;
+                public float blurStep;
+                public Vector4 sunScreen, sunDir, hazeParams, hazeParams2, hazeColor, hazeSunColor, shaftParams, shaftTint;
+                public bool hasShafts;
+            }
+
+            static readonly MaterialPropertyBlock Props = new MaterialPropertyBlock();
+
+            public void Setup(Material material, VhAtmosphere atmo)
+            {
+                _material = material;
+                _atmo = atmo;
+            }
+
+            public AtmospherePass()
+            {
+                profilingSampler = new ProfilingSampler("VH Atmosphere");
+            }
+
+            public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+            {
+                var resources = frameData.Get<UniversalResourceData>();
+                var cameraData = frameData.Get<UniversalCameraData>();
+                if (resources.isActiveTargetBackBuffer || _material == null || _atmo == null) return;
+                var cam = cameraData.camera;
+
+                // The sun: RenderSettings.sun (VhLookRig sets it), else straight up (no shafts).
+                Vector3 toSun = RenderSettings.sun != null ? -RenderSettings.sun.transform.forward : Vector3.up;
+                Vector3 vp = cam.WorldToViewportPoint(cam.transform.position + toSun * 1000f);
+                float facing = Vector3.Dot(cam.transform.forward, toSun);
+                float aspect = cam.pixelHeight > 0 ? (float)cam.pixelWidth / cam.pixelHeight : 1.777f;
+                var sunScreen = new Vector4(vp.x, vp.y, facing, aspect);
+                var sunDir = new Vector4(toSun.x, toSun.y, toSun.z, 0f);
+
+                var a = _atmo;
+                var hazeParams = new Vector4(a.hazeDensity.value, a.hazeBaseHeight.value, a.hazeHeightFalloff.value, a.hazeStart.value);
+                var hazeParams2 = new Vector4(a.hazeSunFocus.value, a.hazeMaxOpacity.value, 0f, 0f);
+                var hc = a.hazeColor.value;
+                var hs = a.hazeSunColor.value;
+                var tint = a.shaftTint.value;
+                bool shafts = a.ShaftsActive && facing > -0.2f;
+                var shaftParams = new Vector4(shafts ? a.shaftIntensity.value : 0f, a.shaftThreshold.value, a.shaftLength.value, a.shaftRadius.value);
+
+                var colorDesc = renderGraph.GetTextureDesc(resources.cameraColor);
+                colorDesc.name = "_VhAtmosphereColor";
+                colorDesc.clearBuffer = false;
+                colorDesc.msaaSamples = MSAASamples.None;
+                TextureHandle source = resources.activeColorTexture;
+                TextureHandle depth = resources.cameraDepthTexture;
+                TextureHandle shaftTex = TextureHandle.nullHandle;
+
+                if (shafts)
+                {
+                    var half = new TextureDesc(Mathf.Max(1, colorDesc.width / 2), Mathf.Max(1, colorDesc.height / 2))
+                    {
+                        format = GraphicsFormat.B10G11R11_UFloatPack32,
+                        filterMode = FilterMode.Bilinear,
+                        wrapMode = TextureWrapMode.Clamp,
+                        clearBuffer = false,
+                        name = "_VhShaftsA",
+                    };
+                    var texA = renderGraph.CreateTexture(half);
+                    half.name = "_VhShaftsB";
+                    var texB = renderGraph.CreateTexture(half);
+                    AddPass(renderGraph, "VH Shafts Mask", source, depth, TextureHandle.nullHandle, texA, PassMask, 0f,
+                        sunScreen, sunDir, hazeParams, hazeParams2, hc, hs, shaftParams, tint);
+                    AddPass(renderGraph, "VH Shafts Blur 1", texA, TextureHandle.nullHandle, TextureHandle.nullHandle, texB, PassBlur, 1f,
+                        sunScreen, sunDir, hazeParams, hazeParams2, hc, hs, shaftParams, tint);
+                    AddPass(renderGraph, "VH Shafts Blur 2", texB, TextureHandle.nullHandle, TextureHandle.nullHandle, texA, PassBlur, 0.25f,
+                        sunScreen, sunDir, hazeParams, hazeParams2, hc, hs, shaftParams, tint);
+                    shaftTex = texA;
+                }
+
+                var dest = renderGraph.CreateTexture(colorDesc);
+                AddPass(renderGraph, "VH Atmosphere Composite", source, depth, shaftTex, dest, PassComposite, 0f,
+                    sunScreen, sunDir, hazeParams, hazeParams2, hc, hs, shaftParams, tint);
+                resources.cameraColor = dest;
+            }
+
+            void AddPass(RenderGraph rg, string name, TextureHandle src, TextureHandle depth, TextureHandle shafts, TextureHandle dst,
+                int pass, float blurStep, Vector4 sunScreen, Vector4 sunDir, Vector4 hazeParams, Vector4 hazeParams2,
+                Color hazeColor, Color hazeSunColor, Vector4 shaftParams, Color shaftTint)
+            {
+                using (var builder = rg.AddRasterRenderPass<PassData>(name, out var data, profilingSampler))
+                {
+                    data.material = _material;
+                    data.source = src;
+                    data.shafts = shafts;
+                    data.depth = depth;
+                    data.pass = pass;
+                    data.blurStep = blurStep;
+                    data.sunScreen = sunScreen;
+                    data.sunDir = sunDir;
+                    data.hazeParams = hazeParams;
+                    data.hazeParams2 = hazeParams2;
+                    data.hazeColor = hazeColor;
+                    data.hazeSunColor = hazeSunColor;
+                    data.shaftParams = shaftParams;
+                    data.shaftTint = shaftTint;
+                    data.hasShafts = shafts.IsValid();
+                    builder.UseTexture(src, AccessFlags.Read);
+                    if (depth.IsValid()) builder.UseTexture(depth, AccessFlags.Read);
+                    if (data.hasShafts) builder.UseTexture(shafts, AccessFlags.Read);
+                    builder.SetRenderAttachment(dst, 0, AccessFlags.Write);
+                    builder.SetRenderFunc((PassData d, RasterGraphContext ctx) => Execute(d, ctx));
+                }
+            }
+
+            static void Execute(PassData d, RasterGraphContext ctx)
+            {
+                Props.Clear();
+                Props.SetTexture(BlitTextureId, (RTHandle)d.source);
+                Props.SetVector(BlitScaleBiasId, new Vector4(1f, 1f, 0f, 0f));
+                if (d.hasShafts) Props.SetTexture(ShaftTexId, (RTHandle)d.shafts);
+                else Props.SetTexture(ShaftTexId, Texture2D.blackTexture);
+                Props.SetVector(SunScreenId, d.sunScreen);
+                Props.SetVector(SunWorldDirId, d.sunDir);
+                Props.SetVector(HazeParamsId, d.hazeParams);
+                Props.SetVector(HazeParams2Id, d.hazeParams2);
+                Props.SetVector(HazeColorId, d.hazeColor);
+                Props.SetVector(HazeSunColorId, d.hazeSunColor);
+                Props.SetVector(ShaftParamsId, d.shaftParams);
+                Props.SetVector(ShaftTintId, d.shaftTint);
+                Props.SetFloat(BlurStepId, d.blurStep);
+                ctx.cmd.DrawProcedural(Matrix4x4.identity, d.material, d.pass, MeshTopology.Triangles, 3, 1, Props);
+            }
+        }
+    }
+}
