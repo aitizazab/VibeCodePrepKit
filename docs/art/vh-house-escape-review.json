@@ -2,46 +2,100 @@
  "name": "house-escape/index",
  "dir": "art/review/2026-10-13",
  "title": "Visiting Hours: the house tips (Night 2's escape, room by room)",
- "subtitle": "The escape rebuilt as the night's peak: eleven rooms the house can't hold, each with its own light and sound, folding shut behind her. One still from each checkpoint, looking ahead. At full speed it takes about a minute (62 to 64 s), with a checkpoint every 10 to 20 s. These stills are from before this round's fix: the rooms had no walls yet.",
+ "subtitle": "The escape rebuilt as the night's peak: eleven rooms the house can't hold, each with its own light and sound, folding shut behind her. One still from each checkpoint, looking ahead. At full speed it takes about a minute (62 to 64 s), with a checkpoint every 10 to 20 s.",
  "questions": [
   "Length: about a minute, eleven rooms. Too long, too short, or right for a fever dream?",
   "Does each room still read as a room of this house (the kitchen, the hallway, Theo's room, the attic), or do they blur together?",
   "The stairwell door is the hardest spot. After two falls there, the dream offers to let her through in exchange for a memory. Does that offer feel right, or should the spot just be easier?"
  ],
  "notes": [
-  "Fixed after these stills, not shown yet: every room now has its two walls. In the tipped rooms that means the old floor on the left and the old ceiling on the right; the last hall is papered; the attic is in its boards. The pendant, the clock, the upside-down calendar and the hanging counters now hang on those walls instead of floating. The observatory's open far end, the pale rectangle in its two stills, is now night around a framed doorway into the attic.",
+  "Each room now has its two walls. In the tipped rooms that means the old floor on the left and the old ceiling on the right; the last hall is papered; the attic is in its boards. The pendant, the clock, the upside-down calendar and the hanging counters hang on those walls. The observatory's far end is night around a framed doorway into the attic.",
   "The walls are only pictures and have no collision, so the course, its wallruns and its timings are unchanged.",
-  "The next house capture shows the fixed rooms."
+  "The rooms have no ceilings: the sky shows over the walls. Say if you want them closed in."
  ],
  "sections": [
   {
    "title": "The house tips, then the hallway turns over while she runs it",
    "cols": 2,
    "items": [
-    { "file": "art/review/2026-10-13/house-escape/escape-house-01-the-house-tips.png", "label": "The kitchen tilts: its wall is the floor, the table falls away ahead, the hatch to slide under" },
-    { "file": "art/review/2026-10-13/house-escape/escape-house-02-the-hallway-turns-over.png", "label": "The hallway turns over: its photos, runner and lights roll with it (caught mid-roll)" },
-    { "file": "art/review/2026-10-13/house-escape/escape-house-03-the-doorframes.png", "label": "The doorframes: kick between them over the drop" },
-    { "file": "art/review/2026-10-13/house-escape/escape-house-04-the-stairs.png", "label": "The stairs flatten into a slide, with the banisters still on it" }
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-01-the-house-tips.png",
+     "label": "The kitchen tilts: its wall is the floor, the table falls away ahead, the hatch to slide under"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-02-the-hallway-turns-over.png",
+     "label": "The hallway turns over: its photos, runner and lights roll with it (caught mid-roll)"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-03-the-doorframes.png",
+     "label": "The doorframes: kick between them over the drop"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-04-the-stairs.png",
+     "label": "The stairs flatten into a slide, with the banisters still on it"
+    }
    ]
   },
   {
    "title": "Rooms that can't fit in this house",
    "cols": 2,
    "items": [
-    { "file": "art/review/2026-10-13/house-escape/escape-house-05-theos-room.png", "label": "Theo's room where the stairs were: over his bed, under his bunk" },
-    { "file": "art/review/2026-10-13/house-escape/escape-house-06-the-hallway-again.png", "label": "The hallway again (it shouldn't be here): the same door three times" },
-    { "file": "art/review/2026-10-13/house-escape/escape-house-07-the-observatory.png", "label": "The observatory, open to the sky: floorboards over the night" },
-    { "file": "art/review/2026-10-13/house-escape/escape-house-08-the-telescope.png", "label": "The telescope's platform, then along the round window" },
-    { "file": "art/review/2026-10-13/house-escape/escape-house-09-the-kitchen-again.png", "label": "The kitchen come round again (turned): the counters hanging from the ceiling" },
-    { "file": "art/review/2026-10-13/house-escape/escape-house-10-the-hallway-a-third-time.png", "label": "The hallway a third time: wall to wall to wall" }
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-05-theos-room.png",
+     "label": "Theo's room where the stairs were: over his bed, under his bunk"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-06-the-hallway-again.png",
+     "label": "The hallway again (it shouldn't be here): the same door three times"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-07-the-observatory.png",
+     "label": "The observatory, open to the sky: floorboards over the night"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-08-the-telescope.png",
+     "label": "The telescope's platform, then along the round window"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-09-the-kitchen-again.png",
+     "label": "The kitchen come round again (turned): the counters hanging from the ceiling"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-10-the-hallway-a-third-time.png",
+     "label": "The hallway a third time: wall to wall to wall"
+    }
    ]
   },
   {
    "title": "The hard spot and the way out",
    "cols": 2,
    "items": [
-    { "file": "art/review/2026-10-13/house-escape/escape-house-11-the-stairwell-door.png", "label": "The stairwell door: it opens onto the drop (the memory offer comes here after two falls)" },
-    { "file": "art/review/2026-10-13/house-escape/escape-house-12-the-last-door.png", "label": "The last hall, the right way up, to the front door and the rain" }
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-11-the-stairwell-door.png",
+     "label": "The stairwell door: it opens onto the drop (the memory offer comes here after two falls)"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/escape-house-12-the-last-door.png",
+     "label": "The last hall, the right way up, to the front door and the rain"
+    }
+   ]
+  },
+  {
+   "title": "Out of the house: the front door, the umbrella, Lena at the window",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-13/house-escape/house-14-way-out-door.png",
+     "label": "The way out: the front door onto the rain, the umbrella beside it"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/house-15-umbrella-closed.png",
+     "label": "The umbrella, closed, in its glow"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/house-17-lena-at-the-window.png",
+     "label": "Lena at the window as Nadia leaves"
+    }
    ]
   }
  ]
