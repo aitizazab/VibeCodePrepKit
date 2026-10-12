@@ -76,10 +76,15 @@ own writing (STORY-PROSE.md notes, their battle lines) still outranks everything
    player would expect to run on is wall-runnable, no stuck spots, no holes to fall through.
 7. **Consequence:** every fail state and every choice changes something the player can see or feel.
 8. **Presentation:** camera, animation and audio sell each beat; no text pops, no frozen extreme faces, no clipped text.
-9. **Performance:** 1080p at 60 fps or better on this RTX 3050 laptop at the default quality level (report the frame time).
+9. **Performance (raised by the creator, 2026-10-12):** "consistent 120 fps at 1080p, or a bare minimum of 60 fps,
+   when the game is the only thing running", on this RTX 3050 laptop, and ideally weaker machines too. So the target is
+   8.3 ms a frame and the floor is 16.7 ms on the 1% lows, measured in a build with the perf probe. Things far away must
+   cost far less than things near: "there's no way the tree in the garden is the same as a tree you can barely see the
+   branches of behind the hospital." See section 9.
 
 Blockers (any one fails the milestone): phasing through a wall, an untextured placeholder in view, clipped text, a fail
-state with no cost, a soft-lock, a frame time over 25 ms.
+state with no cost, a soft-lock, 1% lows over 16.7 ms in a build, or a scene that needs more than the 30% memory cap
+(4.6 GB) to open in the editor.
 
 ## 4. The hill: one map for Nights 1-3
 
@@ -145,3 +150,21 @@ judge's findings.
   sheet already has her wearing a watch face-in); from then on it's on Nadia's right wrist in first person (the body
   rig), in the dream and, if it carries over, in the waking world. Night 4's mechanic around it is for later (time is
   Night 4's subject: the 3:03 and 3:06 calls). This replaces the planisphere placeholder.
+
+## 9. Performance architecture (the creator, 2026-10-12)
+
+Every builder follows this; the Perf agent owns the shared tools and the measurements.
+- **Levels of detail on everything repeated or large:** trees, houses, props and people get LOD groups (full detail
+  near, simplified mid, an impostor or cross-billboard far, culled beyond), with screen-size thresholds tuned so the
+  switch can't be seen at golden-hour contrast.
+- **Draw calls:** SRP Batcher-compatible materials, GPU instancing for repeated trees and props, static geometry merged
+  per chunk (but split by distance band so culling still works).
+- **Culling:** per-layer cull distances (small props vanish early), occlusion culling baked for the hill and the house,
+  backdrop geometry kept separate and cheap.
+- **Shadows:** only near casters cast shadows; small props and distant objects don't; cascade splits tuned to the view.
+- **Lights and probes:** few real-time lights (the house's 35 lamps mostly baked or emissive-only), probes baked.
+- **Textures:** 2K only for hero surfaces, 1K or atlases for the rest, mipmap streaming on.
+- **Memory:** every scene opens in the editor within the 30% cap; the hill capture ran out at 4.6 GB on 2026-10-12.
+- **Quality tiers:** a default that hits 120 fps here, and a lower tier for weaker machines.
+- **Measured, not guessed:** the perf probe flies set camera paths in a build and logs average, 1% low and worst frame
+  times; every milestone reports them per scene.
