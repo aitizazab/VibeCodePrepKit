@@ -39,6 +39,9 @@ namespace JamKit.DreamEscape.Tests
             GameRoot.Save.Data.SetEntry("vh_arguments", null);
             GameRoot.Save.Data.ClearFlag(DreamRain.DespairFlag);
             GameRoot.Save.Data.ClearFlag(DreamHouseStory.CondemnsFlag);
+            GameRoot.Save.Data.SetEntry(DreamHouseStory.TheoAnswerKey, null);
+            GameRoot.Save.Data.SetEntry(DreamJournal.Key, null);
+            DreamHouseGame.DebugSaturdayPaper = false;
         }
 
         static DreamHouseGame Game => DreamHouseGame.Current;
@@ -90,6 +93,9 @@ namespace JamKit.DreamEscape.Tests
             Assert.That(Game.Phase, Is.EqualTo(HousePhase.HideAndSeek), "found before every memory: another round");
             Assert.That(Game.LineText, Does.Contain(DreamHouseLines.Theo));
             yield return WaitFor(() => !Game.Speaking, "his line", 10f);
+            // The first time, he asks his question: answer it, and he counts again.
+            if (Game.AskingTheo) Game.AnswerTheo(TheoAnswer.Comfort);
+            yield return WaitFor(() => !Game.Speaking, "the answer and his reply", 12f);
             yield return Frames(2);
             Assert.That(Game.theo.Counting, Is.True, "he counts again");
             Assert.That(Game.Story.Rounds, Is.EqualTo(2));
@@ -115,6 +121,84 @@ namespace JamKit.DreamEscape.Tests
             Assert.That(Game.Story.AllMemoriesFound, Is.True);
             Assert.That(Game.LineText, Does.Contain(DreamHouseLines.AllFoundStart), "Nadia's line on the last memory");
             Assert.That(Game.LineText, Does.EndWith(DreamHouseLines.AllFoundEndings[1 - DreamHouseLines.DespairEnding]), "the normal route's ending (no Despair yet)");
+        }
+
+        [UnityTest]
+        public IEnumerator TheCounterReadsTwoOfFive()
+        {
+            yield return StartHouse();
+            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
+            yield return Frames(3);
+            Assert.That(Game.memories.Summary, Is.EqualTo("Memories: 0 of 5"));
+            var h = Game.House;
+            for (int i = 0; i < 2; i++)
+            {
+                var m = h.memories[i].standAt;
+                Game.player.Teleport(new Vector3(m.X, m.Y + 0.02f, m.Z), 0f, Vector3.zero);
+                int left = 5 - i - 1;
+                yield return WaitFor(() => Game.memories.Remaining == left, h.memories[i].name + " picked up", 5f);
+            }
+            Assert.That(Game.memories.Summary, Is.EqualTo("Memories: 2 of 5"), "the on-screen counter");
+            Assert.That(Game.Evidence.Count, Is.EqualTo(2), "what she'd carry into the battle so far");
+        }
+
+        [UnityTest]
+        public IEnumerator TheLastMemoryLineOnTheDespairRouteLongsForHisSmile()
+        {
+            GameRoot.Save.Data.SetFlag(DreamRain.DespairFlag);
+            yield return StartHouse();
+            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
+            yield return Frames(3);
+            var h = Game.House;
+            for (int i = 0; i < h.memories.Count; i++)
+            {
+                var m = h.memories[i].standAt;
+                Game.player.Teleport(new Vector3(m.X, m.Y + 0.02f, m.Z), 0f, Vector3.zero);
+                int left = 5 - i - 1;
+                yield return WaitFor(() => Game.memories.Remaining == left, h.memories[i].name + " picked up", 5f);
+            }
+            Assert.That(Game.LineText, Does.Contain(DreamHouseLines.AllFoundStart));
+            Assert.That(Game.LineText, Does.EndWith("it would be nice to see his smile again."), "the Despair route's ending");
+            Assert.That(Game.LineText, Does.Not.Contain(DreamHouseLines.Placeholder), "the creator's line as written");
+        }
+
+        [UnityTest]
+        public IEnumerator TheoAsksIfDadWillBeSadAndRemembersTheAnswer()
+        {
+            yield return StartHouse();
+            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
+            yield return Frames(3);
+            var open = Game.House.openFloor[0];
+            Game.player.Teleport(new Vector3(open.X, open.Y + 0.02f, open.Z), 0f, Vector3.zero);
+            DebugMenu.TimeScale = 3f;
+            yield return WaitFor(() => Game.Story.TimesFound > 0, "Theo to find her", 60f);
+            Assert.That(Game.LineText, Does.Contain(DreamHouseLines.TheoQuestion), "his question");
+            yield return WaitFor(() => Game.AskingTheo, "the answer prompt", 10f);
+            Game.AnswerTheo(TheoAnswer.Honest);
+            Assert.That(Game.Story.TheoAnswered, Is.EqualTo(TheoAnswer.Honest));
+            Assert.That(DreamHouseGame.SavedTheoAnswer, Is.EqualTo("honest"), "kept in the save: he remembers");
+            Assert.That(GameRoot.Save.Data.GetEntry(DreamHouseStory.TheoAnswerKey), Is.EqualTo("honest"));
+            yield return WaitFor(() => !Game.Speaking, "her answer and his reply", 12f);
+            yield return Frames(2);
+            Assert.That(Game.theo.Counting, Is.True, "he counts again");
+            Assert.That(Game.AskingTheo, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator TheSaturdayDeductionNeedsNightOnesPaperOrTheDebugToggle()
+        {
+            yield return StartHouse();
+            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
+            yield return Frames(3);
+            var cal = Game.House.memories.Find(m => m.id == DreamHouseStory.MemCalendar).standAt;
+            Game.player.Teleport(new Vector3(cal.X, cal.Y + 0.02f, cal.Z), 0f, Vector3.zero);
+            yield return WaitFor(() => Game.memories.Remaining == 4, "the calendar picked up", 5f);
+            Assert.That(Game.Evidence, Does.Contain(DreamHouseStory.MemCalendar).And.Not.Contain(DreamHouseStory.DedSaturdayOff), "Night 2 alone: just the calendar");
+            DreamHouseGame.DebugSaturdayPaper = true;
+            Assert.That(Game.Evidence, Does.Contain(DreamHouseStory.DedSaturdayOff), "the debug toggle stands in for Night 1");
+            DreamHouseGame.DebugSaturdayPaper = false;
+            GameRoot.Save.Data.SetEntry(DreamJournal.Key, DreamJournal.Add(null, DreamJournal.SaturdayPaper));
+            Assert.That(Game.Evidence, Does.Contain(DreamHouseStory.DedSaturdayOff), "Night 1's paper in the shared journal");
         }
 
         [UnityTest]

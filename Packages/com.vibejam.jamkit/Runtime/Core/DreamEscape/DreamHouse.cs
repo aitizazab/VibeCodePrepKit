@@ -12,7 +12,7 @@ namespace JamKit.DreamEscape
         Lawn, Facade, Hallway, RunWall, Lintel, Stairs, Floor, Wall, Ceiling, Counter, Fridge, Table, Chair, Sofa, Bed,
         Desk, Closet, Curtain, TippedFloor, TippedWall, Porch, RainPath,
         // The architecture pass (2026-10-12): the house's own parts.
-        Header, Chimney, Bookcase, WindowSeat, Bath, Railing, KneeWall, Gable, Roof, RoofStep, Storage,
+        Header, Chimney, Bookcase, WindowSeat, Bath, Railing, KneeWall, Gable, Roof, RoofStep, Storage, Street,
     }
 
     /// <summary>A memory to find (the hide-and-seek's collectibles).</summary>
@@ -98,6 +98,8 @@ namespace JamKit.DreamEscape
         /// circle's centre and radius; the inner circle that cuts the crescent sits <see cref="SkyBite"/> further east.</summary>
         public const float SkyX = -5.3f, SkyZ = RidgeZ, SkyR = 1.3f, SkyInnerR = 1.1f, SkyBite = 0.65f;
         public const float VoidBottom = -24f;
+        /// <summary>Where the street starts (its far kerb); the front garden starts at z = -24.</summary>
+        public const float StreetZ0 = -46f;
         /// <summary>The house seen from its front garden (round 4): the main floor's plan turned so the hall's east end, the
         /// front door, faces the garden (x = z - <see cref="FrontDoorZ"/>, z = 8.2 - x); the walls' outer faces and the eaves.</summary>
         /// The right side stands 0.8 m further out than the plan, so the stretched hallway's wall (x 4.5..5.5) stays inside.
@@ -290,10 +292,16 @@ namespace JamKit.DreamEscape
 
             // ===== 1. The way in: the front door opens onto a hallway that stretches (its floor gone: run the striped wall),
             // then a door half open onto a slide down into the kitchen.
+            // The street first (Night 2, step 1; docs/NIGHTS-1-2.md): a short arrival, the neighbours who know her name, the
+            // street replaying Night 1; then the front garden.
+            Section(StreetZ0, "The street");
+            Lane(StreetZ0, 0f);
+            Add("The street", LabPieceKind.Floor, HouseLook.Street, V(-14f, -2f, StreetZ0), V(14f, 0f, -24f));
+            arrivalCheckpoint = Checkpoint("The street", StreetZ0 + 4f, 0f, ChapterArrival);
             Section(-24f, "The front garden");
             Lane(-24f, 0f);
             Add("Front garden", LabPieceKind.Floor, HouseLook.Lawn, V(-14f, -2f, -24f), V(14f, 0f, 0f));
-            arrivalCheckpoint = Checkpoint("The house", -16f, 0f, ChapterArrival);
+            Checkpoint("The house", -16f, 0f);
             // The house from outside (round 4: it matches the inside, seen from its front, the hall's east end; the builder
             // draws the rest of it, DreamHouseExterior): its front wall up to the eaves, the outside chimney, and tall
             // hedges from its corners to the garden's edges.
@@ -541,11 +549,11 @@ namespace JamKit.DreamEscape
 
             // The memories (the hide-and-seek's collectibles). Names are plain descriptions; what each shows is the creator's.
             // Each has the place she stands to take it (one is on top of Theo's bookcase: climb his desk).
-            Memory("memory_height_marks", "The height marks on the door frame", V(-2.08f, F + 1.2f, HallZ0 + 0.1f), V(-2.5f, F, 77.45f));
-            Memory("memory_calendar", "The fridge calendar", V(-6.1f, F + 1.4f, 77.1f), V(-5.3f, F, 77.1f));
-            Memory("memory_fourth_chair", "The fourth chair", V(-1.65f, F + 0.9f, 75.7f), V(-0.9f, F, 75.7f));
-            Memory("memory_drawing", "Theo's drawing", V(7.72f, F + 2.15f, 81.95f), V(7.6f, F + 0.75f, 82.65f));
-            Memory("memory_photos", "The photo wall", V(-2.0f, F + 1.6f, HallZ1 - 0.15f), V(-2.0f, F, 79.95f));
+            Memory(DreamHouseStory.MemHeightMarks, "The height marks on the door frame (they stop at ten)", V(-2.08f, F + 1.2f, HallZ0 + 0.1f), V(-2.5f, F, 77.45f));
+            Memory(DreamHouseStory.MemCalendar, "The fridge calendar (Pancakes! on every Sunday)", V(-6.1f, F + 1.4f, 77.1f), V(-5.3f, F, 77.1f));
+            Memory(DreamHouseStory.MemPlaceCard, "The fourth chair: her place card", V(-1.65f, F + 0.9f, 75.7f), V(-0.9f, F, 75.7f));
+            Memory(DreamHouseStory.MemBadDream, "Theo's drawing: THE BAD DREAM", V(7.72f, F + 2.15f, 81.95f), V(7.6f, F + 0.75f, 82.65f));
+            Memory(DreamHouseStory.FactPhoto, "The photo wall (the four of them at the lake)", V(-2.0f, F + 1.6f, HallZ1 - 0.15f), V(-2.0f, F, 79.95f));
 
             // The rooms (for the builder's walls, and the plan).
             Room("Kitchen and dining", HubX0, 2.6f, HubZ0, HallZ0, F, 2.8f);

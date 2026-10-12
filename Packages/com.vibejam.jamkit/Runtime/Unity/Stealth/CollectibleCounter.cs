@@ -48,7 +48,10 @@ namespace JamKit.Stealth
         public int Remaining => _set.Remaining;
         public bool AnyLeft => _set.AnyLeft;
         public bool AllCollected => _set.AllFound;
-        public string Summary => _set.Summary();
+        /// <summary>A template's own wording for the count (found, total): Night 2's house says "Memories: 2 of 5".
+        /// Null: the set's summary.</summary>
+        public Func<int, int, string> summaryFormat;
+        public string Summary => summaryFormat != null ? summaryFormat(Total - Remaining, Total) : _set.Summary();
 
         void Awake()
         {

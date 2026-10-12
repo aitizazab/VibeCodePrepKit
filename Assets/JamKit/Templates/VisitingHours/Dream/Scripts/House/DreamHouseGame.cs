@@ -56,7 +56,25 @@ namespace JamKit.DreamEscape
         {
             _current = null;
             _escaped = null;
+            DebugSaturdayPaper = false;
         }
+
+        /// <summary>Starts a battle by id with the evidence she carries, and calls back with how it ended (the argument's
+        /// battle API plugs in here: docs/NIGHTS-1-2.md, "Who builds what"). Null: the built-in stub (the battle
+        /// prototype over the house, its stance deciding).</summary>
+        public delegate void BattleStarter(string battleId, IReadOnlyList<string> evidence, Action<ArgumentOutcome> done);
+        public static BattleStarter StartBattle;
+
+        /// <summary>Debug (F6 in a debug build, and tests): pretend Night 1's Saturday paper is in the journal, so Night 2 can
+        /// be tested alone with <see cref="DreamHouseStory.DedSaturdayOff"/>.</summary>
+        public static bool DebugSaturdayPaper;
+
+        /// <summary>Night 1's Saturday paper is in the shared journal (or the debug toggle is on).</summary>
+        public static bool HasSaturdayPaper => DebugSaturdayPaper
+            || (GameRoot.Exists && DreamJournal.Has(GameRoot.Save.Data.GetEntry(DreamJournal.Key), DreamJournal.SaturdayPaper));
+
+        /// <summary>The answer to Theo's question kept in the save ("honest", "comfort", "silence"), or null.</summary>
+        public static string SavedTheoAnswer => GameRoot.Exists ? GameRoot.Save.Data.GetEntry(DreamHouseStory.TheoAnswerKey) : null;
 
         public static DreamHouseGame Current => _current;
 
@@ -81,6 +99,8 @@ namespace JamKit.DreamEscape
         float _s, _whiteAlpha;
         int _checkpoint, _respawns, _caught, _falls, _finishes;
         bool _chasing, _respawning, _leaving, _stretched, _waitingForChoice;
+        bool _saidArrival, _saidWindow, _waitingForTheo, _theoOver;
+        readonly List<string> _found = new List<string>();
         float _stretchT = -1f;
         Vector3 _hallwayHome;
         readonly Queue<HouseLine> _lines = new Queue<HouseLine>();
@@ -104,6 +124,11 @@ namespace JamKit.DreamEscape
         public bool Respawning => _respawning;
         public bool Leaving => _leaving;
         public bool WaitingForChoice => _waitingForChoice;
+        /// <summary>Theo has asked "Is Dad going to be sad?" and waits for her answer.</summary>
+        public bool AskingTheo => _waitingForTheo;
+        /// <summary>The evidence cards she'd carry into the battle now (the memories found; the calendar as the Saturday
+        /// deduction when she has Night 1's paper).</summary>
+        public List<string> Evidence => DreamHouseStory.EvidenceFor(_found, HasSaturdayPaper);
         /// <summary>The line on screen ("" when none).</summary>
         public string LineText => _lineText;
         public bool Speaking => _lineText.Length > 0 || _lines.Count > 0;
@@ -134,6 +159,8 @@ namespace JamKit.DreamEscape
             StealthLightZone.Ambient = _h.ambientLight;
             if (memories == null) memories = CollectibleCounter.Current;
             memories.AllFound += OnAllMemoriesFound;
+            memories.ItemCollected += OnMemory;
+            memories.summaryFormat = (found, total) => found >= total ? "All " + total + " memories found" : "Memories: " + found + " of " + total;
             if (theo != null) theo.Found += OnTheoFound;
             if (hallwayEnd != null) _hallwayHome = hallwayEnd.position;
 
@@ -158,7 +185,7 @@ namespace JamKit.DreamEscape
         void OnDestroy()
         {
             if (_current == this) _current = null;
-            if (memories != null) memories.AllFound -= OnAllMemoriesFound;
+            if (memories != null) { memories.AllFound -= OnAllMemoriesFound; memories.ItemCollected -= OnMemory; }
             if (ArgumentRunning) { var b = _battle; _battle = null; b.Close(false); }
             if (theo != null) theo.Found -= OnTheoFound;
             if (!GameRoot.Exists) return;
@@ -181,7 +208,7 @@ namespace JamKit.DreamEscape
             _story.Restart();
             ResetHouse();
             PlaceAt(_h.arrivalCheckpoint, false);
-            Say(DreamHouseLines.Arrival, null);
+            Say(DreamHouseLines.Street, null);
         }
 
         void ResetHouse()
@@ -192,6 +219,10 @@ namespace JamKit.DreamEscape
             _lineLeft = 0f;
             _afterLines = null;
             _waitingForChoice = false;
+            _waitingForTheo = false;
+            _saidArrival = false;
+            _saidWindow = false;
+            _found.Clear();
             _leaving = false;
             _stretched = false;
             _stretchT = -1f;
@@ -225,6 +256,13 @@ namespace JamKit.DreamEscape
             if (_story.Phase == HousePhase.HideAndSeek) _hud.Tick();
             if (GameRoot.Flow.Current == GameState.Playing && !_respawning) Tick(dt, p);
             if (_waitingForChoice) ReadChoice();
+            if (_waitingForTheo) ReadTheoAnswer();
+            var kb = Keyboard.current;
+            if (DebugMenu.Allowed && kb != null && kb.f6Key.wasPressedThisFrame)
+            {
+                DebugSaturdayPaper = !DebugSaturdayPaper;
+                GameRoot.Hud.Message("Debug: Night 1's Saturday paper " + (DebugSaturdayPaper ? "in the journal" : "not in the journal (unless found)"), 2.5f);
+            }
         }
 
         void Tick(float dt, Vector3 p)
@@ -238,10 +276,12 @@ namespace JamKit.DreamEscape
             switch (_story.Phase)
             {
                 case HousePhase.WayIn:
+                    if (!_saidArrival && _s >= -24f) { _saidArrival = true; Say(DreamHouseLines.Arrival, null); }
                     if (!_stretched && _s >= _h.stretchTrigger) Stretch();
                     if (DreamHouse.InHub(ToN(p)) && _s >= _h.kitchenS && _story.ReachKitchen())
                     {
                         _checkpoint = _h.hubCheckpoint;
+                        SitAtTheFourthChair();
                         Say(DreamHouseLines.Pancakes, BeginHideAndSeek);
                     }
                     break;
@@ -261,6 +301,7 @@ namespace JamKit.DreamEscape
                             return;
                         }
                     }
+                    if (!_saidWindow && _s >= _rain.rainStartS + 1f) { _saidWindow = true; Say(DreamHouseLines.LenaAtTheWindow, null); }
                     if (!_leaving && _s >= _rain.rainEndS && player.Sim.Grounded) StartCoroutine(Leave());
                     break;
             }
@@ -280,6 +321,17 @@ namespace JamKit.DreamEscape
             _stretched = true;
             _stretchT = 0f;
             GameRoot.Audio.Play("glitch", 0.45f);
+            // The house misbehaving: the movement intro (the wallrun along the striped wall over the gap).
+            Say(DreamHouseLines.HouseMisbehaves, null);
+            GameRoot.Hud.Message("The floor's gone: run along the striped wall (jump at it, keep running).", 4f);
+        }
+
+        /// <summary>The pancakes: she sits at the fourth chair, her place card in front of her (Night 2, step 3).</summary>
+        void SitAtTheFourthChair()
+        {
+            var m = _h.memories.Find(x => x.id == DreamHouseStory.MemPlaceCard);
+            if (m == null) return;
+            player.Teleport(new Vector3(m.standAt.X, m.standAt.Y + 0.02f, m.standAt.Z), 270f, Vector3.zero);
         }
 
         void AnimateStretch(float dt)
@@ -305,6 +357,13 @@ namespace JamKit.DreamEscape
             if (_story.Phase != HousePhase.HideAndSeek) return;
             bool over = _story.TheoFoundHer();
             SetTheoPlaying(false);
+            // The first time he finds her, his question (Night 2, step 5); he remembers her answer.
+            if (_story.TheoAnswered == TheoAnswer.None) { AskTheo(over); return; }
+            AfterFound(over);
+        }
+
+        void AfterFound(bool over)
+        {
             if (over) Say(DreamHouseLines.EliasNotHere, BeginArgument);
             else Say(DreamHouseLines.FoundYou, () =>
             {
@@ -312,6 +371,52 @@ namespace JamKit.DreamEscape
                 SetTheoPlaying(true);
                 theo.Restart();
             });
+        }
+
+        void AskTheo(bool over)
+        {
+            _theoOver = over;
+            Say(new[] { new HouseLine(DreamHouseLines.Theo, DreamHouseLines.TheoQuestion, 2.8f) }, () =>
+            {
+                _waitingForTheo = true;
+                _prompt.text = DreamHouseLines.TheoQuestionPrompt;
+                _prompt.style.display = DisplayStyle.Flex;
+            });
+        }
+
+        void ReadTheoAnswer()
+        {
+            var kb = Keyboard.current;
+            var pad = Gamepad.current;
+            if (AutopilotOn) { AnswerTheo(TheoAnswer.Comfort); return; }
+            if (!GameRoot.Input.GameplayAllowed) return;
+            if ((kb != null && (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame)) || (pad != null && pad.buttonWest.wasPressedThisFrame)) AnswerTheo(TheoAnswer.Honest);
+            else if ((kb != null && (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame)) || (pad != null && pad.buttonNorth.wasPressedThisFrame)) AnswerTheo(TheoAnswer.Comfort);
+            else if ((kb != null && (kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame)) || (pad != null && pad.buttonEast.wasPressedThisFrame)) AnswerTheo(TheoAnswer.Silence);
+        }
+
+        /// <summary>Her answer to Theo's question (the keys, the autopilot, tests): kept in the save, his reply, then the game
+        /// goes on (another round, or Elias not coming down).</summary>
+        public void AnswerTheo(TheoAnswer answer)
+        {
+            if (!_story.AnswerTheo(answer)) return;
+            _waitingForTheo = false;
+            _prompt.style.display = DisplayStyle.None;
+            if (GameRoot.Exists)
+            {
+                GameRoot.Save.Data.SetEntry(DreamHouseStory.TheoAnswerKey, DreamHouseStory.AnswerText(answer));
+                GameRoot.Save.Save();
+            }
+            Debug.Log("JAMKIT_HOUSE Theo asked \"" + DreamHouseLines.TheoQuestion + "\": " + DreamHouseStory.AnswerText(answer));
+            var lines = DreamHouseLines.TheoAnswers[(int)answer - 1];
+            bool over = _theoOver;
+            // Over (every memory found): only her answer; his "I'll count again" is for another round.
+            Say(over ? new[] { lines[0] } : lines, () => AfterFound(over));
+        }
+
+        void OnMemory(Collectible item, int index)
+        {
+            if (item != null && !_found.Contains(item.id)) _found.Add(item.id);
         }
 
         void OnAllMemoriesFound()
@@ -328,7 +433,17 @@ namespace JamKit.DreamEscape
         /// stance decides the outcome. Without the battle (or under the autopilot) the debug choice decides.</summary>
         void BeginArgument()
         {
+            var evidence = Evidence;
+            Debug.Log("JAMKIT_HOUSE the battle " + DreamHouseStory.LenaBattleId + " with " + (evidence.Count == 0 ? "no evidence" : string.Join(", ", evidence)));
             _waitingForChoice = true;
+            if (StartBattle != null && !AutopilotOn)
+            {
+                _prompt.text = DebugSkipHint;
+                _prompt.style.display = DisplayStyle.Flex;
+                StartBattle(DreamHouseStory.LenaBattleId, evidence, outcome => Choose(outcome == ArgumentOutcome.None ? ArgumentOutcome.Unsure : outcome));
+                return;
+            }
+            // The stub until the argument's battle API plugs in (StartBattle): the battle prototype, every card in hand.
             bool battle = useArgumentBattle && !AutopilotOn;
             _prompt.text = battle ? DebugSkipHint : DreamHouseLines.ArgumentPrompt;
             _prompt.style.display = DisplayStyle.Flex;

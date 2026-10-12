@@ -274,7 +274,7 @@ namespace JamKit.Tests.DreamEscape
             // Theo's drawing is on top of his bookcase: climbing his desk reaches it (the desk is a mantle).
             var desk = h.course.pieces.Find(p => p.name == "Theo's desk");
             Assert.That(desk.Max.Y - DreamHouse.Ground, Is.InRange(d.mantleMinHeight, d.mantleMaxHeight), "the desk mantles from the floor");
-            var drawing = h.memories.Find(m => m.id == "memory_drawing");
+            var drawing = h.memories.Find(m => m.id == DreamHouseStory.MemBadDream);
             Assert.That(drawing.standAt.Y, Is.EqualTo(desk.Max.Y).Within(0.01f), "she stands on the desk to take it");
         }
 
@@ -356,7 +356,7 @@ namespace JamKit.Tests.DreamEscape
             Assert.That(s.Phase, Is.EqualTo(HousePhase.HideAndSeek));
             Assert.That(s.Rounds, Is.EqualTo(2));
             string line = s.FoundEveryMemory(false);
-            Assert.That(line, Does.StartWith(DreamHouseLines.Placeholder));
+            Assert.That(line, Does.StartWith(DreamHouseLines.AllFoundStart), "the creator's own line (not a placeholder)");
             Assert.That(line, Does.Contain(DreamHouseLines.AllFoundStart));
             // Found after the last memory: Elias hasn't come; the argument.
             Assert.That(s.TheoFoundHer(), Is.True);
@@ -373,13 +373,67 @@ namespace JamKit.Tests.DreamEscape
         }
 
         [Test]
-        public void TheLastMemoryLineKeepsBothEndingsAndEveryLineIsAPlaceholder()
+        public void TheoAsksOnceAndTheAnswerIsKept()
+        {
+            var story = new DreamHouseStory();
+            story.Restart();
+            Assert.That(story.TheoAsks, Is.False, "not before hide-and-seek");
+            story.ReachKitchen();
+            story.StartHideAndSeek();
+            Assert.That(story.TheoAsks, Is.True);
+            Assert.That(story.AnswerTheo(TheoAnswer.None), Is.False);
+            Assert.That(story.AnswerTheo(TheoAnswer.Comfort), Is.True);
+            Assert.That(story.TheoAnswered, Is.EqualTo(TheoAnswer.Comfort));
+            Assert.That(story.TheoAsks, Is.False, "he asks once");
+            Assert.That(story.AnswerTheo(TheoAnswer.Honest), Is.False, "the first answer stays");
+            Assert.That(DreamHouseStory.AnswerText(TheoAnswer.Silence), Is.EqualTo("silence"));
+            Assert.That(DreamHouseLines.TheoAnswers.Length, Is.EqualTo(3), "an answer for honest, comfort and silence");
+        }
+
+        [Test]
+        public void TheMemoriesAreTheReplotsFiveAndTheCalendarMakesTheSaturdayDeduction()
+        {
+            var h = DreamHouse.Build();
+            var ids = h.memories.ConvertAll(m => m.id);
+            Assert.That(ids, Is.EquivalentTo(new[] { DreamHouseStory.MemPlaceCard, DreamHouseStory.MemCalendar, DreamHouseStory.MemBadDream, DreamHouseStory.MemHeightMarks, DreamHouseStory.FactPhoto }));
+            var bad = h.memories.Find(m => m.id == DreamHouseStory.MemBadDream);
+            var theo = h.rooms.Find(r => r.name == "Theo's room");
+            Assert.That(theo.Contains(bad.position.X, bad.position.Z), Is.True, "the bad dream is found in Theo's room");
+            Assert.That(DreamHouseStory.EvidenceFor(ids, false), Does.Contain(DreamHouseStory.MemCalendar).And.Not.Contain(DreamHouseStory.DedSaturdayOff));
+            var withPaper = DreamHouseStory.EvidenceFor(ids, true);
+            Assert.That(withPaper, Does.Contain(DreamHouseStory.DedSaturdayOff).And.Not.Contain(DreamHouseStory.MemCalendar), "the calendar + Night 1's Saturday paper");
+            Assert.That(withPaper, Does.Contain(DreamHouseStory.MemPlaceCard));
+            string j = DreamJournal.Add(null, DreamJournal.SaturdayPaper);
+            Assert.That(DreamJournal.Has(j, DreamJournal.SaturdayPaper), Is.True);
+            Assert.That(DreamJournal.Add(j, DreamJournal.SaturdayPaper), Is.EqualTo(j), "added once");
+            Assert.That(DreamJournal.Has("mem_x,mem_saturday_paper", DreamJournal.SaturdayPaper), Is.True);
+            Assert.That(DreamJournal.Has("", DreamJournal.SaturdayPaper), Is.False);
+        }
+
+        [Test]
+        public void TheVisitStartsOnTheStreetBeforeTheGarden()
+        {
+            var h = DreamHouse.Build();
+            var arrival = h.course.checkpoints[h.arrivalCheckpoint];
+            Assert.That(arrival.name, Is.EqualTo("The street"));
+            Assert.That(arrival.position.Z, Is.LessThan(-24f), "on the street, before the front garden");
+        }
+
+        [Test]
+        public void TheLastMemoryLineKeepsBothEndingsAndEveryOtherLineIsAPlaceholder()
         {
             string despair = DreamHouseLines.AllFound(true), normal = DreamHouseLines.AllFound(false);
             Assert.That(despair, Is.Not.EqualTo(normal), "the ending differs by route");
             Assert.That(DreamHouseLines.AllFoundEndings.Length, Is.EqualTo(2));
             foreach (var e in DreamHouseLines.AllFoundEndings) Assert.That(despair.EndsWith(e) || normal.EndsWith(e), Is.True, e);
-            foreach (var group in new[] { DreamHouseLines.Arrival, DreamHouseLines.Pancakes, DreamHouseLines.FoundYou, DreamHouseLines.EliasNotHere, DreamHouseLines.Unsure, DreamHouseLines.Condemns, DreamHouseLines.KickedOut })
+            // Night 2's re-plot: the Despair route gets the longing ending, the normal route the clear-eyed one.
+            Assert.That(despair, Does.EndWith("it would be nice to see his smile again."));
+            Assert.That(normal, Does.EndWith("but what does it matter, when he's not even real?"));
+            Assert.That(normal, Does.Not.StartWith(DreamHouseLines.Placeholder), "the creator's line is shown as written");
+            var groups = new System.Collections.Generic.List<HouseLine[]> { DreamHouseLines.Street, DreamHouseLines.Arrival, DreamHouseLines.HouseMisbehaves, DreamHouseLines.Pancakes,
+                DreamHouseLines.FoundYou, DreamHouseLines.EliasNotHere, DreamHouseLines.Unsure, DreamHouseLines.Condemns, DreamHouseLines.KickedOut, DreamHouseLines.LenaAtTheWindow };
+            groups.AddRange(DreamHouseLines.TheoAnswers);
+            foreach (var group in groups)
                 foreach (var l in group)
                 {
                     Assert.That(l.text, Does.StartWith(DreamHouseLines.Placeholder), l.text);

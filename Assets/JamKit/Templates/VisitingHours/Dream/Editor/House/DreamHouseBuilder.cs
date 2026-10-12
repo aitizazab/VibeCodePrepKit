@@ -119,6 +119,7 @@ namespace JamKit.DreamEscape.EditorTools
                 case HouseLook.Curtain: return DreamEscapeBuilder.Pastel("HouseCurtain", new Color(0.86f, 0.66f, 0.36f), 0.03f);   // ochre
                 case HouseLook.TippedFloor: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseTippedFloor", Wood, 0.05f), DreamHouseDressing.PatternFloorboards, 2.4f, 0.28f);
                 case HouseLook.TippedWall: return DreamHouseDressing.ColourPattern(DreamEscapeBuilder.Pastel("HouseTippedWall", Color.white, 0.04f), DreamHouseRooms.WallTile, DreamHouseRooms.WallTileMetres);
+                case HouseLook.Street: return DreamEscapeBuilder.Pastel("HouseStreet", new Color(0.62f, 0.62f, 0.72f), 0.03f);
                 case HouseLook.Porch: return DreamEscapeBuilder.Pastel("HouseHall", P[10], 0.04f);
                 case HouseLook.Header: return DreamHouseDressing.ColourPattern(DreamEscapeBuilder.Pastel("HouseWallpaper", Color.white, 0.04f), DreamHouseRooms.WallTile, DreamHouseRooms.WallTileMetres);
                 case HouseLook.Chimney: return DreamEscapeBuilder.Pastel("DecorBrick", new Color(0.86f, 0.55f, 0.5f), 0.03f);
@@ -287,19 +288,23 @@ namespace JamKit.DreamEscape.EditorTools
                 DreamProps.MeshLook("HouseButter", new Color(1f, 0.93f, 0.62f), 0.004f));
             MeshPart("Syrup", PrimitiveType.Cylinder, t, tc + new Vector3(0f, 0.825f + 5 * 0.034f + 0.018f, 0f), new Vector3(0.22f, 0.004f, 0.2f),
                 DreamProps.MeshLook("HouseSyrup", new Color(0.72f, 0.42f, 0.2f), 0f));
-            // The fridge calendar (its keys on Thursdays are the creator's; a blank grid here), on the fridge's front.
-            var cal = h.memories.Find(m => m.id == "memory_calendar").position;
-            DreamEscapeBuilder.Quad("Fridge calendar", t, new Vector3(-6.23f, cal.Y, cal.Z), Vector3.right, 0.5f, 0.66f, Picture(DreamArt.PicCalendar, white));
+            // The fridge calendar: "Pancakes!" on every Sunday, small stars on Lena's Thursdays (the re-plot).
+            var cal = h.memories.Find(m => m.id == DreamHouseStory.MemCalendar).position;
+            DreamEscapeBuilder.Quad("Fridge calendar", t, new Vector3(-6.23f, cal.Y, cal.Z), Vector3.right, 0.5f, 0.66f, Picture(DreamArt.PicCalendarN2, white));
+            // Nadia's place card at the fourth chair, in Theo's handwriting (a little tent card on the table's end).
+            var seat = h.memories.Find(m => m.id == DreamHouseStory.MemPlaceCard).position;
+            var card = DreamEscapeBuilder.Quad("Nadia's place card", t, new Vector3(-2.12f, F + 0.86f, seat.Z), Vector3.right, 0.2f, 0.12f, Picture(DreamArt.PicPlaceCard, white));
+            card.transform.rotation = Quaternion.LookRotation(Vector3.left) * Quaternion.Euler(-14f, 0f, 0f);
             // The height marks on the dining room's door frame (the way to the hall): they stop at ten.
-            var marks = h.memories.Find(m => m.id == "memory_height_marks").position;
+            var marks = h.memories.Find(m => m.id == DreamHouseStory.MemHeightMarks).position;
             for (int i = 0; i < 7; i++)
                 DreamEscapeBuilder.Box("Height mark", t, new Vector3(marks.X + 0.06f, F + 0.9f + i * 0.09f, marks.Z), new Vector3(0.015f, 0.015f, 0.16f), plum);
-            // Theo's drawing, up on top of his bookcase (climb his desk to see it).
-            var drawn = h.memories.Find(m => m.id == "memory_drawing").position;
-            var drawing = Picture(DreamArt.PicTheoDrawing, white);
+            // Theo's drawing, "THE BAD DREAM", up on top of his bookcase in his room (climb his desk to see it).
+            var drawn = h.memories.Find(m => m.id == DreamHouseStory.MemBadDream).position;
+            var drawing = Picture(DreamArt.PicBadDream, white);
             DreamEscapeBuilder.Quad("Theo's drawing (on top of the bookcase)", t, new Vector3(drawn.X, F + 2.012f, drawn.Z), Vector3.up, 0.44f, 0.33f, drawing);
             // The photo wall: the hall's north wall, between the parents' door and the cupboard under the stairs.
-            var photos = h.memories.Find(m => m.id == "memory_photos").position;
+            var photos = h.memories.Find(m => m.id == DreamHouseStory.FactPhoto).position;
             var wood = DreamEscapeBuilder.Pastel("HousePhotoFrame", new Color(0.62f, 0.46f, 0.38f), 0.01f);
             float face = DreamHouse.HallZ1 - 0.015f;
             for (int i = 0; i < 6; i++)
@@ -315,6 +320,8 @@ namespace JamKit.DreamEscape.EditorTools
             // The two front doors (art pass 2): the way in from the garden, and the way out onto the rain.
             Doorway("The front door (the way in)", t, 0.25f, 0f, true);
             Doorway("The front door (the way out)", t, 318.75f, -5f, false);
+            LenaAtTheWindow(t, 319.02f, -5f);
+            Street(h, root);
             // The escape: a picture frame and a light hanging sideways off the tipped walls.
             DreamEscapeBuilder.Box("Picture (sideways)", t, new Vector3(-4.4f, 1.2f, 205f), new Vector3(0.05f, 0.8f, 1.1f), white);
             DreamEscapeBuilder.Box("Lamp (sideways)", t, new Vector3(3f, 0.3f, 240f), new Vector3(0.9f, 0.3f, 0.3f), white);
@@ -425,6 +432,63 @@ namespace JamKit.DreamEscape.EditorTools
             var go = DreamEscapeBuilder.Part(name, type, parent, Vector3.zero, scale, mat);
             go.transform.position = worldPos;
             return go;
+        }
+
+        /// <summary>Lena watching from the window as Nadia leaves (Night 2, step 7): a lit window beside the way out's door,
+        /// on its outside face, with Lena in it.</summary>
+        static void LenaAtTheWindow(Transform parent, float z, float floor)
+        {
+            var t = new GameObject("Lena at the window").transform;
+            t.SetParent(parent, false);
+            var c = new Vector3(-4.2f, floor + 1.55f, z);
+            DreamEscapeBuilder.Quad("Window (lit)", t, c, Vector3.forward, 1.3f, 1.6f, DreamEscapeBuilder.Glow("HouseWindowLit", new Color(1f, 0.86f, 0.6f), 0.7f, 0f, 0.1f));
+            var mat = DreamEscapeBuilder.Mat("Cutout_" + DreamArt.Lena, "JamKit/Dream/Cutout");
+            mat.SetTexture("_MainTex", DreamArt.Get(DreamArt.Lena, out _));
+            var lena = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            lena.name = "Lena (in the window)";
+            Object.DestroyImmediate(lena.GetComponent<Collider>());
+            lena.transform.SetParent(t, false);
+            lena.transform.position = c + new Vector3(0.1f, -0.1f, 0.02f);
+            lena.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            lena.transform.localScale = new Vector3(0.62f, 1.6f, 1f);
+            lena.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            DreamHouseRooms.Window(t, c + Vector3.forward * 0.03f, Vector3.forward, 1.3f, 1.6f, pane: false);
+        }
+
+        /// <summary>The street (Night 2, step 1): the road and its kerbs, two neighbours' house fronts across it, a lamp post,
+        /// the neighbour who says "Morning, Nadia!", Walt waving her up, and the loop seen (the same sprinkler, the same ball
+        /// as Night 1).</summary>
+        static void Street(DreamHouse h, Transform root)
+        {
+            var t = new GameObject("The street").transform;
+            t.SetParent(root, false);
+            float z0 = DreamHouse.StreetZ0, z1 = -24f;
+            var kerb = DreamEscapeBuilder.Pastel("StreetKerb", new Color(0.86f, 0.84f, 0.88f), 0.03f);
+            var line = DreamEscapeBuilder.Pastel("StreetLine", new Color(0.98f, 0.92f, 0.6f), 0f);
+            DreamEscapeBuilder.Box("Pavement (near)", t, new Vector3(0f, 0.04f, z1 - 1.5f), new Vector3(28f, 0.08f, 3f), kerb);
+            DreamEscapeBuilder.Box("Pavement (far)", t, new Vector3(0f, 0.04f, z0 + 1.5f), new Vector3(28f, 0.08f, 3f), kerb);
+            for (float x = -12f; x < 13f; x += 3f)
+                DreamEscapeBuilder.Box("Road line", t, new Vector3(x, 0.01f, (z0 + z1) * 0.5f), new Vector3(1.4f, 0.02f, 0.18f), line);
+            // Across the street: two neighbours' house fronts (flats, the street's look), a lamp post.
+            var gable = DreamEscapeBuilder.EnsureGableMesh();
+            foreach (var (x, colour) in new[] { (-8f, new Color(0.96f, 0.78f, 0.6f)), (8f, new Color(0.7f, 0.82f, 0.95f)) })
+            {
+                var wall = DreamEscapeBuilder.Pastel("StreetHouse_" + Mathf.RoundToInt(x), colour, 0.04f);
+                DreamEscapeBuilder.Box("Neighbour's house", t, new Vector3(x, 2.4f, z0 - 1.5f), new Vector3(9f, 4.8f, 3f), wall);
+                DreamEscapeBuilder.GableOn(t, gable, new Vector3(x, 5.7f, z0 - 1.5f), new Vector3(9.6f, 1.8f, 3.2f), DreamEscapeBuilder.Pastel("HouseFrontRoof", new Color(0.93f, 0.52f, 0.5f), 0.05f, 0f, 1f));
+                foreach (float wx in new[] { -2.4f, 2.4f })
+                    DreamHouseRooms.Window(t, new Vector3(x + wx, 2.6f, z0 + 0.01f), Vector3.forward, 1.1f, 1.3f);
+            }
+            var post = DreamEscapeBuilder.Pastel("StreetLamp", new Color(0.36f, 0.32f, 0.46f), 0.02f);
+            DreamEscapeBuilder.Box("Lamp post", t, new Vector3(4f, 2f, z1 - 2.6f), new Vector3(0.14f, 4f, 0.14f), post);
+            DreamEscapeBuilder.Part("Lamp", PrimitiveType.Sphere, t, Vector3.zero, Vector3.one * 0.4f, DreamEscapeBuilder.Glow("StreetLampGlow", new Color(1f, 0.9f, 0.65f), 0.8f, 0f, 0.1f)).transform.position = new Vector3(4f, 4.1f, z1 - 2.6f);
+            // The loop, seen: the sprinkler on the neighbour's lawn, the ball (Night 1's, to the second).
+            DreamEscapeBuilder.Part("Sprinkler", PrimitiveType.Cylinder, t, Vector3.zero, new Vector3(0.2f, 0.1f, 0.2f), post).transform.position = new Vector3(-10.5f, 0.15f, z0 + 4.2f);
+            DreamEscapeBuilder.Part("Sprinkler spray", PrimitiveType.Sphere, t, Vector3.zero, new Vector3(1.6f, 0.6f, 1.6f), DreamEscapeBuilder.Glow("StreetSpray", new Color(0.7f, 0.85f, 1f), 0.4f, 0f, 0.5f)).transform.position = new Vector3(-10.5f, 0.5f, z0 + 4.2f);
+            DreamEscapeBuilder.Part("Ball", PrimitiveType.Sphere, t, Vector3.zero, Vector3.one * 0.32f, DreamEscapeBuilder.Pastel("StreetBall", new Color(0.95f, 0.45f, 0.4f), 0.02f)).transform.position = new Vector3(2.2f, 0.18f, z0 + 9f);
+            // The neighbour who knows her name now, and Walt at the garden's edge waving her up.
+            CutOut("A neighbour (Morning, Nadia!)", "dream_neighbour_roses", t, new Vector3(-7f, 0.08f, z0 + 2.2f), 1.75f);
+            CutOut("Walt (waving her up)", "dream_walt", t, new Vector3(3.2f, 0f, z1 + 1.2f), 1.85f);
         }
 
         /// <summary>A front door in the 3 m gap of a house-front wall centred on <paramref name="z"/> (decoration, no

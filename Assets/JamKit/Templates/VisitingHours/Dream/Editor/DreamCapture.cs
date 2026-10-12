@@ -54,6 +54,11 @@ namespace JamKit.DreamEscape.EditorTools
 
             var house = new List<Spot>
             {
+                // Night 2's re-plot: the street, the place card, the bad dream, Lena at the window.
+                new Spot("house-00-the-street", new Vector3(-3f, Eye, DreamHouse.StreetZ0 + 5f), new Vector3(1f, 2.2f, -12f)),
+                new Spot("house-04b-place-card", new Vector3(-0.7f, F + 1.25f, 75.7f), new Vector3(-2.12f, F + 0.86f, 75.7f)),
+                new Spot("house-11d-the-bad-dream", new Vector3(7.5f, F + 0.75f + Eye, 82.7f), new Vector3(7.72f, F + 2.0f, 81.95f)),
+                new Spot("house-17-lena-at-the-window", new Vector3(-1.5f, -5f + Eye, 325f), new Vector3(-4.2f, -5f + 1.55f, 319f)),
                 new Spot("house-01-front-garden-door", new Vector3(0f, Eye, -9f), new Vector3(0f, 1.6f, 0.5f)),
                 new Spot("house-02-hallway-from-door", new Vector3(0f, Eye, -1.5f), new Vector3(0f, 1.2f, 20f)),
                 // The house's rooms (the architecture pass, 2026-10-12).

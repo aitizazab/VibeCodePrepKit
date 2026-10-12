@@ -149,6 +149,32 @@ woman's; card 1.97 m) and Theo's at 1.20 m (a ten-year-old's; card 1.63 m). `Dre
   ochre, the window seat teal, rugs navy (kitchen), mustard (living room), teal (hall runner), cream (parents' room),
   the shower curtain off-white.
 
+**Night 2, as re-plotted (2026-10-12 night; docs/NIGHTS-1-2.md "Night 2"; the creator's writing outranks both).**
+In `DreamHouseGame`, `DreamHouseStory` and `DreamHouseLines`; every line here is a PLACEHOLDER except the creator's own
+(the last-memory line and Theo's question).
+1. **The street** (`StreetZ0`, the arrival checkpoint): "Morning, Nadia!" from a neighbour, the street replaying Night 1
+   (the same sprinkler, the same ball), Walt waving her up from the garden's edge; then the front garden.
+2. **The house misbehaving:** the hallway stretches as she enters (the movement intro: run the striped wall).
+3. **Pancakes:** she sits at the fourth chair, her place card in Theo's handwriting in front of it (`mem_fourth_chair`);
+   Lena: Elias will be down soon.
+4. **Hide-and-seek, five memories, the counter "Memories: 2 of 5":** the place card (`mem_fourth_chair`), the fridge
+   calendar ("Pancakes!" on every Sunday, stars on Lena's Thursdays, `mem_calendar`), Theo's drawing "THE BAD DREAM" on
+   top of his bookcase in his room (`mem_bad_dream`), the height marks stopping at ten (`mem_height_marks`), the photo wall
+   (`fact_photo`). All five found: the creator's line, ending by route (normal: "...but what does it matter, when he's
+   not even real?"; Despair: "...it would be nice to see his smile again.").
+5. **Theo's question** the first time he finds her: "Is Dad going to be sad?" (honest, comfort or say nothing; 1/2/3).
+   Kept in the save under `vh_theo_dad_sad`.
+6. **Elias never comes down;** Nadia asks Lena; the battle `lena_night2` starts with the evidence she found
+   (`DreamHouseGame.StartBattle(id, evidence, done)` is the argument's battle API's plug; until it's set, the battle
+   prototype runs as before, F7/F8 skip it).
+7. **The house tips** (4 checkpoints, about 15 s of running as built; the plan's "~75 s" would need a much longer
+   course: open), **the umbrella** at the front door, **Lena at the window** as she leaves.
+- **The Saturday deduction:** with Night 1's Saturday paper in the shared journal (`DreamJournal`, save entry
+  `vh_dream_journal`, id `mem_saturday_paper`: Night 1 adds it), the calendar becomes `ded_saturday_off` in the evidence.
+  Testing Night 2 alone: F6 in a debug build (or `DreamHouseGame.DebugSaturdayPaper`).
+- **Placeholder art** (`tools/art/vh_night2_props.py`): the place card, the Sunday-pancakes calendar, "THE BAD DREAM"
+  (drawn over Theo's family drawing; worth a proper drawing).
+
 ## Interior notes (art pass 5, 2026-10-12: a lived-in home)
 The creator: "it's not at all furnished... for the space Elias spent most of his life in, his memories of it are rather
 bland." The house is now decorated as a home (`Dream/Editor/House/DreamHouseDecor.cs`), decoration only: no colliders,

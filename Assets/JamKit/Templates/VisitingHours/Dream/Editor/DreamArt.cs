@@ -32,6 +32,9 @@ namespace JamKit.DreamEscape.EditorTools
         public const string PicPhoto = "dream_pic_photo_";
         public const string PicCalendar = "dream_pic_calendar";
         public const string PicTheoDrawing = "dream_pic_theo_drawing";
+        /// <summary>Night 2's re-plot (docs/NIGHTS-1-2.md; PLACEHOLDER art from tools/art/vh_night2_props.py): the calendar
+        /// with "Pancakes!" on every Sunday and stars on Lena's Thursdays, Theo's "THE BAD DREAM", Nadia's place card.</summary>
+        public const string PicCalendarN2 = "dream_pic_calendar_n2", PicBadDream = "dream_pic_bad_dream", PicPlaceCard = "dream_pic_place_card";
 
         public static string NameOf(DreamCast who)
         {
