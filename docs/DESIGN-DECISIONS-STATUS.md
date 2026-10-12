@@ -26,41 +26,41 @@ first three questions. The rest are numbered 4 to 51 here in the same order.
    You wrote "Start discussion on this immediately."
 2. **The setting** (not in DESIGN-DECISIONS; PROSE:51, PROSE:99): does one golden-hour Saturday street become dense
    enough for stealth, or does it link to a denser place? You asked for "some good answers". The deep-block greybox
-   (layout A) is built, but you haven't picked it.
+   (layout A) is built, but you haven't picked it. // I didn't like the deep-block setting that much, because it didn't reveal how large the setting was to the player, but it's the best of the proposed solution, unless you're willing to work vertically and set it on a hill.
 3. **Night 1's tutorial** (50; PROSE:104): you rejected Walt's tutorial "the way it's currently built". What teaches the
-   argument, and how does Night 1 end without the stage-strike exit?
+   argument, and how does Night 1 end without the stage-strike exit? // Night 1 needs a complete restructure after the purpose of each night is defined among the five.
 4. **What each night is about** (30), Night 3 above all: what the dream hospital is for (32), what the Doctor argues
-   and what wins it without the proxy form (51), and whether he's a second Elias (15).
+   and what wins it without the proxy form (51), and whether he's a second Elias (15). // Exaclty my questions. We need to talk on this as well, after the Night 4 truth.
 5. **Theo: in or out** (1, 24, 48): you consider cutting him, but you also endorsed his hide-and-seek on Night 2 and his
-   torch on Night 4. His blessing, his guide role and the "Tell" verb all hang on this.
+   torch on Night 4. His blessing, his guide role and the "Tell" verb all hang on this. // I think he may need to stay. Mark where this means his presence is affecting things that needs to be addressed. 
 6. **The Long Night's lock-in** (3): which curious choices count, how many lock the route, and how it can be aborted.
-   The umbrella is already one of them in the build.
-7. **The final arena** (31): is it the car, and if so, why are they back at the beginning?
+   The umbrella is already one of them in the build. // We'll do this when inspiration strikes me, or after the normal rotue is made in its entirety. 
+7. **The final arena** (31): is it the car, and if so, why are they back at the beginning? // beats me. 
 8. **Lena's Thursdays and the fridge keys** (20): with no studio, what did she say she was doing, and what do the keys
-   mean? The fridge calendar is already in the house art.
+   mean? The fridge calendar is already in the house art. // beats me. Does it matter within the scope of this game?
 9. **Night 2's argument** (22): does "He called you first" stay in it, and what exactly makes Lena open to giving her
-   blessing later?
+   blessing later? // I rewrote the script, so that might answer it, but to answer the second part, the argument on Night 2 is exactly what leads Lena to be able to change her mind if you play your cards right. 
 
 **Blocks the story and the endings**
 10. **Elias's guilt** (17): what he actually feels guilty about (you said being the driver doesn't matter), whether he
-    represses it or comes to it over the nights, and what releases each of the four holds.
-11. **Lena's truth** (2): what she gives up, when (a later battle, or the back seat), and in what words.
-12. **Morning, forced** (42): you want it redone. How does it play, and how does it end?
-13. **Morning, chosen** (43): beyond the stargazing, does "Where's Lena?" / "We don't know." stay, and what's the last image?
+    represses it or comes to it over the nights, and what releases each of the four holds. // Guilty for getting his wife and son killed in his mind.
+11. **Lena's truth** (2): what she gives up, when (a later battle, or the back seat), and in what words. // Does it need to be a physical object?
+12. **Morning, forced** (42): you want it redone. How does it play, and how does it end? // What do you mean? Did we not write words on this?
+13. **Morning, chosen** (43): beyond the stargazing, does "Where's Lena?" / "We don't know." stay, and what's the last image? // The stargazing is the last image.
 14. **Evening** (49): can Nadia choose it by not arguing ("Let it rest"), or is it only what happens when she fails to
-    convince him?
-15. **The Long Night's last image** (3): you asked for suggestions; the default is Nadia's exhausted face.
+    convince him? // Both.
+15. **The Long Night's last image** (3): you asked for suggestions; the default is Nadia's exhausted face. // Yeah?
 16. **The rest of the voicemail** (6): on which night, or in which ending, Nadia finally hears the apology, and what it
-    changes.
-17. **The unwelcome visitor on Day 2** (28): you like the idea, but not LeBaget's representative. Who is it?
-18. **Julian Cho's replacement** (26): what stands in for him as Mags's past.
+    changes. // I'm not sure if that fight's emotions are even lingering in her mind anymore, but if they are, then it would certainly be a pivtol moment, where her doubts about her brother are quashed.
+17. **The unwelcome visitor on Day 2** (28): you like the idea, but not LeBaget's representative. Who is it? // It can be LeBaget, but I'm open to other ideas.
+18. **Julian Cho's replacement** (26): what stands in for him as Mags's past. // Does this need to exist?
 19. **Rafael** (9, 27): he's now an intern. Is he still the other candidate for Nadia's job, and did Elias fund a post
-    for him?
-20. **The two sides on Route 9** (4): is Larpaca the gang, and does the news stop naming LeBaget?
-21. **The family money** (10): inherited or earned? This only matters if any clue about it stays in.
-22. **The hope** (39): waits on the Night 4 truth.
+    for him? // I'd thought 'he' was a 'she', but yeah, he works at the hospital now.
+20. **The two sides on Route 9** (4): is Larpaca the gang, and does the news stop naming LeBaget? // Yes.
+21. **The family money** (10): inherited or earned? This only matters if any clue about it stays in. // Doesn't matter/
+22. **The hope** (39): waits on the Night 4 truth. // What does this mean?
 
-**New questions your notes raised that DESIGN-DECISIONS doesn't list** (STORY-TALK has options for most of them)
+**New questions your notes raised that DESIGN-DECISIONS doesn't list** (STORY-TALK has options for most of them) // gonna do this tomorrow
 - Nadia's survivor's guilt, and what Lena did or was that makes it make sense (PROSE:37, PROSE:56).
 - The siblings' history with Lena (PROSE:58).
 - What earns Mags's trust, and what it unlocks (PROSE:174).

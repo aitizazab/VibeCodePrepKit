@@ -2,164 +2,166 @@
 # Indented lines starting with ? are notes (what the line must say); the game ignores them. \n is a line break.
 # The flow and every line in detail: docs/ARGUMENT-PROSE-BRIEF.md.
 
+// *<word>* is a bolded word. Some of the edits are made with comments, but that's not consistent, I just wanted to see the originals as well at first.
+
 ## The claim and the frame
 opponent: Lena
   ? who Nadia is arguing with
-claim: He stays. This is his home.
+claim: He stays. This is his home. // He *needs* me. He needs Theo.
   ? their position in one short line: the centre of the screen
-opening: Sit down, Nadia. Pancakes are nearly done. He stays. This is his home.
+opening: Sit down, Nadia. Pancakes are nearly done. He stays. This is his home. // Come on, Nadia. I know you loved this as much as he did.
   ? their first line as the battle starts, ending in the claim
-noTouchReply: That's not what I said. Listen to me.
+noTouchReply: That's not what I said. Listen to me. // Do you take me for a fool? Or do you just wish to mock me?
   ? when Nadia's evidence doesn't touch the premise: a redirect
-pressClaimLine: He is NOT staying.
+pressClaimLine: He is NOT staying. 
   ? Nadia forcing the claim itself
-pressClaimReply: ...Then take him. You always take everything.
+pressClaimReply: ...Take him, then. Felicity must mean nothing to you.
   ? their answer to being forced (it ends the battle)
-concedeClaimLine: ...Maybe he should stay.
+concedeClaimLine: ...Maybe he is happy, in a sense. But you know as much as I that it's not fully true.
   ? Nadia giving in on the claim
-concedeClaimReply: Thank you. Now eat something.
+concedeClaimReply: Even just one more day is enough. Now come on, I know you loved my pancakes.
   ? their answer (it ends the battle)
-letItRestLine: I hear you, Lena.
+letItRestLine: I hear you, Lena. If I'm being honest, I see your point of view.
   ? Nadia, once she's heard every premise: she stops fighting and hears them
-letItRestReply: ...You do, don't you. Here. Take this. Keep it for him.
+letItRestReply: ...Yeah. And I see yours. So take it. Something to help convince him, like you convinced me.
   ? their answer; they hand over their keepsake
-truthText: The Lena he remembers wouldn't let him hide. She'd want him to live, even without her.
+truthText: Lena wouldn't let him cower behind your likely death; even he knows that. You'd want him to push forward.
   ? the truth Nadia wins (Convinced): what she now understands, kept for later battles
 personalText: [keepsake: undecided]
   ? the keepsake Nadia gets (Heard out): names the object
-convincedReply: ...She'd hate this. Me, keeping him here. She'd hate it.
+convincedReply: ...I know. And I hate that.
   ? their line when convinced
-heardOutReply: I still think he's safer here. But I heard you.
+heardOutReply: I hear you. But I don't feel the same. 
   ? their line when heard out: not convinced, but respected
-pressedReply: ...You sound like the bad dream.
+pressedReply: ...Do you ever think about what it costs to be so stubborn?
   ? their line when Nadia won by force
-composureLostLine: I can't... I can't breathe in here.
+composureLostLine: I can't... I can't breathe- I need to get out-
   ? Nadia at 160 bpm: panic, she has to stop
 
 ## L1 (L1): a fact, TRUE
 L1.text: Out there, Theo is dead.
   ? the premise card: what they claim, in their words
-L1.askReply: You read the report. You know what happened to my boy.
+L1.askReply: You must have read the report. You saw what those monsters did to my dear Theo...
   ? their answer when Nadia asks why
-L1.concedeLine: ...Out there, Theo is gone.
+L1.concedeLine: ...I'll spare you the details. You're right.
   ? Nadia conceding it
 L1.concedeReply: Yes. So out there, there's nothing left for him.
   ? their answer to the concession (often states the next premise)
-L1.trueReply: Don't. Don't you dare tell me that isn't true.
+L1.trueReply: Don't. Don't you *dare* tell me I'm wrong.
   ? when Nadia tries to challenge something true: it's true, concede it
-L1.pressLine: Stop saying that!
+L1.pressLine: Stop saying that, it makes no sense!
   ? Nadia forcing it without a reason
-L1.pressReply: Saying it louder doesn't bring him back.
+L1.pressReply: ...You'll never change.
   ? their answer to being forced
 
 ## L1b (L1'): a link, FALSE, KEY, hidden at first
 L1b.text: So there's nothing left for him out there.
   ? the premise card: what they claim, in their words
-L1b.askReply: What's out there? An empty house and a hospital bed.
+L1b.askReply: What would be? His career is gone, his hands are beyond repair for a surgeon's duties. And I hope you're not mocking me by making me state the obvious.
   ? their answer when Nadia asks why
 L1b.concedeLine: ...Maybe there isn't.
   ? Nadia conceding it
-L1b.concedeFalseReply: Then we agree. There's nothing out there. He stays.
+L1b.concedeFalseReply: Then we agree. There's nothing worth him giving us up for.
   ? when Nadia agrees with something false
 L1b.pressLine: There's plenty left!
   ? Nadia forcing it without a reason
 L1b.pressReply: Name one thing. You can't.
   ? their answer to being forced
-L1b.sound: In here he still sets a place for someone. He sets it for me. There's someone out there.
+L1b.sound: There's a fourth seat at this table, you know. And I'm still out there.
   ? the reason that follows: the proof that breaks this premise
-L1b.sound.reply: ...He set it every Sunday for a year. You stopped coming.
+L1b.sound.reply: ...Where were you last Sunday, then? 
   ? their answer: concedes, falls back or digs deeper
 L1b.beside: Theo would want his dad to wake up.
   ? a reason that's true but beside the point
-L1b.beside.reply: Don't tell me what my son would want.
+L1b.beside.reply: So in tune with my own son's thoughts. Don't make me laugh.
   ? why it misses
 L1b.nonsequitur: He set a chair, so he's ready to leave.
   ? a reason that doesn't follow from the evidence
-L1b.nonsequitur.reply: Setting a table isn't packing a bag.
-  ? why it doesn't follow
+L1b.nonsequitur.reply: Setting a table isn't packing a bag... Are you feeling alright, Nadia? You're better at structuring your words than this.
+  ? why it doesn't follow // latter part of this line should be conditional on something else.
 L1b.antagonise: You're a dream. A dream doesn't get a say in his life.
   ? an antagonising card: dismisses them instead of answering (angers them)
-L1b.antagonise.reply: A dream. Is that all I am to you? Get out of my kitchen.
+L1b.antagonise.reply: Is that so? Or have you always disregarded my place in this family? Get out of my kitchen.
   ? their hurt, angry answer
 
 ## L1c (L1''): a fact, TRUE, hidden at first
-L1c.text: He set it every Sunday for a year. You stopped coming.
+L1c.text: ...Where were you last Sunday, then?
   ? the premise card: what they claim, in their words
-L1c.askReply: Every Sunday. Your chair. Empty.
+L1c.askReply: 
   ? their answer when Nadia asks why
-L1c.concedeLine: I did. I stopped coming.
+L1c.concedeLine: I wasn't here, and that's my fault.
   ? Nadia conceding it
-L1c.concedeReply: ...At least you admit it.
+L1c.concedeReply: ...I can forgive you for a day. But it hurt Elias too.
   ? their answer to the concession (often states the next premise)
-L1c.trueReply: You know it's true. Don't argue with me about it.
+L1c.trueReply: You know it's true. Don't argue with me about it. // Replace second line with "I don't need your silver tongue to say otherwise." when she's angry, or close to condemning Nadia.
   ? when Nadia tries to challenge something true: it's true, concede it
-L1c.pressLine: That isn't fair!
+L1c.pressLine: I wasn't here, and it's not your business to know why.
   ? Nadia forcing it without a reason
-L1c.pressReply: Fair? Your chair sat empty for a year.
+L1c.pressReply: ...Always so stubborn. Do you fear the consequences of your actions, Nadia?
   ? their answer to being forced
 
 ## L2 (L2): a fact, TRUE
-L2.text: You don't know where I am. Neither does he.
+L2.text: You don't know where I am. And the most likely answer is a ditch in the middle of the forest.
   ? the premise card: what they claim, in their words
-L2.question: Then tell me where I am, Nadia.
+L2.question: Then tell me I'm doing ju~st dandy. 
   ? a question they put to Nadia (a retort can dodge it)
-L2.askReply: Missing. That's the word they used. Missing.
+L2.askReply: Missing. That's the word they used, because they're cowards afraid to recognize the truth. But I suppose we're the same, in that way.
   ? their answer when Nadia asks why
-L2.concedeLine: No. I don't know where you are.
+L2.concedeLine: No. I don't know where you are, but we can find you, together-
   ? Nadia conceding it
-L2.concedeReply: So waking up means searching. Forever.
+L2.concedeReply: Find me? Where? Where will you search that the Police didn't? What do you base your confidence off of?
   ? their answer to the concession (often states the next premise)
-L2.trueReply: Then where am I? Go on.
+L2.trueReply: Then where am I? Go on. I grow tired of your flonudering, Nadia. You should know better.
   ? when Nadia tries to challenge something true: it's true, concede it
-L2.pressLine: Stop asking me that!
+L2.pressLine: I told you to stop spouting nonsense. Get it through your thick head. // tamer line used when less aggressive
   ? Nadia forcing it without a reason
-L2.pressReply: You can't answer it, so you shout.
+L2.pressReply: You scream, and you yell. Once more, you get what you want, but you're blind to see nothing really changes.
   ? their answer to being forced
-L2.retort: You don't get to ask me that. You're not real. Stop acting like you are.
-  ? Nadia's antagonising reply: dodges the question, attacks them (angers them)
-L2.retort.reply: Not real. Then whose kitchen is this? Whose pancakes are these? Say it to my face.
-  ? their angry answer
+L2.retort: You don't get to ask me that. You know we have to try, we owe it to the real Lena.
+  ? Nadia's antagonising reply: dodges the question, attacks them (angers them) // doesn't really, might need changing
+L2.retort.reply: The real Lena. Why risk his happiness to try finding a needle in a haystack?
+  ? their angry answer // same as above
 
 ## L2b (L2'): a link, HALF, can't be broken tonight, hidden at first
-L2b.text: So waking means searching forever.
+L2b.text: Waking means searching - forever.
   ? the premise card: what they claim, in their words
-L2b.askReply: Every night he'd go looking. Every night he wouldn't find me.
+L2b.askReply: Tireless, endless nights spent looking for what's most likely a decomposing corpse. It might even be better for him he never find me.
   ? their answer when Nadia asks why
-L2b.concedeLine: ...It might.
+L2b.concedeLine: ...I can't deny that.
   ? Nadia conceding it
-L2b.concedeReply: Then let him rest.
+L2b.concedeReply: Then let him rest. He deserves peace.
   ? their answer to the concession (often states the next premise)
-L2b.unbreakableReply: You can't promise him an ending. Nobody can. Not tonight.
+L2b.unbreakableReply: You can't promise him closure. Nobody can... and certainly not you.
   ? why it can't be broken tonight
-L2b.pressLine: He'll find you!
+L2b.pressLine: He'd find you!
   ? Nadia forcing it without a reason
-L2b.pressReply: You don't know that. Nobody does.
+L2b.pressReply: Naive, and I know you don't believe it either. Don't disrespect me again, Nadia.
   ? their answer to being forced
 
 ## L3 (L3): a link, HALF
-L3.text: He chose this. I know him.
+L3.text: He chose this dream. Six weeks, and he's happy here. I know he is.
   ? the premise card: what they claim, in their words
-L3.askReply: Twelve years. I know what he wants. This is the life he wanted.
+L3.askReply: We've been married twelve years, and I know this life he had... he wanted it with all his hearts.
   ? their answer when Nadia asks why
-L3.askAgainReply: ...You want to know what he dreams about? The bad dream. A woman in scrubs who comes to take us away.
+L3.askAgainReply: ...You want to know what he dreams about? The bad dream. A woman in scrubs who comes to take us away. // Needs changing. You've mentioned the 'Bad Dream' many times, usuallly with Theo or Lena as the messengers, but what does it mean? What does it represent?
   ? when asked a second time: what lies under it
-L3.concedeLine: You know him better than anyone.
+L3.concedeLine: You know him better than anyone. Even me.
   ? Nadia conceding it
-L3.concedeReply: I do. So trust me.
+L3.concedeReply: I do. So trust me, this is where he belongs.
   ? their answer to the concession (often states the next premise)
-L3.trueReply: You weren't there. I was.
+L3.trueReply: You can't know, Nadia. You haven't seen how he smiles when Theo smiles, his grin when I hand him his coffee. He's happy, and he won't be out there.
   ? when Nadia tries to challenge something true: it's true, concede it
-L3.pressLine: You don't know him!
+L3.pressLine: ...I'm disappointed in you, Nadia. Don't belittle my intelligence.
   ? Nadia forcing it without a reason
-L3.pressReply: Twelve years, Nadia. I know him.
+L3.pressReply: Force all you want, it doesn't change the facts. Do you really know what you're doing?
   ? their answer to being forced
 
 ## L3b (L3'): a link, FALSE, KEY, hidden at first
-L3b.text: This is the life he wanted.
+L3b.text: This is the life he wants. The life he has.
   ? the premise card: what they claim, in their words
-L3b.askReply: Pancakes. Sunday. All of us at the table. What else would he want?
+L3b.askReply: Pancakes. All of us. What else would he want?
   ? their answer when Nadia asks why
-L3b.concedeLine: ...Maybe this is what he wanted.
+L3b.concedeLine: ...It is.
   ? Nadia conceding it
 L3b.concedeFalseReply: Then we agree. Let him have it.
   ? when Nadia agrees with something false
@@ -167,17 +169,17 @@ L3b.pressLine: This isn't a life!
   ? Nadia forcing it without a reason
 L3b.pressReply: It's the only one he's got left.
   ? their answer to being forced
-L3b.sound: He worked that Saturday. This is the breakfast he never got to have. That's a regret, not a choice.
+L3b.sound: Sunday Pancakes. Except, it's not Sunday, is it? It's Saturday. This is the breakfast he chose to yield, because he knew what his job meant for the town.
   ? the reason that follows: the proof that breaks this premise
-L3b.sound.reply: ...A regret. Fine. Then let him have his wish.
+L3b.sound.reply: ...Fine. Then let him have his wish.
   ? their answer: concedes, falls back or digs deeper
 L3b.beside: He loved Saturdays with you.
   ? a reason that's true but beside the point
-L3b.beside.reply: Yes. That's my point.
+L3b.beside.reply: Yes. That's my point... Are you sure you're feeling Nadia? W-We don't need to continue if you're falling ill. // latter part exclusive to max despair counter, and low anger or 'force'.
   ? why it misses
 L3b.nonsequitur: He worked that day, so he never really wanted a family.
   ? a reason that doesn't follow from the evidence
-L3b.nonsequitur.reply: That's cruel, and it isn't even true.
+L3b.nonsequitur.reply: That's cruel, and false. Why would you even say that? (// max anger and 'force' pathing replaces the latter part of this line with "I should cut your tongue out for that.")
   ? why it doesn't follow
 
 ## L3c (L3''): a link, FALSE, KEY, hidden at first
@@ -193,9 +195,9 @@ L3c.pressLine: He can't have it!
   ? Nadia forcing it without a reason
 L3c.pressReply: You'd take that from him too?
   ? their answer to being forced
-L3c.sound: He's had this morning forty-two times, and Walt patches the same flat every one. A wish you have to repair every night isn't peace.
+L3c.sound: He's had this morning forty-two times, and Walt patches the same flat every one. A wish you have to repair every night isn't peace. // I understand so little of this that I can't even try to fix it. How does Walt come into this, patching what? Talk about this.
   ? the reason that follows: the proof that breaks this premise
-L3c.sound.reply: ...Forty-two. I thought it was the first time. Every time.
+L3c.sound.reply: ...Forty-two. Has it really been that many days? ...He deserves so much more.
   ? their answer: concedes, falls back or digs deeper
 L3c.beside: Walt misses him too.
   ? a reason that's true but beside the point
@@ -203,32 +205,32 @@ L3c.beside.reply: Everyone misses him. That's why he should stay.
   ? why it misses
 L3c.nonsequitur: Walt said so, so it's true.
   ? a reason that doesn't follow from the evidence
-L3c.nonsequitur.reply: Walt says a lot of things.
+L3c.nonsequitur.reply: Walt believes we should extract cheese out of the moon. He's no apostle of truth.
   ? why it doesn't follow
 
 ## L4 (L4): a fact, TRUE, hidden at first, painful
-L4.text: You're not here for him. He called you first. You didn't pick up. So he called me.
+L4.text: Why come for him now? You didn't pick him up then.
   ? the premise card: what they claim, in their words
-L4.question: Why didn't you pick up, Nadia?
+L4.question: Why didn't you pick the call up, Nadia?
   ? a question they put to Nadia (a retort can dodge it)
-L4.askReply: Three rings. Then he called me. And I went out in the rain.
+L4.askReply: Why does it matter? Don't make me laugh.
   ? their answer when Nadia asks why
-L4.concedeLine: ...I know. I didn't pick up.
+L4.concedeLine: ...I know. And I regret every part of it.
   ? Nadia conceding it
-L4.concedeReply: ...Thank you for saying it.
+L4.concedeReply: ...Thank you for saying it. // if low anger and not despair; "And you should know I'd forgive you for any role you think you played in this."
   ? their answer to the concession (often states the next premise)
-L4.trueReply: Check your phone. It's all there.
+L4.trueReply: Why lie straight to my face? You know it wouldn't work.
   ? when Nadia tries to challenge something true: it's true, concede it
-L4.pressLine: That's not why I'm here!
+L4.pressLine: That's not the case. You're wrong, and I won't hear anymore of it.
   ? Nadia forcing it without a reason
-L4.pressReply: Then why are you shaking?
+L4.pressReply: Rules for thee, but not for me, hmm? 
   ? their answer to being forced
 L4.retort: Stop pretending you're her. You're a dream wearing her face.
   ? Nadia's antagonising reply: dodges the question, attacks them (angers them)
-L4.retort.reply: Then why are you shaking? Get out. Get out of my house.
+L4.retort.reply: That may even be true, but I'm still more real than you are. I know what motivates me; do you?
   ? their angry answer
 
-## L5 (L5): a link, HALF, hidden at first
+## L5 (L5): a link, HALF, hidden at first // Discuss this entire block in chat.
 L5.text: To him, you're the bad dream: the woman in scrubs who takes people away.
   ? the premise card: what they claim, in their words
 L5.askReply: He drew you. Theo drew you, from what his dad said in his sleep.
@@ -246,7 +248,7 @@ L5.pressReply: That's exactly what she says in the drawing.
 L5.slipName: a paper plane: THE BAD DREAM
   ? the slip as it flies in the pressure phase
 
-## The evidence cards
+## The evidence cards // need to be updates according to how everythign else changed.
 mem_fourth_chair.name: the fourth chair
   ? the card's name, as it reads in a sentence ("the fourth chair")
 mem_fourth_chair.note: A place set for someone who isn't here.
