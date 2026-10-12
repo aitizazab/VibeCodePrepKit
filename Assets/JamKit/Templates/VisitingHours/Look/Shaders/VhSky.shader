@@ -21,6 +21,7 @@ Shader "JamKit/Look/Sky"
         _Saturation ("Saturation", Range(0, 2)) = 1.05
         _WarmSide ("Warm lift on the sun's side", Color) = (1.06, 0.99, 0.92, 1)
         _WarmFocus ("Warm lift focus", Range(0.5, 16)) = 4
+        _SunSideDim ("Sun-side sky dimming (pass 3: lets the lit clouds read)", Range(0.5, 1)) = 1
         _HorizonColor ("Horizon haze colour (when the atmosphere sets none)", Color) = (1.05, 0.9, 0.78, 1)
         _HorizonHaze ("Horizon haze amount", Range(0, 1)) = 0.22
         _HorizonHeight ("Horizon haze height (sin el)", Range(0.005, 0.3)) = 0.035
@@ -57,6 +58,7 @@ Shader "JamKit/Look/Sky"
             float _Saturation;
             float4 _WarmSide;
             float _WarmFocus;
+            float _SunSideDim;
             float4 _HorizonColor;
             float _HorizonHaze;
             float _HorizonHeight;
@@ -161,6 +163,9 @@ Shader "JamKit/Look/Sky"
                 float side = pow(saturate(dot(dh, sh) * 0.5 + 0.5), _WarmFocus);
                 float low = 1.0 - saturate(d.y * 1.6);
                 col *= lerp(float3(1, 1, 1), _WarmSide.rgb, side * low);
+                // Pass 3 (round 2: "a cream wash", no lit clouds sunward): the HDRI's bright haze round the low sun is dimmed
+                // on the sun's side, so less of it crosses the bloom threshold and the gold-rimmed clouds stand out of it.
+                col *= lerp(1.0, _SunSideDim, side * (1.0 - saturate(d.y * 2.5)));
 
                 // Horizon haze band in the atmosphere's haze colours (far hills fade into exactly this), and below the horizon
                 // a soft ground fade.

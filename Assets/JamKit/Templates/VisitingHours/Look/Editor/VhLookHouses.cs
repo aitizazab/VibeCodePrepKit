@@ -47,6 +47,10 @@ namespace JamKit.Look.EditorTools
             public float roofRise = 3.3f, overhang = 0.45f, roofThickness = 0.2f;
             public Material siding, gable, trim, roof, door, foundation;
             public bool porch = true, chimney = true, shutters;
+            /// <summary>Pass 3 (round 2: "every house faces the same way; identical rows"): the gable end faces the street,
+            /// with the door, the porch and the front windows on it (the ridge runs back from the street). The caller's
+            /// corner, yaw, width (frontage) and depth mean the same as for a side-gabled house.</summary>
+            public bool gableFront;
             public Color shutterColor = new Color(0.2f, 0.28f, 0.24f);
             /// <summary>Openings per wall (u along the wall from its left end seen from outside, v up from the floor). Null =
             /// laid out automatically (bays on the front, two windows a floor on the sides).</summary>
@@ -54,6 +58,9 @@ namespace JamKit.Look.EditorTools
             public int seed = 1;
 
             public float WallHeight => storeys * storeyHeight;
+
+            /// <summary>A shallow copy (the builder's own frame for a gable-front house).</summary>
+            public Spec MemberwiseCloneSpec() => (Spec)MemberwiseClone();
 
             public static Spec Clapboard(Color paint, int seed = 1)
             {
@@ -95,6 +102,14 @@ namespace JamKit.Look.EditorTools
                 s.chimney = R() < 0.6f;
                 s.shutters = s.siding != null && s.siding.name.Contains("Clapboard") && R() < 0.5f;
                 s.shutterColor = ShutterColors[rng.Next(ShutterColors.Length)];
+                // A third of them gable-front (narrower and deeper, steeper roofs): the street isn't one row of the same box.
+                if (R() < 0.34f)
+                {
+                    s.gableFront = true;
+                    s.width = Mathf.Round(Mathf.Lerp(7.5f, 9.5f, R()) * 2f) / 2f;
+                    s.depth = Mathf.Round(Mathf.Lerp(10f, 13f, R()) * 2f) / 2f;
+                    s.roofRise = s.width * Mathf.Lerp(0.38f, 0.5f, R());
+                }
                 return s;
             }
         }
@@ -119,21 +134,39 @@ namespace JamKit.Look.EditorTools
             var root = new GameObject(name ?? ("House (" + (lod == Lod.Full ? "full" : "far") + ")"));
             if (parent != null) root.transform.SetParent(parent, false);
             var rot = Quaternion.Euler(0f, yaw, 0f);
+            // A gable-front house is built side-gabled in its own frame (W along the ridge = the caller's depth, D = the
+            // frontage), turned so its right wall (a gable end) faces the street: frame +x = the street direction (-z of
+            // the caller's frame), and its right wall's u = 0 end sits on the caller's front-left corner.
+            var b0 = s;
+            if (s.gableFront)
+            {
+                b0 = (Spec)s.MemberwiseCloneSpec();
+                b0.width = s.depth;
+                b0.depth = s.width;
+                rot = rot * Quaternion.Euler(0f, 90f, 0f);
+            }
+            var origin = s.gableFront ? corner - rot * new Vector3(b0.width, 0f, 0f) : corner;
             // Ground under the footprint (corners and middle).
             float gMin = float.MaxValue, gMax = float.MinValue;
             for (int i = 0; i <= 2; i++)
                 for (int k = 0; k <= 2; k++)
                 {
-                    var p = corner + rot * new Vector3(s.width * i * 0.5f, 0f, s.depth * k * 0.5f);
+                    var p = origin + rot * new Vector3(b0.width * i * 0.5f, 0f, b0.depth * k * 0.5f);
                     float g = ground != null ? ground(p.x, p.z) : corner.y;
                     gMin = Mathf.Min(gMin, g); gMax = Mathf.Max(gMax, g);
                 }
             float floorY = gMax + (lod == Lod.Full ? 0.7f : 0.45f);
-            root.transform.position = new Vector3(corner.x, floorY, corner.z);
+            root.transform.position = new Vector3(origin.x, floorY, origin.z);
             root.transform.rotation = rot;
-            var b = new Builder(root.transform, s, lod, gMin - 0.3f - floorY, gMax - floorY);
+            // The ground's height in the house frame at a house-frame (x, z).
+            Func<float, float, float> local = (x, z) =>
+            {
+                var w = root.transform.TransformPoint(new Vector3(x, 0f, z));
+                return (ground != null ? ground(w.x, w.z) : corner.y) - floorY;
+            };
+            var b = new Builder(root.transform, b0, lod, gMin - 0.3f - floorY, gMax - floorY, gMin - floorY, local);
             b.BuildAll();
-            if (lod == Lod.Far) MergeByMaterial(root, s);
+            if (lod == Lod.Far) MergeByMaterial(root, b0);
             return root;
         }
 
@@ -146,22 +179,27 @@ namespace JamKit.Look.EditorTools
             readonly Lod lod;
             readonly float footY;   // the foundation's bottom, in the house frame (negative)
             readonly float groundTop;   // the highest ground under the house, in the house frame (negative)
+            readonly float groundLow;   // the lowest ground under the house, in the house frame (negative)
+            readonly Func<float, float, float> groundAt;   // the ground's height in the house frame at (x, z)
             readonly List<GameObject> framed = new List<GameObject>();
-            readonly Material glass, dark, curtain, interior, gutter, brass;
+            readonly Material glass, sheer, dark, curtain, interior, gutter, brass;
             readonly System.Random rng;
             float W => s.width;
             float D => s.depth;
             float H => s.WallHeight;
             const float Th = 0.22f;
 
-            public Builder(Transform root, Spec s, Lod lod, float footY, float groundTop)
+            public Builder(Transform root, Spec s, Lod lod, float footY, float groundTop, float groundLow, Func<float, float, float> groundAt)
             {
                 this.root = root; this.s = s; this.lod = lod; this.footY = footY; this.groundTop = groundTop;
+                this.groundLow = groundLow; this.groundAt = groundAt;
                 rng = new System.Random(s.seed * 31 + 7);
                 glass = VhLookLibrary.Glass();
+                sheer = VhLookLibrary.Sheer();
                 dark = VhLookLibrary.Paint("WindowDark", new Color(0.11f, 0.1f, 0.09f), 1.9f);
                 curtain = VhLookLibrary.Tinted("Plaster_Interior", "Curtain", new Color(0.95f, 0.86f, 0.74f));
-                interior = VhLookLibrary.Tinted("Plaster_Interior", "WarmRoom", new Color(0.98f, 0.9f, 0.78f));
+                // Pass 3 (round 2: "brown blocks" in the windows): a dimmer, less orange room behind a sheer curtain.
+                interior = VhLookLibrary.Tinted("Plaster_Interior", "SoftRoom", new Color(0.78f, 0.74f, 0.68f));
                 gutter = VhLookLibrary.Paint("GutterWhite", new Color(0.92f, 0.92f, 0.9f), 1.5f);
                 brass = VhLookLibrary.Paint("Brass", new Color(0.85f, 0.65f, 0.3f), 1.6f);
             }
@@ -169,13 +207,30 @@ namespace JamKit.Look.EditorTools
             public void BuildAll()
             {
                 bool full = lod == Lod.Full;
-                Box("Foundation", new Vector3(-0.06f, footY, -0.06f), new Vector3(W + 0.06f, 0f, D + 0.06f), s.foundation, 0.03f, true);
-                var front = s.front ?? AutoFront();
+                // The foundation (pass 3; round 2: "stone foundations a third of the wall high"): concrete shows at most
+                // ~0.35 m above the lowest ground; on a slope the walls carry on down to there in their own siding (a
+                // walk-out basement), instead of a tall concrete plinth all round.
+                float skirtBottom = Mathf.Min(-0.3f, groundLow + 0.35f);
+                Box("Foundation", new Vector3(-0.06f, footY, -0.06f), new Vector3(W + 0.06f, skirtBottom + 0.02f, D + 0.06f), s.foundation, 0.03f, true);
+                if (skirtBottom < -0.05f)
+                    framed.Add(Box("Basement wall", new Vector3(-0.03f, skirtBottom, -0.03f), new Vector3(W + 0.03f, 0.001f, D + 0.03f), s.siding, 0.004f, true));
                 var side = AutoSide();
+                List<Opening> front, right;
+                if (s.gableFront)
+                {
+                    // The street-facing gable end is the right wall: door and windows there; the long front wall gets side windows.
+                    front = s.front ?? AutoLong(W);
+                    right = s.right ?? AutoGableFront(D - 2f * Th);
+                }
+                else
+                {
+                    front = s.front ?? AutoFront();
+                    right = s.right ?? side;
+                }
                 // Walls: front (faces -z), right (faces +x), back (faces +z), left (faces -x). Origins at each wall's left end
                 // seen from outside; "inward" into the house.
                 Wall("Wall front", new Vector3(0f, 0f, 0f), Vector3.forward, W, front);
-                Wall("Wall right", new Vector3(W, 0f, Th), Vector3.left, D - 2f * Th, s.right ?? side);
+                Wall("Wall right", new Vector3(W, 0f, Th), Vector3.left, D - 2f * Th, right);
                 Wall("Wall back", new Vector3(W, 0f, D), Vector3.back, W, s.back ?? AutoBack());
                 Wall("Wall left", new Vector3(0f, 0f, D - Th), Vector3.right, D - 2f * Th, s.left ?? side);
                 if (full) Interior(front);
@@ -192,9 +247,62 @@ namespace JamKit.Look.EditorTools
                 Box("Frieze right", new Vector3(W - 0.02f, H - 0.2f, 0f), new Vector3(W + 0.05f, H, D), s.trim, 0.01f, false);
                 Roof();
                 if (s.chimney) Chimney();
-                Porch(front);
-                // Siding and brick: one continuous layout over every piece of every wall and the gables.
-                foreach (var go in framed) FrameUVs(go, root);
+                if (s.gableFront) Porch(right, WallFrame("Porch frame (gable end)", new Vector3(W, 0f, Th), Vector3.left));
+                else Porch(front, null);
+                // Siding and brick: one continuous layout over every piece of every wall and the gables. Painted clapboard
+                // at full detail is also cut into its courses, each shifted along the wall (round 2: "vertical siding
+                // joints line up": the texture's one butt joint ran up every course at the same place).
+                bool clap = s.siding != null && s.siding.name.Contains("Clapboard");
+                foreach (var go in framed)
+                {
+                    if (clap && full) SplitCourses(go, root, CourseHeight, CoursePhase, s.seed);
+                    else FrameUVs(go, root);
+                }
+            }
+
+            /// <summary>A child frame on a wall: its origin at the wall's u = 0 end, local x along the wall, -z outward.</summary>
+            Transform WallFrame(string name, Vector3 origin, Vector3 inward)
+            {
+                var t = new GameObject(name).transform;
+                t.SetParent(root, false);
+                t.localPosition = origin;
+                t.localRotation = Quaternion.LookRotation(inward, Vector3.up);
+                return t;
+            }
+
+            /// <summary>The street gable end of a gable-front house: the door off-centre, a window beside it, the upper
+            /// floor's windows centred.</summary>
+            List<Opening> AutoGableFront(float len)
+            {
+                var list = new List<Opening>();
+                bool doorLeft = (s.seed & 1) == 0;
+                float dc = doorLeft ? len * 0.3f : len * 0.7f, wc = doorLeft ? len * 0.72f : len * 0.28f;
+                list.Add(new Opening(dc - 0.5f, 0f, dc + 0.5f, 2.2f, true));
+                list.Add(new Opening(wc - 0.65f, 0.95f, wc + 0.65f, Mathf.Min(2.55f, s.storeyHeight - 0.3f)));
+                for (int f = 1; f < s.storeys; f++)
+                {
+                    float y0 = f * s.storeyHeight;
+                    foreach (var c in new[] { len * 0.32f, len * 0.68f })
+                        list.Add(new Opening(c - 0.55f, y0 + 0.95f, c + 0.55f, y0 + Mathf.Min(2.45f, s.storeyHeight - 0.3f)));
+                }
+                return list;
+            }
+
+            /// <summary>A long side wall: a window every ~3.5 m on each floor.</summary>
+            List<Opening> AutoLong(float len)
+            {
+                var list = new List<Opening>();
+                int n = Mathf.Max(2, Mathf.FloorToInt(len / 3.5f));
+                for (int f = 0; f < s.storeys; f++)
+                {
+                    float y0 = f * s.storeyHeight;
+                    for (int i = 0; i < n; i++)
+                    {
+                        float c = (i + 0.5f) * len / n;
+                        list.Add(new Opening(c - 0.6f, y0 + 1.0f, c + 0.6f, y0 + Mathf.Min(2.5f, s.storeyHeight - 0.3f)));
+                    }
+                }
+                return list;
             }
 
             // ---------- Openings ----------
@@ -332,6 +440,8 @@ namespace JamKit.Look.EditorTools
                 WallBox("Reveal top", wall, origin, rot, o.u0, o.u1, o.v1 - 0.02f, o.v1, 0f, Th, s.trim, 0.002f, false);
                 WallBox("Reveal bottom", wall, origin, rot, o.u0, o.u1, o.v0, o.v0 + 0.02f, 0f, Th, s.trim, 0.002f, false);
                 WallBox("Glass", wall, origin, rot, o.u0, o.u1, o.v0, o.v1, 0.11f, 0.12f, glass, 0.001f, false);
+                // A sheer curtain on the lower sash: the room reads as a soft warm glow, not as blocks.
+                WallBox("Sheer", wall, origin, rot, o.u0 + 0.02f, o.u1 - 0.02f, o.v0 + 0.04f, vc + 0.02f, 0.16f, 0.165f, sheer, 0.001f, false);
                 WallBox("Meeting rail", wall, origin, rot, o.u0, o.u1, vc - 0.03f, vc + 0.03f, 0.07f, 0.11f, s.trim, 0.005f, false);
                 WallBox("Muntin v", wall, origin, rot, uc - 0.015f, uc + 0.015f, o.v0, o.v1, 0.085f, 0.11f, s.trim, 0.004f, false);
                 for (int m = 1; m <= 2; m++)
@@ -443,8 +553,9 @@ namespace JamKit.Look.EditorTools
                     float wallZ = sz < 0 ? -0.1f : D + 0.1f;
                     float zOut = (z0 + z1) * 0.5f;
                     Box("Downspout elbow", new Vector3(dx, H - t - 0.24f, Mathf.Min(zOut, wallZ) - 0.04f), new Vector3(dx + 0.08f, H - t - 0.14f, Mathf.Max(zOut, wallZ) + 0.04f), gutter, 0.02f, false);
-                    Box("Downspout", new Vector3(dx, groundTop + 0.14f, wallZ - 0.04f), new Vector3(dx + 0.08f, H - t - 0.16f, wallZ + 0.04f), gutter, 0.02f, false);
-                    Box("Downspout shoe", new Vector3(dx, groundTop + 0.06f, wallZ + (sz < 0 ? -0.36f : -0.04f)), new Vector3(dx + 0.08f, groundTop + 0.16f, wallZ + (sz < 0 ? 0.04f : 0.36f)), gutter, 0.02f, false);
+                    float gd = groundAt != null ? groundAt(dx, wallZ) : groundTop;
+                    Box("Downspout", new Vector3(dx, gd + 0.14f, wallZ - 0.04f), new Vector3(dx + 0.08f, H - t - 0.16f, wallZ + 0.04f), gutter, 0.02f, false);
+                    Box("Downspout shoe", new Vector3(dx, gd + 0.06f, wallZ + (sz < 0 ? -0.36f : -0.04f)), new Vector3(dx + 0.08f, gd + 0.16f, wallZ + (sz < 0 ? 0.04f : 0.36f)), gutter, 0.02f, false);
                 }
             }
 
@@ -461,48 +572,69 @@ namespace JamKit.Look.EditorTools
                 Box("Flashing", new Vector3(cx - 0.55f, roofY - 0.1f, cz - 0.5f), new Vector3(cx + 0.55f, roofY + 0.08f, cz + 0.5f), VhLookLibrary.Get("Galvanized_Corrugated"), 0.005f, false);
             }
 
-            void Porch(List<Opening> front)
+            /// <summary>
+            /// The porch (or a stoop) at the door of a wall: <paramref name="frame"/> is the wall's frame (null = the front
+            /// wall: x along it, -z outward). Pass 3 (round 2: "a floating porch frame: posts and rail, no deck, no ground"): the
+            /// skirt and the steps go down to the real ground in front of the door (pass 2 stopped them at the highest
+            /// ground under the house, so a porch on the downhill side hung in the air), and the posts stand on the deck.
+            /// </summary>
+            void Porch(List<Opening> openings, Transform frame)
             {
                 Opening door = default;
                 bool found = false;
-                foreach (var o in front) if (o.door) { door = o; found = true; break; }
+                foreach (var o in openings) if (o.door) { door = o; found = true; break; }
                 if (!found) return;
                 bool full = lod == Lod.Full;
-                float riseToDoor = -groundTop;
-                int steps = Mathf.Max(1, Mathf.RoundToInt(riseToDoor / 0.18f) - 1);
-                float stepH = riseToDoor / (steps + 1);
+                var f = frame != null ? frame : root;
+                // The ground in this wall's frame (frame-local x, z -> house-frame height).
+                float G(float x, float z)
+                {
+                    var h = root.InverseTransformPoint(f.TransformPoint(new Vector3(x, 0f, z)));
+                    return groundAt != null ? groundAt(h.x, h.z) : groundTop;
+                }
+                GameObject B(string n, Vector3 min, Vector3 max, Material m, float bevel, bool col) => Box(n, min, max, m, bevel, col, f);
                 if (!s.porch)
                 {
-                    // A concrete stoop and steps up to the door.
-                    Box("Stoop", new Vector3(door.u0 - 0.35f, groundTop - 0.05f, -1.1f), new Vector3(door.u1 + 0.35f, 0f, 0f), s.foundation, 0.02f, true);
-                    for (int st = 0; st < steps; st++)
-                        Box("Step " + (st + 1), new Vector3(door.u0 - 0.2f, groundTop - 0.05f, -1.1f - 0.3f * (st + 1)), new Vector3(door.u1 + 0.2f, -stepH * (st + 1), -1.1f - 0.3f * st), s.foundation, 0.02f, true);
+                    // A concrete stoop and steps down to the ground in front of it.
+                    float gS = Mathf.Min(G(door.u0, -1.1f), G(door.u1, -1.1f), G((door.u0 + door.u1) * 0.5f, -0.3f));
+                    float rise = Mathf.Max(0.15f, -gS);
+                    int n = Mathf.Max(1, Mathf.RoundToInt(rise / 0.18f) - 1);
+                    float sh = rise / (n + 1);
+                    B("Stoop", new Vector3(door.u0 - 0.35f, gS - 0.15f, -1.1f), new Vector3(door.u1 + 0.35f, 0f, 0f), s.foundation, 0.02f, true);
+                    for (int st = 0; st < n; st++)
+                        B("Step " + (st + 1), new Vector3(door.u0 - 0.2f, gS - 0.15f, -1.1f - 0.3f * (st + 1)), new Vector3(door.u1 + 0.2f, -sh * (st + 1), -1.1f - 0.3f * st), s.foundation, 0.02f, true);
                     return;
                 }
                 var deck = VhLookLibrary.Get("Deck_Planks");
                 float px0 = door.u0 - 1.3f, px1 = door.u1 + 1.3f, pz0 = -2.4f;
-                Box("Porch deck", new Vector3(px0, -0.12f, pz0), new Vector3(px1, 0f, 0f), deck, 0.02f, true);
-                Box("Porch skirt", new Vector3(px0 + 0.05f, groundTop - 0.05f, pz0 + 0.05f), new Vector3(px1 - 0.05f, -0.12f, 0f), s.trim, 0.01f, false);
+                float gDeck = Mathf.Min(Mathf.Min(G(px0, pz0), G(px1, pz0)), Mathf.Min(G(px0, -0.1f), G(px1, -0.1f)));
+                float stairZ = pz0 - 0.32f;
+                float gStair = Mathf.Min(G(door.u0, stairZ), G(door.u1, stairZ));
+                float riseToDoor = Mathf.Max(0.2f, -gStair);
+                int steps = Mathf.Max(1, Mathf.RoundToInt(riseToDoor / 0.18f) - 1);
+                float stepH = riseToDoor / (steps + 1);
+                B("Porch deck", new Vector3(px0, -0.12f, pz0), new Vector3(px1, 0f, 0f), deck, 0.02f, true);
+                B("Porch skirt", new Vector3(px0 + 0.05f, gDeck - 0.2f, pz0 + 0.05f), new Vector3(px1 - 0.05f, -0.12f, 0f), s.trim, 0.01f, false);
                 for (int st = 0; st < steps; st++)
                 {
                     float top = -stepH * (st + 1);
-                    Box("Step " + (st + 1), new Vector3(door.u0 - 0.4f, groundTop - 0.05f, pz0 - 0.32f * (st + 1)), new Vector3(door.u1 + 0.4f, top, pz0 - 0.32f * st), s.foundation, 0.02f, true);
+                    B("Step " + (st + 1), new Vector3(door.u0 - 0.4f, gStair - 0.2f, pz0 - 0.32f * (st + 1)), new Vector3(door.u1 + 0.4f, top, pz0 - 0.32f * st), s.foundation, 0.02f, true);
                 }
                 foreach (var postX in new[] { px0 + 0.1f, px1 - 0.1f })
-                    Box("Porch post", new Vector3(postX - 0.08f, 0f, pz0 + 0.02f), new Vector3(postX + 0.08f, 2.7f, pz0 + 0.18f), s.trim, 0.02f, full);
-                Box("Porch beam", new Vector3(px0, 2.7f, pz0), new Vector3(px1, 2.9f, pz0 + 0.2f), s.trim, 0.015f, false);
+                    B("Porch post", new Vector3(postX - 0.08f, 0f, pz0 + 0.02f), new Vector3(postX + 0.08f, 2.7f, pz0 + 0.18f), s.trim, 0.02f, full);
+                B("Porch beam", new Vector3(px0, 2.7f, pz0), new Vector3(px1, 2.9f, pz0 + 0.2f), s.trim, 0.015f, false);
                 var pr = GableSlab((px1 - px0) * 0.5f + 0.25f, 1.45f, 0.6f, 0.12f);
                 var prg = new GameObject("Porch roof");
-                prg.transform.SetParent(root, false);
+                prg.transform.SetParent(f, false);
                 prg.transform.localPosition = new Vector3((px0 + px1) * 0.5f, 2.9f, -1.2f);
                 prg.AddComponent<MeshFilter>().sharedMesh = pr;
                 prg.AddComponent<MeshRenderer>().sharedMaterials = new[] { s.roof, s.trim };
                 if (!full) return;
                 foreach (var rx in new[] { (px0, door.u0 - 0.4f), (door.u1 + 0.4f, px1) })
                 {
-                    Box("Rail", new Vector3(rx.Item1, 0.85f, pz0 + 0.05f), new Vector3(rx.Item2, 0.92f, pz0 + 0.12f), s.trim, 0.01f, false);
+                    B("Rail", new Vector3(rx.Item1, 0.85f, pz0 + 0.05f), new Vector3(rx.Item2, 0.92f, pz0 + 0.12f), s.trim, 0.01f, false);
                     for (float bx = rx.Item1 + 0.1f; bx < rx.Item2 - 0.05f; bx += 0.14f)
-                        Box("Baluster", new Vector3(bx - 0.02f, 0f, pz0 + 0.065f), new Vector3(bx + 0.02f, 0.85f, pz0 + 0.105f), s.trim, 0.004f, false);
+                        B("Baluster", new Vector3(bx - 0.02f, 0f, pz0 + 0.065f), new Vector3(bx + 0.02f, 0.85f, pz0 + 0.105f), s.trim, 0.004f, false);
                 }
             }
 
@@ -648,6 +780,95 @@ namespace JamKit.Look.EditorTools
             }
             mesh.uv = uvs;
             mesh.RecalculateTangents();
+        }
+
+        /// <summary>Clapboard (Clapboard_Painted, 2 m a repeat): 16 courses a repeat, the first lap line 0.115 m up.</summary>
+        public const float CourseHeight = 0.125f, CoursePhase = 0.115f;
+
+        /// <summary>
+        /// Rewrites a siding piece's mesh in the house's frame, cut into horizontal bands one course high, each band's u
+        /// shifted by its own amount (the same for that course all round the house, so the pieces of a wall still meet), so
+        /// the texture's butt joints are staggered course by course instead of lining up. Up/down faces get plan UVs, as
+        /// <see cref="FrameUVs"/> gives them.
+        /// </summary>
+        public static void SplitCourses(GameObject go, Transform frame, float courseH, float phase, int seed)
+        {
+            var mf = go.GetComponent<MeshFilter>();
+            if (mf == null || mf.sharedMesh == null) return;
+            var src = mf.sharedMesh;
+            var t = go.transform;
+            var sv = src.vertices; var sn = src.normals; var st = src.triangles;
+            var pv = new Vector3[sv.Length]; var pn = new Vector3[sv.Length];
+            for (int i = 0; i < sv.Length; i++)
+            {
+                pv[i] = frame.InverseTransformPoint(t.TransformPoint(sv[i]));
+                pn[i] = frame.InverseTransformDirection(t.TransformDirection(sn[i])).normalized;
+            }
+            var ov = new List<Vector3>(); var on = new List<Vector3>(); var ouv = new List<Vector2>(); var ot = new List<int>();
+            var poly = new List<Vector3>(8); var polyN = new List<Vector3>(8);
+            var tmp = new List<Vector3>(8); var tmpN = new List<Vector3>(8);
+            float Shift(int k) => Mathf.Repeat(Mathf.Sin(k * 78.233f + seed * 12.9898f) * 43758.5453f, 1f) * 2f;
+            Vector2 Uv(Vector3 p, Vector3 n, float shift)
+            {
+                var an = new Vector3(Mathf.Abs(n.x), Mathf.Abs(n.y), Mathf.Abs(n.z));
+                if (an.y >= an.x && an.y >= an.z) return new Vector2(p.x, p.z);
+                if (an.x >= an.z) return new Vector2(p.z + shift, p.y);
+                return new Vector2(p.x + shift, p.y);
+            }
+            void Emit(List<Vector3> ps, List<Vector3> ns, float shift)
+            {
+                if (ps.Count < 3) return;
+                int b = ov.Count;
+                for (int i = 0; i < ps.Count; i++)
+                {
+                    ov.Add(t.InverseTransformPoint(frame.TransformPoint(ps[i])));
+                    on.Add(t.InverseTransformDirection(frame.TransformDirection(ns[i])).normalized);
+                    ouv.Add(Uv(ps[i], ns[i], shift));
+                }
+                for (int i = 1; i < ps.Count - 1; i++) { ot.Add(b); ot.Add(b + i); ot.Add(b + i + 1); }
+            }
+            // Keeps the part of a polygon on one side of the plane y = h (above if keepAbove).
+            void Clip(List<Vector3> ps, List<Vector3> ns, float h, bool keepAbove, List<Vector3> outP, List<Vector3> outN)
+            {
+                outP.Clear(); outN.Clear();
+                for (int i = 0; i < ps.Count; i++)
+                {
+                    var a = ps[i]; var b = ps[(i + 1) % ps.Count];
+                    bool ina = keepAbove ? a.y >= h : a.y <= h, inb = keepAbove ? b.y >= h : b.y <= h;
+                    if (ina) { outP.Add(a); outN.Add(ns[i]); }
+                    if (ina != inb)
+                    {
+                        float k = (h - a.y) / (b.y - a.y);
+                        outP.Add(Vector3.Lerp(a, b, k));
+                        outN.Add(Vector3.Lerp(ns[i], ns[(i + 1) % ps.Count], k).normalized);
+                    }
+                }
+            }
+            for (int i = 0; i < st.Length; i += 3)
+            {
+                int a = st[i], b = st[i + 1], c = st[i + 2];
+                var fn = (pn[a] + pn[b] + pn[c]).normalized;
+                poly.Clear(); polyN.Clear();
+                poly.Add(pv[a]); poly.Add(pv[b]); poly.Add(pv[c]);
+                polyN.Add(pn[a]); polyN.Add(pn[b]); polyN.Add(pn[c]);
+                if (Mathf.Abs(fn.y) > 0.5f) { Emit(poly, polyN, 0f); continue; }
+                float y0 = Mathf.Min(pv[a].y, Mathf.Min(pv[b].y, pv[c].y)), y1 = Mathf.Max(pv[a].y, Mathf.Max(pv[b].y, pv[c].y));
+                int k0 = Mathf.FloorToInt((y0 - phase) / courseH), k1 = Mathf.FloorToInt((y1 - phase) / courseH);
+                if (k1 - k0 > 400) { Emit(poly, polyN, 0f); continue; }
+                for (int k = k0; k <= k1; k++)
+                {
+                    float lo = phase + k * courseH, hi = lo + courseH;
+                    Clip(poly, polyN, lo, true, tmp, tmpN);
+                    var bandP = new List<Vector3>(tmp); var bandN = new List<Vector3>(tmpN);
+                    Clip(bandP, bandN, hi, false, tmp, tmpN);
+                    Emit(tmp, tmpN, Shift(k));
+                }
+            }
+            var mesh = new Mesh { name = src.name + " (courses)" };
+            if (ov.Count > 65000) mesh.indexFormat = IndexFormat.UInt32;
+            mesh.SetVertices(ov); mesh.SetNormals(on); mesh.SetUVs(0, ouv); mesh.SetTriangles(ot, 0);
+            mesh.RecalculateTangents(); mesh.RecalculateBounds();
+            mf.sharedMesh = mesh;
         }
 
         static void Invert(Mesh m)

@@ -1,8 +1,8 @@
 // Visiting Hours' atmosphere pass (VhAtmosphereFeature + the VhAtmosphere volume override): height/distance haze and
 // screen-space sun shafts. URP-standard HLSL: Core.hlsl, core's Blit.hlsl (fullscreen triangle, _BlitTexture) and
 // DeclareDepthTexture.hlsl.
-//   Pass 0  shaft mask (half res): bright sky pixels near the sun.
-//   Pass 1  radial blur towards the sun (run twice: long step, then short).
+//   Pass 0  shaft mask (quarter res, pass 3: the Perf agent's list): bright sky pixels near the sun.
+//   Pass 1  radial blur towards the sun, 8 taps (run twice: long step, then short).
 //   Pass 2  composite (full res): haze on geometry (never on the sky), plus the shafts.
 // Texture coordinates follow Unity's render-texture layout (v = 0 at the image's bottom), which is also the viewport's, so
 // the sun's viewport position from the camera can be compared with them directly.
@@ -61,7 +61,7 @@ Shader "JamKit/Look/Atmosphere"
 
         half4 FragBlur(Varyings i) : SV_Target
         {
-            const int N = 12;
+            const int N = 8;
             float2 uv = i.texcoord;
             float2 stepv = (_VhSunScreen.xy - uv) * _VhShaftParams.z * _VhBlurStep / N;
             float3 acc = 0;
@@ -71,7 +71,7 @@ Shader "JamKit/Look/Atmosphere"
             {
                 acc += SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv + stepv * k, 0).rgb * wt;
                 w += wt;
-                wt *= 0.9;
+                wt *= 0.86;
             }
             return half4(acc / w, 1.0);
         }

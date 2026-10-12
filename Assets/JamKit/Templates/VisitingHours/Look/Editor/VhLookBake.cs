@@ -205,12 +205,11 @@ namespace JamKit.Look.EditorTools
             var data = AssetDatabase.LoadAssetAtPath<LensFlareDataSRP>(FlarePath);
             bool fresh = data == null;
             if (fresh) data = ScriptableObject.CreateInstance<LensFlareDataSRP>();
-            // Rebuilt every time, so a tuned value reaches an existing asset. Pass 2: brighter (none showed in round 1:
-            // the sun sat behind a crown and the test was a point), a wider warm glow that spills round foliage.
+            // Rebuilt every time, so a tuned value reaches an existing asset. Pass 3 (round 2: "a giant soft orange flare
+            // disc over the road"): the wide warm-glow element is gone, the glow round the sun is tighter and fainter.
             var list = new List<LensFlareDataElementSRP>
             {
-                Element(SRPLensFlareType.Circle, 0f, 0.7f, new Color(1f, 0.74f, 0.44f), 0.42f, 1f),         // glow round the sun
-                Element(SRPLensFlareType.Circle, 0f, 2.2f, new Color(1f, 0.7f, 0.42f), 0.08f, 1.6f),        // a wide soft bloom
+                Element(SRPLensFlareType.Circle, 0f, 0.5f, new Color(1f, 0.78f, 0.5f), 0.3f, 1.2f),         // glow round the sun
                 Element(SRPLensFlareType.Ring, 0f, 1.0f, new Color(1f, 0.85f, 0.65f), 0.07f, 0.6f),         // a faint halo ring
                 Element(SRPLensFlareType.Polygon, 0.45f, 0.08f, new Color(0.9f, 0.75f, 0.45f), 0.12f, 0.3f), // ghosts on the axis
                 Element(SRPLensFlareType.Circle, 0.8f, 0.13f, new Color(0.55f, 0.75f, 0.9f), 0.08f, 0.2f),

@@ -163,5 +163,85 @@ Shader "JamKit/Dream/Pastel"
             }
             ENDHLSL
         }
+
+        // Depth passes (the Look agent, pass 3, from the Perf agent's list): without them these surfaces were missing from
+        // URP's depth texture, so the haze and SSAO treated them as sky, and depth priming couldn't be turned on.
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            ZWrite On
+            ColorMask R
+            HLSLPROGRAM
+            #pragma vertex DepthVert
+            #pragma fragment DepthFrag
+            #pragma multi_compile_instancing
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            CBUFFER_START(UnityPerMaterial)
+                half4 _Color;
+                half4 _ShadeColor;
+                half4 _OutlineColor;
+                float _OutlineWidth;
+                half _Crayon;
+                half _Emission;
+                float4 _SunDir;
+                half4 _VoidColor;
+                float _Shape;
+                float4 _MainTex_ST;
+                float _TexScale;
+                float _TexMean;
+                half _TexStrength;
+            CBUFFER_END
+            struct DepthAttributes { float4 positionOS : POSITION; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct DepthVaryings { float4 positionCS : SV_POSITION; };
+            DepthVaryings DepthVert(DepthAttributes v)
+            {
+                DepthVaryings o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                o.positionCS = TransformObjectToHClip(v.positionOS.xyz);
+                return o;
+            }
+            half DepthFrag(DepthVaryings i) : SV_Target { return i.positionCS.z; }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            ZWrite On
+            HLSLPROGRAM
+            #pragma vertex NormalsVert
+            #pragma fragment NormalsFrag
+            #pragma multi_compile_instancing
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            CBUFFER_START(UnityPerMaterial)
+                half4 _Color;
+                half4 _ShadeColor;
+                half4 _OutlineColor;
+                float _OutlineWidth;
+                half _Crayon;
+                half _Emission;
+                float4 _SunDir;
+                half4 _VoidColor;
+                float _Shape;
+                float4 _MainTex_ST;
+                float _TexScale;
+                float _TexMean;
+                half _TexStrength;
+            CBUFFER_END
+            struct NormalsAttributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct NormalsVaryings { float4 positionCS : SV_POSITION; float3 normalWS : TEXCOORD0; };
+            NormalsVaryings NormalsVert(NormalsAttributes v)
+            {
+                NormalsVaryings o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                o.positionCS = TransformObjectToHClip(v.positionOS.xyz);
+                o.normalWS = TransformObjectToWorldNormal(v.normalOS);
+                return o;
+            }
+            half4 NormalsFrag(NormalsVaryings i) : SV_Target { return half4(NormalizeNormalPerPixel(i.normalWS), 0.0); }
+            ENDHLSL
+        }
     }
 }

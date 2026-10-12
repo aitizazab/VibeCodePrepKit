@@ -71,3 +71,20 @@ normal maps and the macro variation.
   rescaled terrain layer: the repeat-breaker; used as `Grass_DirtMix__DryGold` and `Grass_Lawn__Clover`).
 - **Builders**: `VhLookTrees` (species and LODs), `VhLookHouses` (full / far houses), `VhLookGround` (terrain, tufts,
   litter, stains, storm drains), `VhLookBackdrop` (the terrain ring). See look.md for the calls.
+
+## Pass 3 changes (2026-10-12, after judge round 2)
+
+- **Palette** (checked by `tools/look/palette-check.py` against the targets in look.md, "The palette"): every painted atlas
+  is late summer. `VH_LeafClusters` is now four dense leaf CLUMPS (maple/elm, oak, birch, shrub/hedge; ~45% opaque, was
+  33%), deep and olive greens, a yellow-green rim, ~4% yellowed leaves; `VH_GrassCards` cell 1 is green with dry gold
+  tips (no all-straw tufts); `VH_GroundDecals` stains fade to zero inside their cells; `VH_TreeBillboards` repainted to
+  match; `VH_FarFields` is a 2048 px, 2400 m patchwork of fields with hedgerows and woods (`VH_FarFields.json` holds the
+  same layout as data for the backdrop's 3D hedgerows and woods); new `VH_BirchBark` (chalk-white birch bark).
+- **Catalogue tints and smoothness**: `Grass_Lawn` tint (0.62, 0.95, 1.0) and smoothness x0.07, `Grass_DirtMix` x0.09,
+  `Dirt` x0.5 (matte ground: round 2's "lake" was the lawn mask's 0.73 smoothness x0.6); `Concrete_*` (0.97, 0.97, 0.97),
+  `Asphalt` / `Road_LaneLine` (0.92, 0.92, 0.92) (neutral greys).
+- **Materials**: `BirchBark()` (Lit, the birch texture over the bark normal map), `Sheer()` (a net curtain behind the lower
+  sash), `Glass()` darker and more opaque, `Stains()` fixed (specular no longer preserved under alpha, no environment
+  reflections: the hard pale rectangles), `FarFields()` / `FarCanopy()` / `FarRoad()` on the new `JamKit/Look/FarLand`
+  shader (vertex colour, a near colour for the ring's inner edge). The foliage materials get green tints, a yellow-green
+  translucency and a slightly cool `_LightTint` on the direct sun.

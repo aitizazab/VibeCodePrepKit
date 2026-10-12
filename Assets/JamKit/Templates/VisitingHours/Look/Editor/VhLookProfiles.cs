@@ -85,11 +85,14 @@ namespace JamKit.Look.EditorTools
             smh.highlights.Override(Tone(1.05f, 1.0f, 0.93f, 0.02f));
 
             var bloom = Comp<Bloom>(p);
-            bloom.threshold.Override(0.9f);
-            bloom.intensity.Override(1.0f);
-            bloom.scatter.Override(0.68f);
-            bloom.tint.Override(new Color(1f, 0.9f, 0.78f));
-            bloom.highQualityFiltering.Override(true);
+            // Pass 3: less bloom (round 2's cream wash sunward), no HQ filtering and a quarter-resolution start (the Perf
+            // agent's list: 0.2-0.5 ms).
+            bloom.threshold.Override(1.0f);
+            bloom.intensity.Override(0.7f);
+            bloom.scatter.Override(0.62f);
+            bloom.tint.Override(new Color(1f, 0.92f, 0.82f));
+            bloom.highQualityFiltering.Override(false);
+            bloom.downscale.Override(BloomDownscaleMode.Quarter);
 
             var vig = Comp<Vignette>(p);
             vig.intensity.Override(0.22f);
@@ -103,20 +106,23 @@ namespace JamKit.Look.EditorTools
 
             var atmo = Comp<VhAtmosphere>(p);
             VhLookSky.HazeColors(sky, out var away, out var towards);
-            atmo.hazeDensity.Override(0.0032f);
+            // Pass 3 (round 2: "near ground washed, far hills sharp: backwards"): the near haze halved and starting later, the
+            // far haze carrying the distance, so far is always paler than near, the ring included. (Round 2's captures also
+            // had no haze on distant geometry at all: see VhAtmosphereFeature's depth binding.)
+            atmo.hazeDensity.Override(0.0016f);
             atmo.hazeBaseHeight.Override(0f);
-            atmo.hazeHeightFalloff.Override(0.022f);
-            atmo.hazeStart.Override(14f);
+            atmo.hazeHeightFalloff.Override(0.02f);
+            atmo.hazeStart.Override(25f);
             atmo.hazeColor.Override(away);
             atmo.hazeSunColor.Override(towards);
             atmo.hazeSunFocus.Override(5f);
-            atmo.hazeMaxOpacity.Override(0.82f);
+            atmo.hazeMaxOpacity.Override(0.6f);
             // Far haze (round 1: "the far hill is as sharp and saturated as the near"): grows with distance from 150 m.
-            atmo.farHazeDensity.Override(0.0042f);
-            atmo.farHazeStart.Override(150f);
-            atmo.farHazeHeightFalloff.Override(0.0028f);
-            atmo.farHazeMaxOpacity.Override(0.97f);
-            atmo.shaftIntensity.Override(0.8f);
+            atmo.farHazeDensity.Override(0.0034f);
+            atmo.farHazeStart.Override(120f);
+            atmo.farHazeHeightFalloff.Override(0.0024f);
+            atmo.farHazeMaxOpacity.Override(0.95f);
+            atmo.shaftIntensity.Override(0.6f);
             atmo.shaftTint.Override(new Color(1f, 0.8f, 0.55f));
             atmo.shaftThreshold.Override(1.1f);
             atmo.shaftLength.Override(0.75f);
@@ -147,7 +153,8 @@ namespace JamKit.Look.EditorTools
             bloom.intensity.Override(0.8f);
             bloom.scatter.Override(0.75f);
             bloom.tint.Override(new Color(1f, 0.88f, 0.74f));
-            bloom.highQualityFiltering.Override(true);
+            bloom.highQualityFiltering.Override(false);
+            bloom.downscale.Override(BloomDownscaleMode.Quarter);
             var vig = Comp<Vignette>(p);
             vig.intensity.Override(0.28f);
             vig.smoothness.Override(0.5f);
@@ -182,7 +189,8 @@ namespace JamKit.Look.EditorTools
             bloom.threshold.Override(1.15f);
             bloom.intensity.Override(0.4f);
             bloom.scatter.Override(0.65f);
-            bloom.highQualityFiltering.Override(true);
+            bloom.highQualityFiltering.Override(false);
+            bloom.downscale.Override(BloomDownscaleMode.Quarter);
             var vig = Comp<Vignette>(p);
             vig.intensity.Override(0.18f);
             vig.smoothness.Override(0.4f);

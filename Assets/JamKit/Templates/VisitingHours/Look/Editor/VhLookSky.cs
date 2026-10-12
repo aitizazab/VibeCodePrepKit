@@ -110,19 +110,22 @@ namespace JamKit.Look.EditorTools
             // Pass 2 (round 1: the sun's side was "a flat cream wash", no disc, no glow): a lighter warm lift and a narrower
             // horizon band so the HDRI's gold-lit clouds and rays show, a brighter disc with a tight glow that blooms round
             // foliage. Set here (not only as shader defaults) so existing materials pick them up.
-            m.SetColor("_WarmSide", new Color(1.06f, 0.99f, 0.92f, 1f));
+            m.SetColor("_WarmSide", new Color(1.03f, 1.0f, 0.97f, 1f));
             m.SetFloat("_WarmFocus", 4f);
-            m.SetFloat("_HorizonHaze", 0.22f);
-            m.SetFloat("_HorizonHeight", 0.035f);
-            m.SetFloat("_Saturation", 1.08f);
-            m.SetColor("_SunDiscColor", new Color(1f, 0.82f, 0.55f, 1f));
-            m.SetFloat("_SunDiscIntensity", 110f);
-            m.SetFloat("_SunDiscSize", 0.6f);
-            m.SetColor("_SunGlowColor", new Color(1f, 0.74f, 0.44f, 1f));
-            m.SetFloat("_SunGlow", 2.8f);
-            m.SetFloat("_SunGlowFalloff", 320f);
-            m.SetFloat("_SunHalo", 0.18f);
-            m.SetFloat("_SunHaloFalloff", 12f);
+            // Pass 3 (round 2: no sun disc, a cream wash, the clouds sunward lost): the sun side dimmed 18%, a thinner
+            // horizon band, a brighter, crisper disc, a tight glow and almost no wide halo (the wash), richer colour.
+            m.SetFloat("_SunSideDim", 0.82f);
+            m.SetFloat("_HorizonHaze", 0.16f);
+            m.SetFloat("_HorizonHeight", 0.03f);
+            m.SetFloat("_Saturation", 1.12f);
+            m.SetColor("_SunDiscColor", new Color(1f, 0.86f, 0.62f, 1f));
+            m.SetFloat("_SunDiscIntensity", 160f);
+            m.SetFloat("_SunDiscSize", 0.55f);
+            m.SetColor("_SunGlowColor", new Color(1f, 0.76f, 0.46f, 1f));
+            m.SetFloat("_SunGlow", 2.2f);
+            m.SetFloat("_SunGlowFalloff", 420f);
+            m.SetFloat("_SunHalo", 0.07f);
+            m.SetFloat("_SunHaloFalloff", 14f);
             if (fresh) { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
             EditorUtility.SetDirty(m);
             return m;
@@ -135,8 +138,9 @@ namespace JamKit.Look.EditorTools
             float lum = s.skyAverage.r * 0.2126f + s.skyAverage.g * 0.7152f + s.skyAverage.b * 0.0722f;
             float exposure = Mathf.Clamp(0.94f / Mathf.Max(lum, 1e-3f), 0.5f, 4f);
             // Away from the sun the horizon band is cooler than the average horizon: mix it towards the low sky's blue.
-            away = Color.Lerp(s.horizon, s.skyAverage, 0.45f) * exposure * 0.9f;
-            towards = s.sunSideHorizon * exposure * 0.8f;
+            // Pass 3: a little bluer away from the sun (aerial perspective reads cool), the sunward colour a touch dimmer.
+            away = Color.Lerp(s.horizon, s.skyAverage, 0.6f) * exposure * 0.86f;
+            towards = s.sunSideHorizon * exposure * 0.72f;
         }
     }
 }

@@ -57,9 +57,10 @@ namespace JamKit.Look.EditorTools
             var layers = new[]
             {
                 VhLookLibrary.GetTerrainLayer("Grass_Lawn"),
-                VhLookLibrary.TerrainLayerVariant("Grass_DirtMix", "DryGold", new Color(1.12f, 1.0f, 0.72f), 3.3f),
+                // Pass 3: matte (round 2's lake), and late-summer colours (tools/look/palette-check.py).
+                VhLookLibrary.TerrainLayerVariant("Grass_DirtMix", "DryGold", new Color(1.0f, 0.98f, 0.84f), 3.3f, 0.09f),
                 VhLookLibrary.GetTerrainLayer("Dirt"),
-                VhLookLibrary.TerrainLayerVariant("Grass_Lawn", "Clover", new Color(0.84f, 0.94f, 0.76f), 3.7f),
+                VhLookLibrary.TerrainLayerVariant("Grass_Lawn", "Clover", new Color(0.9f, 0.95f, 0.85f), 3.7f, 0.07f),
             };
             td.terrainLayers = layers;
             td.alphamapResolution = o.alphamapResolution;
@@ -142,7 +143,7 @@ namespace JamKit.Look.EditorTools
 
             /// <summary>One tuft: two crossed cards, base at (x, ground, z), leaning <paramref name="lean"/> (metres at the top,
             /// world xz) — the overhang over a paving edge.</summary>
-            public void Add(float x, float z, Tuft kind, float height, Vector2 lean = default, float yBias = 0f)
+            public void Add(float x, float z, Tuft kind, float height, Vector2 lean = default, float yBias = 0f, Color? groupTint = null)
             {
                 float y = (ground != null ? ground(x, z) : 0f) + yBias - 0.03f;
                 long key = ((long)Mathf.FloorToInt(x / Chunk) << 32) ^ (uint)Mathf.FloorToInt(z / Chunk);
@@ -152,8 +153,9 @@ namespace JamKit.Look.EditorTools
                 int cell = (int)kind;
                 var uv0 = new Vector2((cell % 2) * 0.5f, (cell / 2) * 0.5f);
                 bool flip = R() < 0.5f;
-                float shade = Mathf.Lerp(0.85f, 1.08f, R());
-                var tint = new Color(shade * Mathf.Lerp(0.97f, 1.04f, R()), shade, shade * Mathf.Lerp(0.92f, 1f, R()), 1f);
+                float shade = Mathf.Lerp(0.82f, 1.1f, R());
+                var g = groupTint ?? Color.white;
+                var tint = new Color(shade * Mathf.Lerp(0.95f, 1.03f, R()) * g.r, shade * g.g, shade * Mathf.Lerp(0.92f, 1.02f, R()) * g.b, 1f);
                 for (int k = 0; k < 2; k++)
                 {
                     float a = yaw + k * Mathf.PI * 0.5f;
@@ -179,39 +181,81 @@ namespace JamKit.Look.EditorTools
                 count++;
             }
 
-            /// <summary>Drifts of tufts over a rectangle: <paramref name="density"/> per m², clumped by noise; mostly green,
-            /// some dry, weeds, and wildflowers in a few patches. <paramref name="allowed"/> filters spots (paving, beds).</summary>
+            /// <summary>
+            /// Drifts of tufts over a rectangle (pass 3; round 2: "identical stickers dotted evenly like confetti"): drift
+            /// centres where a ~6 m noise is high, each drift a dense core of tufts thinning out with distance (a gaussian),
+            /// its own size, height and tint, so a lawn reads as patches of longer grass with open mown ground between; about
+            /// one tuft in ten is a lone clump. <paramref name="density"/> is the average per m² over the whole rectangle;
+            /// <paramref name="allowed"/> filters spots (paving, beds). Mostly green, some with dry gold tips, weeds, and
+            /// wildflowers in a few drifts.
+            /// </summary>
             public void Scatter(Rect area, float density, Func<float, float, bool> allowed = null, float flowerShare = 0.08f, float dryShare = 0.2f)
             {
                 int n = Mathf.RoundToInt(area.width * area.height * density);
+                if (n <= 0) return;
                 float s = R() * 100f;
-                for (int i = 0; i < n * 3 && n > 0; i++)
+                int lone = n / 10, placed = 0, tries = 0;
+                while (placed < n - lone && tries++ < n * 4)
+                {
+                    float cx = Mathf.Lerp(area.xMin, area.xMax, R()), cz = Mathf.Lerp(area.yMin, area.yMax, R());
+                    float patch = Mathf.PerlinNoise(cx * 0.16f + s, cz * 0.16f - s);
+                    if (R() > patch * patch * 2.4f) continue;
+                    if (allowed != null && !allowed(cx, cz)) continue;
+                    // One drift: 6-26 tufts within ~0.6-2.2 m, taller and denser in the middle.
+                    float radius = Mathf.Lerp(0.6f, 2.2f, R());
+                    int count = Mathf.Min(n - lone - placed, 6 + (int)(R() * 20f));
+                    float tall = Mathf.Lerp(0.85f, 1.25f, R());
+                    float k0 = R();
+                    var driftKind = k0 < flowerShare * 2.5f ? Tuft.Flowers : k0 < flowerShare * 2.5f + dryShare ? Tuft.Dry : Tuft.Green;
+                    var driftTint = new Color(Mathf.Lerp(0.92f, 1.06f, R()), Mathf.Lerp(0.94f, 1.06f, R()), Mathf.Lerp(0.9f, 1.04f, R()), 1f);
+                    for (int i = 0; i < count; i++)
+                    {
+                        float a = R() * Mathf.PI * 2f, r = radius * Mathf.Sqrt(-2f * Mathf.Log(Mathf.Max(1e-3f, R()))) * 0.5f;
+                        if (r > radius * 1.4f) continue;
+                        float x = cx + Mathf.Cos(a) * r, z = cz + Mathf.Sin(a) * r;
+                        if (allowed != null && !allowed(x, z)) continue;
+                        float core = 1f - Mathf.Clamp01(r / (radius * 1.4f));
+                        float k = R();
+                        var kind = k < 0.55f ? driftKind : k < 0.75f ? Tuft.Weeds : k < 0.9f ? Tuft.Green : Tuft.Dry;
+                        if (kind == Tuft.Flowers && R() < 0.5f) kind = Tuft.Green;
+                        Add(x, z, kind, Mathf.Lerp(0.16f, 0.48f, R() * 0.5f + core * 0.5f) * tall, default, 0f, driftTint);
+                        placed++;
+                    }
+                }
+                for (int i = 0; i < lone; i++)
                 {
                     float x = Mathf.Lerp(area.xMin, area.xMax, R()), z = Mathf.Lerp(area.yMin, area.yMax, R());
-                    float clump = Mathf.PerlinNoise(x * 0.18f + s, z * 0.18f - s);
-                    if (R() > clump * clump * 2.2f) continue;
                     if (allowed != null && !allowed(x, z)) continue;
-                    float k = R();
-                    var kind = k < flowerShare * Mathf.Clamp01(clump * 1.6f) ? Tuft.Flowers : k < flowerShare + dryShare ? Tuft.Dry : k < flowerShare + dryShare + 0.2f ? Tuft.Weeds : Tuft.Green;
-                    Add(x, z, kind, Mathf.Lerp(0.22f, 0.5f, R()));
-                    if (--n <= 0) break;
+                    Add(x, z, R() < 0.6f ? Tuft.Green : Tuft.Weeds, Mathf.Lerp(0.14f, 0.3f, R()));
                 }
             }
 
             /// <summary>Grass along a paving edge from a to b (world xz), on the side <paramref name="outward"/> points to (the
-            /// lawn), leaning over the edge: the lawn's overhang. Every ~<paramref name="spacing"/> m.</summary>
+            /// lawn), leaning over the edge: the lawn's overhang. Pass 3 (round 2: "a picket line along the kerb"): in runs of
+            /// 0.5-3 m with gaps between them, heights rising and falling along a run, tufts at irregular spacing and distance
+            /// from the edge; <paramref name="spacing"/> is the average spacing inside a run.</summary>
             public void Edge(Vector2 a, Vector2 b, Vector2 outward, float spacing = 0.32f, float flowerShare = 0.05f, float yBias = 0f)
             {
                 float len = Vector2.Distance(a, b);
-                int n = Mathf.Max(1, Mathf.RoundToInt(len / spacing));
+                if (len < 0.05f) return;
                 outward = outward.normalized;
-                for (int i = 0; i < n; i++)
+                var dir = (b - a) / len;
+                float t = R() * 1.5f;
+                while (t < len)
                 {
-                    var p = Vector2.Lerp(a, b, (i + R()) / n) + outward * Mathf.Lerp(0.02f, 0.22f, R());
-                    float k = R();
-                    var kind = k < flowerShare ? Tuft.Flowers : k < flowerShare + 0.25f ? Tuft.Weeds : k < flowerShare + 0.38f ? Tuft.Dry : Tuft.Green;
-                    var lean = -outward * Mathf.Lerp(0.04f, 0.16f, R());
-                    Add(p.x, p.y, kind, Mathf.Lerp(0.18f, 0.42f, R()), lean, yBias);
+                    float run = Mathf.Lerp(0.5f, 3f, R() * R() + 0.15f);
+                    float tall = Mathf.Lerp(0.7f, 1.3f, R());
+                    var runTint = new Color(Mathf.Lerp(0.93f, 1.05f, R()), Mathf.Lerp(0.95f, 1.05f, R()), Mathf.Lerp(0.9f, 1.03f, R()), 1f);
+                    for (float u = 0f; u < run && t + u < len; u += spacing * Mathf.Lerp(0.4f, 1.6f, R()))
+                    {
+                        float bell = Mathf.Sin(Mathf.Clamp01(u / run) * Mathf.PI);
+                        var p = a + dir * (t + u) + outward * Mathf.Lerp(0.02f, 0.3f, R() * R());
+                        float k = R();
+                        var kind = k < flowerShare ? Tuft.Flowers : k < flowerShare + 0.22f ? Tuft.Weeds : k < flowerShare + 0.4f ? Tuft.Dry : Tuft.Green;
+                        var lean = -outward * Mathf.Lerp(0.03f, 0.16f, R()) + dir * Mathf.Lerp(-0.05f, 0.05f, R());
+                        Add(p.x, p.y, kind, Mathf.Lerp(0.12f, 0.4f, 0.35f + 0.65f * bell * R()) * tall, lean, yBias, runTint);
+                    }
+                    t += run + Mathf.Lerp(0.3f, 2.5f, R());
                 }
             }
 

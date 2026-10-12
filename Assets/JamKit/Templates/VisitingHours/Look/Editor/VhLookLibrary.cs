@@ -33,8 +33,12 @@ namespace JamKit.Look.EditorTools
         public const string DecalAtlasPath = LookRoot + "Textures/VH_GroundDecals.png";
         /// <summary>Whole-tree silhouettes for the trees' impostor LOD: 0 maple, 1 oak, 2 birch, 3 elm.</summary>
         public const string TreeBillboardAtlasPath = LookRoot + "Textures/VH_TreeBillboards.png";
-        /// <summary>Patchy far fields for the distant terrain ring (VhLookBackdrop).</summary>
+        /// <summary>The distant ring's patchwork of fields, hedgerows and woods (VhLookBackdrop), 2400 m a repeat.</summary>
         public const string FarFieldsPath = LookRoot + "Textures/VH_FarFields.png";
+        /// <summary>The same patchwork as data: hedgerow segments and wood rectangles in metres of the 2400 m tile.</summary>
+        public const string FarFieldsLayoutPath = LookRoot + "Textures/VH_FarFields.json";
+        /// <summary>Chalk-white birch bark (pass 3: pass 2's brown bark x2.3 read as "bright yellow sticks").</summary>
+        public const string BirchBarkPath = LookRoot + "Textures/VH_BirchBark.png";
 
         public struct Entry
         {
@@ -63,13 +67,15 @@ namespace JamKit.Look.EditorTools
         /// <summary>The catalogue (keep docs/redesign/look-library.md in step).</summary>
         public static readonly Entry[] Catalogue =
         {
-            new Entry("Asphalt", 4f, "Roads and driveways: worn asphalt with hairline cracks.", C(0.92f, 0.9f, 0.88f), 1f, 0.9f),
-            new Entry("Road_LaneLine", 4f, "A road lane with worn white dashed centre line (run the dashes along V).", C(0.92f, 0.9f, 0.88f), 1f, 0.9f),
-            new Entry("Concrete_Sidewalk", 3f, "Sidewalks and paths: square slabs with joints.", C(1f, 0.97f, 0.93f), 1f, 0.8f),
-            new Entry("Concrete_Kerb", 2f, "Kerbs, steps, retaining-wall caps, plinths: smooth weathered concrete.", C(1f, 0.97f, 0.94f), 1f, 0.8f),
-            new Entry("Grass_Lawn", 2.5f, "Mown lawns and verges (late summer).", C(0.95f, 1f, 0.82f), 1f, 0.6f, 1f, true),
-            new Entry("Grass_DirtMix", 3f, "Worn grass: paths across lawns, verges, under trees, field edges.", C(1f, 1f, 0.9f), 1f, 0.6f, 1f, true),
-            new Entry("Dirt", 3f, "Bare earth with pebbles: flower beds, the creek bank, the bike yard.", C(1f, 0.95f, 0.88f), 1f, 0.7f, 1f, true),
+            new Entry("Asphalt", 4f, "Roads and driveways: worn asphalt with hairline cracks.", C(0.92f, 0.92f, 0.92f), 1f, 0.9f),
+            new Entry("Road_LaneLine", 4f, "A road lane with worn white dashed centre line (run the dashes along V).", C(0.92f, 0.92f, 0.92f), 1f, 0.9f),
+            new Entry("Concrete_Sidewalk", 3f, "Sidewalks and paths: square slabs with joints.", C(0.97f, 0.97f, 0.97f), 1f, 0.8f),
+            new Entry("Concrete_Kerb", 2f, "Kerbs, steps, retaining-wall caps, plinths: smooth weathered concrete.", C(0.97f, 0.97f, 0.97f), 1f, 0.8f),
+            // Pass 3 (round 2: "the near ground reads as a lake": the lawn mask's smoothness averages 0.73, x0.6 = 0.44, a
+            // sky mirror at grazing angles): matte, ~0.05. And summer green (the albedo is hue 72; tinted, ~88).
+            new Entry("Grass_Lawn", 2.5f, "Mown lawns and verges (late summer).", C(0.62f, 0.95f, 1f), 1f, 0.07f, 1f, true),
+            new Entry("Grass_DirtMix", 3f, "Worn grass: paths across lawns, verges, under trees, field edges.", C(1f, 1f, 0.9f), 1f, 0.09f, 1f, true),
+            new Entry("Dirt", 3f, "Bare earth with pebbles: flower beds, the creek bank, the bike yard.", C(1f, 0.95f, 0.88f), 1f, 0.5f, 1f, true),
             new Entry("Gravel", 2f, "Gravel driveways, the creek path, roof ballast.", C(0.96f, 0.92f, 0.86f), 1f, 0.7f, 1f, true),
             new Entry("Brick_Red", 2f, "Red brick walls: shopfronts, chimneys, the school.", C(1f, 0.96f, 0.92f), 1f, 0.8f),
             new Entry("Brick_Dark", 2f, "Older dark brick: the church, the hospital's base, garden walls.", C(1f, 0.96f, 0.92f), 1f, 0.8f),
@@ -204,7 +210,8 @@ namespace JamKit.Look.EditorTools
             Leaves(GrassAtlasPath, changed);
             Leaves(DecalAtlasPath, changed);
             Leaves(TreeBillboardAtlasPath, changed);
-            Texture(FarFieldsPath, true, false, 1024, changed);
+            Texture(FarFieldsPath, true, false, 2048, changed);
+            Texture(BirchBarkPath, true, false, 512, changed);
             VhLookSky.ConfigureImporters(changed);
             if (changed.Count > 0) Debug.Log("JAMKIT_LOOK import settings set on " + changed.Count + " files");
         }
@@ -374,9 +381,10 @@ namespace JamKit.Look.EditorTools
         {
             string path = MatRoot + "VHM_Glass.mat";
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (m != null) return m;
-            m = new Material(Lit) { name = "VHM_Glass" };
-            m.SetColor("_BaseColor", new Color(0.16f, 0.19f, 0.2f, 0.32f));
+            bool fresh = m == null;
+            if (fresh) m = new Material(Lit) { name = "VHM_Glass" };
+            // Pass 3: a little darker and more opaque, so the reflection leads and the room behind is a glimpse.
+            m.SetColor("_BaseColor", new Color(0.13f, 0.15f, 0.16f, 0.42f));
             m.SetFloat("_Smoothness", 0.96f);
             m.SetFloat("_Metallic", 0f);
             m.SetFloat("_Surface", 1f);
@@ -384,7 +392,30 @@ namespace JamKit.Look.EditorTools
             m.SetFloat("_BlendModePreserveSpecular", 1f);
             m.SetFloat("_Cull", (float)CullMode.Back);
             ValidateLit(m);
-            { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
+            if (fresh) { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>A sheer net curtain behind the lower sash (pass 3; round 2's "brown blocks" in the windows): an off-white,
+        /// half-transparent, matte fabric that turns the room behind into a soft glow.</summary>
+        public static Material Sheer()
+        {
+            string path = MatRoot + "VHM_Sheer.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            bool fresh = m == null;
+            if (fresh) m = new Material(Lit) { name = "VHM_Sheer" };
+            m.SetColor("_BaseColor", new Color(0.94f, 0.92f, 0.86f, 0.55f));
+            m.SetFloat("_Smoothness", 0.1f);
+            m.SetFloat("_Metallic", 0f);
+            m.SetFloat("_Surface", 1f);
+            m.SetFloat("_Blend", 0f);
+            m.SetFloat("_BlendModePreserveSpecular", 0f);
+            m.SetFloat("_EnvironmentReflections", 0f);
+            m.SetFloat("_Cull", (float)CullMode.Off);
+            ValidateLit(m);
+            if (fresh) { EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
+            EditorUtility.SetDirty(m);
             return m;
         }
 
@@ -468,17 +499,20 @@ namespace JamKit.Look.EditorTools
 
         static void BuildBarkAndFoliage()
         {
-            Foliage(FoliageMaterialPath, new Color(1f, 0.98f, 0.9f), LeafAtlasPath);
-            Foliage(FoliageDryMaterialPath, new Color(1.08f, 0.96f, 0.7f), LeafAtlasPath);
-            Foliage(TreeBoardMaterialPath, new Color(1f, 0.98f, 0.9f), TreeBillboardAtlasPath);
-            Foliage(TreeBoardDryMaterialPath, new Color(1.08f, 0.96f, 0.7f), TreeBillboardAtlasPath);
-            var g = Foliage(GrassMaterialPath, new Color(1f, 1f, 0.92f), GrassAtlasPath);
+            // Pass 3 (round 2: "autumn foliage"): neutral-green tints (pass 2's warm tints, x0.9 blue, helped turn the crowns
+            // gold). The "dry" crown is now a tired late-summer green with a little olive, not a yellow tree.
+            Foliage(FoliageMaterialPath, new Color(0.96f, 1f, 0.94f), LeafAtlasPath);
+            Foliage(FoliageDryMaterialPath, new Color(1.04f, 1f, 0.84f), LeafAtlasPath);
+            Foliage(TreeBoardMaterialPath, new Color(0.96f, 1f, 0.94f), TreeBillboardAtlasPath);
+            Foliage(TreeBoardDryMaterialPath, new Color(1.04f, 1f, 0.84f), TreeBillboardAtlasPath);
+            BirchBark();
+            var g = Foliage(GrassMaterialPath, new Color(0.96f, 1f, 0.94f), GrassAtlasPath);
             if (g != null)
             {
                 // Grass: thin blades, so a bit less wrap and more light through them (backlit grass glows at golden hour).
                 g.SetFloat("_Cutoff", 0.4f);
                 g.SetFloat("_Wrap", 0.35f);
-                g.SetFloat("_Translucency", 1.4f);
+                g.SetFloat("_Translucency", 1.2f);
                 g.SetFloat("_RimOcclusion", 0.45f);
                 g.SetFloat("_WindStrength", 0.035f);
                 g.SetFloat("_WindSpeed", 1.6f);
@@ -498,9 +532,8 @@ namespace JamKit.Look.EditorTools
         {
             string path = MatRoot + "VHM_LeafLitter.mat";
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (m != null) return m;
-            ConfigureImporters();
-            m = new Material(Lit) { name = "VHM_LeafLitter" };
+            bool fresh = m == null;
+            if (fresh) { ConfigureImporters(); m = new Material(Lit) { name = "VHM_LeafLitter" }; }
             m.SetTexture("_BaseMap", Load(DecalAtlasPath));
             m.SetColor("_BaseColor", new Color(1f, 0.97f, 0.92f, 1f));
             m.SetFloat("_AlphaClip", 1f);
@@ -510,31 +543,54 @@ namespace JamKit.Look.EditorTools
             ValidateLit(m);
             m.EnableKeyword("_ALPHATEST_ON");
             m.enableInstancing = true;
-            EnsureAssetFolder(path);
-            AssetDatabase.CreateAsset(m, path);
+            if (fresh) { EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
+            EditorUtility.SetDirty(m);
             return m;
         }
 
-        /// <summary>Stains (oil, dirt, water, grime) from the decal atlas's cells 1-3: transparent, alpha-blended, lit, a little
-        /// glossier than the concrete (oil). Lay them as quads a few millimetres above the surface.</summary>
+        /// <summary>Stains (oil, dirt, water, grime) from the decal atlas's cells 1-3: transparent, alpha-blended, lit. Lay them
+        /// as quads a few millimetres above the surface.
+        /// <para>Pass 3 (round 2: "stain decals render as hard rectangles"): URP Lit's "preserve specular lighting" (on by
+        /// default for transparents) kept the sky's reflection at full strength over the whole quad, alpha 0 or not, so every
+        /// stain was a pale rectangle. Now: specular not preserved (it fades with alpha), no environment reflections, no
+        /// highlights, matte; and the atlas fades every stain to zero well inside its cell.</para></summary>
         public static Material Stains()
         {
             string path = MatRoot + "VHM_Stains.mat";
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (m != null) return m;
-            ConfigureImporters();
-            m = new Material(Lit) { name = "VHM_Stains" };
+            bool fresh = m == null;
+            if (fresh) { ConfigureImporters(); m = new Material(Lit) { name = "VHM_Stains" }; }
             m.SetTexture("_BaseMap", Load(DecalAtlasPath));
-            m.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0.85f));
+            m.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0.8f));
             m.SetFloat("_Surface", 1f);
             m.SetFloat("_Blend", 0f);
-            m.SetFloat("_Smoothness", 0.45f);
+            m.SetFloat("_BlendModePreserveSpecular", 0f);
+            m.SetFloat("_Smoothness", 0.2f);
+            m.SetFloat("_Metallic", 0f);
+            m.SetFloat("_EnvironmentReflections", 0f);
+            m.SetFloat("_SpecularHighlights", 0f);
             m.SetFloat("_ZWrite", 0f);
+            m.SetFloat("_ReceiveShadows", 1f);
             ValidateLit(m);
             m.renderQueue = (int)RenderQueue.Transparent - 50;   // under other transparents (glass)
             m.enableInstancing = true;
-            EnsureAssetFolder(path);
-            AssetDatabase.CreateAsset(m, path);
+            if (fresh) { EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>Birch bark: the painted chalk-white bark (VH_BirchBark, 0.6 m a repeat) over the library bark's normal map.</summary>
+        public static Material BirchBark()
+        {
+            string path = MatRoot + "VHM_BirchBark.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            bool fresh = m == null;
+            if (fresh) m = new Material(Lit) { name = "VHM_BirchBark" };
+            SetupLit(m, Load(BirchBarkPath), Load(TexRoot + "Tree_Bark/Tree_Bark_Normal.jpg"), null, new Color(0.96f, 0.95f, 0.92f), 0.5f,
+                1f, 1f, 1f / 0.6f, false);
+            m.SetFloat("_Smoothness", 0.28f);
+            if (fresh) { EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
+            EditorUtility.SetDirty(m);
             return m;
         }
 
@@ -565,19 +621,56 @@ namespace JamKit.Look.EditorTools
             return m;
         }
 
-        /// <summary>The distant terrain ring's ground: patchy fields (VH_FarFields) at a 420 m repeat. Seen only through haze,
-        /// so it's the cheap far material.</summary>
+        static Shader FarLandShader => Shader.Find("JamKit/Look/FarLand");
+
+        /// <summary>A far-scenery material on JamKit/Look/FarLand (cheap lit, vertex colour, a near colour for the ring's
+        /// inner edge). The mesh's UVs are metres; the texture repeats every <paramref name="tileMetres"/>.</summary>
+        static Material FarLand(string name, Texture albedo, Color tint, float tileMetres, Color near)
+        {
+            var shader = FarLandShader;
+            if (shader == null) return Far(name, albedo, tint, tileMetres);
+            string path = MatRoot + "VHM_" + name + ".mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            bool fresh = m == null;
+            if (fresh) m = new Material(shader) { name = "VHM_" + name };
+            else if (m.shader != shader) m.shader = shader;
+            m.SetTexture("_BaseMap", albedo);
+            m.SetTextureScale("_BaseMap", new Vector2(1f / tileMetres, 1f / tileMetres));
+            m.SetColor("_BaseColor", tint);
+            m.SetColor("_NearColor", near);
+            m.SetFloat("_Wrap", 0.3f);
+            m.enableInstancing = true;
+            if (fresh) { EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>The lawn's average albedo after its tint (sRGB (83, 116, 46): tools/look/palette-check.py; Material.SetColor
+        /// takes sRGB): the ring's ground starts as this at the scene's edge and blends into the fields.</summary>
+        public static readonly Color LawnAverage = new Color(0.325f, 0.455f, 0.18f, 1f);
+
+        /// <summary>The distant terrain ring's ground: the patchwork of fields (VH_FarFields, 2400 m a repeat). Pass 3: the
+        /// FarLand shader (vertex colour, a near colour), replacing Simple Lit.</summary>
         public static Material FarFields()
         {
             ConfigureImporters();
-            return Far("FarFields", Load(FarFieldsPath), new Color(0.95f, 0.95f, 0.9f), 420f);
+            return FarLand("FarFields", Load(FarFieldsPath), new Color(1f, 1f, 1f), 2400f, LawnAverage);
         }
 
-        /// <summary>Far canopy (the tree line's rounded crowns, 600 m - 3 km): the lawn texture as leafy noise, dark olive.</summary>
+        /// <summary>A road running out into the ring: the asphalt at its 4 m repeat (u across the carriageway in metres),
+        /// its dirt shoulders the vertex alpha's near colour (a dry verge).</summary>
+        public static Material FarRoad()
+        {
+            ConfigureImporters();
+            return FarLand("FarRoad", Load(TexRoot + "Asphalt/Asphalt_Albedo.jpg"), new Color(0.86f, 0.86f, 0.86f), 4f, new Color(0.56f, 0.52f, 0.38f));
+        }
+
+        /// <summary>Woods and hedgerows in the ring (300 m - 3 km): the lawn texture as leafy noise, deep olive green, darker
+        /// low down (the meshes' vertex colour).</summary>
         public static Material FarCanopy()
         {
             ConfigureImporters();
-            return Far("FarCanopy", Load(TexRoot + "Grass_Lawn/Grass_Lawn_Albedo.jpg"), new Color(0.6f, 0.6f, 0.44f), 7f);
+            return FarLand("FarCanopy", Load(TexRoot + "Grass_Lawn/Grass_Lawn_Albedo.jpg"), new Color(0.42f, 0.56f, 0.4f), 9f, new Color(0.17f, 0.25f, 0.12f));
         }
 
         static Material Foliage(string path, Color tint, string atlas)
@@ -589,10 +682,13 @@ namespace JamKit.Look.EditorTools
             else if (m.shader != shader) m.shader = shader;
             m.SetTexture("_BaseMap", Load(atlas));
             m.SetColor("_BaseColor", tint);
-            // Light through the leaves (pass 2: backlit crowns glow at their rims). Set explicitly so older materials update.
-            m.SetColor("_TranslucencyColor", new Color(1f, 0.82f, 0.32f, 1f));
-            m.SetFloat("_Translucency", 1.9f);
-            m.SetFloat("_TranslucencyFocus", 3f);
+            // Light through the leaves: backlit crowns glow at their rims, yellow-green (pass 3; pass 2's gold glow was half
+            // of round 2's autumn crowns). The direct sun is tinted a touch green-cool on foliage only, so summer leaves stay
+            // green under the warm key light. Set explicitly so older materials update.
+            m.SetColor("_TranslucencyColor", new Color(0.72f, 0.95f, 0.34f, 1f));
+            m.SetColor("_LightTint", new Color(0.88f, 1f, 0.9f, 1f));
+            m.SetFloat("_Translucency", 1.5f);
+            m.SetFloat("_TranslucencyFocus", 4f);
             m.SetFloat("_RimOcclusion", 0.35f);
             m.SetFloat("_Wrap", 0.45f);
             m.SetFloat("_Cutoff", 0.45f);

@@ -7,6 +7,9 @@
 // edge) for a gentle wind. UV1.x = rim (0 deep inside the crown, 1 on its outer shell): translucency and a painted
 // occlusion. LOD cross-fade (dithered) so the trees' LODGroups don't pop. Also used for grass and flower cards.
 // Passes: UniversalForward, ShadowCaster, DepthOnly, DepthNormals (for SSAO and the depth prepass).
+// Pass 3: _LightTint (the material sets a slightly green-cool tint on the direct sun so summer leaves don't turn
+// autumn-gold under the warm key light; the grade still warms them) and a yellow-green translucency (pass 2's gold
+// translucency was half of round 2's "autumn" crowns).
 Shader "JamKit/Look/Foliage"
 {
     Properties
@@ -16,7 +19,8 @@ Shader "JamKit/Look/Foliage"
         _Cutoff ("Alpha cutoff", Range(0, 1)) = 0.45
         _Wrap ("Wrap diffuse", Range(0, 1)) = 0.45
         _ShadowFloor ("Light kept in self-shadow", Range(0, 1)) = 0.12
-        _TranslucencyColor ("Translucency colour", Color) = (1.0, 0.82, 0.32, 1)
+        _TranslucencyColor ("Translucency colour", Color) = (0.72, 0.95, 0.34, 1)
+        _LightTint ("Direct light tint (keeps leaves summer-green under the warm sun)", Color) = (1, 1, 1, 1)
         _Translucency ("Translucency", Range(0, 4)) = 1.9
         _TranslucencyFocus ("Translucency focus", Range(1, 16)) = 3
         _RimOcclusion ("Darkening deep inside the crown", Range(0, 1)) = 0.35
@@ -42,6 +46,7 @@ Shader "JamKit/Look/Foliage"
         float _Wrap;
         float _ShadowFloor;
         float4 _TranslucencyColor;
+        float4 _LightTint;
         float _Translucency;
         float _TranslucencyFocus;
         float _RimOcclusion;
@@ -138,9 +143,10 @@ Shader "JamKit/Look/Foliage"
                 float back = pow(saturate(dot(v, -light.direction)), _TranslucencyFocus);
                 // Light through the leaves: strongest looking into the sun, at the crown's rim (one or two leaves thick), and
                 // not fully killed by the crown's own shadow (that light is what passes through it).
-                float3 trans = _TranslucencyColor.rgb * light.color * _Translucency *
+                float3 lightCol = light.color * _LightTint.rgb;
+                float3 trans = _TranslucencyColor.rgb * lightCol * _Translucency *
                                (back * 0.9 + 0.12 * saturate(-ndl)) * lerp(0.3, 1.0, rim) * lerp(0.45, 1.0, atten);
-                float3 direct = light.color * wrap * lit;
+                float3 direct = lightCol * wrap * lit;
                 float3 ambient = SampleSH(n) * _AmbientBoost;
             #if defined(_SCREEN_SPACE_OCCLUSION)
                 AmbientOcclusionFactor ao = GetScreenSpaceAmbientOcclusion(GetNormalizedScreenSpaceUV(i.positionCS));

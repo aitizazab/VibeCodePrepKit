@@ -3,7 +3,8 @@
     "rootNamespace": "JamKit.Look",
     "references": [
         "Unity.RenderPipelines.Universal.Runtime",
-        "Unity.RenderPipelines.Core.Runtime"
+        "Unity.RenderPipelines.Core.Runtime",
+        "JamKit.Perf"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

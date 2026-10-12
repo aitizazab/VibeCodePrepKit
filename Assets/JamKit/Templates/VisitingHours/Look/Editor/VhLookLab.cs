@@ -75,7 +75,7 @@ namespace JamKit.Look.EditorTools
             VhLookBackdrop.Build(world, new VhLookBackdrop.Options
             {
                 center = new Vector3(0f, 0f, 280f), innerRadius = 330f, outerRadius = 2900f, nearHeight = Ground, hole = TerrainRect,
-                blendDistance = 650f, seed = 7,
+                blendDistance = 650f, seed = 7, roads = FarRoads(),
             });
 
             // Warm lamps inside the houses (seen through the windows).
@@ -107,6 +107,27 @@ namespace JamKit.Look.EditorTools
             AssetDatabase.SaveAssets();
             Debug.Log("JAMKIT_LOOK LookLab built: " + ScenePath);
             return ScenePath;
+        }
+
+        /// <summary>The streets carry on out of the scene into the ring (round 2: "the road stops in a field"): the main road
+        /// both ways, curving off between the fields, and Rowan Street and the crest road a little way each side.</summary>
+        static List<VhLookBackdrop.FarRoad> FarRoads()
+        {
+            VhLookBackdrop.FarRoad R(float startY, params float[] xz)
+            {
+                var pts = new Vector2[xz.Length / 2];
+                for (int i = 0; i < pts.Length; i++) pts[i] = new Vector2(xz[i * 2], xz[i * 2 + 1]);
+                return new VhLookBackdrop.FarRoad { points = pts, startY = startY };
+            }
+            return new List<VhLookBackdrop.FarRoad>
+            {
+                R(0f, 333f, 0f, 520f, -6f, 760f, -40f, 1050f, -120f, 1500f, -300f, 2100f, -560f, 2900f, -820f),
+                R(0f, -333f, 0f, -520f, 8f, -780f, 52f, -1100f, 150f, -1600f, 360f, -2300f, 650f, -3000f, 900f),
+                R(RowanY(330f), 328f, RowanZ, 520f, RowanZ + 20f, 800f, RowanZ + 110f, 1200f, RowanZ + 330f),
+                R(RowanY(-330f), -328f, RowanZ, -540f, RowanZ - 10f, -820f, RowanZ + 60f, -1250f, RowanZ + 240f),
+                R(CrestY(330f), 328f, CrestZ, 560f, CrestZ + 40f, 900f, CrestZ + 180f),
+                R(CrestY(-330f), -328f, CrestZ, -560f, CrestZ + 30f, -880f, CrestZ + 150f),
+            };
         }
 
         static void Lamp(Transform world, Vector3 p, float intensity)
@@ -470,30 +491,36 @@ namespace JamKit.Look.EditorTools
             houses.SetParent(root, false);
             int seed = 11;
             var walk = VhLookLibrary.Get("Concrete_Sidewalk");
-            for (float z = 62f; z < CrestZ - 30f; z += 31f)
+            var lots = new System.Random(4127);
+            float L() => (float)lots.NextDouble();
+            // Pass 3 (round 2: "every house faces the same way; identical rows"): set back 13.5-20 m, turned up to 6 degrees
+            // off the street, lots 25-35 m wide, and a third of the houses gable-front (VhLookHouses.Spec.Random).
+            for (float z = 62f; z < CrestZ - 30f; z += Mathf.Lerp(27f, 35f, L()))
             {
                 if (Mathf.Abs(z - RowanZ) < 24f) continue;
                 foreach (var side in new[] { -1f, 1f })
                 {
                     var spec = VhLookHouses.Spec.Random(seed++);
-                    float frontX = CrossX + side * 16f;
+                    float frontX = CrossX + side * Mathf.Lerp(13.5f, 20f, L());
+                    float yaw = (side < 0 ? 270f : 90f) + (L() - 0.5f) * 12f;
                     var corner = new Vector3(frontX, 0f, side < 0 ? z - spec.width * 0.5f : z + spec.width * 0.5f);
-                    VhLookHouses.Build(houses, corner, side < 0 ? 270f : 90f, spec, VhLookHouses.Lod.Far, Ground, "House " + seed);
+                    VhLookHouses.Build(houses, corner, yaw, spec, VhLookHouses.Lod.Far, Ground, "House " + seed);
                     float dz = z + spec.width * 0.5f + 2.2f;
                     Driveway(houses, new Vector2(CrossX + side * 6.3f, dz), new Vector2(frontX + side * 4f, dz), walk);
                 }
             }
             foreach (var line in new[] { RowanZ, CrestZ })
-                for (float x = -230f; x < 300f; x += 29f)
+                for (float x = -230f; x < 300f; x += Mathf.Lerp(25f, 35f, L()))
                 {
                     if (Mathf.Abs(x - CrossX) < 26f) continue;
                     foreach (var side in new[] { -1f, 1f })
                     {
                         if (line == CrestZ && side > 0) continue;   // the crest road: houses on its near side only
                         var spec = VhLookHouses.Spec.Random(seed++);
-                        float frontZ = line + side * 16f;
+                        float frontZ = line + side * Mathf.Lerp(13.5f, 20f, L());
+                        float yaw = (side > 0 ? 0f : 180f) + (L() - 0.5f) * 12f;
                         var corner = new Vector3(side > 0 ? x - spec.width * 0.5f : x + spec.width * 0.5f, 0f, frontZ);
-                        VhLookHouses.Build(houses, corner, side > 0 ? 0f : 180f, spec, VhLookHouses.Lod.Far, Ground, "House " + seed);
+                        VhLookHouses.Build(houses, corner, yaw, spec, VhLookHouses.Lod.Far, Ground, "House " + seed);
                         float dx = x + spec.width * 0.5f + 2.2f;
                         Driveway(houses, new Vector2(dx, line + side * 6.3f), new Vector2(dx, frontZ + side * 4f), walk);
                     }
@@ -598,7 +625,8 @@ namespace JamKit.Look.EditorTools
             // A birch pair and a maple in the bungalow's yard, a stand behind the houses.
             VhLookTrees.Cluster(root, new Vector3(-26f, 0f, 34f), 7f, 4, 21, 10f, (x, z) => Ground(x, z), null, 3.5f, null, true);
             VhLookTrees.Cluster(root, new Vector3(4f, 0f, 38f), 8f, 5, 22, 11f, (x, z) => Ground(x, z), null, 3.5f, null, true);
-            VhLookTrees.Cluster(root, new Vector3(-60f, 0f, -22f), 10f, 6, 23, 11f, (x, z) => Ground(x, z), null, 3.5f, p => !OnPaving(p.x, p.z), true);
+            // Pass 3: moved south, off the line to the sun (round 2's shot 08 had the sun behind this stand: no disc anywhere).
+            VhLookTrees.Cluster(root, new Vector3(-56f, 0f, -48f), 10f, 6, 23, 11f, (x, z) => Ground(x, z), null, 3.5f, p => !OnPaving(p.x, p.z) && !OnSunLine(p), true);
             // Foundation shrubs along the beds (clear of the porch).
             int k = 0;
             foreach (var x in new[] { -7.6f, -5.6f, -3.9f, 1.9f, 3.8f, 5.8f })
@@ -695,6 +723,16 @@ namespace JamKit.Look.EditorTools
             VhLookGround.StormDrain(root, new Vector3(12f, 0f, -4f), Vector3.right, Vector3.forward);
             VhLookGround.StormDrain(root, new Vector3(-30f, 0f, 4f), Vector3.right, Vector3.back);
             VhLookGround.StormDrain(root, new Vector3(CrossX - 4f, CrossRoadY(22f), 22f), Vector3.forward, Vector3.right);
+        }
+
+        /// <summary>Within 8 degrees of the bearing to the sun as seen from the street's middle (shots 08 and 12 look into the
+        /// sun: nothing tall stands there, so the disc shows).</summary>
+        static bool OnSunLine(Vector3 p)
+        {
+            var d = new Vector2(p.x, p.z);
+            if (d.magnitude < 15f) return false;
+            var sun = new Vector2(ToSun.x, ToSun.z).normalized;
+            return Vector2.Angle(d, sun) < 8f;
         }
 
         static void AlignLongAxisToZ(GameObject go)

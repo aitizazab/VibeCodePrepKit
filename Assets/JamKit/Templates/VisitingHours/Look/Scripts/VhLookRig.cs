@@ -12,7 +12,9 @@ namespace JamKit.Look
     /// so the HDRI's own sun sits on the same bearing.</item>
     /// <item>Feeds the sky and the atmosphere pass their globals (sun direction and colour, sky rotation, time for the cloud drift).</item>
     /// <item>While enabled, overrides the active URP asset's main-light shadow settings (distance, cascades, resolution) so a
-    /// hillside gets long soft shadows, and puts them back when disabled, so the other templates keep theirs.</item>
+    /// hillside gets long soft shadows, and puts them back when disabled, so the other templates keep theirs. Pass 3: the
+    /// numbers asked for are capped by the active quality tier (<see cref="JamKit.Perf.VhPerfTiers.Current"/>, while a
+    /// Visiting Hours scene has applied one), so the rig never asks for more than the tier allows.</item>
     /// </list>
     /// Azimuth is measured from world +Z towards +X (0 = the sun is due +Z, 90 = due +X).
     /// </summary>
@@ -182,11 +184,23 @@ namespace JamKit.Look
             _oldResolution = _asset.mainLightShadowmapResolution;
             _oldDepthBias = _asset.shadowDepthBias;
             _oldNormalBias = _asset.shadowNormalBias;
-            _asset.shadowDistance = shadowDistance;
-            _asset.shadowCascadeCount = shadowCascades;
+            float distance = shadowDistance;
+            int cascades = shadowCascades, resolution = shadowResolution;
+            if (JamKit.Perf.VhPerfTiers.Active)
+            {
+                var tier = JamKit.Perf.VhPerfTiers.Current;
+                if (tier != null)
+                {
+                    distance = Mathf.Min(distance, tier.shadowDistance);
+                    cascades = Mathf.Min(cascades, tier.shadowCascades);
+                    resolution = Mathf.Min(resolution, tier.shadowResolution);
+                }
+            }
+            _asset.shadowDistance = distance;
+            _asset.shadowCascadeCount = Mathf.Clamp(cascades, 1, 4);
             _asset.cascade4Split = cascadeSplits;
             _asset.cascadeBorder = cascadeBorder;
-            _asset.mainLightShadowmapResolution = shadowResolution;
+            _asset.mainLightShadowmapResolution = resolution;
             _asset.shadowDepthBias = shadowDepthBias;
             _asset.shadowNormalBias = shadowNormalBias;
             _applied = true;

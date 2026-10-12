@@ -8,26 +8,25 @@ namespace JamKit.Look.EditorTools
 {
     /// <summary>
     /// Stylized trees for the hill and the yards (the kind over a 1990s suburban street), built in code from the library's
-    /// bark and the painted leaf-cluster atlas (tools/look/make-foliage-atlas.py) with the JamKit/Look/Foliage shader.
-    /// <para>Pass 2 (the judge's round 1: "lollipop trees"): four species with their own branching and crown shapes, low
-    /// branching (limbs from 2.3-3 m on a 10 m tree), crowns of many small leaf cards built in clumps round the branch
-    /// tips and kept inside the crown's outline (no stray clumps), olive and warm greens, a rim value per card so backlit
-    /// crowns glow at their edges.</para>
-    /// <para><b>Levels of detail</b> (the creator, 2026-10-12: "the tree in the garden" can't cost what "a tree you can barely
-    /// see the branches of behind the hospital" costs; 120 fps target), cross-faded, thresholds in <see cref="Lods"/>:
-    /// LOD0 full (~580 small cards, trunk, limbs, twigs, shadows); LOD1 simplified (a third of the cards, bigger; shadows);
-    /// LOD2 far (~40 big cards and the bare trunk, no shadows); LOD3 an impostor: a crossed billboard of the painted whole
-    /// tree (VH_TreeBillboards, the same foliage shader, so the backlit glow still reads; no shadows); culled beyond. All
-    /// on two SRP Batcher-compatible, instancing-ready materials (bark, foliage).</para>
+    /// bark and the painted leaf-clump atlas (tools/look/make-foliage-atlas.py) with the JamKit/Look/Foliage shader.
+    /// <para><b>Pass 3</b> (judge round 2: autumn colour, "twig spikes out of crowns", "loose floating leaf cards", "pale
+    /// seam rings at limb joints", "straight cylinder limbs forking from one point", "birch trunks read as bright yellow
+    /// sticks with tiny crowns", and ~580 alpha cards per near crown):</para>
     /// <list type="bullet">
-    /// <item><b>Maple</b>: a round, full crown on a short trunk (the lawn tree).</item>
-    /// <item><b>Oak</b>: a broad, spreading crown on low, near-horizontal limbs; clumpy, with sky between the clumps.</item>
-    /// <item><b>Birch</b>: tall and narrow, a pale trunk running up through a light, fine-leaved oval crown.</item>
-    /// <item><b>Elm</b>: a vase: limbs fanning upward from 3 m into a wide, flat-topped crown (the street tree).</item>
-    /// <item><b>Shrub</b>: a bush (foundation planting, hedges, the understorey of a stand of trees).</item>
+    /// <item>Wood is one swept tube per trunk, limb and branch (parallel-transported rings, continuous bark UVs, no joints
+    /// along it), tapering and bending along a curve; limbs leave the trunk at staggered heights up a leader (a vase of
+    /// limbs from 3 m for the elm), their bases sunk inside the trunk.</item>
+    /// <item>Every leaf clump sits on a branch tip, and every branch tip ends inside its clump: nothing pokes out, nothing
+    /// floats. The tips are kept inside the species' crown outline.</item>
+    /// <item>Crowns are fewer, larger, well-shaped clumps: each clump is 5-6 cards (a dense painted clump of leaves each)
+    /// facing outward round its centre. A near maple has ~110 cards (pass 2: ~580), about 30% less card area in all, and
+    /// the cards are drawn outside-in (the crown's shell first), so most of the inner ones fail the depth test.</item>
+    /// <item>Birch: chalk-white bark (its own texture), a wider, fuller crown reaching lower.</item>
     /// </list>
-    /// Each species has three variants; a tree is a variant's meshes scaled to its height, so many trees share a few meshes.
-    /// Meshes are cached as assets in Look/Library/Trees/.
+    /// <para><b>Levels of detail</b> (cross-faded, thresholds in <see cref="Lods"/>): LOD0 full (clumps of 5-6 cards, trunk,
+    /// limbs, branches, shadows); LOD1 (2 bigger cards a clump, the same wood; shadows); LOD2 (one big card for every other
+    /// clump, a 5-sided trunk and limbs, no shadows); LOD3 a crossed billboard of the painted whole tree (no shadows);
+    /// culled beyond. Two SRP Batcher-compatible, instancing-ready materials (bark, foliage).</para>
     /// <code>
     /// VhLookTrees.Place(parent, position, VhLookTrees.Species.Oak, variant: 1, height: 11f);
     /// VhLookTrees.Place(parent, position, seed: 3, height: 9f);                         // pass 1's call still works
@@ -39,17 +38,15 @@ namespace JamKit.Look.EditorTools
     {
         public const string Dir = VhLookLibrary.MatRoot + "Trees/";
         /// <summary>Bumped whenever the generator changes, so cached meshes from an older generator are never reused.</summary>
-        const int GeneratorVersion = 3;
+        const int GeneratorVersion = 4;
         public const int Variants = 3;
 
         public enum Species { Maple, Oak, Birch, Elm, Shrub }
 
         /// <summary>
-        /// LOD switch points as screen-relative heights (the share of the screen's height the tree covers): below
-        /// <see cref="Lod1"/> the tree drops to LOD1, below <see cref="Lod2"/> to LOD2 and so on, below <see cref="Cull"/> it
-        /// isn't drawn. For a 10 m tree at 1080p, 60 degree FOV and LOD bias 1: LOD1 from ~70 m, LOD2 from ~190 m, the
-        /// billboard from ~460 m, culled past ~2.2 km. The Perf agent tunes these: change them, rebuild the scene (or call
-        /// <see cref="RetuneLods"/> on an open scene).
+        /// LOD switch points as screen-relative heights. For a 10 m tree at 1080p, 60 degree FOV and LOD bias 1: LOD1 from
+        /// ~70 m, LOD2 from ~190 m, the billboard from ~460 m, culled past ~2.2 km. The Perf agent tunes these: change them,
+        /// rebuild the scene (or call <see cref="RetuneLods"/> on an open scene).
         /// </summary>
         public static class Lods
         {
@@ -58,8 +55,8 @@ namespace JamKit.Look.EditorTools
             public static float ShrubLod1 = 0.06f, ShrubLod2 = 0.02f, ShrubCull = 0.006f;
         }
 
-        /// <summary>Re-applies <see cref="Lods"/> to every tree's LODGroup under <paramref name="root"/> (a scene's root
-        /// objects, say), so a tuning pass doesn't need a rebuild. Returns the number of trees changed.</summary>
+        /// <summary>Re-applies <see cref="Lods"/> to every tree's LODGroup under <paramref name="root"/>. Returns the number of
+        /// trees changed.</summary>
         public static int RetuneLods(GameObject root)
         {
             int n = 0;
@@ -77,10 +74,9 @@ namespace JamKit.Look.EditorTools
 
         struct Spec
         {
-            public float refHeight, fork, crownR, crownRy, crownY, limbUp, card, lobeR, trunkR;
-            public int limbs, cards, cell;
-            public bool leader;
-            public Color tint;
+            public float refHeight, fork, crownR, crownRy, crownY, clumpR, trunkR, leaderTop, limbLift, limbStartTop;
+            public int limbs, branches, cardsPerClump, cell;
+            public bool vase;
         }
 
         static Spec SpecOf(Species s)
@@ -88,20 +84,24 @@ namespace JamKit.Look.EditorTools
             switch (s)
             {
                 case Species.Oak:
-                    return new Spec { refHeight = 10f, fork = 2.3f, crownR = 4.9f, crownRy = 2.9f, crownY = 6.7f, limbUp = 0.32f, card = 0.88f,
-                        lobeR = 1.75f, trunkR = 0.42f, limbs = 6, cards = 620, cell = 1, tint = new Color(0.93f, 0.95f, 0.84f) };
+                    // Broad and spreading: low, near-horizontal limbs off a short leader; big clumps with sky between.
+                    return new Spec { refHeight = 10f, fork = 2.2f, crownR = 4.8f, crownRy = 2.9f, crownY = 6.5f, clumpR = 1.6f, trunkR = 0.42f,
+                        leaderTop = 5.2f, limbStartTop = 4.6f, limbLift = 0.2f, limbs = 6, branches = 2, cardsPerClump = 6, cell = 1 };
                 case Species.Birch:
-                    return new Spec { refHeight = 10f, fork = 2.6f, crownR = 2.5f, crownRy = 3.7f, crownY = 6.2f, limbUp = 0.95f, card = 0.66f,
-                        lobeR = 1.05f, trunkR = 0.2f, limbs = 8, cards = 520, cell = 2, leader = true, tint = new Color(1.04f, 1.04f, 0.9f) };
+                    // A pale leader running up through a full oval crown that reaches down to ~3 m.
+                    return new Spec { refHeight = 10f, fork = 2.5f, crownR = 3.0f, crownRy = 3.7f, crownY = 6.0f, clumpR = 1.15f, trunkR = 0.2f,
+                        leaderTop = 8.4f, limbStartTop = 7.6f, limbLift = 0.55f, limbs = 9, branches = 1, cardsPerClump = 5, cell = 2 };
                 case Species.Elm:
-                    return new Spec { refHeight = 10f, fork = 3.0f, crownR = 4.4f, crownRy = 2.9f, crownY = 7.0f, limbUp = 1.15f, card = 0.84f,
-                        lobeR = 1.55f, trunkR = 0.36f, limbs = 5, cards = 580, cell = 3, tint = new Color(0.92f, 0.98f, 0.9f) };
+                    // A vase: limbs fanning up from 3 m into a wide, flat-topped crown (the street tree).
+                    return new Spec { refHeight = 10f, fork = 3.0f, crownR = 4.4f, crownRy = 2.8f, crownY = 7.0f, clumpR = 1.5f, trunkR = 0.36f,
+                        leaderTop = 4.3f, limbStartTop = 4.0f, limbLift = 1.0f, limbs = 5, branches = 3, cardsPerClump = 5, cell = 0, vase = true };
                 case Species.Shrub:
-                    return new Spec { refHeight = 1.6f, fork = 0.15f, crownR = 0.95f, crownRy = 0.75f, crownY = 0.85f, limbUp = 0.8f, card = 0.42f,
-                        lobeR = 0.48f, trunkR = 0.05f, limbs = 4, cards = 150, cell = 0, tint = new Color(0.95f, 1f, 0.9f) };
+                    return new Spec { refHeight = 1.6f, fork = 0.05f, crownR = 1.0f, crownRy = 0.75f, crownY = 0.8f, clumpR = 0.5f, trunkR = 0.045f,
+                        leaderTop = 0.4f, limbStartTop = 0.2f, limbLift = 0.7f, limbs = 5, branches = 0, cardsPerClump = 4, cell = 3 };
                 default:
-                    return new Spec { refHeight = 10f, fork = 2.8f, crownR = 3.9f, crownRy = 3.3f, crownY = 6.4f, limbUp = 0.62f, card = 0.84f,
-                        lobeR = 1.5f, trunkR = 0.36f, limbs = 5, cards = 580, cell = 0, tint = new Color(1f, 1f, 0.92f) };
+                    // Maple: a round full crown on a short trunk (the lawn tree).
+                    return new Spec { refHeight = 10f, fork = 2.5f, crownR = 3.9f, crownRy = 3.3f, crownY = 6.3f, clumpR = 1.4f, trunkR = 0.36f,
+                        leaderTop = 7.4f, limbStartTop = 6.0f, limbLift = 0.45f, limbs = 6, branches = 2, cardsPerClump = 6, cell = 0 };
             }
         }
 
@@ -131,14 +131,13 @@ namespace JamKit.Look.EditorTools
             go.transform.rotation = Quaternion.Euler(0f, yaw >= 0f ? yaw : Mathf.Repeat(variant * 131f + position.x * 7.3f + position.z * 3.1f, 360f), 0f);
             go.transform.localScale = Vector3.one * scale;
 
-            var bark = species == Species.Birch ? VhLookLibrary.Tinted("Tree_Bark", "Birch", new Color(2.3f, 2.25f, 2.1f)) : VhLookLibrary.Get("Tree_Bark");
+            var bark = species == Species.Birch ? VhLookLibrary.BirchBark() : VhLookLibrary.Get("Tree_Bark");
             var leaves = VhLookLibrary.FoliageMaterial(dryCrown);
             var trunk = Part(go.transform, "Trunk", set.trunk, bark);
             var trunkFar = Part(go.transform, "Trunk (far)", set.trunkLow, bark);
             var c0 = Part(go.transform, "Crown", set.crown0, leaves);
             var c1 = Part(go.transform, "Crown (LOD1)", set.crown1, leaves);
             var c2 = Part(go.transform, "Crown (LOD2)", set.crown2, leaves);
-            // The far levels cast no shadows (at that distance the shadow is a few pixels in the last cascade, or none).
             trunkFar.shadowCastingMode = ShadowCastingMode.Off;
             c2.shadowCastingMode = ShadowCastingMode.Off;
             MeshRenderer board = null;
@@ -146,9 +145,6 @@ namespace JamKit.Look.EditorTools
             {
                 board = Part(go.transform, "Billboard (LOD3)", Billboard(species), VhLookLibrary.TreeBillboardMaterial(dryCrown));
                 board.shadowCastingMode = ShadowCastingMode.Off;
-            }
-            if (species != Species.Shrub)
-            {
                 var cap = trunk.gameObject.AddComponent<CapsuleCollider>();
                 cap.radius = spec.trunkR * 1.05f;
                 cap.height = spec.fork + 0.6f;
@@ -209,7 +205,6 @@ namespace JamKit.Look.EditorTools
             int tries = 0;
             while (placed.Count < count && tries++ < count * 30)
             {
-                // A gaussian-ish spread: most trees near the middle, some straggling out.
                 float a = R() * Mathf.PI * 2f, r = radius * Mathf.Sqrt(-2f * Mathf.Log(Mathf.Max(1e-4f, R()))) * 0.45f;
                 if (r > radius * 1.25f) continue;
                 var p = new Vector3(center.x + Mathf.Cos(a) * r, 0f, center.z + Mathf.Sin(a) * r);
@@ -322,6 +317,9 @@ namespace JamKit.Look.EditorTools
         public sealed class MeshSet
         {
             public Mesh trunk, trunkLow, crown0, crown1, crown2;
+            /// <summary>Cards per crown level and the LOD0 crown's total card area (m², at the reference height).</summary>
+            public int cards0, cards1, cards2;
+            public float area0;
         }
 
         static readonly Dictionary<string, MeshSet> Cache = new Dictionary<string, MeshSet>();
@@ -345,6 +343,7 @@ namespace JamKit.Look.EditorTools
             if (set.trunk == null || set.trunkLow == null || set.crown0 == null || set.crown1 == null || set.crown2 == null)
             {
                 if (AssetDatabase.LoadMainAssetAtPath(path) != null) AssetDatabase.DeleteAsset(path);
+                PurgeOlderGenerators();
                 set = Build(species, variant, key);
                 VhLookLibrary.EnsureAssetFolder(path);
                 AssetDatabase.CreateAsset(set.trunk, path);
@@ -353,15 +352,51 @@ namespace JamKit.Look.EditorTools
                 AssetDatabase.AddObjectToAsset(set.crown1, path);
                 AssetDatabase.AddObjectToAsset(set.crown2, path);
                 AssetDatabase.SaveAssets();
+                Debug.Log("JAMKIT_LOOK tree " + species + " " + variant + ": LOD0 " + set.cards0 + " cards (" + set.area0.ToString("0") +
+                          " m2 of card at 10 m), LOD1 " + set.cards1 + ", LOD2 " + set.cards2 + "; " + set.trunk.vertexCount + " wood vertices");
+            }
+            else
+            {
+                set.cards0 = set.crown0.vertexCount / 4; set.cards1 = set.crown1.vertexCount / 4; set.cards2 = set.crown2.vertexCount / 4;
             }
             Cache[key] = set;
             return set;
         }
 
-        struct Lobe
+        static bool _purged;
+
+        /// <summary>Deletes cached tree meshes from older generators (they'd sit in the library unused).</summary>
+        static void PurgeOlderGenerators()
+        {
+            if (_purged) return;
+            _purged = true;
+            string folder = Dir.TrimEnd('/');
+            if (!AssetDatabase.IsValidFolder(folder)) return;
+            foreach (var guid in AssetDatabase.FindAssets("t:Mesh", new[] { folder }))
+            {
+                string p = AssetDatabase.GUIDToAssetPath(guid);
+                string file = System.IO.Path.GetFileNameWithoutExtension(p);
+                for (int v = 1; v < GeneratorVersion; v++)
+                    if (file.StartsWith("VH_Tree" + v + "_", StringComparison.Ordinal) || file.StartsWith("VH_TreeBoard" + v + "_", StringComparison.Ordinal))
+                    {
+                        AssetDatabase.DeleteAsset(p);
+                        break;
+                    }
+            }
+        }
+
+        struct Clump
         {
             public Vector3 c;
             public float r;
+        }
+
+        sealed class Wood
+        {
+            public readonly List<Vector3> v = new List<Vector3>();
+            public readonly List<Vector3> n = new List<Vector3>();
+            public readonly List<Vector2> uv = new List<Vector2>();
+            public readonly List<int> t = new List<int>();
         }
 
         static MeshSet Build(Species species, int variant, string key)
@@ -370,170 +405,370 @@ namespace JamKit.Look.EditorTools
             var rng = new System.Random((int)species * 1009 + variant * 7919 + 17);
             float R() => (float)rng.NextDouble();
             float H = spec.refHeight;
+            var near = new Wood();
+            var far = new Wood();
+            var crownC = new Vector3((R() - 0.5f) * 0.12f * spec.crownR, spec.crownY, (R() - 0.5f) * 0.12f * spec.crownR);
+            var clumps = new List<Clump>();
+            bool shrub = species == Species.Shrub;
 
-            // ---- Trunk, limbs and branches (LOD0/1), and a trunk with its main limbs only (LOD2) ----
-            var tv = new List<Vector3>(); var tn = new List<Vector3>(); var tuv = new List<Vector2>(); var tt = new List<int>();
-            var lv = new List<Vector3>(); var ln = new List<Vector3>(); var luv = new List<Vector2>(); var lt = new List<int>();
-            float r0 = spec.trunkR;
-            var lean = new Vector3((R() - 0.5f) * 0.14f, 1f, (R() - 0.5f) * 0.14f).normalized;
-            var forkPoint = lean * spec.fork;
-            var crownC = new Vector3((R() - 0.5f) * 0.1f * spec.crownR, spec.crownY, (R() - 0.5f) * 0.1f * spec.crownR);
-            int sides = species == Species.Shrub ? 5 : 12;
-            // The trunk in two bends (a straight cylinder reads as a pole), and the root flare.
-            var bend = forkPoint * 0.5f + new Vector3((R() - 0.5f) * 0.18f, 0f, (R() - 0.5f) * 0.18f) * spec.fork / 3f;
-            Tube(tv, tn, tuv, tt, Vector3.down * 0.3f, bend, r0 * 1.12f, r0 * 0.95f, sides, 0f);
-            Tube(tv, tn, tuv, tt, bend, forkPoint, r0 * 0.95f, r0 * 0.8f, sides, spec.fork * 0.5f + 0.3f);
-            Tube(lv, ln, luv, lt, Vector3.down * 0.3f, forkPoint, r0 * 1.1f, r0 * 0.8f, 6, 0f);
-            if (species != Species.Shrub)
+            // Keeps a point inside the crown's ellipsoid, shrunk by a margin (a clump's radius): no clump outside the outline.
+            Vector3 Inside(Vector3 p, float margin)
             {
-                Tube(tv, tn, tuv, tt, Vector3.down * 0.25f, Vector3.up * 0.5f, r0 * 1.65f, r0 * 1.05f, sides, 0.3f);
-                // Root buttresses: a few short flares out along the ground.
+                var d = p - crownC;
+                float ax = Mathf.Max(0.15f, spec.crownR - margin), ay = Mathf.Max(0.15f, spec.crownRy - margin * 0.7f);
+                float e = Mathf.Sqrt((d.x * d.x + d.z * d.z) / (ax * ax) + d.y * d.y / (ay * ay));
+                return e > 1f ? crownC + d / e : p;
+            }
+
+            // ---- The trunk: one swept tube from below the ground, through a bend and the fork, up the leader ----
+            var lean = new Vector3((R() - 0.5f) * 0.12f, 1f, (R() - 0.5f) * 0.12f).normalized;
+            var trunkPts = new List<Vector3>();
+            var trunkR = new List<float>();
+            float r0 = spec.trunkR;
+            if (shrub)
+            {
+                trunkPts.Add(Vector3.down * 0.1f); trunkPts.Add(Vector3.up * spec.leaderTop);
+                trunkR.Add(r0); trunkR.Add(r0 * 0.6f);
+            }
+            else
+            {
+                float top = spec.leaderTop;
+                var wob = new Vector3((R() - 0.5f) * 0.3f, 0f, (R() - 0.5f) * 0.3f);
+                int steps = Mathf.Max(4, Mathf.CeilToInt(top / 0.9f));
+                for (int i = 0; i <= steps; i++)
+                {
+                    float k = i / (float)steps;
+                    float y = Mathf.Lerp(-0.3f, top, k);
+                    // A gentle S along the height (a straight cylinder reads as a pole).
+                    var p = lean * y + wob * Mathf.Sin(k * Mathf.PI * 1.3f) * (top / 6f);
+                    p.y = y;
+                    trunkPts.Add(p);
+                    // Root flare at the base, a steady taper up the trunk, thinning faster above the fork (the limbs took
+                    // their share).
+                    float flare = 1f + 0.55f * Mathf.Exp(-Mathf.Max(0f, y + 0.3f) / 0.45f);
+                    float above = Mathf.Max(0f, y - spec.fork) / Mathf.Max(0.5f, top - spec.fork);
+                    float taper = y < spec.fork ? Mathf.Lerp(1f, 0.85f, (y + 0.3f) / (spec.fork + 0.3f)) : Mathf.Lerp(0.85f, spec.vase ? 0.55f : 0.18f, above);
+                    trunkR.Add(r0 * flare * taper);
+                }
+            }
+            Sweep(near, trunkPts, trunkR, shrub ? 5 : 12, 0f);
+            Sweep(far, trunkPts, trunkR, 5, 0f);
+            if (!shrub)
+            {
+                // Root buttresses: short flares out along the ground, sunk into the trunk's base.
                 int roots = 4 + rng.Next(2);
                 for (int k = 0; k < roots; k++)
                 {
                     float a = (k + R() * 0.5f) / roots * Mathf.PI * 2f;
                     var d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
-                    Tube(tv, tn, tuv, tt, Vector3.up * 0.35f + d * r0 * 0.5f, d * r0 * (1.9f + R() * 0.6f) + Vector3.down * 0.12f, r0 * 0.45f, r0 * 0.12f, 6, 0f);
+                    var pts = new List<Vector3> { Vector3.up * 0.4f + d * r0 * 0.3f, Vector3.up * 0.12f + d * r0 * 1.2f, d * r0 * (2f + R() * 0.6f) + Vector3.down * 0.14f };
+                    Sweep(near, pts, new List<float> { r0 * 0.5f, r0 * 0.32f, r0 * 0.1f }, 6, 0f);
                 }
             }
-            var leaderTop = new Vector3(lean.x * H * 0.8f, H * 0.86f, lean.z * H * 0.8f);
-            if (spec.leader)
+
+            float TrunkRadiusAt(float y)
             {
-                // Birch: the trunk carries on up through the crown.
-                Tube(tv, tn, tuv, tt, forkPoint, leaderTop, r0 * 0.8f, r0 * 0.2f, sides, spec.fork + 0.3f);
-                Tube(lv, ln, luv, lt, forkPoint, leaderTop, r0 * 0.8f, r0 * 0.25f, 6, spec.fork + 0.3f);
+                for (int i = 0; i < trunkPts.Count - 1; i++)
+                    if (y <= trunkPts[i + 1].y)
+                        return Mathf.Lerp(trunkR[i], trunkR[i + 1], Mathf.InverseLerp(trunkPts[i].y, trunkPts[i + 1].y, y));
+                return trunkR[trunkR.Count - 1];
             }
 
-            var lobes = new List<Lobe>();
-            void AddLobe(Vector3 c, float r)
+            Vector3 TrunkAt(float y)
             {
-                // Keep the whole lobe inside the crown's ellipsoid (shrunk by the lobe's radius): no clumps outside the outline.
-                var d = c - crownC;
-                float ax = Mathf.Max(0.2f, spec.crownR - 0.8f * r), ay = Mathf.Max(0.2f, spec.crownRy - 0.5f * r);
-                float e = Mathf.Sqrt((d.x * d.x + d.z * d.z) / (ax * ax) + d.y * d.y / (ay * ay));
-                if (e > 1f) c = crownC + d / e;
-                lobes.Add(new Lobe { c = c, r = r });
+                for (int i = 0; i < trunkPts.Count - 1; i++)
+                    if (y <= trunkPts[i + 1].y)
+                        return Vector3.Lerp(trunkPts[i], trunkPts[i + 1], Mathf.InverseLerp(trunkPts[i].y, trunkPts[i + 1].y, y));
+                return trunkPts[trunkPts.Count - 1];
             }
 
+            // ---- Limbs: from staggered heights up the trunk, curving out to tips inside the crown ----
+            float golden = Mathf.PI * (3f - Mathf.Sqrt(5f));
+            float az0 = R() * Mathf.PI * 2f;
             for (int i = 0; i < spec.limbs; i++)
             {
-                float a = (i + R() * 0.55f) / spec.limbs * Mathf.PI * 2f;
-                var dirH = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
-                Vector3 start = spec.leader
-                    ? Vector3.Lerp(forkPoint, leaderTop, 0.1f + (i + 0.5f) / spec.limbs * 0.75f)
-                    : forkPoint + Vector3.down * (0.35f * R()) * spec.fork / 3f;
-                float reach = spec.crownR * Mathf.Lerp(0.55f, 0.82f, R());
-                float lift = spec.limbUp + (R() - 0.5f) * 0.4f;
-                var end = new Vector3(crownC.x, 0f, crownC.z) + dirH * reach;
-                // Limb tips spread over the crown's height (some low and drooping, some high), so the crown reaches down
-                // towards the fork instead of sitting on a bare pole; oaks keep theirs low and wide, elms high (a vase).
-                float f = Mathf.Clamp01(Mathf.Repeat(i * 0.618f + R() * 0.25f, 1f) * 0.8f + (spec.limbUp - 0.6f) * 0.5f);
-                end.y = spec.leader
-                    ? start.y + reach * lift * 0.6f
-                    : crownC.y + spec.crownRy * Mathf.Lerp(-0.6f, 0.4f, f);
-                var mid = Vector3.Lerp(start, end, 0.45f) + Vector3.up * (0.25f + R() * 0.35f) * spec.crownRy / 3f;
-                float lr = r0 * (spec.leader ? 0.32f : 0.6f);
-                int ls = species == Species.Shrub ? 4 : 8;
-                Tube(tv, tn, tuv, tt, start, mid, lr, lr * 0.7f, ls, 0f);
-                Tube(tv, tn, tuv, tt, mid, end, lr * 0.7f, lr * 0.25f, Mathf.Max(4, ls - 1), 0f);
-                if (!spec.leader && species != Species.Shrub) Tube(lv, ln, luv, lt, start, end, lr, lr * 0.3f, 5, 0f);
-                AddLobe(end + Vector3.up * spec.lobeR * 0.25f, spec.lobeR * Mathf.Lerp(0.85f, 1.15f, R()));
-                // Branches off each limb, each ending in its own clump.
-                int branches = species == Species.Shrub ? 1 : 2 + rng.Next(2);
-                for (int k = 0; k < branches; k++)
+                float az = az0 + i * golden + (R() - 0.5f) * 0.5f;
+                var dirH = new Vector3(Mathf.Cos(az), 0f, Mathf.Sin(az));
+                float hk = spec.limbs > 1 ? i / (float)(spec.limbs - 1) : 0.5f;
+                float sy = Mathf.Lerp(spec.fork, spec.limbStartTop, hk) + (R() - 0.5f) * 0.3f;   // staggered up the trunk, never one fork point
+                sy = Mathf.Clamp(sy, spec.fork - 0.2f, spec.leaderTop - 0.2f);
+                float baseR = TrunkRadiusAt(sy);
+                var start = TrunkAt(sy) + dirH * baseR * 0.25f;   // sunk inside the trunk: no open ring at the joint
+                // The tip: out towards the crown's edge at this azimuth, its height spread over the crown (low limbs droop
+                // to the crown's underside, high ones reach the top), kept a clump's radius inside the outline.
+                float reach = spec.crownR * Mathf.Lerp(0.55f, 0.85f, R());
+                float tipY = shrub ? crownC.y + spec.crownRy * Mathf.Lerp(-0.2f, 0.5f, R())
+                    : crownC.y + spec.crownRy * Mathf.Lerp(-0.55f, 0.55f, Mathf.Clamp01(hk * 0.8f + R() * 0.35f + (spec.vase ? 0.2f : 0f)));
+                var tip = Inside(new Vector3(crownC.x + dirH.x * reach, tipY, crownC.z + dirH.z * reach), spec.clumpR * 0.75f);
+                float limbR = shrub ? r0 * 0.7f : Mathf.Min(baseR * 0.62f, r0 * (spec.vase ? 0.6f : 0.5f)) * Mathf.Lerp(0.85f, 1.1f, R());
+                var limb = Curve(start, tip, (dirH * (1f - spec.limbLift) + Vector3.up * (0.25f + spec.limbLift)).normalized, rng, 6);
+                var radii = Taper(limb, limbR, limbR * 0.22f);
+                Sweep(near, limb, radii, shrub ? 4 : 8, sy);
+                if (!shrub) Sweep(far, Thin(limb), Thin(radii), 4, sy);
+                AddClump(clumps, tip + Vector3.up * spec.clumpR * 0.15f, spec.clumpR * Mathf.Lerp(0.9f, 1.15f, R()));
+                // Branches off the limb's outer half, each ending inside its own clump.
+                for (int k = 0; k < spec.branches; k++)
                 {
-                    var b0 = Vector3.Lerp(mid, end, 0.15f + 0.6f * R());
-                    var outward = (dirH + new Vector3(R() - 0.5f, 0f, R() - 0.5f) * 1.3f).normalized;
-                    var b1 = b0 + outward * spec.crownR * Mathf.Lerp(0.25f, 0.45f, R()) + Vector3.up * spec.crownRy * Mathf.Lerp(0.05f, 0.5f, R());
-                    Tube(tv, tn, tuv, tt, b0, b1, lr * 0.32f, lr * 0.08f, 5, 0f);
-                    AddLobe(b1, spec.lobeR * Mathf.Lerp(0.7f, 1.0f, R()));
-                    // A twig.
-                    var tw = b1 + new Vector3(R() - 0.5f, 0.6f, R() - 0.5f).normalized * spec.lobeR * 0.6f;
-                    Tube(tv, tn, tuv, tt, Vector3.Lerp(b0, b1, 0.6f), tw, lr * 0.1f, lr * 0.03f, 4, 0f);
+                    float bt = Mathf.Lerp(0.4f, 0.8f, (k + R()) / Mathf.Max(1, spec.branches));
+                    int bi = Mathf.Clamp(Mathf.RoundToInt(bt * (limb.Count - 1)), 1, limb.Count - 2);
+                    var b0 = limb[bi];
+                    var along = (limb[bi + 1] - limb[bi - 1]).normalized;
+                    var side = Vector3.Cross(along, Vector3.up);
+                    if (side.sqrMagnitude < 1e-3f) side = Vector3.right;
+                    side = side.normalized * (R() < 0.5f ? -1f : 1f);
+                    var bdir = (along * 0.45f + side * 0.75f + Vector3.up * Mathf.Lerp(0.15f, 0.6f, R())).normalized;
+                    float blen = spec.crownR * Mathf.Lerp(0.28f, 0.42f, R());
+                    var btip = Inside(b0 + bdir * blen, spec.clumpR * 0.8f);
+                    if ((btip - b0).magnitude < spec.clumpR * 0.5f) continue;
+                    float br = radii[bi] * 0.5f;
+                    var branch = Curve(b0 - bdir * br, btip, bdir, rng, 4);
+                    Sweep(near, branch, Taper(branch, br, br * 0.2f), 5, 0f);
+                    float cr = spec.clumpR * Mathf.Lerp(0.78f, 1.0f, R());
+                    // The branch ends a third of the way into its clump (no tip poking out).
+                    AddClump(clumps, btip + bdir * cr * 0.3f, cr);
                 }
             }
-            // A crown top and an inner fill so the crown's middle isn't hollow.
-            AddLobe(crownC + Vector3.up * spec.crownRy * 0.45f, spec.lobeR * 1.05f);
-            AddLobe(crownC, spec.lobeR * 1.2f);
+            if (!spec.vase && !shrub)
+            {
+                // The leader's top carries the crown's top clump; one more clump fills the crown's heart from below.
+                var top = trunkPts[trunkPts.Count - 1];
+                AddClump(clumps, Inside(top + Vector3.up * spec.clumpR * 0.5f, spec.clumpR * 0.7f), spec.clumpR * 1.1f);
+                AddClump(clumps, Inside(TrunkAt(Mathf.Lerp(spec.fork, spec.leaderTop, 0.7f)) + Vector3.up * 0.2f, spec.clumpR), spec.clumpR * 1.15f);
+            }
+            if (shrub)
+            {
+                // A shrub's middle, on top of its stems.
+                AddClump(clumps, crownC + Vector3.up * spec.crownRy * 0.25f, spec.clumpR * 1.25f);
+            }
+            if (spec.vase)
+            {
+                // The vase's open top: a couple of clumps across the middle, carried on short branches off the limbs above.
+                for (int k = 0; k < 2; k++)
+                {
+                    float a = az0 + k * Mathf.PI + 0.7f;
+                    var p = Inside(crownC + new Vector3(Mathf.Cos(a) * spec.crownR * 0.25f, spec.crownRy * 0.35f, Mathf.Sin(a) * spec.crownR * 0.25f), spec.clumpR);
+                    var from = TrunkAt(spec.leaderTop);
+                    var pts = Curve(from, p, Vector3.up, rng, 4);
+                    Sweep(near, pts, Taper(pts, r0 * 0.3f, r0 * 0.08f), 5, 0f);
+                    AddClump(clumps, p, spec.clumpR * 1.05f);
+                }
+            }
 
             var set = new MeshSet
             {
-                trunk = MakeMesh(key + " trunk", tv, tn, tuv, tt),
-                trunkLow = MakeMesh(key + " trunk far", lv, ln, luv, lt),
+                trunk = MakeMesh(key + " trunk", near),
+                trunkLow = MakeMesh(key + " trunk far", far),
             };
-            // ---- Crowns: LOD0 many small cards, LOD1 a third as many and bigger, LOD2 a few big cards ----
             int s0 = variant * 31 + (int)species * 97;
-            set.crown0 = Crown(key + " crown0", spec, lobes, crownC, spec.cards, spec.card, new System.Random(s0 + 1));
-            set.crown1 = Crown(key + " crown1", spec, lobes, crownC, Mathf.RoundToInt(spec.cards / 3.2f), spec.card * 1.65f, new System.Random(s0 + 2));
-            set.crown2 = Crown(key + " crown2", spec, lobes, crownC, Mathf.Max(18, spec.cards / 14), spec.card * 3.0f, new System.Random(s0 + 3));
+            set.crown0 = Crown(key + " crown0", spec, clumps, crownC, spec.cardsPerClump, 1.2f, 1, new System.Random(s0 + 1), out set.cards0, out set.area0);
+            set.crown1 = Crown(key + " crown1", spec, clumps, crownC, 2, 1.55f, 1, new System.Random(s0 + 2), out set.cards1, out _);
+            set.crown2 = Crown(key + " crown2", spec, clumps, crownC, 1, 2.2f, 2, new System.Random(s0 + 3), out set.cards2, out _);
             return set;
         }
 
-        static Mesh MakeMesh(string name, List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t)
+        static void AddClump(List<Clump> clumps, Vector3 c, float r)
+        {
+            // Two clumps nearly on top of each other double the overdraw for nothing: merge them.
+            for (int i = 0; i < clumps.Count; i++)
+            {
+                var o = clumps[i];
+                if ((o.c - c).sqrMagnitude < (0.45f * Mathf.Min(o.r, r)) * (0.45f * Mathf.Min(o.r, r)))
+                {
+                    clumps[i] = new Clump { c = (o.c + c) * 0.5f, r = Mathf.Max(o.r, r) * 1.05f };
+                    return;
+                }
+            }
+            clumps.Add(new Clump { c = c, r = r });
+        }
+
+        /// <summary>A bent path from <paramref name="a"/> to <paramref name="b"/> leaving <paramref name="a"/> along
+        /// <paramref name="startDir"/>: a cubic Bezier with a little sideways wander, <paramref name="n"/> segments.</summary>
+        static List<Vector3> Curve(Vector3 a, Vector3 b, Vector3 startDir, System.Random rng, int n)
+        {
+            float R() => (float)rng.NextDouble();
+            float len = Vector3.Distance(a, b);
+            var toB = (b - a) / Mathf.Max(len, 1e-4f);
+            var wander = new Vector3(R() - 0.5f, (R() - 0.5f) * 0.4f, R() - 0.5f) * len * 0.12f;
+            var c1 = a + startDir * len * 0.38f + wander;
+            var endDir = (toB + Vector3.down * 0.15f).normalized;   // tips settle a little (weight of the leaves)
+            var c2 = b - endDir * len * 0.3f - wander * 0.5f;
+            var pts = new List<Vector3>(n + 1);
+            for (int i = 0; i <= n; i++)
+            {
+                float t = i / (float)n, u = 1f - t;
+                pts.Add(u * u * u * a + 3f * u * u * t * c1 + 3f * u * t * t * c2 + t * t * t * b);
+            }
+            return pts;
+        }
+
+        static List<float> Taper(List<Vector3> pts, float r0, float r1)
+        {
+            float total = 0f;
+            for (int i = 1; i < pts.Count; i++) total += Vector3.Distance(pts[i - 1], pts[i]);
+            var radii = new List<float>(pts.Count);
+            float acc = 0f;
+            for (int i = 0; i < pts.Count; i++)
+            {
+                if (i > 0) acc += Vector3.Distance(pts[i - 1], pts[i]);
+                float k = total > 0f ? acc / total : 0f;
+                radii.Add(Mathf.Lerp(r0, r1, Mathf.Pow(k, 0.8f)));
+            }
+            return radii;
+        }
+
+        static List<T> Thin<T>(List<T> list)
+        {
+            var o = new List<T>();
+            for (int i = 0; i < list.Count; i += 2) o.Add(list[i]);
+            if ((list.Count - 1) % 2 != 0) o.Add(list[list.Count - 1]);
+            return o;
+        }
+
+        /// <summary>
+        /// One tube swept along a path: rings with parallel-transported frames (no twist), continuous bark UVs (u round the
+        /// girth in metres, v along the length from <paramref name="vOffset"/>), normals out from the axis.
+        /// </summary>
+        static void Sweep(Wood w, List<Vector3> pts, List<float> radii, int sides, float vOffset)
+        {
+            if (pts.Count < 2) return;
+            int start = w.v.Count;
+            var t0 = (pts[1] - pts[0]).normalized;
+            var normal = Vector3.Cross(t0, Mathf.Abs(t0.y) > 0.95f ? Vector3.right : Vector3.up).normalized;
+            var prevT = t0;
+            float vAcc = vOffset;
+            float circ = Mathf.Max(Mathf.PI * 2f * radii[0], 0.25f);
+            for (int i = 0; i < pts.Count; i++)
+            {
+                var tan = i == 0 ? t0 : i == pts.Count - 1 ? (pts[i] - pts[i - 1]).normalized : (pts[i + 1] - pts[i - 1]).normalized;
+                if (i > 0)
+                {
+                    normal = Quaternion.FromToRotation(prevT, tan) * normal;
+                    vAcc += Vector3.Distance(pts[i - 1], pts[i]);
+                }
+                prevT = tan;
+                normal = Vector3.ProjectOnPlane(normal, tan).normalized;
+                var bin = Vector3.Cross(normal, tan);   // this sense + the (i0, i2, i1) winding face outward (Unity: clockwise = front)
+                for (int s = 0; s <= sides; s++)
+                {
+                    float ang = s / (float)sides * Mathf.PI * 2f;
+                    var dir = normal * Mathf.Cos(ang) + bin * Mathf.Sin(ang);
+                    w.v.Add(pts[i] + dir * radii[i]);
+                    w.n.Add(dir);
+                    w.uv.Add(new Vector2(s / (float)sides * circ, vAcc));
+                }
+            }
+            int row = sides + 1;
+            for (int i = 0; i < pts.Count - 1; i++)
+                for (int s = 0; s < sides; s++)
+                {
+                    int i0 = start + i * row + s, i1 = i0 + 1, i2 = i0 + row, i3 = i2 + 1;
+                    w.t.Add(i0); w.t.Add(i2); w.t.Add(i1);
+                    w.t.Add(i1); w.t.Add(i2); w.t.Add(i3);
+                }
+            // A rounded cap on a thick open end (the elm's trunk top under its vase of limbs, seen from the hill).
+            int last = pts.Count - 1;
+            if (radii[last] > 0.03f)
+            {
+                int capCentre = w.v.Count;
+                w.v.Add(pts[last] + prevT * radii[last] * 0.6f);
+                w.n.Add(prevT);
+                w.uv.Add(new Vector2(circ * 0.5f, vAcc + radii[last]));
+                int ring = start + last * row;
+                for (int s = 0; s < sides; s++)
+                {
+                    w.t.Add(ring + s + 1); w.t.Add(ring + s); w.t.Add(capCentre);
+                }
+            }
+        }
+
+        static Mesh MakeMesh(string name, Wood w)
         {
             var m = new Mesh { name = name };
-            m.SetVertices(v); m.SetNormals(n); m.SetUVs(0, uv); m.SetTriangles(t, 0);
+            if (w.v.Count > 65000) m.indexFormat = IndexFormat.UInt32;
+            m.SetVertices(w.v); m.SetNormals(w.n); m.SetUVs(0, w.uv); m.SetTriangles(w.t, 0);
             m.RecalculateTangents(); m.RecalculateBounds();
             return m;
         }
 
-        static Mesh Crown(string name, Spec spec, List<Lobe> lobes, Vector3 crownC, int cards, float card, System.Random rng)
+        struct Card
+        {
+            public Vector3 p, r, u, n;
+            public float rim, sortKey;
+            public Color tint;
+            public bool flip;
+        }
+
+        /// <summary>
+        /// A crown: <paramref name="perClump"/> cards round each clump (every <paramref name="clumpStep"/>-th clump), each card
+        /// <paramref name="sizeK"/> x the clump's radius wide, facing outward from the clump with some scatter, shaded with a
+        /// normal between the clump's and the whole crown's (clumps read as clumps, the crown as one volume). Cards are
+        /// written outermost first. Returns the card count and total card area.
+        /// </summary>
+        static Mesh Crown(string name, Spec spec, List<Clump> clumps, Vector3 crownC, int perClump, float sizeK, int clumpStep,
+            System.Random rng, out int cardCount, out float area)
         {
             float R() => (float)rng.NextDouble();
-            var cv = new List<Vector3>(cards * 4); var cn = new List<Vector3>(cards * 4); var cuv = new List<Vector2>(cards * 4);
-            var cuv1 = new List<Vector2>(cards * 4); var cc = new List<Color>(cards * 4); var ct = new List<int>(cards * 6);
-            // Lobes weighted by volume.
-            var weights = new float[lobes.Count];
-            float total = 0f;
-            for (int i = 0; i < lobes.Count; i++) { total += lobes[i].r * lobes[i].r * lobes[i].r; weights[i] = total; }
+            var cards = new List<Card>();
             var cell = new Vector2((spec.cell % 2) * 0.5f, (spec.cell / 2) * 0.5f);
-            float half = card * 0.5f;
-            int made = 0, tries = 0;
-            while (made < cards && tries++ < cards * 8)
+            area = 0f;
+            for (int ci = 0; ci < clumps.Count; ci += clumpStep)
             {
-                float pick = R() * total;
-                int li = 0;
-                while (li < lobes.Count - 1 && weights[li] < pick) li++;
-                var lobe = lobes[li];
-                var d = new Vector3(R() * 2f - 1f, R() * 2f - 1f, R() * 2f - 1f);
-                if (d.sqrMagnitude > 1f || d.sqrMagnitude < 1e-3f) continue;
-                d.Normalize();
-                // Mostly on the clump's outer shell (a full silhouette), some inside (depth when you look through a gap).
-                float shell = 1f - 0.62f * R() * R();
-                var p = lobe.c + d * Mathf.Max(0.05f, lobe.r - half * 0.6f) * shell;
-                // Inside the crown's outline, card and all.
-                var fromC = p - crownC;
-                float ex = Mathf.Max(0.2f, spec.crownR - half * 0.4f), ey = Mathf.Max(0.2f, spec.crownRy - half * 0.4f);
-                float e = Mathf.Sqrt((fromC.x * fromC.x + fromC.z * fromC.z) / (ex * ex) + fromC.y * fromC.y / (ey * ey));
-                if (e > 1f) continue;
-                // Shading normal: partly the clump's own (clumps read as clumps), partly the whole crown's.
-                var ellN = new Vector3(fromC.x / (spec.crownR * spec.crownR), fromC.y / (spec.crownRy * spec.crownRy), fromC.z / (spec.crownR * spec.crownR)).normalized;
-                var lobeN = (p - lobe.c).sqrMagnitude > 1e-4f ? (p - lobe.c).normalized : ellN;
-                var n = (ellN * 0.55f + lobeN * 0.45f + Vector3.up * 0.12f).normalized;
-                var facing = (n + new Vector3(R() - 0.5f, R() - 0.5f, R() - 0.5f) * 1.1f).normalized;
-                var right = Vector3.Cross(facing, Mathf.Abs(facing.y) > 0.9f ? Vector3.right : Vector3.up).normalized;
-                var up = Vector3.Cross(right, facing);
-                float twist = R() * Mathf.PI * 2f;
-                float size = Mathf.Lerp(0.8f, 1.2f, R());
-                var r = (right * Mathf.Cos(twist) + up * Mathf.Sin(twist)) * half * size;
-                var u = (-right * Mathf.Sin(twist) + up * Mathf.Cos(twist)) * half * size;
-                bool flip = R() < 0.5f;
-                // Rim: 0 deep inside the crown, 1 on its outer shell (translucency and the painted occlusion use it).
-                float rim = Mathf.Clamp01((e - 0.35f) / 0.55f) * Mathf.Lerp(0.6f, 1f, shell);
-                // Tint: the species' colour, per-card variation, a little darker low in the crown and warmer at the top.
-                float heightK = Mathf.InverseLerp(crownC.y - spec.crownRy, crownC.y + spec.crownRy, p.y);
-                float v = Mathf.Lerp(0.8f, 1.06f, heightK) * Mathf.Lerp(0.88f, 1.08f, R());
-                float warm = (R() - 0.4f) * 0.08f + heightK * 0.04f;
-                var tint = new Color(spec.tint.r * v * (1f + warm), spec.tint.g * v, spec.tint.b * v * (1f - warm),
-                    Mathf.Clamp01(new Vector2(fromC.x, fromC.z).magnitude / spec.crownR) * 0.8f + 0.2f);
+                var cl = clumps[ci];
+                float r = cl.r * (clumpStep > 1 ? 1.2f : 1f);
+                var fromC = cl.c - crownC;
+                var ellN = new Vector3(fromC.x / (spec.crownR * spec.crownR), fromC.y / (spec.crownRy * spec.crownRy), fromC.z / (spec.crownR * spec.crownR));
+                ellN = ellN.sqrMagnitude > 1e-6f ? ellN.normalized : Vector3.up;
+                float e = Mathf.Sqrt((fromC.x * fromC.x + fromC.z * fromC.z) / (spec.crownR * spec.crownR) + fromC.y * fromC.y / (spec.crownRy * spec.crownRy));
+                // A per-clump tint: some clumps a little darker or more olive (the crown isn't one flat green).
+                var clumpTint = new Color(Mathf.Lerp(0.92f, 1.04f, R()), Mathf.Lerp(0.95f, 1.05f, R()), Mathf.Lerp(0.9f, 1.02f, R()));
+                for (int k = 0; k < perClump; k++)
+                {
+                    // Directions spread round the clump, biased outward from the crown and upward (the outer shell).
+                    var rnd = new Vector3(R() * 2f - 1f, R() * 2f - 1f, R() * 2f - 1f);
+                    if (perClump > 1)
+                    {
+                        float a = (k + R() * 0.6f) / perClump * Mathf.PI * 2f;
+                        rnd = new Vector3(Mathf.Cos(a), (R() - 0.35f) * 1.2f, Mathf.Sin(a));
+                    }
+                    var dir = (ellN * 0.85f + rnd.normalized * 0.75f + Vector3.up * 0.15f).normalized;
+                    var p = cl.c + dir * r * (perClump > 1 ? Mathf.Lerp(0.25f, 0.45f, R()) : 0.1f);
+                    var n = (ellN * 0.6f + dir * 0.4f + Vector3.up * 0.1f).normalized;
+                    var facing = (dir + new Vector3(R() - 0.5f, R() - 0.5f, R() - 0.5f) * 0.5f).normalized;
+                    var right = Vector3.Cross(facing, Mathf.Abs(facing.y) > 0.9f ? Vector3.right : Vector3.up).normalized;
+                    var up = Vector3.Cross(right, facing);
+                    float twist = (R() - 0.5f) * 1.2f;   // mostly upright: the clump's twig base points down
+                    float half = r * sizeK * 0.5f * Mathf.Lerp(0.88f, 1.12f, R());
+                    var rr = (right * Mathf.Cos(twist) + up * Mathf.Sin(twist)) * half;
+                    var uu = (-right * Mathf.Sin(twist) + up * Mathf.Cos(twist)) * half;
+                    float heightK = Mathf.InverseLerp(crownC.y - spec.crownRy, crownC.y + spec.crownRy, p.y);
+                    float v = Mathf.Lerp(0.82f, 1.05f, heightK) * Mathf.Lerp(0.9f, 1.06f, R());
+                    float sway = Mathf.Clamp01(new Vector2(p.x, p.z).magnitude / Mathf.Max(0.5f, spec.crownR)) * 0.8f + 0.2f;
+                    var tint = new Color(clumpTint.r * v, clumpTint.g * v, clumpTint.b * v, sway);
+                    float ep = Mathf.Sqrt(((p - crownC).x * (p - crownC).x + (p - crownC).z * (p - crownC).z) / (spec.crownR * spec.crownR) +
+                                          (p - crownC).y * (p - crownC).y / (spec.crownRy * spec.crownRy));
+                    cards.Add(new Card
+                    {
+                        p = p, r = rr, u = uu, n = n, tint = tint, flip = R() < 0.5f,
+                        rim = Mathf.Clamp01((Mathf.Max(e, ep) - 0.3f) / 0.6f),
+                        sortKey = -ep,
+                    });
+                    area += (2f * half) * (2f * half);
+                }
+            }
+            // Outermost first: the shell is drawn before the cards behind it, which then fail the depth test early.
+            cards.Sort((x, y) => x.sortKey.CompareTo(y.sortKey));
+            cardCount = cards.Count;
+            var cv = new List<Vector3>(cards.Count * 4); var cn = new List<Vector3>(cards.Count * 4); var cuv = new List<Vector2>(cards.Count * 4);
+            var cuv1 = new List<Vector2>(cards.Count * 4); var cc = new List<Color>(cards.Count * 4); var ct = new List<int>(cards.Count * 6);
+            foreach (var cd in cards)
+            {
                 int b = cv.Count;
-                cv.Add(p - r - u); cv.Add(p - r + u); cv.Add(p + r + u); cv.Add(p + r - u);
-                float u0 = flip ? 0.49f : 0.01f, u1 = flip ? 0.01f : 0.49f;
-                cuv.Add(cell + new Vector2(u0, 0.01f)); cuv.Add(cell + new Vector2(u0, 0.49f));
-                cuv.Add(cell + new Vector2(u1, 0.49f)); cuv.Add(cell + new Vector2(u1, 0.01f));
-                for (int k = 0; k < 4; k++) { cn.Add(n); cc.Add(tint); cuv1.Add(new Vector2(rim, 0f)); }
+                cv.Add(cd.p - cd.r - cd.u); cv.Add(cd.p - cd.r + cd.u); cv.Add(cd.p + cd.r + cd.u); cv.Add(cd.p + cd.r - cd.u);
+                float u0 = cd.flip ? 0.495f : 0.005f, u1 = cd.flip ? 0.005f : 0.495f;
+                cuv.Add(cell + new Vector2(u0, 0.005f)); cuv.Add(cell + new Vector2(u0, 0.495f));
+                cuv.Add(cell + new Vector2(u1, 0.495f)); cuv.Add(cell + new Vector2(u1, 0.005f));
+                for (int k = 0; k < 4; k++) { cn.Add(cd.n); cc.Add(cd.tint); cuv1.Add(new Vector2(cd.rim, 0f)); }
                 ct.Add(b); ct.Add(b + 1); ct.Add(b + 2); ct.Add(b); ct.Add(b + 2); ct.Add(b + 3);
-                made++;
             }
             var mesh = new Mesh { name = name };
             mesh.SetVertices(cv); mesh.SetNormals(cn); mesh.SetUVs(0, cuv); mesh.SetUVs(1, cuv1); mesh.SetColors(cc); mesh.SetTriangles(ct, 0);
@@ -541,40 +776,15 @@ namespace JamKit.Look.EditorTools
             return mesh;
         }
 
-        /// <summary>A tapered tube from a to b (bark UVs in metres: u round the girth, v along the length).</summary>
+        /// <summary>A tapered straight tube from a to b (bark UVs in metres: u round the girth, v along the length). Kept for
+        /// other builders; the trees use swept tubes.</summary>
         public static void Tube(List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t, Vector3 a, Vector3 b, float ra, float rb, int sides, float vOffset)
         {
-            var axis = (b - a);
-            float len = axis.magnitude;
-            if (len < 1e-4f) return;
-            axis /= len;
-            var side = Vector3.Cross(axis, Mathf.Abs(axis.y) > 0.95f ? Vector3.right : Vector3.up).normalized;
-            var fwd = Vector3.Cross(side, axis);
-            int start = v.Count;
-            int rings = Mathf.Max(2, Mathf.CeilToInt(len / 0.8f) + 1);
-            float circ = Mathf.Max(Mathf.PI * (ra + rb), 0.3f);
-            for (int ri = 0; ri < rings; ri++)
-            {
-                float k = ri / (float)(rings - 1);
-                float r = Mathf.Lerp(ra, rb, k);
-                var c = a + axis * len * k;
-                for (int s = 0; s <= sides; s++)
-                {
-                    float ang = s / (float)sides * Mathf.PI * 2f;
-                    var dir = side * Mathf.Cos(ang) + fwd * Mathf.Sin(ang);
-                    v.Add(c + dir * r);
-                    n.Add(dir);
-                    uv.Add(new Vector2(s / (float)sides * circ, vOffset + len * k));
-                }
-            }
-            int row = sides + 1;
-            for (int ri = 0; ri < rings - 1; ri++)
-                for (int s = 0; s < sides; s++)
-                {
-                    int i0 = start + ri * row + s, i1 = i0 + 1, i2 = i0 + row, i3 = i2 + 1;
-                    t.Add(i0); t.Add(i2); t.Add(i1);
-                    t.Add(i1); t.Add(i2); t.Add(i3);
-                }
+            var w = new Wood();
+            Sweep(w, new List<Vector3> { a, Vector3.Lerp(a, b, 0.5f), b }, new List<float> { ra, (ra + rb) * 0.5f, rb }, sides, vOffset);
+            int baseIndex = v.Count;
+            v.AddRange(w.v); n.AddRange(w.n); uv.AddRange(w.uv);
+            foreach (var i in w.t) t.Add(i + baseIndex);
         }
     }
 }

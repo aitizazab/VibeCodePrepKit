@@ -6,25 +6,16 @@
 #                  capture   = twelve 1920x1080 stills to out/look-captures/<time>/ (GPU)
 #                  all       = build, bake and capture in one Unity run (default)
 #                  perfbuild = a Windows player of LookLab alone, to out/look-perf/ (no GPU work; ~5 min, ~300 MB on disk)
-#                  perf      = runs that player with -perf-probe at 1920x1080 fullscreen (GPU, ~50 s): it flies the twelve shots
-#                              and writes frame-time percentiles to out/look-perf/perf.txt (also grep JAMKIT_PERF in its log)
+#                  perf      = RETIRED (pass 3): the Look's own frame-time probe was deleted; the Perf agent's probe
+#                              (Perf/Probe/VhPerfProbe.cs, docs/redesign/perf.md section 1) measures the game's scenes.
 # Renders with the GPU, so Unity runs in batch mode WITH graphics (no -nographics). Run it one GPU job at a time.
 param([ValidateSet('all', 'build', 'bake', 'capture', 'perfbuild', 'perf')][string]$Stage = 'all')
 . "$PSScriptRoot\unity-env.ps1"
 
 $perfDir = Join-Path $OutDir 'look-perf'
 if ($Stage -eq 'perf') {
-    $exe = Join-Path $perfDir 'LookLab.exe'
-    if (-not (Test-Path $exe)) { Write-Host "No player at ${exe}: run -Stage perfbuild first"; exit 1 }
-    $report = Join-Path $perfDir 'perf.txt'
-    $log = Join-Path $perfDir 'player.log'
-    $playerArgs = @('-perf-probe', '-perf-seconds', '42', '-perf-out', "`"$report`"", '-screen-width', '1920', '-screen-height', '1080',
-        '-screen-fullscreen', '1', '-logFile', "`"$log`"")
-    $p = Start-Process -FilePath $exe -ArgumentList $playerArgs -PassThru
-    $null = $p.Handle
-    $p.WaitForExit()
-    if (Test-Path $report) { Get-Content $report | ForEach-Object { Write-Host "  $_" } } else { Write-Host "No report; see $log"; exit 1 }
-    exit 0
+    Write-Host "The Look's -perf-probe stage is retired: use the Perf agent's probe (docs/redesign/perf.md section 1)."
+    exit 1
 }
 
 Assert-ProjectUnlocked
