@@ -1434,3 +1434,12 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
 - 2026-10-12 ~15:40: **green at c802eb5**: PlayMode 168/168 (plus EditMode 957/957, DreamHouse and VH PLAYABLE). The final house-escape page is FableAnimationTests/art/review/2026-10-13/house-escape/index-5.html (fresh stills, opened). Questions: the ceilings switch; do the two outcomes at the stairwell door feel different enough; the length; the memory offer. Running: Edit + StreetCapture (Elias at the barbecue).
 - 2026-10-12 ~16:00: Night 1: Elias checked in street-10 (41c94d0, capture 20261012-111137-street): about 7 m away, the barbecue at his hip, the house and the beacon over his shoulder. Page FableAnimationTests/art/review/2026-10-13/night1-hill/index.html refreshed (d934c63) and reopened. The barbecue is getting a real grill model, then the day's final build (Edit + DreamStreet and VH builds + PlayMode + the 90 s chain smoke).
 - 2026-10-12 ~16:20: **the day's final state, main 708161f (kettle grills): all green.** EditMode 957/957, PlayMode 168/168, DreamStreet, DreamHouse and VisitingHours PLAYABLE in VibeJamKit-play/Builds/Play/. The 90 s chain smoke passes: title -> Day 1 -> Night 1 -> Day 2 -> Night 2 -> the end card (the smoke loads each segment; it doesn't play the arguments). Review pages for the creator (all in FableAnimationTests/art/review/2026-10-13/): walt-battle, dream-cast-n1-n2, night1-hill, house-escape/index-5.html, waking-ward.
+
+## 2026-10-12, afternoon: the script talk (main)
+- Lena's script, agreed with the creator: the typos fixed (floundering, "feeling well, Nadia", felicity; heart, finds,
+  "chose to give up"); L1c.askReply filled (Theo set her place, the plate kept warm: judge in play); L2.retort is now
+  "Cowards? ..." with a harsher angry reply (the crueler option kept as a // note); L3c.sound says the dream is static
+  and keeps him who he was (forty-two kept: six weeks = 42, Night 2 is the 42nd Saturday). Originals kept as // notes.
+- Waiting on the creator: the bad dream rethought as Elias himself, the Doctor (teases Night 3; L5 unbreakable
+  tonight), or cut. L3.askAgainReply and the L5 block wait on that.
+- After the creator's playthrough: Walt's bike and ledger in Night 1 (41 lines), the redrawn drawing, the "~" drawl.

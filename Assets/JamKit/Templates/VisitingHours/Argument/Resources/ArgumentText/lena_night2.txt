@@ -32,7 +32,7 @@ noTouchReply: That's not what I said. Listen to me. // Do you take me for a fool
   ? when Nadia's evidence doesn't touch the premise: a redirect
 pressClaimLine: He is NOT staying. 
   ? Nadia forcing the claim itself
-pressClaimReply: ...Take him, then. Felicity must mean nothing to you.
+pressClaimReply: ...Take him, then. felicity must mean nothing to you.
   ? their answer to being forced (it ends the battle)
 concedeClaimLine: ...Maybe he is happy, in a sense. But you know as much as I that it's not fully true.
   ? Nadia giving in on the claim
@@ -107,7 +107,8 @@ L1b.antagonise.reply: Is that so? Or have you always disregarded my place in thi
 ## L1c (L1''): a fact, TRUE, hidden at first
 L1c.text: ...Where were you last Sunday, then?
   ? the premise card: what they claim, in their words
-L1c.askReply: 
+L1c.askReply: Theo set your place anyway. Elias kept your plate warm until noon, and pretended he wasn't waiting.
+  ? (agent draft, agreed 2026-10-12: judge it in play)
   ? their answer when Nadia asks why
 L1c.concedeLine: I wasn't here, and that's my fault.
   ? Nadia conceding it
@@ -133,7 +134,7 @@ L2.concedeLine: No. I don't know where you are, but we can find you, together-
   ? Nadia conceding it
 L2.concedeReply: Find me? Where? Where will you search that the Police didn't? What do you base your confidence off of?
   ? their answer to the concession (often states the next premise)
-L2.trueReply: Then where am I? Go on. I grow tired of your flonudering, Nadia. You should know better.
+L2.trueReply: Then where am I? Go on. I grow tired of your floundering, Nadia. You should know better.
   ? when Nadia tries to challenge something true: it's true, concede it
 L2.pressLine: I told you to stop spouting nonsense. Get it through your thick head. // tamer line used when less aggressive
   ? Nadia forcing it without a reason
@@ -141,15 +142,15 @@ L2.pressLine[anger=0,presses=0,force<=1]: Please, Lena. Stop saying that. You do
   ? (agent placeholder) the tamer line, while Nadia's been gentle: no antagonising, no presses yet, low Force.
 L2.pressReply: You scream, and you yell. Once more, you get what you want, but you're blind to see nothing really changes.
   ? their answer to being forced
-L2.retort: You don't get to ask me that. You know we have to try, we owe it to the real Lena.
+L2.retort: Cowards? You've already buried yourself. At least they're still looking. // was: You don't get to ask me that. You know we have to try, we owe it to the real Lena.
   ? Nadia's antagonising reply: dodges the question, attacks them (angers them) // doesn't really, might need changing
-L2.retort.reply: The real Lena. Why risk his happiness to try finding a needle in a haystack?
+L2.retort.reply: Still looking. How noble of them. And what have *you* done in six weeks, besides sleep in that hospital chair? Don't you call me a coward in my own kitchen. // the crueler option: At least I'm honest about where I am. You're the one hiding: in that hospital, and now in his head. Sit down, or get out. // was: The real Lena. Why risk his happiness to try finding a needle in a haystack?
   ? their angry answer // same as above
 
 ## L2b (L2'): a link, HALF, can't be broken tonight, hidden at first
 L2b.text: Waking means searching - forever.
   ? the premise card: what they claim, in their words
-L2b.askReply: Tireless, endless nights spent looking for what's most likely a decomposing corpse. It might even be better for him he never find me.
+L2b.askReply: Tireless, endless nights spent looking for what's most likely a decomposing corpse. It might even be better for him he never finds me.
   ? their answer when Nadia asks why
 L2b.concedeLine: ...I can't deny that.
   ? Nadia conceding it
@@ -165,7 +166,7 @@ L2b.pressReply: Naive, and I know you don't believe it either. Don't disrespect 
 ## L3 (L3): a link, HALF
 L3.text: He chose this dream. Six weeks, and he's happy here. I know he is.
   ? the premise card: what they claim, in their words
-L3.askReply: We've been married twelve years, and I know this life he had... he wanted it with all his hearts.
+L3.askReply: We've been married twelve years, and I know this life he had... he wanted it with all his heart.
   ? their answer when Nadia asks why
 L3.askAgainReply: ...You want to know what he dreams about? The bad dream. A woman in scrubs who comes to take us away. // Needs changing. You've mentioned the 'Bad Dream' many times, usuallly with Theo or Lena as the messengers, but what does it mean? What does it represent?
   ? when asked a second time: what lies under it
@@ -193,15 +194,15 @@ L3b.pressLine: This isn't a life!
   ? Nadia forcing it without a reason
 L3b.pressReply: It's the only one he's got left.
   ? their answer to being forced
-L3b.sound: Sunday Pancakes. Except, it's not Sunday, is it? It's Saturday. This is the breakfast he chose to yield, because he knew what his job meant for the town.
+L3b.sound: Sunday Pancakes. Except, it's not Sunday, is it? It's Saturday. This is the breakfast he chose to give up, because he knew what his job meant for the town.
   ? the reason that follows: the proof that breaks this premise
 L3b.sound.reply: ...Fine. Then let him have his wish.
   ? their answer: concedes, falls back or digs deeper
 L3b.beside: He loved Saturdays with you.
   ? a reason that's true but beside the point
-L3b.beside.reply: Yes. That's my point... // latter part exclusive to max despair counter, and low anger or 'force'. (original: Yes. That's my point... Are you sure you're feeling Nadia? W-We don't need to continue if you're falling ill.)
+L3b.beside.reply: Yes. That's my point... // latter part exclusive to max despair counter, and low anger or 'force'. (original: Yes. That's my point... Are you sure you're feeling well, Nadia? W-We don't need to continue if you're falling ill.)
   ? why it misses
-L3b.beside.reply[despair>=3,anger<=1,force<=1]: Yes. That's my point... Are you sure you're feeling Nadia? W-We don't need to continue if you're falling ill.
+L3b.beside.reply[despair>=3,anger<=1,force<=1]: Yes. That's my point... Are you sure you're feeling well, Nadia? W-We don't need to continue if you're falling ill.
   ? (agent) your whole line: max despair, with low anger and low Force.
 L3b.nonsequitur: He worked that day, so he never really wanted a family.
   ? a reason that doesn't follow from the evidence
@@ -223,7 +224,7 @@ L3c.pressLine: He can't have it!
   ? Nadia forcing it without a reason
 L3c.pressReply: You'd take that from him too?
   ? their answer to being forced
-L3c.sound: He's had this morning forty-two times, and Walt patches the same flat every one. A wish you have to repair every night isn't peace. // I understand so little of this that I can't even try to fix it. How does Walt come into this, patching what? Talk about this.
+L3c.sound: Forty-two Saturdays, and Walt patches the same flat every one. Nothing here changes, Lena. Not the tyre, not the street, not him. This dream keeps him exactly who he was. He'll never get to become anyone else. // was: He's had this morning forty-two times, and Walt patches the same flat every one. A wish you have to repair every night isn't peace. // I understand so little of this that I can't even try to fix it. How does Walt come into this, patching what? Talk about this.
   ? the reason that follows: the proof that breaks this premise
 L3c.sound.reply: ...Forty-two. Has it really been that many days? ...He deserves so much more.
   ? their answer: concedes, falls back or digs deeper
