@@ -1,0 +1,167 @@
+{
+ "name": "Lena",
+ "src": "lena",
+ "height": 1.88,
+ "colour": "deep wine-red trousers against a cream high-neck sweater",
+ "note": "Lena (Tripo, her approved sheet vh3d-lena2-take1, 2026-10-13): honey-blonde waves, green-grey eyes, freckles, a pencil behind her right ear; the plain base the representative is altered from",
+ "face": {
+  "rect": [
+   -58,
+   818,
+   60,
+   936
+  ],
+  "eyes": [
+   [
+    -27,
+    884
+   ],
+   [
+    25,
+    884
+   ]
+  ],
+  "eyebox": [
+   30,
+   16
+  ],
+  "brows": [
+   [
+    -25,
+    900
+   ],
+   [
+    24,
+    900
+   ]
+  ],
+  "mouth": [
+   -1,
+   845
+  ],
+  "mouthL": [
+   -20,
+   846
+  ],
+  "mouthR": [
+   16,
+   846
+  ],
+  "jaw": 0.3,
+  "smile": 0.34,
+  "brow": 0.24,
+  "frown": 0.28,
+  "draw": {
+   "iris": [
+    0.44,
+    0.5,
+    0.34
+   ],
+   "iris_dark": [
+    0.14,
+    0.17,
+    0.1
+   ],
+   "brow": [
+    0.56,
+    0.38,
+    0.22
+   ],
+   "brow_thick": 4.0,
+   "lash": [
+    0.12,
+    0.08,
+    0.06
+   ],
+   "lip": [
+    0.74,
+    0.42,
+    0.42
+   ],
+   "lip_line": [
+    0.36,
+    0.14,
+    0.14
+   ],
+   "lip_alpha": 0.8,
+   "eye_scale": [
+    1.0,
+    1.05
+   ],
+   "rest_lid": 0.12,
+   "mouth_line_w": 1.5,
+   "brow_arch": 0.15
+  },
+  "keep": [
+   [
+    50,
+    893,
+    12,
+    26
+   ]
+  ]
+ },
+ "alter": {
+  "classes": [
+   {
+    "name": "skin",
+    "sample": [
+     0.0,
+     0.915,
+     0.008
+    ],
+    "target": null
+   },
+   {
+    "name": "hair",
+    "sample": [
+     0.0,
+     0.955,
+     0.01
+    ],
+    "target": null,
+    "roughness": 0.8,
+    "not_in": [
+     [
+      0.0,
+      -0.07,
+      0.875,
+      0.042,
+      0.05,
+      0.06
+     ]
+    ]
+   },
+   {
+    "name": "sweater",
+    "sample": [
+     0.0,
+     0.72,
+     0.02
+    ],
+    "zmax": 0.81,
+    "target": null
+   },
+   {
+    "name": "trousers",
+    "sample": [
+     -0.05,
+     0.3,
+     0.02
+    ],
+    "zmax": 0.52,
+    "target": null
+   },
+   {
+    "name": "boots",
+    "sample": [
+     -0.06,
+     0.04,
+     0.012
+    ],
+    "zmax": 0.1,
+    "target": null
+   }
+  ]
+ }
+}

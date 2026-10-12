@@ -99,6 +99,8 @@ def main(path):
                 gate &= yy <= c["ymax"]
             if "ymin" in c:
                 gate &= yy >= c["ymin"]
+            if "poly" in c:    # only inside a front-projected polygon [[x, z], ...] (a blouse's V, a lapel), front half
+                gate &= in_poly(xN[r0:r0 + band], zz, c["poly"]) & (yy < c.get("poly_ymax", 0.0))
             if "zskip" in c:   # a band this class may not take (hair under a bandage)
                 gate &= (zz < c["zskip"][0]) | (zz > c["zskip"][1])
             if "not_in" in c:  # ellipsoids this class may not take: [cx, cy, cz, rx, ry, rz] (the face, for hair)
@@ -170,6 +172,19 @@ def main(path):
         img, _, _ = vt.render_ortho(m, small_out, (lo[0] - 0.02, lo[2] - 0.02, hi[0] + 0.02, hi[2] + 0.02), 1024)
         bg = np.full_like(img[..., :3], 0.35)
         vt.save(img[..., :3] * img[..., 3:] + bg * (1 - img[..., 3:]), s["preview"])
+
+
+def in_poly(x, z, poly):
+    """Point-in-polygon (even-odd) for arrays of x, z against [[x, z], ...]."""
+    inside = np.zeros(x.shape, dtype=bool)
+    n = len(poly)
+    for i in range(n):
+        x1, z1 = poly[i]
+        x2, z2 = poly[(i + 1) % n]
+        cross = ((z1 > z) != (z2 > z))
+        xint = x1 + (z - z1) * (x2 - x1) / ((z2 - z1) if z2 != z1 else 1e-9)
+        inside ^= cross & (x < xint)
+    return inside
 
 
 def vertex_moves(s, m, tex, P):

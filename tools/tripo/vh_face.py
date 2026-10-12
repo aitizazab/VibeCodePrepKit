@@ -21,7 +21,8 @@ face.json (millimetres of the model's own world x / z; the character faces -Y; +
    "rect": [x0, z0, x1, z1], "eyes": [[x, z], [x, z]] (rough centres; found in an eyebox) or "eye_override":
    [[x, z, a, b], ...] (explicit centres and half sizes), "brows", "mouth", "mouthL", "mouthR",
    "draw": {...} the character's design (DESIGN below), "clean": [[x, z, rx, rz], ...] extra paint-out ellipses,
-   "lenses": [[x, z, rx, rz], ...] (glasses: cleaned to skin with a faint glare), "frame_protos": [[r, g, b], ...]
+   "lenses": [[x, z, rx, rz], ...] (glasses: cleaned to skin with a faint glare), "keep": [[x, z, rx, rz], ...]
+   (never painted: a lock of hair in front of the face), "frame_protos": [[r, g, b], ...]
    (colours of the glasses / cords that the decal must not cover and the fill must not borrow),
    "expressions": [names], "jaw", "smile", "frown", "brow" (shape-key strengths, fractions of the eye distance)}
 """
@@ -451,7 +452,8 @@ def main(spec_path):
     mouth = {"x": s["mouth"][0], "z": s["mouth"][1], "hw": (mR[0] - mL[0]) / 2.0}
 
     # 1. Paint out the painted eyes, brows and lips (and any extra ellipses), inpainted from the skin round them.
-    clean = [[e["x"], e["z"], e["a"] * 1.4, e["b"] * 1.9 + 1.5] for e in painted]
+    ec = s.get("eye_clean", [1.55, 1.9])
+    clean = [[e["x"], e["z"], e["a"] * ec[0], e["b"] * ec[1] + 1.5] for e in painted]
     clean += [[b[0], b[1], brows[0]["len"] * s.get("brow_clean", [0.72, 1.2])[0], max(6.0, unit * s.get("brow_clean", [0.72, 1.2])[1])] for b in s["brows"]]
     clean += [[mouth["x"], mouth["z"] - 1.0, mouth["hw"] * 1.25, max(6.0, unit * 0.8)]]
     clean += s.get("clean", [])
@@ -464,6 +466,8 @@ def main(spec_path):
     if lenses:   # only round the glasses: the eyes' own dark paint must still be painted out
         frame &= ellipse_mask(W, H, px, [[x, z, rx + 5, rz + 5] for x, z, rx, rz in lenses], 1.0) > 0.5
     M = M * (~frame)
+    if s.get("keep"):   # never painted: a lock of hair hanging in front of the face (its skin is hidden anyway)
+        M = M * (1.0 - ellipse_mask(W, H, px, s["keep"], 1.5))
     src_w = ((1.0 - np.clip(M * 1.6, 0, 1)) * ok * (~frame)).astype(np.float32)
     fill = push_pull(face, src_w)
     # Regions filled from one material only (a beard over the chin's painted gap): sources are the pixels near the
@@ -494,7 +498,7 @@ def main(spec_path):
     okR, pos, nrm, _ = vt.raster_uv(m, R)
     cpx = (pos[..., 0] - x0) / (x1 - x0) * W
     cpy = (1 - (pos[..., 2] - z0) / (z1 - z0)) * H
-    inside = okR & (cpx >= 0) & (cpx < W - 1) & (cpy >= 0) & (cpy < H - 1) & (nrm[..., 1] < -0.1)
+    inside = okR & (cpx >= 0) & (cpx < W - 1) & (cpy >= 0) & (cpy < H - 1)
     ci = np.clip(cpx.astype(int), 0, W - 1)
     ri = np.clip(cpy.astype(int), 0, H - 1)
     visible = inside & (pos[..., 1] <= depth[ri, ci] + 0.0015)

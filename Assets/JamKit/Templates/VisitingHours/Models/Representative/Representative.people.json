@@ -1,14 +1,14 @@
 {
  "name": "Representative",
- "height": 1.72,
+ "height": 1.74,
  "idle": "idle",
- "colour": "an aubergine blazer over a cream blouse, gold at the glasses and the chain",
- "note": "LeBaget's Community Partnerships representative (a woman, mid-forties): altered from Mags (fair skin, dark brown hair, berry lipstick, gold glasses on a gold chain, an aubergine blazer, a cream blouse, charcoal trousers, black shoes, taller and slimmer, a visitor badge on the lapel, a gold pin)",
+ "colour": "an aubergine blazer over a cream silk blouse; gold at the glasses, the pin and the watch",
+ "note": "LeBaget's Community Partnerships representative (a woman, mid-forties): altered from the 3D Lena (the creator, 2026-10-13): espresso-brown hair, her own drawn face (brown eyes, arched brows, berry lipstick, no freckles), a cut aubergine blazer with lapels over a cream blouse, charcoal trousers, black shoes, gold glasses, a visitor badge and a gold pin",
  "hasFace": true,
  "decal": "Representative_FaceDecal",
  "atlas": "Representative_FaceAtlas.png",
  "columns": 6,
- "rows": 1,
+ "rows": 9,
  "blink": true,
  "expressions": [
   {
@@ -20,7 +20,7 @@
    "shapes": [
     {
      "shape": "Smile",
-     "weight": 45
+     "weight": 55
     }
    ]
   },
@@ -29,11 +29,11 @@
    "shapes": [
     {
      "shape": "Smile",
-     "weight": 90
+     "weight": 75
     },
     {
      "shape": "BrowsUp",
-     "weight": 25
+     "weight": 35
     }
    ]
   },
@@ -42,11 +42,11 @@
    "shapes": [
     {
      "shape": "Frown",
-     "weight": 60
+     "weight": 80
     },
     {
      "shape": "BrowsSad",
-     "weight": 85
+     "weight": 100
     }
    ]
   },
@@ -55,11 +55,15 @@
    "shapes": [
     {
      "shape": "BrowsSad",
-     "weight": 70
+     "weight": 85
     },
     {
      "shape": "Frown",
-     "weight": 25
+     "weight": 35
+    },
+    {
+     "shape": "MouthOpen",
+     "weight": 6
     }
    ]
   },
@@ -72,7 +76,11 @@
     },
     {
      "shape": "Frown",
-     "weight": 55
+     "weight": 70
+    },
+    {
+     "shape": "MouthOpen",
+     "weight": 12
     }
    ]
   },
@@ -81,11 +89,11 @@
    "shapes": [
     {
      "shape": "BrowsDown",
-     "weight": 85
+     "weight": 100
     },
     {
      "shape": "Frown",
-     "weight": 45
+     "weight": 55
     }
    ]
   },
@@ -94,7 +102,11 @@
    "shapes": [
     {
      "shape": "BrowsUp",
-     "weight": 95
+     "weight": 100
+    },
+    {
+     "shape": "MouthOpen",
+     "weight": 35
     }
    ]
   },
@@ -103,20 +115,70 @@
    "shapes": [
     {
      "shape": "BrowsDown",
-     "weight": 35
+     "weight": 30
     },
     {
      "shape": "Frown",
-     "weight": 20
+     "weight": 25
     },
     {
      "shape": "Smile",
-     "weight": 15
+     "weight": 25
     }
    ]
   }
  ],
  "accessories": [
+  {
+   "name": "GlassesL",
+   "color": [
+    0.85,
+    0.67,
+    0.33
+   ],
+   "smoothness": 0.8,
+   "metallic": 1.0
+  },
+  {
+   "name": "GlassesR",
+   "color": [
+    0.85,
+    0.67,
+    0.33
+   ],
+   "smoothness": 0.8,
+   "metallic": 1.0
+  },
+  {
+   "name": "GlassesBridge",
+   "color": [
+    0.85,
+    0.67,
+    0.33
+   ],
+   "smoothness": 0.8,
+   "metallic": 1.0
+  },
+  {
+   "name": "GlassesArmR",
+   "color": [
+    0.85,
+    0.67,
+    0.33
+   ],
+   "smoothness": 0.8,
+   "metallic": 1.0
+  },
+  {
+   "name": "GlassesArmL",
+   "color": [
+    0.85,
+    0.67,
+    0.33
+   ],
+   "smoothness": 0.8,
+   "metallic": 1.0
+  },
   {
    "name": "Badge",
    "color": [
@@ -141,7 +203,7 @@
    "name": "Pin",
    "color": [
     0.85,
-    0.68,
+    0.67,
     0.33
    ],
    "smoothness": 0.85,

@@ -1,0 +1,132 @@
+{
+ "name": "Lena",
+ "height": 1.88,
+ "idle": "idle",
+ "colour": "deep wine-red trousers against a cream high-neck sweater",
+ "note": "Lena (Tripo, her approved sheet vh3d-lena2-take1, 2026-10-13): honey-blonde waves, green-grey eyes, freckles, a pencil behind her right ear; the plain base the representative is altered from",
+ "hasFace": true,
+ "decal": "Lena_FaceDecal",
+ "atlas": "Lena_FaceAtlas.png",
+ "columns": 6,
+ "rows": 9,
+ "blink": true,
+ "expressions": [
+  {
+   "name": "neutral",
+   "shapes": []
+  },
+  {
+   "name": "warm",
+   "shapes": [
+    {
+     "shape": "Smile",
+     "weight": 55
+    }
+   ]
+  },
+  {
+   "name": "happy",
+   "shapes": [
+    {
+     "shape": "Smile",
+     "weight": 75
+    },
+    {
+     "shape": "BrowsUp",
+     "weight": 35
+    }
+   ]
+  },
+  {
+   "name": "sad",
+   "shapes": [
+    {
+     "shape": "Frown",
+     "weight": 80
+    },
+    {
+     "shape": "BrowsSad",
+     "weight": 100
+    }
+   ]
+  },
+  {
+   "name": "worried",
+   "shapes": [
+    {
+     "shape": "BrowsSad",
+     "weight": 85
+    },
+    {
+     "shape": "Frown",
+     "weight": 35
+    },
+    {
+     "shape": "MouthOpen",
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "name": "hurt",
+   "shapes": [
+    {
+     "shape": "BrowsSad",
+     "weight": 100
+    },
+    {
+     "shape": "Frown",
+     "weight": 70
+    },
+    {
+     "shape": "MouthOpen",
+     "weight": 12
+    }
+   ]
+  },
+  {
+   "name": "angry",
+   "shapes": [
+    {
+     "shape": "BrowsDown",
+     "weight": 100
+    },
+    {
+     "shape": "Frown",
+     "weight": 55
+    }
+   ]
+  },
+  {
+   "name": "surprised",
+   "shapes": [
+    {
+     "shape": "BrowsUp",
+     "weight": 100
+    },
+    {
+     "shape": "MouthOpen",
+     "weight": 35
+    }
+   ]
+  },
+  {
+   "name": "doubtful",
+   "shapes": [
+    {
+     "shape": "BrowsDown",
+     "weight": 30
+    },
+    {
+     "shape": "Frown",
+     "weight": 25
+    },
+    {
+     "shape": "Smile",
+     "weight": 25
+    }
+   ]
+  }
+ ],
+ "accessories": []
+}
