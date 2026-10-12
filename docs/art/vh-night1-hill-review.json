@@ -11,8 +11,7 @@
  "notes": [
   "Both halves of Walt's optional premise ('the same Saturday') are below his gate: the neighbours' loop plays on the far bank where you arrive, and Saturday's paper is on his yard bench.",
   "The flood wall along the creek is drawn low so the climb shows from the far bank; the dream holds it higher than it looks, so the shop's apron is the only landing.",
-  "Every line is a placeholder; the shop's sign has no lettering.",
-  "Elias at the barbecue stood on the knoll, hidden behind its face from where you come up; he's on the side lawn now, in sight as you arrive. A still of him comes with the next capture."
+  "Every line is a placeholder; the shop's sign has no lettering."
  ],
  "sections": [
   {
@@ -46,7 +45,8 @@
    "cols": 2,
    "items": [
     { "file": "art/review/2026-10-13/night1-hill/street-05-top-the-vista.png", "label": "The vista from the lookout", "note": "Down over the terraces to the far bank and the neighbours' house." },
-    { "file": "art/review/2026-10-13/night1-hill/street-06-top-the-house.png", "label": "The house and its beacon from the top of the road" }
+    { "file": "art/review/2026-10-13/night1-hill/street-06-top-the-house.png", "label": "The house and its beacon from the top of the road" },
+    { "file": "art/review/2026-10-13/night1-hill/street-10-top-elias-at-the-barbecue.png", "label": "Elias at the barbecue on the side lawn", "note": "In sight as you come up onto the top; he goes inside as you arrive. His eyes are at 1.66 m, a little above Lena's." }
    ]
   }
  ]
