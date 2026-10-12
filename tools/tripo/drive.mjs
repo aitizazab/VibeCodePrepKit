@@ -1,4 +1,5 @@
-// One action per call against the Tripo Chrome (dedicated profile .chrome-tripo, port 9472), off-screen, one tab.
+// One action per call against our automation Chrome (port 9333, see chrome.mjs), off-screen, one tab. Each call holds
+// FableAnimationTests/.work/gemini.lock while it runs (the tab is shared with flow.mjs).
 //
 //   node drive.mjs launch                      start Chrome off-screen (no-op if running)
 //   node drive.mjs goto <url>                  navigate the one tab
@@ -27,6 +28,7 @@ const [cmd, ...args] = process.argv.slice(2);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function tab() {
+  chrome.lock(cmd + ' ' + args.join(' ').slice(0, 80));
   const { browser, context, page } = await chrome.launch();
   const pages = context.pages();
   // keep ONE tab: close any extra ones (popups Tripo may open)
@@ -74,8 +76,9 @@ async function main() {
     }
     else { console.error('unknown command', cmd); process.exitCode = 2; }
   } finally {
-    await chrome.parkOffscreen(browser, page).catch(() => {});
+    if (cmd === 'launch' || cmd === 'goto') await chrome.parkOffscreen();
     await browser.close(); // detaches only
+    chrome.unlock();
   }
 }
 main().then(() => process.exit(process.exitCode || 0), (e) => { console.error('ERR', e.message); process.exit(1); });

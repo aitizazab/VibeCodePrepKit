@@ -1,0 +1,14 @@
+{
+    "name": "JamKit.VisitingHours.Characters",
+    "rootNamespace": "JamKit.VisitingHours.Characters",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

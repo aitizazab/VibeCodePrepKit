@@ -13,6 +13,7 @@ const chrome = await import('./chrome.mjs');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const steps = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+chrome.lock('steps ' + process.argv[2]);
 const { browser, page } = await chrome.launch();
 let cdp = null;
 try {
@@ -61,7 +62,7 @@ try {
   }
 } finally {
   if (cdp && !process.env.KEEP_VP) await cdp.send('Emulation.clearDeviceMetricsOverride').catch(() => {});
-  await chrome.parkOffscreen(browser, page).catch(() => {});
   await browser.close();
+  chrome.unlock();
 }
 process.exit(0);

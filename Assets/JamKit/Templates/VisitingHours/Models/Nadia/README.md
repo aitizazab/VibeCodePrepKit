@@ -49,7 +49,8 @@ The waking-world Nadia, made with Tripo Studio from her style-E turnaround
 (e.g. with the "Mixamo" FBX preset, 21 MB with the textures embedded as 4K PNGs) from Tripo's Assets panel.
 
 ## How it was made (to repeat for the other characters)
-Scripts in `tools/tripo/` (adapted from BasilDownfall's Tripo automation; they reuse its logged-in Chrome profile
+Scripts in `tools/tripo/` (since 2026-10-12 they drive our automation Chrome on port 9333; see docs/redesign/people.md.
+They used to reuse a logged-in Chrome profile
 `FableAnimationTests/BasilDownfall/.chrome-tripo` on port 9472 and refuse to touch a Chrome they did not start):
 1. `uv run --with pillow --with numpy python tools/tripo/crop_turnaround.py <sheet.jpg> docs/art/tripo/<name>`
    (front, side, back as 1536 squares).

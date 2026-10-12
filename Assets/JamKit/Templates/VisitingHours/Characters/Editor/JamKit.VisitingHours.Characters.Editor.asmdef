@@ -1,0 +1,20 @@
+{
+    "name": "JamKit.VisitingHours.Characters.Editor",
+    "rootNamespace": "JamKit.VisitingHours.Characters.EditorTools",
+    "references": [
+        "JamKit.VisitingHours.Characters",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

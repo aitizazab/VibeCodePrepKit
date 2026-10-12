@@ -1,122 +1,67 @@
-// The Tripo automation Chrome: launched off-screen, never focused, attached over CDP.
-// Adapted (2026-10-10) from FableAnimationTests/BasilDownfall/tools/chrome.mjs, which stays unchanged.
+// The Tripo / Mixamo automation Chrome: OUR automation Chrome on port 9333 (profile ~/.playwright-chrome-profile),
+// the same one FableAnimationTests/art-tools/flow.mjs uses for Gemini. Off-screen, never focused, one tab.
 //
-// It reuses BasilDownfall's logged-in Tripo profile (.chrome-tripo) on port 9472. Before attaching or closing,
-// portOwner() checks the process listening on the port runs THAT profile, so another agent's Chrome (9471, 9333,
-// 9222, ...) is never driven or shut down. If a Chrome is already running on the profile, refuse rather than share.
+// Changed 2026-10-12 (People agent): this used to start a second Chrome on another profile (port 9472). The standing
+// rule is one automation Chrome on 9333, so everything goes through FableAnimationTests/art-tools/chrome.ps1
+// (start / hide / close; it refuses a port held by a Chrome that isn't ours) and own-chrome.mjs (attach to the one tab).
 //
-// Library use:  import { launch, connect, close, profilePids } from './chrome.mjs'
+// The tab is shared with flow.mjs, so each drive.mjs / steps.mjs call holds FableAnimationTests/.work/gemini.lock for
+// its duration (the same lock flow.mjs takes); a call refuses to run while another program holds it.
+//
+// Library use:  import { launch, connect, close, parkOffscreen, lock, unlock } from './chrome.mjs'
 import fs from 'node:fs';
-import { spawn, execFileSync } from 'node:child_process';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FAT = 'C:\\Users\\User\\Desktop\\yougotgamesonyophone\\FableAnimationTests';
+const PS1 = path.join(FAT, 'art-tools', 'chrome.ps1');
+const LOCK = path.join(FAT, '.work', 'gemini.lock');
 // playwright-core is installed in FableAnimationTests/node_modules, not in VibeJamKit.
 const { chromium } = await import(pathToFileURL(path.join(FAT, 'node_modules', 'playwright-core', 'index.mjs')).href);
-const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const { attach } = await import(pathToFileURL(path.join(FAT, 'art-tools', 'own-chrome.mjs')).href);
+export const PORT = 9333;
 
-export const PROFILE = path.join(FAT, 'BasilDownfall', '.chrome-tripo');
-export const PORT = 9472;
-const MATCH = PROFILE.toLowerCase().replace(/'/g, "''");
-
-const OFFSCREEN = { left: -3000, top: -3000, width: 1440, height: 900 };
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const ps = (cmd) => execFileSync('powershell', ['-NoProfile', '-Command', cmd], { encoding: 'utf8' });
-
-// 'ours' | 'foreign' | 'free': who is listening on PORT.
-export function portOwner() {
-  return ps(`$c = Get-NetTCPConnection -State Listen -LocalPort ${PORT} -ErrorAction SilentlyContinue | Select-Object -First 1; ` +
-    `if (-not $c) { 'free' } else { $p = Get-CimInstance Win32_Process -Filter ("ProcessId=" + $c.OwningProcess); ` +
-    `if ($p.CommandLine -and $p.CommandLine.ToLower().Contains('${MATCH}')) { 'ours' } else { 'foreign' } }`).trim();
+function ps1(action) {
+  const r = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', PS1, action], { encoding: 'utf8' });
+  return { ok: r.status === 0, out: ((r.stdout || '') + (r.stderr || '')).trim() };
 }
 
-async function version() {
-  const owner = portOwner();
-  if (owner === 'free') return null;
-  if (owner === 'foreign') throw new Error(`port ${PORT} belongs to another program's Chrome; refusing to touch it`);
-  try {
-    const res = await fetch(`http://127.0.0.1:${PORT}/json/version`);
-    return res.ok ? await res.json() : null;
-  } catch { return null; }
+let held = false;
+export function lock(what) {
+  if (held) return;
+  fs.mkdirSync(path.dirname(LOCK), { recursive: true });
+  try { fs.mkdirSync(LOCK); } catch {
+    let owner = ''; try { owner = fs.readFileSync(path.join(LOCK, 'owner'), 'utf8').trim(); } catch { /* none */ }
+    throw new Error(`.work/gemini.lock is held (${owner || 'no owner file'}): another run is using the Chrome tab`);
+  }
+  fs.writeFileSync(path.join(LOCK, 'owner'), `tools/tripo · pid ${process.pid} · ${what || ''} · ${new Date().toISOString()}\n`);
+  held = true;
+  process.on('exit', unlock);
 }
-
-// Chrome processes (browser + children) that use the Tripo profile.
-export function profilePids() {
-  const out = ps(`Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | ` +
-    `Where-Object { $_.CommandLine -and $_.CommandLine.ToLower().Contains('${MATCH}') } | ` +
-    `ForEach-Object { $_.ProcessId }`);
-  return out.split(/\s+/).filter(Boolean).map(Number);
+export function unlock() {
+  if (!held) return;
+  fs.rmSync(LOCK, { recursive: true, force: true });
+  held = false;
 }
-
-// Marker so a later call can tell "the Chrome I started" from "someone else's Chrome on the same profile".
-const MINE = path.join(HERE, '.chrome-started-here');
 
 export async function launch() {
-  if (await version()) {
-    if (!fs.existsSync(MINE)) throw new Error('a Chrome is already running on the Tripo profile (another session?); not interfering');
-    return connect();
+  if (!ps1('check').ok) {
+    const s = ps1('start');
+    if (!s.ok) throw new Error('chrome.ps1 start failed: ' + s.out);
   }
-  if (profilePids().length) {
-    throw new Error('Chrome is already running on the Tripo profile without the debug port (another session or the sign-in window); not interfering');
-  }
-  const child = spawn(CHROME, [
-    `--user-data-dir=${PROFILE}`,
-    `--remote-debugging-port=${PORT}`,
-    '--no-startup-window',
-    '--no-first-run', '--no-default-browser-check',
-    '--disable-backgrounding-occluded-windows',
-    '--disable-renderer-backgrounding',
-    '--disable-background-timer-throttling',
-    '--disable-features=CalculateNativeWinOcclusion',
-  ], { detached: true, stdio: 'ignore' });
-  child.unref();
-  fs.writeFileSync(MINE, String(child.pid));
-  for (let i = 0; i < 60 && !(await version()); i++) await sleep(250);
-  if (!(await version())) throw new Error(`Chrome did not open its debug port ${PORT}`);
   return connect();
 }
 
 export async function connect() {
-  if (portOwner() !== 'ours') throw new Error(`no Chrome with the Tripo profile is listening on port ${PORT}`);
-  const browser = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`);
-  const context = browser.contexts()[0];
-  let page = context.pages()[0];
-  if (!page) {
-    const cdp = await browser.newBrowserCDPSession();
-    const waitPage = context.waitForEvent('page');
-    await cdp.send('Target.createTarget', { url: 'about:blank', newWindow: true, background: true, ...OFFSCREEN });
-    page = await waitPage;
-  }
-  await parkOffscreen(browser, page);
-  return { browser, context, page };
+  const { browser, page } = await attach(chromium);
+  return { browser, context: browser.contexts()[0], page };
 }
 
-export async function parkOffscreen(browser, page) {
-  const cdp = await browser.newBrowserCDPSession();
-  const { targetInfos } = await cdp.send('Target.getTargets');
-  const mine = targetInfos.find((t) => t.type === 'page' && t.url === page.url()) || targetInfos.find((t) => t.type === 'page');
-  if (!mine) return;
-  const { windowId, bounds } = await cdp.send('Browser.getWindowForTarget', { targetId: mine.targetId });
-  if (bounds.windowState !== 'normal') await cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'normal' } });
-  if (bounds.left !== OFFSCREEN.left || bounds.top !== OFFSCREEN.top) {
-    await cdp.send('Browser.setWindowBounds', { windowId, bounds: OFFSCREEN });
-  }
-}
+// chrome.ps1 hide moves the window left of every monitor without activating it.
+export async function parkOffscreen() { ps1('hide'); }
 
-// Closes only a Chrome this folder started.
 export async function close() {
-  if (!fs.existsSync(MINE)) return profilePids().length === 0;
-  if (await version()) {
-    try {
-      const browser = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`);
-      const cdp = await browser.newBrowserCDPSession();
-      await cdp.send('Browser.close');
-    } catch { /* the connection drops as Chrome exits */ }
-    for (let i = 0; i < 40 && profilePids().length; i++) await sleep(250);
-  }
-  const done = profilePids().length === 0;
-  if (done) fs.rmSync(MINE, { force: true });
-  return done;
+  const r = ps1('close');
+  return r.ok && /closed|not running/.test(r.out);
 }
