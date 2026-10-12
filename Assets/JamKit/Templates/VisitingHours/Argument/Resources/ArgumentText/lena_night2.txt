@@ -194,7 +194,7 @@ L3b.pressLine: This isn't a life!
   ? Nadia forcing it without a reason
 L3b.pressReply: It's the only one he's got left.
   ? their answer to being forced
-L3b.sound: Sunday Pancakes. Except, it's not Sunday, is it? It's Saturday. This is the breakfast he chose to give up, because he knew what his job meant for the town.
+L3b.sound: Sunday Pancakes. Except, it's not Sunday, is it? It's Saturday. This is the breakfast he chose to yield, because he knew what his job meant for the town.
   ? the reason that follows: the proof that breaks this premise
 L3b.sound.reply: ...Fine. Then let him have his wish.
   ? their answer: concedes, falls back or digs deeper
