@@ -641,6 +641,7 @@ namespace JamKit.Argument
             if (phase == null) return;
             var p = mgc.painter2D;
             float s = Scale;
+            DrawWarnings(p, phase, s);
             // Plates (walls): a column of plates with its gaps.
             p.fillColor = new Color(0.86f, 0.88f, 0.94f);
             var walls = phase.Walls;
@@ -648,7 +649,7 @@ namespace JamKit.Argument
             for (int i = 0; i < walls.Count; i++)
             {
                 var w = walls[i];
-                if (!w.active) continue;
+                if (!w.active || w.warn > 0f) continue;
                 for (float y = -PressurePhase.HalfHeight + PressurePhase.PlateRadius; y <= PressurePhase.HalfHeight; y += step)
                 {
                     if (phase.WallGapAt(w, y) || phase.WallGapAt(w, y + PressurePhase.PlateRadius) || phase.WallGapAt(w, y - PressurePhase.PlateRadius)) continue;
@@ -676,7 +677,7 @@ namespace JamKit.Argument
             p.fillColor = new Color(0.95f, 0.76f, 0.38f);
             var blobs = phase.Blobs;
             for (int i = 0; i < blobs.Count; i++)
-                if (blobs[i].active) Disc(p, ToPixels(blobs[i].position), PressurePhase.BlobRadius * s);
+                if (blobs[i].active && blobs[i].warn <= 0f) Disc(p, ToPixels(blobs[i].position), PressurePhase.BlobRadius * s);
             // Slips: paper planes (diamonds).
             p.fillColor = new Color(0.72f, 0.6f, 1f);
             var slips = phase.Slips;
@@ -703,6 +704,116 @@ namespace JamKit.Argument
                 p.fillColor = new Color(1f, 0.86f, 0.36f);
                 Disc(p, c, PressurePhase.LightRadius * s);
             }
+        }
+
+        // ---------- Warnings (the standing rule, PressureRule): every attack shows where it will be before it can hurt ----------
+
+        /// <summary>Plates wait as a ghost column at the edge they'll come in from, with their gaps; a ring shows its
+        /// centre, a faint outline with its gaps and the lanes out through them; batter shows its path across the box.
+        /// They grow stronger (and pulse faster) as the warning runs out.</summary>
+        void DrawWarnings(Painter2D p, PressurePhase phase, float s)
+        {
+            float tele = Mathf.Max(0.05f, phase.Spec.telegraph);
+            var walls = phase.Walls;
+            float step = PressurePhase.PlateRadius * 2.05f;
+            for (int i = 0; i < walls.Count; i++)
+            {
+                var w = walls[i];
+                if (!w.active || w.warn <= 0f) continue;
+                p.fillColor = new Color(0.86f, 0.88f, 0.94f, WarnAlpha(w.warn, tele));
+                float x = Mathf.Sign(w.x) * (PressurePhase.HalfWidth - PressurePhase.PlateRadius);
+                for (float y = -PressurePhase.HalfHeight + PressurePhase.PlateRadius; y <= PressurePhase.HalfHeight; y += step)
+                {
+                    if (phase.WallGapAt(w, y) || phase.WallGapAt(w, y + PressurePhase.PlateRadius) || phase.WallGapAt(w, y - PressurePhase.PlateRadius)) continue;
+                    Disc(p, ToPixels(new System.Numerics.Vector2(x, y)), PressurePhase.PlateRadius * s * 0.8f);
+                }
+            }
+            var rings = phase.Rings;
+            for (int i = 0; i < rings.Count; i++)
+            {
+                var r = rings[i];
+                if (!r.active || r.warn <= 0f) continue;
+                float a = WarnAlpha(r.warn, tele);
+                var c = ToPixels(r.center);
+                p.fillColor = new Color(0.96f, 0.92f, 0.84f, a);
+                Disc(p, c, 0.05f * s);
+                p.strokeColor = new Color(0.96f, 0.92f, 0.84f, a);
+                p.lineWidth = 2f;
+                float rad = 0.45f * s;
+                if (r.gapCount > 1)
+                {
+                    Arc(p, c, rad, r.gapAngle0 + r.gapHalfAngle, r.gapAngle1 - r.gapHalfAngle);
+                    Arc(p, c, rad, r.gapAngle1 + r.gapHalfAngle, r.gapAngle0 + 2f * Mathf.PI - r.gapHalfAngle);
+                }
+                else Arc(p, c, rad, r.gapAngle0 + r.gapHalfAngle, r.gapAngle0 + 2f * Mathf.PI - r.gapHalfAngle);
+                // The lanes out: the way through each gap, to the edge of the box.
+                p.strokeColor = new Color(1f, 0.86f, 0.36f, a * 0.55f);
+                p.lineWidth = 1.5f;
+                Lane(p, r.center, r.gapAngle0);
+                if (r.gapCount > 1) Lane(p, r.center, r.gapAngle1);
+            }
+            var blobs = phase.Blobs;
+            for (int i = 0; i < blobs.Count; i++)
+            {
+                var b = blobs[i];
+                if (!b.active || b.warn <= 0f) continue;
+                float a = WarnAlpha(b.warn, tele);
+                var from = b.position;
+                var to = b.position + b.velocity * 10f;
+                if (!ClipToBox(ref from, ref to)) continue;
+                p.strokeColor = new Color(0.95f, 0.76f, 0.38f, a * 0.8f);
+                p.lineWidth = PressurePhase.BlobRadius * s * 0.6f;
+                p.BeginPath();
+                p.MoveTo(ToPixels(from));
+                p.LineTo(ToPixels(to));
+                p.Stroke();
+                p.fillColor = new Color(0.95f, 0.76f, 0.38f, a);
+                Disc(p, ToPixels(from), PressurePhase.BlobRadius * s);
+            }
+        }
+
+        /// <summary>Faint at first, strong and quick-pulsing as the warning runs out.</summary>
+        static float WarnAlpha(float warn, float telegraph)
+        {
+            float left = Mathf.Clamp01(warn / telegraph);
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * Mathf.Lerp(26f, 10f, left));
+            return Mathf.Lerp(0.75f, 0.25f, left) + 0.15f * pulse;
+        }
+
+        void Lane(Painter2D p, System.Numerics.Vector2 centre, float angle)
+        {
+            var dir = new System.Numerics.Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            var a = centre + dir * 0.55f;
+            var b = centre + dir * 8f;
+            if (!ClipToBox(ref a, ref b)) return;
+            p.BeginPath();
+            p.MoveTo(ToPixels(a));
+            p.LineTo(ToPixels(b));
+            p.Stroke();
+        }
+
+        /// <summary>Clips a segment (surface units) to the box; false if none of it is inside.</summary>
+        static bool ClipToBox(ref System.Numerics.Vector2 a, ref System.Numerics.Vector2 b)
+        {
+            float t0 = 0f, t1 = 1f;
+            float dx = b.X - a.X, dy = b.Y - a.Y;
+            if (!Clip(-dx, a.X + PressurePhase.HalfWidth, ref t0, ref t1)) return false;
+            if (!Clip(dx, PressurePhase.HalfWidth - a.X, ref t0, ref t1)) return false;
+            if (!Clip(-dy, a.Y + PressurePhase.HalfHeight, ref t0, ref t1)) return false;
+            if (!Clip(dy, PressurePhase.HalfHeight - a.Y, ref t0, ref t1)) return false;
+            var start = a;
+            a = new System.Numerics.Vector2(start.X + dx * t0, start.Y + dy * t0);
+            b = new System.Numerics.Vector2(start.X + dx * t1, start.Y + dy * t1);
+            return true;
+        }
+
+        static bool Clip(float p, float q, ref float t0, ref float t1)
+        {
+            if (Mathf.Abs(p) < 1e-6f) return q >= 0f;
+            float r = q / p;
+            if (p < 0f) { if (r > t1) return false; if (r > t0) t0 = r; }
+            else { if (r < t0) return false; if (r < t1) t1 = r; }
+            return true;
         }
 
         static void Disc(Painter2D p, Vector2 c, float r)

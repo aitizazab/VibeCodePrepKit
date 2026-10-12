@@ -65,6 +65,9 @@ namespace JamKit.Argument
         float _holdTime;
         VisualElement _pointerHold;
         int _lastHeart, _lastVisible, _shownTranscript = -1, _shownSeconds = -1, _keysVersion = -1;
+        // A warning sound for each new attack (the standing rule: they're all warned before they can hurt).
+        PressurePhase _warnedPhase;
+        int _lastWarned;
         Gamepad _keysPad;
         bool _dirty = true;
         readonly StringBuilder _sb = new StringBuilder(256);
@@ -638,6 +641,11 @@ namespace JamKit.Argument
             int visible = _engine.VisiblePremises.Count;
             if (visible > _lastVisible && _screen == ArgueScreen.Pressure) _audio.Play("sfx_slip");
             _lastVisible = visible;
+            var phase = _engine.Pressure;
+            if (phase != _warnedPhase) { _warnedPhase = phase; _lastWarned = 0; }
+            int warned = phase != null ? phase.Telegraphs : 0;
+            if (warned > _lastWarned && _screen == ArgueScreen.Pressure) _audio.Play("sfx_warn", 0.55f);
+            _lastWarned = warned;
         }
 
         // ---------- The view ----------

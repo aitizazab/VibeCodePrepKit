@@ -13,7 +13,7 @@ namespace JamKit.Argument
     /// Swappable files, in Assets/JamKit/Templates/VisitingHours/Argument/Resources/ArgumentAudio/:
     /// argument_battle_loop (the music; the placeholder is the round-2 sketch 05-argument-battle.loop), and one per
     /// sound: sfx_nav, sfx_confirm, sfx_pick, sfx_back, sfx_break, sfx_wrong, sfx_angry, sfx_hit, sfx_heartbeat,
-    /// sfx_pressure_in, sfx_pressure_out, sfx_slip, sfx_end_good, sfx_end_bad. A sound with no file is generated
+    /// sfx_pressure_in, sfx_pressure_out, sfx_slip, sfx_end_good, sfx_end_bad, sfx_warn (an attack's warning). A sound with no file is generated
     /// (a placeholder made in code).
     /// </summary>
     public sealed class ArgumentAudio : MonoBehaviour
@@ -23,7 +23,7 @@ namespace JamKit.Argument
         public static readonly string[] Sounds =
         {
             "sfx_nav", "sfx_confirm", "sfx_pick", "sfx_back", "sfx_break", "sfx_wrong", "sfx_angry", "sfx_hit",
-            "sfx_heartbeat", "sfx_pressure_in", "sfx_pressure_out", "sfx_slip", "sfx_end_good", "sfx_end_bad",
+            "sfx_heartbeat", "sfx_pressure_in", "sfx_pressure_out", "sfx_slip", "sfx_end_good", "sfx_end_bad", "sfx_warn",
         };
         const float FadeSeconds = 0.8f;
 
@@ -167,6 +167,7 @@ namespace JamKit.Argument
                 case "sfx_slip": d = Mix(Tone(0.25f, 1320f, 0.2f, 0f), Delay(Tone(0.3f, 1760f, 0.18f, 0f), 0.08f)); break;
                 case "sfx_end_good": d = Chord(1.6f, new[] { 392f, 494f, 587f, 784f }, 0.2f); break;
                 case "sfx_end_bad": d = Chord(1.6f, new[] { 196f, 233f, 294f }, 0.24f); break;
+                case "sfx_warn": d = Mix(Tone(0.05f, 1180f, 0.14f, 0f), Delay(Tone(0.05f, 1180f, 0.11f, 0f), 0.09f)); break;
                 default: return null;
             }
             var clip = AudioClip.Create("argument_" + id, d.Length, 1, Rate, false);

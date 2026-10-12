@@ -305,15 +305,25 @@ namespace JamKit.Tests.Argument
                     prev = s;
                 }
             }
-            // And in play: the same seconds hold more of it.
+            // And in play: the same seconds hold more of it. Furious throws twice as much; the fairness check drops
+            // what nobody could escape (PressureRule), and what's left still lands noticeably more often.
             var shapes = new[] { PressureShape.Wall, PressureShape.Bloom };
-            int Count(int anger)
+            void Count(int anger, out int thrown, out int landed)
             {
-                var phase = new PressurePhase(PressureSpec.For(1, anger, ArgumentDifficulty.Normal, 1f, false, shapes), 11, null);
-                while (!phase.Finished) phase.Tick(Dt, Vector2.Zero);
-                return phase.Spawned;
+                thrown = landed = 0;
+                for (ulong seed = 11; seed <= 13; seed++)
+                {
+                    var phase = new PressurePhase(PressureSpec.For(1, anger, ArgumentDifficulty.Normal, 1f, false, shapes), seed, null);
+                    var dodger = new PlanningDodger(new DodgePlanner(PressureRule.TestCell, PressureRule.TestStep, PressureRule.PlannerHorizon, PressurePhase.LightSpeed * 0.9f, 0f), 0f, Vector2.Zero);
+                    while (!phase.Finished) phase.Tick(Dt, dodger.Steer(phase, Dt));
+                    thrown += phase.Spawned + phase.Skipped;
+                    landed += phase.Spawned;
+                }
             }
-            Assert.That(Count(3), Is.GreaterThanOrEqualTo(Count(0) * 2), "twice as dense when furious");
+            Count(0, out int calmThrown, out int calmLanded);
+            Count(3, out int furiousThrown, out int furiousLanded);
+            Assert.That(furiousThrown, Is.GreaterThanOrEqualTo(calmThrown * 2), "twice as dense when furious");
+            Assert.That(furiousLanded, Is.GreaterThanOrEqualTo(calmLanded * 1.4f), "and still noticeably denser after the fairness check");
         }
 
         [Test]

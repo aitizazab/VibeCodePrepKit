@@ -97,12 +97,13 @@ played nothing of its own. So the previous scene's ambience went on.
   - an antagonised or forced reply;
   - a hit on Nadia, plus the heartbeat stepping up;
   - the pressure phase opening and closing;
+  - each attack's warning (a soft double tick, `sfx_warn`);
   - a slip caught;
   - the end card (a warm chord for Convinced and Heard out, a dark one otherwise).
 - **Swappable files** in `Argument/Resources/ArgumentAudio/`:
   - `argument_battle_loop`: the music. The placeholder is the round-2 sketch `out/vh-music-sketches/05-argument-battle.loop.wav` as OGG, 111 s.
   - `sfx_nav`, `sfx_confirm`, `sfx_pick`, `sfx_back`, `sfx_break`, `sfx_wrong`, `sfx_angry`, `sfx_hit`, `sfx_heartbeat`,
-    `sfx_pressure_in`, `sfx_pressure_out`, `sfx_slip`, `sfx_end_good`, `sfx_end_bad`.
+    `sfx_pressure_in`, `sfx_pressure_out`, `sfx_slip`, `sfx_end_good`, `sfx_end_bad`, `sfx_warn`.
   - A sound with no file is generated in code (a placeholder). Drop in a file with the same name (WAV or OGG) to
     replace it.
 
@@ -161,12 +162,70 @@ files have a line for every id and no stray ones.
   Heat falls with concessions and sound challenges. On the surface: plates sliding in walls with gaps, flour
   blooming in rings with gaps, batter lobbed at Nadia's light. **Slips** (the paper plane) reveal what she isn't
   saying.
+- **Every attack is fair** (the creator's standing rule, below: "Fair attacks").
 - **Composure is Nadia's heart rate**: 70, 88, 106, 124, 142, 160 bpm. A hit is a step, a true concession calms a
   step, and 160 ends it.
 - **Press** is a 0.6 s hold. **Let it rest** opens once every premise is heard. **Concede** works on any premise, and
   on the claim it gives in (Yielded).
 - **Outcomes:** Convinced (every key premise broken, nothing forced: a truth), Heard out (a keepsake), Pressed,
   Composure lost, Yielded.
+
+## Fair attacks (the standing rule)
+The creator, 2026-10-12: "Aside from Long Night, as a standing rule, attacks either come in from outside the screen,
+or get a telegraph beforehand." And no attack may be impossible to avoid on any difficulty.
+
+**The rule, in the code:** `PressureRule` (in `PressurePhase.cs`). Every spawn goes through `PressureRule.Admit`,
+which refuses an attack that starts inside the box without a warning of at least 0.5 s. Only the Long Night is
+exempt, and only because its spec is flagged (`PressureSpec.exemptFromRule`). Its walls come in from outside anyway.
+
+**The warnings** (the attack is harmless until its warning runs out):
+- 0.65 s on Normal, 1 s in Story.
+- Every attack is warned, even those coming in from outside. Otherwise a light hugging the edge had a tenth of a
+  second.
+- **Plates:** a ghost column at the edge they'll come in from, with their gaps.
+- **Flour rings:** the centre, a faint outline with the gaps, and the lanes out through the gaps to the edge of the box.
+- **Batter:** its path across the box.
+- Each warning grows stronger and pulses faster as it runs out, with a soft double tick (`sfx_warn`).
+
+**Every spawn leaves a way out.** Outside the Long Night, a new attack only spawns if a planner
+(`DodgePlanner`, a search over every spot her light can reach) finds an escape from everything on the surface for a
+deliberately weaker player:
+- 80% of Nadia's speed;
+- extra room around her light;
+- 0.25 s late to react: checked both as if she started moving at once with 0.25 s less warning, and as if she kept
+  doing what she was doing (standing, or moving the same way) for 0.25 s first.
+
+If there's no escape it tries another placement (up to 4). If none works, the attack is dropped. The check costs
+about 0.1 ms per spawn (2 ms at worst in 99 of 100).
+
+**What was unfair, and what changed:**
+- **Flour rings** bloomed anywhere, even right beside her, and their gaps pointed in random directions. A gap could
+  point off the edge of the box on her side, so it was unreachable. Or the ring started so close that there was no
+  time to move. Now:
+  - a ring never blooms within 1 unit of her;
+  - its gap is aimed within her reach (she can get to it before the ring gets to her);
+  - it's warned;
+  - the check above has the last word.
+- **Plates** came in at up to 4.8 units a second with a gap that left a lane only 0.16 wide for her light. A light
+  near the edge they came from had about 0.1 s. Now they're warned, and the narrowest gap on Normal leaves 0.4 of
+  room (it was 0.12). The narrowest gap only binds at high heat and anger; calmer gaps are unchanged.
+- **Batter** was lobbed at her from the nearest edge with no warning: about 0.04 s at the edge. Now it's warned.
+- **Several attacks at once** could close every way out between them (two plates from opposite sides, rings
+  overlapping). The spawn check refuses any attack that would.
+
+**Density:** angrier phases still throw twice as many attacks. The check drops the ones nobody could escape, about
+1 in 8 when calm and up to 1 in 3 when furious, so furious phases land about 1.5 to 2 times as many as calm ones.
+Phase lengths are unchanged.
+
+**The proof** (`PressureFairnessTests`, dotnet):
+- **Every pattern** (plates, rings, batter, all three mixed), on Normal from calm to furious and in Story at its
+  hardest, is played by `PlanningDodger`.
+- **The dodger** searches its reachable spots for an escape every time it sees a new warning, and waits between
+  attacks in an awkward spot: each corner, each edge, the middle (nine phases per case). It has to finish without
+  a single touch. A touch counts even in Story.
+- **No warning-less spawns:** another test checks that nothing appears inside the box without a warning. Others
+  check the rule's refusals and that rings never bloom beside her.
+- **A wider sweep** of 1,260 phases (more seeds and settings) was also untouched.
 
 ## The creator's additions
 1. **Antagonising replies.** Two forms: a fourth "because..." card ("You're a dream..."), or the **Retort** card
@@ -225,6 +284,7 @@ var host = ArgumentHost.Begin(DreamLenaDemo.Build(),
 |---|---|
 | dotnet, `ArgumentEngineTests` (28) and `ArgumentProseTests` (6) | The rules: breaking, the reasons, her replies, slips, reveals, Let it rest, Press, the antagonising escalation, persistence, the Long Night, supporters. The prose: both files have every line and no stray ids, the format, per-evidence overrides, export round-trips, nothing left in code, the transcript's sentences come from screen.txt |
 | Unity EditMode, `ArgumentPrototypeEditorTests` | The screen builds on black with the sprite and the real fonts, with no UI Toolkit buttons; the transitions are timed and finish; every expression has a sprite (a placeholder until the art lands); the prose, music and sounds load from their files; the focus model (no wrap, disabled skipped, one item lit); the scene and the chapters |
+| dotnet, `PressureFairnessTests` (25) | Fair attacks: every pattern at every difficulty survived untouched by a planning dodger from every corner, edge and the middle; nothing appears inside the box without a warning; the rule refuses an unwarned in-box attack (the Long Night is the only exception); rings never bloom beside her |
 | Unity PlayMode, `ArgumentPrototypePlayTests` | **The whole battle on a gamepad alone**, to Convinced: the d-pad to each premise, A into its verbs, B back, Y concede, X ask, A through the evidence and the sound reason, the pressure box opening and closing, A on Continue, then the menu by d-pad. The world's ambience is silent during the battle and back after, and the battle loop starts. Keyboard shortcuts, Backspace stepping back, the 0.6 s Press hold. A won battle saved and Continue back to the menu. Continue on the frame it ends still gives the record |
 
 ## Not done (yet)
