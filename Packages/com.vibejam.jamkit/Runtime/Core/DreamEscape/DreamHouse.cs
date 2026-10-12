@@ -86,7 +86,7 @@ namespace JamKit.DreamEscape
         /// (<see cref="Ceiling"/> and the rooms add it), and the attic's floor with them; doors keep their height.</summary>
         public const float CeilingRaise = 0.4f;
         /// <summary>The dormer on the north slope, over the top of the attic stairs (round 4: it was over the observatory).</summary>
-        public const float DormerX0 = 1.0f, DormerX1 = 3.4f, DormerZ0 = 80f, DormerHeight = 2.4f;
+        public const float DormerX0 = 1.0f, DormerX1 = 3.4f, DormerZ0 = 80.6f, DormerHeight = 2.4f;
         /// <summary>Lena's observatory (round 4, the creator: "a cut-off in the sloped roof so it remains high-roofed in the
         /// observatory"): the attic west of <see cref="ObsX1"/> rises to a flat ceiling <see cref="ObsHeight"/> above the
         /// attic's floor, full height from wall to wall, under its own low roof with a skylight.</summary>
@@ -98,6 +98,8 @@ namespace JamKit.DreamEscape
         /// front door, faces the garden (x = z - <see cref="FrontDoorZ"/>, z = 8.2 - x); the walls' outer faces and the eaves.</summary>
         /// The right side stands 0.8 m further out than the plan, so the stretched hallway's wall (x 4.5..5.5) stays inside.
         public const float FrontDoorZ = 79.4f, OutX0 = HubZ0 - 0.2f - FrontDoorZ, OutX1 = HubZ1 + 0.2f - FrontDoorZ + 0.8f, EaveY = AtticFloor - Ground + KneeWall;
+        /// <summary>The house's back wall outside (z), and how far back the side gardens run.</summary>
+        public const float OutZ1 = 8.2f - (HubX0 - 0.2f), SideGardenZ = 10.8f;
 
         public readonly LabCourse course = new LabCourse();
         public readonly List<HouseLook> looks = new List<HouseLook>();
@@ -294,8 +296,15 @@ namespace JamKit.DreamEscape
             Add("Front door lintel", LabPieceKind.Wall, HouseLook.Facade, V(-1.5f, 2.6f, 0f), V(1.5f, EaveY, 0.5f));
             Add("Chimney (outside, base)", LabPieceKind.Wall, HouseLook.RoofStep, V(-5.1f, 0f, -0.6f), V(-3.3f, 2f, 0f));
             Add("Chimney (outside, stack)", LabPieceKind.Wall, HouseLook.RoofStep, V(-4.8f, 2f, -0.55f), V(-3.6f, 7.0f, 0f));
-            Add("Garden hedge (left)", LabPieceKind.Wall, HouseLook.RoofStep, V(-14f, 0f, -0.8f), V(OutX0, 2.6f, 0f));
-            Add("Garden hedge (right)", LabPieceKind.Wall, HouseLook.RoofStep, V(OutX1, 0f, -0.8f), V(14f, 2.6f, 0f));
+            // The garden runs on round both sides of the house (so the bay and the sides show), to tall hedges level with
+            // the observatory; the house's sides and its bay are solid.
+            Add("Side garden (left)", LabPieceKind.Floor, HouseLook.Lawn, V(-14f, -2f, 0f), V(OutX0, 0f, SideGardenZ));
+            Add("Side garden (right)", LabPieceKind.Floor, HouseLook.Lawn, V(OutX1, -2f, 0f), V(14f, 0f, SideGardenZ));
+            Add("House side (left)", LabPieceKind.Wall, HouseLook.RoofStep, V(OutX0, 0f, 0f), V(OutX0 + 0.25f, 8f, OutZ1));
+            Add("House side (right)", LabPieceKind.Wall, HouseLook.RoofStep, V(OutX1 - 0.25f, 0f, 0f), V(OutX1, 8f, OutZ1));
+            Add("The bay (outside)", LabPieceKind.Wall, HouseLook.RoofStep, V(OutX0 - (HubZ0 - BayZ0), 0f, 8.2f - BayX1 - 0.2f), V(OutX0, 4.3f, 8.2f - BayX0 + 0.2f));
+            Add("Garden hedge (left)", LabPieceKind.Wall, HouseLook.RoofStep, V(-14f, 0f, SideGardenZ - 0.8f), V(OutX0, 2.6f, SideGardenZ));
+            Add("Garden hedge (right)", LabPieceKind.Wall, HouseLook.RoofStep, V(OutX1, 0f, SideGardenZ - 0.8f), V(14f, 2.6f, SideGardenZ));
             Section(0.5f, "The stretched hallway");
             Add("Hallway floor", LabPieceKind.Floor, HouseLook.Hallway, V(-4.5f, -2f, 0.5f), V(4.5f, 0f, 22f));
             Checkpoint("The hallway", 4f, 0f);
@@ -465,8 +474,8 @@ namespace JamKit.DreamEscape
             RoofSteps(DormerX1, HubX1, south: false, fromStep: 1);
             RoofSteps(DormerX0, DormerX1, south: false, fromStep: 3);   // over the dormer only the ridge cap
             // The dormer on the north slope, over the top of the attic stairs: its own walls and roof, a window to the north.
-            Wall("Dormer (west side)", DormerX0 - 0.2f, DormerX0, DormerZ0, HubZ1, AtticFloor, AtticFloor + DormerHeight, HouseLook.KneeWall);
-            Wall("Dormer (east side)", DormerX1, DormerX1 + 0.2f, DormerZ0, HubZ1, AtticFloor, AtticFloor + DormerHeight, HouseLook.KneeWall);
+            // (Its cheeks are only above the slope, drawn by the builder: under them the attic runs on, so the top of the stairs
+            // opens onto the attic; the roof's steps either side still stop a jump.)
             Add("Dormer roof", LabPieceKind.Floor, HouseLook.Roof, V(DormerX0 - 0.2f, AtticFloor + DormerHeight, DormerZ0), V(DormerX1 + 0.2f, AtticFloor + DormerHeight + 0.2f, HubZ1));
             // What's stored up here (things to climb, too): a trunk, crates, Theo's old crib; Lena's observatory to the west.
             Add("Trunk", LabPieceKind.Ledge, HouseLook.Storage, V(3.2f, AtticFloor, 74.6f), V(4.4f, AtticFloor + 0.6f, 75.4f));

@@ -51,6 +51,7 @@ namespace JamKit.DreamEscape.EditorTools
             _root = new GameObject("Rooms (finish)").transform;
             _root.SetParent(root, false);
             WallFaces(h);
+            BayBulkhead(h);
             Beams(h);
             Windows();
             Stairs();
@@ -152,6 +153,21 @@ namespace JamKit.DreamEscape.EditorTools
             }
         }
 
+        /// <summary>Over the bay's mouth, the step down from the living room's ceiling to the bay's lower one: papered like
+        /// the walls, with a trim at its foot.</summary>
+        static void BayBulkhead(DreamHouse h)
+        {
+            var living = h.rooms.Find(r => r.name == "Living room");
+            var bay = h.rooms.Find(r => r.name == "Bay window");
+            if (living == null || bay == null) return;
+            var t = Group("Bay bulkhead");
+            float y0 = F + bay.ceiling, y1 = F + living.ceiling, x0 = DreamHouse.BayX0 - 0.2f, x1 = DreamHouse.BayX1 + 0.2f;
+            if (y1 - y0 < 0.05f) return;
+            DreamEscapeBuilder.Quad("Bay bulkhead (paper)", t, new Vector3((x0 + x1) * 0.5f, (y0 + y1) * 0.5f, DreamHouse.HubZ0 + 0.012f), Vector3.forward, x1 - x0, y1 - y0, Paper("Living room", Finishes["Living room"]));
+            DreamEscapeBuilder.Box("Bay bulkhead (trim)", t, new Vector3((x0 + x1) * 0.5f, y0 + 0.04f, DreamHouse.HubZ0 + 0.03f), new Vector3(x1 - x0 + 0.1f, 0.08f, 0.06f),
+                DreamEscapeBuilder.Pastel("RoomTrim", new Color(0.99f, 0.97f, 0.93f), 0.02f));
+        }
+
         /// <summary>Exposed beams across each room's short span, every 0.9 m (the creator's pick for the ceilings).</summary>
         static void Beams(DreamHouse h)
         {
@@ -167,6 +183,7 @@ namespace JamKit.DreamEscape.EditorTools
                 for (int i = 0; i < n; i++)
                 {
                     float a = (acrossX ? room.z0 : room.x0) + run * (i + 0.5f) / n;
+                    if (room.name == "Hall" && !acrossX && a > DreamHouse.HatchX0 - 0.2f && a < DreamHouse.HatchX1 + 0.2f) continue;   // the hatch stays open
                     var at = acrossX ? new Vector3((room.x0 + room.x1) * 0.5f, top - 0.08f, a) : new Vector3(a, top - 0.08f, (room.z0 + room.z1) * 0.5f);
                     DreamEscapeBuilder.Box("Ceiling beam", t, at, acrossX ? new Vector3(len, 0.16f, 0.14f) : new Vector3(0.14f, 0.16f, len), wood);
                 }
@@ -372,6 +389,10 @@ namespace JamKit.DreamEscape.EditorTools
                         DreamEscapeBuilder.Quad("Attic floorboards", t, new Vector3(mid.x, FA + 0.004f, mid.y), Vector3.up, cw, cd, floorMat);
                 }
             Observatory(t, boards, beam);
+            // The dormer's cheeks, from the slope up to its ceiling (no walls under the slope: the attic runs on).
+            float dTop = FA + DreamHouse.DormerHeight, dMeet = DreamHouse.RidgeZ + (1f - (DreamHouse.DormerHeight - DreamHouse.KneeWall) / (DreamHouse.RidgeHeight - DreamHouse.KneeWall)) * (z1 - DreamHouse.RidgeZ);
+            foreach (float x in new[] { DreamHouse.DormerX0 - 0.1f, DreamHouse.DormerX1 + 0.1f })
+                Poly(t, "Dormer cheek", boards, new Vector3(x, dTop, dMeet), new Vector3(x, dTop, z1), new Vector3(x, FA + DreamHouse.KneeWall, z1));
             // The observatory's round window in the west gable, full of stars (it's always night in Lena's attic).
             Stars(t, new Vector3(x0 + 0.01f, FA + 1.85f, rz), Vector3.right, 2.1f, round: true);
             // The dormer: its window to the north, also night.
@@ -428,20 +449,22 @@ namespace JamKit.DreamEscape.EditorTools
             DreamEscapeBuilder.Box("Observatory beam (over the way in)", t, new Vector3(ox - 0.06f, FA + rh + 0.08f, rz), new Vector3(0.14f, 0.16f, 7.2f), beam);
         }
 
-        /// <summary>A flat convex polygon (a fan), seen from both sides.</summary>
+        /// <summary>A flat convex polygon (a fan), seen from both sides: two one-sided meshes back to back (one double-sided
+        /// mesh drew its ink outline over itself), neither taking shadows (the dream's flats don't).</summary>
         internal static void Poly(Transform t, string name, Material mat, params Vector3[] pts)
         {
+            OneSided(t, name, mat, pts);
+            var back = (Vector3[])pts.Clone();
+            System.Array.Reverse(back);
+            OneSided(t, name + " (back)", mat, back);
+        }
+
+        static void OneSided(Transform t, string name, Material mat, Vector3[] pts)
+        {
             var mesh = new Mesh { name = name };
-            var verts = new List<Vector3>(pts);
-            verts.AddRange(pts);
             var tris = new List<int>();
-            int n = pts.Length;
-            for (int i = 1; i + 1 < n; i++)
-            {
-                tris.Add(0); tris.Add(i); tris.Add(i + 1);
-                tris.Add(n); tris.Add(n + i + 1); tris.Add(n + i);
-            }
-            mesh.SetVertices(verts);
+            for (int i = 1; i + 1 < pts.Length; i++) { tris.Add(0); tris.Add(i); tris.Add(i + 1); }
+            mesh.SetVertices(new List<Vector3>(pts));
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
@@ -451,6 +474,7 @@ namespace JamKit.DreamEscape.EditorTools
             var r = go.AddComponent<MeshRenderer>();
             r.sharedMaterial = mat;
             r.shadowCastingMode = ShadowCastingMode.Off;
+            r.receiveShadows = false;
         }
 
         static void Slope(Transform t, string name, float xa, float xb, bool south, float slope, float length, Material mat)

@@ -323,11 +323,17 @@ namespace JamKit.DreamEscape.EditorTools
 
         static void Garden()
         {
-            // Tall hedges from the house's corners to the garden's edges (their colliders are DreamHouse pieces).
+            // Tall hedges across the side gardens, level with the observatory (their colliders are DreamHouse pieces), and
+            // taller ones behind the house (out of reach) closing the view.
             foreach (var (a, b) in new[] { (-14f, X0), (X1, 14f) })
             {
                 var mesh = DreamProps.RoundedBox("Hedge", new Vector3(b - a, 2.6f, 0.8f), 0.3f);
-                DreamProps.Show("Hedge", mesh, _hedge, _t, Vector3.zero, Quaternion.identity).transform.position = new Vector3((a + b) * 0.5f, 1.3f, -0.4f);
+                DreamProps.Show("Hedge", mesh, _hedge, _t, Vector3.zero, Quaternion.identity).transform.position = new Vector3((a + b) * 0.5f, 1.3f, DreamHouse.SideGardenZ - 0.4f);
+            }
+            foreach (var (a, b) in new[] { (-16f, -5.6f), (5.6f, 16f) })
+            {
+                var mesh = DreamProps.RoundedBox("Hedge (back)", new Vector3(b - a, 4.6f, 1.0f), 0.4f);
+                DreamProps.Show("Hedge (back)", mesh, _hedge, _t, Vector3.zero, Quaternion.identity).transform.position = new Vector3((a + b) * 0.5f, 2.3f, BackZ + 1.3f);
             }
             // A lawn on round the house's sides and back (outside the stretched hallway's walls), and trees.
             var lawn = DreamEscapeBuilder.Pastel("HouseLawn", new Color(0.7f, 0.86f, 0.66f));
@@ -336,7 +342,7 @@ namespace JamKit.DreamEscape.EditorTools
             var trunk = DreamEscapeBuilder.Pastel("Trunk", new Color(0.7f, 0.54f, 0.5f));
             var leaves = DreamProps.MeshLook("GardenTree", new Color(0.55f, 0.76f, 0.56f), 0.01f);
             var sphere = DreamProps.RoundedBox("Canopy", new Vector3(1f, 1f, 1f), 0.5f);
-            foreach (var (x, z, s) in new[] { (-11.5f, 4f, 1.0f), (-10.5f, 13f, 1.3f), (9f, 3.5f, 0.9f), (9.5f, 12.5f, 1.25f), (-8f, 21f, 1.6f), (6.5f, 21f, 1.6f) })
+            foreach (var (x, z, s) in new[] { (-12.5f, 13.5f, 1.2f), (-10f, 19.5f, 1.5f), (11.5f, 13.5f, 1.1f), (9.5f, 19.5f, 1.5f), (-8f, 24f, 1.6f), (7.5f, 24f, 1.6f) })
             {
                 Prim("Tree trunk", PrimitiveType.Cylinder, new Vector3(x, 2.2f * s, z), new Vector3(0.45f * s, 2.2f * s, 0.45f * s), trunk);
                 foreach (var (ox, oy, oz, r) in new[] { (0f, 5.2f, 0f, 3.4f), (-1.1f, 4.5f, 0.6f, 2.4f), (1.0f, 4.6f, -0.5f, 2.5f) })
