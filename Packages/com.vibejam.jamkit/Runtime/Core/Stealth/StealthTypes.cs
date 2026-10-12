@@ -44,6 +44,9 @@ namespace JamKit.Stealth
         public bool crouched, sliding;
         /// <summary>Index of the hiding spot the target is in, -1 for none.</summary>
         public int hidingSpot;
+        /// <summary>Peeking: where the head is, sideways from the body's centre line (m, horizontal; zero standing straight).
+        /// Sight looks for the head there, so a head round a door frame is a small target and a step out the whole body.</summary>
+        public Vector3 lean;
 
         public static StealthTarget At(Vector3 feet, float height = 1.7f)
             => new StealthTarget { present = true, feet = feet, height = height, hidingSpot = -1 };

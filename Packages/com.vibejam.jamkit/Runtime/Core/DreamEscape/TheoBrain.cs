@@ -262,6 +262,9 @@ namespace JamKit.DreamEscape
             return DreamHouse.StoreyOf(p.Y);
         }
 
+        /// <summary>How well he'd see her from where he stands now, facing his way (what his meter fills by; tests).</summary>
+        public float VisibilityOf(in StealthTarget target) => Visible(target);
+
         float Visible(in StealthTarget target)
         {
             if (!target.present) return 0f;

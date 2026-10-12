@@ -27,9 +27,10 @@ Run the lab on its own: **JamKit > Use Template > Movement Lab**, then Play (swi
 |---|---|---|
 | Move | WASD, arrows | left stick (70 % pushed counts as full) |
 | Look | mouse | right stick (response curve, faster after holding it fully over) |
-| Jump, double jump, wall jump | Space | A / Cross (also RB) |
+| Jump, double jump, wall jump | Space | A / Cross (also RB, except in Visiting Hours, where RB peeks) |
 | Slide / crouch | Left Ctrl or C (hold) | B / Circle (hold), or R3 (toggle: press again or jump to stand) |
-| Sprint (forward only) | Left Shift (hold) | LB (hold), or **L3 click** (toggle, Titanfall-style: you sprint until you stop moving forward, crouch, slide or respawn; clicking again keeps it on) |
+| Sprint (forward only) | Left Shift (hold) | **L3 click** (toggle, Titanfall-style: you sprint until you stop moving forward, crouch, slide or respawn; clicking again keeps it on); also LB (hold) except in Visiting Hours, where LB peeks |
+| Peek left / right (Visiting Hours) | Q / F (hold) | LB / RB (hold) |
 | Wallrun | automatic: jump at a wall *along* it and hold forward | same |
 | Mantle | automatic: run or jump at a ledge 0.4 to 1.9 m above your feet | same |
 | Lab debug HUD | F3 | d-pad down |
@@ -39,6 +40,14 @@ Run the lab on its own: **JamKit > Use Template > Movement Lab**, then Play (swi
 
 **You walk unless you sprint** (the creator, 2026-10-10: `autoSprint` is off by default). On a pad the
 two stick clicks pair up the Titanfall way: L3 sprints, R3 crouches and slides.
+
+**Visiting Hours puts the bumpers on peeking** (the creator, 2026-10-12, on a pad: "In the daytime sequences, I
+couldn't run normally, I had to use the Left Bumper ... add peeking functionality ... binded to the bumpers"). So in
+Visiting Hours, dream and waking world alike: L3 (click) or Shift sprints, A or Space jumps, LB / RB (Q / F) peek.
+`ControlBindings.SetPeekOnBumpers` (docs/SHELL.md) does it; the Movement Lab keeps LB on sprint while it runs. The
+waking world (St. Brigid's, on the DOOM-like body) hurries the same way: L3 clicked hurries until she stops walking
+forward, Shift (or L3 held, with "Sprint on L3: Hold") while held; LB no longer does. It keeps its own speeds (walk
+2.2, hurry 3.9 m/s) and has no jump.
 
 The shell's `Dash` action is the jump; `Crouch` (Ctrl, C, pad B), `CrouchToggle` (R3) and `SprintToggle`
 (L3) are added at runtime to older input assets that lack them.
@@ -51,6 +60,28 @@ lines under the table choose what the stick clicks do: **Crouch / Slide on R3: T
 **Sprint on L3: Toggle / Hold**. Toggle is the default above; Hold gives R3 to the hold crouch (crouch
 and slide while R3 is pressed in, like B) and L3 to the hold sprint. Rebinds and the two choices are
 saved and load before the first scene.
+
+**Peeking** (`PeekLean` in the core, `MovementController` in the dream, `VisitingHoursGame` on the DOOM-like body in the
+waking world). Hold LB / RB (Q / F) to lean left / right round a corner:
+- The eyes slide **0.4 m** sideways and the view rolls **4 degrees** toward the lean, eased in and out (a half cosine)
+  over **0.17 s**. Let go and it eases back the same way; switching sides passes through upright.
+- **Walls stop it**: each frame a sphere (radius **0.18 m**, the clearance) is swept from the eyes on the body's centre
+  line toward the lean point; the lean is cut at once to the room it finds (never eased into a wall), so the camera
+  can't see or poke through one. Flat against a wall: no lean, no roll.
+- You can lean standing, crouched or walking, but leaning you only **walk slowly** (half a full push of the stick:
+  2.5 m/s in the dream, 1.1 in the ward). A **sprint** (held or toggled), a **jump**, a slide, a wallrun or a mantle
+  lets it ease back (a step down a stair, a moment in the air under 0.12 s that isn't a jump, doesn't).
+- **The body leans with it**: the first-person body's spine bends up to **26 degrees** toward the lean and the hips take
+  the rest, so the eyes stay on the head and looking down still shows her chest and legs under her
+  (`MovementBodyFrame.lean`, `MixamoBodyRig`).
+- **Comfort**: the roll is x Camera roll x Motion effects, and none with Reduce effects; the slide itself is gameplay
+  and is never scaled.
+- **Stealth**: Theo's sight takes her head where the lean put it (`StealthTarget.lean`, docs/STEALTH.md "Peeking"), so
+  a head round a door frame is a small silhouette and stepping out is all of her.
+- Theo's first count teaches it ("[LB / RB]  Hold to peek round corners", in the keys of the device in use) until she
+  peeks once.
+- Numbers: `PeekLeanDef` (the controller's `peek`, the waking game's `peek`). Tests: `core-tests/Movement`
+  `PeekLeanTests`; PlayMode `DreamPeekPlayTests` and `VisitingHoursControlsPlayTests` (a real test gamepad and keyboard).
 
 **The sprint kick.** Sprinting on the ground from well under sprint speed (below 60 %: after a bad landing,
 running into a wall or ledge, out of a mantle, from a standstill) pushes you off at once to 75 % of sprint
@@ -344,7 +375,8 @@ shared tuning:
 - **Where it applies:**
   - Every scene built on the movement today is a dream or a lab, and uses Dream.
   - Visiting Hours' daytime (waking-world) sections, St. Brigid's and the booth, don't use the movement kit at all.
-    They walk on the DOOM-like's controller (`DoomPlayer`), which has no jump, double jump, slide or wallrun.
+    They walk on the DOOM-like's controller (`DoomPlayer`), which has no jump, double jump, slide or wallrun. They
+    take the dream's sprint keys (L3 click, Shift) and its peek (see "Controls").
   - When a waking section moves onto the movement kit, set its controller's `profile` to `Daytime`.
 - **Try it in the Movement Lab (or the dream escape):** **F7** or **LB + d-pad right** switches the player between
   the two profiles (`MovementProfileSwitch`). The F3 / d-pad-down panel shows "Movement: Daytime" or "Dream". It

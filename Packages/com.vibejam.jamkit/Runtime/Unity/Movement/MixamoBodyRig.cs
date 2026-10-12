@@ -321,8 +321,9 @@ namespace JamKit.Movement
             // Stand at the feet, facing the body's yaw.
             model.SetPositionAndRotation(f.feet, f.bodyRotation * _faceFix);
 
-            // The torso: the speed tier's lean, the kick's shove, the lean into turns (half each on two spine bones).
-            Quaternion lean = Quaternion.AngleAxis(pose.torsoPitch * 0.5f, right) * Quaternion.AngleAxis(-pose.torsoRoll * 0.5f, fwd);
+            // The torso: the speed tier's lean, the kick's shove, the lean into turns, and a peek's sideways bend (half each on
+            // two spine bones).
+            Quaternion lean = Quaternion.AngleAxis(pose.torsoPitch * 0.5f, right) * Quaternion.AngleAxis(-(pose.torsoRoll + f.lean) * 0.5f, fwd);
             if (_spine != null) _spine.rotation = lean * _spine.rotation;
             if (_spine1 != null) _spine1.rotation = lean * _spine1.rotation;
             // The eyes on the camera's head, the body taking its landing dip.

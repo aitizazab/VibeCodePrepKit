@@ -54,6 +54,9 @@ namespace JamKit.VisitingHours
             _runner = root.gameObject.GetComponent<VhTitleRunner>();
             if (_runner == null) _runner = root.gameObject.AddComponent<VhTitleRunner>();
             _runner.boot = _boot;
+            // Peeking on the bumpers (hold Q / F, LB / RB, in the dream and the waking world): LB comes off Sprint (L3 and
+            // Shift sprint, as the dream always allowed) and RB off Jump. Only while Visiting Hours is the game.
+            GameRoot.Input.Bindings.SetPeekOnBumpers(IsActive);
             // The opening editor (F9 on the title, or the presenter panel's "Edit the opening").
             if (root.gameObject.GetComponent<VhOpeningEditor>() == null) root.gameObject.AddComponent<VhOpeningEditor>();
             // The title screenshot for checking the table against the sketch (-title-shot; does nothing without it).

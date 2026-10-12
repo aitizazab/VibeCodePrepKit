@@ -48,7 +48,7 @@ Visibility (0 unseen, up to about 1.3) is the product of:
 | Factor | Value |
 |---|---|
 | Zone | the cone (±40°): 1; the peripheral band (to ±75°): 0.3; behind, within 1.4 m: 1 (sensed); else 0 |
-| Line of sight | three points on the body (20%, 55%, 92% of its height): 1/3 each. Crouched behind 1.1 m cover: 0; standing: the head (1/3) |
+| Line of sight | three points on the body (20%, 55%, 92% of its height): 1/3 each. Crouched behind 1.1 m cover: 0; standing: the head (1/3). Peeking: see below |
 | Distance | 1 up to 5 m, falling to 0.3 at 18 m; nothing past 18 m |
 | Posture | crouched 0.55, sliding 0.8; at 7 m/s or faster ×1.3, standing still ×0.75 |
 | Light | 0.25 in full shade, 1 lit |
@@ -58,6 +58,23 @@ Visibility (0 unseen, up to about 1.3) is the product of:
 The meter fills at `fillRate` 1.25/s × visibility (×1.5 while suspicious or searching): 0.8 s at best up close in the
 open, never instantly. Unseen for 1.2 s, it drains at 0.3/s. At 0.3 an unaware seeker becomes suspicious; full is
 found.
+
+### Peeking
+
+The target can carry a **lean** (`StealthTarget.lean`: where the head is, sideways from the body's centre line; the
+movement kit's peek, docs/MOVEMENT.md "Peeking"). While it's 0.1 m or more (`peekMinLean`):
+- the head sample is looked for **where the eyes really are** (the lean added), the chest sample 40% of the way there
+  (`peekChestShare`), the low sample stays;
+- when **only the head** is in sight, the line of sight counts **0.15** (`peekExposure`: a head round a door frame)
+  instead of a third.
+
+So peeking round a door frame is a small target and stepping out is all of her. In the open a lean hides nothing (all
+three samples clear count as before). Measured (`StealthPeekTests`, default eyes 3.8 m away, standing still): behind
+the frame 0, peeking 0.11, stepped out 0.75: the meter is full in **7.2 s** of steady sight peeking against **1.1 s**
+stepped out. With Theo's eyes at the house's own door frames (`HousePeekTests`, 39 frames): a peek is at most 0.21 of
+stepping out (at the living room door 0.11 against 0.53: found in 9.4 s against 2.0 s). Night 2's hide-and-seek gives
+Theo her lean every frame (`DreamHouseGame.HerTarget`); `DreamPeekPlayTests` measures it in the real house with a test
+gamepad.
 
 ## Alert states
 
@@ -273,6 +290,7 @@ All in `StealthDef` (a `StealthTuning` asset; the lab's is `Templates/StealthLab
 | shadowScale | 0.25 | Sight in full shade. |
 | bushScale / bushRevealRange | 0.12 / 1.5 | In a bush, unless the seeker is right there. |
 | sampleLow / sampleMid / sampleHigh | 0.2 / 0.55 / 0.92 | Body points for line of sight. |
+| peekExposure / peekChestShare / peekMinLean | 0.15 / 0.4 / 0.1 | Peeking: the head alone counts this much; the chest moves this share of the lean; a smaller lean isn't a peek. |
 | fillRate / alertFillScale | 1.25 / 1.5 | Meter per second at visibility 1; faster when alert. |
 | drainDelay / drainRate | 1.2 / 0.3 | The meter holds, then drains. |
 | suspiciousAt / noiseBump | 0.3 / 0.3 | Unaware → suspicious; what a noise adds. |

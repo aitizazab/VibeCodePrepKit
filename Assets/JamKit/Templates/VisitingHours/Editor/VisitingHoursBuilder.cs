@@ -113,7 +113,7 @@ namespace JamKit.VisitingHours.EditorTools
                 new HowToPlayPage
                 {
                     title = "Walk and look",
-                    body = "WASD or the left stick to walk, the mouse or the right stick to look. Shift (LB) to hurry.\nE (X) looks at something properly, or talks to someone.",
+                    body = "WASD or the left stick to walk, the mouse or the right stick to look. Shift or a click of the left stick (L3) to hurry. Hold Q or F (LB or RB) to peek round a corner.\nE (X) looks at something properly, or talks to someone.",
                 },
                 new HowToPlayPage
                 {

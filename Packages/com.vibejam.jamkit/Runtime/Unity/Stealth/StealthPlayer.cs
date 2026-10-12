@@ -64,6 +64,8 @@ namespace JamKit.Stealth
             _target.speed = sim.HorizontalSpeed;
             _target.sliding = sim.Mode == MoveMode.Slide;
             _target.crouched = sim.Crouched;
+            var lean = body.LeanWorld; // the peek: sight looks for her head where it is
+            _target.lean = new NVec3(lean.x, 0f, lean.z);
             _target.hidingSpot = HidingSpotView.IndexAt(p);
             _noise = _noiseRules.Tick(Def, sim.Mode, body.FrameEvents, _target.feet, Time.deltaTime, _target.speed, _target.crouched, StealthRules.Shared.loudMovement);
         }

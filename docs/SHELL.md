@@ -137,12 +137,13 @@ cards: the blind tester reads them once.
 | Move | WASD, arrows | left stick (the d-pad only where a 2D template opts in: the bullet hell, Visiting Hours' argument battle) |
 | Look | mouse | right stick |
 | Fire / Alt fire | left / right mouse, J / K | RT / LT |
-| Sprint (the bullet hell's sprint, the DOOM-like's walk) | Left Shift | LB |
+| Sprint (the bullet hell's sprint, the DOOM-like's walk) | Left Shift | LB (not in Visiting Hours: L3, below) |
 | Focus (no default keys; the bullet hell's optional Focus mode) | - | - |
-| Dash (also the first-person movement's jump) | Space | A, RB |
+| Dash (also the first-person movement's jump) | Space | A, RB (not in Visiting Hours) |
 | Crouch / slide, hold (first-person movement) | Left Ctrl, C | B |
 | Crouch / slide, toggle | - | R3 |
 | Sprint, toggle (first-person movement) | - | L3 |
+| Peek left / right, hold (only where a template turns peeking on: Visiting Hours) | Q / F | LB / RB |
 | Interact | E | X |
 | Pause | Escape, P | Start |
 | Restart run (the Movement Lab's Gauntlet) | R | View / Share |
@@ -171,8 +172,8 @@ use (`InputService`), and `PointerCursor` (added by GameRoot, runs after every s
 
 Every template's Settings has a **Controls** button (shown with the action settings, so not in the
 story template). It opens a table: a row per gameplay action (Move, Look, Jump / Dash, Crouch / Slide
-hold and toggle, Sprint hold and toggle, Interact, Fire, Alt Fire, Pause; and **Restart run** and **Show
-ghost**, which only the Movement Lab's Gauntlet shows), a **Keyboard & Mouse** column and a **Controller**
+hold and toggle, Sprint hold and toggle, Interact, Fire, Alt Fire, Pause; **Peek left / right (hold)**, shown where
+a template turns peeking on; and **Restart run** and **Show ghost**, which only the Movement Lab's Gauntlet shows), a **Keyboard & Mouse** column and a **Controller**
 column, and a Reset per row.
 
 - **Rebind:** select a cell, then press the new key, mouse button or pad button. **Esc** cancels (and
@@ -207,6 +208,12 @@ column, and a Reset per row.
   `GameRoot` loads it right after creating the input (before the first scene, in builds too) and again
   whenever the save is reloaded. Binding ids are fixed (the asset's own, and "map/action/index" ids for
   the actions added at runtime and the code defaults), so saved rebinds survive restarts and rebuilds.
+- **Peeking on the bumpers** (a template's choice, like the d-pad on Move): `Bindings.SetPeekOnBumpers(true)` binds
+  **Peek left / right (hold)** (Q / LB, F / RB), shows their rows, and takes LB off Sprint (hold) and RB off Jump, so a
+  pad sprints with L3 (and the keyboard with Shift) and jumps with A. It moves default paths only (the player's rebinds
+  stay) and isn't saved. Visiting Hours turns it on at boot (`VhBoot`); the Movement Lab turns it off while it runs
+  (its LB + d-pad switches and pad tests keep LB as sprint); every other template leaves it off. The movement kit
+  reads the peek actions (`MovementController`; docs/MOVEMENT.md "Peeking"). Test: `ControlsEditorTests.PeekingOnTheBumpersTakesThemOffSprintAndJump`.
 - Code: `GameRoot.Input.Bindings` (`ControlBindings`: rows, `SetPath`, `FindConflict`, `ResetRow`,
   `ResetAll`, `SetStickHolds`, `SaveTo` / `LoadFrom`), `GameRoot.Ui.Controls` (`ControlsScreen`).
   A template without shooting can hide rows: `GameRoot.Ui.Controls.SetRowShown("fire", false)`; Restart run

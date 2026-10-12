@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Ink.Runtime;
 using JamKit.Doomlike;
 using JamKit.Flow;
+using JamKit.Movement;
 using JamKit.Shell;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -36,6 +37,10 @@ namespace JamKit.VisitingHours
         public DoomPlayer player;
         public Camera cam;
         public Transform worldRoot;
+
+        [Header("Peek")]
+        [Tooltip("Hold Q / F (LB / RB) to lean round a corner, as in the dream (docs/MOVEMENT.md \"Peeking\").")]
+        public PeekLeanDef peek = new PeekLeanDef();
 
         static VisitingHoursGame _current;
         static bool _fastTransitions;
@@ -74,6 +79,9 @@ namespace JamKit.VisitingHours
         AudioSource _monitor;
         bool _focused, _walked;
         Action _onJournalClosed;
+        readonly PeekLean _peek = new PeekLean();
+        int _peekWant;
+        bool _sprintToggled, _hurrying;
 
         ChainSegment _segment = ChainSegment.Day1;
 
@@ -90,6 +98,10 @@ namespace JamKit.VisitingHours
         public VhBattleView BattleView => _battleView;
         /// <summary>What E would examine right now (null when nothing is in reach).</summary>
         public VhSpot Target => _target;
+        /// <summary>She's hurrying (Shift or L3, as in the dream; tests).</summary>
+        public bool Hurrying => _hurrying;
+        /// <summary>The peek now (tests): the eyes' sideways offset (m, + right).</summary>
+        public float PeekOffset => _peek.Offset(peek);
 
         // ---------- Setup ----------
 
@@ -219,6 +231,7 @@ namespace JamKit.VisitingHours
 
             if (_mode == Mode.Battle)
             {
+                StopPeek();
                 if (playing) TickBattle(dt);
                 _battleView.Tick(udt);
                 _hud.SetExploring(false);
@@ -229,6 +242,7 @@ namespace JamKit.VisitingHours
             if (_mode == Mode.Bedside)
             {
                 _hud.SetExploring(false);
+                StopPeek();
                 if (playing || GameRoot.Dialogue.IsActive) TickBedside(dt);
                 return;
             }
@@ -245,11 +259,16 @@ namespace JamKit.VisitingHours
             if (!exploring)
             {
                 _hud.SetPrompt("");
+                StopPeek();
                 return;
             }
 
             ReadInput(dt, out Vector2 move, out bool hurry, out bool use);
+            // The peek: not while hurrying; leaning, she only walks slowly.
+            bool peekAllowed = !hurry;
+            if (peekAllowed && (_peekWant != 0 || _peek.Leaning)) move = Vector2.ClampMagnitude(move, peek.walkShare);
             if (player.TickMove(dt, move, !hurry) && GameRoot.Exists) GameRoot.Audio.Play("step", 0.22f);
+            TickPeek(dt, peekAllowed);
             if (!_walked && player.DistanceMoved > 3f)
             {
                 _walked = true;
@@ -286,7 +305,13 @@ namespace JamKit.VisitingHours
         {
             var input = GameRoot.Input;
             move = input.MoveVector;
-            hurry = input.Held(input.Sprint);
+            // Hurry the way the dream sprints: Shift held (or L3 held, with Sprint on L3: Hold), or L3 clicked, which
+            // keeps her hurrying until she stops walking forward (the movement core's toggle rule).
+            if (input.Pressed(input.SprintToggle)) _sprintToggled = true;
+            if (_sprintToggled && move.y < SprintToggleStopForward) _sprintToggled = false;
+            hurry = input.Held(input.Sprint) || _sprintToggled;
+            _hurrying = hurry;
+            _peekWant = (input.Held(input.PeekLeft) ? -1 : 0) + (input.Held(input.PeekRight) ? 1 : 0);
             use = input.Pressed(input.Interact);
             Vector2 look = input.LookDelta(GameRoot.Settings);
             var t = config.player;
@@ -297,6 +322,43 @@ namespace JamKit.VisitingHours
                 player.Look(look.x * k, -look.y * k);
             }
             else if (_focused) player.Look(look.x * t.mouseDegreesPerPixel, -look.y * t.mouseDegreesPerPixel);
+        }
+
+        /// <summary>The L3 hurry ends when the stick's forward part drops below this (MoveDef.sprintToggleStopForward).</summary>
+        const float SprintToggleStopForward = 0.2f;
+
+        // ---------- The peek ----------
+
+        void TickPeek(float dt, bool allowed)
+        {
+            int side = _peek.ProbeSide(_peekWant);
+            float room = side != 0 ? PeekRoom(side) : 0f;
+            _peek.Tick(dt, _peekWant, allowed, side, room, peek);
+            var s = GameRoot.Settings;
+            float roll = s == null ? _peek.Roll(peek) : s.reduceEffects ? 0f : _peek.Roll(peek) * s.cameraRoll * s.motionEffects;
+            player.SetLean(_peek.Offset(peek), roll);
+        }
+
+        /// <summary>Free metres beside her eyes toward <paramref name="side"/> (a sphere swept out to a full lean).</summary>
+        float PeekRoom(int side)
+        {
+            Vector3 eye = player.EyePosition;
+            Vector3 dir = player.transform.right * side;
+            float r = Mathf.Max(0.02f, peek.clearance);
+            const int mask = ~(1 << 2); // not her own body (Ignore Raycast)
+            if (Physics.CheckSphere(eye, r, mask, QueryTriggerInteraction.Ignore)) return 0f;
+            return Physics.SphereCast(eye, r, dir, out var hit, peek.distance, mask, QueryTriggerInteraction.Ignore) ? hit.distance : peek.distance;
+        }
+
+        /// <summary>Upright again at once and the L3 hurry off (dialogue, the journal, the bedside, the battle).</summary>
+        void StopPeek()
+        {
+            _sprintToggled = false;
+            _hurrying = false;
+            _peekWant = 0;
+            if (!_peek.Leaning) return;
+            _peek.Reset();
+            player.SetLean(0f, 0f);
         }
 
         /// <summary>The nearest thing in reach that Nadia is facing.</summary>

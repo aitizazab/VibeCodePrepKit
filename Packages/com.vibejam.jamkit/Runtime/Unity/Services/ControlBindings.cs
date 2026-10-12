@@ -148,6 +148,8 @@ namespace JamKit.Shell
             AddRow("crouch-toggle", "Crouch / Slide (toggle)", input.CrouchToggle);
             AddRow("sprint", "Sprint (hold)", input.Sprint);
             AddRow("sprint-toggle", "Sprint (toggle)", input.SprintToggle);
+            AddRow("peek-left", "Peek left (hold)", input.PeekLeft, false);
+            AddRow("peek-right", "Peek right (hold)", input.PeekRight, false);
             AddRow("interact", "Interact", input.Interact);
             AddRow("fire", "Fire", input.Fire);
             AddRow("alt-fire", "Alt Fire", input.AltFire);
@@ -167,6 +169,62 @@ namespace JamKit.Shell
             _moveDpadIndex = _move != null ? AddEmpty(_move, "Gamepad", "dpad-optin") : -1;
             foreach (var row in _rows) AddMissingSlots(row);
             foreach (var row in _rows) FindSlots(row);
+            // Peeking, off until a template turns it on (the slots above were found from the shipped paths).
+            _peekRows[0] = FindRow("peek-left");
+            _peekRows[1] = FindRow("peek-right");
+            for (int k = 0; k < 2; k++)
+            {
+                var a = k == 0 ? input.PeekLeft : input.PeekRight;
+                if (a == null) continue;
+                for (int i = 0; i < a.bindings.Count && i < 2; i++) { _peekAction[k * 2 + i] = a; _peekIndex[k * 2 + i] = i; _peekPath[k * 2 + i] = a.bindings[i].path ?? ""; }
+            }
+            _sprintLb = IndexOfPath(input.Sprint, "<Gamepad>/leftShoulder");
+            _jumpRb = IndexOfPath(input.Dash, "<Gamepad>/rightShoulder");
+            _sprintAction = input.Sprint;
+            _jumpAction = input.Dash;
+            _peekOn = true;
+            SetPeekOnBumpers(false);
+        }
+
+        static int IndexOfPath(InputAction action, string path)
+        {
+            if (action == null) return -1;
+            var bs = action.bindings;
+            for (int i = 0; i < bs.Count; i++)
+                if (!bs[i].isComposite && !bs[i].isPartOfComposite && string.Equals(bs[i].path, path, StringComparison.OrdinalIgnoreCase)) return i;
+            return -1;
+        }
+
+        // ---------- Peeking on the bumpers (a template's opt-in) ----------
+
+        readonly ControlRow[] _peekRows = new ControlRow[2];
+        readonly InputAction[] _peekAction = new InputAction[4];
+        readonly int[] _peekIndex = { -1, -1, -1, -1 };
+        readonly string[] _peekPath = new string[4];
+        InputAction _sprintAction, _jumpAction;
+        int _sprintLb = -1, _jumpRb = -1;
+        bool _peekOn;
+
+        /// <summary>True while a template has peeking on (<see cref="SetPeekOnBumpers"/>).</summary>
+        public bool PeekOnBumpers => _peekOn;
+
+        /// <summary>
+        /// Peeking on (true) or off (false, the default). On: Peek left / right (hold) are bound (Q / LB, F / RB) and shown on
+        /// the Controls screen, and the bumpers come off Sprint (LB) and Jump (RB), so a pad sprints with L3 (and Shift on the
+        /// keyboard) and jumps with A. Off: the peek rows are hidden and unbound, LB sprints and RB jumps as before. Moves the
+        /// default paths only, so the player's own rebinds stay. Not saved: it's the template's choice (Visiting Hours turns it
+        /// on at boot; the Movement Lab keeps it off while it runs).
+        /// </summary>
+        public void SetPeekOnBumpers(bool on)
+        {
+            if (_peekOn == on) return;
+            _peekOn = on;
+            for (int i = 0; i < 4; i++)
+                if (_peekAction[i] != null && _peekIndex[i] >= 0) SetBasePath(_peekAction[i], _peekIndex[i], on ? _peekPath[i] : "");
+            if (_sprintAction != null && _sprintLb >= 0) SetBasePath(_sprintAction, _sprintLb, on ? "" : "<Gamepad>/leftShoulder");
+            if (_jumpAction != null && _jumpRb >= 0) SetBasePath(_jumpAction, _jumpRb, on ? "" : "<Gamepad>/rightShoulder");
+            for (int k = 0; k < 2; k++) if (_peekRows[k] != null) _peekRows[k].Shown = on;
+            _version++;
         }
 
         public IReadOnlyList<ControlRow> Rows => _rows;

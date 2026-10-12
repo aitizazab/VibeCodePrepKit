@@ -70,7 +70,9 @@ tried yet first, the floor he glimpsed her on, the room a noise came from, his f
 and checks some of the hiding places (opening cupboards, pulling back curtains), not all. He **hears** her (running,
 landing, sliding, a wall run; through walls less, through floors at 35 %) and goes to look ("I heard that!"). He
 **sees** with the stealth kit's sight and meter (eyes at 1.2 m; crouching, the dark and cloth slow it): the eye at the top
-right fills while he sees her, full is "found you". He calls into rooms, giggles, hums, says "Not here..." (lines in
+right fills while he sees her, full is "found you". **Peeking** (hold LB / RB, Q / F) leans her head round a door
+frame: he sees only that head (a sliver: his meter crawls, about 9 s of steady sight against 2 s stepped out), and his
+first count teaches it ("[LB / RB]  Hold to peek round corners"; docs/STEALTH.md "Peeking"). He calls into rooms, giggles, hums, says "Not here..." (lines in
 `DreamHouseLines`). He walks a 234-point graph; stairs are links. No allocation per tick.
 
 **17 hiding places:** the cupboard under the stairs, the pantry, the coats in the back hall, behind the den curtains,

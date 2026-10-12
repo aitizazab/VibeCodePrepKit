@@ -7,7 +7,8 @@ namespace JamKit.Stealth
     /// <summary>
     /// How visible a target is to one pair of eyes, 0 (unseen) to about 1.3 (sprinting in the open, close): the vision
     /// cone, the peripheral band and the close sense; line of sight to three points of the body (low cover hides a
-    /// crouched body, shows a standing one's head); distance; posture (crouched, sliding, fast, still); light; and a
+    /// crouched body, shows a standing one's head; a peeking head is looked for where it really is, and alone it's a small
+    /// silhouette); distance; posture (crouched, sliding, fast, still); light; and a
     /// hiding spot. Pure maths, no allocation. The detection meter fills at <see cref="StealthDef.fillRate"/> times this.
     /// </summary>
     public static class StealthSight
@@ -49,14 +50,17 @@ namespace JamKit.Stealth
                 else { zone = SightZone.None; return 0f; }
             }
 
-            // Line of sight to three points on the body.
+            // Line of sight to three points on the body. Peeking, the head is where the eyes really are (the chest part of
+            // the way there), and a head alone round a corner is a small silhouette.
             float h = Math.Max(0.3f, target.height);
-            int clear = 0;
-            if (world == null || world.LineClear(eye, target.feet + new Vector3(0f, h * def.sampleLow, 0f))) clear++;
-            if (world == null || world.LineClear(eye, chest)) clear++;
-            if (world == null || world.LineClear(eye, target.feet + new Vector3(0f, h * def.sampleHigh, 0f))) clear++;
+            Vector3 lean = new Vector3(target.lean.X, 0f, target.lean.Z);
+            bool peeking = lean.LengthSquared() >= def.peekMinLean * def.peekMinLean;
+            bool low = world == null || world.LineClear(eye, target.feet + new Vector3(0f, h * def.sampleLow, 0f));
+            bool mid = world == null || world.LineClear(eye, peeking ? chest + lean * def.peekChestShare : chest);
+            bool high = world == null || world.LineClear(eye, target.feet + (peeking ? lean : Vector3.Zero) + new Vector3(0f, h * def.sampleHigh, 0f));
+            int clear = (low ? 1 : 0) + (mid ? 1 : 0) + (high ? 1 : 0);
             if (clear == 0) { zone = SightZone.None; return 0f; }
-            float losScale = clear / 3f;
+            float losScale = peeking && clear == 1 && high ? def.peekExposure : clear / 3f;
 
             float distScale = dist <= def.nearRange ? 1f : Lerp(1f, def.farScale, (dist - def.nearRange) / Math.Max(0.01f, range - def.nearRange));
 

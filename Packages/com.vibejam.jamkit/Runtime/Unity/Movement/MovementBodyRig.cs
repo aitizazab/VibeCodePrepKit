@@ -17,6 +17,9 @@ namespace JamKit.Movement
         public float pitch;
         /// <summary>True while the debug orbit camera shows the body from outside (show the head).</summary>
         public bool thirdPerson;
+        /// <summary>The peek: degrees the spine bends sideways toward the lean (+ right). The eyes are already where the lean
+        /// put them, so the hips take what the bend doesn't.</summary>
+        public float lean;
     }
 
     /// <summary>

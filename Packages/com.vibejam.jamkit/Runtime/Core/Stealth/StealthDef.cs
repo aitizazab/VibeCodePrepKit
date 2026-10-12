@@ -49,6 +49,11 @@ namespace JamKit.Stealth
         public float bushRevealRange = 1.5f;
         /// <summary>The body is sampled at these fractions of its height for line of sight (feet to head).</summary>
         public float sampleLow = 0.2f, sampleMid = 0.55f, sampleHigh = 0.92f;
+        /// <summary>Peeking (StealthTarget.lean): the head sample sits where the eyes really are, the chest sample moves
+        /// <see cref="peekChestShare"/> of the way with it, and when only the head is in sight the line of sight counts
+        /// <see cref="peekExposure"/> (a head round a door frame) instead of a third. A lean under <see cref="peekMinLean"/> m
+        /// isn't a peek.</summary>
+        public float peekExposure = 0.15f, peekChestShare = 0.4f, peekMinLean = 0.1f;
 
         // ---------- The detection meter ----------
         /// <summary>Meter per second at visibility 1 (0 to full in 1/fillRate seconds: about 0.8 s up close in the open).</summary>

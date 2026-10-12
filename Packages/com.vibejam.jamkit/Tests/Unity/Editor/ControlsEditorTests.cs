@@ -15,7 +15,7 @@ namespace JamKit.Tests.Editor
     public class ControlsEditorTests
     {
         static readonly string[] RowIds =
-            { "move", "look", "jump", "crouch", "crouch-toggle", "sprint", "sprint-toggle", "interact", "fire", "alt-fire", "pause", "restart", "ghost",
+            { "move", "look", "jump", "crouch", "crouch-toggle", "sprint", "sprint-toggle", "peek-left", "peek-right", "interact", "fire", "alt-fire", "pause", "restart", "ghost",
               "argue-ask", "argue-challenge", "argue-concede", "argue-press", "argue-rest" };
 
         readonly List<InputService> _made = new List<InputService>();
@@ -247,7 +247,7 @@ namespace JamKit.Tests.Editor
             var asset1 = Make(true);
             var asset2 = Make(true);
             var code = Make(false);
-            foreach (var name in new[] { "Crouch", "CrouchToggle", "SprintToggle", "Restart", "Ghost" })
+            foreach (var name in new[] { "Crouch", "CrouchToggle", "SprintToggle", "Restart", "Ghost", "PeekLeft", "PeekRight" })
             {
                 var a = asset1.Gameplay.FindAction(name, true);
                 var b = asset2.Gameplay.FindAction(name, true);
@@ -383,6 +383,60 @@ namespace JamKit.Tests.Editor
             Assert.That(m.FindConflict(s.ArgueAsk, ask).Row.Id, Is.EqualTo("pause"));
             m.SetPath(s.ArgueAsk, ask, "<Keyboard>/e");
             Assert.That(m.FindConflict(s.ArgueAsk, ask).Exists, Is.False, "E is Interact's, but walking around");
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void PeekingOnTheBumpersTakesThemOffSprintAndJump(bool projectAsset)
+        {
+            var s = Make(projectAsset);
+            var m = s.Bindings;
+            const string lb = "<Gamepad>/leftShoulder", rb = "<Gamepad>/rightShoulder";
+            // Off (every template but Visiting Hours): LB sprints, RB jumps, the peek rows are hidden and unbound.
+            Assert.That(m.PeekOnBumpers, Is.False);
+            Assert.That(HasEffective(s.Sprint, lb) && HasEffective(s.Dash, rb), Is.True);
+            Assert.That(HasEffective(s.PeekLeft, lb) || HasEffective(s.PeekRight, rb) || HasEffective(s.PeekLeft, "<Keyboard>/q"), Is.False);
+            Assert.That(m.FindRow("peek-left").Shown || m.FindRow("peek-right").Shown, Is.False);
+
+            // On: the bumpers peek (Q / F on the keyboard); L3 and Shift still sprint, A and Space still jump.
+            m.SetPeekOnBumpers(true);
+            Assert.That(HasEffective(s.PeekLeft, lb) && HasEffective(s.PeekLeft, "<Keyboard>/q"), Is.True, "Q / LB peek left");
+            Assert.That(HasEffective(s.PeekRight, rb) && HasEffective(s.PeekRight, "<Keyboard>/f"), Is.True, "F / RB peek right");
+            Assert.That(HasEffective(s.Sprint, lb), Is.False, "LB is off Sprint");
+            Assert.That(HasEffective(s.Sprint, "<Keyboard>/leftShift") && HasEffective(s.SprintToggle, ControlBindings.L3), Is.True, "Shift and L3 sprint");
+            Assert.That(HasEffective(s.Dash, rb), Is.False, "RB is off Jump");
+            Assert.That(HasEffective(s.Dash, "<Gamepad>/buttonSouth") && HasEffective(s.Dash, "<Keyboard>/space"), Is.True);
+            Assert.That(m.FindRow("peek-left").Shown && m.FindRow("peek-right").Shown, Is.True);
+            foreach (var row in m.Rows)
+                for (int i = 0; i < row.Action.bindings.Count; i++)
+                    Assert.That(m.FindConflict(row.Action, i).Exists, Is.False, "nothing shares a key: " + row.Id + " " + i);
+            // The argument's Challenge is RB too, but in its own context (the battle reads its own keys).
+            foreach (var id in ControlBindings.ArgumentRows) m.FindRow(id).Shown = true;
+            Assert.That(m.FindConflict(s.PeekRight, Pad(s, "peek-right")).Exists, Is.False, "RB: peek in the world, Challenge in an argument");
+            foreach (var id in ControlBindings.ArgumentRows) m.FindRow(id).Shown = false;
+
+            var screen = new ControlsScreen(s);
+            screen.Init(null, null, new VisualElement());
+            Assert.That(screen.CellText("peek-left", ControlColumn.Gamepad), Does.StartWith("LB").Or.StartWith("L1"));
+            Assert.That(screen.CellText("peek-right", ControlColumn.Gamepad), Does.StartWith("RB").Or.StartWith("R1"));
+            Assert.That(screen.CellText("sprint", ControlColumn.Gamepad), Does.Contain("(none)"), "Sprint (hold) has no pad button: L3 is the toggle");
+            Assert.That(screen.CellText("sprint-toggle", ControlColumn.Gamepad), Does.Contain("L3"));
+            Assert.That(screen.Root.Q<VisualElement>("controls-row-peek-left").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+
+            // A rebind of the peek survives a save and a load.
+            m.SetPath(s.PeekRight, Kbm(s, "peek-right"), "<Keyboard>/e");
+            var data = new SaveData();
+            m.SaveTo(data);
+            var b = Make(projectAsset);
+            b.Bindings.SetPeekOnBumpers(true);
+            b.Bindings.LoadFrom(data);
+            Assert.That(b.PeekRight.bindings[Kbm(b, "peek-right")].effectivePath, Is.EqualTo("<Keyboard>/e"));
+
+            // Off again: as before.
+            m.SetPeekOnBumpers(false);
+            Assert.That(HasEffective(s.Sprint, lb) && HasEffective(s.Dash, rb), Is.True);
+            Assert.That(HasEffective(s.PeekLeft, lb), Is.False);
+            Assert.That(m.FindRow("peek-left").Shown, Is.False);
         }
 
         [Test]

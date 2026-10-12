@@ -15,7 +15,9 @@ namespace JamKit.Movement
     /// and places the head at the interpolated position so the camera is smooth at any frame rate.
     /// Hierarchy: this body (yaw) > <see cref="head"/> (pitch, eye height) > rig (MovementCamera's
     /// bob, roll and dip) > camera. Controls: move WASD / left stick, look mouse / right stick, jump
-    /// Space / A, crouch-slide Left Ctrl or C / B; sprint is automatic. Wallrun and mantle are automatic.
+    /// Space / A, crouch-slide Left Ctrl or C / B, sprint Shift / L3; wallrun and mantle are automatic. Peeking (hold
+    /// Q / F or LB / RB, when the template turns it on): the eyes lean sideways round a corner, stopped short of walls
+    /// (<see cref="PeekLean"/>).
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     [DefaultExecutionOrder(-40)]
@@ -39,6 +41,11 @@ namespace JamKit.Movement
         public float maxPitch = 85f;
         [Tooltip("Lock and hide the mouse while playing (not in batch mode, tests or attract mode).")]
         public bool managePointerLock = true;
+
+        [Header("Peek")]
+        [Tooltip("Hold Peek left / right (Q / F; LB / RB once the template turns peeking on) to lean the eyes round a corner, standing, crouched or walking slowly. A sprint, a jump or a slide lets it ease back.")]
+        public bool allowPeek = true;
+        public PeekLeanDef peek = new PeekLeanDef();
 
         [Header("World")]
         [Tooltip("Off: every wall is runnable unless a MovementSurface says no. On: only walls with a runnable MovementSurface.")]
@@ -68,6 +75,12 @@ namespace JamKit.Movement
         float _phase;
         bool _stepped;
         bool _focused;
+        readonly PeekLean _lean = new PeekLean();
+        int _leanWant;
+        bool _leanAllowed, _airJumped;
+        float _leanOffset, _airTime;
+        /// <summary>A step off a kerb or down a stair is a moment in the air: the peek holds through this much of it (not a jump).</summary>
+        const float LeanAirGrace = 0.12f;
 
         /// <summary>Drives the body instead of the player (smoke run, tests, attract mode). Called once a frame.</summary>
         public Func<MoveSim, MoveInput> Autopilot;
@@ -113,6 +126,19 @@ namespace JamKit.Movement
         public float StridePhase => _phase;
         /// <summary>A foot landed this frame (on the ground or on a wall).</summary>
         public bool Stepped => _stepped;
+        /// <summary>The peek: the eyes' sideways offset now (m, + right of the body), already stopped short of walls.</summary>
+        public float LeanOffset => _leanOffset;
+        /// <summary>The peek as a share of a full lean (-1 full left .. 1 full right).</summary>
+        public float LeanFraction => peek != null && peek.distance > 1e-4f ? _leanOffset / peek.distance : 0f;
+        /// <summary>The peek's offset in the world (horizontal): where the head is from the body's centre line. Stealth sight
+        /// looks for her head there.</summary>
+        public Vector3 LeanWorld => Quaternion.Euler(0f, _yaw, 0f) * new Vector3(_leanOffset, 0f, 0f);
+        /// <summary>The peek's view roll toward the lean (degrees, + right), before the comfort settings.</summary>
+        public float LeanRoll => peek != null ? _lean.Roll(peek) : 0f;
+        public PeekLean Lean => _lean;
+        /// <summary>Where the eyes are (the head, lean included).</summary>
+        public Vector3 EyePosition => head != null ? head.position : RenderPosition + Vector3.up * _eye + LeanWorld;
+
         /// <summary>Where the camera sees the body this frame (interpolated between steps).</summary>
         public Vector3 RenderPosition => _driver != null ? ToU(_driver.InterpolatedPosition) : transform.position;
 
@@ -150,6 +176,8 @@ namespace JamKit.Movement
         {
             if (_sim == null) Setup();
             _crouchToggled = false;
+            _lean.Reset();
+            _leanOffset = 0f;
             controller.enabled = false;
             transform.position = feet;
             controller.enabled = true;
@@ -175,15 +203,47 @@ namespace JamKit.Movement
             float dt = Time.deltaTime;
             var input = ReadInput(dt);
             _driver.Frame(dt, input);
+            if (_sim.Mode == MoveMode.Air)
+            {
+                _airTime += dt;
+                var ev = _driver.FrameEvents;
+                if (ev.jumped || ev.doubleJumped || ev.wallJumped) _airJumped = true;
+            }
+            else { _airTime = 0f; _airJumped = false; }
             UpdateStride(dt);
             var d = Def;
             float rate = Mathf.Abs(d.eyeHeight - d.slideEyeHeight) / Mathf.Max(0.01f, d.eyeBlendTime);
             _eye = Mathf.MoveTowards(_eye, _sim.EyeHeightTarget, rate * dt);
+            TickLean(dt);
             ApplyView();
+        }
+
+        // ---------- The peek ----------
+
+        void TickLean(float dt)
+        {
+            if (peek == null) return;
+            int side = _lean.ProbeSide(_leanWant);
+            float room = side != 0 ? LeanRoom(side) : 0f;
+            _lean.Tick(dt, _leanWant, _leanAllowed, side, room, peek);
+            _leanOffset = _lean.Offset(peek);
+        }
+
+        /// <summary>Free metres beside the eyes toward <paramref name="side"/>: a sphere of the clearance's radius swept from
+        /// the eyes on the body's centre line out to a full lean, so the eyes stop short of any wall.</summary>
+        float LeanRoom(int side)
+        {
+            Vector3 eye = RenderPosition + Vector3.up * _eye;
+            Vector3 dir = Quaternion.Euler(0f, _yaw, 0f) * new Vector3(side, 0f, 0f);
+            float r = Mathf.Max(0.02f, peek.clearance);
+            if (Physics.CheckSphere(eye, r, Mask, QueryTriggerInteraction.Ignore)) return 0f;
+            return Physics.SphereCast(eye, r, dir, out var hit, peek.distance, Mask, QueryTriggerInteraction.Ignore) ? hit.distance : peek.distance;
         }
 
         MoveInput ReadInput(float dt)
         {
+            _leanWant = 0;
+            _leanAllowed = false;
             var input = new MoveInput { yaw = _yaw };
             bool shell = GameRoot.Exists;
             bool allowed = shell && GameRoot.Input.GameplayAllowed;
@@ -233,6 +293,18 @@ namespace JamKit.Movement
             input.crouchPressed = io.Pressed(io.Crouch) || (togglePressed && _crouchToggled);
             input.sprintHeld = io.Held(io.Sprint);
             input.sprintTogglePressed = io.Pressed(io.SprintToggle);
+
+            // The peek: held left or right (both: neither); on the ground and not sprinting; a jump lets it go.
+            if (allowPeek && peek != null)
+            {
+                _leanWant = (io.Held(io.PeekLeft) ? -1 : 0) + (io.Held(io.PeekRight) ? 1 : 0);
+                bool sprinting = input.sprintHeld || input.sprintTogglePressed || _sim.SprintToggled || _sim.Mode == MoveMode.Sprint;
+                // A step down (a moment in the air, not a jump) doesn't count as leaving the ground.
+                var mode = _sim.Mode == MoveMode.Air && !_airJumped && _airTime < LeanAirGrace ? MoveMode.Grounded : _sim.Mode;
+                _leanAllowed = PeekLean.Allowed(mode, sprinting) && !input.jumpPressed;
+                // Leaning, she only walks slowly.
+                if (_leanAllowed && (_leanWant != 0 || _lean.Leaning)) input.move = PeekLean.LimitMove(input.move, Def.stickFullAt, peek);
+            }
             return input;
         }
 
@@ -293,7 +365,7 @@ namespace JamKit.Movement
             if (head == null) return;
             // Interpolated position: the body is at the last step; the head sits where the body is "now".
             Vector3 offset = RenderPosition - transform.position;
-            head.localPosition = new Vector3(0f, _eye, 0f) + transform.InverseTransformVector(offset);
+            head.localPosition = new Vector3(_leanOffset, _eye, 0f) + transform.InverseTransformVector(offset);
             head.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
         }
 

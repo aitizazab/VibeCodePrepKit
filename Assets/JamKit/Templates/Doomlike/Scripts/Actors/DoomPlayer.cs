@@ -31,6 +31,7 @@ namespace JamKit.Doomlike
         float _speedScale = 1f;
         float _hazardTimer;
         Vector2 _wish;
+        float _lean, _leanRoll;
 
         /// <summary>Tests and the smoke run drive the player with these instead of the input.</summary>
         public Vector2 ScriptedMove;
@@ -113,6 +114,19 @@ namespace JamKit.Doomlike
             ApplyRotation(0f);
         }
 
+        /// <summary>A peek (Visiting Hours' waking world): the view slides <paramref name="sideways"/> metres to the right (-
+        /// left) and rolls <paramref name="rollDegrees"/> toward it (+ right). The caller keeps it clear of walls.</summary>
+        public void SetLean(float sideways, float rollDegrees)
+        {
+            if (_lean == sideways && _leanRoll == rollDegrees) return;
+            _lean = sideways;
+            _leanRoll = rollDegrees;
+            ApplyRotation(0f);
+        }
+
+        /// <summary>The peek's sideways offset now (m, + right).</summary>
+        public float Lean => _lean;
+
         /// <summary>Recoil: the view kicks up and settles.</summary>
         public void Kick(float degrees) => _kick = Mathf.Min(_kick + degrees, 12f);
 
@@ -178,8 +192,8 @@ namespace JamKit.Doomlike
             if (rig != null)
             {
                 float b = _t.bobAmount * _bobAmount;
-                rig.localPosition = new Vector3(Mathf.Cos(_bob * 0.5f) * b * 0.6f, Mathf.Abs(Mathf.Sin(_bob * 0.5f)) * b - b * 0.5f, 0f);
-                rig.localRotation = Quaternion.identity;
+                rig.localPosition = new Vector3(Mathf.Cos(_bob * 0.5f) * b * 0.6f + _lean, Mathf.Abs(Mathf.Sin(_bob * 0.5f)) * b - b * 0.5f, 0f);
+                rig.localRotation = _leanRoll != 0f ? Quaternion.Euler(0f, 0f, -_leanRoll) : Quaternion.identity;
             }
         }
 

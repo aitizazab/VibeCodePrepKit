@@ -22,6 +22,10 @@ namespace JamKit.Shell
         /// <summary>Restart a timed run (R, View / Share) and show or hide the best run's ghost (G, d-pad left):
         /// the Movement Lab's Gauntlet. Their Controls rows are hidden unless a scene shows them.</summary>
         public readonly InputAction Restart, Ghost;
+        /// <summary>Peeking: hold to lean the eyes left or right round a corner (Q / LB, F / RB). Off (unbound, rows hidden)
+        /// unless a template turns them on with <see cref="ControlBindings.SetPeekOnBumpers"/>, which also takes LB off
+        /// Sprint and RB off Jump (Visiting Hours does; L3 and Shift still sprint, A and Space still jump).</summary>
+        public readonly InputAction PeekLeft, PeekRight;
         /// <summary>The argument battle's verb shortcuts (docs/ARGUMENT-PROTOTYPE.md; A / Enter picks from the verb row too): Ask (1, X / Square), Challenge (2, RB / R1),
         /// Concede (3, Y / Triangle), Press (hold 4, B / Circle), Let it rest (5, View / Share). Their Controls rows show
         /// while a battle runs; they never clash with walking-around keys (a separate context).</summary>
@@ -109,6 +113,8 @@ namespace JamKit.Shell
                 AddFixed(Ghost, "<Keyboard>/g", 0);
                 AddFixed(Ghost, "<Gamepad>/dpad/left", 1);
             }
+            PeekLeft = Ensure("PeekLeft", "<Keyboard>/q", "<Gamepad>/leftShoulder");
+            PeekRight = Ensure("PeekRight", "<Keyboard>/f", "<Gamepad>/rightShoulder");
             ArgueAsk = Ensure("ArgueAsk", "<Keyboard>/1", "<Gamepad>/buttonWest");
             ArgueChallenge = Ensure("ArgueChallenge", "<Keyboard>/2", "<Gamepad>/rightShoulder");
             ArgueConcede = Ensure("ArgueConcede", "<Keyboard>/3", "<Gamepad>/buttonNorth");
@@ -381,6 +387,8 @@ namespace JamKit.Shell
             Button(g, "Pause", "<Keyboard>/escape", "<Keyboard>/p", "<Gamepad>/start");
             Button(g, "Restart", "<Keyboard>/r", "<Gamepad>/select");
             Button(g, "Ghost", "<Keyboard>/g", "<Gamepad>/dpad/left");
+            Button(g, "PeekLeft", "<Keyboard>/q", "<Gamepad>/leftShoulder");
+            Button(g, "PeekRight", "<Keyboard>/f", "<Gamepad>/rightShoulder");
             Button(g, "ArgueAsk", "<Keyboard>/1", "<Gamepad>/buttonWest");
             Button(g, "ArgueChallenge", "<Keyboard>/2", "<Gamepad>/rightShoulder");
             Button(g, "ArgueConcede", "<Keyboard>/3", "<Gamepad>/buttonNorth");

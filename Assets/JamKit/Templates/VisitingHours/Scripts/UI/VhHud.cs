@@ -118,7 +118,7 @@ namespace JamKit.VisitingHours
             Root.Add(_dot);
             _prompt = AddLabel("vh-prompt", "");
             _journalHint = AddLabel("vh-journal-hint", "J  Journal");
-            _controls = AddLabel("vh-controls", "WASD / stick: walk    Mouse: look    Shift: hurry    E: look closer    J: journal");
+            _controls = AddLabel("vh-controls", "WASD / stick: walk    Mouse: look    Shift / L3: hurry    Q / F: peek    E: look closer    J: journal");
             _controls.style.opacity = 0f;
             _toast = AddLabel("vh-toast", "");
             _toast.style.opacity = 0f;

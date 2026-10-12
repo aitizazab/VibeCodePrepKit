@@ -49,6 +49,8 @@ namespace JamKit.DreamEscape
             _theo.StartCounting(_h.theoStart, _h.theoCountYaw, count, 0);
             PlaceTheo();
             _comingSaid = false;
+            _peekHintDone = false;
+            _peekHintText = null;
             _hud.ShowCounter(true);
             UpdateCounter();
             _hud.Title("Hide and seek");
@@ -64,9 +66,64 @@ namespace JamKit.DreamEscape
             _theo.SetRoomOpen("theo", open);
         }
 
+        // ---------- Teaching the peek ----------
+
+        bool _peekHintDone, _peekHintPad;
+        int _peekHintVersion = -1;
+        string _peekHintText;
+        const string PeekPromptId = "peek";
+
+        /// <summary>The first time it's useful (Theo's first count): "[LB / RB]  Hold to peek round corners" in the prompt
+        /// line, in the keys of the device in her hands, until she's peeked once or he's done counting. A memory's own prompt
+        /// takes the line while she's at one.</summary>
+        void PeekHint()
+        {
+            var input = GameRoot.Input;
+            if (!_peekHintDone && (!_theo.Counting || Mathf.Abs(player.LeanFraction) > 0.6f || !input.Bindings.PeekOnBumpers)) _peekHintDone = true;
+            if (_peekHintDone)
+            {
+                if (_promptFor == PeekPromptId) { _promptFor = null; _hud.Prompt(null); }
+                return;
+            }
+            bool pad = input.PadMode;
+            if (_peekHintText == null || pad != _peekHintPad || input.Bindings.Version != _peekHintVersion)
+            {
+                _peekHintPad = pad;
+                _peekHintVersion = input.Bindings.Version;
+                _peekHintText = "[" + PeekKeys(pad) + "]  Hold to peek round corners";
+                if (_promptFor == PeekPromptId) _hud.Prompt(_peekHintText);
+            }
+            if (_promptFor == null)
+            {
+                _promptFor = PeekPromptId;
+                _hud.Prompt(_peekHintText);
+            }
+        }
+
+        /// <summary>"LB / RB" (or "L1 / R1", or "Q / F" on the keyboard): the peek keys as bound now.</summary>
+        static string PeekKeys(bool pad)
+        {
+            var b = GameRoot.Input.Bindings;
+            var style = ControlNames.DetectPadStyle();
+            var col = pad ? ControlColumn.Gamepad : ControlColumn.KeyboardMouse;
+            var l = b.FindRow("peek-left");
+            var r = b.FindRow("peek-right");
+            string left = l != null ? b.SlotName(l.Action, l.Primary(col), style) : "";
+            string right = r != null ? b.SlotName(r.Action, r.Primary(col), style) : "";
+            if (left.Length == 0) left = pad ? "LB" : "Q";
+            if (right.Length == 0) right = pad ? "RB" : "F";
+            return left + " / " + right;
+        }
+
+        /// <summary>The peek hint's text now (tests).</summary>
+        public string PeekHintText => _promptFor == PeekPromptId ? _peekHintText : null;
+
         void UpdateCounter() => _hud.Counter(_round.FoundCount, _round.Total, _round.Catches, HideAndSeekRound.MaxCatches);
 
-        void TickHideAndSeek(float dt)
+        /// <summary>Her as Theo's senses take her this frame (house space): feet, height, speed, posture, the hiding place
+        /// she's in, and the peek: her head where her eyes really are, so peeking round a door frame shows him a small
+        /// head, not the whole of her (StealthSight).</summary>
+        public StealthTarget HerTarget()
         {
             var f = Feet;
             var sim = player.Sim;
@@ -77,8 +134,17 @@ namespace JamKit.DreamEscape
                 target.crouched = sim.Crouched;
                 target.sliding = sim.Mode == JamKit.Movement.MoveMode.Slide;
             }
-            int spot = _h.SpotAt(f);
-            target.hidingSpot = spot;
+            Vector3 lean = houseRoot.InverseTransformVector(player.LeanWorld);
+            target.lean = new NVec3(lean.x, 0f, lean.z);
+            target.hidingSpot = _h.SpotAt(f);
+            return target;
+        }
+
+        void TickHideAndSeek(float dt)
+        {
+            var f = Feet;
+            var target = HerTarget();
+            int spot = target.hidingSpot;
             _theo.SetHerSpot(spot);
             var noise = default(StealthNoise);
             var sp = StealthPlayer.Current;
@@ -94,6 +160,7 @@ namespace JamKit.DreamEscape
             if (_round.AllFound && _theo.State != TheoState.Coming && _theo.State != TheoState.Celebrating && !_busy) _theo.ComeFind(f);
             Eye();
             Memories();
+            PeekHint();
             if (!_theoRoomOpen && HideAndSeekRound.TheoRoomOpen(false, _round.FoundCount))
             {
                 SetTheoRoom(true);

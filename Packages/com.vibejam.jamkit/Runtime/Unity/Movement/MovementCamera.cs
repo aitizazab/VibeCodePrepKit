@@ -8,7 +8,8 @@ namespace JamKit.Movement
     /// view widens with speed (and x1.1 while sliding), the view leans away from a wall you run on (a quick lean-in with a
     /// little overshoot on contact, the cue players time wall kicks by), rolls a touch while sliding,
     /// dips sharply as a slide starts and on landing in proportion to the fall, nods on a mantle and bobs while running, and
-    /// punches out on the boom (crossing into flying, from <see cref="SpeedFeel"/>; never a roll or a shake). Every
+    /// punches out on the boom (crossing into flying, from <see cref="SpeedFeel"/>; never a roll or a shake), and rolls a
+    /// few degrees toward a peek (<see cref="MovementController.LeanRoll"/>). Every
     /// effect follows the player's comfort settings (Settings: fieldOfView, cameraRoll, headBob,
     /// motionEffects). Sits on the rig between the head and the camera; runs after the controller.
     /// </summary>
@@ -64,11 +65,14 @@ namespace JamKit.Movement
         float _kickT = -1f;
         float _slideK;
         float _boomFov;
+        float _leanRoll;
 
         /// <summary>The current lean in degrees (tests, HUD).</summary>
         public float Roll => _roll;
         public float Fov => _fov;
         public float Dip => _dip;
+        /// <summary>The peek's roll this frame, degrees (z: + tilts the view's top left; a right lean is negative).</summary>
+        public float LeanRoll => _leanRoll;
         /// <summary>The boom's FOV punch this frame, degrees (tests).</summary>
         public float BoomFov => _boomFov;
 
@@ -154,8 +158,12 @@ namespace JamKit.Movement
             float nodTarget = mode == MoveMode.Mantle ? mantleNod * bobK : 0f;
             _nod = Mathf.Lerp(_nod, nodTarget, 1f - Mathf.Exp(-14f * udt));
 
+            // The peek rolls the view a few degrees toward the lean (the controller slides the eyes): top of the view toward
+            // the lean, x Camera roll and Motion effects, none with Reduce effects.
+            _leanRoll = (s != null && s.reduceEffects) ? 0f : -body.LeanRoll * rollK * motionK;
+
             rig.localPosition = bob + new Vector3(0f, _dip, 0f);
-            rig.localRotation = Quaternion.Euler(_nod + _dip * -20f, 0f, _roll);
+            rig.localRotation = Quaternion.Euler(_nod + _dip * -20f, 0f, _roll + _leanRoll);
         }
     }
 }

@@ -263,6 +263,7 @@ namespace JamKit.Movement
                     eyes = head.position,
                     pitch = body.Pitch,
                     thirdPerson = ThirdPerson,
+                    lean = body.peek != null ? body.LeanFraction * body.peek.bodyBend : 0f,
                 });
                 return;
             }

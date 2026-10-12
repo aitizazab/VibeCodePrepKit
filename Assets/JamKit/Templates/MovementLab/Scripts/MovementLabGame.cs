@@ -88,6 +88,7 @@ namespace JamKit.MovementLab
         MoveMode _lastMode = MoveMode.Air;
         float _lastTime;
         int _catchMissesSeen;
+        bool _peekWas, _peekTaken;
         float _catchLogged = -10f;
 
         void Start()
@@ -119,6 +120,10 @@ namespace JamKit.MovementLab
             GameRoot.Hud.SetScoreText("");
             _hud = new LabHud(GameRoot.Hud.Root);
             MovementComfortScreen.Ensure();
+            // The lab keeps LB on Sprint and RB on Jump (its LB + d-pad switches, the pad tests): no peeking while it runs.
+            _peekWas = GameRoot.Input.Bindings.PeekOnBumpers;
+            _peekTaken = true;
+            GameRoot.Input.Bindings.SetPeekOnBumpers(false);
 
             MovementLabPresenter.Register(PresenterMode.Chapters, this, this);
             PresenterMode.RegisterDriver(this, MovementLabPresenter.Scene, AttractDrive);
@@ -141,6 +146,7 @@ namespace JamKit.MovementLab
             if (DebugMenu.SkipHandler == _skip) DebugMenu.SkipHandler = null;
             MovementComfortScreen.Remove();
             _hud?.Remove();
+            if (_peekTaken) GameRoot.Input.Bindings.SetPeekOnBumpers(_peekWas);
         }
 
         // ---------- The run ----------
