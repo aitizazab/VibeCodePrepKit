@@ -49,6 +49,15 @@ namespace JamKit.DreamEscape.EditorTools
         static readonly string[] CorniceOptions = { "stepped-chosen", "plain-strip", "cove", "dentil" };
         static readonly float[] HeightOptions = { 0f, 0.4f };   // on top of the +0.4 m built in (round 4)
         static readonly string[] AtticOptions = { "painted-chosen", "plain-boards", "dark-boards" };
+        // Round 5: the observatory tower in dark stone (my pick) or dark polished wood.
+        static readonly string[] TowerOptions = { "dark-stone-chosen", "dark-polished-wood" };
+
+        static List<Spot> TowerSpots() => new List<Spot>
+        {
+            new Spot("garden-left", new Vector3(-12.5f, Eye, -6f), new Vector3(-4f, 5.5f, 9f)),
+            new Spot("side-garden", new Vector3(11.5f, 2.6f, 5f), new Vector3(-1f, 7.8f, 13f)),
+            new Spot("from-the-street", new Vector3(-9f, Eye, -20f), new Vector3(-1f, 4.5f, 6f)),
+        };
 
         static List<Spot> WallSpots() => new List<Spot>
         {
@@ -113,6 +122,12 @@ namespace JamKit.DreamEscape.EditorTools
             if (Has("heights"))
                 foreach (float raise in HeightOptions)
                     Scene(path, Named(CeilingSpots(), $"height-plus{Mathf.RoundToInt((DreamHouse.CeilingRaise + raise) * 100):000}cm"), dir, () => RaiseCeilings(raise));
+            if (Has("tower"))
+                for (int k = 0; k < TowerOptions.Length; k++)
+                {
+                    string o = TowerOptions[k];
+                    Scene(path, Named(TowerSpots(), $"tower-{k}-{o}"), dir, () => ApplyTower(o));
+                }
             if (Has("attic"))
                 for (int k = 0; k < AtticOptions.Length; k++)
                 {
@@ -375,6 +390,17 @@ namespace JamKit.DreamEscape.EditorTools
                 t.localScale = s;
                 t.position += Vector3.up * (raise * 0.5f);
             }
+        }
+
+        // ---------- The observatory tower ----------
+
+        static void ApplyTower(string option)
+        {
+            _variantRoot = null;
+            if (option == "dark-stone-chosen") return;
+            Remat("Pastel_TowerStone", m => { m.SetColor("_Color", new Color(0.42f, 0.25f, 0.17f)); return m; });
+            FindByName("Tower (stone joints)")?.SetActive(false);
+            FindByName("Tower (wood grain)")?.SetActive(true);
         }
 
         // ---------- The attic's underside ----------

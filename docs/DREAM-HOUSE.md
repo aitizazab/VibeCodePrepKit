@@ -134,6 +134,21 @@ woman's; card 1.97 m) and Theo's at 1.20 m (a ten-year-old's; card 1.63 m). `Dre
   Tall hedges close the garden at the house's corners (colliders, so the routes outside don't change); a lawn and trees
   behind. Every window outside is one of the rooms' windows (`DreamHouseRooms.HouseWindows`).
 
+**Round 5 (2026-10-12): the observatory as a tower, bigger garden-side windows, colours for the oxblood.**
+- **The tower** (the creator: "more like a tower ... dark polished wood, or a dark stone"): the observatory is now a tower
+  over the middle of the attic's west end (5 m across, `ObsZ0`..`ObsZ1`), its ceiling 5 m over the attic's floor; the
+  sloped roof runs on either side of it. Outside it rises from the ground at the back past the ridge, in dark stone (the
+  capture's `-Variants tower` shows dark polished wood), under a steep slate roof with a brass finial.
+- **The crescent skylight** (the creator's example, a moon for Lena's stars): 2.6 m across, cut into the tower's ceiling
+  over the telescope, with a light well, a rim and a pane of night sky; it shows on the tower's roof outside too.
+- **The garden-facing wall's windows** are as big as the other side's (the parents' room 1.8 x 1.6 m, Theo's 1.6 x 1.6 m,
+  the bath 1.2 x 0.9 m); Theo's front window too (0.9 x 0.7 m). Inside and outside share `DreamHouseRooms.HouseWindows`.
+- **The "holes" by the front door** were the wall's jambs flickering against the door frame (two faces in one plane);
+  the frame now wraps the jambs, and the outside walls no longer share a plane with the front wall.
+- **Colours for the oxblood and walnut:** the slide into the kitchen (and the attic stairs' ramp) walnut, curtains
+  ochre, the window seat teal, rugs navy (kitchen), mustard (living room), teal (hall runner), cream (parents' room),
+  the shower curtain off-white.
+
 ## Interior notes (art pass 5, 2026-10-12: a lived-in home)
 The creator: "it's not at all furnished... for the space Elias spent most of his life in, his memories of it are rather
 bland." The house is now decorated as a home (`Dream/Editor/House/DreamHouseDecor.cs`), decoration only: no colliders,

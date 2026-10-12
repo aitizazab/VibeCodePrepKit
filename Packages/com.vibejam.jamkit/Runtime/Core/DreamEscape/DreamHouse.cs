@@ -90,9 +90,13 @@ namespace JamKit.DreamEscape
         /// <summary>Lena's observatory (round 4, the creator: "a cut-off in the sloped roof so it remains high-roofed in the
         /// observatory"): the attic west of <see cref="ObsX1"/> rises to a flat ceiling <see cref="ObsHeight"/> above the
         /// attic's floor, full height from wall to wall, under its own low roof with a skylight.</summary>
-        public const float ObsX1 = -2.9f, ObsHeight = 4.2f;
-        /// <summary>The skylight over the telescope.</summary>
-        public const float SkyX0 = -6.6f, SkyX1 = -5.4f, SkyZ0 = 77.4f, SkyZ1 = 78.6f;
+        public const float ObsX1 = -2.9f, ObsHeight = 5.0f;
+        /// <summary>Round 5 (the creator: "more like a tower"): the observatory is a tower over the middle of the attic's west
+        /// end, its inner walls at z = <see cref="ObsZ0"/> and <see cref="ObsZ1"/>; outside them the sloped roof runs on.</summary>
+        public const float ObsZ0 = RidgeZ - 2.5f, ObsZ1 = RidgeZ + 2.5f;
+        /// <summary>The crescent skylight in the tower's ceiling, over the telescope (a moon for Lena's stars): the outer
+        /// circle's centre and radius; the inner circle that cuts the crescent sits <see cref="SkyBite"/> further east.</summary>
+        public const float SkyX = -5.3f, SkyZ = RidgeZ, SkyR = 1.3f, SkyInnerR = 1.1f, SkyBite = 0.65f;
         public const float VoidBottom = -24f;
         /// <summary>The house seen from its front garden (round 4): the main floor's plan turned so the hall's east end, the
         /// front door, faces the garden (x = z - <see cref="FrontDoorZ"/>, z = 8.2 - x); the walls' outer faces and the eaves.</summary>
@@ -232,7 +236,7 @@ namespace JamKit.DreamEscape
         }
 
         /// <summary>Solid steps just behind one slope of the roof (three, the third the ridge cap), so a jump stays inside.</summary>
-        void RoofSteps(float x0, float x1, bool south, int fromStep)
+        void RoofSteps(float x0, float x1, bool south, int fromStep, float clip = float.NaN)
         {
             float half = RidgeZ - HubZ0;
             for (int i = fromStep; i <= 3; i++)
@@ -240,6 +244,8 @@ namespace JamKit.DreamEscape
                 float h = KneeWall + (RidgeHeight - KneeWall) * i / 3f;
                 float dz = half * i / 3f;
                 float za = south ? HubZ0 : HubZ1 - dz, zb = south ? HubZ0 + dz : HubZ1;
+                if (!float.IsNaN(clip)) { if (south) zb = Math.Min(zb, clip); else za = Math.Max(za, clip); }
+                if (zb - za < 0.05f) continue;
                 Add("Roof (" + (south ? "south" : "north") + ", step " + i + ")", LabPieceKind.Floor, HouseLook.RoofStep,
                     new Vector3(x0, AtticFloor + h, za), new Vector3(x1, AtticFloor + RidgeHeight + 0.4f, zb));
             }
@@ -460,17 +466,19 @@ namespace JamKit.DreamEscape
             Wall("Attic railing (stairwell, west)", StairX0 - 0.2f, StairX0, StairZ0, StairOpenZ1 + 0.2f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
             Wall("Attic railing (stairwell, east)", StairX1, StairX1 + 0.2f, StairZ0, StairOpenZ1 + 0.2f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
             Wall("Attic railing (stairwell, north)", StairX0 - 0.2f, StairX1 + 0.2f, StairOpenZ1, StairOpenZ1 + 0.2f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
-            Wall("Attic knee wall (south)", ObsX1, HubX1, HubZ0, HubZ0 + 0.3f, AtticFloor, AtticFloor + KneeWall, HouseLook.KneeWall);
-            Wall("Attic knee wall (north)", ObsX1, HubX1, HubZ1 - 0.3f, HubZ1, AtticFloor, AtticFloor + KneeWall, HouseLook.KneeWall);
-            // The observatory: its walls rise full height to its flat ceiling (the roof cut and raised over it).
-            Wall("Observatory wall (south)", HubX0, ObsX1, HubZ0, HubZ0 + 0.3f, AtticFloor, AtticFloor + ObsHeight, HouseLook.Gable);
-            Wall("Observatory wall (north)", HubX0, ObsX1, HubZ1 - 0.3f, HubZ1, AtticFloor, AtticFloor + ObsHeight, HouseLook.Gable);
-            Add("Observatory ceiling", LabPieceKind.Floor, HouseLook.RoofStep, V(HubX0 - 0.3f, AtticFloor + ObsHeight, HubZ0), V(ObsX1, AtticFloor + ObsHeight + 0.3f, HubZ1));
+            Wall("Attic knee wall (south)", HubX0, HubX1, HubZ0, HubZ0 + 0.3f, AtticFloor, AtticFloor + KneeWall, HouseLook.KneeWall);
+            Wall("Attic knee wall (north)", HubX0, HubX1, HubZ1 - 0.3f, HubZ1, AtticFloor, AtticFloor + KneeWall, HouseLook.KneeWall);
+            // The observatory: a tower, its walls rising full height to its ceiling (the roof cut away over it).
+            Wall("Observatory tower wall (south)", HubX0, ObsX1, ObsZ0 - 0.3f, ObsZ0, AtticFloor, AtticFloor + ObsHeight, HouseLook.Gable);
+            Wall("Observatory tower wall (north)", HubX0, ObsX1, ObsZ1, ObsZ1 + 0.3f, AtticFloor, AtticFloor + ObsHeight, HouseLook.Gable);
+            Add("Observatory ceiling", LabPieceKind.Floor, HouseLook.RoofStep, V(HubX0 - 0.3f, AtticFloor + ObsHeight, ObsZ0 - 0.3f), V(ObsX1, AtticFloor + ObsHeight + 0.3f, ObsZ1 + 0.3f));
             Add("Attic gable (west, the observatory window)", LabPieceKind.Wall, HouseLook.Gable, V(HubX0 - 0.3f, AtticFloor, HubZ0), V(HubX0, AtticFloor + ObsHeight, HubZ1));
             Add("Attic gable (east)", LabPieceKind.Wall, HouseLook.Gable, V(HubX1, AtticFloor, HubZ0), V(HubX1 + 0.3f, AtticFloor + RidgeHeight + 0.3f, HubZ1));
             // The roof is drawn by the builder; these solid steps sit just behind its slopes so a jump can't leave the house.
             RoofSteps(ObsX1, HubX1, south: true, fromStep: 1);
             RoofSteps(ObsX1, DormerX0, south: false, fromStep: 1);
+            RoofSteps(HubX0, ObsX1, south: true, fromStep: 1, clip: ObsZ0 - 0.3f);    // either side of the tower
+            RoofSteps(HubX0, ObsX1, south: false, fromStep: 1, clip: ObsZ1 + 0.3f);
             RoofSteps(DormerX1, HubX1, south: false, fromStep: 1);
             RoofSteps(DormerX0, DormerX1, south: false, fromStep: 3);   // over the dormer only the ridge cap
             // The dormer on the north slope, over the top of the attic stairs: its own walls and roof, a window to the north.

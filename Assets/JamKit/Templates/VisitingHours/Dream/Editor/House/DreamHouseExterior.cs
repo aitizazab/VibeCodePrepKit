@@ -140,14 +140,18 @@ namespace JamKit.DreamEscape.EditorTools
 
         static void Walls()
         {
-            // The sides and the back (the front wall is DreamHouse's, with its colliders); the observatory's block rises
-            // full height at the back.
-            BoxMinMax("Wall (left)", new Vector3(X0, 0f, 0.3f), new Vector3(X0 + Wall, Eave, ObsZ), _siding);
-            BoxMinMax("Wall (right)", new Vector3(X1 - Wall, 0f, 0.3f), new Vector3(X1, Eave, ObsZ), _siding);
-            Lines(new Vector3(X0, 0f, 0f), new Vector3(X0, 0f, ObsZ), Plinth, Eave, Vector3.left, 0.3f, _board);
-            Lines(new Vector3(X1, 0f, 0f), new Vector3(X1, 0f, ObsZ), Plinth, Eave, Vector3.right, 0.3f, _board);
+            // The sides and the back (the front wall is DreamHouse's, with its colliders; the sides start behind it, so no
+            // two faces lie in one plane), the gable at the back; the observatory's tower rises through the roof.
+            BoxMinMax("Wall (left)", new Vector3(X0, 0f, 0.5f), new Vector3(X0 + Wall, Eave, BackZ), _siding);
+            BoxMinMax("Wall (right)", new Vector3(X1 - Wall, 0f, 0.5f), new Vector3(X1, Eave, BackZ), _siding);
+            BoxMinMax("Back wall", new Vector3(X0, 0f, BackZ - Wall), new Vector3(X1, Eave, BackZ), _siding);
+            DreamHouseRooms.Poly(_t, "Back gable", _shingle, new Vector3(X1, Eave, BackZ + 0.005f), new Vector3(RidgeX, RidgeY, BackZ + 0.005f), new Vector3(X0, Eave, BackZ + 0.005f));
+            Lines(new Vector3(X0, 0f, 0f), new Vector3(X0, 0f, BackZ), Plinth, Eave, Vector3.left, 0.3f, _board);
+            Lines(new Vector3(X1, 0f, 0f), new Vector3(X1, 0f, BackZ), Plinth, Eave, Vector3.right, 0.3f, _board);
+            Lines(new Vector3(X0, 0f, BackZ), new Vector3(X1, 0f, BackZ), Plinth, Eave, Vector3.forward, 0.3f, _board);
             Lines(new Vector3(X0, 0f, 0f), new Vector3(-1.6f, 0f, 0f), Plinth, Eave, Vector3.back, 0.3f, _board);
             Lines(new Vector3(1.6f, 0f, 0f), new Vector3(X1, 0f, 0f), Plinth, Eave, Vector3.back, 0.3f, _board);
+            Lines(new Vector3(-1.6f, 0f, 0f), new Vector3(1.6f, 0f, 0f), 2.8f, Eave, Vector3.back, 0.3f, _board);   // over the door
             // The plinth: a stone band round the foot of the walls.
             BoxMinMax("Plinth (front, left)", new Vector3(X0 - 0.06f, 0f, -0.06f), new Vector3(-1.66f, Plinth, 0.1f), _stone);
             BoxMinMax("Plinth (front, right)", new Vector3(1.66f, 0f, -0.06f), new Vector3(X1 + 0.06f, Plinth, 0.1f), _stone);
@@ -174,58 +178,129 @@ namespace JamKit.DreamEscape.EditorTools
 
         static void MainRoof()
         {
-            float z0 = -0.45f, z1 = ObsZ;
+            float z0 = -0.45f, z1 = BackZ + 0.45f;
             Slab("Roof (left slope)", X0, Eave, RidgeX, RidgeY, z0, z1, 0.45f);
             Slab("Roof (right slope)", X1, Eave, RidgeX, RidgeY, z0, z1, 0.45f);
             Box("Ridge cap", new Vector3(RidgeX, RidgeY + 0.12f, (z0 + z1) * 0.5f), new Vector3(0.3f, 0.12f, z1 - z0), _trim);
             foreach (float x in new[] { X0 - 0.5f, X1 + 0.5f })
-                foreach (float z in new[] { 0.35f, ObsZ - 0.35f })
+                foreach (float z in new[] { 0.35f, BackZ - 0.35f })
                     Downpipe(x, z, Eave - 0.3f);
         }
 
         static void Observatory()
         {
-            // Its walls, in shingles: the sides and the back rise to its flat roof; over the main roof, its front wall.
-            BoxMinMax("Observatory wall (left)", new Vector3(X0, 0f, ObsZ), new Vector3(X0 + Wall, ObsTop, BackZ), _siding);
-            BoxMinMax("Observatory wall (right)", new Vector3(X1 - Wall, 0f, ObsZ), new Vector3(X1, ObsTop, BackZ), _siding);
-            BoxMinMax("Back wall", new Vector3(X0, 0f, BackZ - Wall), new Vector3(X1, ObsTop, BackZ), _siding);
-            foreach (var (a, b, n) in new[] {
-                (new Vector3(X0, 0f, ObsZ), new Vector3(X0, 0f, BackZ), Vector3.left),
-                (new Vector3(X1, 0f, ObsZ), new Vector3(X1, 0f, BackZ), Vector3.right),
-                (new Vector3(X0, 0f, BackZ), new Vector3(X1, 0f, BackZ), Vector3.forward) })
+            // Round 5 (the creator: "more like a tower ... dark polished wood, or a dark stone"): the observatory is a tower over
+            // the back of the house, from the ground at the back up past the ridge, in dark stone (the capture's variants show
+            // dark polished wood too), under a steep slate roof with the crescent skylight in it and a brass finial.
+            float tx0 = DreamHouse.ObsZ0 - 0.3f - DreamHouse.FrontDoorZ, tx1 = DreamHouse.ObsZ1 + 0.3f - DreamHouse.FrontDoorZ;
+            float tz0 = ObsZ, tz1 = BackZ + 0.3f, top = Up + DreamHouse.ObsHeight;
+            var stone = DreamEscapeBuilder.Pastel("TowerStone", new Color(0.34f, 0.32f, 0.38f), 0.04f);
+            var joint = DreamEscapeBuilder.Pastel("TowerJoint", new Color(0.22f, 0.2f, 0.27f), 0f);
+            var grain = DreamEscapeBuilder.Pastel("TowerGrain", new Color(0.24f, 0.14f, 0.1f), 0f);
+            var shine = DreamEscapeBuilder.Pastel("TowerShine", new Color(0.62f, 0.42f, 0.3f), 0f);
+            BoxMinMax("Tower", new Vector3(tx0, 0f, tz0), new Vector3(tx1, top, tz1), stone);
+            BoxMinMax("Tower plinth", new Vector3(tx0 - 0.08f, 0f, BackZ - 0.1f), new Vector3(tx1 + 0.08f, Plinth + 0.1f, tz1 + 0.08f), _stone);
+            // Its faces above the roof (and the back face, from the ground): stone courses with staggered joints, or (the
+            // wood variant, hidden by default) the planks' grain.
+            var stoneLines = new GameObject("Tower (stone joints)").transform;
+            stoneLines.SetParent(_t, false);
+            var woodLines = new GameObject("Tower (wood grain)").transform;
+            woodLines.SetParent(_t, false);
+            var faces = new[]
             {
-                Lines(a, b, Plinth, Eave, n, 0.3f, _board);
-                // Above the eaves, a band of shingles.
-                var mid = (a + b) * 0.5f;
-                float len = (b - a).magnitude;
-                Box("Shingle band", new Vector3(mid.x, (Eave + ObsTop) * 0.5f, mid.z) + n * 0.01f, Mathf.Abs(n.x) > 0.5f ? new Vector3(0.02f, ObsTop - Eave, len) : new Vector3(len, ObsTop - Eave, 0.02f), _shingle);
-                Lines(a + n * 0.01f, b + n * 0.01f, Eave, ObsTop, n, 0.22f, _shingleLine);
-                Box("Band (trim)", new Vector3(mid.x, Eave, mid.z) + n * 0.03f, Mathf.Abs(n.x) > 0.5f ? new Vector3(0.06f, 0.12f, len) : new Vector3(len, 0.12f, 0.06f), _trim);
+                (a: new Vector3(tx0, 0f, tz0), b: new Vector3(tx0, 0f, tz1), n: Vector3.left, from: Eave - 0.5f),
+                (a: new Vector3(tx1, 0f, tz0), b: new Vector3(tx1, 0f, tz1), n: Vector3.right, from: Eave - 0.5f),
+                (a: new Vector3(tx0, 0f, tz1), b: new Vector3(tx1, 0f, tz1), n: Vector3.forward, from: 0f),
+                (a: new Vector3(tx0, 0f, tz0), b: new Vector3(tx1, 0f, tz0), n: Vector3.back, from: RidgeY - 0.6f),
+            };
+            foreach (var f in faces)
+            {
+                bool alongZ = Mathf.Abs(f.n.x) > 0.5f;
+                float len = (f.b - f.a).magnitude;
+                Vector3 dir = (f.b - f.a).normalized;
+                int course = 0;
+                for (float y = f.from + 0.45f; y < top - 0.05f; y += 0.45f, course++)
+                {
+                    var c = Box("Stone course", (f.a + f.b) * 0.5f + Vector3.up * y + f.n * 0.012f, alongZ ? new Vector3(0.02f, 0.03f, len) : new Vector3(len, 0.03f, 0.02f), joint);
+                    c.transform.SetParent(stoneLines, true);
+                    for (float u = (course % 2 == 0 ? 0.45f : 0.9f); u < len - 0.1f; u += 0.9f)
+                    {
+                        var j = Box("Stone joint", f.a + dir * u + Vector3.up * (y - 0.225f) + f.n * 0.012f, alongZ ? new Vector3(0.02f, 0.45f, 0.03f) : new Vector3(0.03f, 0.45f, 0.02f), joint);
+                        j.transform.SetParent(stoneLines, true);
+                    }
+                }
+                float mid = (f.from + top) * 0.5f, h = top - f.from;
+                for (float u = 0.16f; u < len - 0.05f; u += 0.16f)
+                {
+                    var g = Box("Plank line", f.a + dir * u + Vector3.up * mid + f.n * 0.012f, alongZ ? new Vector3(0.02f, h, 0.02f) : new Vector3(0.02f, h, 0.02f), grain);
+                    g.transform.SetParent(woodLines, true);
+                    if ((int)(u / 0.16f) % 3 == 1)
+                    {
+                        var hi = Box("Polish", f.a + dir * (u + 0.05f) + Vector3.up * mid + f.n * 0.013f, alongZ ? new Vector3(0.01f, h * 0.8f, 0.015f) : new Vector3(0.015f, h * 0.8f, 0.01f), shine);
+                        hi.transform.SetParent(woodLines, true);
+                    }
+                }
             }
-            DreamHouseRooms.Poly(_t, "Observatory front (over the roof, left)", _shingle, new Vector3(X0, Eave, ObsZ - 0.005f), new Vector3(RidgeX, RidgeY, ObsZ - 0.005f), new Vector3(RidgeX, ObsTop, ObsZ - 0.005f), new Vector3(X0, ObsTop, ObsZ - 0.005f));
-            DreamHouseRooms.Poly(_t, "Observatory front (over the roof, right)", _shingle, new Vector3(RidgeX, RidgeY, ObsZ - 0.005f), new Vector3(X1, Eave, ObsZ - 0.005f), new Vector3(X1, ObsTop, ObsZ - 0.005f), new Vector3(RidgeX, ObsTop, ObsZ - 0.005f));
-            // Its flat roof with a cornice, and the little dome over the skylight (a slit for the telescope).
-            BoxMinMax("Observatory roof", new Vector3(X0 - 0.3f, ObsTop, ObsZ - 0.3f), new Vector3(X1 + 0.3f, ObsTop + 0.2f, BackZ + 0.3f), _roof);
-            BoxMinMax("Observatory cornice", new Vector3(X0 - 0.36f, ObsTop - 0.12f, ObsZ - 0.36f), new Vector3(X1 + 0.36f, ObsTop + 0.02f, BackZ + 0.36f), _trim);
-            float sx = (DreamHouse.SkyZ0 + DreamHouse.SkyZ1) * 0.5f - DreamHouse.FrontDoorZ, sz = 8.2f - (DreamHouse.SkyX0 + DreamHouse.SkyX1) * 0.5f;
-            var dome = DreamEscapeBuilder.Pastel("ObservatoryDome", new Color(0.84f, 0.86f, 0.95f), 0.04f);
-            Prim("Dome drum", PrimitiveType.Cylinder, new Vector3(sx, ObsTop + 0.35f, sz), new Vector3(2.3f, 0.15f, 2.3f), _trim);
-            Prim("Dome", PrimitiveType.Sphere, new Vector3(sx, ObsTop + 0.5f, sz), new Vector3(2.1f, 2.1f, 2.1f), dome);
-            var slit = Box("Dome slit", new Vector3(sx, ObsTop + 1.2f, sz - 0.45f), new Vector3(0.32f, 0.9f, 0.5f), _night);
-            slit.transform.rotation = Quaternion.Euler(-35f, 0f, 0f);
-            Prim("Dome finial", PrimitiveType.Sphere, new Vector3(sx, ObsTop + 1.58f, sz + 0.1f), Vector3.one * 0.14f, DreamEscapeBuilder.Pastel("DecorBrassKnob", new Color(0.95f, 0.78f, 0.38f), 0.01f));
-            // Its windows: the round one at the back, clerestories in the sides (the attic's night in them).
-            float rx = RidgeX;
-            var ring = Prim("Round window (frame)", PrimitiveType.Cylinder, new Vector3(rx, Up + 1.85f, BackZ + 0.02f), new Vector3(2.4f, 0.02f, 2.4f), _trim, Quaternion.Euler(90f, 0f, 0f));
-            Prim("Round window (night)", PrimitiveType.Cylinder, new Vector3(rx, Up + 1.85f, BackZ + 0.04f), new Vector3(2.1f, 0.02f, 2.1f), _night, Quaternion.Euler(90f, 0f, 0f));
+            woodLines.gameObject.SetActive(false);
+            // A band of trim where the roof meets it, a cornice at its top.
+            BoxMinMax("Tower cornice", new Vector3(tx0 - 0.18f, top - 0.16f, tz0 - 0.18f), new Vector3(tx1 + 0.18f, top + 0.06f, tz1 + 0.18f), _trim);
+            // The steep slate roof (a pyramid), the crescent skylight in its left face, a brass finial.
+            var slate = DreamEscapeBuilder.Pastel("TowerSlate", new Color(0.26f, 0.28f, 0.38f), 0.03f);
+            float ox0 = tx0 - 0.3f, ox1 = tx1 + 0.3f, oz0 = tz0 - 0.3f, oz1 = tz1 + 0.3f, ry = top + 0.06f;
+            var apex = new Vector3((ox0 + ox1) * 0.5f, ry + 2.6f, (oz0 + oz1) * 0.5f);
+            Vector3 A = new Vector3(ox0, ry, oz0), B = new Vector3(ox1, ry, oz0), C = new Vector3(ox1, ry, oz1), D = new Vector3(ox0, ry, oz1);
+            DreamHouseRooms.Poly(_t, "Tower roof (front)", slate, A, apex, B);
+            DreamHouseRooms.Poly(_t, "Tower roof (right)", slate, B, apex, C);
+            DreamHouseRooms.Poly(_t, "Tower roof (back)", slate, C, apex, D);
+            DreamHouseRooms.Poly(_t, "Tower roof (left)", slate, D, apex, A);
+            Prim("Tower finial", PrimitiveType.Sphere, apex + Vector3.up * 0.12f, Vector3.one * 0.22f, DreamEscapeBuilder.Pastel("DecorBrassKnob", new Color(0.95f, 0.78f, 0.38f), 0.01f));
+            Prim("Tower finial (rod)", PrimitiveType.Cylinder, apex + Vector3.up * 0.45f, new Vector3(0.05f, 0.3f, 0.05f), DreamEscapeBuilder.Pastel("DecorBrassKnob", new Color(0.95f, 0.78f, 0.38f), 0.01f));
+            {
+                // The crescent on the left face: in the face's own frame (u along the eave, v up the slope).
+                var m = (A + D) * 0.5f;
+                var v = (apex - m).normalized;
+                var u = (D - A).normalized;
+                var n = Vector3.Cross(v, u).normalized;
+                if (n.x > 0f) n = -n;
+                var centre = m + (apex - m) * 0.42f + n * 0.03f;
+                var outer = DreamHouseRooms.CrescentArc(true, 30);
+                var inner = DreamHouseRooms.CrescentArc(false, 30);
+                const float scale = 0.55f;
+                Vector3 P(Vector2 q) => centre + u * ((q.y - DreamHouse.SkyZ) * scale) + v * ((q.x - DreamHouse.SkyX) * -scale);
+                var verts = new System.Collections.Generic.List<Vector3>();
+                var tris = new System.Collections.Generic.List<int>();
+                for (int i = 0; i < outer.Count; i++) { verts.Add(P(outer[i])); verts.Add(P(inner[i])); }
+                for (int i = 0; i + 1 < outer.Count; i++)
+                {
+                    int b = i * 2;
+                    tris.Add(b); tris.Add(b + 2); tris.Add(b + 1); tris.Add(b + 1); tris.Add(b + 2); tris.Add(b + 3);
+                    tris.Add(b); tris.Add(b + 1); tris.Add(b + 2); tris.Add(b + 1); tris.Add(b + 3); tris.Add(b + 2);
+                }
+                var mesh = new Mesh { name = "Crescent skylight (outside)" };
+                mesh.SetVertices(verts);
+                mesh.SetTriangles(tris, 0);
+                mesh.RecalculateNormals();
+                var go = new GameObject("Crescent skylight (outside)");
+                go.transform.SetParent(_t, false);
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var r = go.AddComponent<MeshRenderer>();
+                r.sharedMaterial = _night;
+                r.shadowCastingMode = ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                var star = DreamEscapeBuilder.Glow("AtticStar", new Color(1f, 0.96f, 0.82f), 1.4f, 0f, 0.2f);
+                for (int i = 4; i < outer.Count - 4; i += 6)
+                    Prim("Star", PrimitiveType.Sphere, (P(outer[i]) + P(inner[i])) * 0.5f + n * 0.02f, Vector3.one * 0.06f, star);
+            }
+            // Its windows: the round one at the back, clerestories high in its sides (the attic's night in them).
+            float rx = DreamHouse.RidgeZ - DreamHouse.FrontDoorZ;
+            Prim("Round window (frame)", PrimitiveType.Cylinder, new Vector3(rx, Up + 1.85f, tz1 + 0.02f), new Vector3(2.4f, 0.02f, 2.4f), _trim, Quaternion.Euler(90f, 0f, 0f));
+            Prim("Round window (night)", PrimitiveType.Cylinder, new Vector3(rx, Up + 1.85f, tz1 + 0.04f), new Vector3(2.1f, 0.02f, 2.1f), _night, Quaternion.Euler(90f, 0f, 0f));
             foreach (float hx in new[] { -6.0f, -4.2f })
             {
                 float z = 8.2f - hx;
-                NightWindow(new Vector3(X0 - 0.01f, Up + 3.0f, z), Vector3.left, 1.1f, 0.82f);
-                NightWindow(new Vector3(X1 + 0.01f, Up + 3.0f, z), Vector3.right, 1.1f, 0.82f);
+                NightWindow(new Vector3(tx0 - 0.01f, Up + 3.9f, z), Vector3.left, 1.1f, 0.82f);
+                NightWindow(new Vector3(tx1 + 0.01f, Up + 3.9f, z), Vector3.right, 1.1f, 0.82f);
             }
-            foreach (float x in new[] { X0 - 0.2f, X1 + 0.2f })
-                Downpipe(x, BackZ - 0.3f, ObsTop - 0.1f);
         }
 
         static void Bay()

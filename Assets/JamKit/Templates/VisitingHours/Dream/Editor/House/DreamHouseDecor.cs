@@ -46,7 +46,7 @@ namespace JamKit.DreamEscape.EditorTools
         static void Kitchen()
         {
             var t = Group("Kitchen and dining");
-            Rug(t, "rugRectangle", new Vector3(-3.4f, F, 75.7f), 4.4f, 3.0f, new Color(0.62f, 0.72f, 0.88f));
+            Rug(t, "rugRectangle", new Vector3(-3.4f, F, 75.7f), 4.4f, 3.0f, new Color(0.36f, 0.42f, 0.62f));   // round 5: colours for the oxblood and walnut
             Pendant(t, new Vector3(-3.4f, F, 75.7f), 2.8f);
             const float top = F + 0.95f;
             Model(t, "kitchenCoffeeMachine", new Vector3(-3.95f, top, 72.32f), Vector3.forward);
@@ -81,7 +81,7 @@ namespace JamKit.DreamEscape.EditorTools
         static void Living()
         {
             var t = Group("Living room");
-            Rug(t, "rugRounded", new Vector3(5.3f, F, 75.1f), 3.6f, 2.6f, new Color(0.86f, 0.55f, 0.5f));
+            Rug(t, "rugRounded", new Vector3(5.3f, F, 75.1f), 3.6f, 2.6f, new Color(0.86f, 0.68f, 0.4f));
             Pendant(t, new Vector3(5.2f, F, 75.0f), 3.0f);
             Fireplace(t, 7.4f, 75.2f);
             var mug = DreamProps.MeshLook("DecorMug", new Color(0.98f, 0.95f, 0.9f), 0.004f);
@@ -109,7 +109,7 @@ namespace JamKit.DreamEscape.EditorTools
         static void Hall()
         {
             var t = Group("Hall");
-            Rug(t, "rugRectangle", new Vector3(0.9f, F, 79.4f), 11.6f, 1.0f, new Color(0.8f, 0.62f, 0.78f));
+            Rug(t, "rugRectangle", new Vector3(0.9f, F, 79.4f), 11.6f, 1.0f, new Color(0.32f, 0.52f, 0.52f));
             foreach (float x in new[] { -3.6f, 0.6f, 3.4f })
             {
                 Prim(t, "Wall light (bracket)", PrimitiveType.Cube, new Vector3(x, F + 1.95f, DreamHouse.HallZ0 + 0.26f), new Vector3(0.08f, 0.16f, 0.12f), DreamProps.MeshLook("DecorBrass", new Color(0.95f, 0.78f, 0.38f), 0.004f));
@@ -133,7 +133,7 @@ namespace JamKit.DreamEscape.EditorTools
         static void Parents()
         {
             var t = Group("Parents' room");
-            Rug(t, "rugRectangle", new Vector3(-5.2f, F, 82.6f), 3.4f, 2.2f, new Color(0.74f, 0.66f, 0.86f));
+            Rug(t, "rugRectangle", new Vector3(-5.2f, F, 82.6f), 3.4f, 2.2f, new Color(0.92f, 0.86f, 0.74f));
             Pendant(t, new Vector3(-4.2f, F, 82.3f), 2.7f);
             foreach (float x in new[] { -6.55f, -3.85f })
             {
@@ -154,7 +154,7 @@ namespace JamKit.DreamEscape.EditorTools
             Model(t, "toilet", new Vector3(1.15f, F, 82.6f), Vector3.left);
             Rug(t, "rugDoormat", new Vector3(0.1f, F, 82.75f), 1.0f, 0.5f, new Color(0.7f, 0.9f, 0.9f));
             DreamEscapeBuilder.Box("Curtain rail", t, new Vector3(0.1f, F + 2.05f, DreamHouse.HubZ1 - 0.8f), new Vector3(2.6f, 0.04f, 0.04f), DreamEscapeBuilder.Pastel("DecorChrome", new Color(0.85f, 0.88f, 0.92f), 0.01f));
-            var curtain = DreamEscapeBuilder.Pastel("DecorShowerCurtain", new Color(0.98f, 0.82f, 0.86f), 0.01f);
+            var curtain = DreamEscapeBuilder.Pastel("DecorShowerCurtain", new Color(0.95f, 0.93f, 0.88f), 0.01f);
             for (int i = 0; i < 4; i++)   // drawn half across, in folds
                 DreamEscapeBuilder.Box("Curtain fold", t, new Vector3(-1.0f + i * 0.28f, F + 1.15f, DreamHouse.HubZ1 - 0.8f + (i % 2 == 0 ? 0.05f : -0.05f)), new Vector3(0.28f, 1.8f, 0.06f), curtain);
         }
@@ -244,7 +244,7 @@ namespace JamKit.DreamEscape.EditorTools
             Prim(t, "Mug (cold)", PrimitiveType.Cylinder, new Vector3(-4.45f, FA + 0.56f, 78.6f), new Vector3(0.09f, 0.05f, 0.09f), mug);
             // Star charts pinned to the gable and the rafters.
             for (int i = 0; i < 3; i++)
-                StarChart(t, new Vector3(DreamHouse.HubX0 + 0.012f, FA + 1.2f + (i == 1 ? 0.5f : 0f), 75.6f + i * 0.9f + (i == 2 ? 2.6f : 0f)), Vector3.right, 7 + i);
+                StarChart(t, new Vector3(DreamHouse.HubX0 + 0.012f, FA + 1.2f + (i == 1 ? 0.5f : 0f), 76.2f + i * 0.9f + (i == 2 ? 1.9f : 0f)), Vector3.right, 7 + i);
             StarChart(t, new Vector3(DreamHouse.ObsX1 - 0.02f, FA + 3.2f, 76.6f), Vector3.left, 21);
             // The stored life: boxes on and round the crates and the trunk, the old bike, a rocking horse, the Christmas box.
             Model(t, "cardboardBoxClosed", new Vector3(5.3f, FA + 1.2f, 74.9f), Vector3.back, 2.2f);
@@ -294,7 +294,7 @@ namespace JamKit.DreamEscape.EditorTools
                 // Under the ridge on the storage side; in the observatory, under its higher ceiling, round the skylight.
                 bool obs = x < DreamHouse.ObsX1;
                 float y = obs ? FA + DreamHouse.ObsHeight - 0.45f - sag * 1.6f : FA + DreamHouse.RidgeHeight - 0.3f - sag;
-                if (obs && x > DreamHouse.SkyX0 - 0.1f && x < DreamHouse.SkyX1 + 0.1f) continue;
+                if (obs && Mathf.Abs(x - DreamHouse.SkyX) < DreamHouse.SkyR + 0.1f) continue;
                 Prim(t, "Fairy light", PrimitiveType.Sphere, new Vector3(x, y, DreamHouse.RidgeZ + 0.14f), Vector3.one * 0.07f, fairy);
             }
             // A dim bulb hanging from the ridge in the middle.

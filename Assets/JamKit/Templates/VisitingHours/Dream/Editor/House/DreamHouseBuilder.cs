@@ -103,7 +103,7 @@ namespace JamKit.DreamEscape.EditorTools
                 case HouseLook.Hallway: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseHallwayFloor", Wood, 0.04f), DreamHouseDressing.PatternFloorboards, 2.4f, 0.28f);
                 case HouseLook.RunWall: return DreamEscapeBuilder.Pastel("HouseHallwayRunWall", P[6], 0.05f);
                 case HouseLook.Lintel: return DreamEscapeBuilder.Pastel("HouseDoor", P[0], 0.05f);
-                case HouseLook.Stairs: return DreamEscapeBuilder.Pastel("HouseStairs", new Color(0.8f, 0.62f, 0.5f), 0.05f);
+                case HouseLook.Stairs: return DreamEscapeBuilder.Pastel("HouseStairs", new Color(0.52f, 0.36f, 0.27f), 0.05f);   // walnut (round 5: with the oxblood)
                 case HouseLook.Floor: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseFloor", Wood, 0.03f), DreamHouseDressing.PatternFloorboards, 2.4f, 0.28f);
                 // The house's paper (the creator's pick, round 4): the oxblood regency stripe.
                 case HouseLook.Wall: return DreamHouseDressing.ColourPattern(DreamEscapeBuilder.Pastel("HouseWallpaper", Color.white, 0.04f), DreamHouseRooms.WallTile, DreamHouseRooms.WallTileMetres);
@@ -116,14 +116,14 @@ namespace JamKit.DreamEscape.EditorTools
                 case HouseLook.Bed: return DreamEscapeBuilder.Pastel("HouseBed", P[7], 0.05f);
                 case HouseLook.Desk: return DreamEscapeBuilder.Pastel("HouseDesk", P[11], 0.05f);
                 case HouseLook.Closet: return DreamEscapeBuilder.Pastel("HouseCloset", P[5], 0.05f);
-                case HouseLook.Curtain: return DreamEscapeBuilder.Pastel("HouseCurtain", P[8], 0.03f);
+                case HouseLook.Curtain: return DreamEscapeBuilder.Pastel("HouseCurtain", new Color(0.86f, 0.66f, 0.36f), 0.03f);   // ochre
                 case HouseLook.TippedFloor: return DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("HouseTippedFloor", Wood, 0.05f), DreamHouseDressing.PatternFloorboards, 2.4f, 0.28f);
                 case HouseLook.TippedWall: return DreamHouseDressing.ColourPattern(DreamEscapeBuilder.Pastel("HouseTippedWall", Color.white, 0.04f), DreamHouseRooms.WallTile, DreamHouseRooms.WallTileMetres);
                 case HouseLook.Porch: return DreamEscapeBuilder.Pastel("HouseHall", P[10], 0.04f);
                 case HouseLook.Header: return DreamHouseDressing.ColourPattern(DreamEscapeBuilder.Pastel("HouseWallpaper", Color.white, 0.04f), DreamHouseRooms.WallTile, DreamHouseRooms.WallTileMetres);
                 case HouseLook.Chimney: return DreamEscapeBuilder.Pastel("DecorBrick", new Color(0.86f, 0.55f, 0.5f), 0.03f);
                 case HouseLook.Bookcase: return DreamEscapeBuilder.Pastel("HouseBookcase", new Color(0.78f, 0.6f, 0.46f), 0.04f);
-                case HouseLook.WindowSeat: return DreamEscapeBuilder.Pastel("HouseWindowSeat", new Color(0.95f, 0.72f, 0.7f), 0.04f);
+                case HouseLook.WindowSeat: return DreamEscapeBuilder.Pastel("HouseWindowSeat", new Color(0.32f, 0.5f, 0.52f), 0.04f);   // teal
                 case HouseLook.Bath: return DreamEscapeBuilder.Pastel("HouseBath", P[0], 0.04f);
                 case HouseLook.Railing: return DreamEscapeBuilder.Pastel("StairRail", new Color(0.62f, 0.46f, 0.38f), 0.03f);
                 case HouseLook.KneeWall:
@@ -439,9 +439,9 @@ namespace JamKit.DreamEscape.EditorTools
             var door = DreamEscapeBuilder.Pastel("HouseFrontDoor", new Color(0.88f, 0.45f, 0.44f), 0.03f);
             var panel = DreamEscapeBuilder.Pastel("HouseFrontDoorPanel", new Color(0.95f, 0.6f, 0.56f), 0.02f);
             var brass = DreamEscapeBuilder.Pastel("HouseBrass", new Color(0.95f, 0.78f, 0.38f), 0.01f, 0.2f);
-            foreach (float x in new[] { -1.58f, 1.58f })
-                DreamEscapeBuilder.Box("Door frame (side)", t, new Vector3(x, floor + 1.32f, z), new Vector3(0.16f, 2.64f, 0.62f), trim);
-            DreamEscapeBuilder.Box("Door frame (top)", t, new Vector3(0f, floor + 2.68f, z), new Vector3(3.32f, 0.16f, 0.62f), trim);
+            foreach (float x in new[] { -1.54f, 1.54f })   // over the wall's jambs (coplanar faces flickered: the "holes" by the door)
+                DreamEscapeBuilder.Box("Door frame (side)", t, new Vector3(x, floor + 1.32f, z), new Vector3(0.24f, 2.64f, 0.66f), trim);
+            DreamEscapeBuilder.Box("Door frame (top)", t, new Vector3(0f, floor + 2.66f, z), new Vector3(3.32f, 0.2f, 0.66f), trim);
             float outside = wayIn ? -1f : 1f;   // the side she comes from (in) or goes to (out)
             DreamEscapeBuilder.Box("Doorstep", t, new Vector3(0f, floor + 0.03f, z + outside * 0.55f), new Vector3(3.2f, 0.06f, 0.5f), trim);
             const float face = 0.28f;   // the leaves hang on the +z face of the wall

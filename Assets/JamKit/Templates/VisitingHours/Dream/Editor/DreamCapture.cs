@@ -83,6 +83,7 @@ namespace JamKit.DreamEscape.EditorTools
                 // Round 4: the observatory under its raised roof, the front door from the hall, the house from outside.
                 new Spot("house-12f-observatory-skylight", new Vector3(-3.6f, DreamHouse.AtticFloor + Eye, 79.6f), new Vector3(-6.0f, DreamHouse.AtticFloor + 4.3f, 78.0f)),
                 new Spot("house-12g-observatory-across", new Vector3(-3.3f, DreamHouse.AtticFloor + Eye, 73.2f), new Vector3(-6.6f, DreamHouse.AtticFloor + 2.2f, 82.6f)),
+                new Spot("house-12h-crescent-from-the-telescope", new Vector3(-6.1f, DreamHouse.AtticFloor + 0.3f + Eye, 78.6f), new Vector3(-5.3f, DreamHouse.AtticFloor + 5.4f, 78.2f)),
                 new Spot("house-09d-front-door-inside", new Vector3(4.0f, F + Eye, 79.4f), new Vector3(8f, F + 1.2f, 79.4f)),
                 new Spot("exterior-01-from-the-street", new Vector3(-9f, Eye, -20f), new Vector3(-1f, 3.2f, 5f)),
                 new Spot("exterior-02-garden-left", new Vector3(-12.5f, Eye, -6f), new Vector3(-6f, 3.5f, 8f)),
