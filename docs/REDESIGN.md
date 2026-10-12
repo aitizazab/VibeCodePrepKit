@@ -125,3 +125,18 @@ judge's findings.
 - **In the waking world:** 3D models for Mags and Elias (in bed). Rafael is made by altering Elias's model, and the
   LeBaget representative, now a woman, by altering Mags's, each into a recognizably different person (build, hair,
   skin, face texture, clothes, accessories). Nadia's existing model stays the first-person body.
+
+## 8. The battle's direction (the creator, 2026-10-12, after reading SELECTION.md's status)
+
+- **No Danganronpa-style debate as the core.** "I don't think the Debate style is worth copying anyways. Putting it
+  into the bullet-hell portion of the fight doesn't make the argument any more enticing, it should probably stay within
+  its own section, with only a slight overlap. Either way, I'd have to play it to be sure." So: the argument and the
+  dodging are separate sections with only a slight overlap, and the argument section must be engaging on its own
+  (SELECTION 6, her notebook pages, and 7, the sky as her case, are the candidates). Keep the built debate behind a
+  presenter switch so the creator can play both and compare.
+- **Lena is the family's cook** (not professionally), so the kitchen hazards (plates, flour, batter) stand.
+- **Her care:** she cares about Nadia nearly as much as about Elias, but dream-Lena isn't the real Lena and doesn't have
+  the same motivations (she's built from what Elias needs).
+- **The keepsake** (Heard out): "can be anything related to stargazing ... but again, does she really need to give us a
+  keepsake? And if it's meant for us, not to convince Elias, then it should be something Lena shares with Nadia, so it
+  means something." Open: whether there is one at all, and if so, something Lena and Nadia shared.
