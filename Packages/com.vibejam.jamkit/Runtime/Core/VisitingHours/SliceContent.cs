@@ -44,7 +44,11 @@ namespace JamKit.VisitingHours
             new JournalEntryDef
             {
                 id = FactPoliceReport, kind = EntryKind.Fact, title = "The police report",
-                text = "An envelope at the station, for the family. Route 9, Sunday 23 August, 6:41 AM: the car crossed the median. Driver: Elias Voss, critical. Lena Voss and Theo Voss, dead at the scene.\nPhone log: 5:52, call to Nadia Voss, not answered. 5:58, call to Lena Voss, 2 minutes.",
+                // In line with script/opening-script.md and docs/VISITING-HOURS.md: his voicemail to Nadia around 3 AM, the
+                // car caught in a gang crossfire (the Larpaca gang) on the drive home, the surname Lasname.
+                // TODO(creator): "Lena Lasname and Theo Lasname, dead at the scene" is kept until the creator answers: Lena is
+                // missing, not dead (settled); did Theo die at the scene, or is he missing too?
+                text = "An envelope at the station, for the family. Route 9, about 3:40 AM: the car was caught in a crossfire (gang violence: the Larpaca gang). Driver: Elias Lasname, critical. Lena Lasname and Theo Lasname, dead at the scene.\nPhone log: 3:03, call to Nadia Lasname, not answered (a voicemail). 3:05, call to Lena Lasname, 2 minutes.",
                 scribble = "I should have",
                 sayLine = "There's a police report, Walt.",
                 icon = "prop_police_envelope",
@@ -338,8 +342,8 @@ namespace JamKit.VisitingHours
         /// <summary>The camera poses the opening uses.</summary>
         public static readonly string[] CameraPoses = { "pillow", "nightstand", "away", "overhead", "table" };
 
-        /// <summary>The tablet's scrolling headline (script/opening-script.md; the second corporation is
-        /// Larpaca, so any "WeWork" there becomes "Larpaca").</summary>
+        /// <summary>The tablet's scrolling headline (script/opening-script.md). LeBaget is a corporation and Larpaca is the
+        /// gang (the creator's settled names); an old "WeWork" placeholder there becomes "Larpaca".</summary>
         public static string Headline(string scriptLine)
         {
             string s = string.IsNullOrEmpty(scriptLine) ? NewsHeadline : scriptLine.Trim();

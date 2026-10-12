@@ -218,8 +218,8 @@ namespace JamKit.Tests.VisitingHours
         public void TheHeadlineNamesLarpacaNotWeWork()
         {
             Assert.That(SliceContent.Headline(""), Does.StartWith("ROUTE 9"));
-            Assert.That(SliceContent.Headline("CROSSFIRE BETWEEN LEBAGET AND WEWORK"), Is.EqualTo("CROSSFIRE BETWEEN LEBAGET AND LARPACA"));
-            Assert.That(SliceContent.Headline("the WeWork corporation"), Is.EqualTo("the Larpaca corporation"));
+            Assert.That(SliceContent.Headline("A CROSSFIRE INVOLVING THE WEWORK GANG"), Is.EqualTo("A CROSSFIRE INVOLVING THE LARPACA GANG"));
+            Assert.That(SliceContent.Headline("the WeWork gang"), Is.EqualTo("the Larpaca gang"));
         }
     }
 }

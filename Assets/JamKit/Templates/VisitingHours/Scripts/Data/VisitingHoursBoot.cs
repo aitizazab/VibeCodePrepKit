@@ -69,7 +69,7 @@ namespace JamKit.VisitingHours
         public UnityEngine.UIElements.StyleSheet style;
 
         [Header("The title table")]
-        [Tooltip("The tablet's scrolling headline (script/opening-script.md; WeWork becomes Larpaca).")]
+        [Tooltip("The tablet's scrolling headline (script/opening-script.md; Larpaca is the gang, LeBaget the corporation; an old WeWork becomes Larpaca).")]
         public string headline = "";
         [Tooltip("Pixels per second on the tablet's 1024-wide screen.")]
         public float headlineSpeed = 90f;

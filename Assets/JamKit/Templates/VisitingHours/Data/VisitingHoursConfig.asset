@@ -32,12 +32,12 @@ MonoBehaviour:
   - id: fact_police_report
     kind: 0
     title: The police report
-    text: 'An envelope at the station, for the family. Route 9, Sunday 23 August,
-      6:41 AM: the car crossed the median. Driver: Elias Voss, critical. Lena Voss
-      and Theo Voss, dead at the scene.
+    text: 'An envelope at the station, for the family. Route 9, about 3:40 AM: the
+      car was caught in a crossfire (gang violence: the Larpaca gang). Driver: Elias
+      Lasname, critical. Lena Lasname and Theo Lasname, dead at the scene.
 
-      Phone log: 5:52, call to Nadia Voss,
-      not answered. 5:58, call to Lena Voss, 2 minutes.'
+      Phone log: 3:03, call to Nadia Lasname, not answered (a voicemail). 3:05, call
+      to Lena Lasname, 2 minutes.'
     scribble: I should have
     sayLine: There's a police report, Walt.
     icon: prop_police_envelope

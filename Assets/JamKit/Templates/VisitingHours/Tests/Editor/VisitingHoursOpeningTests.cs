@@ -39,7 +39,7 @@ namespace JamKit.VisitingHours.Tests
             Assert.That(b.wakingMaterial, Is.Not.Null);
             Assert.That(b.wakingMaterial.shader.name, Is.EqualTo(VisitingHoursOpeningContent.WakingShader));
             Assert.That(b.headline, Does.StartWith("ROUTE 9"));
-            Assert.That(b.headline, Does.Not.Contain("WeWork").IgnoreCase, "the corporation is Larpaca");
+            Assert.That(b.headline, Does.Not.Contain("WeWork").IgnoreCase, "Larpaca is the gang (no WeWork placeholder)");
             Assert.That(b.dataVersion, Is.EqualTo(VisitingHoursOpeningContent.DataVersion));
             foreach (var (slot, file) in VisitingHoursOpeningContent.Models)
                 Assert.That(b.Model(slot), Is.Not.Null, slot + " (" + file + ".fbx)");
