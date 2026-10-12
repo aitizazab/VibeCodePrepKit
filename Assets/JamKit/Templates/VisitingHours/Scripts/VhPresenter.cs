@@ -29,7 +29,9 @@ namespace JamKit.VisitingHours
         public const string ChainNight2 = "Chain: Night 2 (the house)";
         public const string ChainEnd = "Chain: the end card";
 
-        public static readonly string[] Chapters = { Opening, EditOpening, Day1, Booth, Street, Argument, EndConvinced, EndHeardOut, EndPressed, EndLost, ChainNight1, ChainDay2, ChainNight2, ChainEnd };
+        /// <summary>In the panel's order, which is the order they're registered in: the any-time ones first (VhBoot registers
+        /// them when the game starts: the opening, its editor, the chain's jumps), then the slice's (while it runs).</summary>
+        public static readonly string[] Chapters = { Opening, EditOpening, ChainNight1, ChainDay2, ChainNight2, ChainEnd, Day1, Booth, Street, Argument, EndConvinced, EndHeardOut, EndPressed, EndLost };
 
         /// <summary>The chapters that work from any state (registered by VhBoot, not the slice): the opening, its editor,
         /// the chain's jumps.</summary>

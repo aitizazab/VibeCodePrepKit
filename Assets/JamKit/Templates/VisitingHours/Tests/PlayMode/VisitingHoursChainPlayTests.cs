@@ -35,7 +35,25 @@ namespace JamKit.VisitingHours.Tests
             yield return WaitFor(() => !GameRoot.IsLoadingScene && SceneManager.GetActiveScene().name == "VisitingHours" && Game != null
                 && Game.ChainSegment == segment && (Game.CurrentMode == VisitingHoursGame.Mode.Explore || Game.CurrentMode == VisitingHoursGame.Mode.End),
                 segment + " in the Visiting Hours scene", 30f);
+            // The days open with a few lines (Rafael's handover, Day 2's intro): they start a frame or two after the place is
+            // up, so wait for them and play them through, or they'd cover the prompt while a test looks around.
+            if (segment != ChainSegment.End)
+            {
+                yield return WaitFor(() => GameRoot.Dialogue.IsActive, segment + "'s opening lines");
+                yield return FinishDialogue();
+            }
+        }
+
+        /// <summary>Stands Nadia at a thing's approach (as the smoke run does) and checks the prompt picks that thing.</summary>
+        static IEnumerator Picks(string id, string day)
+        {
             if (GameRoot.Dialogue.IsActive) yield return FinishDialogue();
+            Assert.That(Game.CurrentMode, Is.EqualTo(VisitingHoursGame.Mode.Explore), day + ": free to look at " + id);
+            Assert.That(Game.BuiltArea.Spot(id), Is.Not.Null, day + " has " + id);
+            Game.StandAt(id);
+            yield return Frames(3);
+            Assert.That(Game.Target, Is.Not.Null, day + ": something in reach in front of " + id);
+            Assert.That(Game.Target.def.id, Is.EqualTo(id), day + ": the prompt picks what's in front of Nadia");
         }
 
         static IEnumerator SkipToTheDive(SliceArea booth)
@@ -104,22 +122,12 @@ namespace JamKit.VisitingHours.Tests
             Assert.That(GameRoot.Instance.SceneService.Load("VisitingHours"), Is.True);
             yield return WaitForWaking(ChainSegment.Day1);
             // Day 1's round is two checks (the tutorial: shorter than the later rounds), Day 2's three.
-            foreach (var id in new[] { "rafael", "wristband", "vitals", "bouquet", "phone", "elias", "chart", "effects", "police_report", "photo" })
-            {
-                Game.StandAt(id);
-                yield return Frames(2);
-                Assert.That(Game.Target, Is.Not.Null, "something in reach in front of " + id);
-                Assert.That(Game.Target.def.id, Is.EqualTo(id), "Day 1: the prompt picks what's in front of Nadia");
-            }
+            foreach (var id in new[] { "rafael", "wristband", "vitals", "bouquet", "phone", "elias", "chart", "effects", "police_report", "photo", "station", "stairwell" })
+                yield return Picks(id, "Day 1");
             Game.DebugJumpTo(SliceArea.HospitalDay2);
             yield return Frames(2);
-            foreach (var id in new[] { "rafael2", "visitor", "wristband2", "round2", "vitals2", "sit", "stairwell2" })
-            {
-                Game.StandAt(id);
-                yield return Frames(2);
-                Assert.That(Game.Target, Is.Not.Null, "something in reach in front of " + id);
-                Assert.That(Game.Target.def.id, Is.EqualTo(id), "Day 2: the prompt picks what's in front of Nadia");
-            }
+            foreach (var id in new[] { "rafael2", "visitor", "wristband2", "round2", "vitals2", "sit", "stairwell2", "elias", "chart", "photo" })
+                yield return Picks(id, "Day 2");
         }
     }
 }
