@@ -22,8 +22,9 @@ namespace JamKit.Argument
     public enum SoundEffect { Break, FallBack, Deepen }
 
     /// <summary>The evidence tray's styles (doc 3.1): waking facts stamped, dream memories doodled, deductions
-    /// pinned, truths gold-leafed, personal entries tagged.</summary>
-    public enum EvidenceStyle { Stamped, Doodled, Pinned, Gold, Tagged }
+    /// pinned, truths gold-leafed, personal entries tagged; <see cref="Quote"/>: her own words, caught as she said them
+    /// (docs/redesign/battle.md, "Her own words").</summary>
+    public enum EvidenceStyle { Stamped, Doodled, Pinned, Gold, Tagged, Quote }
 
     /// <summary>Per battle. Story: no hits, slips collect themselves. ScriptedButBeatable (the Long Night): Nadia
     /// starts at 124 bpm, every exchange is followed by a brutal pressure phase whose gaps are only just wide
@@ -46,6 +47,11 @@ namespace JamKit.Argument
         /// <summary>The journal ids (memories, deductions, facts) that put this card in the tray, any one of them; the
         /// card's own id always does. Until one is found the card isn't there (unless the setup gives every card).</summary>
         public List<string> unlockedBy = new List<string>();
+        /// <summary>A quote card (<see cref="EvidenceStyle.Quote"/>): the words that become it when Nadia catches them as
+        /// the opponent says them, in any of their lines (plain words; case doesn't matter). Never in the tray until caught.</summary>
+        public string words = "";
+
+        public bool IsQuote => style == EvidenceStyle.Quote;
 
         /// <summary>True if any of <paramref name="found"/> unlocks this card.</summary>
         public bool UnlockedBy(ICollection<string> found)
@@ -90,6 +96,18 @@ namespace JamKit.Argument
         public string line = "";
         public string reply = "";
         public string expression = "angry";
+    }
+
+    /// <summary>A card that breaks nothing but gets an answer of its own when shown against a premise (Lena's star wheel
+    /// against "You don't know where I am": she can't say where she went on Thursdays). It costs nothing.</summary>
+    [Serializable]
+    public class AsideDef
+    {
+        public string evidence = "";
+        /// <summary>Nadia's words as she shows it.</summary>
+        public string line = "";
+        public string reply = "";
+        public string expression = "";
     }
 
     [Serializable]
@@ -151,6 +169,15 @@ namespace JamKit.Argument
         public RetortDef retort;
 
         public List<ChallengeDef> challenges = new List<ChallengeDef>();
+        /// <summary>Cards that get an answer of their own here without breaking it (<see cref="AsideDef"/>).</summary>
+        public List<AsideDef> asides = new List<AsideDef>();
+
+        public AsideDef AsideFor(string evidenceId)
+        {
+            foreach (var a in asides)
+                if (a != null && a.evidence == evidenceId) return a;
+            return null;
+        }
 
         public ChallengeDef ChallengeFor(string evidenceId)
         {
@@ -248,6 +275,15 @@ namespace JamKit.Argument
         public bool painfulCall;
         /// <summary>How hard the debate's own pressure is, as a share of a full phase's density (1 = as dense).</summary>
         public float debateDensity = 0.55f;
+        /// <summary>The sections presenter (docs/redesign/battle.md): once the painful phase has played, the ceiling lifts and
+        /// the rest is played under her sky (SELECTION.md 7): her case is a constellation, the light moves along its lines.</summary>
+        public bool sky;
+        /// <summary>She takes notes on you (SELECTION.md 4): from the second full phase her pencil follows the light's path,
+        /// inking where it has been, and after it she says how Nadia moved.</summary>
+        public bool notes;
+        /// <summary>Her care (SELECTION.md 3, "hush"): a soft reply brings a ring that closes in on the light and passes
+        /// harmlessly if Nadia holds still; her questions bring a wave that hurts only a light standing still.</summary>
+        public bool hush;
 
         /// <summary>Pressure shapes by heat 0..3 (and the slips' look: the premises' slipName).</summary>
         public List<PressureShape> calmShapes = new List<PressureShape> { PressureShape.Bloom };

@@ -1,3 +1,12 @@
+# EDITED 2026-10-13 by the battle agent, round 2 (docs/redesign/battle.md: arguing and dodging as separate sections).
+# Every line of yours is kept word for word, except letItRestReply's second half (the keepsake is now Lena's watch, for
+# Nadia, not "to help convince him": your words stay as its // note). Added, each marked "(battle agent, round 2)":
+#   - the watch: letItRestReply's hand-over and personalText, and a version for when Nadia asked about her Thursdays;
+#   - her own words, caught as she says them: quote_had ("this life he had", in your L3.askReply) and quote_allofus
+#     ("All of us", in your L3b.askReply), each a second way to break a key premise, with their reason cards;
+#   - her star wheel (the house's mem_lena_thursdays) and what she says when it's shown against L2;
+#   - the cards' notes for the house's new memories (the paper hat, the radio, the redrawn bad dream);
+#   - barks for the sections: the ceiling lifting (her sky), her first hush, what she noted about how Nadia moved.
 # EDITED 2026-10-13 by the argument agent, after the creator's rewrite of 2026-10-12. The creator's text is kept word
 # for word (typos, notes and the empty L1c.askReply too); where a line was shortened, the creator's whole line is kept as
 # the conditional line below it, and every original stays as a // note;
@@ -51,13 +60,16 @@ concedeClaimReply: Even just one more day is enough. Now come on, I know you lov
   ? their answer (it ends the battle)
 letItRestLine: I hear you, Lena. If I'm being honest, I see your point of view.
   ? Nadia, once she's heard every premise: she stops fighting and hears them
-letItRestReply: ...Yeah. And I see yours. So take it. Something to help convince him, like you convinced me.
+letItRestReply: ...Yeah. And I see yours. Give me your wrist. The right one. I always wore it face-in, so I could check the time without anyone seeing me worry. Six weeks you've been watching the clock for him. It's yours now. // was: ...Yeah. And I see yours. So take it. Something to help convince him, like you convinced me.
   ? their answer; they hand over their keepsake
+  ? (battle agent, round 2) the keepsake settled: her star-shaped watch, for Nadia (your note: "something Lena shares with Nadia, so it means something"). What they share: the worry, watched in secret (face-in), and the clock. Your first half is kept; your second half is the // note.
+letItRestReply[asides>=1]: ...Yeah. And I see yours. Give me your wrist. The right one. It kept my Thursdays, whatever they were. I wore it face-in, so I could check the time without anyone seeing me worry. Six weeks you've been watching the clock for him. It's yours now.
+  ? (battle agent, round 2) the same, when Nadia showed her the star wheel and asked about Thursdays (she couldn't say).
 truthText: Lena wouldn't let him cower behind your likely death; even he knows that. You'd want him to push forward.
   ? the truth Nadia wins (Convinced): what she now understands, kept for later battles
-personalText: Her planisphere, the star wheel, set to her last Thursday night. // was "[keepsake: undecided]"
+personalText: Lena's watch: a gold star on a wine-red strap. You wear it on your right wrist, face-in, as she did. // was: Her planisphere, the star wheel, set to her last Thursday night.
   ? the keepsake Nadia gets (Heard out): names the object
-  ? (agent placeholder, docs/NIGHTS-1-2.md) Lena's planisphere: what Nadia brings to the stargazing in Morning, chosen.
+  ? (battle agent, round 2) the creator's keepsake, 2026-10-12: "a watch in the shape of a star, that sits on Nadia's right arm". It goes into the save (the carried journal) and shows on Nadia's wrist; Night 4 ties it to time (3:03, 3:06).
 convincedReply: ...I know. And I hate that.
   ? their line when convinced
 heardOutReply: I hear you. But I don't feel the same. 
@@ -120,6 +132,16 @@ L1b.antagonise: You're a dream. A dream doesn't get a say in his life.
   ? an antagonising card: dismisses them instead of answering (angers them)
 L1b.antagonise.reply: Is that so? Or have you always disregarded my place in this family? Get out of my kitchen.
   ? their hurt, angry answer
+L1b.quote_allofus.sound: All of us, you said. There are four places at that table, and one of them is mine. I'm out there, Lena. That isn't nothing.
+  ? (battle agent, round 2) her own words against her: the reason that follows when Nadia holds her to "All of us"
+L1b.quote_allofus.sound.reply: ...All of us. You'd hold me to that. ...Then where were you last Sunday?
+  ? (battle agent, round 2) she falls back to L1'' (as with the fourth chair)
+L1b.quote_allofus.beside: He always loved Sunday pancakes.
+  ? (battle agent, round 2) true, beside the point
+L1b.quote_allofus.beside.reply: He did. That's my point, Nadia, not yours.
+L1b.quote_allofus.nonsequitur: You want all of us together, so you want him to wake up.
+  ? (battle agent, round 2) doesn't follow
+L1b.quote_allofus.nonsequitur.reply: I want all of us *here*. Out there, there's no all of us left.
 
 ## L1c (L1''): a fact, TRUE, hidden at first
 L1c.text: ...Where were you last Sunday, then?
@@ -167,6 +189,11 @@ L2.retort: Cowards? You've already buried yourself. At least they're still looki
   ? Nadia's antagonising reply: dodges the question, attacks them (angers them) // doesn't really, might need changing
 L2.retort.reply: Still looking. How noble of them. And what have *you* done in six weeks, besides sleep in that hospital chair? Don't you call me a coward in my own kitchen. // the crueler option: At least I'm honest about where I am. You're the one hiding: in that hospital, and now in his head. Sit down, or get out. // was: The real Lena. Why risk his happiness to try finding a needle in a haystack?
   ? their angry answer // same as above
+
+L2.mem_lena_thursdays.aside: Your star wheel was set to a Thursday night. Where did you go on Thursdays, Lena?
+  ? (battle agent, round 2) Nadia shows the star wheel (the house's attic) against "You don't know where I am": it breaks nothing and costs nothing
+L2.mem_lena_thursdays.aside.reply: Thursdays. ...I don't know. Isn't that strange? It's my wheel. He never asked where I went, so I can't tell you either.
+  ? (battle agent, round 2) dream-Lena only knows what Elias knew: she can't say what her Thursdays were. Decides nothing about them; your call.
 
 ## L2b (L2'): a link, HALF, can't be broken tonight, hidden at first
 L2b.text: Waking means searching - forever.
@@ -250,6 +277,16 @@ L3b.nonsequitur.reply: That's cruel, and false. Why would you even say that? (//
   ? why it doesn't follow
 L3b.nonsequitur.reply[anger>=3,force>=3]: That's cruel, and false. I should cut your tongue out for that.
   ? (agent) max anger and high Force.
+L3b.quote_had.sound: You said it yourself: the life he *had*. You already know it's over, Lena. This is a memory of it.
+  ? (battle agent, round 2) her own words against her: "this life he had" (your L3.askReply) against "the life he has"
+L3b.quote_had.sound.reply: ...Had. I did say that, didn't I. ...Fine. Then let him have his wish.
+  ? (battle agent, round 2) she falls back to L3'' (as with Saturday off)
+L3b.quote_had.beside: You've been married twelve years.
+  ? (battle agent, round 2) true, beside the point
+L3b.quote_had.beside.reply: Twelve good years. That's a reason to keep him, not to wake him.
+L3b.quote_had.nonsequitur: You said "had", so you've stopped loving him.
+  ? (battle agent, round 2) doesn't follow
+L3b.quote_had.nonsequitur.reply: I said "had" because it was taken from him. Don't you twist me into the one who stopped loving him.
 
 ## L3c (L3''): a link, FALSE, KEY, hidden at first
 L3c.text: Then let him have his wish.
@@ -342,15 +379,15 @@ mem_fourth_chair.note: Nadia's place card at the table, in Theo's handwriting.
   ? one line under the name: what it is. Breaks L1' (key).
 ded_saturday_off.name: Saturday off
   ? the card's name, as it reads in a sentence ("the fourth chair")
-ded_saturday_off.note: "Pancakes!" is on every Sunday on the calendar. Last night's paper says it's Saturday.
-  ? one line under the name: what it is. The fridge calendar + Night 1's Saturday paper. Breaks L3' (key).
+ded_saturday_off.note: "Pancakes!" is on every Sunday of the fridge calendar, but today's paper, folded into Theo's hat, says Saturday. // was: "Pancakes!" is on every Sunday on the calendar. Last night's paper says it's Saturday.
+  ? one line under the name: what it is. The fridge calendar + the Saturday paper (Theo's paper hat tonight, or Night 1's paper). Breaks L3' (key).
 ded_same_saturday.name: the same Saturday
   ? the card's name, as it reads in a sentence ("the fourth chair")
-ded_same_saturday.note: The street replays the same Saturday, to the second.
-  ? one line under the name: what it is. The street replaying Night 1 (and Walt's ledger, if found). Breaks L3'' (key).
+ded_same_saturday.note: Elias's radio gives the same forecast, word for word, and the street replays the same Saturday to the second. // was: The street replays the same Saturday, to the second.
+  ? one line under the name: what it is. Elias's radio in the workshop (the house) or the street replaying Night 1 (and Walt's ledger, if found). Breaks L3'' (key).
 mem_bad_dream.name: Theo's drawing
   ? the card's name, as it reads in a sentence ("the fourth chair")
-mem_bad_dream.note: "THE BAD DREAM", in crayon: Dad in his scrubs, walking out of the front door. Mum and Theo at the table. Found in his room.
+mem_bad_dream.note: "THE BAD DREAM", in crayon: Dad in his surgeon's scrubs, walking out of the front door. Mum and Theo at the table. Found in his room.
   ? one line under the name: what it is. Breaks L3 ("He chose this") and brings out L5. (battle agent: the drawing as settled 2026-10-12)
 mem_height_marks.name: Theo's height marks
   ? the card's name, as it reads in a sentence ("the fourth chair")
@@ -364,6 +401,20 @@ fact_police_report.name: the police report
   ? the card's name, as it reads in a sentence ("the fourth chair")
 fact_police_report.note: The call log: 3:03 to Nadia, unanswered. 3:06 to Lena, two minutes.
   ? one line under the name: what it is. L4 is true and painful: it stays.
+mem_lena_thursdays.name: her star wheel
+  ? (battle agent, round 2) the house's memory: Lena's planisphere in the observatory, set to a Thursday. It stays a star wheel (the keepsake is the watch now): a different object, and it points at time too.
+mem_lena_thursdays.note: Lena's planisphere in the attic, set to a Thursday night. Where did she go on Thursdays?
+  ? one line under the name. Breaks nothing; shown against L2 ("You don't know where I am"), she can't say.
+quote_had.name: "this life he had"
+  ? (battle agent, round 2) her own words, caught as she says them (asking L3 why)
+quote_had.note: Her own words, about Elias: the life he *had*.
+quote_had.words: this life he had
+  ? the words Nadia catches as she says them: they must be in one of her lines (your L3.askReply). If you change that line, keep them in it or change these.
+quote_allofus.name: "All of us"
+  ? (battle agent, round 2) her own words, caught as she says them (asking L3' why)
+quote_allofus.note: Her own words: what he wants is pancakes, and all of us at the table.
+quote_allofus.words: All of us
+  ? the words Nadia catches (your L3b.askReply)
 truth_walt.name: Walt's truth
   ? the card's name, as it reads in a sentence ("the fourth chair")
 truth_walt.note: Walt died in 2015. The street is a memory.
@@ -392,3 +443,15 @@ bark.stand: No. You don't get to take him until you answer me.
   ? every key premise is down, but "He called you first" stands unanswered: the last stand (concede it, or answer back)
 pressureWords: Sit down|Pancakes|My kitchen|Six weeks|He's happy|Stay|Our table|Not yet
   ? the words written along her walls of pressure, split by |
+
+## The sections (battle agent, round 2: docs/redesign/battle.md)
+bark.sky: You know they're not really a bear, right? Someone just looked up and drew the lines.
+  ? the ceiling lifts after the three rings: her case becomes her sky (a constellation is lines someone drew between true things)
+bark.hush: Shh. Hold still, Nadia. Just this once.
+  ? her first hush: a ring of her care closes in, and passes if Nadia holds still
+bark.notesFar: You always keep your distance, Nadia.
+  ? her pencil followed Nadia, who kept to the far side of the table
+bark.notesNear: You stayed close to me. ...I noticed.
+  ? her pencil followed Nadia, who kept to her side of the table
+bark.notesRestless: Never still, are you. Not for one minute.
+  ? her pencil followed Nadia, who never stopped moving

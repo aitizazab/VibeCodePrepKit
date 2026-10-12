@@ -36,7 +36,11 @@ namespace JamKit.Argument
         static readonly Dictionary<string, AudioClip> _clips = new Dictionary<string, AudioClip>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() => _clips.Clear();
+        static void ResetStatics()
+        {
+            _clips.Clear();
+            _blips.Clear();
+        }
 
         AudioSource _music, _sfx, _voice;
         int _blipCount;
@@ -116,13 +120,38 @@ namespace JamKit.Argument
         public void Blip(string speaker, bool slow, bool quiet)
         {
             if (_voice == null) return;
-            string id = "blip_" + (string.IsNullOrEmpty(speaker) ? "lena" : speaker.ToLowerInvariant());
-            var clip = Clip(id) ?? Clip("blip_lena");
+            var clip = BlipClip(speaker);
             if (clip == null) return;
             _blipCount++;
             float wobble = ((_blipCount * 7919) % 13) / 13f - 0.5f;
             _voice.pitch = (slow ? 0.82f : 1f) * (1f + wobble * 0.12f);
             _voice.PlayOneShot(clip, quiet ? 0.35f : slow ? 0.8f : 0.6f);
+        }
+
+        // Each speaker's blip, found once (no string per blip: docs/redesign/perf.md, Battle 3).
+        static readonly Dictionary<string, AudioClip> _blips = new Dictionary<string, AudioClip>();
+
+        static AudioClip BlipClip(string speaker)
+        {
+            string key = string.IsNullOrEmpty(speaker) ? "lena" : speaker;
+            if (_blips.TryGetValue(key, out var clip) && clip != null) return clip;
+            clip = Clip("blip_" + key.ToLowerInvariant()) ?? Clip("blip_lena");
+            _blips[key] = clip;
+            return clip;
+        }
+
+        /// <summary>Loads each speaker's blip before the first line and plays it once, silent, so the first real blip
+        /// doesn't hitch (docs/redesign/perf.md, Battle 3).</summary>
+        public void Prewarm(params string[] speakers)
+        {
+            if (speakers == null) return;
+            foreach (var s in speakers)
+            {
+                var clip = BlipClip(s);
+                if (clip == null) continue;
+                if (clip.loadState != AudioDataLoadState.Loaded) clip.LoadAudioData();
+                if (_voice != null) _voice.PlayOneShot(clip, 0f);
+            }
         }
 
         void Update()

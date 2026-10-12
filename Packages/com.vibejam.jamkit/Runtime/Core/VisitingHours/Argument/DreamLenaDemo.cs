@@ -29,6 +29,12 @@ namespace JamKit.Argument
     /// Her anger rises with antagonising, retorts and presses (<see cref="ArgumentDef.pressAngers"/>), and her stance is
     /// the creator's two endings (<see cref="StanceRule.TwoEndings"/>): unsure, or condemning Nadia.
     /// Each card is in the tray only once its memory or deduction is found (the setup's journal ids).
+    ///
+    /// Round 2 (docs/redesign/battle.md): her own words, caught as she says them, are cards too ("this life he had" breaks
+    /// L3' a second way; "All of us" breaks L1' a second way); her star wheel, set to a Thursday (the house's
+    /// mem_lena_thursdays), gets an answer of its own against L2 (she can't say where she went: the dream only knows what
+    /// Elias knew); Heard out gives Nadia Lena's star-shaped watch; the painful phase lifts the ceiling (her sky), her
+    /// pencil takes notes on Nadia, and her care comes as hush.
     /// </summary>
     public static class DreamLenaDemo
     {
@@ -51,8 +57,17 @@ namespace JamKit.Argument
         /// <summary>Walt's truth, if Night 1's battle convinced him: it also breaks L3''.</summary>
         public const string TruthWalt = WaltNight1.TruthId;
         public const string TruthLena = "truth_lena";
-        /// <summary>Her keepsake (Heard out), a placeholder: her planisphere, the star wheel, set to her last Thursday night.</summary>
-        public const string Planisphere = "pers_lena_planisphere";
+        /// <summary>Her keepsake (Heard out, settled by the creator 2026-10-12): her star-shaped watch, which Nadia wears on her
+        /// right wrist from then on (People's VhKeepsakeWatch; a Night 4 mechanic later).</summary>
+        public const string Watch = "pers_lena_watch";
+        /// <summary>The keepsake's first name (a placeholder planisphere); other code still reads it: the same id as <see cref="Watch"/>.</summary>
+        public const string Planisphere = Watch;
+        /// <summary>Lena's star wheel, set to a Thursday (the house's observatory). It breaks nothing; against L2 she can't
+        /// say where she went on Thursdays (an aside).</summary>
+        public const string Thursdays = "mem_lena_thursdays";
+        /// <summary>Her own words (quote cards, caught as she says them): "this life he had" (asking L3) breaks L3' a second
+        /// way; "All of us" (asking L3') breaks L1' a second way.</summary>
+        public const string QuoteHad = "quote_had", QuoteAllOfUs = "quote_allofus";
 
         /// <summary>The prose file's name (Resources/ArgumentText/lena_night2).</summary>
         public const string ProseFile = Id;
@@ -60,10 +75,12 @@ namespace JamKit.Argument
         public const int ShowdownLines = 8;
 
         /// <summary>Every card but Walt's truth and "the same Saturday": without them L3'' can't break (Heard out at best).</summary>
-        public static readonly string[] EvidenceWithoutWalt = { FourthChair, SaturdayOff, BadDream, HeightMarks, Photo, PoliceReport };
+        public static readonly string[] EvidenceWithoutWalt = { FourthChair, SaturdayOff, BadDream, HeightMarks, Photo, PoliceReport, Thursdays };
 
         /// <summary>Every card of the battle, in tray order.</summary>
-        public static readonly string[] Cards = { FourthChair, SaturdayOff, SameSaturday, BadDream, HeightMarks, Photo, PoliceReport, TruthWalt };
+        public static readonly string[] Cards = { FourthChair, SaturdayOff, SameSaturday, BadDream, HeightMarks, Photo, PoliceReport, Thursdays, TruthWalt };
+        /// <summary>Her own words: never in the tray until caught.</summary>
+        public static readonly string[] Quotes = { QuoteHad, QuoteAllOfUs };
 
         /// <summary>Where the prose file's text comes from (set by the Unity side, or by tests). Null: every line
         /// shows as its id in brackets.</summary>
@@ -89,17 +106,22 @@ namespace JamKit.Argument
                 id = Id,
                 arena = "kitchen_table",
                 truthId = TruthLena,
-                personalId = Planisphere,
+                personalId = Watch,
                 placeholderLines = false,
                 stanceRule = StanceRule.TwoEndings,
                 pressAngers = true,
                 calmShapes = new List<PressureShape> { PressureShape.Bloom, PressureShape.Wall },
                 hotShapes = new List<PressureShape> { PressureShape.Wall, PressureShape.Bloom, PressureShape.Arc },
                 painfulCall = true,
+                // The sections presenter (round 2): her sky after the three rings, her notes, her care.
+                sky = true,
+                notes = true,
+                hush = true,
             };
             // The real-time battle's lines (the words come from the file).
             for (int i = 0; i < ShowdownLines; i++) d.showdown.Add("");
             foreach (var b in ArgumentBarks.Ids) d.barks[b] = "";
+            foreach (var b in ArgumentBarks.Sections) d.barks[b] = "";
             d.pressureWords.Add("");
 
             d.evidence.Add(new EvidenceDef { id = FourthChair, style = EvidenceStyle.Doodled });
@@ -109,19 +131,29 @@ namespace JamKit.Argument
             d.evidence.Add(new EvidenceDef { id = HeightMarks, style = EvidenceStyle.Doodled });
             d.evidence.Add(new EvidenceDef { id = Photo, style = EvidenceStyle.Stamped });
             d.evidence.Add(new EvidenceDef { id = PoliceReport, style = EvidenceStyle.Stamped });
+            d.evidence.Add(new EvidenceDef { id = Thursdays, style = EvidenceStyle.Doodled });
             d.evidence.Add(new EvidenceDef { id = TruthWalt, style = EvidenceStyle.Gold });
+            d.evidence.Add(new EvidenceDef { id = QuoteHad, style = EvidenceStyle.Quote });
+            d.evidence.Add(new EvidenceDef { id = QuoteAllOfUs, style = EvidenceStyle.Quote });
 
             d.premises.Add(new PremiseDef { id = "L1", label = "L1", kind = PremiseKind.Fact, truth = PremiseTruth.True, concedeReveals = { "L1b" } });
             d.premises.Add(new PremiseDef
             {
                 id = "L1b", label = "L1'", kind = PremiseKind.Link, truth = PremiseTruth.False, key = true, hidden = true, parent = "L1",
-                challenges = { Challenge(FourthChair, SoundEffect.FallBack, "L1c", "rattled", "angry", "neutral", "angry") },
+                challenges =
+                {
+                    Challenge(FourthChair, SoundEffect.FallBack, "L1c", "rattled", "angry", "neutral", "angry"),
+                    // Her own words: "All of us" (her answer about the life he wants) counts Nadia at the table.
+                    Challenge(QuoteAllOfUs, SoundEffect.FallBack, "L1c", "rattled", "neutral", "angry", null),
+                },
             });
             d.premises.Add(new PremiseDef { id = "L1c", label = "L1''", kind = PremiseKind.Fact, truth = PremiseTruth.True, hidden = true, parent = "L1b" });
             d.premises.Add(new PremiseDef
             {
                 id = "L2", label = "L2", kind = PremiseKind.Fact, truth = PremiseTruth.True, concedeReveals = { "L2b" },
                 retort = new RetortDef { expression = "angry" },
+                // Her star wheel, set to a Thursday: where did she go? She can't say (the dream only knows what he knew).
+                asides = { new AsideDef { evidence = Thursdays, expression = "rattled" } },
             });
             d.premises.Add(new PremiseDef
             {
@@ -137,7 +169,12 @@ namespace JamKit.Argument
             d.premises.Add(new PremiseDef
             {
                 id = "L3b", label = "L3'", kind = PremiseKind.Link, truth = PremiseTruth.False, key = true, hidden = true, parent = "L3",
-                challenges = { Challenge(SaturdayOff, SoundEffect.FallBack, "L3c", "rattled", "neutral", "angry", null) },
+                challenges =
+                {
+                    Challenge(SaturdayOff, SoundEffect.FallBack, "L3c", "rattled", "neutral", "angry", null),
+                    // Her own words: "this life he had" (her answer to "Why?" about L3), against "the life he has".
+                    Challenge(QuoteHad, SoundEffect.FallBack, "L3c", "rattled", "neutral", "angry", null),
+                },
             });
             d.premises.Add(new PremiseDef
             {

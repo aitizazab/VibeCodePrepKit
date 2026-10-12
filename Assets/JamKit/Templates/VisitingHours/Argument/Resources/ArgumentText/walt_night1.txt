@@ -168,13 +168,21 @@ face.angry: antagonistic
 coachName: Mags
   ? who's coaching
 coach.debate: Right. He'll say his piece across the table, and his words will come at you. That light's you: {move} moves it. Keep it off anything red and your heart stays down.
-  ? the debate begins: move the light, keep clear of the pressure
+  ? the debate begins: move the light, keep clear of the pressure (the debate presenter)
+coach.argue: Right. He's said his piece, and it's all laid out on the table. {move} picks one thing he said. When he answers, his feelings come at you across the table: keep your light out of the way, then it's your turn again.
+  ? (battle agent, round 2) the sections presenter's first argue section: pick a statement; his replies come as a dodge
 coach.ask: When something he says sits wrong, put your light on it and ask him why: {ask}. People tell you more than they mean to when they explain themselves.
   ? the first statement flies: ask
+coach.ask[sections=1]: When something he says sits wrong, pick it and ask him why: {ask}. People tell you more than they mean to when they explain themselves.
+  ? (battle agent, round 2) the same, for the sections presenter (nothing flies: you pick it)
 coach.concede: That one's true, and he knows you know it. Light on it, {concede}: say so. Agreeing with the truth steadies you. Costs nothing.
   ? she has heard a premise that's true
+coach.concede[sections=1]: That one's true, and he knows you know it. Pick it, {concede}: say so. Agreeing with the truth steadies you. Costs nothing.
+  ? (battle agent, round 2) the sections presenter
 coach.challenge: You've got something that says otherwise. {cards} to pick it up, then catch the bright words in what he said and show it: {show}. Bright words only. Anywhere else, it glances off.
   ? a premise she can break is on the table
+coach.challenge[sections=1]: You've got something that says otherwise. {cards} to pick it up, pick what he said, and show it: {show}. Read what he said first. A card that doesn't touch it costs you.
+  ? (battle agent, round 2) the sections presenter
 coach.because: Now say why. One of these follows from what you're holding; the others only sound like they do. He won't wait forever.
   ? the first "Because...": pick the reason that follows, before he loses patience
 coach.wrong: That cost you. Wrong card, wrong words: your heart's up, and that card's out of your hand for a round. Read before you fire.
@@ -189,6 +197,8 @@ coach.broken: That's it. When one of their reasons falls, the rest has to stand 
   ? the first premise she breaks
 coach.slip: See that page? He didn't mean you to. Touch it with your light.
   ? the first slip drifts through the debate
+coach.quote: Hear that? Catch it as it comes out of his mouth: {show}. People forget what they've said. You don't have to.
+  ? (battle agent, round 2) words worth holding him to are being said: catch them (Walt's battle has none yet; Lena's does)
 coach.rest: You've heard all of it. You can let it rest: pick up "I hear you" and put it on his claim. Sometimes that's enough.
   ? everything's been heard
 

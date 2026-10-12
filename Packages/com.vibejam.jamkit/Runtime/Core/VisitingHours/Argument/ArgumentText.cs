@@ -183,9 +183,15 @@ namespace JamKit.Argument
                 foreach (var c in p.challenges)
                     foreach (var r in c.reasons)
                         if (r != null && seen.Add(r.kind)) { keys.Add(p.id + "." + Kind(r.kind)); keys.Add(p.id + "." + Kind(r.kind) + ".reply"); }
+                // A line of its own for one piece of evidence ("L1b.quote_allofus.sound"), once the file has given one.
+                foreach (var c in p.challenges)
+                    foreach (var r in c.reasons)
+                        if (r != null && Specific(p, r) && !keys.Contains(r.id)) { keys.Add(r.id); keys.Add(r.id + ".reply"); }
+                foreach (var a in p.asides)
+                    if (a != null) { keys.Add(p.id + "." + a.evidence + ".aside"); keys.Add(p.id + "." + a.evidence + ".aside.reply"); }
             }
             foreach (var e in def.evidence)
-                if (e != null) { keys.Add(e.id + ".name"); keys.Add(e.id + ".note"); }
+                if (e != null) { keys.Add(e.id + ".name"); keys.Add(e.id + ".note"); if (e.IsQuote) keys.Add(e.id + ".words"); }
             if (def.coach.Count > 0)
             {
                 keys.Add("coachName");
@@ -202,9 +208,13 @@ namespace JamKit.Argument
             var keys = new List<string>();
             for (int i = 1; i <= def.showdown.Count; i++) keys.Add("showdown." + i.ToString(System.Globalization.CultureInfo.InvariantCulture));
             foreach (var b in ArgumentBarks.Ids) if (def.barks.ContainsKey(b)) keys.Add("bark." + b);
+            foreach (var b in ArgumentBarks.Sections) if (def.barks.ContainsKey(b)) keys.Add("bark." + b);
             if (def.pressureWords.Count > 0) keys.Add("pressureWords");
             return keys;
         }
+
+        /// <summary>The reason has a line of its own for its evidence (its id isn't the premise's shared one).</summary>
+        static bool Specific(PremiseDef p, ReasonDef r) => !string.IsNullOrEmpty(r.id) && r.id != p.id + "." + Kind(r.kind);
 
         /// <summary>Which of a premise's lines it can ever show (an unbreakable one has no press lines' use for trueReply, etc.).</summary>
         static bool PremiseFieldApplies(PremiseDef p, string f)
@@ -291,12 +301,19 @@ namespace JamKit.Argument
                         r.reply = lines.TryGetValue(specific + ".reply", out var sr) ? sr : Get(p.id + "." + k + ".reply");
                     }
                 }
+                foreach (var a in p.asides)
+                {
+                    if (a == null) continue;
+                    a.line = Get(p.id + "." + a.evidence + ".aside");
+                    a.reply = Get(p.id + "." + a.evidence + ".aside.reply");
+                }
             }
             foreach (var e in def.evidence)
             {
                 if (e == null) continue;
                 e.name = Get(e.id + ".name");
                 e.note = Get(e.id + ".note");
+                if (e.IsQuote) e.words = StripMarks(Get(e.id + ".words"));
             }
             // The real-time battle's lines.
             for (int i = 0; i < def.showdown.Count; i++) def.showdown[i] = Get("showdown." + (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -352,12 +369,14 @@ namespace JamKit.Argument
                     foreach (var r in c.reasons)
                     {
                         if (r == null) continue;
-                        string k = p.id + "." + Kind(r.kind);
+                        string k = Specific(p, r) ? r.id : p.id + "." + Kind(r.kind);
                         if (!d.ContainsKey(k)) { d[k] = r.text; d[k + ".reply"] = r.reply; }
                     }
+                foreach (var a in p.asides)
+                    if (a != null) { d[p.id + "." + a.evidence + ".aside"] = a.line; d[p.id + "." + a.evidence + ".aside.reply"] = a.reply; }
             }
             foreach (var e in def.evidence)
-                if (e != null) { d[e.id + ".name"] = e.name; d[e.id + ".note"] = e.note; }
+                if (e != null) { d[e.id + ".name"] = e.name; d[e.id + ".note"] = e.note; if (e.IsQuote) d[e.id + ".words"] = e.words; }
             if (def.coach.Count > 0)
             {
                 d["coachName"] = def.coachName;
@@ -397,7 +416,12 @@ namespace JamKit.Argument
             }
             sb.Append("\n## The evidence cards\n");
             foreach (var e in def.evidence)
-                if (e != null) { Entry(e.id + ".name", "the card's name, as it reads in a sentence (\"the fourth chair\")"); Entry(e.id + ".note", "one line under the name: what it is"); }
+                if (e != null)
+                {
+                    Entry(e.id + ".name", "the card's name, as it reads in a sentence (\"the fourth chair\")");
+                    Entry(e.id + ".note", "one line under the name: what it is");
+                    if (e.IsQuote) Entry(e.id + ".words", "her own words: Nadia catches them as she says them (they must be in one of her lines)");
+                }
             if (def.coach.Count > 0)
             {
                 sb.Append("\n## The coach on the earpiece\n");
@@ -440,6 +464,11 @@ namespace JamKit.Argument
 
         static string PremiseNote(string f)
         {
+            // "quote_had.sound", "mem_lena_thursdays.aside.reply": a line for one card; the note is its kind's.
+            int dot = f.IndexOf('.');
+            string head = dot > 0 ? f.Substring(0, dot) : f;
+            if (dot > 0 && head != "sound" && head != "beside" && head != "nonsequitur" && head != "antagonise" && head != "retort")
+                f = f.Substring(dot + 1);
             switch (f)
             {
                 case "text": return "the premise card: what they claim, in their words";
@@ -465,6 +494,8 @@ namespace JamKit.Argument
                 case "nonsequitur.reply": return "why it doesn't follow";
                 case "antagonise": return "an antagonising card: dismisses them instead of answering (angers them)";
                 case "antagonise.reply": return "their hurt, angry answer";
+                case "aside": return "Nadia showing this card here: it breaks nothing, but it gets an answer";
+                case "aside.reply": return "their answer to it";
             }
             return "";
         }
@@ -562,6 +593,11 @@ namespace JamKit.Argument
             "screen.hand.burned", "screen.hand.tag", "screen.card.retortNote", "screen.card.restNote", "screen.because.patience",
             "screen.because.noClock", "screen.case.title", "screen.case.premises", "screen.case.evidence", "screen.hint.debate",
             "screen.end.time", "screen.end.left", "screen.end.despair", "screen.end.force",
+            // The sections presenter (docs/redesign/battle.md, round 2).
+            "logic.aside", "logic.quote", "screen.banner.argue", "screen.banner.sky", "screen.hint.argue", "screen.quote.prompt",
+            "screen.quote.caught", "screen.quote.early", "screen.quote.tag", "screen.prompt.hush", "screen.prompt.answer",
+            "screen.prompt.sky", "screen.prompt.notes", "screen.argue.waiting", "screen.argue.asks", "screen.argue.said",
+            "screen.why.nothingSelected", "menu.presenter.sections", "menu.presenter.debate",
         };
     }
 }

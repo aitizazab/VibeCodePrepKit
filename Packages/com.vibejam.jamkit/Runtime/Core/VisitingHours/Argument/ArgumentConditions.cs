@@ -16,11 +16,13 @@ namespace JamKit.Argument
     /// <item><c>presses</c>: presses this battle. <c>antagonised</c>: antagonising cards and retorts this battle.
     /// <c>heat</c>: the battle's heat, 0..3.</item>
     /// <item><c>sorry</c>: 1 when Nadia has already said sorry at his bedside (Day 1's "the phone"), else 0.</item>
+    /// <item><c>asides</c>: cards shown this battle that got an answer of their own (<see cref="AsideDef"/>: Lena's star
+    /// wheel). <c>sections</c>: 1 in the sections presenter (arguing and dodging take turns), 0 in the debate.</item>
     /// </list>
     /// </summary>
     public struct ArgumentMeters
     {
-        public int anger, force, despair, presses, antagonised, heat, sorry;
+        public int anger, force, despair, presses, antagonised, heat, sorry, asides, sections;
 
         public const int MaxAnger = 3, DespairMax = 3, ForceHigh = 3;
 
@@ -34,12 +36,14 @@ namespace JamKit.Argument
                 case ArgumentMeter.Presses: return presses;
                 case ArgumentMeter.Antagonised: return antagonised;
                 case ArgumentMeter.Sorry: return sorry;
+                case ArgumentMeter.Asides: return asides;
+                case ArgumentMeter.Sections: return sections;
                 default: return heat;
             }
         }
     }
 
-    public enum ArgumentMeter { Anger, Force, Despair, Presses, Antagonised, Heat, Sorry }
+    public enum ArgumentMeter { Anger, Force, Despair, Presses, Antagonised, Heat, Sorry, Asides, Sections }
 
     /// <summary>
     /// A conditional line's condition: comparisons joined by "," (and) and "|" (or), "and" binding tighter:
@@ -93,7 +97,7 @@ namespace JamKit.Argument
                 if (at <= 0) continue;
                 string name = s.Substring(0, at).Trim().ToLowerInvariant();
                 string number = s.Substring(at + op.Length).Trim();
-                if (!Meter(name, out clause.meter)) { error = "unknown meter \"" + name + "\" (anger, force, despair, presses, antagonised, heat, sorry)"; return false; }
+                if (!Meter(name, out clause.meter)) { error = "unknown meter \"" + name + "\" (anger, force, despair, presses, antagonised, heat, sorry, asides, sections)"; return false; }
                 if (!int.TryParse(number, NumberStyles.Integer, CultureInfo.InvariantCulture, out clause.value)) { error = "not a whole number: \"" + number + "\""; return false; }
                 clause.op = op == "==" ? "=" : op;
                 return true;
@@ -113,6 +117,8 @@ namespace JamKit.Argument
                 case "presses": m = ArgumentMeter.Presses; return true;
                 case "antagonised": m = ArgumentMeter.Antagonised; return true;
                 case "heat": m = ArgumentMeter.Heat; return true;
+                case "asides": m = ArgumentMeter.Asides; return true;
+                case "sections": m = ArgumentMeter.Sections; return true;
             }
             m = ArgumentMeter.Anger;
             return false;
@@ -167,8 +173,11 @@ namespace JamKit.Argument
         /// the red); the first "Because..." (pick the reason that follows, before they lose patience); the first wrong
         /// card (it costs a heartbeat and the card); the first showdown (cut through their words); the first slip.</summary>
         public const string Debate = "debate", Because = "because", Wrong = "wrong", Showdown = "showdown", Slip = "slip";
+        /// <summary>The sections presenter: the first argue section (her case on the table: pick a statement and act on
+        /// it), and the first of her words worth holding her to (catch them as she says them).</summary>
+        public const string Argue = "argue", Quote = "quote";
 
-        public static readonly string[] Moments = { Debate, Ask, Concede, Challenge, Because, Wrong, Pressure, Press, Showdown, Broken, Slip, Rest };
+        public static readonly string[] Moments = { Debate, Argue, Ask, Concede, Challenge, Because, Wrong, Pressure, Press, Showdown, Broken, Slip, Quote, Rest };
     }
 
     /// <summary>The short lines the real-time battle calls for, in each battle's prose file as <c>bark.&lt;id&gt;</c>.</summary>
@@ -186,5 +195,11 @@ namespace JamKit.Argument
         public const string Stand = "stand";
 
         public static readonly string[] Ids = { Idle, Hesitate, Glance, Ring, Stand };
+
+        /// <summary>The sections presenter's (a battle that uses them lists them in its prose file): the ceiling lifts (her
+        /// sky, SELECTION.md 7); the first hush (hold still); what she noted about how Nadia moved (SELECTION.md 4): kept
+        /// her distance, came close, never still.</summary>
+        public const string Sky = "sky", Hush = "hush", NotesFar = "notesFar", NotesNear = "notesNear", NotesRestless = "notesRestless";
+        public static readonly string[] Sections = { Sky, Hush, NotesFar, NotesNear, NotesRestless };
     }
 }

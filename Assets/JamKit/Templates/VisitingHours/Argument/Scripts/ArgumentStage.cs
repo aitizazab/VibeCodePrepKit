@@ -25,6 +25,12 @@ namespace JamKit.Argument
     /// Text never clips: the dialogue box and every card size to their text (and shrink the type a step for long
     /// lines), statements shrink to fit the table, and the case file scrolls. Nothing is allocated per frame except where
     /// text changes and the arena's mesh (redrawn each frame).
+    ///
+    /// The sections presenter (round 2): in the argue section the table shows her case as a page of her notebook (each
+    /// statement where she put it, pencil lines between, the one picked in full above the table); her replies come as a
+    /// dodge, her line in a speech bubble over her; words worth holding her to are underlined as she says them; hush
+    /// closes in soft and dashed (and the light shows whether it's holding still); her pencil follows the light; after
+    /// the three rings the ceiling lifts and the table is her sky, her case a constellation the light moves along.
     /// </summary>
     public sealed class ArgumentStage
     {
@@ -32,7 +38,7 @@ namespace JamKit.Argument
         public const float ArenaX = 680f, ArenaY = 150f, ArenaW = 1200f, ArenaH = 640f;
         /// <summary>Pixels per surface unit (the arena is 6 units across).</summary>
         public const float Px = ArenaW / (2f * PressurePhase.HalfWidth);
-        const int StatementPool = 6, WordPool = 10, ShowdownPool = 12, SlipPool = 2, ChipPool = 12, ReasonPool = 5, HandSide = 2;
+        const int StatementPool = 6, WordPool = 10, ShowdownPool = 12, SlipPool = 2, ChipPool = 12, ReasonPool = 5, HandSide = 2, MapPool = 12;
 
         public static readonly Color Ink = new Color(0.07f, 0.06f, 0.08f);
         public static readonly Color Paper = new Color(0.94f, 0.91f, 0.85f);
@@ -64,6 +70,15 @@ namespace JamKit.Argument
         readonly VisualElement _caseFile, _end, _continue;
         readonly ScrollView _caseScroll;
         readonly Label _caseTitle, _endTitle, _endBody, _endCost;
+        // The sections presenter: her case on the table, the statement picked, her speech bubble, her own words, her sky.
+        readonly VisualElement _skyBg, _mapLayer, _focus, _bubble, _quotePage;
+        readonly Label _focusTag, _focusText, _focusSaid, _bubbleText, _quotePrompt, _quotePageText;
+        readonly VisualElement[] _mapCards = new VisualElement[MapPool];
+        readonly Label[] _mapTexts = new Label[MapPool];
+        readonly int[] _mapKey = new int[MapPool];
+        readonly Vector2[] _mapAt = new Vector2[MapPool];
+        /// <summary>The key line while Nadia argues (the host fills it with the player's keys), and the prompt under a quote.</summary>
+        public string ArgueHints = "", QuotePrompt = "";
 
         sealed class StatementView
         {
@@ -189,6 +204,12 @@ namespace JamKit.Argument
             _arenaBg = Box(_arena, "argument-table-art", PickingMode.Ignore);
             ArgueUi.Fill(_arenaBg);
             _arenaBg.style.backgroundSize = new StyleBackgroundSize(new BackgroundSize(BackgroundSizeType.Cover));
+            // Her sky: over the table once the ceiling lifts (the sections presenter).
+            _skyBg = Box(_arena, "argument-sky", PickingMode.Ignore);
+            ArgueUi.Fill(_skyBg);
+            _skyBg.style.backgroundSize = new StyleBackgroundSize(new BackgroundSize(BackgroundSizeType.Cover));
+            _skyBg.style.opacity = 0f;
+            _skyBg.style.display = DisplayStyle.None;
             _arenaTint = Box(_arena, "argument-table-tint", PickingMode.Ignore);
             ArgueUi.Fill(_arenaTint);
             _arenaTint.style.backgroundColor = new Color(0f, 0f, 0f, 1f);
@@ -207,6 +228,37 @@ namespace JamKit.Argument
             }
             _arenaDraw = Layer(_arena, "argument-table-draw");
             _arenaDraw.generateVisualContent += DrawArena;
+            // Her case, written where she put it (the sections presenter's argue section).
+            _mapLayer = Layer(_arena, "argument-case-map");
+            for (int i = 0; i < MapPool; i++)
+            {
+                var c = Card(_mapLayer, "argument-map-" + i, new Color(Paper.r, Paper.g, Paper.b, 0.94f), Graphite);
+                c.style.position = Position.Absolute;
+                c.style.maxWidth = 240;
+                c.style.paddingLeft = c.style.paddingRight = 9;
+                c.style.paddingTop = c.style.paddingBottom = 4;
+                c.style.transformOrigin = new TransformOrigin(Length.Percent(50), Length.Percent(50));
+                c.style.display = DisplayStyle.None;
+                _mapCards[i] = c;
+                var t = Text(c, "", ArgumentArt.BodyBold, 19, PaperInk);
+                t.style.whiteSpace = WhiteSpace.Normal;
+                t.style.unityTextAlign = TextAnchor.MiddleCenter;
+                _mapTexts[i] = t;
+                _mapKey[i] = -1;
+            }
+            // The statement picked, in full, above the table (where the debate's claim and chips were).
+            _focus = Card(_camera, "argument-focus", new Color(0.05f, 0.045f, 0.06f, 0.92f), Gold);
+            ArgueUi.Place(_focus, ArenaX, 14, ArenaW, 0);
+            _focus.style.paddingLeft = _focus.style.paddingRight = 18;
+            _focus.style.paddingTop = 6;
+            _focus.style.paddingBottom = 8;
+            _focus.style.display = DisplayStyle.None;
+            _focusTag = Text(_focus, "", ArgumentArt.BodyBold, 14, Gold, "argument-focus-tag");
+            _focusTag.style.letterSpacing = 2f;
+            _focusText = Text(_focus, "", ArgumentArt.Body, 22, Paper, "argument-focus-text");
+            _focusText.style.whiteSpace = WhiteSpace.Normal;
+            _focusSaid = Text(_focus, "", ArgumentArt.BodyItalic, 17, new Color(1f, 0.78f, 0.8f), "argument-focus-said");
+            _focusSaid.style.whiteSpace = WhiteSpace.Normal;
             _statementsLayer = Layer(_arena, "argument-statements");
             for (int i = 0; i < StatementPool; i++) _statements[i] = MakeStatement(i);
             _slipLayer = Layer(_arena, "argument-slips");
@@ -302,6 +354,42 @@ namespace JamKit.Argument
             _more.style.position = Position.Absolute;
             _more.style.right = 18;
             _more.style.bottom = 6;
+
+            // Her speech bubble, over her (her lines while Nadia dodges or argues: the creator's note on SELECTION.md 2).
+            _bubble = Card(_camera, "argument-bubble", Paper, Ink);
+            ArgueUi.Place(_bubble, 30, 12, 620, 0);
+            _bubble.style.paddingLeft = _bubble.style.paddingRight = 20;
+            _bubble.style.paddingTop = _bubble.style.paddingBottom = 10;
+            ArgueUi.Border(_bubble, Ink, 3f);
+            ArgueUi.Round(_bubble, 18f);
+            _bubble.style.display = DisplayStyle.None;
+            var tail = Box(_bubble, "argument-bubble-tail", PickingMode.Ignore);
+            tail.style.position = Position.Absolute;
+            tail.style.left = 90;
+            tail.style.bottom = -13;
+            tail.style.width = 22;
+            tail.style.height = 22;
+            tail.style.backgroundColor = Paper;
+            tail.style.rotate = new Rotate(new Angle(45f, AngleUnit.Degree));
+            ArgueUi.Border(tail, Ink, 3f);
+            tail.style.borderTopWidth = 0f;
+            tail.style.borderLeftWidth = 0f;
+            _bubbleText = Text(_bubble, "", ArgumentArt.Body, 23, PaperInk, "argument-bubble-text");
+            _bubbleText.style.whiteSpace = WhiteSpace.Normal;
+
+            // Her own words: the prompt while they're said, and the page that flies to the hand when they're caught.
+            _quotePrompt = Text(_camera, "", ArgumentArt.BodyBold, 24, Gold, "argument-quote-prompt");
+            _quotePrompt.style.position = Position.Absolute;
+            _quotePrompt.style.left = 60;
+            _quotePrompt.style.bottom = 150;
+            _quotePrompt.style.textShadow = Shadow(3f);
+            _quotePrompt.style.display = DisplayStyle.None;
+            _quotePage = Card(_camera, "argument-quote-page", new Color(0.98f, 0.95f, 0.86f), Wine);
+            _quotePage.style.position = Position.Absolute;
+            _quotePage.style.paddingLeft = _quotePage.style.paddingRight = 14;
+            _quotePage.style.paddingTop = _quotePage.style.paddingBottom = 6;
+            _quotePage.style.display = DisplayStyle.None;
+            _quotePageText = Text(_quotePage, "", ArgumentArt.BodyItalic, 24, Wine, "argument-quote-page-text");
 
             // ---------- Overlays ----------
             _because = Card(_camera, "argument-because", new Color(0.04f, 0.035f, 0.05f, 0.94f), Gold);
@@ -600,12 +688,17 @@ namespace JamKit.Argument
             ShowdownWords(f);
             Hand(f);
             EndBeat(f);
+            MapCards(f);
+            Sky(f);
             Dialogue(f);
+            Quote(f);
             Because(f);
             Monitor(f, dt);
-            if (hints != _shownHints) { _shownHints = hints ?? ""; _hints.text = _shownHints; }
-            _hints.style.display = f.State == BattleState.Debate ? DisplayStyle.Flex : DisplayStyle.None;
-            _placeholder.text = def.placeholderLines ? S["screen.placeholder"] : "";
+            string keys = f.State == BattleState.Argue ? ArgueHints : hints;
+            if (keys != _shownHints) { _shownHints = keys ?? ""; _hints.text = _shownHints; }
+            _hints.style.display = f.State == BattleState.Debate || f.State == BattleState.Argue ? DisplayStyle.Flex : DisplayStyle.None;
+            bool placeholder = def.placeholderLines;
+            if (placeholder != _shownPlaceholder) { _shownPlaceholder = placeholder; _placeholder.text = placeholder ? S["screen.placeholder"] : ""; }
 
             // The caption: the step spelled out, or why something didn't work; it fades after a few seconds.
             string cap = f.CaptionAge < 4.5f ? f.Caption : "";
@@ -614,13 +707,17 @@ namespace JamKit.Argument
             _caption.style.opacity = Mathf.Clamp01((4.5f - f.CaptionAge) / 0.6f);
 
             // The banner names a phase as it opens ("The showdown", "He called you first", "Composure").
-            int bannerKey = (int)f.State * 100 + (f.Engine.Anger > 0 ? 10 : 0) + (f.Engine.LastStand ? 20 : 0) + (f.Engine.Pressure != null && f.Engine.Pressure.Spec.calls > 0 ? 40 : 0) + (f.Debate.Round <= 1 ? 1 : 0);
+            int bannerKey = (int)f.State * 100 + (f.Engine.Anger > 0 ? 10 : 0) + (f.Engine.LastStand ? 20 : 0) + (f.Engine.Pressure != null && f.Engine.Pressure.Spec.calls > 0 ? 40 : 0)
+                + (f.Sections ? (f.Turn <= 1 ? 1 : 0) + (f.Sky && f.SkyProgress < 1f ? 2 : 0) : (f.Debate.Round <= 1 ? 1 : 0));
             if (bannerKey != _bannerKey) { _bannerKey = bannerKey; _stateBanner.text = Banner(f); }
             _stateBanner.style.opacity = f.StateTime < 2.2f ? Mathf.Clamp01((2.2f - f.StateTime) / 0.5f) : 0f;
 
-            // The table dims while words are being said (the exchange holds the room), clears in play.
-            float tint = f.State == BattleState.Talk || f.State == BattleState.Intro ? 0.5f : f.State == BattleState.Showdown ? 0.62f : f.State == BattleState.Because ? 0.55f : 0.22f;
-            _arenaTint.style.opacity = Mathf.MoveTowards(_arenaTint.resolvedStyle.opacity, tint, dt * 2.5f);
+            // The table dims while words are being said (the exchange holds the room), clears in play; her case reads over
+            // a darker table.
+            float tint = f.State == BattleState.Talk || f.State == BattleState.Intro ? 0.5f : f.State == BattleState.Showdown ? 0.62f : f.State == BattleState.Because ? 0.55f
+                : f.State == BattleState.Argue ? (f.Sky ? 0.15f : 0.42f) : 0.22f;
+            _tint = Mathf.MoveTowards(_tint, tint, dt * 2.5f);
+            _arenaTint.style.opacity = _tint;
             if (_arenaBg.style.backgroundImage.value.texture == null) _arenaBg.style.backgroundImage = new StyleBackground(StageArt.Table(def.arena));
 
             // Composure: the room closes in as her heart climbs, and all the way when it's gone.
@@ -629,14 +726,23 @@ namespace JamKit.Argument
             _panic.style.opacity = Mathf.Clamp01(panic + pulse);
             _flashA = Mathf.MoveTowards(_flashA, 0f, dt * 2.2f);
             _flash.style.opacity = _flashA;
-            _flash.style.backgroundColor = _flashRed > 0.5f ? new Color(0.75f, 0.08f, 0.12f) : Paper;
+            bool red = _flashRed > 0.5f;
+            if (red != _flashWasRed) { _flashWasRed = red; _flash.style.backgroundColor = red ? new Color(0.75f, 0.08f, 0.12f) : Paper; }
 
-            _backdrop.MarkDirtyRepaint();
+            // Repaints (docs/redesign/perf.md, Battle 2): her glow only when her temper changes; the monitor at 30 Hz; the
+            // table every frame (its hazards move).
+            int glow = f.Engine.Heat * 10 + f.Engine.Anger;
+            if (glow != _shownGlow) { _shownGlow = glow; _backdrop.MarkDirtyRepaint(); }
             _arenaDraw.MarkDirtyRepaint();
-            _monitor.MarkDirtyRepaint();
+            _monitorTime += dt;
+            if (_monitorTime >= 1f / 30f) { _monitorTime = 0f; _monitor.MarkDirtyRepaint(); }
         }
 
-        int _bannerKey = -1;
+        int _bannerKey = -1, _shownGlow = -1, _shownTemper = -1, _shownBpm = -1, _shownShowdownLeft = -1;
+        float _tint = 0.25f, _monitorTime;
+        bool _shownPlaceholder, _flashWasRed, _shownBecauseClock;
+        string _shownWordsFor;
+        readonly List<string> _upperWords = new List<string>(8);
 
         static string Banner(BattleFlow f)
         {
@@ -651,6 +757,8 @@ namespace JamKit.Argument
                     return f.Engine.Anger > 0 ? S.Format("screen.banner.angry", "opponent", who) : S["screen.banner.pressure"];
                 case BattleState.Panic: return S["screen.banner.panic"];
                 case BattleState.Debate: return f.Engine.LastStand ? S.Format("screen.banner.stand", "opponent", who) : f.Debate.Round <= 1 ? S.Format("screen.banner.debate", "opponent", who) : "";
+                case BattleState.Argue: return f.Engine.LastStand ? S.Format("screen.banner.stand", "opponent", who) : f.Turn <= 1 ? S.Format("screen.banner.argue", "opponent", who) : "";
+                case BattleState.Talk: return f.Sky && f.SkyProgress < 1f ? S["screen.banner.sky"] : "";
                 default: return "";
             }
         }
@@ -701,9 +809,14 @@ namespace JamKit.Argument
             var def = f.Def;
             var portrait = f.Portrait;
             if (def.opponent != _name.text) _name.text = def.opponent;
-            string temper = S["screen.temper"] + " " + Pips(f.Engine.Heat, 3) + (f.Engine.Anger > 0 ? "     " + S["screen.anger"] + " " + Pips(f.Engine.Anger, 3) : "");
-            if (_temper.text != temper) _temper.text = temper;
-            _temper.style.color = f.Engine.Anger > 0 ? WineBright : Dim;
+            // Rebuilt only when her temper changes (docs/redesign/perf.md, Battle 1).
+            int temperKey = f.Engine.Heat * 10 + f.Engine.Anger;
+            if (temperKey != _shownTemper)
+            {
+                _shownTemper = temperKey;
+                _temper.text = S["screen.temper"] + " " + Pips(f.Engine.Heat, 3) + (f.Engine.Anger > 0 ? "     " + S["screen.anger"] + " " + Pips(f.Engine.Anger, 3) : "");
+                _temper.style.color = f.Engine.Anger > 0 ? WineBright : Dim;
+            }
 
             string face = faceOverride ?? portrait.Shown;
             if (face != _frontFace || def.opponent != _who)
@@ -778,6 +891,15 @@ namespace JamKit.Argument
 
         void CaseStrip(BattleFlow f)
         {
+            // The sections show her case on the table itself (and the statement picked above it): no strip.
+            bool strip = !f.Sections;
+            if (strip != _stripShown)
+            {
+                _stripShown = strip;
+                _claimCard.style.display = strip ? DisplayStyle.Flex : DisplayStyle.None;
+                _chips.style.display = strip ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+            if (!strip) return;
             var def = f.Def;
             var e = f.Engine;
             string claimLabel = S["screen.claim"];
@@ -789,7 +911,12 @@ namespace JamKit.Argument
                 int len = Typewriter.StripTags(def.claim).Length;
                 _claimText.style.fontSize = len > 70 ? 22 : len > 50 ? 25 : 30;
             }
-            _claimCard.style.borderTopColor = _claimCard.style.borderBottomColor = _claimCard.style.borderLeftColor = _claimCard.style.borderRightColor = e.LastStand ? WineBright : Ink;
+            bool stand = e.LastStand;
+            if (stand != _shownStand)
+            {
+                _shownStand = stand;
+                _claimCard.style.borderTopColor = _claimCard.style.borderBottomColor = _claimCard.style.borderLeftColor = _claimCard.style.borderRightColor = stand ? WineBright : Ink;
+            }
             int chip = 0;
             foreach (var p in def.premises)
             {
@@ -797,6 +924,9 @@ namespace JamKit.Argument
                 var st = e.Status(p.id);
                 var box = _chipBoxes[chip];
                 var t = _chipTexts[chip];
+                // Rebuilt only when its state changes (docs/redesign/perf.md, Battle 1).
+                if (_chipState[chip] == (int)st) { chip++; continue; }
+                _chipState[chip] = (int)st;
                 chip++;
                 box.style.display = DisplayStyle.Flex;
                 string label;
@@ -817,8 +947,13 @@ namespace JamKit.Argument
                 t.style.color = ink;
                 box.style.backgroundColor = fill;
             }
-            for (; chip < ChipPool; chip++) _chipBoxes[chip].style.display = DisplayStyle.None;
+            for (; chip < ChipPool; chip++)
+                if (_chipState[chip] != -2) { _chipState[chip] = -2; _chipBoxes[chip].style.display = DisplayStyle.None; }
         }
+
+        readonly int[] _chipState = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+        bool _stripShown = true;
+        bool _shownStand;
 
         // ---------- Statements in flight ----------
 
@@ -919,6 +1054,13 @@ namespace JamKit.Argument
         {
             var phase = Phase(f);
             var words = f.Def.pressureWords;
+            // Her words in capitals, made once per battle (not per wall per frame: docs/redesign/perf.md, Battle 1).
+            if (_shownWordsFor != f.Def.id)
+            {
+                _shownWordsFor = f.Def.id;
+                _upperWords.Clear();
+                foreach (var w in words) _upperWords.Add((w ?? "").ToUpperInvariant());
+            }
             int used = 0;
             if (phase != null && words.Count > 0 && f.State != BattleState.Showdown)
             {
@@ -928,7 +1070,7 @@ namespace JamKit.Argument
                     var w = walls[i];
                     if (!w.active) continue;
                     var l = _words[used++];
-                    string text = words[w.serial % words.Count].ToUpperInvariant();
+                    string text = _upperWords[w.serial % _upperWords.Count];
                     if (l.text != text) l.text = text;
                     float x = w.warn > 0f ? Mathf.Sign(w.x) * (PressurePhase.HalfWidth - 0.35f) : w.x;
                     var px = ToPx(new Vec(x, 0f));
@@ -944,7 +1086,7 @@ namespace JamKit.Argument
         }
 
         static PressurePhase Phase(BattleFlow f) =>
-            f.State == BattleState.Pressure ? f.Engine.Pressure : f.State == BattleState.Debate || f.State == BattleState.Talk || f.State == BattleState.Because ? f.Debate.Hazards : null;
+            f.State == BattleState.Pressure ? f.Engine.Pressure : !f.Sections && (f.State == BattleState.Debate || f.State == BattleState.Talk || f.State == BattleState.Because) ? f.Debate.Hazards : null;
 
         void Slips(BattleFlow f)
         {
@@ -983,8 +1125,12 @@ namespace JamKit.Argument
             _showdownPrompt.style.display = sd != null ? DisplayStyle.Flex : DisplayStyle.None;
             if (sd != null)
             {
-                string prompt = S.Format("screen.showdown.prompt", "n", (sd.Total - sd.Cuts - sd.Landed).ToString(CultureInfo.InvariantCulture));
-                if (_showdownPrompt.text != prompt) _showdownPrompt.text = prompt;
+                int left = sd.Total - sd.Cuts - sd.Landed;
+                if (left != _shownShowdownLeft)
+                {
+                    _shownShowdownLeft = left;
+                    _showdownPrompt.text = S.Format("screen.showdown.prompt", "n", left.ToString(CultureInfo.InvariantCulture));
+                }
             }
             int used = 0;
             if (sd != null)
@@ -995,8 +1141,8 @@ namespace JamKit.Argument
                     var w = words[i];
                     if (!w.active) continue;
                     var l = _showWords[used++];
-                    string text = Typewriter.StripTags(w.text);
-                    if (l.text != text) l.text = text;
+                    // Stripped once per word (the label keeps it), not every frame.
+                    if (!ReferenceEquals(l.userData, w.text)) { l.userData = w.text; l.text = Typewriter.StripTags(w.text); }
                     l.style.display = DisplayStyle.Flex;
                     var lr = l.layout;
                     float lw = float.IsNaN(lr.width) ? w.width * Px : lr.width, lh = float.IsNaN(lr.height) ? 56f : lr.height;
@@ -1071,10 +1217,10 @@ namespace JamKit.Argument
         void Hand(BattleFlow f)
         {
             var cards = f.Cards;
-            bool show = f.State == BattleState.Debate || f.State == BattleState.Talk;
-            _hand.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+            bool show = f.State == BattleState.Debate || f.State == BattleState.Talk || f.State == BattleState.Argue;
+            if (show != _handShown) { _handShown = show; _hand.style.display = show ? DisplayStyle.Flex : DisplayStyle.None; }
             if (!show) return;
-            int version = cards.Count * 1000 + f.Debate.Round;
+            int version = cards.Count * 1000 + f.Round;
             if (f.CardIndex == _shownCard && version == _shownCardsVersion && !f.Cues.Contains(CueKind.Burned)) return;
             _shownCard = f.CardIndex;
             _shownCardsVersion = version;
@@ -1092,7 +1238,11 @@ namespace JamKit.Argument
                 _handTag.text = burned > 0 ? S.Format("screen.hand.burned", "n", burned.ToString(CultureInfo.InvariantCulture)) : S.Format("screen.hand.tag", "n", (f.CardIndex + 1).ToString(CultureInfo.InvariantCulture), "keys", cards.Count.ToString(CultureInfo.InvariantCulture));
                 _handName.text = burned > 0 ? "<s>" + name + "</s>" : name;
                 _handNote.text = note;
-                _handCard.style.backgroundColor = c == BattleFlow.RetortCard ? new Color(0.95f, 0.82f, 0.82f) : c == BattleFlow.RestCard ? new Color(1f, 0.92f, 0.74f) : burned > 0 ? new Color(0.62f, 0.6f, 0.58f) : Paper;
+                var ev = f.Def.Evidence(c);
+                bool quote = ev != null && ev.IsQuote;
+                if (quote && burned == 0) _handTag.text = S["screen.quote.tag"] + "   " + _handTag.text;
+                _handCard.style.backgroundColor = c == BattleFlow.RetortCard ? new Color(0.95f, 0.82f, 0.82f) : c == BattleFlow.RestCard ? new Color(1f, 0.92f, 0.74f) : burned > 0 ? new Color(0.62f, 0.6f, 0.58f)
+                    : quote ? new Color(0.99f, 0.95f, 0.85f) : Paper;
             }
             for (int i = 0; i < HandSide; i++)
             {
@@ -1120,14 +1270,19 @@ namespace JamKit.Argument
             note = ev != null ? ev.note : "";
         }
 
-        // ---------- The dialogue box ----------
+        bool _handShown = true;
+
+        // ---------- The dialogue box (and her speech bubble) ----------
 
         void Dialogue(BattleFlow f)
         {
             var d = f.Delivery;
             bool has = d.HasLine;
             var line = has ? d.Current : d.Last;
-            if (!d.HadAny) { _dialogue.style.display = DisplayStyle.None; return; }
+            // While Nadia dodges or argues, her lines are said in a bubble over her, not down at the bottom.
+            bool bubble = f.Sections && has && line.speaker == Speaker.Opponent && (f.State == BattleState.Pressure || f.State == BattleState.Argue);
+            Bubble(f, bubble);
+            if (!d.HadAny || bubble) { _dialogue.style.display = DisplayStyle.None; return; }
             _dialogue.style.display = DisplayStyle.Flex;
             _dialogue.style.opacity = has ? 1f : 0.55f;
             string who = line.speaker == Speaker.Supporter ? line.who + "  " + S["screen.earpiece"] : line.who;
@@ -1138,7 +1293,7 @@ namespace JamKit.Argument
                 Color tag = line.speaker == Speaker.Opponent ? Wine : line.speaker == Speaker.Nadia ? new Color(0.55f, 0.4f, 0.12f) : new Color(0.2f, 0.32f, 0.5f);
                 _speakerTag.style.backgroundColor = tag;
             }
-            string text = has ? d.Typewriter.Visible : Typewriter.Spelled(line.text);
+            string text = has ? (f.QuoteId.Length > 0 ? QuoteLine(f) : d.Typewriter.Visible) : Typewriter.Spelled(line.text);
             if (text != _shownLine)
             {
                 _shownLine = text;
@@ -1151,6 +1306,245 @@ namespace JamKit.Argument
             }
             string more = has && d.LineDone && (f.State == BattleState.Talk || f.State == BattleState.Intro) ? "▼" : "";
             if (_more.text != more) _more.text = more;
+        }
+
+        string _bubbleShown = "";
+        bool _bubbleOn;
+
+        void Bubble(BattleFlow f, bool on)
+        {
+            if (on != _bubbleOn)
+            {
+                _bubbleOn = on;
+                _bubble.style.display = on ? DisplayStyle.Flex : DisplayStyle.None;
+                // Over her, where her name is (the bubble says who's speaking).
+                _name.style.opacity = on ? 0f : 1f;
+                _temper.style.opacity = on ? 0f : 1f;
+            }
+            if (!on) return;
+            string text = f.Delivery.Typewriter.Visible;
+            if (!ReferenceEquals(text, _bubbleShown)) { _bubbleShown = text; _bubbleText.text = text; }
+            // It sits over her, nudged up while she talks.
+            _bubble.style.translate = new Translate(0, -4f * _talkBob);
+        }
+
+        /// <summary>The line being said, with her quotable words underlined in her wine as they're typed (the rest of the line
+        /// laid out but unseen, so nothing jumps). Built only when more has been typed.</summary>
+        string QuoteLine(BattleFlow f)
+        {
+            var tw = f.Delivery.Typewriter;
+            int shown = tw.Shown;
+            int key = shown * 4 + (f.QuoteOpen ? 1 : 0);
+            if (key == _quoteLineKey && ReferenceEquals(_quoteLinePlain, tw.Plain)) return _quoteLine;
+            _quoteLineKey = key;
+            _quoteLinePlain = tw.Plain;
+            string plain = tw.Plain;
+            int a = Mathf.Clamp(f.QuoteStart, 0, plain.Length), b = Mathf.Clamp(f.QuoteEnd, a, plain.Length);
+            _sb.Clear();
+            for (int i = 0; i < plain.Length; i++)
+            {
+                if (i == shown) _sb.Append(Typewriter.HiddenOpen);
+                if (i == a && i < shown) _sb.Append("<u><color=#B3263A>");
+                char c = plain[i];
+                if (c == '<') _sb.Append("<noparse><</noparse>");
+                else _sb.Append(c);
+                if (i == b - 1 && a < shown && i < shown) _sb.Append("</color></u>");
+                else if (i == shown - 1 && i >= a && i < b - 1) _sb.Append("</color></u>");
+            }
+            if (shown < plain.Length) _sb.Append(Typewriter.HiddenClose);
+            _quoteLine = _sb.ToString();
+            return _quoteLine;
+        }
+
+        readonly StringBuilder _sb = new StringBuilder(512);
+        string _quoteLine = "", _quoteLinePlain;
+        int _quoteLineKey = -1;
+
+        /// <summary>The prompt while her words are worth catching, and the page that flies to the hand when they're caught.</summary>
+        void Quote(BattleFlow f)
+        {
+            bool open = f.QuoteOpen;
+            if (open != _quotePromptOn)
+            {
+                _quotePromptOn = open;
+                _quotePrompt.style.display = open ? DisplayStyle.Flex : DisplayStyle.None;
+                if (open) _quotePrompt.text = QuotePrompt.Length > 0 ? QuotePrompt : S.Format("screen.quote.prompt", "show", "A");
+            }
+            if (open) _quotePrompt.style.opacity = 0.65f + 0.35f * Mathf.Sin(_time * 9f);
+            string caught = f.QuoteCaught;
+            bool fly = caught.Length > 0;
+            if (fly != _quotePageOn) { _quotePageOn = fly; _quotePage.style.display = fly ? DisplayStyle.Flex : DisplayStyle.None; }
+            if (!fly) return;
+            if (_quotePageFor != caught)
+            {
+                _quotePageFor = caught;
+                var ev = f.Def.Evidence(caught);
+                _quotePageText.text = "“" + (ev != null ? ev.words : caught) + "”";
+            }
+            // From the dialogue box up to the hand, tilting like a torn page.
+            float t = Smooth(Mathf.Clamp01(f.QuoteCaughtAge / 1.1f));
+            var from = new Vector2(220f, 1080f - 170f);
+            var to = new Vector2(ArenaX + 140f, ArenaY + ArenaH + 20f);
+            var at = Vector2.Lerp(from, to, t) + new Vector2(0f, -120f * Mathf.Sin(t * Mathf.PI));
+            _quotePage.style.left = at.x;
+            _quotePage.style.top = at.y;
+            _quotePage.style.rotate = new Rotate(new Angle(-6f + 14f * t, AngleUnit.Degree));
+            _quotePage.style.opacity = f.QuoteCaughtAge < 1.1f ? 1f : Mathf.Clamp01(1f - (f.QuoteCaughtAge - 1.1f) / 0.3f);
+        }
+
+        bool _quotePromptOn, _quotePageOn;
+        string _quotePageFor = "";
+
+        // ---------- Her case on the table (the sections presenter) ----------
+
+        /// <summary>Each statement she's made, written where it sits on her case (a note on the page; under her sky, a star's
+        /// name), the one picked raised and gold-edged and spelled out in full along the top of the table.</summary>
+        void MapCards(BattleFlow f)
+        {
+            bool on = f.Sections && (f.State == BattleState.Argue || f.State == BattleState.Talk || f.State == BattleState.Because || f.State == BattleState.Intro);
+            var map = f.Map;
+            if (on) map.Refresh(f.Engine);
+            float alpha = f.State == BattleState.Argue ? 1f : 0.45f;
+            for (int i = 0; i < MapPool; i++)
+            {
+                bool used = on && i < map.Count && map[i].visible;
+                var card = _mapCards[i];
+                if (!used)
+                {
+                    if (_mapKey[i] != -1) { _mapKey[i] = -1; card.style.display = DisplayStyle.None; }
+                    continue;
+                }
+                var e = map[i];
+                bool picked = f.State == BattleState.Argue && f.Selected == i;
+                int key = (int)e.status * 8 + (picked ? 1 : 0) + (f.Sky ? 2 : 0) + 4;
+                if (key != _mapKey[i])
+                {
+                    _mapKey[i] = key;
+                    card.style.display = DisplayStyle.Flex;
+                    _mapTexts[i].text = MapLabel(f, e);
+                    StyleMapCard(f, card, _mapTexts[i], e, picked, i);
+                }
+                // Placed by its measured size, centred on its place (under its star in the sky).
+                var r = card.layout;
+                float w = float.IsNaN(r.width) || r.width < 1f ? 180f : r.width, h = float.IsNaN(r.height) || r.height < 1f ? 34f : r.height;
+                var c = ToPx(e.position) + (f.Sky ? new Vector2(0f, 26f + h * 0.5f) : Vector2.zero);
+                var at = new Vector2(c.x - w * 0.5f, c.y - h * 0.5f);
+                if ((at - _mapAt[i]).sqrMagnitude > 0.25f)
+                {
+                    _mapAt[i] = at;
+                    card.style.left = at.x;
+                    card.style.top = at.y;
+                }
+                card.style.opacity = alpha;
+            }
+            Focus(f);
+        }
+
+        string MapLabel(BattleFlow f, in CaseMap.Entry e)
+        {
+            if (e.claim) return Typewriter.StripTags(f.Def.claim);
+            var p = f.Def.Premise(e.id);
+            string words = p == null ? e.id : Typewriter.StripTags(string.IsNullOrEmpty(p.weak) ? p.text : p.weak);
+            switch (e.status)
+            {
+                case PremiseStatus.Broken: return "<s>" + words + "</s>";
+                case PremiseStatus.Conceded: return words + "  <size=70%>(" + S["screen.chip.true"] + ")</size>";
+                case PremiseStatus.ConcededFalse: return words + "  <size=70%>(" + S["screen.chip.agreed"] + ")</size>";
+                case PremiseStatus.Forced: return words + "  <size=70%>(" + S["screen.chip.forced"] + ")</size>";
+                default: return p != null && p.key ? words + "  <size=70%>" + S["screen.key"] + "</size>" : words;
+            }
+        }
+
+        void StyleMapCard(BattleFlow f, VisualElement card, Label text, in CaseMap.Entry e, bool picked, int i)
+        {
+            bool sky = f.Sky;
+            Color fill, edge, ink;
+            if (sky)
+            {
+                // A star's name: no paper, just the words under the star.
+                fill = new Color(0.02f, 0.025f, 0.06f, picked ? 0.75f : 0.35f);
+                edge = picked ? Gold : new Color(0f, 0f, 0f, 0f);
+                ink = e.status == PremiseStatus.Standing || e.claim ? Paper : Dim;
+            }
+            else
+            {
+                fill = e.claim ? new Color(Wine.r * 0.7f, Wine.g * 0.7f, Wine.b * 0.7f, 0.95f)
+                    : e.status == PremiseStatus.Conceded ? new Color(0.86f, 0.93f, 0.84f, 0.95f)
+                    : e.status == PremiseStatus.Forced ? new Color(0.55f, 0.12f, 0.16f, 0.95f)
+                    : e.status == PremiseStatus.Standing ? new Color(Paper.r, Paper.g, Paper.b, 0.95f) : new Color(0.7f, 0.68f, 0.64f, 0.85f);
+                edge = picked ? Gold : e.claim ? Ink : Graphite;
+                ink = e.claim || e.status == PremiseStatus.Forced ? Paper : e.status == PremiseStatus.Standing || e.status == PremiseStatus.Conceded ? PaperInk : new Color(0.35f, 0.33f, 0.36f);
+            }
+            card.style.backgroundColor = fill;
+            ArgueUi.Border(card, edge, picked ? 3f : 1.5f);
+            text.style.color = ink;
+            ArgumentArt.Use(text, e.claim ? ArgumentArt.Display : ArgumentArt.BodyBold);
+            text.style.fontSize = e.claim ? 22 : 19;
+            // A note on the page sits a little askew; the one picked straightens and lifts.
+            float tilt = sky || picked ? 0f : ((i * 37) % 7 - 3) * 0.8f;
+            card.style.rotate = new Rotate(new Angle(tilt, AngleUnit.Degree));
+            card.style.scale = new Scale(picked ? new Vector3(1.08f, 1.08f, 1f) : Vector3.one);
+        }
+
+        string _focusFor = "";
+        int _focusKey = -1;
+
+        /// <summary>The statement picked, in full: what she said (the words that matter in gold), what kind it is and where
+        /// it stands, her question if she's asked one, and what she said when asked why.</summary>
+        void Focus(BattleFlow f)
+        {
+            bool on = f.Sections && f.State == BattleState.Argue;
+            if (!on) { if (_focusKey != -1) { _focusKey = -1; _focusFor = ""; _focus.style.display = DisplayStyle.None; } return; }
+            string id = f.SelectedId;
+            var e = f.Engine;
+            int key = (int)e.Status(id) * 16 + e.TimesAsked(id) + (e.IsHeard(id) ? 8 : 0);
+            if (id == _focusFor && key == _focusKey) return;
+            _focusFor = id;
+            _focusKey = key;
+            _focus.style.display = DisplayStyle.Flex;
+            if (id == ArgumentEngine.ClaimId)
+            {
+                _focusTag.text = S["screen.claim"];
+                _focusText.text = Typewriter.StripTags(f.Def.claim);
+                _focusSaid.text = S["screen.prompt.claim"];
+                return;
+            }
+            var p = f.Def.Premise(id);
+            if (p == null) return;
+            var st = e.Status(id);
+            _focusTag.text = p.label + "  ·  " + (p.kind == PremiseKind.Fact ? S["screen.fact"] : S["screen.link"]) + (p.key ? "  ·  " + S["screen.key"] : "")
+                + "  ·  " + StatusWords(st, e.IsHeard(id));
+            string plain = Typewriter.StripTags(Typewriter.Spelled(p.text));
+            Debate.Split(plain, p.weak, out string pre, out string weak, out string post);
+            _focusText.text = st == PremiseStatus.Broken ? "<s>" + plain + "</s>" : pre + "<color=#FFCC61><u>" + weak + "</u></color>" + post;
+            string said = "";
+            if (!string.IsNullOrEmpty(p.question) && st == PremiseStatus.Standing && p.retort != null) said = S["screen.argue.asks"] + " “" + Typewriter.StripTags(Typewriter.Spelled(p.question)) + "”";
+            else if (e.TimesAsked(id) > 0 && !string.IsNullOrEmpty(p.askReply)) said = S["screen.argue.said"] + " " + Typewriter.StripTags(Typewriter.Spelled(e.TimesAsked(id) >= 2 && p.askAgainReply.Length > 0 ? p.askAgainReply : p.askReply));
+            _focusSaid.text = said;
+            _focusSaid.style.display = said.Length > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        // ---------- Her sky ----------
+
+        bool _skyShown;
+
+        /// <summary>The ceiling lifts (SELECTION.md 7): her night comes down over the table, which sinks away.</summary>
+        void Sky(BattleFlow f)
+        {
+            bool sky = f.Sky;
+            if (sky != _skyShown)
+            {
+                _skyShown = sky;
+                _skyBg.style.display = sky ? DisplayStyle.Flex : DisplayStyle.None;
+                if (sky && _skyBg.style.backgroundImage.value.texture == null) _skyBg.style.backgroundImage = new StyleBackground(StageArt.Sky());
+                if (!sky) { _arenaBg.style.opacity = 1f; _arenaBg.style.translate = new Translate(0, 0); }
+            }
+            if (!sky) return;
+            float t = Smooth(f.SkyProgress);
+            _skyBg.style.opacity = t;
+            _skyBg.style.translate = new Translate(0, (1f - t) * -ArenaH * 0.6f);
+            _arenaBg.style.opacity = 1f - 0.9f * t;
+            _arenaBg.style.translate = new Translate(0, t * 60f);
         }
 
         // ---------- Because... ----------
@@ -1193,21 +1587,35 @@ namespace JamKit.Argument
                     _reasonCards[i].style.translate = new Translate(on ? 10f : 0f, 0);
                 }
             }
+            // Her patience as a scale, not a width (no layout every frame: docs/redesign/perf.md, Battle 2).
             float patience = f.Patience;
-            _patienceFill.style.width = Length.Percent(patience * 100f);
-            _patienceFill.style.backgroundColor = patience < 0.3f ? WineBright : Wine;
-            string label = f.Engine.Setup.difficulty == ArgumentDifficulty.Story ? S["screen.because.noClock"] : S.Format("screen.because.patience", "opponent", f.Def.opponent);
-            if (_becausePatienceLabel.text != label) _becausePatienceLabel.text = label;
+            _patienceFill.style.width = Length.Percent(100f);
+            _patienceFill.style.transformOrigin = new TransformOrigin(Length.Percent(0), Length.Percent(50));
+            _patienceFill.style.scale = new Scale(new Vector3(Mathf.Max(0.0001f, patience), 1f, 1f));
+            bool low = patience < 0.3f;
+            if (low != _patienceLow) { _patienceLow = low; _patienceFill.style.backgroundColor = low ? WineBright : Wine; }
+            bool story = f.Engine.Setup.difficulty == ArgumentDifficulty.Story;
+            if (story != _shownBecauseClock || _becausePatienceLabel.text.Length == 0)
+            {
+                _shownBecauseClock = story;
+                _becausePatienceLabel.text = story ? S["screen.because.noClock"] : S.Format("screen.because.patience", "opponent", f.Def.opponent);
+            }
         }
+
+        bool _patienceLow;
 
         // ---------- The heart monitor ----------
 
         void Monitor(BattleFlow f, float dt)
         {
             int bpm = f.Engine.HeartRate;
-            string t = bpm.ToString(CultureInfo.InvariantCulture) + " " + S["screen.bpm"];
-            if (_bpm.text != t) _bpm.text = t;
-            _bpm.style.color = f.Engine.HeartStep >= 4 ? WineBright : f.Engine.HeartStep >= 2 ? new Color(1f, 0.62f, 0.4f) : Gold;
+            // Rebuilt only when the rate changes (docs/redesign/perf.md, Battle 1).
+            if (bpm != _shownBpm)
+            {
+                _shownBpm = bpm;
+                _bpm.text = bpm.ToString(CultureInfo.InvariantCulture) + " " + S["screen.bpm"];
+                _bpm.style.color = f.Engine.HeartStep >= 4 ? WineBright : f.Engine.HeartStep >= 2 ? new Color(1f, 0.62f, 0.4f) : Gold;
+            }
             // The trace: a beat at her heart rate, scrolling.
             _monitorPhase += dt * bpm / 60f;
             float ph = _monitorPhase - Mathf.Floor(_monitorPhase);
@@ -1251,11 +1659,14 @@ namespace JamKit.Argument
             if (f == null) return;
             var p = mgc.painter2D;
             var phase = Phase(f);
+            if (f.Sections) DrawCase(p, f, phase);
             if (phase != null && f.State != BattleState.Showdown)
             {
                 DrawWarnings(p, phase);
                 DrawHazards(p, phase);
+                DrawSections(p, phase);
             }
+            if (f.State == BattleState.Argue) DrawPatience(p, f);
             if (f.State == BattleState.Showdown && f.Showdown != null) DrawShowdown(p, f.Showdown);
             if (f.State == BattleState.Ending || f.State == BattleState.Over) DrawEndBeat(p, f);
             if (f.State == BattleState.Debate)
@@ -1295,7 +1706,7 @@ namespace JamKit.Argument
             for (int i = 0; i < rings.Count; i++)
             {
                 var r = rings[i];
-                if (!r.active || r.warn <= 0f) continue;
+                if (!r.active || r.warn <= 0f || r.hush) continue;
                 float a = WarnAlpha(r.warn, tele);
                 var c = ToPx(r.center) + Jitter(r.serial, jitterStep);
                 p.strokeColor = new Color(Graphite.r, Graphite.g, Graphite.b, a);
@@ -1322,7 +1733,7 @@ namespace JamKit.Argument
             for (int i = 0; i < blobs.Count; i++)
             {
                 var b = blobs[i];
-                if (!b.active || b.warn <= 0f) continue;
+                if (!b.active || b.warn <= 0f || b.mark) continue;
                 float a = WarnAlpha(b.warn, tele);
                 var from = b.position;
                 var to = b.position + b.velocity * 10f;
@@ -1377,7 +1788,7 @@ namespace JamKit.Argument
             for (int i = 0; i < rings.Count; i++)
             {
                 var r = rings[i];
-                if (!r.active || r.warn > 0f || r.radius <= 0.01f) continue;
+                if (!r.active || r.warn > 0f || r.radius <= 0.01f || r.hush) continue;
                 var c = ToPx(r.center);
                 float rad = r.radius * Px;
                 if (r.answerMe)
@@ -1413,7 +1824,7 @@ namespace JamKit.Argument
             for (int i = 0; i < blobs.Count; i++)
             {
                 var b = blobs[i];
-                if (!b.active || b.warn > 0f) continue;
+                if (!b.active || b.warn > 0f || b.mark || b.streak) continue;
                 var c = ToPx(b.position);
                 p.fillColor = Wine;
                 Disc(p, c, PressurePhase.BlobRadius * Px);
@@ -1424,6 +1835,8 @@ namespace JamKit.Argument
 
         void DrawLight(Painter2D p, BattleFlow f, PressurePhase phase)
         {
+            // In the sections the light is only on the table while she comes at it.
+            if (f.Sections && f.State != BattleState.Pressure) return;
             var light = f.State == BattleState.Pressure && phase != null ? phase.Light : f.Light;
             var c = ToPx(light);
             bool blink = phase != null && phase.Invulnerable > 0f && ((int)(phase.Invulnerable * 12f) & 1) == 0;
@@ -1432,6 +1845,17 @@ namespace JamKit.Argument
             Disc(p, c, PressurePhase.LightRadius * Px * 2.6f);
             p.fillColor = Gold;
             Disc(p, c, PressurePhase.LightRadius * Px);
+            // Hush or answer-me on the table: a ring round the light, whole while it holds still, broken while it moves
+            // (how a player sees which they're doing: the creator's "need a way to show that to the player").
+            if (phase != null && phase.StillnessMatters)
+            {
+                bool still = !phase.LightMoving;
+                p.strokeColor = still ? Paper : new Color(Paper.r, Paper.g, Paper.b, 0.55f);
+                p.lineWidth = 2.5f;
+                float r = PressurePhase.LightRadius * Px * 2.2f;
+                if (still) { p.BeginPath(); p.Arc(c, r, 0f, 360f); p.Stroke(); }
+                else for (int k = 0; k < 8; k++) Arc(p, c, r, k * Mathf.PI / 4f + _time * 3f, k * Mathf.PI / 4f + _time * 3f + 0.35f);
+            }
             if (f.State != BattleState.Debate) return;
             // The aim: a ring as far as the light reaches; bright when it's on a statement's weak words.
             int under = f.Debate.Under(light, true, out bool onWeak);
@@ -1449,6 +1873,222 @@ namespace JamKit.Argument
                 p.Arc(c, Debate.AimRadius * Px + 8f, -90f, -90f + 360f * f.HoldProgress);
                 p.Stroke();
             }
+        }
+
+        /// <summary>Her case under the cards: in the kitchen, pencil lines from each statement up to what it holds up (rubbed
+        /// out once it's down, torn where it was forced); under her sky, her constellation: lit lines her showers run along,
+        /// faint traces, snapped splinters, and a star at each statement (a conceded fact glows: cover).</summary>
+        void DrawCase(Painter2D p, BattleFlow f, PressurePhase phase)
+        {
+            bool sky = f.Sky;
+            bool argue = f.State == BattleState.Argue || f.State == BattleState.Talk || f.State == BattleState.Because || f.State == BattleState.Intro;
+            if (!argue && !(sky && f.State == BattleState.Pressure)) return;
+            var map = f.Map;
+            float fade = f.State == BattleState.Argue || f.State == BattleState.Pressure ? 1f : 0.5f;
+            if (sky) fade *= Mathf.Clamp01(f.SkyProgress * 1.5f);
+            var links = map.Links;
+            for (int i = 0; i < links.Count; i++)
+            {
+                var l = links[i];
+                if (!l.visible || (l.across && !sky)) continue;
+                var a = ToPx(map[l.a].position);
+                var b = ToPx(map[l.b].position);
+                if (sky)
+                {
+                    switch (l.state)
+                    {
+                        case CaseMap.LinkState.Lit:
+                            p.strokeColor = new Color(1f, 0.93f, 0.75f, 0.25f * fade);
+                            p.lineWidth = 9f;
+                            Line(p, a, b);
+                            p.strokeColor = new Color(1f, 0.95f, 0.82f, 0.9f * fade);
+                            p.lineWidth = 2.5f;
+                            Line(p, a, b);
+                            break;
+                        case CaseMap.LinkState.Rubbed:
+                            p.strokeColor = new Color(0.7f, 0.72f, 0.85f, 0.35f * fade);
+                            p.lineWidth = 1.5f;
+                            Dashed(p, a, b, 10f, 8f);
+                            break;
+                        default:
+                            // Snapped: two splinters and a gap.
+                            p.strokeColor = new Color(WineBright.r, WineBright.g, WineBright.b, 0.8f * fade);
+                            p.lineWidth = 2f;
+                            Line(p, a, Vector2.Lerp(a, b, 0.4f));
+                            Line(p, Vector2.Lerp(a, b, 0.6f), b);
+                            break;
+                    }
+                }
+                else
+                {
+                    // Graphite on her page, with an arrowhead where it leads.
+                    var col = l.state == CaseMap.LinkState.Lit ? new Color(0.2f, 0.19f, 0.22f, 0.85f) : l.state == CaseMap.LinkState.Snapped ? new Color(Wine.r, Wine.g, Wine.b, 0.9f) : new Color(0.3f, 0.29f, 0.32f, 0.35f);
+                    p.strokeColor = new Color(col.r, col.g, col.b, col.a * fade);
+                    p.lineWidth = l.state == CaseMap.LinkState.Lit ? 2.2f : 1.4f;
+                    var jitter = Jitter(i * 17, Mathf.FloorToInt(_time * 3f)) * 0.4f;
+                    if (l.state == CaseMap.LinkState.Rubbed) Dashed(p, a, b + jitter, 7f, 6f);
+                    else if (l.state == CaseMap.LinkState.Snapped) { Line(p, a, Vector2.Lerp(a, b, 0.42f)); Line(p, Vector2.Lerp(a, b, 0.58f), b); }
+                    else
+                    {
+                        Line(p, a, b + jitter);
+                        var dir = (b - a).normalized;
+                        var tip = Vector2.Lerp(a, b, 0.62f);
+                        var side = new Vector2(-dir.y, dir.x);
+                        p.BeginPath();
+                        p.MoveTo(tip - dir * 9f + side * 6f);
+                        p.LineTo(tip);
+                        p.LineTo(tip - dir * 9f - side * 6f);
+                        p.Stroke();
+                    }
+                }
+            }
+            if (!sky) return;
+            for (int i = 0; i < map.Count; i++)
+            {
+                var e = map[i];
+                if (!e.visible) continue;
+                var c = ToPx(e.position);
+                bool cover = e.status == PremiseStatus.Conceded;
+                if (cover)
+                {
+                    p.fillColor = new Color(Gold.r, Gold.g, Gold.b, 0.18f * fade);
+                    Disc(p, c, PressurePhase.CoverRadius * Px);
+                }
+                float r = e.claim ? 13f : e.status == PremiseStatus.Standing ? 10f : 7f;
+                p.fillColor = new Color(1f, 0.96f, 0.85f, (e.status == PremiseStatus.Standing || e.claim || cover ? 1f : 0.45f) * fade);
+                Star(p, c, r, r * 0.42f, _time * 0.2f + i);
+            }
+        }
+
+        /// <summary>Her patience, as a pencil line drawing itself along the near edge; in its last seconds, the attack she's
+        /// sketching at the table's edges (the overlap into the next dodge).</summary>
+        void DrawPatience(Painter2D p, BattleFlow f)
+        {
+            if (f.ArgueLimit <= 0f) return;
+            float k = Mathf.Clamp01(f.ArgueTime / f.ArgueLimit);
+            p.strokeColor = new Color(Wine.r, Wine.g, Wine.b, 0.6f + 0.4f * k);
+            p.lineWidth = 3f;
+            p.BeginPath();
+            p.MoveTo(new Vector2(20f, ArenaH - 8f));
+            p.LineTo(new Vector2(20f + (ArenaW - 40f) * k, ArenaH - 8f + Mathf.Sin(_time * 7f) * 0.8f));
+            p.Stroke();
+            float s = f.ArgueSketch;
+            if (s <= 0f) return;
+            int step = Mathf.FloorToInt(_time * 8f);
+            p.strokeColor = new Color(Graphite.r, Graphite.g, Graphite.b, 0.25f + 0.6f * s);
+            p.lineWidth = 1.6f;
+            int n = Mathf.CeilToInt(9 * s);
+            for (int i = 0; i < n; i++)
+            {
+                float y = 40f + i * (ArenaH - 80f) / 8f;
+                var left = new Vector2(PressurePhase.PlateRadius * Px + 6f, y) + Jitter(i * 11, step);
+                var right = new Vector2(ArenaW - PressurePhase.PlateRadius * Px - 6f, ArenaH - y) + Jitter(i * 13 + 5, step);
+                p.BeginPath(); p.Arc(left, PressurePhase.PlateRadius * Px * 0.9f, 0f, 360f); p.Stroke();
+                p.BeginPath(); p.Arc(right, PressurePhase.PlateRadius * Px * 0.9f, 0f, 360f); p.Stroke();
+            }
+        }
+
+        /// <summary>The sections' own hazards: hush (soft, round, dashed, closing in), her pencil's marks (graphite, then
+        /// ink) and its tip, and shooting stars under her sky (a bright head, a tail back toward the radiant).</summary>
+        void DrawSections(Painter2D p, PressurePhase phase)
+        {
+            var rings = phase.Rings;
+            for (int i = 0; i < rings.Count; i++)
+            {
+                var r = rings[i];
+                if (!r.active || !r.hush) continue;
+                var c = ToPx(r.center);
+                float rad = Mathf.Max(2f, r.radius * Px);
+                float a = r.warn > 0f ? 0.45f : 0.9f;
+                p.strokeColor = new Color(Paper.r, Paper.g, Paper.b, a);
+                p.lineWidth = r.warn > 0f ? 2f : PressurePhase.RingThickness * Px * 0.45f;
+                int dashes = 28;
+                for (int k = 0; k < dashes; k++)
+                {
+                    float a0 = k * Mathf.PI * 2f / dashes + _time * 0.4f;
+                    Arc(p, c, rad, a0, a0 + Mathf.PI / dashes);
+                }
+            }
+            var blobs = phase.Blobs;
+            float pr = PressurePhase.BlobRadius * Px;
+            for (int i = 0; i < blobs.Count; i++)
+            {
+                var b = blobs[i];
+                if (!b.active) continue;
+                var c = ToPx(b.position);
+                if (b.mark)
+                {
+                    if (b.warn > 0f)
+                    {
+                        // Pencilled: a small cross.
+                        p.strokeColor = new Color(Graphite.r, Graphite.g, Graphite.b, 0.8f);
+                        p.lineWidth = 1.8f;
+                        Line(p, c + new Vector2(-6f, -6f), c + new Vector2(6f, 6f));
+                        Line(p, c + new Vector2(-6f, 6f), c + new Vector2(6f, -6f));
+                    }
+                    else
+                    {
+                        p.fillColor = new Color(Wine.r, Wine.g, Wine.b, Mathf.Clamp01(b.ttl / 0.4f));
+                        Disc(p, c, pr * 0.8f);
+                    }
+                    continue;
+                }
+                if (b.streak && b.warn <= 0f)
+                {
+                    var tail = c - new Vector2(b.velocity.X, -b.velocity.Y).normalized * 60f;
+                    p.strokeColor = new Color(1f, 0.93f, 0.78f, 0.35f);
+                    p.lineWidth = 5f;
+                    Line(p, tail, c);
+                    p.fillColor = new Color(1f, 0.97f, 0.9f);
+                    Disc(p, c, pr * 0.7f);
+                }
+            }
+            if (phase.TrailOn)
+            {
+                // Her pencil, following.
+                var tip = ToPx(phase.TrailTip);
+                p.strokeColor = new Color(0.25f, 0.24f, 0.27f, 0.95f);
+                p.lineWidth = 5f;
+                Line(p, tip + new Vector2(4f, -4f), tip + new Vector2(34f, -34f));
+                p.fillColor = new Color(0.9f, 0.75f, 0.45f);
+                p.BeginPath();
+                p.MoveTo(tip);
+                p.LineTo(tip + new Vector2(9f, -2f));
+                p.LineTo(tip + new Vector2(2f, -9f));
+                p.ClosePath();
+                p.Fill();
+            }
+        }
+
+        static void Line(Painter2D p, Vector2 a, Vector2 b)
+        {
+            p.BeginPath();
+            p.MoveTo(a);
+            p.LineTo(b);
+            p.Stroke();
+        }
+
+        static void Dashed(Painter2D p, Vector2 a, Vector2 b, float dash, float gap)
+        {
+            float len = Vector2.Distance(a, b);
+            if (len < 1f) return;
+            var dir = (b - a) / len;
+            for (float s = 0f; s < len; s += dash + gap) Line(p, a + dir * s, a + dir * Mathf.Min(len, s + dash));
+        }
+
+        static void Star(Painter2D p, Vector2 c, float outer, float inner, float spin)
+        {
+            p.BeginPath();
+            for (int k = 0; k < 10; k++)
+            {
+                float a = spin + k * Mathf.PI / 5f - Mathf.PI / 2f;
+                float r = (k & 1) == 0 ? outer : inner;
+                var v = c + new Vector2(Mathf.Cos(a) * r, Mathf.Sin(a) * r);
+                if (k == 0) p.MoveTo(v);
+                else p.LineTo(v);
+            }
+            p.ClosePath();
+            p.Fill();
         }
 
         void DrawSlip(Painter2D p, Vec at, string premise, float age)

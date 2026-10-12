@@ -33,6 +33,8 @@ namespace JamKit.Argument
             StandStill,
             /// <summary>The next evidence shot lands on the statement but off its glowing words (it glances off).</summary>
             Glance,
+            /// <summary>Lets the next of her quotable words go by without catching them (the sections presenter).</summary>
+            MissQuote,
         }
 
         /// <summary>A first-time player's slips (the recorded run and the timing test): three wrong cards, a glance off
@@ -85,10 +87,24 @@ namespace JamKit.Argument
                 case BattleState.Intro:
                 case BattleState.Talk:
                 case BattleState.Ending:
+                    // Her words worth holding her to: catch them as she says them (a person a beat after they start).
+                    if (f.QuoteId.Length > 0)
+                    {
+                        if (f.QuoteOpen)
+                        {
+                            _quoteSeen += dt;
+                            if (Has(Mistake.MissQuote)) { if (_quoteSeen > 0.05f) _missingQuote = f.QuoteId; }
+                            else if (!_human || _quoteSeen > 0.35f) input.fire = true;
+                        }
+                        break;
+                    }
+                    if (_missingQuote.Length > 0) { Take(Mistake.MissQuote); _missingQuote = ""; }
+                    _quoteSeen = 0f;
                     // A player reads; fast, it hurries every line.
                     if (!_human) input.fire = true;
                     else if (f.Delivery.LineDone && f.StateTime > 0.2f) input.fire = (int)(f.StateTime * 10f) % 25 == 0;
                     break;
+                case BattleState.Argue: DoArgue(f, dt, ref input); break;
                 case BattleState.Debate: DoDebate(f, dt, ref input); break;
                 case BattleState.Because: DoBecause(f, dt, ref input); break;
                 case BattleState.Pressure: DoPressure(f, dt, ref input); break;
@@ -266,13 +282,159 @@ namespace JamKit.Argument
             }
         }
 
+        // ---------- The argue section (the sections presenter) ----------
+
+        int _argueTurn = -1;
+        readonly HashSet<string> _slipped = new HashSet<string>();
+        bool _hesitating;
+        float _argueSince, _quoteSeen;
+        string _missingQuote = "";
+
+        void DoArgue(BattleFlow f, float dt, ref BattleInput input)
+        {
+            var e = f.Engine;
+            var map = f.Map;
+            if (f.Turn != _argueTurn)
+            {
+                // A new turn: look at the case as it is now, and decide.
+                _argueTurn = f.Turn;
+                _argueSince = 0f;
+                _hasPlan = false;
+            }
+            _argueSince += dt;
+            if (!_hasPlan)
+            {
+                _press = false;
+                _wrongCardNow = false;
+                if (_human && ArgueChoose(f, out _plan)) _hasPlan = true;
+                else if (_brain.Choose(e, out _plan)) _hasPlan = true;
+                // The card it means may be out of its hand for a turn: argue something else meanwhile.
+                if (_hasPlan && _plan.verb == PilotVerb.Challenge && f.BurnedFor(_plan.evidence) > 0)
+                {
+                    _hasPlan = _brain.Choose(e, out var other, new List<string> { _plan.premise }) && other.verb != PilotVerb.Yield && (other.verb != PilotVerb.Challenge || f.BurnedFor(other.evidence) == 0);
+                    if (_hasPlan) _plan = other;
+                }
+                if (!_hasPlan) return;
+                _card = _plan.evidence ?? "";
+                PlanMistakes(f);
+            }
+            int target = map.IndexOf(_plan.premise ?? ArgumentEngine.ClaimId);
+            if (target < 0 || !map[target].visible) { _hasPlan = false; return; }
+
+            // A person reads the case first: what's on the table, then the statement they mean, then the card.
+            string want = _plan.verb == PilotVerb.Challenge ? _card : _plan.verb == PilotVerb.Rest ? BattleFlow.RestCard : null;
+            float think = 0.2f;
+            if (_human)
+            {
+                var pd = e.Def.Premise(_plan.premise ?? "");
+                string said = pd != null ? Typewriter.StripTags(pd.text) : Typewriter.StripTags(e.Def.claim);
+                // A first-time player: looks over the case, reads the statement (about 11 letters a second), weighs the card.
+                think = 2f + said.Length / 11f + (want != null ? 1.6f : 0f);
+            }
+            if (f.Selected != target)
+            {
+                // Point at it (a person moves the stick there: a moment per step).
+                if (_argueSince < think * 0.5f) return;
+                input.hasPoint = true;
+                input.point = map[target].position;
+                return;
+            }
+            if (want != null && f.CardInHand != want)
+            {
+                if (_cycleWait > 0f) { _cycleWait -= dt; return; }
+                int at = -1, n = f.Cards.Count;
+                for (int k = 0; k < n; k++) if (f.Cards[k] == want) at = k;
+                if (at < 0) { _hasPlan = false; return; }
+                input.cycle = ((at - f.CardIndex + n) % n) <= n / 2 ? 1 : -1;
+                _cycleWait = _human ? 0.9f : 0.05f;
+                return;
+            }
+            if (_argueSince < think) return;
+            if (want != null && want.Length > 0 && want[0] != '@' && f.BurnedFor(want) > 0) { _hasPlan = false; return; }
+            if (_press) { input.pressHeld = true; return; }
+            switch (_plan.verb)
+            {
+                case PilotVerb.Ask: input.ask = true; break;
+                case PilotVerb.Concede: input.concede = true; break;
+                case PilotVerb.Yield: input.concede = input.concedeHeld = true; return;
+                default: input.fire = true; break;
+            }
+            _lastAction = _plan.what;
+            if (_wrongCardNow) { _wrongCardNow = false; Take(Mistake.WrongCard); }
+            _hasPlan = false;
+        }
+
+        /// <summary>A first-time player at her case: of what's on the table, the first it has something to do with (ask
+        /// what it hasn't heard about, break what a card in hand breaks, concede what's true, ask again where there's
+        /// more), and the claim (let it rest) only when nothing can be broken.</summary>
+        bool ArgueChoose(BattleFlow f, out PilotPlan plan)
+        {
+            plan = default;
+            var e = f.Engine;
+            bool breakable = false;
+            foreach (var p in e.VisiblePremises)
+            {
+                if (e.Status(p.id) != PremiseStatus.Standing || p.unbreakable) continue;
+                foreach (var c in p.challenges) if (c != null && e.HasEvidence(c.evidence)) breakable = true;
+            }
+            foreach (var pd in e.VisiblePremises)
+            {
+                if (e.Status(pd.id) != PremiseStatus.Standing) continue;
+                if (e.TimesAsked(pd.id) == 0) { plan = new PilotPlan { verb = PilotVerb.Ask, premise = pd.id, what = "asked about " + pd.label }; return true; }
+                if (!pd.unbreakable)
+                    foreach (var c in pd.challenges)
+                    {
+                        if (c == null || !e.HasEvidence(c.evidence) || f.BurnedFor(c.evidence) > 0) continue;
+                        var sound = ArgumentPilot.Sound(c);
+                        if (sound == null) continue;
+                        plan = new PilotPlan { verb = PilotVerb.Challenge, premise = pd.id, evidence = c.evidence, reason = sound, what = "broke " + pd.label + " with " + c.evidence };
+                        return true;
+                    }
+                if (pd.truth != PremiseTruth.False && !pd.key) { plan = new PilotPlan { verb = PilotVerb.Concede, premise = pd.id, what = "conceded " + pd.label }; return true; }
+                if (e.TimesAsked(pd.id) == 1 && !string.IsNullOrEmpty(pd.askAgainReply)) { plan = new PilotPlan { verb = PilotVerb.Ask, premise = pd.id, what = "asked " + pd.label + " again" }; return true; }
+            }
+            if (!breakable && e.CanLetItRest) { plan = new PilotPlan { verb = PilotVerb.Rest, premise = ArgumentEngine.ClaimId, what = "let it rest" }; return true; }
+            return false;
+        }
+
+        /// <summary>The scripted slips that apply to the plan just made (a wrong card first, a press instead).</summary>
+        void PlanMistakes(BattleFlow f)
+        {
+            var e = f.Engine;
+            // A glance needs flying words: nothing to glance off in the sections.
+            if (_plan.verb == PilotVerb.Challenge) Take(Mistake.Glance);
+            // A person slips once on a statement, then gets it right (the slips spread over the battle).
+            if (_plan.verb == PilotVerb.Challenge && Has(Mistake.WrongCard) && !_slipped.Contains(_plan.premise ?? ""))
+            {
+                _slipped.Add(_plan.premise ?? "");
+                foreach (var c in f.Cards)
+                {
+                    if (c.Length == 0 || c[0] == '@' || c == _plan.evidence || f.BurnedFor(c) > 0) continue;
+                    var pd = e.Def.Premise(_plan.premise);
+                    if (pd?.ChallengeFor(c) != null || pd?.AsideFor(c) != null) continue;
+                    _card = c;
+                    _wrongCardNow = true;
+                    _plan.what = "showed " + c + " against " + _plan.premise + " (wrong)";
+                    break;
+                }
+            }
+            var pressed = e.Def.Premise(_plan.premise ?? "");
+            if (Has(Mistake.Press) && pressed != null && !pressed.key && e.CanPress(_plan.premise) && (_plan.verb == PilotVerb.Challenge || _plan.verb == PilotVerb.Concede))
+            {
+                Take(Mistake.Press);
+                _press = true;
+                _plan.what = "pressed " + _plan.premise;
+            }
+        }
+
         // ---------- Because ----------
 
         void DoBecause(BattleFlow f, float dt, ref BattleInput input)
         {
-            if (Has(Mistake.Hesitate))
+            if (Has(Mistake.Hesitate) && (!f.Sections || !_slipped.Contains(f.BecausePremise) || _hesitating))
             {
-                if (f.Patience <= 0.02f) Take(Mistake.Hesitate);
+                _hesitating = true;
+                if (f.Patience <= 0.02f) { Take(Mistake.Hesitate); _hesitating = false; if (f.Sections) _slipped.Add(f.BecausePremise); }
                 return;
             }
             // A person reads the cards and thinks (about 20 letters a second, and a moment to decide).
@@ -284,7 +446,9 @@ namespace JamKit.Argument
                 think = 1.5f + letters / 18f;
             }
             if (f.StateTime < think) return;
-            bool wrong = Take(Mistake.WrongReason);
+            // In the sections a person slips once on a statement, then gets it right.
+            bool wrong = (!f.Sections || !_slipped.Contains(f.BecausePremise)) && Take(Mistake.WrongReason);
+            if (wrong && f.Sections) _slipped.Add(f.BecausePremise);
             int pick = -1;
             for (int i = 0; i < f.Because.Count; i++)
             {
@@ -313,8 +477,10 @@ namespace JamKit.Argument
                 if (phase.Time > phase.Duration - 0.3f) Take(Mistake.StandStill);
                 return;
             }
+            // Her hush passes a light that holds still: hold still.
+            if (phase.HushOn) { input.move = Vector2.Zero; return; }
             var move = Dodge(phase, Vector2.Zero, dt, phase.Light);
-            if (phase.Spec.calls > 0 && move.LengthSquared() < 0.25f)
+            if ((phase.Spec.calls > 0 || phase.AnswerOn) && move.LengthSquared() < 0.25f)
             {
                 // The three rings pass a light that keeps moving: circle.
                 _orbit += dt * 1.6f;

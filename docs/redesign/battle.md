@@ -1,10 +1,202 @@
-# The argument battle, redesigned (Battle agent, 2026-10-12)
+# The argument battle, redesigned (Battle agent, 2026-10-12; round 2, 2026-10-13)
 
-> **Status: milestone 1 built, not yet run in Unity.** Core green in dotnet (VisitingHours 160/160 at the time of
-> writing); the Unity layer compiles against Unity's DLLs (the only compile errors in the tree are the House agent's
-> in-progress `DreamHouse*` files). Nothing here has been seen on screen yet: main runs the captures below, a judge
-> scores them, and this doc follows the findings. Older docs (`ARGUMENT-PROTOTYPE.md`, `ARGUMENT-BATTLES.md`) stay as
-> history for the logic; where they disagree about play, screen or timing, this doc wins.
+> **Status: round 2 built, not yet run in Unity.** Core green in dotnet (VisitingHours 181/181, All 856/856); the
+> Unity layer compiles against Unity's DLLs (UnityLayerPlayer, UnityLayerEditor, UnityApi). Nothing here has been seen
+> on screen yet: main runs the captures (section R7), a judge scores them, and this doc follows the findings. **Round 2
+> (sections R1-R9, first) supersedes milestone 1 (sections 1-12, kept below) wherever they disagree**; milestone 1's
+> debate is still playable behind the presenter switch. Older docs (`ARGUMENT-PROTOTYPE.md`, `ARGUMENT-BATTLES.md`) stay
+> as history for the logic.
+
+## Round 2: arguing and dodging take turns
+
+The creator, 2026-10-12 (docs/REDESIGN.md section 8): *"I don't think the Debate style is worth copying anyways. Putting
+it into the bullet-hell portion of the fight doesn't make the argument any more enticing, it should probably stay within
+its own section, with only a slight overlap. Either way, I'd have to play it to be sure."*
+
+### R1. The structure
+
+A battle is now two sections taking turns, each its own kind of play, with a slight overlap at each seam:
+
+1. **The argue section** (new state `Argue`). Her case is on the table: in the kitchen, a page of her notebook, each
+   statement written where she put it (the claim at the top, what holds it up below, what hangs from each under it),
+   pencil lines from each up to what it holds up. Nothing comes at Nadia's light. The stick (d-pad, WASD, arrows) steps
+   from statement to statement, the mouse points at one; the one picked lifts, gold-edged, and is spelled out in full
+   above the table (the words that matter in gold, its kind and state, her question if she's put one, what she said when
+   asked). The same buttons act on it: X asks, Y concedes (held on the claim: give in), A shows the card in hand (LB / RB
+   turn the cards), hold B forces it, View opens the case file. A card shown goes to "Because..." as before.
+   **Her patience is the clock** (20 s plus 2.5 s for each statement standing, at most 34 s; a fifth less once she's
+   angry; none in Story or Walt's tutorial): a pencil line draws itself along the near edge, and in its last 3 s she
+   sketches the attack that's coming at the table's edges (the overlap into the dodge). If Nadia says nothing, it comes:
+   her temper rises and a phase plays ("Well? Cat got your tongue, Nadia?").
+2. **The talk**: the exchange is said, one line at a time, in the box at the bottom.
+3. **The dodge** (`Pressure`): **every exchange's reply comes as a dodge** shaped by its feeling (SELECTION 2, now a
+   section of its own): angry or hurt 10 s, rattled 8 s, softened 7.5 s (with a hush: her care), anything else 7 s
+   (with an answer-me wave when her question stands on what Nadia acted on). Mistakes and key breaks still bring the
+   full phases (6 s calm up to 14 s furious), the three rings 14 s. **Her line is said in a speech bubble over her while
+   Nadia dodges** (the creator's note on SELECTION 2), and the reply's last words are still being read as the dodge
+   starts (the overlap). The phase's last 1.2 s is empty; then the argue section is back, the statement last picked still
+   picked.
+
+The opening: her lines, the "laying the table" phase, then the first argue section. Walt: no opening phase, no clock.
+
+### R2. Why each section is engaging on its own
+
+- **Arguing** isn't a menu: **her own words are cards you catch as she says them** (SELECTION 6, "Pages from her
+  notebook", done properly). When a line of hers holds words worth holding her to, they're underlined in her wine as
+  they're typed and "A: hold her to it" pulses; A in that window (the words being typed and 1.2 s after) catches them:
+  a torn page flies to the hand, "HER OWN WORDS". Too soon and they're gone (the first time ever, a press too soon is
+  only ignored; nobody knows yet); in Story they collect themselves. Two in Lena's battle, both second ways to break a
+  key premise, so listening well is a real alternative to the memories found in the house:
+  - **"this life he had"** (the creator's L3.askReply, asking L3 why) against L3' "This is the life he wants. The life
+    he has.": had, not has.
+  - **"All of us"** (the creator's L3b.askReply) against L1' "So there's nothing left for him out there": four places
+    at that table, and one of them is Nadia's.
+  Plus: reading her case as a whole (what holds what up, what's key, what's true), choosing the card and the reason under
+  her patience (Because), and her patience itself, which makes dithering cost.
+- **Dodging** has its own vocabulary now, each one readable and each one hers:
+  - **Hush** (SELECTION 3): a soft, round, dashed ring of her care closes in on the light and passes harmlessly **if
+    Nadia holds still**; struggling hurts. Shown to the player by shape (dashed, soft paper, closing in, against the
+    jagged dark answer-me waves going out), by a ring round the light that's whole while it holds still and broken while
+    it moves, by her "Shh. Hold still, Nadia. Just this once." and the prompt "Hold still. Let it pass." the first time,
+    and the first one can't hurt (a lesson on a clear table, nothing else in the phase). Nothing else spawns while a
+    hush closes.
+  - **Answer me**: a wave from her side of the table that hurts only a light standing still (the three rings' rule,
+    smaller), with her questions; the first can't hurt ("Don't stand still: answer her.").
+  - **Her notes** (SELECTION 4, as the creator read it: "a pencil attack that trails behind you, trying to catch up"): from
+    the second full phase, her pencil follows the light's own path 2.2 s behind, closing to 1 s; every mark is pencilled
+    (0.6 s) then inked (1.3 s). A light that stops is caught; one that uses the whole table never is. After it, one line
+    about how Nadia moved (each at most once, never in Story): "You always keep your distance, Nadia." / "You stayed close
+    to me. ...I noticed." / "Never still, are you. Not for one minute." Kitchen only (on her sky's lines, with their dead
+    ends, a pencil on your heels would be a trap).
+  - **Her sky** (SELECTION 7, the second phase the creator wanted): after the three rings of "He called you first" **the
+    ceiling lifts** (3 s: her night comes down over the table, which sinks away; "You know they're not really a bear,
+    right? Someone just looked up and drew the lines."). From then on her case is a constellation: the same places are
+    stars, her reasoning is lines, and **in every phase the light moves only along her lines** (Undertale's strings),
+    switching at a star (the first time: "Move along her lines. Switch at a star."). The sky is the argument's state:
+    shooting stars come from a radiant beyond one upper corner, all at one angle, **only along the lines still lit**
+    (statements standing); a broken or conceded link is a faint rubbed-out trace (walkable, nothing runs on it); a fact
+    Nadia conceded glows and **stops streaks** (cover); a forced link **snaps** (a gap, splinters). Arguing well makes the
+    sky quieter and safer. The fairness planner works on the lines (its grid masked to them).
+- **The seat she keeps** (SELECTION 5) is **not built**: with the sections apart, its choice (sit safe and hear nothing,
+  or leave it for a page) has nothing to choose between, since pages are caught by listening now, not in the box.
+
+### R3. Timing (measured headless: `SectionsTests.LenasSectionsRunEightToTwelveMinutes`)
+
+A first-time player (the human-paced autopilot: reads her case at ~11 letters a second, weighs each card, slips once on a
+statement: three wrong cards, two wrong reasons, a hesitation, one of her quotable lines let go by):
+**Lena: Convinced in 490 s (8.2 min): 142 s arguing, 165 s dodging (34%), 65 s Because and the showdown, 118 s talk;
+76% in play; 21 exchanges, 21 dodges; the sky opens at 2:33, so more than two thirds of it is played under her sky.**
+The fast autopilot finishes in 94 s of battle time (the house's skip plays it at 4x: about 24 s). Walt's tutorial
+(sections, the slips Mags teaches through): 155 s.
+
+The run (seconds into the battle): the opening dodge (6 s) · ask L1 · its dodge (7) · concede L1 · hush (7.5) · ask L1'
+· dodge · a wrong card · its phase · the fourth chair breaks L1' · she holds on (10 s, her notes) · ask L1'' · concede it ·
+**the three rings (14 s)** · **the ceiling lifts (153 s)** · L2 asked (an answer-me wave) and conceded (hush) · L2' ·
+L3 (a wrong card, then the drawing breaks it) · L3' (her "All of us" caught; a wrong card; Saturday off breaks it) · L3''
+(the same Saturday) · L4 conceded · Convinced.
+
+### R4. The presenter switch
+
+`ArgumentPresenter { Sections, Debate }` (core, `BattleFlow`). Every battle is played in `ArgumentHost.DefaultPresenter`:
+the command line's `-battle-presenter debate|sections`, else the player's choice (PlayerPrefs
+`jamkit.argument.presenter`), else the sections. **The prototype's menu has a line "Battle style: ... A to switch"** that
+flips it for the whole game (the house's Lena and the hill's Walt too); the chapter "Dream-Lena: the debate (milestone
+1)" always plays the debate. `ArgumentHost.Begin(def, setup, done, presenter)` and `UsePresenterForSession` (tests,
+captures) pick one directly. The debate is exactly milestone 1 (its tests run on it unchanged), plus the quotes.
+
+### R5. Lines written this round (all marked "(battle agent, round 2)" in the files; every creator line kept)
+
+- **The watch, handed over** (`letItRestReply`; the creator's first half kept, their second half, "So take it.
+  Something to help convince him, like you convinced me.", kept as its // note): *"...Yeah. And I see yours. Give me
+  your wrist. The right one. I always wore it face-in, so I could check the time without anyone seeing me worry. Six
+  weeks you've been watching the clock for him. It's yours now."* What they share: the worry, watched in secret
+  (face-in, as her sheet draws it), and the clock (Night 4's 3:03 and 3:06). If Nadia asked about her Thursdays, she adds
+  *"It kept my Thursdays, whatever they were."* `personalText`: *"Lena's watch: a gold star on a wine-red strap. You wear
+  it on your right wrist, face-in, as she did."* Then the creator's heardOutReply.
+- **Her star wheel** against L2 (an aside: it breaks nothing, costs nothing): Nadia *"Your star wheel was set to a
+  Thursday night. Where did you go on Thursdays, Lena?"* Lena *"Thursdays. ...I don't know. Isn't that strange? It's my
+  wheel. He never asked where I went, so I can't tell you either."* (Dream-Lena knows only what Elias knew; decides
+  nothing about what the Thursdays were.)
+- **Her own words' reason cards**: L3' with "this life he had": *"You said it yourself: the life he had. You already know
+  it's over, Lena. This is a memory of it."* / *"...Had. I did say that, didn't I. ...Fine. Then let him have his wish."*
+  (beside: "You've been married twelve years." / "Twelve good years. That's a reason to keep him, not to wake him."; doesn't
+  follow: "You said "had", so you've stopped loving him." / "I said "had" because it was taken from him. Don't you twist
+  me into the one who stopped loving him."). L1' with "All of us": *"All of us, you said. There are four places at that
+  table, and one of them is mine. I'm out there, Lena. That isn't nothing."* / *"...All of us. You'd hold me to that.
+  ...Then where were you last Sunday?"* (beside: "He always loved Sunday pancakes." / "He did. That's my point, Nadia, not
+  yours."; doesn't follow: "You want all of us together, so you want him to wake up." / "I want all of us here. Out
+  there, there's no all of us left.").
+- **Barks**: the sky, the first hush, the three notes lines (above).
+- **Mags (Walt's file)**: `coach.argue` (the sections' first lesson), `coach.quote`, and `[sections=1]` versions of
+  ask, concede and challenge (no "put your light on it" in the sections). A new meter, `sections` (1 in the sections),
+  and `asides` (cards that got an answer of their own) read in conditional lines.
+- **Screen**: the argue keys, the quote prompt and its notes, hush / answer / sky / notes prompts, the banners, the
+  menu's battle style line.
+
+### R6. The cards (docs/redesign/house.md's new memories)
+
+| Card | Now | In the battle |
+|---|---|---|
+| `mem_lena_thursdays` | **Stays a star wheel** ("her star wheel": Lena's planisphere in the attic, set to a Thursday night. Where did she go on Thursdays?). The keepsake is the watch now, a different object that she gives; the star wheel is one the house keeps, and it points at time too. | An aside against L2: she can't say. Costs nothing; changes her hand-over line. |
+| `mem_bad_dream` | The redrawn picture: "Dad in his surgeon's scrubs, walking out of the front door. Mum and Theo at the table." | Breaks L3, brings out L5 (as before). |
+| `ded_same_saturday` | Elias's radio (the same forecast, word for word) or the street replaying Night 1. | Breaks L3''. |
+| `ded_saturday_off` | The fridge calendar plus today's paper, folded into Theo's hat (or Night 1's paper). | Breaks L3'. |
+| `quote_had`, `quote_allofus` | Her own words (new). Never in the tray until caught, whatever the setup gives. | Second ways to break L3' and L1'. |
+| `pers_lena_watch` | The keepsake (replaces `pers_lena_planisphere`; `DreamLenaDemo.Planisphere` is kept as the same id for code that reads it). | Heard out. |
+
+**The keepsake in the save:** when Heard out with Lena is saved, `ArgumentHost` sets the save's flag `vh_lena_watch`
+(`ArgumentBattles.KeepsakeFlag`, the same text as the Day agent's `Chain.KeepsakeWatchFlag`; `ArgumentBattles.OwnsKeepsake`
+reads it or the ledger). **World** shows it with `DreamStreetGame.SetKeepsakeOwned(ArgumentBattles.OwnsKeepsake(save))` (or the Day agent's `Chain.HasLenaWatch`, which reads the same flag) when the hill
+loads (World's file, not mine).
+
+### R7. Unity steps (main; one GPU job at a time)
+
+1. **Import** (or let the build import): Unity reads the two new scripts' metas (`CaseMap.cs.meta`,
+   `SectionsTests.cs.meta`, copied from neighbours with fresh GUIDs).
+2. **Build** the Visiting Hours player as before (the argument prototype scene must be in it).
+3. **Stills, the sections** (31, `shots.txt`):
+   `VisitingHours.exe -battle-shot "<out>/battle-stills" -screen-width 1920 -screen-height 1080 -screen-fullscreen 0`
+   01 the argue section, 02 the case file, 03 a wrong card, 04 Because, 05 her words underlined (the prompt), 06 caught
+   (the page flying), 07 a reply as a dodge with her speech bubble, 08 hush (the light holding still), 09 her notes (the
+   pencil following), 10 a break, 11 the three rings, 12 the ceiling lifting, 13 a sky phase on her lines, 14 her case as a
+   constellation, 15-16 Convinced, 17-19 the showdown and Pressed, 20 her patience running out (the sketch), 21-23
+   composure, 24 the watch handed over, 25-26 Heard out, 27-28 Yielded, 29-31 Walt with Mags. About 15-20 minutes.
+4. **Stills, the debate** (milestone 1's 24, for the comparison): add `-battle-presenter debate`.
+5. **The recorded run** (sections): `VisitingHours.exe -battle-record "<out>/battle-run" -screen-width 1920 -screen-height 1080 -screen-fullscreen 0`
+   (about 8-9 minutes; `summary.txt` now has the presenter, the seconds arguing and dodging, and whether the sky opened);
+   Walt: add `-battle-record-battle walt_night1`; the debate: add `-battle-presenter debate`.
+6. **Tests**: EditMode `ArgumentPrototypeEditorTests` (the stage draws both presenters through to the end, with her sky;
+   seven chapters) and PlayMode `ArgumentPrototypePlayTests` (the debate's tests pinned to the debate; new: the sections on
+   a gamepad alone, the sections' fast autopilot to her sky and the end, Heard out setting the keepsake flag).
+7. The house's `TheArgumentBattlePlayedThroughDecidesTheOutcome` now plays the sections by default (the fast autopilot:
+   94 s of battle at 4x).
+
+### R8. Perf's list (docs/redesign/perf.md, Battle 1-3)
+
+1. **Per-frame strings** (`ArgumentStage`): her temper, the case strip's chips, the heart rate, the Because label, the
+   showdown's count and words, the pressure words' capitals and the placeholder line are rebuilt only when their values
+   change; the sections' new text (her case's notes, the statement picked, her bubble, the quote line) likewise.
+2. **Repaints**: her glow (the backdrop) only when her heat or anger changes; the monitor at 30 Hz; the table every frame
+   (its hazards move). Her patience bar (Because) is a scale, not a width (no layout).
+3. **Blips** (`ArgumentAudio`): each speaker's clip found once (no string per blip; the host lowers a speaker's name once,
+   not per blip), and every voice's first blip is loaded and played silent before the first line (`Prewarm`).
+`VhBattleView`'s readable textures (perf.md item 22) are in `VisitingHours/Scripts/UI`, not the battle's folder: not
+touched.
+
+### R9. Risks (unseen until main runs it)
+
+- **Nothing has been on screen.** Her case's layout on the page (12 notes at most, wrapped at 240 px), the statement
+  picked above the table, the bubble over her name, the sky texture and the constellation, the hush and the pencil are all
+  drawn blind.
+- **Rich text**: the notes use `<size=70%>`, the quote line `<u>` and `<color>`: if UI Toolkit's text settings ignore one,
+  it shows as plain text (no clipping).
+- **The timing sits at 8.2 minutes** for the first-time autopilot: a real first-timer who reads more slowly or slips more
+  will be longer; an efficient one about 5. The measure is the autopilot's, not a person's.
+- **The lines are mine**: the hand-over, the Thursdays, the quote reasons and the barks wait on the creator's pass. The
+  "this life he had" quote depends on the creator's L3.askReply keeping "had" (a test checks each quote is in one of her
+  lines).
+
+## Milestone 1 (2026-10-12): the debate (now behind the presenter switch)
 
 The creator, after playing it (2026-10-12): *"It was mostly just talking ... there was absolutely no gameplay. And the
 stretches of which there were, were both too short. It was more of just an argument, than an argument battle."* Plus:

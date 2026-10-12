@@ -184,6 +184,65 @@ namespace JamKit.Argument
             return t;
         }
 
+        /// <summary>Her sky (SELECTION.md 7: the ceiling lifts after "He called you first"), in the same ink-and-screentone
+        /// hand as the table: deep night ink with a halftone fading up from a faint wine glow at the bottom edge (the kitchen,
+        /// below), and stars, a few larger with a printed cross. A drop-in file wins: Resources/ArgumentArt/stage_sky.png.</summary>
+        public static Texture2D Sky()
+        {
+            if (_made.TryGetValue("sky", out var t) && t != null) return t;
+            t = Resources.Load<Texture2D>(ArgumentArt.ArtFolder + "stage_sky");
+            if (t != null) { _made["sky"] = t; return t; }
+            const int w = TableWidth, h = TableHeight;
+            var px = new Color32[w * h];
+            var night = new Color(0.035f, 0.04f, 0.085f);
+            var deep = new Color(0.075f, 0.065f, 0.14f);
+            var glow = new Color(0.42f, 0.1f, 0.16f);
+            for (int y = 0; y < h; y++)
+            {
+                // y = 0 is the bottom row of the texture.
+                float up = (float)y / (h - 1);
+                var c = Color.Lerp(deep, night, up);
+                float tone = Mathf.Clamp01(0.55f - up * 0.9f);
+                for (int x = 0; x < w; x++)
+                {
+                    float d = Dot(x, y, tone, 7f);
+                    px[y * w + x] = (Color32)Color.Lerp(c, glow, d * 0.55f);
+                }
+            }
+            // Stars: many faint, a few bright with a cross.
+            for (int i = 0; i < 520; i++)
+            {
+                int x = (int)(Hash(i * 7 + 1, 3) * w), y = (int)(Hash(i * 13 + 5, 11) * h);
+                float b = Hash(i, 29);
+                int r = b > 0.97f ? 3 : b > 0.85f ? 2 : 1;
+                float bright = 0.35f + 0.65f * b;
+                for (int dy = -r; dy <= r; dy++)
+                    for (int dx = -r; dx <= r; dx++)
+                    {
+                        int xx = x + dx, yy = y + dy;
+                        if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                        float fall = 1f - Mathf.Sqrt(dx * dx + dy * dy) / (r + 0.5f);
+                        if (fall <= 0f) continue;
+                        var was = (Color)px[yy * w + xx];
+                        px[yy * w + xx] = (Color32)Color.Lerp(was, new Color(1f, 0.96f, 0.86f), Mathf.Clamp01(fall * bright));
+                    }
+                if (r < 3) continue;
+                for (int k = 4; k <= 9; k++)
+                    foreach (var (dx, dy) in new[] { (k, 0), (-k, 0), (0, k), (0, -k) })
+                    {
+                        int xx = x + dx, yy = y + dy;
+                        if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                        var was = (Color)px[yy * w + xx];
+                        px[yy * w + xx] = (Color32)Color.Lerp(was, new Color(1f, 0.95f, 0.8f), 0.5f * (1f - (k - 4) / 6f));
+                    }
+            }
+            t = new Texture2D(w, h, TextureFormat.RGBA32, false) { name = "stage_sky", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            t.SetPixels32(px);
+            t.Apply(false, true);
+            _made["sky"] = t;
+            return t;
+        }
+
         /// <summary>A paper grain to lay over the whole stage (tileable, faint).</summary>
         public static Texture2D Grain()
         {

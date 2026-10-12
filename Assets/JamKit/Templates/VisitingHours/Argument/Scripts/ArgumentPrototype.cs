@@ -16,6 +16,10 @@ namespace JamKit.Argument
     /// up / down to choose, A / Enter to start; the mouse hovers and clicks. Presenter chapters (Ctrl+Shift+P, or hold
     /// L3+R3) start each setting directly; Visiting Hours' and the Dream Escape's chapter lists also carry "Argument
     /// prototype (Dream-Lena)", which jumps here.
+    ///
+    /// The battle style (docs/redesign/battle.md, round 2): a menu line switches every battle between the sections (arguing
+    /// and dodging take turns) and the debate (milestone 1), kept for the whole game (ArgumentHost.DefaultPresenter); the
+    /// chapter "Dream-Lena: the debate (milestone 1)" plays the debate whatever the switch says.
     /// </summary>
     public sealed class ArgumentPrototype : MonoBehaviour
     {
@@ -26,7 +30,8 @@ namespace JamKit.Argument
         public const string NoWalt = "Dream-Lena: without Walt's truth";
         public const string Watch = "Dream-Lena: watch it play";
         public const string Walt = "Walt: Night 1 tutorial (Mags coaching)";
-        public static readonly string[] Chapters = { Normal, Story, LongNight, NoWalt, Watch, Walt };
+        public const string Debate = "Dream-Lena: the debate (milestone 1)";
+        public static readonly string[] Chapters = { Normal, Story, LongNight, NoWalt, Watch, Walt, Debate };
 
         /// <summary>The chapter in Visiting Hours' and the Dream Escape's lists that jumps to the prototype.</summary>
         public const string FromElsewhere = "Argument prototype (Dream-Lena)";
@@ -69,6 +74,7 @@ namespace JamKit.Argument
             PresenterMode.Register(Scene, NoWalt, () => Play(NoWalt), this);
             PresenterMode.Register(Scene, Watch, () => Play(Watch), this);
             PresenterMode.Register(Scene, Walt, () => Play(Walt), this);
+            PresenterMode.Register(Scene, Debate, () => Play(Debate), this);
             BuildMenu();
             ShowMenu(true);
         }
@@ -117,7 +123,8 @@ namespace JamKit.Argument
         {
             ShowMenu(false);
             var def = chapter == Walt ? WaltNight1.Build() : DreamLenaDemo.Build();
-            var host = ArgumentHost.Begin(def, SetupFor(chapter), _ => ShowMenu(true));
+            ArgumentPresenter? presenter = chapter == Debate ? ArgumentPresenter.Debate : (ArgumentPresenter?)null;
+            var host = ArgumentHost.Begin(def, SetupFor(chapter), _ => ShowMenu(true), presenter);
             // Watched, it plays like a first-time player (reads before it acts, and slips the way people do).
             if (host != null && chapter == Watch) host.SetAutopilot(true, true, BattlePilot.FirstTime);
             return host;
@@ -150,6 +157,7 @@ namespace JamKit.Argument
             Add("argument-play-nowalt", S["menu.noWalt"], () => Play(NoWalt));
             Add("argument-play-watch", S["menu.watch"], () => Play(Watch));
             Add("argument-play-walt", S["menu.walt"], () => Play(Walt));
+            _presenterLine = Add("argument-presenter", PresenterLabel(), TogglePresenter);
             Add("argument-forget", S["menu.forget"], Forget);
             Add("argument-title", S["menu.title.back"], () => GameRoot.Instance.QuitToTitle());
 
@@ -163,18 +171,33 @@ namespace JamKit.Argument
             foreach (var i in _items) _nav.AddLine(i);
         }
 
-        void Add(string name, string text, Action action)
+        Label _presenterLine;
+
+        static string PresenterLabel() => S[ArgumentHost.DefaultPresenter == ArgumentPresenter.Debate ? "menu.presenter.debate" : "menu.presenter.sections"];
+
+        /// <summary>Switches every battle between the sections and the debate (kept for the whole game).</summary>
+        void TogglePresenter()
+        {
+            ArgumentHost.DefaultPresenter = ArgumentHost.DefaultPresenter == ArgumentPresenter.Debate ? ArgumentPresenter.Sections : ArgumentPresenter.Debate;
+            if (_presenterLine != null) _presenterLine.text = PresenterLabel();
+        }
+
+        Label Add(string name, string text, Action action)
         {
             var b = ArgueUi.CardBox(_menu, name, ArgueUi.Card, ArgueUi.CardEdge);
             b.style.width = 760;
-            b.style.height = 64;
+            b.style.minHeight = 64;
+            b.style.paddingLeft = b.style.paddingRight = 16;
             b.style.marginTop = b.style.marginBottom = 6;
             b.style.justifyContent = Justify.Center;
-            ArgueUi.Text(b, text, ArgumentArt.BodyBold, 26, ArgueUi.Ink).style.unityTextAlign = TextAnchor.MiddleCenter;
+            var label = ArgueUi.Text(b, text, ArgumentArt.BodyBold, 26, ArgueUi.Ink);
+            label.style.unityTextAlign = TextAnchor.MiddleCenter;
+            label.style.whiteSpace = WhiteSpace.Normal;
             var item = new NavItem { id = name, element = b, activate = action };
             b.RegisterCallback<PointerEnterEvent>(_ => { if (MenuShown && GameRoot.Input.HoverAllowed) _nav.Focus(item); });
             b.RegisterCallback<ClickEvent>(_ => Activate(item));
             _items.Add(item);
+            return label;
         }
 
         void Activate(NavItem item)

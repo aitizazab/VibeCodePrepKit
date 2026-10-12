@@ -29,6 +29,8 @@ namespace JamKit.Argument.Tests
             yield return BootToTitle();
             _input = new TestInput("ArgumentTestKeyboard");
             _pad = _input.AddGamepad("ArgumentTestPad");
+            // These play the debate (milestone 1); the sections have their own tests below.
+            ArgumentHost.UsePresenterForSession(ArgumentPresenter.Debate);
         }
 
         [UnityTearDown]
@@ -37,6 +39,7 @@ namespace JamKit.Argument.Tests
             _input?.Dispose();
             _input = null;
             if (ArgumentHost.Current != null) ArgumentHost.Current.Close(false);
+            ArgumentHost.UsePresenterForSession(null);
             yield return null;
         }
 
@@ -243,6 +246,100 @@ namespace JamKit.Argument.Tests
             Assert.That(ArgumentLedger.Parse(GameRoot.Save.Data.GetEntry(ArgumentLedger.SaveKey)).StanceOf(DreamLenaDemo.Id), Is.EqualTo(ArgumentStance.Unsure), "and it's saved");
             yield return null;
             Assert.That(ArgumentHost.Running, Is.False);
+        }
+
+        // ---------- The sections presenter (docs/redesign/battle.md, round 2) ----------
+
+        /// <summary>Waits for the argue section and steps the d-pad to <paramref name="premise"/>.</summary>
+        IEnumerator Pick(ArgumentHost host, string premise, float timeout = 90f)
+        {
+            yield return WaitFor(() => host.State == BattleState.Argue && host.Flow.Map.IndexOf(premise) >= 0 && host.Flow.Map[host.Flow.Map.IndexOf(premise)].visible, premise + " on her case", timeout);
+            for (int guard = 0; guard < 16 && host.Flow.SelectedId != premise; guard++)
+            {
+                var to = host.Flow.Map[host.Flow.Map.IndexOf(premise)].position - host.Flow.Map[host.Flow.Selected].position;
+                var button = System.Math.Abs(to.X) > System.Math.Abs(to.Y) ? (to.X > 0f ? GamepadButton.DpadRight : GamepadButton.DpadLeft) : (to.Y > 0f ? GamepadButton.DpadUp : GamepadButton.DpadDown);
+                yield return Tap(button);
+                yield return Frames(4);
+            }
+            Assert.That(host.Flow.SelectedId, Is.EqualTo(premise), "the d-pad picks " + premise);
+        }
+
+        [UnityTest]
+        public IEnumerator TheSectionsOnAGamepadAlone()
+        {
+            ArgumentHost.UsePresenterForSession(ArgumentPresenter.Sections);
+            yield return OpenPrototype(ArgumentPrototype.Story);
+            var host = ArgumentHost.Current;
+            var e = host.Engine;
+            Assert.That(host.Flow.Presenter, Is.EqualTo(ArgumentPresenter.Sections));
+            yield return WaitFor(() => host.State == BattleState.Argue, "the argue section", 40f);
+            Assert.That(host.Engine.Pressure, Is.Null, "nothing comes at the light while Nadia argues");
+
+            // Y concedes what's picked; her reply comes as a dodge.
+            yield return Pick(host, "L1");
+            yield return Tap(GamepadButton.North);
+            Assert.That(e.Status("L1"), Is.EqualTo(PremiseStatus.Conceded), "Y: That's true");
+            yield return WaitFor(() => host.State == BattleState.Pressure, "her reply, as a dodge", 30f);
+
+            // X asks; her words are caught as she says them (Story catches them by itself).
+            yield return Pick(host, "L3");
+            yield return Tap(GamepadButton.West);
+            Assert.That(e.TimesAsked("L3"), Is.EqualTo(1), "X: Why?");
+            yield return WaitFor(() => e.Caught(DreamLenaDemo.QuoteHad), "her words, caught", 20f);
+
+            // RB to the fourth chair; A on L1'; the d-pad to the sound reason; A.
+            yield return Pick(host, "L1b");
+            for (int guard = 0; guard < 20 && host.Flow.CardInHand != DreamLenaDemo.FourthChair; guard++) yield return Tap(GamepadButton.RightShoulder);
+            Assert.That(host.Flow.CardInHand, Is.EqualTo(DreamLenaDemo.FourthChair), "RB turns the cards");
+            yield return Tap(GamepadButton.South);
+            Assert.That(host.State, Is.EqualTo(BattleState.Because), "A shows the card: Because...");
+            int sound = host.Flow.Because.ToList().FindIndex(c => c.reason.kind == ReasonKind.Sound);
+            for (int i = 0; i < sound; i++) yield return Tap(GamepadButton.DpadDown);
+            yield return Tap(GamepadButton.South);
+            Assert.That(e.Status("L1b"), Is.EqualTo(PremiseStatus.Broken), "the sound reason breaks it");
+
+            // View opens the case file in the argue section too.
+            yield return WaitFor(() => host.State == BattleState.Argue, "the argue section again", 60f);
+            yield return Tap(GamepadButton.Select);
+            Assert.That(host.CaseFileOpen, Is.True, "View: the case file");
+            yield return Tap(GamepadButton.East);
+            Assert.That(host.CaseFileOpen, Is.False);
+
+            // Hold B on L2: the showdown.
+            yield return Pick(host, "L2");
+            _input.SetPad(GamepadButton.East);
+            yield return WaitFor(() => host.State == BattleState.Showdown, "the showdown (a 0.6 s hold)", 3f);
+            _input.SetPad();
+        }
+
+        [UnityTest]
+        public IEnumerator TheSectionsFastAutopilotReachesHerSkyAndTheEnd()
+        {
+            ArgumentHost.UsePresenterForSession(ArgumentPresenter.Sections);
+            yield return OpenPrototype(ArgumentPrototype.Story);
+            var host = ArgumentHost.Current;
+            host.Autopilot = true;
+            bool sky = false;
+            yield return WaitFor(() => { sky |= host.Flow.Sky; return host.EndCardShown; }, "the fast autopilot to the end card", 120f);
+            Assert.That(sky, Is.True, "the ceiling lifted on the way");
+            Assert.That(host.Engine.Outcome, Is.EqualTo(ArgumentOutcome.Convinced));
+            host.Continue();
+        }
+
+        [UnityTest]
+        public IEnumerator HeardOutSetsTheKeepsakeFlag()
+        {
+            ArgumentHost.UsePresenterForSession(ArgumentPresenter.Sections);
+            yield return OpenPrototype(ArgumentPrototype.Story);
+            ArgumentHost.Current.Close(false);
+            GameRoot.Save.Data.ClearFlag(ArgumentBattles.KeepsakeFlag);
+            var host = ArgumentHost.Begin(DreamLenaDemo.Build(), ArgumentPrototype.SetupFor(ArgumentPrototype.Story));
+            host.Engine.SkipPressure();
+            host.Engine.ForceOutcome(ArgumentOutcome.HeardOut);
+            host.Continue();
+            Assert.That(GameRoot.Save.Data.HasFlag(ArgumentBattles.KeepsakeFlag), Is.True, "Heard out: Lena's watch is Nadia's, in the save");
+            GameRoot.Save.Data.ClearFlag(ArgumentBattles.KeepsakeFlag);
+            yield return null;
         }
 
         [UnityTest]

@@ -63,6 +63,28 @@ namespace JamKit.Argument
         /// <summary>How much Despair rises when Lena condemns Nadia (out of 3).</summary>
         public const int DespairOnCondemn = 1;
 
+        /// <summary>The save's flag for Lena's watch being Nadia's (the same text as JamKit.VisitingHours.Chain's
+        /// KeepsakeWatchFlag, which the nights and the ward read).</summary>
+        public const string KeepsakeFlag = "vh_lena_watch";
+
+        /// <summary>Heard out with Lena: her star-shaped watch is Nadia's from now on. Sets the save's keepsake flag (the
+        /// host calls this as it saves a battle's result). True if it gave the watch.</summary>
+        public static bool RecordKeepsake(JamKit.Flow.SaveData save, ArgumentRecord record)
+        {
+            if (save == null || record == null || record.outcome != ArgumentOutcome.HeardOut || record.personal != DreamLenaDemo.Watch) return false;
+            save.SetFlag(KeepsakeFlag);
+            return true;
+        }
+
+        /// <summary>Nadia has Lena's watch (the flag, or the ledger's Heard out with it).</summary>
+        public static bool OwnsKeepsake(JamKit.Flow.SaveData save, ArgumentLedger ledger = null)
+        {
+            if (save == null) return false;
+            if (save.HasFlag(KeepsakeFlag)) return true;
+            var r = ledger?.Get(DreamLenaDemo.Id);
+            return r != null && r.personal == DreamLenaDemo.Watch;
+        }
+
         /// <summary>The battle with its prose file's lines, or null for an unknown id.</summary>
         public static ArgumentDef Build(string id)
         {

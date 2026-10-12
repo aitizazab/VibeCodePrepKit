@@ -4,6 +4,18 @@ using System.Numerics;
 
 namespace JamKit.Argument
 {
+    /// <summary>How the battle is played (docs/redesign/battle.md, round 2). The creator, 2026-10-12: "Putting it into the
+    /// bullet-hell portion of the fight doesn't make the argument any more enticing, it should probably stay within its own
+    /// section, with only a slight overlap. Either way, I'd have to play it to be sure." So both stay, behind this switch.</summary>
+    public enum ArgumentPresenter
+    {
+        /// <summary>Arguing and dodging take turns: her case is on the table (her notebook; under her sky, her
+        /// constellation), Nadia picks what she said and acts on it, her reply comes as a dodge, and so on.</summary>
+        Sections,
+        /// <summary>Milestone 1: the debate, where her statements fly across the table while her pressure comes.</summary>
+        Debate,
+    }
+
     /// <summary>Where the battle is (docs/redesign/battle.md).</summary>
     public enum BattleState
     {
@@ -26,6 +38,9 @@ namespace JamKit.Argument
         Ending,
         /// <summary>The end card: waiting for Continue.</summary>
         Over,
+        /// <summary>The sections presenter's argue section: her case on the table, Nadia picks what she said and acts on it
+        /// (nothing comes at her light; her patience is the clock).</summary>
+        Argue,
     }
 
     /// <summary>One frame of the player's (or the pilot's) input.</summary>
@@ -60,6 +75,8 @@ namespace JamKit.Argument
         Break, Reveal, BecauseOpen, BecauseMove, BecausePick, Hesitate, ShowdownStart, Cut, Whiff, WordLanded,
         ShowdownWon, PressureIn, PressureOut, Warn, SlipCaught, RoundStart, Idle, Ring, Panic, End, Cycle, HoldStart,
         HoldCancel, Ask, Concede, Retort, Rest, Yield, Unbreakable, Settle, Shatter,
+        // The sections presenter.
+        Select, QuoteOpen, QuoteCaught, QuoteMissed, Aside, SkyOpens, Notes, Hush,
     }
 
     /// <summary>Something the view and the sound react to this frame.</summary>
@@ -99,6 +116,9 @@ namespace JamKit.Argument
         public const string OpeningFace = "antagonistic";
 
         readonly ArgumentEngine _engine;
+        readonly ArgumentPresenter _presenter;
+        readonly CaseMap _map;
+        readonly Rails _rails = new Rails();
         readonly Debate _debate;
         readonly Delivery _delivery = new Delivery();
         readonly Portrait _portrait;
@@ -119,13 +139,20 @@ namespace JamKit.Argument
         Vector2 _light = new Vector2(-1.2f, -0.6f);
         float _textSpeed = 1f;
 
-        public BattleFlow(ArgumentEngine engine)
+        public BattleFlow(ArgumentEngine engine) : this(engine, ArgumentPresenter.Sections) { }
+
+        public BattleFlow(ArgumentEngine engine, ArgumentPresenter presenter)
         {
             _engine = engine ?? throw new ArgumentNullException(nameof(engine));
+            _presenter = presenter;
             _seed = engine.Setup.seed == 0 ? 1UL : engine.Setup.seed;
             _debate = new Debate(engine, _seed * 31UL + 7UL);
+            _map = new CaseMap(engine.Def);
             _portrait = new Portrait(OpeningFace);
+            if (!_engine.Started) _engine.Setup.sections = presenter == ArgumentPresenter.Sections;
             if (!_engine.Started) _engine.Start();
+            _map.Refresh(_engine);
+            _selected = _map.First();
             _lastHeart = _engine.HeartStep;
             RefreshCards();
             PullTranscript();
@@ -137,6 +164,36 @@ namespace JamKit.Argument
         public ArgumentEngine Engine => _engine;
         public ArgumentDef Def => _engine.Def;
         public Debate Debate => _debate;
+        public ArgumentPresenter Presenter => _presenter;
+        public bool Sections => _presenter == ArgumentPresenter.Sections;
+        /// <summary>Her case on the table (the sections presenter): where each statement sits, the lines between them.</summary>
+        public CaseMap Map => _map;
+        /// <summary>The statement picked on her case (an index into <see cref="Map"/>).</summary>
+        public int Selected => _selected;
+        public string SelectedId => _selected >= 0 && _selected < _map.Count ? _map[_selected].id : ArgumentEngine.ClaimId;
+        /// <summary>The argue sections so far (the sections presenter's rounds: a burned card is back after two).</summary>
+        public int Turn => _turn;
+        /// <summary>Rounds of the debate, or turns of the sections: what a burned card counts.</summary>
+        public int Round => Sections ? _turn : _debate.Round;
+        /// <summary>Seconds into this argue section, and how long her patience lasts (0: no clock).</summary>
+        public float ArgueTime => _argueTime;
+        public float ArgueLimit => _argueLimit;
+        /// <summary>0..1: her pencil sketching what comes if Nadia says nothing (the last seconds of her patience).</summary>
+        public float ArgueSketch => _argueLimit <= 0f ? 0f : Math.Max(0f, Math.Min(1f, (_argueTime - (_argueLimit - SketchSeconds)) / SketchSeconds));
+        /// <summary>Her sky is open (SELECTION.md 7), and how far the ceiling has lifted (0..1).</summary>
+        public bool Sky => _sky;
+        public float SkyProgress => _sky ? Math.Min(1f, _skyTime / SkySeconds) : 0f;
+        /// <summary>Her lines under the sky (the light moves along them in a phase).</summary>
+        public Rails Rails => _rails;
+        /// <summary>A quote of hers is in the line being said: its card id, and where its words run in the line (letters).</summary>
+        public string QuoteId => _qLive ? _qId : "";
+        public int QuoteStart => _qStart;
+        public int QuoteEnd => _qEnd;
+        /// <summary>Her words are being said now: {show} catches them.</summary>
+        public bool QuoteOpen => _qLive && QuoteWindow;
+        /// <summary>The quote just caught (its card id, for a moment), for the view's page flying to the hand.</summary>
+        public string QuoteCaught => _qCaughtAge < 1.4f ? _qCaught : "";
+        public float QuoteCaughtAge => _qCaughtAge;
         public Delivery Delivery => _delivery;
         public Portrait Portrait => _portrait;
         public Showdown Showdown => _showdown;
@@ -150,7 +207,7 @@ namespace JamKit.Argument
         public int CardIndex => _card;
         public string CardInHand => _card >= 0 && _card < _cards.Count ? _cards[_card] : "";
         /// <summary>Rounds before a burned card is back (0: in hand).</summary>
-        public int BurnedFor(string card) => _burnedUntil.TryGetValue(card ?? "", out int until) ? Math.Max(0, until - _debate.Round) : 0;
+        public int BurnedFor(string card) => _burnedUntil.TryGetValue(card ?? "", out int until) ? Math.Max(0, until - Round) : 0;
         /// <summary>The reason cards (Because).</summary>
         public IReadOnlyList<ReasonCard> Because => _because;
         public int BecauseFocus => _becauseFocus;
@@ -197,6 +254,8 @@ namespace JamKit.Argument
             if (dt > 0.1f) dt = 0.1f;
             _stateTime += dt;
             _captionAge += dt;
+            _qCaughtAge += dt;
+            if (_sky) _skyTime += dt;
             if (_cooldown > 0f) _cooldown -= dt;
             switch (_state)
             {
@@ -205,6 +264,11 @@ namespace JamKit.Argument
                 case BattleState.Pressure:
                 case BattleState.Showdown:
                     _active += dt;
+                    if (_state == BattleState.Pressure) _dodge += dt;
+                    break;
+                case BattleState.Argue:
+                    _active += dt;
+                    _argue += dt;
                     break;
                 case BattleState.Over:
                     break;
@@ -213,15 +277,19 @@ namespace JamKit.Argument
                     break;
             }
 
-            // The lines play in every state; a press hurries or moves them on only where talking is all there is.
+            // The lines play in every state; a press hurries or moves them on only where talking is all there is. While
+            // her words are worth holding her to, the press is for catching them instead (Pages from her notebook).
             bool talking = _state == BattleState.Intro || _state == BattleState.Talk || _state == BattleState.Ending;
-            var tock = _delivery.Tick(dt, _textSpeed, talking && input.fire);
+            bool caughtPress = QuotePress(input.fire);
+            var tock = _delivery.Tick(dt, _textSpeed, talking && input.fire && !caughtPress);
             if (tock.started)
             {
                 var line = _delivery.Current;
                 Cue(CueKind.LineStart, line.who, line.statement, line.speaker);
                 if (line.speaker == Speaker.Opponent) _portrait.Speak(line.expression);
+                StartQuote();
             }
+            TickQuote(dt);
             if (tock.blips > 0) Cue(CueKind.Blip, _delivery.Current.who, tock.blips, _delivery.Current.speaker);
             if (tock.slowBlips > 0) Cue(CueKind.SlowBlip, _delivery.Current.who, tock.slowBlips, _delivery.Current.speaker);
             if (_portrait.Speaking && (!_delivery.HasLine || _delivery.LineDone || _delivery.Current.speaker != Speaker.Opponent)) _portrait.Quiet();
@@ -229,7 +297,7 @@ namespace JamKit.Argument
             _portrait.Tick(dt);
 
             // Someone ended it from outside (a test's pilot, a debug skip): go to its end.
-            if (_engine.Ended && (_state == BattleState.Debate || _state == BattleState.Because || _state == BattleState.Pressure || _state == BattleState.Showdown))
+            if (_engine.Ended && (_state == BattleState.Debate || _state == BattleState.Argue || _state == BattleState.Because || _state == BattleState.Pressure || _state == BattleState.Showdown))
             {
                 Next();
                 return;
@@ -242,6 +310,7 @@ namespace JamKit.Argument
                     if (!_delivery.Blocking) Next();
                     break;
                 case BattleState.Debate: TickDebate(dt, input); break;
+                case BattleState.Argue: TickArgue(dt, input); break;
                 case BattleState.Because: TickBecause(dt, input); break;
                 case BattleState.Pressure: TickPressure(dt, input); break;
                 case BattleState.Showdown: TickShowdown(dt, input); break;
@@ -281,7 +350,7 @@ namespace JamKit.Argument
             }
             if (_delivery.Blocking) { Enter(BattleState.Talk); return; }
             if (_engine.InPressure) { Enter(BattleState.Pressure); return; }
-            Enter(BattleState.Debate);
+            Enter(Sections ? BattleState.Argue : BattleState.Debate);
         }
 
         void Enter(BattleState s)
@@ -295,14 +364,23 @@ namespace JamKit.Argument
                     _debate.Begin(_light);
                     RefreshCards();
                     break;
+                case BattleState.Argue:
+                    EnterArgue();
+                    break;
                 case BattleState.Pressure:
+                    // Under her sky, the lines as they stand now (the phase moves the light along them).
+                    if (_sky && _engine.Pressure == null)
+                    {
+                        _map.Refresh(_engine);
+                        _map.BuildRails(_rails);
+                    }
                     // The engine starts its queued phase on its next tick; start it now so her light can be placed.
                     if (_engine.Pressure == null) _engine.Tick(0.0001f, Vector2.Zero);
                     _engine.Pressure?.PlaceLight(_light);
                     _warnedPhase = _engine.Pressure;
                     _warned = _engine.Pressure != null ? _engine.Pressure.Telegraphs : 0;
                     Cue(CueKind.PressureIn, "", _engine.Pressure != null ? _engine.Pressure.Spec.calls : 0);
-                    if (_engine.Pressure != null && _engine.Pressure.Spec.calls > 0) Bark(ArgumentBarks.Ring, false);
+                    if (_engine.Pressure != null) PhaseBegins(_engine.Pressure);
                     break;
                 case BattleState.Ending:
                     _ending = 0f;
@@ -444,30 +522,39 @@ namespace JamKit.Argument
             int i = _debate.Under(_debate.Light, card, out bool onWeak);
             if (i < 0) { Cue(CueKind.Miss, "", kind); return; }
             var s = _debate[i];
-            Cue(CueKind.Fire, s.premise, kind);
+            Act(kind, s.premise, s.claim, s.question, onWeak);
+        }
+
+        /// <summary>A verb on one of her statements (<paramref name="premise"/>, or the claim): 0 Ask (X), 1 Concede (Y), 2
+        /// the card in hand (A). <paramref name="question"/>: the statement is her question (the debate's); <paramref
+        /// name="onWeak"/>: the card landed on the words that matter (the sections presenter: always).</summary>
+        void Act(int kind, string premise, bool claim, bool question, bool onWeak)
+        {
+            _actOn = premise;
+            Cue(CueKind.Fire, premise, kind);
             switch (kind)
             {
                 case 0:
-                    if (s.claim) { Glance(i, "screen.why.askClaim"); return; }
-                    if (!_engine.CanAsk(s.premise)) { Glance(i, "screen.why.nothingToAsk"); return; }
-                    _engine.Ask(s.premise);
-                    Cue(CueKind.Ask, s.premise, 0);
+                    if (claim) { Glance(premise, "screen.why.askClaim"); return; }
+                    if (!_engine.CanAsk(premise)) { Glance(premise, "screen.why.nothingToAsk"); return; }
+                    _engine.Ask(premise);
+                    Cue(CueKind.Ask, premise, 0);
                     AfterVerb();
                     return;
                 case 1:
-                    if (s.claim)
+                    if (claim)
                     {
                         if (_engine.CanConcedeClaim) { _holdKind = 2; _hold = 0f; _holdTarget = ArgumentEngine.ClaimId; Cue(CueKind.HoldStart, ArgumentEngine.ClaimId, 2); }
                         return;
                     }
-                    if (!_engine.CanConcede(s.premise)) { Glance(i, "screen.why.cantConcede"); return; }
-                    _engine.Concede(s.premise);
-                    Cue(CueKind.Concede, s.premise, _engine.Status(s.premise) == PremiseStatus.Conceded ? 1 : 0);
+                    if (!_engine.CanConcede(premise)) { Glance(premise, "screen.why.cantConcede"); return; }
+                    _engine.Concede(premise);
+                    Cue(CueKind.Concede, premise, _engine.Status(premise) == PremiseStatus.Conceded ? 1 : 0);
                     AfterVerb();
                     return;
             }
             string c = CardInHand;
-            if (c.Length == 0) { Glance(i, "screen.why.noCards"); return; }
+            if (c.Length == 0) { Glance(premise, "screen.why.noCards"); return; }
             if (BurnedFor(c) > 0)
             {
                 Cue(CueKind.Burned, c, BurnedFor(c));
@@ -476,48 +563,52 @@ namespace JamKit.Argument
             }
             if (c == RetortCard)
             {
-                if (s.claim || !_engine.CanRetort(s.premise)) { Glance(i, "screen.why.retortOnly"); return; }
-                _engine.Retort(s.premise);
-                Cue(CueKind.Retort, s.premise, 0);
+                if (claim || !_engine.CanRetort(premise)) { Glance(premise, "screen.why.retortOnly"); return; }
+                _engine.Retort(premise);
+                Cue(CueKind.Retort, premise, 0);
                 AfterVerb();
                 return;
             }
             if (c == RestCard)
             {
-                if (!s.claim) { Glance(i, "screen.why.restOnClaim"); return; }
-                if (!_engine.LetItRest()) { Glance(i, "screen.why.notYet"); return; }
+                if (!claim) { Glance(premise, "screen.why.restOnClaim"); return; }
+                if (!_engine.LetItRest()) { Glance(premise, "screen.why.notYet"); return; }
                 Cue(CueKind.Rest, ArgumentEngine.ClaimId, 0);
                 AfterVerb();
                 return;
             }
-            if (s.claim) { Glance(i, "screen.why.claimNoChallenge"); return; }
-            if (s.question) { Glance(i, "screen.why.questionEvidence"); return; }
-            if (!onWeak) { Glance(i, "screen.why.glance"); return; }
-            var step = _engine.BeginChallenge(s.premise, c, _because);
+            if (claim) { Glance(premise, "screen.why.claimNoChallenge"); return; }
+            if (question) { Glance(premise, "screen.why.questionEvidence"); return; }
+            if (!onWeak) { Glance(premise, "screen.why.glance"); return; }
+            var step = _engine.BeginChallenge(premise, c, _because);
             switch (step)
             {
                 case ChallengeStep.Reasons:
-                    _becausePremise = s.premise;
+                    _becausePremise = premise;
                     _becauseEvidence = c;
                     _becauseFocus = 0;
                     _patience = _engine.Setup.difficulty == ArgumentDifficulty.Story ? 0f : BecausePatience();
                     _patienceLeft = _patience;
-                    _debate.PlaceLight(_light);
+                    if (!Sections) _debate.PlaceLight(_light);
                     Enter(BattleState.Because);
-                    Cue(CueKind.BecauseOpen, s.premise, _because.Count);
+                    Cue(CueKind.BecauseOpen, premise, _because.Count);
                     if (_engine.CoachNow(ArgumentCoach.Because)) PullTranscript(false);
                     return;
                 case ChallengeStep.NoTouch:
                 case ChallengeStep.TrueOne:
-                    Wrong(c, s.premise);
+                    Wrong(c, premise);
                     AfterVerb();
                     return;
                 case ChallengeStep.Unbreakable:
-                    Cue(CueKind.Unbreakable, s.premise, 0);
+                    Cue(CueKind.Unbreakable, premise, 0);
+                    AfterVerb();
+                    return;
+                case ChallengeStep.Aside:
+                    Cue(CueKind.Aside, premise, 0);
                     AfterVerb();
                     return;
                 default:
-                    Glance(i, "screen.why.cantChallenge");
+                    Glance(premise, "screen.why.cantChallenge");
                     return;
             }
         }
@@ -533,9 +624,9 @@ namespace JamKit.Argument
             return Math.Max(read * 0.6f, read * (1f - 0.1f * _engine.Anger - 0.05f * _engine.Heat));
         }
 
-        void Glance(int statement, string whyKey)
+        void Glance(string premise, string whyKey)
         {
-            Cue(CueKind.Glance, statement >= 0 ? _debate[statement].premise : "", 0);
+            Cue(CueKind.Glance, premise ?? "", 0);
             Note(whyKey);
         }
 
@@ -552,7 +643,7 @@ namespace JamKit.Argument
         void Burn(string card)
         {
             if (string.IsNullOrEmpty(card) || card[0] == '@') return;
-            _burnedUntil[card] = _debate.Round + 2;
+            _burnedUntil[card] = Round + 2;
             var ev = Def.Evidence(card);
             string name = ev != null ? ev.name : card;
             _engine.Note(Str.Format("logic.burned", "evidence", name, "Evidence", Cap(name)));
@@ -565,6 +656,7 @@ namespace JamKit.Argument
         void AfterVerb()
         {
             ResetHold();
+            _turnPending = true;
             _debate.Refresh();
             RefreshCards();
             if (_engine.LastStand && !_stood)
@@ -575,11 +667,22 @@ namespace JamKit.Argument
                 Bark(ArgumentBarks.Stand, true);
             }
             string felt = "";
+            // Her question in the air: one she just put, or the one standing on what Nadia acted on (her questions want an
+            // answer: SELECTION.md 3's answer-me).
+            var on = Def.Premise(_actOn ?? "");
+            bool asked = on != null && !string.IsNullOrEmpty(on.question) && _engine.Status(on.id) == PremiseStatus.Standing;
+            _actOn = null;
             var t = _engine.Transcript;
-            for (int k = _seen; k < t.Count; k++) if (t[k].speaker == Speaker.Opponent && t[k].expression.Length > 0) felt = t[k].expression;
+            for (int k = _seen; k < t.Count; k++)
+            {
+                if (t[k].speaker != Speaker.Opponent) continue;
+                if (t[k].expression.Length > 0) felt = t[k].expression;
+                if (IsQuestionText(t[k].text)) asked = true;
+            }
             if (!_engine.Ended && !_engine.InPressure)
             {
-                if (felt == Def.Face("angry") && felt != "neutral" || felt == Def.Face("hurt")) _engine.QueueGesture(Math.Max(1, _engine.Heat), 4.5f);
+                if (Sections) ReplyPhase(felt, asked);
+                else if (felt == Def.Face("angry") && felt != "neutral" || felt == Def.Face("hurt")) _engine.QueueGesture(Math.Max(1, _engine.Heat), 4.5f);
                 else if (felt == "rattled") _engine.QueueGesture(0, 3f);
             }
             PullTranscript();
@@ -654,8 +757,13 @@ namespace JamKit.Argument
         {
             var phase = _engine.Pressure;
             var move = phase != null ? Steer(input, phase.Light) : input.move;
+            var before = _light;
             _engine.Tick(dt, move);
-            if (_engine.Pressure != null) _light = _engine.Pressure.Light;
+            if (_engine.Pressure != null)
+            {
+                _light = _engine.Pressure.Light;
+                if (_engine.Pressure.Spec.trail) NoteMove(dt, before, _light);
+            }
             WarnCues(_engine.Pressure);
             if (_engine.Ended) { Next(); return; }
             if (!_engine.InPressure)
@@ -663,6 +771,7 @@ namespace JamKit.Argument
                 _debate.PlaceLight(_light);
                 _debate.Refresh();
                 RefreshCards();
+                PhaseEnds();
                 Next();
             }
         }
@@ -685,7 +794,7 @@ namespace JamKit.Argument
             ResetHold();
             _showdownTarget = target;
             float pace = Def.heartCap < ArgumentEngine.PanicStep ? 0.75f : 1f;
-            _showdown = new Showdown(Def.showdown, _engine.Anger, target == ArgumentEngine.ClaimId, _engine.Setup.difficulty, pace, _seed + (ulong)_debate.Round * 977UL);
+            _showdown = new Showdown(Def.showdown, _engine.Anger, target == ArgumentEngine.ClaimId, _engine.Setup.difficulty, pace, _seed + (ulong)Round * 977UL);
             Enter(BattleState.Showdown);
             Cue(CueKind.ShowdownStart, target, _showdown.Total);
             if (_engine.CoachNow(ArgumentCoach.Showdown)) PullTranscript(false);
@@ -738,8 +847,17 @@ namespace JamKit.Argument
 
         bool IsStatementText(string text)
         {
+            // In the sections presenter nothing flies: what she says is said, and holds the room.
+            if (Sections) return false;
             foreach (var p in Def.premises)
                 if (p != null && (p.text == text || p.question == text)) return true;
+            return false;
+        }
+
+        bool IsQuestionText(string text)
+        {
+            foreach (var p in Def.premises)
+                if (p != null && !string.IsNullOrEmpty(p.question) && p.question == text) return true;
             return false;
         }
 
@@ -808,6 +926,301 @@ namespace JamKit.Argument
         /// <summary>Their listening face while Nadia decides: the opening pose until they've shown a feeling, then
         /// neutral, or the opening pose again once they're angry (guarded, not raging).</summary>
         string IdleFace() => !_expressed || _engine.Anger >= 2 ? OpeningFace : "neutral";
+
+        // ---------- The sections presenter (docs/redesign/battle.md, round 2) ----------
+
+        /// <summary>Her pencil sketches the coming attack over the last this-many seconds of her patience; the ceiling takes
+        /// this long to lift; a quote stays catchable this long after its last word is said.</summary>
+        public const float SketchSeconds = 3f, SkySeconds = 3f, QuoteGrace = 1.2f;
+        /// <summary>How long her reply plays as a dodge, by its feeling (the creator: "the stretches ... were both too
+        /// short"): angry or hurt, rattled, softened (with its hush), anything else.</summary>
+        public const float ReplyAngry = 10f, ReplyRattled = 8f, ReplySoft = 7.5f, ReplyPlain = 7f;
+
+        readonly int[] _notesSaid = new int[3];
+        string _actOn;
+        int _selected, _turn;
+        float _argueTime, _argueLimit, _navHold, _skyTime, _dodge, _argue;
+        bool _navFirst = true, _sky, _ringsPlayed, _skyPrompted, _argueCoached, _notesPrompted, _turnPending = true;
+        // Her notes on how Nadia moved (the phases her pencil followed in).
+        float _notesNear, _notesFar, _notesTime, _notesMoved;
+        // The quote in the line being said.
+        string _qId = "", _qCaught = "";
+        int _qStart, _qEnd, _quotesSeen;
+        float _qAfter, _qCaughtAge = 99f;
+        bool _qLive;
+
+        /// <summary>Seconds dodging (pressure phases) and arguing (the argue sections) so far: the sections presenter's
+        /// split of <see cref="ActiveSeconds"/> (the rest of it is "Because..." and the showdown).</summary>
+        public float DodgeSeconds => _dodge;
+        public float ArgueSeconds => _argue;
+
+        void EnterArgue()
+        {
+            // A new turn after an exchange or a phase (not when a line merely held the room).
+            if (_turnPending) { _turn++; _turnPending = false; }
+            _argueTime = 0f;
+            _navHold = 0f;
+            _navFirst = true;
+            _map.Refresh(_engine);
+            if (_selected < 0 || _selected >= _map.Count || !_map[_selected].visible) _selected = _map.First();
+            // A statement that's down: move on to the next one standing (the claim when nothing stands).
+            if (_map[_selected].status != PremiseStatus.Standing && !_map[_selected].claim) _selected = _map.First();
+            RefreshCards();
+            _argueLimit = PatienceToArgue();
+            if (!_argueCoached)
+            {
+                // The coach: the sections themselves (if the opening didn't already), then asking.
+                _argueCoached = true;
+                bool said = _engine.CoachNow(ArgumentCoach.Argue);
+                said |= _engine.CoachNow(ArgumentCoach.Ask);
+                if (said) PullTranscript();
+            }
+        }
+
+        /// <summary>How long she waits for Nadia to say something before she pushes (her patience): longer with more on the
+        /// table, shorter once she's angry; no clock in Story or the tutorial.</summary>
+        float PatienceToArgue()
+        {
+            if (_engine.Setup.difficulty == ArgumentDifficulty.Story || Def.heartCap < ArgumentEngine.PanicStep) return 0f;
+            int standing = 0;
+            for (int i = 1; i < _map.Count; i++) if (_map[i].visible && _map[i].status == PremiseStatus.Standing) standing++;
+            float limit = Math.Min(34f, 20f + 2.5f * standing);
+            if (_engine.Anger >= 2) limit *= 0.8f;
+            return limit;
+        }
+
+        void TickArgue(float dt, in BattleInput input)
+        {
+            if (_delivery.Blocking) { Enter(BattleState.Talk); return; }
+            // Her patience runs while nothing is being said.
+            if (!_delivery.HasLine || _delivery.LineDone) _argueTime += dt;
+            if (_argueLimit > 0f && _argueTime >= _argueLimit)
+            {
+                // Nadia said nothing: she pushes (her temper rises, and the attack she was sketching comes).
+                ResetHold();
+                _engine.AddHeat(1);
+                _engine.Note(Str.Format("logic.idle", "opponent", Def.opponent));
+                Bark(ArgumentBarks.Idle, false);
+                Cue(CueKind.Idle, "", _engine.Heat);
+                _engine.QueuePhase(_engine.Heat, false);
+                Next();
+                return;
+            }
+
+            // Picking what she said: the stick steps from statement to statement; the mouse points at one.
+            var m = input.move;
+            if (m.LengthSquared() > 0.25f)
+            {
+                _navHold -= dt;
+                if (_navHold <= 0f)
+                {
+                    int next = _map.Step(_selected, m);
+                    if (next != _selected) { _selected = next; Cue(CueKind.Select, SelectedId, _selected); }
+                    _navHold = _navFirst ? 0.3f : 0.16f;
+                    _navFirst = false;
+                }
+            }
+            else { _navHold = 0f; _navFirst = true; }
+            if (input.hasPoint)
+            {
+                int at = _map.Nearest(input.point, 0.6f);
+                if (at >= 0 && at != _selected) { _selected = at; Cue(CueKind.Select, SelectedId, _selected); }
+            }
+
+            if (input.cycle != 0 && _cards.Count > 1)
+            {
+                _card = (_card + (input.cycle > 0 ? 1 : _cards.Count - 1)) % _cards.Count;
+                Cue(CueKind.Cycle, CardInHand, _card);
+            }
+
+            var e = _map[_selected];
+            string target = e.claim ? ArgumentEngine.ClaimId : e.id;
+            if (_holdKind == 1)
+            {
+                if (!input.pressHeld || target != _holdTarget) { ResetHold(); Cue(CueKind.HoldCancel, "", 1); }
+                else if ((_hold += dt) >= PressHold) { StartShowdown(_holdTarget); return; }
+            }
+            else if (_holdKind == 2)
+            {
+                if (!input.concedeHeld || !e.claim) { ResetHold(); Cue(CueKind.HoldCancel, "", 2); }
+                else if ((_hold += dt) >= YieldHold)
+                {
+                    ResetHold();
+                    if (_engine.ConcedeClaim()) { Cue(CueKind.Yield, ArgumentEngine.ClaimId, 0); AfterVerb(); return; }
+                }
+            }
+            else if (input.pressHeld && _cooldown <= 0f)
+            {
+                if (_engine.CanPress(target)) { _holdKind = 1; _hold = 0f; _holdTarget = target; Cue(CueKind.HoldStart, target, 1); }
+                else { Note("screen.why.cantPress"); _cooldown = 0.6f; }
+            }
+
+            if (_cooldown > 0f || _holdKind != 0) return;
+            int kind = input.ask ? 0 : input.concede ? 1 : input.fire ? 2 : -1;
+            if (kind < 0) return;
+            _shotsThisRound++;
+            _cooldown = ShotCooldown;
+            Act(kind, target, e.claim, false, true);
+        }
+
+        /// <summary>Her reply, played as a dodge (SELECTION.md 2: a gesture for every reply, now every exchange's own
+        /// section): angry or hurt, a real phase; rattled, a shorter one; softened (a concession: her care), a hush that
+        /// passes a light holding still; her question, a wave that passes a light that moves; anything else, a short one.</summary>
+        void ReplyPhase(string felt, bool asked)
+        {
+            int heat = _engine.Heat;
+            if (felt.Length > 0 && (felt == Def.Face("angry") && felt != "neutral" || felt == Def.Face("hurt")))
+                _engine.QueueGesture(Math.Max(1, heat), ReplyAngry);
+            else if (felt == "rattled") _engine.QueueGesture(heat, ReplyRattled);
+            else if (felt == "softened") _engine.QueueGesture(Math.Max(0, heat - 1), ReplySoft, Def.hush ? 1 : 0, 0);
+            else _engine.QueueGesture(heat, ReplyPlain, 0, Def.hush && asked ? 1 : 0);
+        }
+
+        /// <summary>A phase begins: the three rings' ring, her hush the first time ("Shh."), the prompts that teach.</summary>
+        void PhaseBegins(PressurePhase phase)
+        {
+            var spec = phase.Spec;
+            if (spec.calls > 0) { _ringsPlayed = true; Bark(ArgumentBarks.Ring, false); }
+            if (!Sections) return;
+            if (spec.hush > 0)
+            {
+                Cue(CueKind.Hush, "", spec.hush);
+                if (spec.hushTeach) { Bark(ArgumentBarks.Hush, false); Note("screen.prompt.hush"); }
+            }
+            else if (spec.answer > 0 && spec.answerTeach) Note("screen.prompt.answer");
+            else if (spec.sky && !_skyPrompted) { _skyPrompted = true; Note("screen.prompt.sky"); }
+            else if (spec.trail && !_notesPrompted) { _notesPrompted = true; Note("screen.prompt.notes"); }
+        }
+
+        /// <summary>A phase is over: after the three rings the ceiling lifts (her sky); after a phase her pencil followed
+        /// in, she says how Nadia moved (once for each way, never in Story).</summary>
+        void PhaseEnds()
+        {
+            _turnPending = true;
+            if (!Sections) return;
+            if (_ringsPlayed && !_sky && Def.sky) OpenSky();
+            if (_notesTime > 1f)
+            {
+                float near = _notesNear / _notesTime, far = _notesFar / _notesTime, moved = _notesMoved / _notesTime;
+                _notesNear = _notesFar = _notesTime = _notesMoved = 0f;
+                if (_engine.Setup.difficulty == ArgumentDifficulty.Story) return;
+                int kind = far > 0.5f ? 0 : near > 0.45f ? 1 : moved > 1.3f ? 2 : -1;
+                if (kind < 0 || _notesSaid[kind] > 0) return;
+                _notesSaid[kind]++;
+                Bark(kind == 0 ? ArgumentBarks.NotesFar : kind == 1 ? ArgumentBarks.NotesNear : ArgumentBarks.NotesRestless, false);
+                Cue(CueKind.Notes, "", kind);
+            }
+        }
+
+        /// <summary>Her notes: where the light kept to (near her, her side of the table on the left; or far from her) and
+        /// how much it moved.</summary>
+        void NoteMove(float dt, Vector2 from, Vector2 to)
+        {
+            _notesTime += dt;
+            if (to.X < -1f) _notesNear += dt;
+            else if (to.X > 1f) _notesFar += dt;
+            _notesMoved += Vector2.Distance(from, to);
+        }
+
+        /// <summary>The ceiling lifts (SELECTION.md 7): her case becomes a constellation, and every phase from now on is
+        /// played on its lines.</summary>
+        void OpenSky()
+        {
+            _sky = true;
+            _skyTime = 0f;
+            _map.Refresh(_engine);
+            _map.BuildRails(_rails);
+            _engine.OpenSky(_rails);
+            Cue(CueKind.SkyOpens, "", 0);
+            Bark(ArgumentBarks.Sky, true);
+        }
+
+        // ---------- Her own words (SELECTION.md 6, "Pages from her notebook") ----------
+
+        /// <summary>A line of hers starts: if it has words worth holding her to (a quote card not yet caught), note where
+        /// they run.</summary>
+        void StartQuote()
+        {
+            _qLive = false;
+            var line = _delivery.Current;
+            if (line.speaker != Speaker.Opponent) return;
+            string plain = _delivery.Typewriter.Plain;
+            foreach (var ev in Def.evidence)
+            {
+                if (ev == null || !ev.IsQuote || string.IsNullOrEmpty(ev.words) || _engine.Caught(ev.id)) continue;
+                int at = plain.IndexOf(ev.words, StringComparison.OrdinalIgnoreCase);
+                if (at < 0) continue;
+                _qId = ev.id;
+                _qStart = at;
+                _qEnd = at + ev.words.Length;
+                _qAfter = 0f;
+                _qLive = true;
+                return;
+            }
+        }
+
+        bool QuoteWindow => _qLive && _delivery.HasLine && _delivery.Typewriter.Shown > _qStart && _qAfter <= QuoteGrace;
+
+        /// <summary>A press while her words are worth catching: in the window it catches them; too soon, it's lost (the first
+        /// time ever, it's only ignored: nobody knows yet); after the window, it's an ordinary press. True if it was used.</summary>
+        bool QuotePress(bool fire)
+        {
+            if (!_qLive || !_delivery.HasLine) return false;
+            if (_engine.Setup.difficulty == ArgumentDifficulty.Story && QuoteWindow) { CatchQuote(); return fire; }
+            if (!fire) return false;
+            if (QuoteWindow) { CatchQuote(); return true; }
+            if (_delivery.Typewriter.Shown <= _qStart)
+            {
+                if (_quotesSeen == 0) return true;
+                _qLive = false;
+                Cue(CueKind.QuoteMissed, _qId, 0);
+                Note("screen.quote.early");
+                return true;
+            }
+            return false;
+        }
+
+        void TickQuote(float dt)
+        {
+            if (!_qLive) return;
+            if (!_delivery.HasLine) { QuoteGone(); return; }
+            int shown = _delivery.Typewriter.Shown;
+            if (shown > _qStart && !_openCued)
+            {
+                _openCued = true;
+                Cue(CueKind.QuoteOpen, _qId, 0);
+                if (_engine.CoachNow(ArgumentCoach.Quote)) PullTranscript(false);
+            }
+            if (shown >= _qEnd) _qAfter += dt;
+            if (_qAfter > QuoteGrace) QuoteGone();
+        }
+
+        bool _openCued;
+
+        void QuoteGone()
+        {
+            if (_qLive && _openCued) { _quotesSeen++; Cue(CueKind.QuoteMissed, _qId, 1); }
+            _qLive = false;
+            _openCued = false;
+        }
+
+        void CatchQuote()
+        {
+            string id = _qId;
+            _qLive = false;
+            _openCued = false;
+            _quotesSeen++;
+            if (!_engine.CatchQuote(id)) return;
+            _qCaught = id;
+            _qCaughtAge = 0f;
+            Cue(CueKind.QuoteCaught, id, 0);
+            // The transcript keeps its sentence; the caption says it plainly.
+            PullTranscript(false);
+            var ev = Def.Evidence(id);
+            _caption = Str.Format("screen.quote.caught", "quote", ev != null ? ev.words : id, "opponent", Def.opponent);
+            _captionAge = 0f;
+            RefreshCards();
+        }
 
         string EndFace()
         {

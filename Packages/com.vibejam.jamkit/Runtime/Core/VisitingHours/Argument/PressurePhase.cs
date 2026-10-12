@@ -38,6 +38,24 @@ namespace JamKit.Argument
         /// <summary>The debate's own pressure (docs/redesign/battle.md): it runs as long as the debate does, sparser
         /// than a full phase.</summary>
         public bool debate;
+        /// <summary>Hush (SELECTION.md 3, her care): this many rings that close in on the light from outside, one at a time
+        /// on a clear table, harmless to a light that holds still and hurting one that struggles. Nothing else comes while
+        /// one closes. <see cref="hushTeach"/>: the first can't hurt (it teaches).</summary>
+        public int hush;
+        public bool hushTeach;
+        /// <summary>Answer me (SELECTION.md 3, her questions): this many waves from her side of the table that hurt only a
+        /// light standing still (the three rings' rule, smaller). <see cref="answerTeach"/>: the first can't hurt.</summary>
+        public int answer;
+        public bool answerTeach;
+        /// <summary>Only the patterns above (hush, answer-me, her notes, the three rings): no plates, rings or lobs. A
+        /// teaching gesture (the first hush) is just the one thing.</summary>
+        public bool only;
+        /// <summary>She takes notes on you (SELECTION.md 4): her pencil follows the light's path a second or two behind,
+        /// catching up as the phase goes; every mark it makes is inked a moment later (a light that stops is caught).</summary>
+        public bool trail;
+        /// <summary>Her sky (SELECTION.md 7): streaks come in along her lines from a radiant beyond the edge, all at one angle;
+        /// with <see cref="PressurePhase.SetRails"/> the light moves only along the lines.</summary>
+        public bool sky;
 
         /// <summary>The narrowest gap outside the Long Night: room for her light and 0.4 to spare (it was 0.12, which
         /// left a 0.16-wide lane to stop in while plates came at nearly 5 units a second: unfair). It only binds when
@@ -323,6 +341,10 @@ namespace JamKit.Argument
             public bool answerMe;
             /// <summary>A debate statement's guard (it blooms from the words as they're said).</summary>
             public bool guard;
+            /// <summary>Hush: it closes in (negative growth) and hurts only a light that moves.</summary>
+            public bool hush;
+            /// <summary>A teaching ring: drawn and felt, but it can't hurt.</summary>
+            public bool soft;
             // Each gap's two edges as unit directions (cheap collision tests: inside a gap = between its edges).
             public Vector2 edge0a, edge0b, edge1a, edge1b;
         }
@@ -334,6 +356,12 @@ namespace JamKit.Argument
             public float warn, age;
             public int serial;
             public bool active;
+            /// <summary>A mark of her pencil (her notes): it stays where it's inked for <see cref="ttl"/> seconds.</summary>
+            public bool mark;
+            /// <summary>A shooting star (her sky): stopped by a fact Nadia conceded.</summary>
+            public bool streak;
+            /// <summary>A mark's life left once inked (seconds).</summary>
+            public float ttl;
         }
 
         public struct Slip
@@ -365,6 +393,21 @@ namespace JamKit.Argument
         string _caught;
         // The Long Night's reachability: the last wall's gap and when it crosses x = 0.
         float _lastGapY, _lastArrival = -10f;
+        // Her sky: the light on her lines, the shower's angle.
+        Rails _rails;
+        int _railEdge = -1;
+        Vector2 _streakDir;
+        bool _streakDirSet;
+        // Hush and answer-me.
+        int _hushLeft, _answerLeft;
+        float _nextHush, _nextAnswer;
+        bool _hushTaught, _answerTaught;
+        // Her notes: where the light has been (a sample every TrailStep seconds), her pencil's tip.
+        readonly Vector2[] _trailBuf = new Vector2[64];
+        int _trailSamples;
+        float _nextMark;
+        Vector2 _trailTip;
+        bool _trailOn;
 
         public PressurePhase(PressureSpec spec, ulong seed, IList<SlipSeed> slips)
         {
@@ -374,6 +417,13 @@ namespace JamKit.Argument
             _slipSeeds = new SlipSeed[n];
             for (int i = 0; i < n; i++) _slipSeeds[i] = slips[i];
             _nextSpawn = spec.debate ? 1.2f : spec.calls > 0 ? Math.Max(0.6f, spec.interval) : 0.6f;
+            // Hush comes first, alone on a clear table; the rest of the phase follows it.
+            _hushLeft = Math.Max(0, spec.hush);
+            _nextHush = 0.5f;
+            if (_hushLeft > 0) _nextSpawn = Math.Max(_nextSpawn, 0.5f + HushSeconds * _hushLeft);
+            _answerLeft = Math.Max(0, spec.answer);
+            _nextAnswer = 0.7f;
+            _nextMark = TrailStart;
             if (!spec.exemptFromRule)
                 _check = _sharedCheck ?? (_sharedCheck = new DodgePlanner(PressureRule.PlannerCell, PressureRule.PlannerStep, PressureRule.PlannerHorizon, LightSpeed * PressureRule.PlannerSpeed, PressureRule.PlannerPad, true));
         }
@@ -419,6 +469,39 @@ namespace JamKit.Argument
         public int Refused => _refused;
         /// <summary>Warnings shown so far (the host plays a sound for each new one).</summary>
         public int Telegraphs => _telegraphs;
+        /// <summary>Her lines (the sky), or null: the light moves only along them.</summary>
+        public Rails Rails => _rails;
+        /// <summary>Her pencil's tip (her notes) and whether it's following now.</summary>
+        public Vector2 TrailTip => _trailTip;
+        public bool TrailOn => _trailOn;
+        /// <summary>A hush or answer-me ring is on the table (the view shows whether the light is holding still).</summary>
+        public bool StillnessMatters
+        {
+            get
+            {
+                for (int i = 0; i < _rings.Count; i++) if (_rings[i].active && (_rings[i].hush || _rings[i].answerMe)) return true;
+                return false;
+            }
+        }
+        /// <summary>A hush ring is closing in now (hold still), or an answer-me wave is out (keep moving).</summary>
+        public bool HushOn
+        {
+            get
+            {
+                for (int i = 0; i < _rings.Count; i++) if (_rings[i].active && _rings[i].hush) return true;
+                return false;
+            }
+        }
+        public bool AnswerOn
+        {
+            get
+            {
+                for (int i = 0; i < _rings.Count; i++) if (_rings[i].active && _rings[i].answerMe) return true;
+                return false;
+            }
+        }
+        /// <summary>The shower's angle (her sky; zero until the first streak).</summary>
+        public Vector2 StreakDirection => _streakDir;
         public IReadOnlyList<Wall> Walls => _walls;
         public IReadOnlyList<Ring> Rings => _rings;
         public IReadOnlyList<Blob> Blobs => _blobs;
@@ -429,7 +512,18 @@ namespace JamKit.Argument
         {
             p.X = Math.Max(-HalfWidth + LightRadius, Math.Min(HalfWidth - LightRadius, p.X));
             p.Y = Math.Max(-HalfHeight + LightRadius, Math.Min(HalfHeight - LightRadius, p.Y));
+            if (OnRails) p = _rails.Snap(p, out _railEdge);
             _light = p;
+        }
+
+        bool OnRails => _rails != null && _rails.Walkable > 0;
+
+        /// <summary>Her sky's lines (null: free movement). The light is put on the nearest line; set before the first tick.</summary>
+        public void SetRails(Rails rails)
+        {
+            _rails = rails;
+            _railEdge = -1;
+            if (OnRails) _light = _rails.Snap(_light, out _railEdge);
         }
 
         /// <summary>Hits since the last call (the engine turns each into a heart-rate step).</summary>
@@ -457,9 +551,14 @@ namespace JamKit.Argument
 
             if (input.LengthSquared() > 1f) input = Vector2.Normalize(input);
             var before = _light;
-            _light += input * (LightSpeed * dt);
-            PlaceLight(_light);
+            if (OnRails) _light = _rails.Move(_light, ref _railEdge, input, LightSpeed * dt);
+            else
+            {
+                _light += input * (LightSpeed * dt);
+                PlaceLight(_light);
+            }
             _lightVelocity = (_light - before) / dt;
+            RecordTrail();
 
             // The Long Night spawns first (as it always has); everything else after the attacks have moved, so the
             // fairness check sees them where they really are.
@@ -490,8 +589,9 @@ namespace JamKit.Argument
                 if (live > 0f)
                 {
                     r.radius += r.growth * live;
-                    if (r.radius > 8f) r.active = false;
-                    else if (RingHits(r, r.radius, _light, 0f) && !(r.answerMe && LightMoving)) hit = true;
+                    if (r.radius > 8f || (r.growth < 0f && r.radius <= 0.02f)) r.active = false;
+                    // Answer-me hurts a light standing still; hush, one that moves; a teaching ring, nothing.
+                    else if (!r.soft && RingHits(r, r.radius, _light, 0f) && !(r.answerMe && LightMoving) && !(r.hush && !LightMoving)) hit = true;
                 }
                 _rings[i] = r;
             }
@@ -504,7 +604,9 @@ namespace JamKit.Argument
                 if (live > 0f)
                 {
                     b.position += b.velocity * live;
-                    if (Math.Abs(b.position.X) > HalfWidth + 1f || Math.Abs(b.position.Y) > HalfHeight + 1f) b.active = false;
+                    if (b.mark && (b.ttl -= live) <= 0f) b.active = false;
+                    else if (Math.Abs(b.position.X) > HalfWidth + 1f || Math.Abs(b.position.Y) > HalfHeight + 1f) b.active = false;
+                    else if (b.streak && Covered(b.position)) b.active = false;
                     else if (BlobHits(b.position, _light, 0f)) hit = true;
                 }
                 _blobs[i] = b;
@@ -540,8 +642,14 @@ namespace JamKit.Argument
 
         void SpawnDue()
         {
-            if (_draining) return;
+            if (_draining) { _trailOn = false; return; }
             if (_spec.calls > 0) SpawnCalls();
+            if (_answerLeft > 0) SpawnAnswer();
+            if (_spec.trail) SpawnTrail();
+            if (_hushLeft > 0) SpawnHush();
+            if (_spec.only) return;
+            // Nothing else comes while she holds you (a hush closing in).
+            if (HushLive && _nextSpawn < _time + 0.25f) _nextSpawn = _time + 0.25f;
             // Spawns stop a little before the end, so the surface clears as the phase closes.
             while (_time >= _nextSpawn && _nextSpawn < _spec.duration - 1.2f)
             {
@@ -650,8 +758,9 @@ namespace JamKit.Argument
             for (int i = 0; i < _rings.Count; i++)
             {
                 var r = _rings[i];
-                // The three rings' waves pass a moving light: no spot is unsafe for a player who keeps moving.
-                if (!r.active || r.age < minAge || r.answerMe) continue;
+                // The three rings' waves pass a moving light, and hush a still one: neither makes a spot unsafe for the
+                // right answer (keep moving; hold still), so the plan leaves them out.
+                if (!r.active || r.age < minAge || r.answerMe || r.hush) continue;
                 float live1 = to - r.warn;
                 if (live1 < 0f) continue;
                 float live0 = Math.Max(0f, from - r.warn);
@@ -667,6 +776,7 @@ namespace JamKit.Argument
                 float live1 = to - b.warn;
                 if (live1 < 0f) continue;
                 float live0 = Math.Max(0f, from - b.warn);
+                if (b.mark) { live1 = Math.Min(live1, b.ttl); if (live1 < live0) continue; }
                 var a = b.position + b.velocity * live0;
                 var seg = b.velocity * (live1 - live0);
                 float len2 = seg.LengthSquared();
@@ -694,7 +804,7 @@ namespace JamKit.Argument
             for (int i = 0; i < _rings.Count; i++)
             {
                 var r = _rings[i];
-                if (!r.active || r.age < minAge || r.answerMe) continue;
+                if (!r.active || r.age < minAge || r.answerMe || r.hush) continue;
                 float live1 = to - r.warn;
                 if (live1 < 0f) continue;
                 float live0 = Math.Max(0f, from - r.warn);
@@ -707,6 +817,7 @@ namespace JamKit.Argument
                 float live1 = to - b.warn;
                 if (live1 < 0f) continue;
                 float live0 = Math.Max(0f, from - b.warn);
+                if (b.mark) { live1 = Math.Min(live1, b.ttl); if (live1 < live0) continue; }
                 sweep.AddBlob(b.position + b.velocity * live0, b.velocity * (live1 - live0));
             }
         }
@@ -727,7 +838,7 @@ namespace JamKit.Argument
             for (int i = 0; i < _rings.Count; i++)
             {
                 var r = _rings[i];
-                if (!r.active || r.age < minAge || r.growth <= 0f || r.answerMe) continue;
+                if (!r.active || r.age < minAge || r.growth <= 0f || r.answerMe || r.hush) continue;
                 float fx = HalfWidth + Math.Abs(r.center.X), fy = HalfHeight + Math.Abs(r.center.Y);
                 float far = (float)Math.Sqrt(fx * fx + fy * fy) + RingThickness * 0.5f + LightRadius;
                 float t = r.warn + Math.Max(0f, (far - r.radius) / r.growth);
@@ -737,6 +848,7 @@ namespace JamKit.Argument
             {
                 var b = _blobs[i];
                 if (!b.active || b.age < minAge) continue;
+                if (b.mark) { end = Math.Max(end, b.warn + Math.Max(0f, b.ttl)); continue; }
                 float tx = Exit(b.position.X, b.velocity.X, reachX + BlobRadius);
                 float ty = Exit(b.position.Y, b.velocity.Y, reachY + BlobRadius);
                 float t = b.warn + Math.Min(tx, ty);
@@ -758,7 +870,7 @@ namespace JamKit.Argument
         {
             int s = 0;
             for (int i = 0; i < _walls.Count; i++) if (_walls[i].active && _walls[i].age >= minAge && _walls[i].serial > s) s = _walls[i].serial;
-            for (int i = 0; i < _rings.Count; i++) if (_rings[i].active && !_rings[i].answerMe && _rings[i].age >= minAge && _rings[i].serial > s) s = _rings[i].serial;
+            for (int i = 0; i < _rings.Count; i++) if (_rings[i].active && !_rings[i].answerMe && !_rings[i].hush && _rings[i].age >= minAge && _rings[i].serial > s) s = _rings[i].serial;
             for (int i = 0; i < _blobs.Count; i++) if (_blobs[i].active && _blobs[i].age >= minAge && _blobs[i].serial > s) s = _blobs[i].serial;
             return s;
         }
@@ -769,12 +881,15 @@ namespace JamKit.Argument
         {
             var shape = _spec.shapes[_rng.Range(0, _spec.shapes.Length)];
             bool done;
-            switch (shape)
-            {
-                case PressureShape.Wall: done = SpawnWall(at); break;
-                case PressureShape.Bloom: done = SpawnRing(at); break;
-                default: done = SpawnBlob(at); break;
-            }
+            // Under her sky everything is a streak along her lines (a wall's or a ring's gap would rarely meet a line).
+            if (_spec.sky && OnRails) done = SpawnStreak(at);
+            else
+                switch (shape)
+                {
+                    case PressureShape.Wall: done = SpawnWall(at); break;
+                    case PressureShape.Bloom: done = SpawnRing(at); break;
+                    default: done = SpawnBlob(at); break;
+                }
             if (done) _spawned++;
             else _skipped++;
         }
@@ -1004,11 +1119,165 @@ namespace JamKit.Argument
             var seed = _slipSeeds[_slipsSpawned++];
             var pos = new Vector2(_rng.Range(-HalfWidth * 0.7f, HalfWidth * 0.7f), _rng.Range(-HalfHeight * 0.6f, HalfHeight * 0.6f));
             float ang = _rng.Range(0f, 2f * (float)Math.PI);
+            var vel = new Vector2((float)Math.Cos(ang), (float)Math.Sin(ang)) * 0.45f;
+            // Under her sky the light can only be on her lines: the page waits on one of them.
+            if (OnRails) { pos = _rails.PointOn(_rails.WalkableEdge(_rng.Range(0, _rails.Walkable)), _rng.Range(0.3f, 0.7f)); vel = Vector2.Zero; }
             _slips.Add(new Slip
             {
-                position = pos, velocity = new Vector2((float)Math.Cos(ang), (float)Math.Sin(ang)) * 0.45f,
+                position = pos, velocity = vel,
                 premise = seed.premise, name = seed.name, active = true,
             });
+        }
+
+        // ---------- Hush and answer me (SELECTION.md 3) ----------
+
+        /// <summary>A hush ring: how far out it starts, how long it takes to close, and the time it takes on the table.</summary>
+        public const float HushRadius = 1.45f, HushClose = 2.8f, HushSeconds = 4.1f;
+        /// <summary>Where her answer-me waves come from: her side of the table (the left edge, halfway up).</summary>
+        public static readonly Vector2 HerPoint = new Vector2(-HalfWidth + 0.12f, 0f);
+
+        bool HushLive
+        {
+            get
+            {
+                for (int i = 0; i < _rings.Count; i++) if (_rings[i].active && _rings[i].hush) return true;
+                return false;
+            }
+        }
+
+        void SpawnHush()
+        {
+            if (_time < _nextHush || _time > _spec.duration - HushSeconds + 0.6f) return;
+            // Only on a clear table: holding still has to be the whole answer.
+            if (!Quiet) { _nextHush = _time + 0.2f; return; }
+            _hushLeft--;
+            _nextHush = _time + HushSeconds;
+            float warn = Math.Max(0.8f, _spec.telegraph);
+            var ring = new Ring
+            {
+                center = _light, radius = HushRadius, growth = -HushRadius / HushClose, gapCount = 0, hush = true,
+                soft = _spec.hushTeach && !_hushTaught, warn = warn, active = true,
+            };
+            _hushTaught = true;
+            if (!PressureRule.Admit(true, warn, _spec)) { _refused++; return; }
+            Commit(_rings, Put(_rings, ring));
+            _spawned++;
+        }
+
+        void SpawnAnswer()
+        {
+            if (_time < _nextAnswer || _nextAnswer > _spec.duration - 2.5f) return;
+            _answerLeft--;
+            _nextAnswer = _time + 2.6f;
+            float warn = Math.Max(1f, _spec.telegraph);
+            var ring = new Ring
+            {
+                center = HerPoint, radius = 0f, growth = 1.8f, gapCount = 0, answerMe = true,
+                soft = _spec.answerTeach && !_answerTaught, warn = warn, active = true,
+            };
+            _answerTaught = true;
+            if (!PressureRule.Admit(true, warn, _spec)) { _refused++; return; }
+            Commit(_rings, Put(_rings, ring));
+            _spawned++;
+        }
+
+        // ---------- Her notes: the pencil that follows (SELECTION.md 4) ----------
+
+        /// <summary>Her pencil: it starts following this long into the phase, this far behind (seconds of the light's own
+        /// path), closing to <see cref="TrailLagEnd"/> as the phase goes; a mark every <see cref="MarkEvery"/>, inked after
+        /// <see cref="MarkWarn"/>, live for <see cref="MarkLife"/>.</summary>
+        public const float TrailStart = 1.2f, TrailLagStart = 2.2f, TrailLagEnd = 1f, MarkEvery = 0.14f, MarkWarn = 0.6f, MarkLife = 1.3f;
+        const float TrailStep = 0.1f;
+
+        void RecordTrail()
+        {
+            while (_trailSamples * TrailStep <= _time)
+            {
+                _trailBuf[_trailSamples % _trailBuf.Length] = _light;
+                _trailSamples++;
+            }
+        }
+
+        /// <summary>Where the light was <paramref name="t"/> seconds into the phase (kept for the last few seconds).</summary>
+        Vector2 LightAt(float t)
+        {
+            if (_trailSamples == 0) return _light;
+            int oldest = Math.Max(0, _trailSamples - _trailBuf.Length + 1), newest = _trailSamples - 1;
+            float k = t / TrailStep;
+            int k0 = (int)Math.Floor(k);
+            if (k0 < oldest) return _trailBuf[oldest % _trailBuf.Length];
+            if (k0 >= newest) return _trailBuf[newest % _trailBuf.Length];
+            return Vector2.Lerp(_trailBuf[k0 % _trailBuf.Length], _trailBuf[(k0 + 1) % _trailBuf.Length], k - k0);
+        }
+
+        void SpawnTrail()
+        {
+            float end = _spec.duration - 1.4f;
+            if (_time < TrailStart || _time > end) { _trailOn = false; return; }
+            float u = Math.Min(1f, (_time - TrailStart) / Math.Max(0.5f, end - TrailStart));
+            float lag = TrailLagStart + (TrailLagEnd - TrailLagStart) * u;
+            _trailTip = LightAt(_time - lag);
+            _trailOn = true;
+            if (_time < _nextMark) return;
+            _nextMark = _time + MarkEvery;
+            // One mark to a spot: a light that stops gets one there, again as each runs out, until it moves.
+            for (int i = 0; i < _blobs.Count; i++)
+                if (_blobs[i].active && _blobs[i].mark && Vector2.DistanceSquared(_blobs[i].position, _trailTip) < 0.01f) return;
+            var mark = new Blob { position = _trailTip, velocity = Vector2.Zero, warn = Math.Max(MarkWarn, PressureRule.MinTelegraph), active = true, mark = true, ttl = MarkLife };
+            // Pencilled first (the rule), and only where the light has already been: moving on is always the way out,
+            // so marks don't go through the planner.
+            if (!PressureRule.Admit(true, mark.warn, _spec)) { _refused++; return; }
+            Commit(_blobs, Put(_blobs, mark));
+            _spawned++;
+        }
+
+        // ---------- Her sky (SELECTION.md 7) ----------
+
+        /// <summary>A star Nadia conceded stops streaks this close (cover).</summary>
+        public const float CoverRadius = 0.24f;
+
+        bool Covered(Vector2 p)
+        {
+            if (_rails == null) return false;
+            var cover = _rails.Cover;
+            for (int i = 0; i < cover.Count; i++)
+                if (Vector2.DistanceSquared(_rails.Nodes[cover[i]], p) < CoverRadius * CoverRadius) return true;
+            return false;
+        }
+
+        bool SpawnStreak(float at)
+        {
+            int lit = _rails.LitCount;
+            if (lit == 0) return SpawnBlob(at);
+            if (!_streakDirSet)
+            {
+                // The radiant: beyond one of the upper corners; every streak of this shower shares its angle.
+                _streakDirSet = true;
+                float side = _rng.Chance(0.5f) ? -1f : 1f;
+                _streakDir = Vector2.Normalize(new Vector2(-side * _rng.Range(0.55f, 1f), -_rng.Range(0.35f, 0.8f)));
+            }
+            float warn = Warn(at);
+            float speed = Math.Max(0.3f, _spec.speed * 1.15f);
+            for (int attempt = 0; attempt < SpawnTries; attempt++)
+            {
+                var target = _rails.PointOn(_rails.LitEdge(_rng.Range(0, lit)), _rng.Range(0.15f, 0.85f));
+                float back = BackToEdge(target, _streakDir) + 0.35f;
+                var from = target - _streakDir * back;
+                var blob = new Blob { position = from, velocity = _streakDir * speed, warn = warn, active = true, streak = true };
+                if (!PressureRule.Admit(Math.Abs(from.X) - BlobRadius < HalfWidth && Math.Abs(from.Y) - BlobRadius < HalfHeight, warn, _spec)) { _refused++; return false; }
+                int slot = Put(_blobs, blob);
+                if (Fair(_blobs, slot)) { Commit(_blobs, slot); return true; }
+                Drop(_blobs, slot);
+            }
+            return false;
+        }
+
+        /// <summary>How far back along -<paramref name="dir"/> from <paramref name="p"/> the box's edge is.</summary>
+        static float BackToEdge(Vector2 p, Vector2 dir)
+        {
+            float sx = dir.X > 1e-4f ? (p.X + HalfWidth) / dir.X : dir.X < -1e-4f ? (HalfWidth - p.X) / -dir.X : float.MaxValue;
+            float sy = dir.Y > 1e-4f ? (p.Y + HalfHeight) / dir.Y : dir.Y < -1e-4f ? (HalfHeight - p.Y) / -dir.Y : float.MaxValue;
+            return Math.Min(sx, sy);
         }
 
     }

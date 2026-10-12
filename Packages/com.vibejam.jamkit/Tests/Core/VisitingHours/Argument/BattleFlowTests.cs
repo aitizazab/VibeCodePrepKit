@@ -23,7 +23,7 @@ namespace JamKit.Tests.Argument
         static ArgumentSetup Setup(ArgumentDifficulty d = ArgumentDifficulty.Normal, ulong seed = 11) =>
             new ArgumentSetup { difficulty = d, allEvidence = true, seed = seed };
 
-        static BattleFlow Lena(ArgumentSetup setup = null) => new BattleFlow(new ArgumentEngine(DreamLenaDemo.Build(), setup ?? Setup()));
+        static BattleFlow Lena(ArgumentSetup setup = null) => new BattleFlow(new ArgumentEngine(DreamLenaDemo.Build(), setup ?? Setup()), ArgumentPresenter.Debate);
 
         /// <summary>Plays the flow with the pilot until it's over (or a time limit), returning seconds played.</summary>
         static float Play(BattleFlow f, BattlePilot pilot, float limit = 1500f, System.Action<BattleFlow> each = null)
@@ -422,7 +422,7 @@ namespace JamKit.Tests.Argument
         {
             var setup = new ArgumentSetup { seed = 4 };
             setup.evidence.AddRange(new[] { WaltNight1.WaltDead, WaltNight1.SameSaturday, WaltNight1.WaltAlive });
-            var f = new BattleFlow(new ArgumentEngine(WaltNight1.Build(), setup));
+            var f = new BattleFlow(new ArgumentEngine(WaltNight1.Build(), setup), ArgumentPresenter.Debate);
             var pilot = new BattlePilot(true, BattlePilot.Mistake.WrongCard, BattlePilot.Mistake.WrongReason, BattlePilot.Mistake.Press, BattlePilot.Mistake.StandStill);
             int maxHeart = 0;
             float t = Play(f, pilot, 1200f, x => maxHeart = System.Math.Max(maxHeart, x.Engine.HeartStep));

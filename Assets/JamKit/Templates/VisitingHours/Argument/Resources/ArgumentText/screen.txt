@@ -176,6 +176,27 @@ screen.end.left: Nadia left the table.
 screen.end.despair: Despair +{n}
 screen.end.force: Force +{n}
 
+## The sections (docs/redesign/battle.md, round 2: arguing and dodging take turns)
+logic.aside: {Evidence} breaks nothing in "{premise}", but {opponent} has no answer to it.
+logic.quote: Nadia caught {opponent}'s own words: "{quote}".
+screen.banner.argue: {opponent}'s case
+screen.banner.sky: The ceiling lifts
+screen.hint.argue: Pick what she said {move}    Why? {ask}    That's true {concede}    Show the card {show}    Force it: hold {press}    Cards {cards}    Case file {case}
+  ? the keys under the table while Nadia argues
+screen.quote.prompt: {show}: hold her to it
+  ? shown while her words worth catching are being said
+screen.quote.caught: You caught her words: "{quote}". They're in your hand now.
+screen.quote.early: Too soon. Catch her words as she says them.
+screen.quote.tag: HER OWN WORDS
+screen.prompt.hush: Hold still. Let it pass.
+screen.prompt.answer: Don't stand still: answer her.
+screen.prompt.sky: Move along her lines. Switch at a star.
+screen.prompt.notes: Her pencil follows where you've been. Keep moving.
+screen.argue.waiting: {opponent} is losing patience.
+screen.argue.asks: She asks you:
+screen.argue.said: What she said about it:
+screen.why.nothingSelected: Pick something she said first.
+
 ## The prototype's menu
 menu.title: Argument battle prototype: "Take it apart"
 menu.subtitle: Dream-Lena at the kitchen table, Night 2. Placeholder lines: the creator writes the real ones.
@@ -190,3 +211,5 @@ menu.title.back: Back to the title
 menu.savedNone: Saved: nothing yet. Each battle's result is kept, and a later battle reads it (Lena's blessing, or not).
 menu.saved: Saved: Lena is {stance} ({outcome}, anger {n}, played {keys}x).
 menu.hint: Up / down: choose.   A / Enter: start.
+menu.presenter.sections: Battle style: Sections (arguing and dodging take turns). A to switch
+menu.presenter.debate: Battle style: the Debate (milestone 1: her words fly as she argues). A to switch

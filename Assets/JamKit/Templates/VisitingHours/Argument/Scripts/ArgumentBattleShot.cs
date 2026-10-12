@@ -28,6 +28,7 @@ namespace JamKit.Argument
     /// (frame_00001.png...), <c>timeline.txt</c> (each frame's time, state, heart, round, line) and <c>summary.txt</c>
     /// (the outcome, the total time and the share in play); it logs JAMKIT_BATTLE_RECORD_OK or _FAIL.
     /// Both start from the argument prototype's scene (in the Visiting Hours build) and quit when done.
+    /// <b>-battle-presenter debate|sections</b> picks the presenter (default: the sections, round 2); the stills differ.
     /// </summary>
     public sealed class ArgumentBattleShot : MonoBehaviour
     {
@@ -39,6 +40,7 @@ namespace JamKit.Argument
             public bool record;
             public float every;
             public string battle;
+            public ArgumentPresenter presenter;
         }
 
         Request _request;
@@ -57,8 +59,9 @@ namespace JamKit.Argument
         /// <summary>The flags (false without either).</summary>
         public static bool Parse(string[] args, out Request request)
         {
-            request = new Request { every = 0.5f, battle = ArgumentBattles.Lena };
+            request = new Request { every = 0.5f, battle = ArgumentBattles.Lena, presenter = ArgumentPresenter.Sections };
             if (args == null) return false;
+            if (ArgumentHost.PresenterArg(args) == (int)ArgumentPresenter.Debate) request.presenter = ArgumentPresenter.Debate;
             bool found = false;
             for (int i = 0; i < args.Length; i++)
             {
@@ -107,11 +110,11 @@ namespace JamKit.Argument
             var setup = new ArgumentSetup { seed = 21 };
             if (def.id == WaltNight1.Id) setup.evidence.AddRange(new[] { WaltNight1.WaltDead, WaltNight1.SameSaturday, WaltNight1.WaltAlive });
             else setup.allEvidence = true;
-            var host = ArgumentHost.Begin(def, setup);
+            var host = ArgumentHost.Begin(def, setup, null, _request.presenter);
             if (host == null) { Finish("no battle"); yield break; }
-            host.SetAutopilot(true, true, BattlePilot.FirstTime);
+            host.SetAutopilot(true, true, _request.presenter == ArgumentPresenter.Sections ? SectionsFirstTime : BattlePilot.FirstTime);
             var timeline = new StringBuilder();
-            timeline.Append("frame\tseconds\tstate\tbpm\tround\theat\tanger\tline\n");
+            timeline.Append("frame\tseconds\tstate\tbpm\tround\theat\tanger\tsky\tline\n");
             float start = Time.realtimeSinceStartup, next = 0f, endShown = -1f;
             int frame = 0;
             while (true)
@@ -126,8 +129,8 @@ namespace JamKit.Argument
                     var f = host.Flow;
                     string line = f.Delivery.HasLine ? Typewriter.StripTags(f.Delivery.Current.who + ": " + f.Delivery.Typewriter.Plain) : "";
                     timeline.Append(frame).Append('\t').Append(t.ToString("0.0", CultureInfo.InvariantCulture)).Append('\t').Append(f.State).Append('\t')
-                        .Append(f.Engine.HeartRate).Append('\t').Append(f.Debate.Round).Append('\t').Append(f.Engine.Heat).Append('\t').Append(f.Engine.Anger).Append('\t')
-                        .Append(line.Replace('\t', ' ').Replace('\n', ' ')).Append('\n');
+                        .Append(f.Engine.HeartRate).Append('\t').Append(f.Round).Append('\t').Append(f.Engine.Heat).Append('\t').Append(f.Engine.Anger).Append('\t')
+                        .Append(f.Sky ? "sky" : "-").Append('\t').Append(line.Replace('\t', ' ').Replace('\n', ' ')).Append('\n');
                 }
                 if (host.EndCardShown && endShown < 0f) endShown = t;
                 if (endShown >= 0f && t - endShown > 3f) break;
@@ -136,8 +139,9 @@ namespace JamKit.Argument
             }
             var flow = host.Flow;
             float active = flow.ActiveSeconds, talk = flow.TalkSeconds;
-            string summary = "battle\t" + def.id + "\noutcome\t" + flow.Engine.Outcome + "\nstance\t" + flow.Engine.Stance + "\nseconds\t" + (active + talk).ToString("0", CultureInfo.InvariantCulture)
+            string summary = "battle\t" + def.id + "\npresenter\t" + flow.Presenter + "\noutcome\t" + flow.Engine.Outcome + "\nstance\t" + flow.Engine.Stance + "\nseconds\t" + (active + talk).ToString("0", CultureInfo.InvariantCulture)
                 + "\nin play\t" + active.ToString("0", CultureInfo.InvariantCulture) + "\ntalk\t" + talk.ToString("0", CultureInfo.InvariantCulture)
+                + (flow.Sections ? "\narguing\t" + flow.ArgueSeconds.ToString("0", CultureInfo.InvariantCulture) + "\ndodging\t" + flow.DodgeSeconds.ToString("0", CultureInfo.InvariantCulture) + "\nsky\t" + flow.Sky : "")
                 + "\nshare in play\t" + (100f * active / Mathf.Max(1f, active + talk)).ToString("0", CultureInfo.InvariantCulture) + "%\nframes\t" + frame + "\nevery\t" + _request.every.ToString("0.0#", CultureInfo.InvariantCulture) + " s\n";
             File.WriteAllText(Path.Combine(_request.folder, "timeline.txt"), timeline.ToString());
             File.WriteAllText(Path.Combine(_request.folder, "summary.txt"), summary);
@@ -165,8 +169,116 @@ namespace JamKit.Argument
             }
         }
 
+        /// <summary>A first-time player's slips in the sections (as SectionsTests' timing run): three wrong cards, two wrong
+        /// reasons, a hesitation, and one of her quotable lines let go by.</summary>
+        static BattlePilot.Mistake[] SectionsFirstTime => new[]
+        {
+            BattlePilot.Mistake.WrongCard, BattlePilot.Mistake.WrongReason, BattlePilot.Mistake.MissQuote, BattlePilot.Mistake.WrongCard,
+            BattlePilot.Mistake.Hesitate, BattlePilot.Mistake.WrongReason, BattlePilot.Mistake.WrongCard,
+        };
+
         IEnumerator Stills()
         {
+            if (_request.presenter == ArgumentPresenter.Sections) yield return SectionStills();
+            else yield return DebateStills();
+        }
+
+        /// <summary>The sections presenter's stills (round 2): the argue section (her notebook page), the case file, a wrong
+        /// card, Because, her words underlined and caught, a reply as a dodge with her bubble, hush, her pencil's notes, a
+        /// break, the three rings, the ceiling lifting, a sky phase on her lines, her case as a constellation, her patience
+        /// running out, the showdown, composure, every ending and its card (Heard out: the watch), Walt with Mags.</summary>
+        IEnumerator SectionStills()
+        {
+            _presenter = ArgumentPresenter.Sections;
+            // 1. Lena, honest, with a player's slips (human-paced at 3x).
+            var host = Begin(DreamLenaDemo.Build(), All(ArgumentDifficulty.Normal, 21), true, BattlePilot.Mistake.WrongCard, BattlePilot.Mistake.WrongReason);
+            yield return Collect(host, 3, true,
+                new Moment("01-argue", "the argue section: her case on the table as a page of her notebook (each statement where she put it, pencil lines up to what it holds), one picked (its words in full above, the words that matter in gold), the card in hand, the keys, her patience drawing itself along the near edge",
+                    f => f.State == BattleState.Argue && f.Turn >= 3 && f.StateTime > 1.5f && f.ArgueTime > 1f, 0.3f),
+                new Moment("03-wrong-card", "a wrong card: her answer, a heartbeat, the card out of hand (the caption), the hand", f => f.Count(CueKind.WrongCard) > 0, 0.5f),
+                new Moment("04-because", "Because...: the reason cards, her patience running down", f => f.State == BattleState.Because, 0.9f),
+                new Moment("05-quote-open", "her own words, underlined as she says them, and the prompt to hold her to them",
+                    f => f.QuoteOpen && f.Delivery.Typewriter.Shown >= f.QuoteEnd - 2),
+                new Moment("06-quote-caught", "caught: her words fly to Nadia's hand as a torn page", f => f.Count(CueKind.QuoteCaught) > 0 && f.QuoteCaughtAge > 0.45f),
+                new Moment("07-reply-dodge", "her reply as a dodge: plates and flour inked after the pencil, her line in a speech bubble over her",
+                    f => f.State == BattleState.Pressure && f.Engine.Pressure != null && f.Engine.Pressure.Spec.calls == 0 && f.Engine.Pressure.Spec.hush == 0 && f.Engine.Pressure.Time > 1.2f
+                        && f.Delivery.HasLine && f.Delivery.Current.speaker == Speaker.Opponent),
+                new Moment("08-hush", "hush: her care closing in, soft and dashed; the light holding still (the whole ring round it)",
+                    f => f.State == BattleState.Pressure && f.Engine.Pressure != null && f.Engine.Pressure.HushOn && HushRadius(f.Engine.Pressure) < 0.9f),
+                new Moment("09-notes", "her notes: her pencil following the light, pencilling where it's been and inking it a moment later",
+                    f => f.State == BattleState.Pressure && f.Engine.Pressure != null && f.Engine.Pressure.TrailOn && f.Engine.Pressure.Time > 3.5f),
+                new Moment("10-break", "a premise broken (the flash; her note on the page struck through)", f => f.Count(CueKind.Break) > 0, 0.4f),
+                new Moment("11-three-rings", "the three rings: \"He called you first\"; standing still hurts",
+                    f => f.State == BattleState.Pressure && f.Engine.Pressure != null && f.Engine.Pressure.Spec.calls > 0 && f.Engine.Pressure.CallsRung >= 2, 0.7f),
+                new Moment("12-sky-opening", "the ceiling lifts: her night comes down over the table (\"Someone just looked up and drew the lines.\")",
+                    f => f.Sky && f.SkyProgress > 0.45f && f.SkyProgress < 0.8f),
+                new Moment("13-sky-phase", "under her sky: the light on her lines, a shower of streaks at one angle along the lines still lit; a conceded star is cover",
+                    f => f.State == BattleState.Pressure && f.Engine.Pressure != null && f.Engine.Pressure.Spec.sky && f.Engine.Pressure.Time > 2.2f),
+                new Moment("14-sky-argue", "her case as a constellation: stars where her statements are, lit lines, rubbed-out traces, the one picked",
+                    f => f.State == BattleState.Argue && f.Sky && f.SkyProgress >= 1f && f.StateTime > 1.5f),
+                new Moment("15-ending-convinced", "the end beat: convinced (she strikes her own claim out)", f => f.State == BattleState.Ending && f.EndingProgress > 0.35f));
+            yield return EndCard(host, "16-endcard-convinced", "the end card: convinced (Lena unsure)");
+
+            // 2. A press: the showdown and a cut, then the ending it leads to.
+            host = Begin(DreamLenaDemo.Build(), All(ArgumentDifficulty.Normal, 33), false, BattlePilot.Mistake.Press, BattlePilot.Mistake.MissCut);
+            yield return Collect(host, 3, false,
+                new Moment("17-showdown", "pressing: the showdown, her words coming at Nadia's mark", f => f.State == BattleState.Showdown && f.Showdown != null && f.Showdown.Time > 1.6f),
+                new Moment("18-showdown-cut", "a cut", f => f.Count(CueKind.Cut) > 0, 0.08f));
+            yield return EndCard(host, "19-endcard-pressed", "the end card: pressed (Lena condemns, Despair +1, Force +1)");
+
+            // 3. Her patience, then composure: a player who neither moves nor answers.
+            host = Begin(DreamLenaDemo.Build(), All(ArgumentDifficulty.Normal, 45), null);
+            yield return Collect(host, 1, false,
+                new Moment("20-argue-sketch", "her patience running out: the pencil line nearly across, the attack she's sketching at the table's edges (the overlap into the dodge)",
+                    f => f.State == BattleState.Argue && f.ArgueSketch > 0.6f));
+            if (host != null) host.Engine.Hurt(3);
+            yield return Collect(host, 1, false,
+                new Moment("21-panic", "composure going: 160 bpm", f => f.State == BattleState.Panic && f.PanicProgress > 0.5f),
+                new Moment("22-composure-lost", "\"I can't... I can't breathe- I need to get out-\", and Lena's answer",
+                    f => f.State == BattleState.Talk && f.Delivery.HasLine && f.Delivery.Current.speaker == Speaker.Opponent && f.Delivery.LineDone, 0.2f));
+            yield return EndCard(host, "23-endcard-composure", "the end card: composure lost (Nadia left the table; Lena condemns; Despair +1)");
+
+            // 4. Heard out: without the same Saturday or Walt's truth, "his wish" can't break. She gives Nadia her watch.
+            var heard = new ArgumentSetup { seed = 52 };
+            heard.evidence.AddRange(DreamLenaDemo.EvidenceWithoutWalt);
+            host = Begin(DreamLenaDemo.Build(), heard, false);
+            yield return Collect(host, 4, false,
+                new Moment("24-watch", "Heard out: she gives Nadia her watch (\"Give me your wrist. The right one.\")",
+                    f => f.Delivery.HasLine && f.Delivery.Current.speaker == Speaker.Opponent && f.Delivery.Typewriter.Plain.Contains("wrist") && f.Delivery.Typewriter.Progress > 0.6f),
+                new Moment("25-ending-heardout", "the end beat: heard out", f => f.State == BattleState.Ending && f.EndingProgress > 0.35f));
+            yield return EndCard(host, "26-endcard-heardout", "the end card: heard out (Lena's watch)");
+
+            // 5. Giving in: no cards at all.
+            host = Begin(DreamLenaDemo.Build(), new ArgumentSetup { seed = 61 }, false);
+            yield return Collect(host, 4, false, new Moment("27-giving-in", "holding \"That's true\" on her claim: giving in", f => f.HoldingYield && f.HoldProgress > 0.5f));
+            yield return EndCard(host, "28-endcard-yielded", "the end card: yielded");
+
+            // 6. Walt's tutorial, Mags on the earpiece.
+            var walt = new ArgumentSetup { seed = 4 };
+            walt.evidence.AddRange(new[] { WaltNight1.WaltDead, WaltNight1.SameSaturday, WaltNight1.WaltAlive });
+            host = Begin(WaltNight1.Build(), walt, true, BattlePilot.Mistake.WrongCard);
+            yield return Collect(host, 3, false,
+                new Moment("29-walt-mags", "Walt's step: Mags teaching on the earpiece",
+                    f => f.Delivery.HasLine && f.Delivery.Current.speaker == Speaker.Supporter && f.Delivery.Typewriter.Progress > 0.7f),
+                new Moment("30-walt-argue", "Walt's case on his step (no clock: the tutorial)", f => f.State == BattleState.Argue && f.Turn >= 2 && f.StateTime > 1.2f, 0.3f));
+            yield return EndCard(host, "31-endcard-walt", "the end card: Walt");
+
+            File.WriteAllLines(Path.Combine(_request.folder, "shots.txt"), _lines);
+            Finish(null);
+        }
+
+        static float HushRadius(PressurePhase p)
+        {
+            foreach (var r in p.Rings) if (r.active && r.hush) return r.radius;
+            return 99f;
+        }
+
+        ArgumentPresenter _presenter = ArgumentPresenter.Sections;
+
+        /// <summary>Milestone 1's stills: the debate presenter (-battle-presenter debate).</summary>
+        IEnumerator DebateStills()
+        {
+            _presenter = ArgumentPresenter.Debate;
             // 1. Lena, honest, with a player's slips: the debate, the case file, a wrong card, Because, a reply mid-line,
             // a break, phases, the three rings, the ending and its card.
             var host = Begin(DreamLenaDemo.Build(), All(ArgumentDifficulty.Normal, 21), false, BattlePilot.Mistake.WrongCard, BattlePilot.Mistake.WrongReason);
@@ -194,7 +306,7 @@ namespace JamKit.Argument
 
             // 3. Composure: a player who neither moves nor answers (started at 124 bpm to get there sooner).
             host = Begin(DreamLenaDemo.Build(), All(ArgumentDifficulty.Normal, 45), null);
-            yield return Until(() => host == null || host.Flow.State == BattleState.Debate || host.Flow.State == BattleState.Pressure, 40f);
+            yield return Until(() => host == null || host.Flow.State == BattleState.Debate || host.Flow.State == BattleState.Argue || host.Flow.State == BattleState.Pressure, 40f);
             if (host != null) host.Engine.Hurt(3);
             yield return Collect(host, 1, false,
                 new Moment("14-heart-racing", "her heart at 142: the room closing in", f => f.Engine.HeartStep >= 4 && f.State == BattleState.Debate, 0.6f),
@@ -208,7 +320,7 @@ namespace JamKit.Argument
             heard.evidence.AddRange(DreamLenaDemo.EvidenceWithoutWalt);
             host = Begin(DreamLenaDemo.Build(), heard, false);
             yield return Collect(host, 4, false, new Moment("18-ending-heardout", "the end beat: heard out", f => f.State == BattleState.Ending && f.EndingProgress > 0.35f));
-            yield return EndCard(host, "19-endcard-heardout", "the end card: heard out (her planisphere)");
+            yield return EndCard(host, "19-endcard-heardout", "the end card: heard out (her watch)");
 
             // 5. Giving in: no cards at all.
             host = Begin(DreamLenaDemo.Build(), new ArgumentSetup { seed = 61 }, false);
@@ -264,10 +376,10 @@ namespace JamKit.Argument
 
         /// <summary>Starts a battle; <paramref name="human"/> null: nobody plays it (it stands still), false: the fast
         /// autopilot, true: the human-paced one.</summary>
-        static ArgumentHost Begin(ArgumentDef def, ArgumentSetup setup, bool? human, params BattlePilot.Mistake[] mistakes)
+        ArgumentHost Begin(ArgumentDef def, ArgumentSetup setup, bool? human, params BattlePilot.Mistake[] mistakes)
         {
             ArgumentHost.Current?.Close(false);
-            var host = ArgumentHost.Begin(def, setup);
+            var host = ArgumentHost.Begin(def, setup, null, _presenter);
             if (host != null && human.HasValue) host.SetAutopilot(true, human.Value, mistakes);
             return host;
         }

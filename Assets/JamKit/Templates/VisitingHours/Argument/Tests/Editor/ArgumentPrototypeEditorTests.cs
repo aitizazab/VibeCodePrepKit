@@ -28,8 +28,8 @@ namespace JamKit.Argument.Tests
             ArgumentHost.OverrideExpression(null);
         }
 
-        static BattleFlow Flow(ArgumentDifficulty d = ArgumentDifficulty.Story) =>
-            new BattleFlow(new ArgumentEngine(DreamLenaDemo.Build(), new ArgumentSetup { difficulty = d, allEvidence = true, seed = 3 }));
+        static BattleFlow Flow(ArgumentDifficulty d = ArgumentDifficulty.Story, ArgumentPresenter presenter = ArgumentPresenter.Debate) =>
+            new BattleFlow(new ArgumentEngine(DreamLenaDemo.Build(), new ArgumentSetup { difficulty = d, allEvidence = true, seed = 3 }), presenter);
 
         static void Run(ArgumentStage stage, BattleFlow flow, float seconds, BattlePilot pilot = null)
         {
@@ -368,7 +368,8 @@ namespace JamKit.Argument.Tests
         [Test]
         public void TheChaptersAreNamedForEverySetting()
         {
-            Assert.That(ArgumentPrototype.Chapters, Has.Length.EqualTo(6));
+            Assert.That(ArgumentPrototype.Chapters, Has.Length.EqualTo(7));
+            Assert.That(ArgumentPrototype.Chapters, Does.Contain(ArgumentPrototype.Debate), "the debate (milestone 1) behind its own chapter");
             Assert.That(ArgumentPrototype.SetupFor(ArgumentPrototype.Walt).evidence, Does.Contain(WaltNight1.WaltDead), "the tutorial with Night 1's deduction");
             Assert.That(ArgumentPrototype.SetupFor(ArgumentPrototype.LongNight).difficulty, Is.EqualTo(ArgumentDifficulty.ScriptedButBeatable));
             Assert.That(ArgumentPrototype.SetupFor(ArgumentPrototype.Story).difficulty, Is.EqualTo(ArgumentDifficulty.Story));
@@ -380,20 +381,31 @@ namespace JamKit.Argument.Tests
         [Test]
         public void TheStageDrawsAWholeBattleWithoutAnError()
         {
-            // Every state of a battle, rendered frame by frame (no panel: the layout isn't measured, the drawing still runs).
+            // Every state of a battle, rendered frame by frame (no panel: the layout isn't measured, the drawing still runs),
+            // in both presenters: the sections (round 2) with her sky, and the debate (milestone 1).
             var parent = new VisualElement();
             var stage = new ArgumentStage(parent);
-            var flow = Flow();
-            var seen = new System.Collections.Generic.HashSet<BattleState>();
-            var pilot = new BattlePilot(false, BattlePilot.Mistake.WrongReason, BattlePilot.Mistake.Press);
-            for (int i = 0; i < 60 * 400 && !flow.Over; i++)
+            BattleFlow flow = null;
+            foreach (var presenter in new[] { ArgumentPresenter.Sections, ArgumentPresenter.Debate })
             {
-                flow.Tick(1f / 60f, pilot.Steer(flow, 1f / 60f));
-                if (i % 3 == 0) stage.Render(flow, 3f / 60f, "hints", null, false, 1f);
-                seen.Add(flow.State);
+                flow = Flow(ArgumentDifficulty.Story, presenter);
+                var seen = new System.Collections.Generic.HashSet<BattleState>();
+                bool sky = false;
+                var pilot = new BattlePilot(false, BattlePilot.Mistake.WrongReason, BattlePilot.Mistake.Press);
+                for (int i = 0; i < 60 * 400 && !flow.Over; i++)
+                {
+                    flow.Tick(1f / 60f, pilot.Steer(flow, 1f / 60f));
+                    if (i % 3 == 0) stage.Render(flow, 3f / 60f, "hints", null, false, 1f);
+                    seen.Add(flow.State);
+                    sky |= flow.Sky;
+                }
+                Assert.That(flow.Over, Is.True, presenter + ": the battle ends");
+                var states = presenter == ArgumentPresenter.Sections
+                    ? new[] { BattleState.Argue, BattleState.Pressure, BattleState.Because, BattleState.Showdown, BattleState.Ending }
+                    : new[] { BattleState.Debate, BattleState.Because, BattleState.Showdown, BattleState.Ending };
+                foreach (var st in states) Assert.That(seen, Does.Contain(st), presenter + ": " + st);
+                if (presenter == ArgumentPresenter.Sections) Assert.That(sky, Is.True, "the sections reached her sky");
             }
-            Assert.That(flow.Over, Is.True, "the battle ends");
-            foreach (var st in new[] { BattleState.Debate, BattleState.Because, BattleState.Showdown, BattleState.Ending }) Assert.That(seen, Does.Contain(st), st.ToString());
             stage.ShowCaseFile(flow, true);
             Assert.That(stage.CaseFileShown, Is.True);
             stage.ShowCaseFile(flow, false);

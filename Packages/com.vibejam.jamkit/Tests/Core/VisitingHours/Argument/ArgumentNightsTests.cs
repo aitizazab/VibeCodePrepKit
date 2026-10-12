@@ -241,7 +241,7 @@ namespace JamKit.Tests.Argument
 
             // The plan's table: every card the battle has, and what breaks what.
             var lena = DreamLenaDemo.Structure();
-            Assert.That(lena.evidence.Select(c => c.id), Is.EquivalentTo(DreamLenaDemo.Cards));
+            Assert.That(lena.evidence.Select(c => c.id), Is.EquivalentTo(DreamLenaDemo.Cards.Concat(DreamLenaDemo.Quotes)), "the cards, and her own words (caught in play)");
             Assert.That(lena.Premise("L1b").ChallengeFor(DreamLenaDemo.FourthChair), Is.Not.Null);
             Assert.That(lena.Premise("L3b").ChallengeFor(DreamLenaDemo.SaturdayOff), Is.Not.Null);
             Assert.That(lena.Premise("L3c").ChallengeFor(DreamLenaDemo.SameSaturday), Is.Not.Null);

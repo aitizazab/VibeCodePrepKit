@@ -32,6 +32,11 @@ namespace JamKit.Argument
         readonly PressureSweep _sweep = new PressureSweep(), _rest = new PressureSweep();
         readonly bool _settleEarly;
         bool _survives;
+        // Her sky: only spots on her lines can be reached (the light moves along them).
+        readonly bool[] _mask;
+        Rails _maskRails;
+        int _maskVersion = -1;
+        bool _useMask;
 
         /// <param name="cell">Grid spacing (surface units).</param>
         /// <param name="dt">Seconds per step.</param>
@@ -73,6 +78,17 @@ namespace JamKit.Argument
             _state = new byte[_cells];
             _from = new int[(_maxSteps + 1) * _cells];
             _path = new Vector2[_maxSteps + 1];
+            _mask = new bool[_cells];
+        }
+
+        /// <summary>On rails, only the spots on the lines count (within three quarters of a cell of one).</summary>
+        void PrepareMask(Rails rails)
+        {
+            _useMask = rails != null && rails.Walkable > 0;
+            if (!_useMask || (rails == _maskRails && rails.Version == _maskVersion)) return;
+            _maskRails = rails;
+            _maskVersion = rails.Version;
+            for (int c = 0; c < _cells; c++) _mask[c] = rails.DistanceTo(Spot(c)) <= _cell * 0.75f;
         }
 
         /// <summary>Seconds between the path's points.</summary>
@@ -103,6 +119,7 @@ namespace JamKit.Argument
         public bool Plan(PressurePhase phase, Vector2 start, float minAge, Vector2 home, float delay)
         {
             _delay = delay;
+            PrepareMask(phase.Rails);
             float threatEnd = phase.ThreatEnd(minAge) - delay;
             float end = Math.Min(threatEnd, _maxSteps * _dt);
             int steps = Math.Max(1, Math.Min(_maxSteps, (int)Math.Ceiling(end / _dt) + 1));
@@ -122,6 +139,7 @@ namespace JamKit.Argument
                     {
                         int n = nj * _nx + ni;
                         if (Vector2.Distance(Spot(n), start) > _move + 1e-4f) continue;
+                        if (_useMask && !_mask[n]) continue;
                         if (_sweep.Hurts(Spot(n), _pad)) continue;
                         _reach[n] = true;
                         _from[_cells + n] = -1;
@@ -207,6 +225,7 @@ namespace JamKit.Argument
 
         bool Safe(int c)
         {
+            if (_useMask && !_mask[c]) return false;
             byte st = _state[c];
             if (st == 0)
             {

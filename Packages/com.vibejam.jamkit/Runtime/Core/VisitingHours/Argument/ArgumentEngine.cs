@@ -43,6 +43,9 @@ namespace JamKit.Argument
         /// <summary>Nadia has already said sorry out loud at his bedside (Day 1's "the phone"): the painful premise ("He
         /// called you first") is on the table from the start, and her admission reads that way (the <c>sorry</c> meter).</summary>
         public bool admitted;
+        /// <summary>The sections presenter is playing it (arguing and dodging take turns; docs/redesign/battle.md, round 2):
+        /// the coach's first lesson is the argue section, and lines can read it (the <c>sections</c> meter).</summary>
+        public bool sections;
     }
 
     /// <summary>What picking a piece of evidence against a premise leads to.</summary>
@@ -56,6 +59,8 @@ namespace JamKit.Argument
         TrueOne,
         /// <summary>It can't be broken tonight (the lesson).</summary>
         Unbreakable,
+        /// <summary>The card breaks nothing here, but it gets an answer of its own (<see cref="AsideDef"/>); no cost.</summary>
+        Aside,
         /// <summary>Not now: not standing, not hers, the battle's over or a pressure phase is up.</summary>
         NotAllowed,
     }
@@ -106,7 +111,13 @@ namespace JamKit.Argument
         bool _pending, _pendingPainful;
         int _pendingLevel;
         float _pendingSeconds; // a gesture's length; 0: a full phase
+        int _pendingHush, _pendingAnswer;
         ulong _phaseSeed;
+        // The sections presenter: her own words caught, asides heard, her sky, her notes, what's been taught.
+        readonly HashSet<string> _quotes = new HashSet<string>();
+        int _asides, _fullPhases;
+        bool _sky, _hushTaught, _answerTaught;
+        Rails _skyRails;
 
         public ArgumentEngine(ArgumentDef def, ArgumentSetup setup)
         {
@@ -148,6 +159,7 @@ namespace JamKit.Argument
         {
             anger = _anger, force = _setup.force + _presses, despair = _setup.despair, presses = _presses,
             antagonised = _antagonised, heat = _heat, sorry = _setup.admitted ? 1 : 0,
+            asides = _asides, sections = _setup.sections ? 1 : 0,
         };
 
         /// <summary>The line to say for <paramref name="id"/>: the first conditional variant that holds now, else
@@ -240,6 +252,8 @@ namespace JamKit.Argument
                 if (s != null && s.card != null && s.card.id == id) return SupporterHere(s);
             var card = _def.Evidence(id);
             if (card == null) return false;
+            // Her own words are in Nadia's hand only once she's caught them, whatever the setup gives.
+            if (card.IsQuote) return _quotes.Contains(id);
             if (_setup.allEvidence || card.UnlockedBy(_setup.evidence)) return true;
             return _setup.ledger != null && _setup.ledger.HasTruth(id);
         }
@@ -272,7 +286,7 @@ namespace JamKit.Argument
                 if (p != null && Status(p.id) == PremiseStatus.Standing) SupporterLines(p.id);
             // The tutorial's first lesson is the debate itself (move, keep clear); asking comes when the first statement
             // flies (the battle flow coaches it then). A battle played without the flow still hears both.
-            if (!Coach(ArgumentCoach.Debate)) Coach(ArgumentCoach.Ask);
+            if (!Coach(_setup.sections ? ArgumentCoach.Argue : ArgumentCoach.Debate)) Coach(ArgumentCoach.Ask);
             // Already said sorry at his bedside: what hurts most is on the table from the start (its phase still comes
             // when the night would have brought it out).
             if (_setup.admitted)
@@ -321,6 +335,18 @@ namespace JamKit.Argument
             var p = _def.Premise(id);
             var ev = _def.Evidence(evidenceId);
             string shown = ev != null ? ev.name : evidenceId;
+            var aside = p.AsideFor(evidenceId);
+            if (aside != null)
+            {
+                // Nothing breaks, nothing costs: she just has an answer (or hasn't).
+                Say(Speaker.Nadia, "Nadia", Or(Line(id + "." + evidenceId + ".aside", aside.line), S.Format("nadia.showNoTouch", "evidence", shown)), "");
+                Say(Speaker.Opponent, _def.opponent, Line(id + "." + evidenceId + ".aside.reply", aside.reply), aside.expression);
+                Logic(S.Format("logic.aside", "evidence", shown, "Evidence", Cap(shown), "premise", p.text, "opponent", _def.opponent));
+                _asides++;
+                _heard.Add(id);
+                AfterExchange(false);
+                return ChallengeStep.Aside;
+            }
             if (p.unbreakable)
             {
                 Say(Speaker.Nadia, "Nadia", S.Format("nadia.showUnbreakable", "evidence", shown, "premise", p.text), "");
@@ -585,6 +611,33 @@ namespace JamKit.Argument
             return true;
         }
 
+        /// <summary>Her own words (a quote card), caught as she said them: the card is in Nadia's hand from now on. False if
+        /// it's no quote of this battle's or already caught.</summary>
+        public bool CatchQuote(string evidenceId)
+        {
+            if (_ended) return false;
+            var ev = _def.Evidence(evidenceId);
+            if (ev == null || !ev.IsQuote || !_quotes.Add(evidenceId)) return false;
+            Logic(S.Format("logic.quote", "quote", ev.words, "opponent", _def.opponent, "evidence", ev.name));
+            return true;
+        }
+
+        public bool Caught(string evidenceId) => _quotes.Contains(evidenceId);
+        /// <summary>Cards shown that got an answer of their own (<see cref="AsideDef"/>).</summary>
+        public int Asides => _asides;
+
+        /// <summary>Her sky is open (the sections presenter, after the painful phase): from now on every phase but the three
+        /// rings is played on <paramref name="rails"/> (her constellation), with streaks along her lit lines.</summary>
+        public void OpenSky(Rails rails)
+        {
+            _sky = true;
+            _skyRails = rails;
+        }
+
+        public bool SkyOpen => _sky;
+        /// <summary>Full phases begun so far (not gestures): her notes start with the second.</summary>
+        public int FullPhases => _fullPhases;
+
         /// <summary>Hidden premises a slip would reveal (the debate seeds its pages and planes from these).</summary>
         public void SlipsWaiting(List<SlipSeed> into)
         {
@@ -676,21 +729,29 @@ namespace JamKit.Argument
                 _pendingLevel = Math.Max(_pendingLevel, level);
                 _pendingPainful |= painful;
                 _pendingSeconds = 0f; // a full phase wins over a gesture
+                _pendingHush = _pendingAnswer = 0;
                 return;
             }
             _pending = true;
             _pendingLevel = level;
             _pendingPainful = painful;
             _pendingSeconds = 0f;
+            _pendingHush = _pendingAnswer = 0;
         }
 
         /// <summary>A gesture (docs/argument-ideas/SELECTION.md 2): a short phase of <paramref name="seconds"/> after one of
         /// their replies, shaped by its feeling. Nothing if a phase is already coming.</summary>
-        public void QueueGesture(int level, float seconds)
+        public void QueueGesture(int level, float seconds) => QueueGesture(level, seconds, 0, 0);
+
+        /// <summary>A gesture with her care in it (<paramref name="hush"/> rings that pass a light holding still) or her
+        /// question (<paramref name="answer"/> waves that pass a light that moves): SELECTION.md 3.</summary>
+        public void QueueGesture(int level, float seconds, int hush, int answer)
         {
             if (_ended || _pending || _pressure != null) return;
             Queue(level, false);
             _pendingSeconds = Math.Max(2f, seconds);
+            _pendingHush = Math.Max(0, hush);
+            _pendingAnswer = Math.Max(0, answer);
         }
 
         /// <summary>The phase coming (or playing) is a gesture.</summary>
@@ -705,9 +766,36 @@ namespace JamKit.Argument
                     _slipBuffer.Add(new SlipSeed { premise = p.id, name = p.slipName });
             _phaseSeed = _phaseSeed * 6364136223846793005UL + 1442695040888963407UL;
             var spec = SpecFor(_pendingLevel, _pendingPainful);
-            if (_pendingSeconds > 0f && !spec.exemptFromRule) spec.duration = _pendingSeconds;
+            bool gesture = _pendingSeconds > 0f;
+            if (gesture && !spec.exemptFromRule) spec.duration = _pendingSeconds;
+            if (!spec.exemptFromRule && spec.calls == 0)
+            {
+                // Her care and her questions (the sections presenter's gestures); the first of each teaches (can't hurt).
+                if (_pendingHush > 0)
+                {
+                    spec.hush = _pendingHush;
+                    spec.hushTeach = !_hushTaught;
+                    // The first hush is the lesson: on a clear table, nothing else.
+                    if (spec.hushTeach) spec.only = true;
+                    _hushTaught = true;
+                    spec.duration = Math.Max(spec.duration, PressurePhase.HushSeconds * _pendingHush + 1.6f);
+                }
+                if (_pendingAnswer > 0)
+                {
+                    spec.answer = _pendingAnswer;
+                    spec.answerTeach = !_answerTaught;
+                    _answerTaught = true;
+                }
+                // Her notes: from the second full phase on, her pencil follows the light (in the kitchen: on her lines,
+                // with their dead ends, a pencil on your heels would be a trap).
+                if (!gesture && _def.notes && _setup.sections && _fullPhases >= 1 && !_sky) spec.trail = true;
+                if (_sky) spec.sky = true;
+            }
             _pendingSeconds = 0f;
+            _pendingHush = _pendingAnswer = 0;
+            if (!gesture) _fullPhases++;
             _pressure = new PressurePhase(spec, _phaseSeed, _slipBuffer);
+            if (_sky && spec.calls == 0 && _skyRails != null) _pressure.SetRails(_skyRails);
             _phases++;
             Coach(ArgumentCoach.Pressure);
         }
