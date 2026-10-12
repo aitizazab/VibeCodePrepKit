@@ -31,7 +31,8 @@ and the slips wear her down (the Long Night's slope).
 
 ## Round 2 (2026-10-13): the 3D cast, the chain on the hill, Look's light, Perf's list
 
-Not yet seen in Unity (agents can't run it); compile checks and the dotnet suites are green on these files.
+Not yet seen in Unity (agents can't run it); compile checks and the dotnet suites are green on these files. (The code
+landed in 8aa8139: a concurrent commit swept up the staged files under the House agent's message.)
 
 **The cast** (People's `VhCharacter`, docs/redesign/people.md; `VhWardPeople.Cast`): **Mags** in the booth by the desk
 (idle; she turns her head to Nadia within 5.5 m), **Rafael** behind the station's counter on Day 1 (idle) and in the
