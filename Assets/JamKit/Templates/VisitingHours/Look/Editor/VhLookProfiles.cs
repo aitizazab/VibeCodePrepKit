@@ -63,7 +63,7 @@ namespace JamKit.Look.EditorTools
             tm.mode.Override(TonemappingMode.ACES);
 
             var ca = Comp<ColorAdjustments>(p);
-            ca.postExposure.Override(-0.15f);
+            ca.postExposure.Override(-0.05f);   // round 1: foreground underexposed (+0.1)
             ca.contrast.Override(10f);
             ca.saturation.Override(12f);
             ca.colorFilter.Override(new Color(1f, 0.975f, 0.94f));
@@ -73,19 +73,21 @@ namespace JamKit.Look.EditorTools
             wb.tint.Override(3f);
 
             var st = Comp<SplitToning>(p);
-            st.shadows.Override(new Color(0.42f, 0.48f, 0.6f));     // cool, lilac-blue shadows
+            // Round 1: lilac-grey lawns and roads in shade. Half the lilac, and a warm lift in the shadows (bounce off the
+            // sunlit ground).
+            st.shadows.Override(new Color(0.46f, 0.49f, 0.55f));    // a cool hint, half pass 1's lilac
             st.highlights.Override(new Color(0.64f, 0.53f, 0.4f));  // warm highlights
-            st.balance.Override(-12f);
+            st.balance.Override(-6f);
 
             var smh = Comp<ShadowsMidtonesHighlights>(p);
-            smh.shadows.Override(Tone(0.96f, 0.98f, 1.06f, -0.02f));
+            smh.shadows.Override(Tone(1.03f, 1.0f, 0.95f, 0.01f));
             smh.midtones.Override(Tone(1.02f, 1f, 0.97f, 0f));
             smh.highlights.Override(Tone(1.05f, 1.0f, 0.93f, 0.02f));
 
             var bloom = Comp<Bloom>(p);
-            bloom.threshold.Override(1.05f);
-            bloom.intensity.Override(0.65f);
-            bloom.scatter.Override(0.72f);
+            bloom.threshold.Override(0.9f);
+            bloom.intensity.Override(1.0f);
+            bloom.scatter.Override(0.68f);
             bloom.tint.Override(new Color(1f, 0.9f, 0.78f));
             bloom.highQualityFiltering.Override(true);
 
@@ -109,7 +111,12 @@ namespace JamKit.Look.EditorTools
             atmo.hazeSunColor.Override(towards);
             atmo.hazeSunFocus.Override(5f);
             atmo.hazeMaxOpacity.Override(0.82f);
-            atmo.shaftIntensity.Override(0.55f);
+            // Far haze (round 1: "the far hill is as sharp and saturated as the near"): grows with distance from 150 m.
+            atmo.farHazeDensity.Override(0.0042f);
+            atmo.farHazeStart.Override(150f);
+            atmo.farHazeHeightFalloff.Override(0.0028f);
+            atmo.farHazeMaxOpacity.Override(0.97f);
+            atmo.shaftIntensity.Override(0.8f);
             atmo.shaftTint.Override(new Color(1f, 0.8f, 0.55f));
             atmo.shaftThreshold.Override(1.1f);
             atmo.shaftLength.Override(0.75f);
@@ -150,6 +157,7 @@ namespace JamKit.Look.EditorTools
             grain.intensity.Override(0.15f);
             var atmo = Comp<VhAtmosphere>(p);
             atmo.hazeDensity.Override(0f);
+            atmo.farHazeDensity.Override(0f);
             atmo.shaftIntensity.Override(0f);
             EditorUtility.SetDirty(p);
             return p;
@@ -183,6 +191,7 @@ namespace JamKit.Look.EditorTools
             grain.intensity.Override(0.1f);
             var atmo = Comp<VhAtmosphere>(p);
             atmo.hazeDensity.Override(0f);
+            atmo.farHazeDensity.Override(0f);
             atmo.shaftIntensity.Override(0f);
             EditorUtility.SetDirty(p);
             return p;

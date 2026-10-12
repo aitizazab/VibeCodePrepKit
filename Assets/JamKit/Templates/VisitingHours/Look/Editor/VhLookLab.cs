@@ -2,23 +2,38 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.SceneManagement;
 
 namespace JamKit.Look.EditorTools
 {
     /// <summary>
-    /// LookLab: a lit street corner for judging the look (Look/Scenes/LookLab.unity): a two-storey clapboard house with
-    /// recessed windows, trim, gutters, a porch and a chimney; a brick neighbour; a lawn with a picket fence and a board
-    /// fence; kerbs, sidewalks, an intersection; trees; a covered car in the driveway; a manhole; and a hillside of trees and
-    /// houses rising north into the haze. Everything uses the Look library. Built by <see cref="Build"/>, captured by
-    /// <see cref="Capture"/> (out/look-captures/&lt;time&gt;/).
+    /// LookLab: a lit street corner for judging the look (Look/Scenes/LookLab.unity). Pass 2, after the judge's round 1:
+    /// <list type="bullet">
+    /// <item>The ground is a Unity Terrain with four blended layers (lawn, dry gold grass, dirt, clover) under a large
+    /// variation mask, with grass and wildflower tufts in drifts and as overhang along every paving edge, leaf litter in the
+    /// gutters, oil and dirt stains, kerb-inlet storm drains, an iron manhole.</item>
+    /// <item>The cross street climbs the hill (kerbs and sidewalks with it) to a second street halfway up and a crest road at
+    /// the top: no dead end. Houses (VhLookHouses, far LOD: windows, doors, eaves, trim, porches, chimneys) line both, set
+    /// back on lots, with driveways; stands of trees of four species between them.</item>
+    /// <item>The world is closed by a terrain ring to ~2.9 km (VhLookBackdrop): farmland hills, tree stands, wooded ridges,
+    /// dissolving into the far haze.</item>
+    /// <item>The main house and the bungalow next door are VhLookHouses at full detail; trees are VhLookTrees' species.</item>
+    /// <item>A golden-hour Saturday soundscape (VhLookAmbience) and a frame-time probe path (VhPerfPath) along the shots.</item>
+    /// </list>
+    /// Built by <see cref="Build"/>, captured by <see cref="Capture"/> (out/look-captures/&lt;time&gt;/): the ten shots of
+    /// round 1 (same views, for comparison) plus two: into the sun through a crown, and a wide street view.
     /// </summary>
     public static class VhLookLab
     {
         public const string ScenePath = VhLookLibrary.LookRoot + "Scenes/LookLab.unity";
+        public const string TerrainPath = VhLookLibrary.LookRoot + "Scenes/LookLab_Terrain.asset";
+
+        // The terrain's extent (x/z) and the hill streets.
+        static readonly Rect TerrainRect = new Rect(-340f, -90f, 680f, 740f);
+        const float CrossX = 30f, RowanZ = 200f, CrestZ = 622f;
 
         [MenuItem("JamKit/Look/Build LookLab")]
         static void Menu()
@@ -30,35 +45,46 @@ namespace JamKit.Look.EditorTools
         public static string Build()
         {
             VhLookLibrary.Build();
+            VhLookAmbience.ConfigureImporters();
             VhLookSetup.InstallRendererFeatures();
             VhLookProfiles.BuildAll();
             Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             var world = new GameObject("LookLab (street corner)").transform;
+            Terrain(world);
             Street(world);
-            House(world, new Vector3(-8f, 0f, 18f), 14f, 10f, VhLookLibrary.Tinted("Clapboard_Painted", "Sage", new Color(0.72f, 0.8f, 0.66f)));
-            Neighbour(world);
+            HillStreets(world);
+            var mainSpec = VhLookHouses.Spec.Clapboard(new Color(0.72f, 0.8f, 0.66f), 2);
+            mainSpec.width = 14f; mainSpec.depth = 10f; mainSpec.roofRise = 3.3f;
+            mainSpec.roof = VhLookLibrary.Get("Roof_ShinglesAsphalt");
+            mainSpec.door = VhLookLibrary.Paint("DoorRed", new Color(0.55f, 0.13f, 0.1f), 1.4f);
+            VhLookHouses.Build(world, new Vector3(-8f, 0f, 18f), 0f, mainSpec, VhLookHouses.Lod.Full, Ground, "House (clapboard, two storeys)");
+            var bungalow = VhLookHouses.Spec.Brick(5);
+            bungalow.width = 16f; bungalow.depth = 11f;
+            VhLookHouses.Build(world, new Vector3(-34f, 0f, 17f), 0f, bungalow, VhLookHouses.Lod.Full, Ground, "Neighbour (brick bungalow)");
             Fences(world);
             Planting(world);
-            Hillside(world);
+            HillTrees(world);
+            GroundDetail(world);
             var car = VhLookLibrary.Prop("CoveredCar", world, new Vector3(10f, 0.11f, 15.5f), 0f);
             if (car != null) AlignLongAxisToZ(car);
             var manhole = VhLookLibrary.Prop("ManholeCover", world, new Vector3(16f, 0.004f, 1.6f), 0f);
             if (manhole != null) { var c = manhole.GetComponent<Collider>(); if (c != null) UnityEngine.Object.DestroyImmediate(c); }
 
-            // A warm lamp inside the house (seen through the front windows).
-            var lamp = new GameObject("Lamp inside (warm)").AddComponent<Light>();
-            lamp.transform.SetParent(world, false);
-            lamp.transform.position = new Vector3(-3f, 2.2f, 21f);
-            lamp.type = LightType.Point;
-            lamp.range = 7f;
-            lamp.intensity = 2.2f;
-            lamp.color = new Color(1f, 0.72f, 0.45f);
-            lamp.shadows = LightShadows.None;
+            VhLookBackdrop.Build(world, new VhLookBackdrop.Options
+            {
+                center = new Vector3(0f, 0f, 280f), innerRadius = 330f, outerRadius = 2900f, nearHeight = Ground, hole = TerrainRect,
+                blendDistance = 650f, seed = 7,
+            });
+
+            // Warm lamps inside the houses (seen through the windows).
+            Lamp(world, new Vector3(-3f, 2.6f, 21f), 2.2f);
+            Lamp(world, new Vector3(-26f, 2.2f, 21f), 1.6f);
 
             var camGo = new GameObject("Main Camera") { tag = "MainCamera" };
             var cam = camGo.AddComponent<Camera>();
+            camGo.AddComponent<AudioListener>();
             camGo.transform.position = new Vector3(24f, 1.7f, -10f);
             camGo.transform.LookAt(new Vector3(-2f, 4f, 20f));
             cam.fieldOfView = 60f;
@@ -67,10 +93,32 @@ namespace JamKit.Look.EditorTools
             VhLook.ApplyGoldenHour(scene, new VhLook.Options { sunAzimuth = 250f, sunElevation = 10f });
             VhLook.AddReflectionProbe(scene, new Vector3(0f, 4f, 2f), new Vector3(120f, 16f, 30f), 1, "Reflection probe (street)");
             VhLook.AddReflectionProbe(scene, new Vector3(-1f, 3.5f, 23f), new Vector3(14f, 6f, 10f), 2, "Reflection probe (house)");
+            VhLookAmbience.AddSaturdayDefault(world, new Vector3(5f, 0f, 10f), 1);
+            // Probes round the street only (the hill and the ring are lit by the sky; a global volume over 0.5 km2 of
+            // terrain would make the bake slow and heavy).
+            var pvGo = new GameObject("Probe volume (the street)");
+            pvGo.transform.SetParent(world, false);
+            pvGo.transform.position = new Vector3(0f, 8f, 12f);
+            var pv = pvGo.AddComponent<ProbeVolume>();
+            pv.mode = ProbeVolume.Mode.Local;
+            pv.size = new Vector3(150f, 22f, 70f);
+            PerfPath(world);
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.SaveAssets();
             Debug.Log("JAMKIT_LOOK LookLab built: " + ScenePath);
             return ScenePath;
+        }
+
+        static void Lamp(Transform world, Vector3 p, float intensity)
+        {
+            var lamp = new GameObject("Lamp inside (warm)").AddComponent<Light>();
+            lamp.transform.SetParent(world, false);
+            lamp.transform.position = p;
+            lamp.type = LightType.Point;
+            lamp.range = 7f;
+            lamp.intensity = intensity;
+            lamp.color = new Color(1f, 0.72f, 0.45f);
+            lamp.shadows = LightShadows.None;
         }
 
         // ---------- The capture ----------
@@ -80,6 +128,8 @@ namespace JamKit.Look.EditorTools
         public static List<VhLookCapture.Shot> Shots()
         {
             Vector3 eye8 = new Vector3(0f, 1.7f, 0f);
+            // Shot 11: under the corner tree's crown edge, the sun low through its lower leaves.
+            var eye11 = new Vector3(20f, 1.5f, 10f) - new Vector3(ToSun.x, 0f, ToSun.z).normalized * 12f;
             return new List<VhLookCapture.Shot>
             {
                 new VhLookCapture.Shot("01-street-corner", new Vector3(24f, 1.7f, -10f), new Vector3(-2f, 4f, 20f), 60f),
@@ -92,6 +142,8 @@ namespace JamKit.Look.EditorTools
                 new VhLookCapture.Shot("08-sky-sunward", eye8, eye8 + new Vector3(ToSun.x, 0.32f, ToSun.z), 70f),
                 new VhLookCapture.Shot("09-sky-away", eye8, eye8 + new Vector3(-ToSun.x, 0.35f, -ToSun.z), 70f),
                 new VhLookCapture.Shot("10-cross-street-uphill", new Vector3(31f, 1.7f, 2f), new Vector3(29f, 4f, 80f), 60f),
+                new VhLookCapture.Shot("11-into-the-sun-foliage", eye11, eye11 + ToSun * 20f + Vector3.up * 0.6f, 55f),
+                new VhLookCapture.Shot("12-street-wide", new Vector3(62f, 4.5f, -14f), new Vector3(-10f, 6f, 45f), 65f),
             };
         }
 
@@ -108,6 +160,19 @@ namespace JamKit.Look.EditorTools
             return VhLookCapture.Capture(ScenePath, Shots(), "look-captures");
         }
 
+        static void PerfPath(Transform world)
+        {
+            var go = new GameObject("Perf path (the shots)");
+            go.transform.SetParent(world, false);
+            var path = go.AddComponent<VhPerfPath>();
+            var shots = Shots();
+            path.eyes = new Vector3[shots.Count];
+            path.looks = new Vector3[shots.Count];
+            for (int i = 0; i < shots.Count; i++) { path.eyes[i] = shots[i].eye; path.looks[i] = shots[i].look; }
+            path.secondsPerLeg = 3.5f;
+            path.fieldOfView = 60f;
+        }
+
         // ---------- Batch entry points (main runs these; see docs/redesign/look.md) ----------
 
         /// <summary>-executeMethod JamKit.Look.EditorTools.VhLookLab.BuildFromCommandLine (imports, library, renderer feature,
@@ -115,18 +180,39 @@ namespace JamKit.Look.EditorTools
         public static void BuildFromCommandLine() => Run(() => { Build(); return 0; });
 
         /// <summary>-executeMethod JamKit.Look.EditorTools.VhLookLab.BakeFromCommandLine (GPU: probes, reflections, ambient).</summary>
-        public static void BakeFromCommandLine() => Run(() => VhLook.BakeScene(ScenePath) ? 0 : 2);
+        public static void BakeFromCommandLine() => Run(() => VhLook.BakeScene(ScenePath, 3f) ? 0 : 2);
 
-        /// <summary>-executeMethod JamKit.Look.EditorTools.VhLookLab.CaptureFromCommandLine (GPU: ten 1920x1080 stills).</summary>
+        /// <summary>-executeMethod JamKit.Look.EditorTools.VhLookLab.CaptureFromCommandLine (GPU: twelve 1920x1080 stills).</summary>
         public static void CaptureFromCommandLine() => Run(() => { Debug.Log("JAMKIT_LOOK_CAPTURE_OK " + Capture()); return 0; });
 
         /// <summary>-executeMethod JamKit.Look.EditorTools.VhLookLab.AllFromCommandLine: build, bake, capture in one run.</summary>
         public static void AllFromCommandLine() => Run(() =>
         {
             Build();
-            bool baked = VhLook.BakeScene(ScenePath);
+            bool baked = VhLook.BakeScene(ScenePath, 3f);
             Debug.Log("JAMKIT_LOOK_CAPTURE_OK " + Capture() + (baked ? "" : " (bake failed: unbaked lighting)"));
             return baked ? 0 : 2;
+        });
+
+        /// <summary>
+        /// -executeMethod JamKit.Look.EditorTools.VhLookLab.BuildPerfPlayerFromCommandLine [-vhOut out/look-perf]: a Windows
+        /// player of LookLab alone, for the frame-time probe (run it with -perf-probe; see VhPerfProbe).
+        /// </summary>
+        public static void BuildPerfPlayerFromCommandLine() => Run(() =>
+        {
+            if (!File.Exists(ScenePath)) Build();
+            string dir = VhLookArgs.Get("-vhOut") ?? Path.Combine("out", "look-perf");
+            var options = new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath },
+                locationPathName = Path.Combine(dir, "LookLab.exe"),
+                target = BuildTarget.StandaloneWindows64,
+                options = BuildOptions.None,
+            };
+            var report = BuildPipeline.BuildPlayer(options);
+            Debug.Log("JAMKIT_LOOK perf player: " + report.summary.result + " -> " + Path.GetFullPath(options.locationPathName) +
+                      " (" + (report.summary.totalSize / (1024 * 1024)) + " MB)");
+            return report.summary.result == BuildResult.Succeeded ? 0 : 1;
         });
 
         static void Run(Func<int> body)
@@ -137,7 +223,124 @@ namespace JamKit.Look.EditorTools
             EditorApplication.Exit(code);
         }
 
-        // ---------- Building blocks ----------
+        // ---------- The ground ----------
+
+        /// <summary>The hill's own shape (0 on the flat street, rising north from z = 45).</summary>
+        static float Hill(float x, float z)
+        {
+            float rise = Mathf.Max(0f, z - 45f);
+            float h = rise * 0.11f + rise * rise * 0.00008f;
+            h += (Mathf.PerlinNoise(x * 0.012f + 3.1f, z * 0.012f + 7.7f) - 0.5f) * Mathf.Min(1f, rise / 60f) * 14f;
+            h += Mathf.Abs(x) * 0.02f * Mathf.Min(1f, rise / 80f);
+            return h;
+        }
+
+        static float Natural(float x, float z) => 0.1f + Hill(x, z);
+
+        /// <summary>The cross street's surface height (the hill smoothed along it), 0 on the flat.</summary>
+        static float CrossRoadY(float z)
+        {
+            float s = 0f;
+            for (int k = -4; k <= 4; k++) s += Hill(CrossX, z + k * 4f);
+            return s / 9f;
+        }
+
+        static float SmoothAlongX(float x, float z)
+        {
+            float s = 0f;
+            for (int k = -4; k <= 4; k++) s += Hill(x + k * 4f, z);
+            return s / 9f;
+        }
+
+        /// <summary>Rowan Street (east-west, halfway up) and the crest road: the hill smoothed along them, meeting the cross
+        /// street at its own height.</summary>
+        static float RowanY(float x) => SmoothAlongX(x, RowanZ) - SmoothAlongX(CrossX, RowanZ) + CrossRoadY(RowanZ);
+        static float CrestY(float x) => SmoothAlongX(x, CrestZ) - SmoothAlongX(CrossX, CrestZ) + CrossRoadY(CrestZ);
+
+        /// <summary>Beside a road (6.6-15.6 m from its line): the ground eases from the lawn level next to the sidewalk back to
+        /// the natural slope.</summary>
+        static float Verge(float g, float d, float roadY)
+        {
+            if (d < 6.6f || d >= 15.6f) return g;
+            return Mathf.Lerp(roadY + 0.1f, g, Mathf.SmoothStep(0f, 1f, (d - 6.6f) / 9f));
+        }
+
+        /// <summary>Under a road and its sidewalks (within 6.6 m): a little below the surface (the paving sits on it), rising
+        /// to the lawn level at the sidewalk's outer edge. +inf outside.</summary>
+        static float Bed(float d, float roadY)
+        {
+            if (d >= 6.6f) return float.PositiveInfinity;
+            if (d < 5.8f) return roadY - 0.12f;
+            return Mathf.Lerp(roadY - 0.12f, roadY + 0.1f, (d - 5.8f) / 0.8f);
+        }
+
+        /// <summary>The ground height everywhere (terrain, tufts, trees, houses, the backdrop's near edge).</summary>
+        public static float Ground(float x, float z)
+        {
+            float g = Natural(x, z);
+            bool mainOn = Mathf.Abs(x) < 345f;
+            bool crossOn = z > -6f && z < CrestZ + 8f;
+            float dMain = Mathf.Abs(z), dCross = Mathf.Abs(x - CrossX), dRowan = Mathf.Abs(z - RowanZ), dCrest = Mathf.Abs(z - CrestZ);
+            float yCross = crossOn && dCross < 16f ? CrossRoadY(z) : 0f;
+            float yRowan = mainOn && dRowan < 16f ? RowanY(x) : 0f;
+            float yCrest = mainOn && dCrest < 16f ? CrestY(x) : 0f;
+            // Verges first (each road eases the ground towards its lawn level), then the road beds (lowest wins).
+            if (mainOn) g = Verge(g, dMain, 0f);
+            if (crossOn) g = Verge(g, dCross, yCross);
+            if (mainOn) g = Verge(g, dRowan, yRowan);
+            if (mainOn) g = Verge(g, dCrest, yCrest);
+            if (mainOn) g = Mathf.Min(g, Bed(dMain, 0f));
+            if (crossOn) g = Mathf.Min(g, Bed(dCross, yCross));
+            if (mainOn) g = Mathf.Min(g, Bed(dRowan, yRowan));
+            if (mainOn) g = Mathf.Min(g, Bed(dCrest, yCrest));
+            return g;
+        }
+
+        static bool OnPaving(float x, float z)
+        {
+            if (Mathf.Abs(z) < 6.4f) return true;                                   // main road and sidewalks
+            if (Mathf.Abs(x - CrossX) < 6.4f && z > -6f && z < CrestZ + 6.4f) return true;
+            if (Mathf.Abs(z - RowanZ) < 6.4f || Mathf.Abs(z - CrestZ) < 6.4f) return true;
+            if (x > 7.9f && x < 12.1f && z < 27.1f) return true;                    // driveway
+            if (x > -2.1f && x < 0f && z < 14.7f) return true;                      // front walk
+            return false;
+        }
+
+        static void Terrain(Transform world)
+        {
+            var t = VhLookGround.BuildTerrain(world, new VhLookGround.TerrainOptions
+            {
+                origin = new Vector3(TerrainRect.xMin, -2f, TerrainRect.yMin),
+                size = new Vector3(TerrainRect.width, 140f, TerrainRect.height),
+                height = Ground,
+                lawn = (x, z) => z < 44f && z > -60f ? 1f : Mathf.Clamp01(1f - (Mathf.Min(Mathf.Abs(x - CrossX), Mathf.Min(Mathf.Abs(z - RowanZ), Mathf.Abs(z - CrestZ))) - 10f) / 14f) * 0.7f,
+                dirt = DirtAt,
+                assetPath = TerrainPath,
+                seed = 3,
+                name = "Ground (terrain)",
+            });
+            t.gameObject.isStatic = true;
+        }
+
+        /// <summary>Bare earth: along the board fence and the foundations (beds), round the yard trees' bases, a worn path.</summary>
+        static float DirtAt(float x, float z)
+        {
+            float d = 0f;
+            if (z > 7f && z < 38f && Mathf.Abs(x + 12f) < 0.7f) d = Mathf.Max(d, 0.7f);              // the board fence's foot
+            if (x > -8.5f && x < 6.5f && z > 27.8f && z < 28.8f) d = Mathf.Max(d, 0.8f);             // behind the house
+            if (x > -34.5f && x < -17.5f && z > 16f && z < 17.1f) d = Mathf.Max(d, 0.8f);            // the bungalow's front bed
+            foreach (var p in YardTrees)
+            {
+                float r = Mathf.Sqrt((x - p.x) * (x - p.x) + (z - p.z) * (z - p.z));
+                d = Mathf.Max(d, Mathf.Clamp01(1.6f - r) * 0.9f);
+            }
+            // A worn footpath across the south verge.
+            float path = Mathf.Abs(z + 6.4f - (x + 40f) * 0.55f);
+            if (x > -40f && x < 10f && z < -6.4f && z > -40f && path < 0.45f) d = Mathf.Max(d, 0.75f);
+            return d;
+        }
+
+        // ---------- The street ----------
 
         static GameObject Box(string name, Transform parent, Vector3 min, Vector3 max, Material m, float bevel = 0.02f, bool collider = true)
         {
@@ -146,149 +349,35 @@ namespace JamKit.Look.EditorTools
             return go;
         }
 
-        /// <summary>A box in a wall's frame: u along the wall (right), v up, w inward from the outer face.</summary>
-        static GameObject WallBox(string name, Transform parent, Vector3 origin, Quaternion rot, float u0, float u1, float v0, float v1,
-            float w0, float w1, Material m, float bevel = 0.01f, bool collider = true)
-        {
-            var size = new Vector3(Mathf.Abs(u1 - u0), Mathf.Abs(v1 - v0), Mathf.Abs(w1 - w0));
-            var localCenter = new Vector3((u0 + u1) * 0.5f, (v0 + v1) * 0.5f, (w0 + w1) * 0.5f);
-            var go = VhLookUv.Block(name, parent, origin + rot * localCenter, size, m, bevel);
-            go.transform.rotation = rot;
-            if (!collider) UnityEngine.Object.DestroyImmediate(go.GetComponent<Collider>());
-            return go;
-        }
-
-        struct Opening
-        {
-            public float u0, v0, u1, v1;
-            public bool door;
-            public Opening(float u0, float v0, float u1, float v1, bool door = false) { this.u0 = u0; this.v0 = v0; this.u1 = u1; this.v1 = v1; this.door = door; }
-        }
-
-        /// <summary>
-        /// A wall with real openings: the solid parts are boxes around the holes (so windows have depth), and each opening gets
-        /// its trim, sill, glass and muntins (or a door).
-        /// </summary>
-        static void Wall(Transform parent, string name, Vector3 origin, Vector3 inward, float width, float height, float thickness,
-            List<Opening> openings, Material wall, Material trim, Material glass, Material door)
-        {
-            var rot = Quaternion.LookRotation(inward, Vector3.up);
-            var root = new GameObject(name).transform;
-            root.SetParent(parent, false);
-            // Column breakpoints along u.
-            var us = new List<float> { 0f, width };
-            foreach (var o in openings) { us.Add(o.u0); us.Add(o.u1); }
-            us.Sort();
-            for (int i = 0; i < us.Count - 1; i++)
-            {
-                float a = us[i], b = us[i + 1];
-                if (b - a < 1e-3f) continue;
-                float mid = (a + b) * 0.5f;
-                var vs = new List<float> { 0f, height };
-                foreach (var o in openings)
-                    if (mid > o.u0 && mid < o.u1) { vs.Add(o.v0); vs.Add(o.v1); }
-                vs.Sort();
-                for (int k = 0; k < vs.Count - 1; k++)
-                {
-                    float c = vs[k], d = vs[k + 1];
-                    if (d - c < 1e-3f) continue;
-                    float vm = (c + d) * 0.5f;
-                    bool hole = false;
-                    foreach (var o in openings)
-                        if (mid > o.u0 && mid < o.u1 && vm > o.v0 && vm < o.v1) hole = true;
-                    if (!hole) WallBox(name + " piece", root, origin, rot, a, b, c, d, 0f, thickness, wall, 0.004f);
-                }
-            }
-            foreach (var o in openings)
-            {
-                const float t = 0.1f, out_ = -0.05f;
-                WallBox("Trim L", root, origin, rot, o.u0 - t, o.u0, o.v0 - (o.door ? 0f : t), o.v1 + t, out_, 0.06f, trim, 0.01f, false);
-                WallBox("Trim R", root, origin, rot, o.u1, o.u1 + t, o.v0 - (o.door ? 0f : t), o.v1 + t, out_, 0.06f, trim, 0.01f, false);
-                WallBox("Trim head", root, origin, rot, o.u0 - t - 0.04f, o.u1 + t + 0.04f, o.v1 + t, o.v1 + t + 0.08f, out_ - 0.03f, 0.06f, trim, 0.012f, false);
-                // Reveal (the opening's inner faces, painted like the trim).
-                WallBox("Reveal L", root, origin, rot, o.u0, o.u0 + 0.02f, o.v0, o.v1, 0f, thickness, trim, 0.002f, false);
-                WallBox("Reveal R", root, origin, rot, o.u1 - 0.02f, o.u1, o.v0, o.v1, 0f, thickness, trim, 0.002f, false);
-                WallBox("Reveal top", root, origin, rot, o.u0, o.u1, o.v1 - 0.02f, o.v1, 0f, thickness, trim, 0.002f, false);
-                if (o.door)
-                {
-                    WallBox("Door", root, origin, rot, o.u0 + 0.02f, o.u1 - 0.02f, o.v0, o.v1 - 0.02f, 0.1f, 0.15f, door, 0.01f);
-                    // Raised panels and a brass knob.
-                    float pw = (o.u1 - o.u0 - 0.3f) * 0.5f;
-                    for (int r = 0; r < 2; r++)
-                        for (int cidx = 0; cidx < 2; cidx++)
-                        {
-                            float pu = o.u0 + 0.1f + cidx * (pw + 0.1f);
-                            float pv = o.v0 + 0.15f + r * 1.0f;
-                            WallBox("Door panel", root, origin, rot, pu, pu + pw, pv, pv + 0.8f, 0.085f, 0.1f, door, 0.015f, false);
-                        }
-                    WallBox("Door knob", root, origin, rot, o.u1 - 0.16f, o.u1 - 0.1f, o.v0 + 0.95f, o.v0 + 1.01f, 0.03f, 0.1f,
-                        VhLookLibrary.Paint("Brass", new Color(0.85f, 0.65f, 0.3f), 1.6f), 0.02f, false);
-                    continue;
-                }
-                WallBox("Sill", root, origin, rot, o.u0 - 0.14f, o.u1 + 0.14f, o.v0 - 0.07f, o.v0, -0.12f, 0.08f, trim, 0.015f, false);
-                WallBox("Glass", root, origin, rot, o.u0, o.u1, o.v0, o.v1, 0.11f, 0.12f, glass, 0.001f, false);
-                // Sash and muntins (a six-over-six look).
-                float uc = (o.u0 + o.u1) * 0.5f, vc = (o.v0 + o.v1) * 0.5f;
-                WallBox("Meeting rail", root, origin, rot, o.u0, o.u1, vc - 0.03f, vc + 0.03f, 0.07f, 0.11f, trim, 0.005f, false);
-                WallBox("Muntin v", root, origin, rot, uc - 0.015f, uc + 0.015f, o.v0, o.v1, 0.085f, 0.11f, trim, 0.004f, false);
-                for (int m = 1; m <= 2; m++)
-                {
-                    float vv = Mathf.Lerp(o.v0, vc, m / 3f);
-                    float vv2 = Mathf.Lerp(vc, o.v1, m / 3f);
-                    WallBox("Muntin h", root, origin, rot, o.u0, o.u1, vv - 0.012f, vv + 0.012f, 0.09f, 0.11f, trim, 0.003f, false);
-                    WallBox("Muntin h", root, origin, rot, o.u0, o.u1, vv2 - 0.012f, vv2 + 0.012f, 0.09f, 0.11f, trim, 0.003f, false);
-                }
-                WallBox("Sash", root, origin, rot, o.u0, o.u1, o.v0, o.v0 + 0.06f, 0.07f, 0.11f, trim, 0.005f, false);
-                // Curtains half drawn, just inside.
-                var curtain = VhLookLibrary.Tinted("Plaster_Interior", "Curtain", new Color(0.95f, 0.86f, 0.74f));
-                float cw = (o.u1 - o.u0) * 0.26f;
-                WallBox("Curtain L", root, origin, rot, o.u0 + 0.02f, o.u0 + cw, o.v0 + 0.05f, o.v1, thickness + 0.05f, thickness + 0.08f, curtain, 0.01f, false);
-                WallBox("Curtain R", root, origin, rot, o.u1 - cw, o.u1 - 0.02f, o.v0 + 0.05f, o.v1, thickness + 0.05f, thickness + 0.08f, curtain, 0.01f, false);
-            }
-        }
-
-        // ---------- The street ----------
-
         static void Street(Transform world)
         {
             var asphalt = VhLookLibrary.Get("Asphalt");
             var kerb = VhLookLibrary.Get("Concrete_Kerb");
             var walk = VhLookLibrary.Get("Concrete_Sidewalk");
-            var lawn = VhLookLibrary.Get("Grass_Lawn");
             var lane = VhLookLibrary.Get("Road_LaneLine");
             var root = new GameObject("Street").transform;
             root.SetParent(world, false);
 
-            // The main road (east-west) with its painted lane: the lane texture's lines run along V, so the top is turned.
-            var road = Box("Road (main)", root, new Vector3(-80f, -0.3f, -4f), new Vector3(80f, 0f, 4f), lane, 0.01f);
+            // The main road (east-west) with its painted lane, edge to edge of the terrain.
+            var road = Box("Road (main)", root, new Vector3(-335f, -0.3f, -4f), new Vector3(335f, 0f, 4f), lane, 0.01f);
             VhLookUv.BoxProject(road, true, 90f);
-            var laneMat = LaneMaterial(lane);
-            road.GetComponent<MeshRenderer>().sharedMaterial = laneMat;
-            // The cross street (north, up the hill).
-            var cross = Box("Road (cross street)", root, new Vector3(26f, -0.3f, 4f), new Vector3(34f, 0f, 120f), asphalt, 0.01f);
-            VhLookUv.BoxProject(cross);
+            road.GetComponent<MeshRenderer>().sharedMaterial = LaneMaterial(lane);
             Box("Intersection", root, new Vector3(26f, -0.3f, -4f), new Vector3(34f, 0.002f, 4f), asphalt, 0.005f);
+            Box("Kerb S", root, new Vector3(-335f, -0.2f, -4.3f), new Vector3(335f, 0.15f, -4f), kerb, 0.03f);
+            Box("Sidewalk S", root, new Vector3(-335f, -0.2f, -6.3f), new Vector3(335f, 0.15f, -4.3f), walk, 0.01f);
+            Box("Kerb N (west)", root, new Vector3(-335f, -0.2f, 4f), new Vector3(25.7f, 0.15f, 4.3f), kerb, 0.03f);
+            Box("Kerb N (east)", root, new Vector3(34.3f, -0.2f, 4f), new Vector3(335f, 0.15f, 4.3f), kerb, 0.03f);
+            Box("Sidewalk N (west)", root, new Vector3(-335f, -0.2f, 4.3f), new Vector3(23.7f, 0.15f, 6.3f), walk, 0.01f);
+            Box("Sidewalk N (east)", root, new Vector3(36.3f, -0.2f, 4.3f), new Vector3(335f, 0.15f, 6.3f), walk, 0.01f);
 
-            // Kerbs (15 cm) and sidewalks.
-            Box("Kerb S", root, new Vector3(-80f, -0.2f, -4.3f), new Vector3(80f, 0.15f, -4f), kerb, 0.03f);
-            Box("Sidewalk S", root, new Vector3(-80f, -0.2f, -6.3f), new Vector3(80f, 0.15f, -4.3f), walk, 0.01f);
-            Box("Verge S", root, new Vector3(-80f, -0.2f, -40f), new Vector3(80f, 0.1f, -6.3f), lawn, 0.01f);
-            Box("Kerb N (west)", root, new Vector3(-80f, -0.2f, 4f), new Vector3(25.7f, 0.15f, 4.3f), kerb, 0.03f);
-            Box("Kerb N (east)", root, new Vector3(34.3f, -0.2f, 4f), new Vector3(80f, 0.15f, 4.3f), kerb, 0.03f);
-            Box("Sidewalk N (west)", root, new Vector3(-80f, -0.2f, 4.3f), new Vector3(23.7f, 0.15f, 6.3f), walk, 0.01f);
-            Box("Sidewalk N (east)", root, new Vector3(36.3f, -0.2f, 4.3f), new Vector3(80f, 0.15f, 6.3f), walk, 0.01f);
-            Box("Kerb cross W", root, new Vector3(25.7f, -0.2f, 4.3f), new Vector3(26f, 0.15f, 120f), kerb, 0.03f);
-            Box("Kerb cross E", root, new Vector3(34f, -0.2f, 4.3f), new Vector3(34.3f, 0.15f, 120f), kerb, 0.03f);
-            Box("Sidewalk cross W", root, new Vector3(23.7f, -0.2f, 4.3f), new Vector3(25.7f, 0.15f, 120f), walk, 0.01f);
-            Box("Sidewalk cross E", root, new Vector3(34.3f, -0.2f, 4.3f), new Vector3(36.3f, 0.15f, 120f), walk, 0.01f);
-
-            // Lawns behind the sidewalks; a driveway; a flower bed under the house's windows.
-            Box("Lawn (the house)", root, new Vector3(-80f, -0.3f, 6.3f), new Vector3(23.7f, 0.1f, 40f), lawn, 0.01f);
-            Box("Lawn (east)", root, new Vector3(36.3f, -0.3f, 6.3f), new Vector3(80f, 0.1f, 40f), lawn, 0.01f);
-            Box("Driveway", root, new Vector3(8f, -0.2f, 6.3f), new Vector3(12f, 0.115f, 27f), VhLookLibrary.Get("Concrete_Sidewalk"), 0.02f);
-            Box("Flower bed", root, new Vector3(-8.6f, -0.2f, 16.6f), new Vector3(6.6f, 0.13f, 18f), VhLookLibrary.Get("Dirt"), 0.04f);
+            // Paths and beds on the house's lot.
+            Box("Driveway", root, new Vector3(8f, -0.2f, 6.3f), new Vector3(12f, 0.115f, 27f), walk, 0.02f);
+            Box("Flower bed (west)", root, new Vector3(-8.6f, -0.2f, 16.6f), new Vector3(-3.2f, 0.13f, 17.95f), VhLookLibrary.Get("Dirt"), 0.04f);
+            Box("Flower bed (east)", root, new Vector3(1.2f, -0.2f, 16.6f), new Vector3(6.6f, 0.13f, 17.95f), VhLookLibrary.Get("Dirt"), 0.04f);
             Box("Gravel path (side)", root, new Vector3(-11.2f, -0.2f, 18f), new Vector3(-9.2f, 0.12f, 30f), VhLookLibrary.Get("Gravel"), 0.02f);
             Box("Front walk", root, new Vector3(-2.0f, -0.2f, 6.3f), new Vector3(-0.1f, 0.13f, 14.64f), walk, 0.02f);
+            Box("Mailbox post", root, new Vector3(0.9f, 0.1f, 6.7f), new Vector3(1.0f, 1.15f, 6.8f), VhLookLibrary.Get("Fence_Planks"), 0.01f);
+            Box("Mailbox", root, new Vector3(0.75f, 1.15f, 6.5f), new Vector3(1.15f, 1.38f, 7.0f), VhLookLibrary.Paint("MailboxBlue", new Color(0.2f, 0.32f, 0.5f), 1.5f), 0.04f);
         }
 
         static Material LaneMaterial(Material lane)
@@ -304,263 +393,148 @@ namespace JamKit.Look.EditorTools
             return m;
         }
 
-        // ---------- The house ----------
+        // ---------- The hill streets: the cross street climbing to Rowan Street and the crest road ----------
 
-        static void House(Transform world, Vector3 corner, float width, float depth, Material siding)
+        /// <summary>A strip following a road's line: cross-section from <paramref name="a"/> to <paramref name="b"/> (metres
+        /// across the road, left to right), its top <paramref name="top"/> above the road surface, with side faces down to
+        /// 0.6 m below. <paramref name="along"/> runs along the road (z for the cross street, x for the others).</summary>
+        static void Strip(Transform parent, string name, bool alongZ, float line, float s0, float s1, float a, float b, float top,
+            Func<float, float> roadY, Material m, List<Vector2> skips = null, float step = 2f)
         {
-            var root = new GameObject("House (clapboard, two storeys)").transform;
-            root.SetParent(world, false);
-            var trim = VhLookLibrary.Paint("TrimWhite", new Color(0.95f, 0.94f, 0.9f));
-            var glass = VhLookLibrary.Glass();
-            var door = VhLookLibrary.Paint("DoorRed", new Color(0.55f, 0.13f, 0.1f), 1.4f);
-            var roofMat = VhLookLibrary.Get("Roof_ShinglesAsphalt");
-            var found = VhLookLibrary.Get("Concrete_Kerb");
-            float baseY = 0.7f, wallH = 5.6f, th = 0.22f;
-            float x0 = corner.x, z0 = corner.z, x1 = x0 + width, z1 = z0 + depth;
-
-            Box("Foundation", root, new Vector3(x0 - 0.06f, 0f, z0 - 0.06f), new Vector3(x1 + 0.06f, baseY, z1 + 0.06f), found, 0.03f);
-
-            // Front (faces -Z): two ground-floor windows, the door, three upstairs windows.
-            var front = new List<Opening>
+            var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var t = new List<int>();
+            Vector3 P(float s, float c, float dy)
             {
-                new Opening(1.2f, 1.0f, 2.6f, 2.8f), new Opening(3.4f, 1.0f, 4.8f, 2.8f),
-                new Opening(6.4f, 0f, 7.5f, 2.3f, true),
-                new Opening(9.2f, 1.0f, 10.6f, 2.8f), new Opening(11.4f, 1.0f, 12.8f, 2.8f),
-                new Opening(1.6f, 3.6f, 2.9f, 5.0f), new Opening(6.3f, 3.6f, 7.6f, 5.0f), new Opening(11.1f, 3.6f, 12.4f, 5.0f),
-            };
-            Wall(root, "Wall front", new Vector3(x0, baseY, z0), Vector3.forward, width, wallH, th, front, siding, trim, glass, door);
-            // West side (faces -X): two windows per floor.
-            var west = new List<Opening>
-            {
-                new Opening(2.0f, 1.0f, 3.4f, 2.8f), new Opening(6.4f, 1.0f, 7.8f, 2.8f),
-                new Opening(2.2f, 3.6f, 3.4f, 5.0f), new Opening(6.6f, 3.6f, 7.8f, 5.0f),
-            };
-            Wall(root, "Wall west", new Vector3(x0, baseY, z1 - th), Vector3.right, depth - 2f * th, wallH, th, west, siding, trim, glass, door);
-            Wall(root, "Wall east", new Vector3(x1, baseY, z0 + th), Vector3.left, depth - 2f * th, wallH, th,
-                new List<Opening> { new Opening(4.0f, 1.0f, 5.4f, 2.8f), new Opening(4.2f, 3.6f, 5.4f, 5.0f) }, siding, trim, glass, door);
-            Wall(root, "Wall back", new Vector3(x1, baseY, z1), Vector3.back, width, wallH, th, new List<Opening>(), siding, trim, glass, door);
-
-            // Inside: an inward-facing shell so the windows show a room, and a floor between the storeys.
-            var interior = VhLookLibrary.Tinted("Plaster_Interior", "WarmRoom", new Color(0.98f, 0.9f, 0.78f));
-            var shell = new GameObject("Interior shell");
-            shell.transform.SetParent(root, false);
-            var shellMesh = VhLookUv.BevelBox(new Vector3(width - 2f * th - 0.04f, wallH - 0.04f, depth - 2f * th - 0.04f), 0.01f);
-            Invert(shellMesh);
-            shell.transform.position = new Vector3((x0 + x1) * 0.5f, baseY + wallH * 0.5f, (z0 + z1) * 0.5f);
-            shell.AddComponent<MeshFilter>().sharedMesh = shellMesh;
-            shell.AddComponent<MeshRenderer>().sharedMaterial = interior;
-            Box("Upstairs floor", root, new Vector3(x0 + th, baseY + 2.95f, z0 + th), new Vector3(x1 - th, baseY + 3.15f, z1 - th), interior, 0.01f, false);
-
-            // Corner boards and a frieze under the eaves (the trim that makes clapboard read as a real house).
-            foreach (var cx in new[] { x0, x1 })
-                foreach (var cz in new[] { z0, z1 })
-                    Box("Corner board", root, new Vector3(cx - 0.09f, baseY, cz - 0.09f), new Vector3(cx + 0.09f, baseY + wallH, cz + 0.09f), trim, 0.015f, false);
-            Box("Frieze front", root, new Vector3(x0 - 0.05f, baseY + wallH - 0.3f, z0 - 0.05f), new Vector3(x1 + 0.05f, baseY + wallH, z0 + 0.02f), trim, 0.01f, false);
-            Box("Frieze back", root, new Vector3(x0 - 0.05f, baseY + wallH - 0.3f, z1 - 0.02f), new Vector3(x1 + 0.05f, baseY + wallH, z1 + 0.05f), trim, 0.01f, false);
-
-            // The roof: a gable along X with eaves, fascia, gutters, downspouts, and gable ends in siding.
-            float eaveY = baseY + wallH, over = 0.45f, rise = 3.3f;
-            var roof = GableRoof(width + 2f * over, depth + 2f * over, rise);
-            var roofGo = new GameObject("Roof (shingles)");
-            roofGo.transform.SetParent(root, false);
-            roofGo.transform.position = new Vector3((x0 + x1) * 0.5f, eaveY, (z0 + z1) * 0.5f);
-            roofGo.AddComponent<MeshFilter>().sharedMesh = roof;
-            roofGo.AddComponent<MeshRenderer>().sharedMaterial = roofMat;
-            roofGo.AddComponent<MeshCollider>().sharedMesh = roof;
-            var gable = GableEnd(depth, rise * depth / (depth + 2f * over));
-            foreach (var gx in new[] { x0, x1 })
-            {
-                var g = new GameObject("Gable end");
-                g.transform.SetParent(root, false);
-                g.transform.position = new Vector3(gx, eaveY, (z0 + z1) * 0.5f);
-                g.AddComponent<MeshFilter>().sharedMesh = gable;
-                g.AddComponent<MeshRenderer>().sharedMaterial = siding;
+                float y = roadY(s) + top + dy;
+                return alongZ ? new Vector3(line + c, y, s) : new Vector3(s, y, line + c);
             }
-            var galv = VhLookLibrary.Get("Galvanized_Corrugated");
-            var gutterMat = VhLookLibrary.Paint("GutterWhite", new Color(0.92f, 0.92f, 0.9f), 1.5f);
-            foreach (var sz in new[] { -1f, 1f })
+            void Quad(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 up, bool topFace)
             {
-                float ez = sz < 0 ? z0 - over : z1 + over;
-                Box("Fascia", root, new Vector3(x0 - over, eaveY - 0.22f, ez - 0.03f), new Vector3(x1 + over, eaveY + 0.02f, ez + 0.03f), trim, 0.01f, false);
-                Box("Gutter", root, new Vector3(x0 - over, eaveY - 0.2f, ez + sz * 0.03f - 0.06f), new Vector3(x1 + over, eaveY - 0.06f, ez + sz * 0.03f + 0.06f), gutterMat, 0.03f, false);
-                Box("Downspout", root, new Vector3(x0 - 0.05f, baseY - 0.6f, ez + sz * 0.03f - 0.04f), new Vector3(x0 + 0.03f, eaveY - 0.1f, ez + sz * 0.03f + 0.04f), gutterMat, 0.02f, false);
-            }
-            // Chimney (brick) with a cap and a flashing collar.
-            var brick = VhLookLibrary.Get("Brick_Red");
-            Box("Chimney", root, new Vector3(x1 - 2.6f, baseY + 1f, z0 + 6.2f), new Vector3(x1 - 1.6f, eaveY + rise + 1.4f, z0 + 7.2f), brick, 0.02f);
-            Box("Chimney cap", root, new Vector3(x1 - 2.7f, eaveY + rise + 1.4f, z0 + 6.1f), new Vector3(x1 - 1.5f, eaveY + rise + 1.52f, z0 + 7.3f), found, 0.02f, false);
-            Box("Flashing", root, new Vector3(x1 - 2.65f, eaveY + rise * 0.55f, z0 + 6.15f), new Vector3(x1 - 1.55f, eaveY + rise * 0.55f + 0.12f, z0 + 7.25f), galv, 0.005f, false);
-
-            // The porch: deck, steps, posts, a railing and a small hipped roof.
-            var deck = VhLookLibrary.Get("Deck_Planks");
-            float px0 = x0 + 5.2f, px1 = x0 + 8.7f, pz0 = z0 - 2.4f;
-            Box("Porch deck", root, new Vector3(px0, baseY - 0.12f, pz0), new Vector3(px1, baseY, z0), deck, 0.02f);
-            Box("Porch skirt", root, new Vector3(px0 + 0.05f, 0f, pz0 + 0.05f), new Vector3(px1 - 0.05f, baseY - 0.12f, z0), trim, 0.01f, false);
-            for (int s = 0; s < 3; s++)
-            {
-                float top = baseY - 0.15f * (s + 1);
-                Box("Step " + (s + 1), root, new Vector3(x0 + 6.0f, 0f, pz0 - 0.32f * (s + 1)), new Vector3(x0 + 7.9f, top, pz0 - 0.32f * s), found, 0.02f);
-            }
-            foreach (var postX in new[] { px0 + 0.1f, px1 - 0.1f })
-                Box("Porch post", root, new Vector3(postX - 0.08f, baseY, pz0 + 0.1f - 0.08f), new Vector3(postX + 0.08f, baseY + 2.7f, pz0 + 0.1f + 0.08f), trim, 0.02f);
-            Box("Porch beam", root, new Vector3(px0, baseY + 2.7f, pz0), new Vector3(px1, baseY + 2.9f, pz0 + 0.2f), trim, 0.015f, false);
-            var porchRoof = GableRoof(px1 - px0 + 0.5f, 2.65f, 0.6f);
-            var pr = new GameObject("Porch roof");
-            pr.transform.SetParent(root, false);
-            pr.transform.position = new Vector3((px0 + px1) * 0.5f, baseY + 2.9f, z0 - 1.325f);
-            pr.AddComponent<MeshFilter>().sharedMesh = porchRoof;
-            pr.AddComponent<MeshRenderer>().sharedMaterial = roofMat;
-            // Railing either side of the steps.
-            foreach (var rx in new[] { (px0, x0 + 6.0f), (x0 + 7.9f, px1) })
-            {
-                Box("Rail", root, new Vector3(rx.Item1, baseY + 0.85f, pz0 + 0.05f), new Vector3(rx.Item2, baseY + 0.92f, pz0 + 0.12f), trim, 0.01f, false);
-                for (float bx = rx.Item1 + 0.1f; bx < rx.Item2 - 0.05f; bx += 0.14f)
-                    Box("Baluster", root, new Vector3(bx - 0.02f, baseY, pz0 + 0.065f), new Vector3(bx + 0.02f, baseY + 0.85f, pz0 + 0.105f), trim, 0.004f, false);
-            }
-            // House number and a mailbox post by the walk.
-            Box("Mailbox post", root, new Vector3(0.9f, 0.1f, 6.7f), new Vector3(1.0f, 1.15f, 6.8f), VhLookLibrary.Get("Fence_Planks"), 0.01f);
-            Box("Mailbox", root, new Vector3(0.75f, 1.15f, 6.5f), new Vector3(1.15f, 1.38f, 7.0f), VhLookLibrary.Paint("MailboxBlue", new Color(0.2f, 0.32f, 0.5f), 1.5f), 0.04f);
-        }
-
-        static void Invert(Mesh m)
-        {
-            var t = m.triangles;
-            for (int i = 0; i < t.Length; i += 3) { int k = t[i + 1]; t[i + 1] = t[i + 2]; t[i + 2] = k; }
-            m.triangles = t;
-            var n = m.normals;
-            for (int i = 0; i < n.Length; i++) n[i] = -n[i];
-            m.normals = n;
-            m.RecalculateTangents();
-        }
-
-        /// <summary>A gable roof (ridge along X) of total footprint w x d, rising <paramref name="rise"/>; thickness 0.12 m;
-        /// metre UVs (u along the ridge, v up the slope).</summary>
-        static Mesh GableRoof(float w, float d, float rise)
-        {
-            float hw = w * 0.5f, hd = d * 0.5f, t = 0.12f;
-            var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var tris = new List<int>();
-            float slope = Mathf.Sqrt(hd * hd + rise * rise);
-            void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 e, Vector2 ua, Vector2 ub, Vector2 uc, Vector2 ue)
-            {
-                var nn = Vector3.Cross(b - a, e - a).normalized;
                 int i = v.Count;
-                v.Add(a); v.Add(b); v.Add(c); v.Add(e);
+                v.Add(p0); v.Add(p1); v.Add(p2); v.Add(p3);
+                var nn = Vector3.Cross(p1 - p0, p2 - p0).normalized;
+                if (Vector3.Dot(nn, up) < 0f) { t.Add(i); t.Add(i + 2); t.Add(i + 1); t.Add(i); t.Add(i + 3); t.Add(i + 2); nn = -nn; }
+                else { t.Add(i); t.Add(i + 1); t.Add(i + 2); t.Add(i); t.Add(i + 2); t.Add(i + 3); }
                 for (int k = 0; k < 4; k++) n.Add(nn);
-                uv.Add(ua); uv.Add(ub); uv.Add(uc); uv.Add(ue);
-                tris.Add(i); tris.Add(i + 1); tris.Add(i + 2); tris.Add(i); tris.Add(i + 2); tris.Add(i + 3);
+                foreach (var p in new[] { p0, p1, p2, p3 })
+                    uv.Add(topFace ? new Vector2(p.x, p.z) : alongZ ? new Vector2(p.z, p.y) : new Vector2(p.x, p.y));
             }
-            // Top surfaces (south slope faces -Z, north slope +Z).
-            Quad(new Vector3(-hw, 0f, -hd), new Vector3(-hw, rise, 0f), new Vector3(hw, rise, 0f), new Vector3(hw, 0f, -hd),
-                new Vector2(-hw, 0f), new Vector2(-hw, slope), new Vector2(hw, slope), new Vector2(hw, 0f));
-            Quad(new Vector3(hw, 0f, hd), new Vector3(hw, rise, 0f), new Vector3(-hw, rise, 0f), new Vector3(-hw, 0f, hd),
-                new Vector2(hw, 0f), new Vector2(hw, slope), new Vector2(-hw, slope), new Vector2(-hw, 0f));
-            // Undersides (soffits), a thickness below.
-            Quad(new Vector3(hw, -t, -hd), new Vector3(hw, rise - t, 0f), new Vector3(-hw, rise - t, 0f), new Vector3(-hw, -t, -hd),
-                new Vector2(hw, 0f), new Vector2(hw, slope), new Vector2(-hw, slope), new Vector2(-hw, 0f));
-            Quad(new Vector3(-hw, -t, hd), new Vector3(-hw, rise - t, 0f), new Vector3(hw, rise - t, 0f), new Vector3(hw, -t, hd),
-                new Vector2(-hw, 0f), new Vector2(-hw, slope), new Vector2(hw, slope), new Vector2(hw, 0f));
-            // Eave edges and rake edges.
-            Quad(new Vector3(-hw, -t, -hd), new Vector3(-hw, 0f, -hd), new Vector3(hw, 0f, -hd), new Vector3(hw, -t, -hd),
-                new Vector2(-hw, 0f), new Vector2(-hw, t), new Vector2(hw, t), new Vector2(hw, 0f));
-            Quad(new Vector3(hw, -t, hd), new Vector3(hw, 0f, hd), new Vector3(-hw, 0f, hd), new Vector3(-hw, -t, hd),
-                new Vector2(hw, 0f), new Vector2(hw, t), new Vector2(-hw, t), new Vector2(-hw, 0f));
-            foreach (var sx in new[] { -1f, 1f })
+            for (float s = s0; s < s1 - 1e-3f; s += step)
             {
-                float x = sx * hw;
-                Quad(new Vector3(x, -t, -hd), new Vector3(x, rise - t, 0f), new Vector3(x, rise, 0f), new Vector3(x, 0f, -hd),
-                    new Vector2(0f, 0f), new Vector2(slope, 0f), new Vector2(slope, t), new Vector2(0f, t));
-                Quad(new Vector3(x, 0f, hd), new Vector3(x, rise, 0f), new Vector3(x, rise - t, 0f), new Vector3(x, -t, hd),
-                    new Vector2(0f, t), new Vector2(slope, t), new Vector2(slope, 0f), new Vector2(0f, 0f));
+                float e = Mathf.Min(s + step, s1);
+                bool skip = false;
+                if (skips != null) foreach (var k in skips) if (s + 1e-3f < k.y && e - 1e-3f > k.x) skip = true;
+                if (skip) continue;
+                Quad(P(s, a, 0f), P(e, a, 0f), P(e, b, 0f), P(s, b, 0f), Vector3.up, true);
+                var side = alongZ ? Vector3.right : Vector3.forward;
+                Quad(P(s, a, 0f), P(e, a, 0f), P(e, a, -top - 0.6f), P(s, a, -top - 0.6f), -side, false);
+                Quad(P(s, b, 0f), P(e, b, 0f), P(e, b, -top - 0.6f), P(s, b, -top - 0.6f), side, false);
             }
-            var mesh = new Mesh { name = "Gable roof " + w.ToString("0.#") + "x" + d.ToString("0.#") };
-            mesh.SetVertices(v); mesh.SetNormals(n); mesh.SetUVs(0, uv); mesh.SetTriangles(tris, 0);
-            FixRoofWinding(mesh, rise);
+            var mesh = new Mesh { name = name, indexFormat = IndexFormat.UInt32 };
+            mesh.SetVertices(v); mesh.SetNormals(n); mesh.SetUVs(0, uv); mesh.SetTriangles(t, 0);
             mesh.RecalculateTangents(); mesh.RecalculateBounds();
-            return mesh;
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = m;
+            go.AddComponent<MeshCollider>().sharedMesh = mesh;
+            go.isStatic = true;
         }
 
-        /// <summary>Makes each roof face front-face along its own normal (computed from the shape: up-ish on top, down under).</summary>
-        static void FixRoofWinding(Mesh mesh, float rise)
+        static void Road(Transform parent, string name, bool alongZ, float line, float s0, float s1, Func<float, float> y,
+            List<Vector2> roadSkips, List<Vector2> walkSkips)
         {
-            var v = mesh.vertices; var t = mesh.triangles; var nrm = mesh.normals;
-            var centre = new Vector3(0f, rise * 0.35f, 0f);
-            for (int i = 0; i < t.Length; i += 3)
-            {
-                var a = v[t[i]]; var b = v[t[i + 1]]; var c = v[t[i + 2]];
-                var face = Vector3.Cross(b - a, c - a);
-                var mid = (a + b + c) / 3f;
-                if (Vector3.Dot(face, mid - centre) < 0f) { int k = t[i + 1]; t[i + 1] = t[i + 2]; t[i + 2] = k; }
-                var nn = Vector3.Cross(v[t[i + 1]] - v[t[i]], v[t[i + 2]] - v[t[i]]).normalized;
-                nrm[t[i]] = nn; nrm[t[i + 1]] = nn; nrm[t[i + 2]] = nn;
-            }
-            mesh.triangles = t;
-            mesh.normals = nrm;
+            var asphalt = VhLookLibrary.Get("Asphalt");
+            var kerb = VhLookLibrary.Get("Concrete_Kerb");
+            var walk = VhLookLibrary.Get("Concrete_Sidewalk");
+            Strip(parent, name + " (road)", alongZ, line, s0, s1, -4f, 4f, 0f, y, asphalt, roadSkips);
+            Strip(parent, name + " (kerb L)", alongZ, line, s0, s1, -4.3f, -4f, 0.15f, y, kerb, walkSkips);
+            Strip(parent, name + " (kerb R)", alongZ, line, s0, s1, 4f, 4.3f, 0.15f, y, kerb, walkSkips);
+            Strip(parent, name + " (sidewalk L)", alongZ, line, s0, s1, -6.3f, -4.3f, 0.15f, y, walk, walkSkips);
+            Strip(parent, name + " (sidewalk R)", alongZ, line, s0, s1, 4.3f, 6.3f, 0.15f, y, walk, walkSkips);
         }
 
-        /// <summary>A triangular gable end (in the YZ plane, both sides), base width d, height h, metre UVs.</summary>
-        static Mesh GableEnd(float d, float h)
+        static void HillStreets(Transform world)
         {
-            float hd = d * 0.5f;
-            var a = new Vector3(0f, 0f, -hd); var b = new Vector3(0f, h, 0f); var c = new Vector3(0f, 0f, hd);
-            var mesh = new Mesh { name = "Gable end" };
-            mesh.SetVertices(new List<Vector3> { a, b, c, a, c, b });
-            mesh.SetNormals(new List<Vector3> { Vector3.left, Vector3.left, Vector3.left, Vector3.right, Vector3.right, Vector3.right });
-            mesh.SetUVs(0, new List<Vector2> { new Vector2(-hd, 0f), new Vector2(0f, h), new Vector2(hd, 0f), new Vector2(-hd, 0f), new Vector2(hd, 0f), new Vector2(0f, h) });
-            mesh.SetTriangles(new List<int> { 0, 1, 2, 3, 4, 5 }, 0);
-            // Fix each triangle to face along its stored normal.
-            var verts = mesh.vertices; var tr = mesh.triangles; var nn = mesh.normals;
-            for (int i = 0; i < tr.Length; i += 3)
-            {
-                var f = Vector3.Cross(verts[tr[i + 1]] - verts[tr[i]], verts[tr[i + 2]] - verts[tr[i]]);
-                if (Vector3.Dot(f, nn[tr[i]]) < 0f) { int k = tr[i + 1]; tr[i + 1] = tr[i + 2]; tr[i + 2] = k; }
-            }
-            mesh.triangles = tr;
-            mesh.RecalculateTangents(); mesh.RecalculateBounds();
-            return mesh;
-        }
-
-        // ---------- The neighbour, fences, planting, the hillside ----------
-
-        static void Neighbour(Transform world)
-        {
-            var root = new GameObject("Neighbour (brick bungalow)").transform;
+            var root = new GameObject("Hill streets (backdrop)").transform;
             root.SetParent(world, false);
-            var brick = VhLookLibrary.Get("Brick_Red");
-            var trim = VhLookLibrary.Paint("TrimWhite", new Color(0.95f, 0.94f, 0.9f));
-            var glass = VhLookLibrary.Glass();
-            var door = VhLookLibrary.Paint("DoorGreen", new Color(0.16f, 0.3f, 0.22f), 1.4f);
-            float x0 = -34f, z0 = 17f, w = 16f, d = 11f, baseY = 0.45f, h = 3.2f;
-            Box("Foundation", root, new Vector3(x0 - 0.05f, 0f, z0 - 0.05f), new Vector3(x0 + w + 0.05f, baseY, z0 + d + 0.05f), VhLookLibrary.Get("Concrete_Kerb"), 0.03f);
-            Wall(root, "Wall front", new Vector3(x0, baseY, z0), Vector3.forward, w, h, 0.25f,
-                new List<Opening> { new Opening(1.5f, 0.8f, 3.5f, 2.4f), new Opening(5f, 0f, 6.1f, 2.2f, true), new Opening(8f, 0.8f, 10f, 2.4f), new Opening(12f, 0.8f, 14f, 2.4f) },
-                brick, trim, glass, door);
-            Wall(root, "Wall east", new Vector3(x0 + w, baseY, z0 + 0.25f), Vector3.left, d - 0.5f, h, 0.25f,
-                new List<Opening> { new Opening(4.5f, 0.8f, 6.3f, 2.4f) }, brick, trim, glass, door);
-            Wall(root, "Wall west", new Vector3(x0, baseY, z0 + d - 0.25f), Vector3.right, d - 0.5f, h, 0.25f, new List<Opening>(), brick, trim, glass, door);
-            Wall(root, "Wall back", new Vector3(x0 + w, baseY, z0 + d), Vector3.back, w, h, 0.25f, new List<Opening>(), brick, trim, glass, door);
-            var shell = new GameObject("Interior shell");
-            shell.transform.SetParent(root, false);
-            var sm = VhLookUv.BevelBox(new Vector3(w - 0.54f, h - 0.04f, d - 0.54f), 0.01f);
-            Invert(sm);
-            shell.transform.position = new Vector3(x0 + w * 0.5f, baseY + h * 0.5f, z0 + d * 0.5f);
-            shell.AddComponent<MeshFilter>().sharedMesh = sm;
-            shell.AddComponent<MeshRenderer>().sharedMaterial = VhLookLibrary.Tinted("Plaster_Interior", "WarmRoom", new Color(0.98f, 0.9f, 0.78f));
-            var roof = GableRoof(w + 1f, d + 1f, 2.4f);
-            var rg = new GameObject("Roof (slate shingles)");
-            rg.transform.SetParent(root, false);
-            rg.transform.position = new Vector3(x0 + w * 0.5f, baseY + h, z0 + d * 0.5f);
-            rg.AddComponent<MeshFilter>().sharedMesh = roof;
-            rg.AddComponent<MeshRenderer>().sharedMaterial = VhLookLibrary.Get("Roof_ShinglesSlate");
-            var gable = GableEnd(d, 2.4f * d / (d + 1f));
-            foreach (var gx in new[] { x0, x0 + w })
+            // The cross street from the main road up the hill to the crest road (no dead end).
+            Road(root, "Cross street", true, CrossX, 4f, CrestZ + 4f, CrossRoadY, null,
+                new List<Vector2> { new Vector2(RowanZ - 6.3f, RowanZ + 6.3f), new Vector2(CrestZ - 6.3f, CrestZ + 6.3f) });
+            var skipCross = new List<Vector2> { new Vector2(CrossX - 4f, CrossX + 4f) };
+            var skipCrossWalk = new List<Vector2> { new Vector2(CrossX - 6.3f, CrossX + 6.3f) };
+            Road(root, "Rowan Street", false, RowanZ, -330f, 330f, RowanY, skipCross, skipCrossWalk);
+            Road(root, "Crest Road", false, CrestZ, -330f, 330f, CrestY, skipCross, skipCrossWalk);
+
+            // Houses on lots along both, set back 16 m from the road's centre, at least 4 m apart, with driveways.
+            var houses = new GameObject("Hill houses").transform;
+            houses.SetParent(root, false);
+            int seed = 11;
+            var walk = VhLookLibrary.Get("Concrete_Sidewalk");
+            for (float z = 62f; z < CrestZ - 30f; z += 31f)
             {
-                var g = new GameObject("Gable end");
-                g.transform.SetParent(root, false);
-                g.transform.position = new Vector3(gx, baseY + h, z0 + d * 0.5f);
-                g.AddComponent<MeshFilter>().sharedMesh = gable;
-                g.AddComponent<MeshRenderer>().sharedMaterial = VhLookLibrary.Get("Siding_WoodBrown");
+                if (Mathf.Abs(z - RowanZ) < 24f) continue;
+                foreach (var side in new[] { -1f, 1f })
+                {
+                    var spec = VhLookHouses.Spec.Random(seed++);
+                    float frontX = CrossX + side * 16f;
+                    var corner = new Vector3(frontX, 0f, side < 0 ? z - spec.width * 0.5f : z + spec.width * 0.5f);
+                    VhLookHouses.Build(houses, corner, side < 0 ? 270f : 90f, spec, VhLookHouses.Lod.Far, Ground, "House " + seed);
+                    float dz = z + spec.width * 0.5f + 2.2f;
+                    Driveway(houses, new Vector2(CrossX + side * 6.3f, dz), new Vector2(frontX + side * 4f, dz), walk);
+                }
             }
+            foreach (var line in new[] { RowanZ, CrestZ })
+                for (float x = -230f; x < 300f; x += 29f)
+                {
+                    if (Mathf.Abs(x - CrossX) < 26f) continue;
+                    foreach (var side in new[] { -1f, 1f })
+                    {
+                        if (line == CrestZ && side > 0) continue;   // the crest road: houses on its near side only
+                        var spec = VhLookHouses.Spec.Random(seed++);
+                        float frontZ = line + side * 16f;
+                        var corner = new Vector3(side > 0 ? x - spec.width * 0.5f : x + spec.width * 0.5f, 0f, frontZ);
+                        VhLookHouses.Build(houses, corner, side > 0 ? 0f : 180f, spec, VhLookHouses.Lod.Far, Ground, "House " + seed);
+                        float dx = x + spec.width * 0.5f + 2.2f;
+                        Driveway(houses, new Vector2(dx, line + side * 6.3f), new Vector2(dx, frontZ + side * 4f), walk);
+                    }
+                }
         }
+
+        /// <summary>A 3 m concrete driveway from a to b (world xz) following the ground.</summary>
+        static void Driveway(Transform parent, Vector2 a, Vector2 b, Material m)
+        {
+            var dir = (b - a).normalized;
+            var right = new Vector2(dir.y, -dir.x) * 1.5f;
+            int segs = Mathf.Max(2, Mathf.CeilToInt(Vector2.Distance(a, b) / 1.5f));
+            var v = new List<Vector3>(); var uv = new List<Vector2>(); var t = new List<int>();
+            for (int i = 0; i <= segs; i++)
+            {
+                var p = Vector2.Lerp(a, b, i / (float)segs);
+                foreach (var q in new[] { p - right, p + right })
+                {
+                    v.Add(new Vector3(q.x, Ground(q.x, q.y) + 0.07f, q.y));
+                    uv.Add(q);
+                }
+            }
+            for (int i = 0; i < segs; i++)
+            {
+                int k = i * 2;
+                t.Add(k); t.Add(k + 2); t.Add(k + 1); t.Add(k + 1); t.Add(k + 2); t.Add(k + 3);
+            }
+            var mesh = new Mesh { name = "Driveway" };
+            mesh.SetVertices(v); mesh.SetUVs(0, uv); mesh.SetTriangles(t, 0);
+            var tris = mesh.triangles;
+            if (Vector3.Cross(v[2] - v[0], v[1] - v[0]).y < 0f)
+                for (int i = 0; i < tris.Length; i += 3) { int x = tris[i + 1]; tris[i + 1] = tris[i + 2]; tris[i + 2] = x; }
+            mesh.triangles = tris;
+            mesh.RecalculateNormals(); mesh.RecalculateTangents(); mesh.RecalculateBounds();
+            var go = new GameObject("Driveway");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = m;
+        }
+
+        // ---------- Fences, planting, trees ----------
 
         static void Fences(Transform world)
         {
@@ -601,107 +575,126 @@ namespace JamKit.Look.EditorTools
             }
         }
 
+        static readonly Vector3[] YardTrees =
+        {
+            new Vector3(-1f, 0f, 11f), new Vector3(-15f, 0f, 9f), new Vector3(20f, 0f, 10f), new Vector3(39f, 0f, 14f),
+            new Vector3(-22f, 0f, -17f), new Vector3(12f, 0f, -12f), new Vector3(-44f, 0f, 9.5f), new Vector3(47f, 0f, 30f),
+        };
+
         static void Planting(Transform world)
         {
             var root = new GameObject("Trees").transform;
             root.SetParent(world, false);
-            VhLookTrees.Place(root, new Vector3(-1f, 0.1f, 11f), 2, 10f);       // the lawn's maple (backlit in shot 03)
-            VhLookTrees.Place(root, new Vector3(-15f, 0.1f, 9f), 5, 12f);       // by the board fence
-            VhLookTrees.Place(root, new Vector3(20f, 0.1f, 10f), 3, 8.5f);      // at the corner
-            VhLookTrees.Place(root, new Vector3(39f, 0.1f, 14f), 6, 11f);       // across the cross street
-            VhLookTrees.Place(root, new Vector3(-24f, 0.1f, -10f), 4, 9.5f);    // the south verge
-            VhLookTrees.Place(root, new Vector3(12f, 0.1f, -12f), 1, 10.5f, true);
-            // Low shrubs along the flower bed (small crowns on short trunks).
-            for (int i = 0; i < 6; i++)
-                VhLookTrees.Place(root, new Vector3(-7.4f + i * 2.4f, 0.13f, 17.2f), 10 + i, 1.6f);
+            float G(Vector3 p) => Ground(p.x, p.z) - 0.15f;
+            Vector3 At(int i) => new Vector3(YardTrees[i].x, G(YardTrees[i]), YardTrees[i].z);
+            VhLookTrees.Place(root, At(0), VhLookTrees.Species.Maple, 0, 10.5f, false, 20f);    // the lawn's maple (backlit in shot 03)
+            VhLookTrees.Place(root, At(1), VhLookTrees.Species.Oak, 1, 12f, false, 140f);       // by the board fence
+            VhLookTrees.Place(root, At(2), VhLookTrees.Species.Elm, 0, 9.5f, false, 75f);       // at the corner (shot 11)
+            VhLookTrees.Place(root, At(3), VhLookTrees.Species.Maple, 2, 11f, false, 200f);     // across the cross street
+            VhLookTrees.Place(root, At(4), VhLookTrees.Species.Birch, 0, 11f, false, 10f);      // the south verge (off the sun's line)
+            VhLookTrees.Place(root, At(5), VhLookTrees.Species.Oak, 2, 10f, true, 300f);
+            VhLookTrees.Place(root, At(6), VhLookTrees.Species.Elm, 1, 12.5f, false, 33f);
+            VhLookTrees.Place(root, At(7), VhLookTrees.Species.Birch, 2, 10f, false, 250f);
+            // A birch pair and a maple in the bungalow's yard, a stand behind the houses.
+            VhLookTrees.Cluster(root, new Vector3(-26f, 0f, 34f), 7f, 4, 21, 10f, (x, z) => Ground(x, z), null, 3.5f, null, true);
+            VhLookTrees.Cluster(root, new Vector3(4f, 0f, 38f), 8f, 5, 22, 11f, (x, z) => Ground(x, z), null, 3.5f, null, true);
+            VhLookTrees.Cluster(root, new Vector3(-60f, 0f, -22f), 10f, 6, 23, 11f, (x, z) => Ground(x, z), null, 3.5f, p => !OnPaving(p.x, p.z), true);
+            // Foundation shrubs along the beds (clear of the porch).
+            int k = 0;
+            foreach (var x in new[] { -7.6f, -5.6f, -3.9f, 1.9f, 3.8f, 5.8f })
+                VhLookTrees.Place(root, new Vector3(x, 0.13f, 17.25f), VhLookTrees.Species.Shrub, k++ % 3, 1.4f + (k % 3) * 0.2f, false, k * 61f);
+            foreach (var x in new[] { -33f, -30f, -21f, -18.5f })
+                VhLookTrees.Place(root, new Vector3(x, G(new Vector3(x, 0f, 16.4f)), 16.4f), VhLookTrees.Species.Shrub, k++ % 3, 1.3f, false, k * 47f);
         }
 
-        /// <summary>The hill rising north into the haze: a heightfield of worn grass, dotted with trees and houses.</summary>
-        static void Hillside(Transform world)
+        /// <summary>Stands of trees over the hill and street trees along the hill streets (clear of roads and lots).</summary>
+        static void HillTrees(Transform world)
         {
-            var root = new GameObject("Hillside (backdrop)").transform;
+            var root = new GameObject("Hill trees (backdrop)").transform;
             root.SetParent(world, false);
-            const int nx = 90, nz = 90;
-            float xMin = -320f, xMax = 320f, zMin = 38f, zMax = 640f;
-            var verts = new Vector3[(nx + 1) * (nz + 1)];
-            var uvs = new Vector2[verts.Length];
-            for (int j = 0; j <= nz; j++)
-                for (int i = 0; i <= nx; i++)
-                {
-                    float x = Mathf.Lerp(xMin, xMax, i / (float)nx), z = Mathf.Lerp(zMin, zMax, j / (float)nz);
-                    verts[j * (nx + 1) + i] = new Vector3(x, HillHeight(x, z), z);
-                    uvs[j * (nx + 1) + i] = new Vector2(x, z);
-                }
-            var tris = new int[nx * nz * 6];
-            int t = 0;
-            for (int j = 0; j < nz; j++)
-                for (int i = 0; i < nx; i++)
-                {
-                    int a = j * (nx + 1) + i, b = a + 1, c = a + nx + 1, d = c + 1;
-                    tris[t++] = a; tris[t++] = c; tris[t++] = b;
-                    tris[t++] = b; tris[t++] = c; tris[t++] = d;
-                }
-            var mesh = new Mesh { name = "Hillside", indexFormat = IndexFormat.UInt32, vertices = verts, uv = uvs, triangles = tris };
-            mesh.RecalculateNormals(); mesh.RecalculateTangents(); mesh.RecalculateBounds();
-            var hill = new GameObject("Hillside ground");
-            hill.transform.SetParent(root, false);
-            hill.AddComponent<MeshFilter>().sharedMesh = mesh;
-            hill.AddComponent<MeshRenderer>().sharedMaterial = VhLookLibrary.Get("Grass_DirtMix");
-
-            var rng = new System.Random(42);
-            float R() => (float)rng.NextDouble();
-            var trees = new GameObject("Hill trees").transform;
-            trees.SetParent(root, false);
-            for (int k = 0; k < 70; k++)
+            bool Allowed(Vector3 p)
             {
-                float x = Mathf.Lerp(-260f, 260f, R()), z = Mathf.Lerp(55f, 520f, R());
-                if (Mathf.Abs(x - 30f) < 10f) continue;   // keep the cross street clear
-                VhLookTrees.Place(trees, new Vector3(x, HillHeight(x, z) - 0.2f, z), 1 + k % 6, 8f + Mathf.Round(R() * 6f), R() < 0.18f);
+                if (OnPaving(p.x, p.z)) return false;
+                if (Mathf.Abs(p.x - CrossX) < 30f && p.z > 50f && p.z < CrestZ - 20f) return false;          // the cross street's lots
+                if ((Mathf.Abs(p.z - RowanZ) < 30f || Mathf.Abs(p.z - CrestZ) < 30f) && Mathf.Abs(p.x) < 320f) return false;   // the other lots
+                if (p.z < 45f) return false;                                                                       // the street below
+                return true;
             }
-            var houses = new GameObject("Hill houses").transform;
-            houses.SetParent(root, false);
-            var tints = new[] { new Color(0.95f, 0.88f, 0.7f), new Color(0.72f, 0.8f, 0.86f), new Color(0.9f, 0.78f, 0.72f), new Color(0.82f, 0.86f, 0.74f), new Color(0.97f, 0.95f, 0.9f) };
-            for (int k = 0; k < 26; k++)
-            {
-                float side = k % 2 == 0 ? 1f : -1f;
-                float z = 70f + (k / 2) * 34f + R() * 8f;
-                float x = 30f + side * (22f + R() * 10f);
-                if (k >= 14) x = Mathf.Lerp(-220f, 220f, R());
-                float y = HillHeight(x, z);
-                var wallMat = VhLookLibrary.Tinted("Clapboard_Painted", "Hill" + (k % tints.Length), tints[k % tints.Length]);
-                var roofMat = VhLookLibrary.Get(k % 3 == 0 ? "Roof_ShinglesSlate" : "Roof_ShinglesAsphalt");
-                float w = 10f + R() * 4f, d = 8f + R() * 3f, h = R() < 0.5f ? 3.2f : 5.8f;
-                var hgo = new GameObject("House " + k).transform;
-                hgo.SetParent(houses, false);
-                hgo.position = new Vector3(x, y - 0.4f, z);
-                hgo.rotation = Quaternion.Euler(0f, x < 30f ? 90f : -90f, 0f);
-                var body = VhLookUv.Block("Body", hgo, hgo.position + Vector3.up * (h * 0.5f + 0.4f), new Vector3(w, h + 0.8f, d), wallMat, 0.05f);
-                body.transform.rotation = hgo.rotation;
-                var rm = GableRoof(w + 0.8f, d + 0.8f, 2.6f);
-                var r = new GameObject("Roof");
-                r.transform.SetParent(hgo, false);
-                r.transform.localPosition = new Vector3(0f, h + 0.8f, 0f);
-                r.AddComponent<MeshFilter>().sharedMesh = rm;
-                r.AddComponent<MeshRenderer>().sharedMaterial = roofMat;
-                var g = GableEnd(d, 2.6f * d / (d + 0.8f));
-                foreach (var gx in new[] { -w * 0.5f, w * 0.5f })
+            VhLookTrees.Scatter(root, new Vector2(-330f, 50f), new Vector2(330f, 640f), 46, 5, (x, z) => Ground(x, z), Allowed, 10.5f);
+            // Street trees along the cross street (in the verge between the sidewalk and the lots), every ~22 m.
+            int k = 0;
+            for (float z = 52f; z < CrestZ - 20f; z += 22f)
+                foreach (var side in new[] { -1f, 1f })
                 {
-                    var ge = new GameObject("Gable");
-                    ge.transform.SetParent(hgo, false);
-                    ge.transform.localPosition = new Vector3(gx, h + 0.8f, 0f);
-                    ge.AddComponent<MeshFilter>().sharedMesh = g;
-                    ge.AddComponent<MeshRenderer>().sharedMaterial = wallMat;
+                    float x = CrossX + side * 8.2f, zz = z + side * 6f;
+                    if (Mathf.Abs(zz - RowanZ) < 10f) continue;
+                    VhLookTrees.Place(root, new Vector3(x, Ground(x, zz) - 0.15f, zz), (k % 3 == 0) ? VhLookTrees.Species.Maple : VhLookTrees.Species.Elm,
+                        k % 3, 9f + (k * 37 % 5), false, k * 53f);
+                    k++;
                 }
-            }
         }
 
-        static float HillHeight(float x, float z)
+        // ---------- Ground detail: grass, litter, stains, drains ----------
+
+        static void GroundDetail(Transform world)
         {
-            float rise = Mathf.Max(0f, z - 45f);
-            float h = rise * 0.11f + rise * rise * 0.00008f;
-            h += (Mathf.PerlinNoise(x * 0.012f + 3.1f, z * 0.012f + 7.7f) - 0.5f) * Mathf.Min(1f, rise / 60f) * 14f;
-            h += Mathf.Abs(x) * 0.02f * Mathf.Min(1f, rise / 80f);
-            return h - 0.25f;
+            var root = new GameObject("Ground detail").transform;
+            root.SetParent(world, false);
+            var tufts = new VhLookGround.Tufts(7, (x, z) => Ground(x, z));
+            // Overhang along every paving edge near the camera's streets.
+            tufts.Edge(new Vector2(-120f, 6.3f), new Vector2(23.7f, 6.3f), Vector2.up);
+            tufts.Edge(new Vector2(36.3f, 6.3f), new Vector2(120f, 6.3f), Vector2.up);
+            tufts.Edge(new Vector2(-120f, -6.3f), new Vector2(120f, -6.3f), Vector2.down);
+            tufts.Edge(new Vector2(CrossX - 6.3f, 6.3f), new Vector2(CrossX - 6.3f, 190f), Vector2.left, 0.38f);
+            tufts.Edge(new Vector2(CrossX + 6.3f, 6.3f), new Vector2(CrossX + 6.3f, 190f), Vector2.right, 0.38f);
+            tufts.Edge(new Vector2(8f, 6.8f), new Vector2(8f, 27f), Vector2.left);
+            tufts.Edge(new Vector2(12f, 6.3f), new Vector2(12f, 27f), Vector2.right);
+            tufts.Edge(new Vector2(-2f, 6.8f), new Vector2(-2f, 14.6f), Vector2.left, 0.28f, 0.12f);
+            tufts.Edge(new Vector2(-0.1f, 6.8f), new Vector2(-0.1f, 14.6f), Vector2.right, 0.28f, 0.12f);
+            tufts.Edge(new Vector2(-8.6f, 16.6f), new Vector2(-3.2f, 16.6f), Vector2.down, 0.3f, 0.1f);
+            tufts.Edge(new Vector2(1.2f, 16.6f), new Vector2(6.6f, 16.6f), Vector2.down, 0.3f, 0.1f);
+            tufts.Edge(new Vector2(-11.85f, 7f), new Vector2(-11.85f, 38f), Vector2.right, 0.3f);
+            tufts.Edge(new Vector2(-12.15f, 7f), new Vector2(-12.15f, 38f), Vector2.left, 0.3f);
+            tufts.Edge(new Vector2(-11.9f, 6.9f), new Vector2(7.9f, 6.9f), Vector2.up, 0.3f, 0.06f);
+            // Drifts across the lawns and verges (off the paving, the beds and the houses).
+            bool Lawn(float x, float z)
+            {
+                if (OnPaving(x, z)) return false;
+                if (x > -8.7f && x < 6.7f && z > 16.5f && z < 29f) return false;        // the house and its beds
+                if (x > -34.2f && x < -17.8f && z > 16f && z < 29f) return false;       // the bungalow
+                if (x > -11.3f && x < -9.1f && z > 18f && z < 30f) return false;        // the gravel path
+                return true;
+            }
+            tufts.Scatter(new Rect(-90f, 6.3f, 113f, 38f), 0.12f, Lawn, 0.07f, 0.18f);
+            tufts.Scatter(new Rect(36.3f, 6.3f, 60f, 38f), 0.12f, Lawn, 0.07f, 0.18f);
+            tufts.Scatter(new Rect(-90f, -45f, 180f, 38.7f), 0.1f, Lawn, 0.1f, 0.25f);
+            tufts.Scatter(new Rect(0f, 44f, 60f, 120f), 0.05f, Lawn, 0.12f, 0.45f);   // the lower hillside: drier, wildflowers
+            tufts.Build(root, "Grass and wildflowers");
+
+            // Leaf litter: drifts in the gutters against the kerbs, under the yard trees, along the board fence.
+            int seed = 1;
+            foreach (var x in new[] { -38f, -9f, 17f, 52f })
+                VhLookGround.Litter(root, new Vector3(x, 0.002f, -3.55f), 1.2f, 4, seed++);
+            foreach (var x in new[] { -24f, 3f, 21.5f })
+                VhLookGround.Litter(root, new Vector3(x, 0.002f, 3.55f), 1.2f, 4, seed++);
+            foreach (var p in new[] { YardTrees[0], YardTrees[1], YardTrees[2], YardTrees[4] })
+                VhLookGround.Litter(root, p, 2.4f, 6, seed++, (x, z) => Ground(x, z));
+            VhLookGround.Litter(root, new Vector3(-12.5f, 0f, 22f), 1.4f, 3, seed++, (x, z) => Ground(x, z));
+            VhLookGround.Litter(root, new Vector3(CrossX - 3.5f, 0f, 18f), 1.0f, 3, seed++, (x, z) => CrossRoadY(z) + 0.002f);
+
+            // Stains: oil on the driveway (under the car and by the garage end) and in the lanes; dirt on the sidewalks.
+            VhLookGround.Stain(root, new Vector3(10f, 0.115f, 15.2f), 1.5f, 10f, VhLookGround.StainKind.Oil);
+            VhLookGround.Stain(root, new Vector3(9.6f, 0.115f, 24.5f), 1.1f, 70f, VhLookGround.StainKind.Oil);
+            VhLookGround.Stain(root, new Vector3(10.6f, 0.115f, 9f), 2.2f, 0f, VhLookGround.StainKind.Dirt, 0.6f);
+            foreach (var p in new[] { new Vector2(-30f, 2.1f), new Vector2(-6f, -1.9f), new Vector2(22f, 2f), new Vector2(46f, -2.2f), new Vector2(8f, 1.8f) })
+                VhLookGround.Stain(root, new Vector3(p.x, 0f, p.y), 1.1f, p.x * 13f, VhLookGround.StainKind.Oil, 1.6f);
+            foreach (var p in new[] { new Vector2(-18f, -5.2f), new Vector2(4f, 5.4f), new Vector2(40f, -5.0f), new Vector2(-50f, 5.2f) })
+                VhLookGround.Stain(root, new Vector3(p.x, 0.15f, p.y), 1.4f, p.x * 7f, VhLookGround.StainKind.Dirt, 1.3f);
+
+            // Storm drains at the kerbs (kerb inlets with iron grates).
+            VhLookGround.StormDrain(root, new Vector3(12f, 0f, -4f), Vector3.right, Vector3.forward);
+            VhLookGround.StormDrain(root, new Vector3(-30f, 0f, 4f), Vector3.right, Vector3.back);
+            VhLookGround.StormDrain(root, new Vector3(CrossX - 4f, CrossRoadY(22f), 22f), Vector3.forward, Vector3.right);
         }
 
         static void AlignLongAxisToZ(GameObject go)

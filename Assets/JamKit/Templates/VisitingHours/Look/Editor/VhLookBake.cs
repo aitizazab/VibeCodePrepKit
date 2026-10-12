@@ -110,11 +110,13 @@ namespace JamKit.Look.EditorTools
                 if (pv == null) pv = go.GetComponentInChildren<ProbeVolume>(true);
             if (pv == null)
             {
+                // No volume of the scene's own: one global volume (a scene that places a local one, like LookLab round its
+                // street, keeps it: probes only where the player is, not over a whole hillside).
                 var pvGo = new GameObject("VH Probe Volume (global)");
                 SceneManager.MoveGameObjectToScene(pvGo, scene);
                 pv = pvGo.AddComponent<ProbeVolume>();
+                pv.mode = ProbeVolume.Mode.Global;
             }
-            pv.mode = ProbeVolume.Mode.Global;
             string dir = Path.GetDirectoryName(scenePath).Replace('\\', '/');
             string name = Path.GetFileNameWithoutExtension(scenePath);
             string setPath = dir + "/" + name + "_ProbeSet.asset";
@@ -201,20 +203,23 @@ namespace JamKit.Look.EditorTools
         public static LensFlareDataSRP SunFlare()
         {
             var data = AssetDatabase.LoadAssetAtPath<LensFlareDataSRP>(FlarePath);
-            if (data != null) return data;
-            Directory.CreateDirectory(VhLookLibrary.MatRoot);
-            data = ScriptableObject.CreateInstance<LensFlareDataSRP>();
+            bool fresh = data == null;
+            if (fresh) data = ScriptableObject.CreateInstance<LensFlareDataSRP>();
+            // Rebuilt every time, so a tuned value reaches an existing asset. Pass 2: brighter (none showed in round 1:
+            // the sun sat behind a crown and the test was a point), a wider warm glow that spills round foliage.
             var list = new List<LensFlareDataElementSRP>
             {
-                Element(SRPLensFlareType.Circle, 0f, 0.55f, new Color(1f, 0.72f, 0.42f), 0.22f, 1f),        // glow round the sun
-                Element(SRPLensFlareType.Ring, 0f, 0.9f, new Color(1f, 0.85f, 0.65f), 0.05f, 0.6f),         // a faint halo ring
-                Element(SRPLensFlareType.Polygon, 0.45f, 0.07f, new Color(0.9f, 0.75f, 0.45f), 0.08f, 0.3f), // ghosts on the axis
-                Element(SRPLensFlareType.Circle, 0.8f, 0.12f, new Color(0.55f, 0.75f, 0.9f), 0.05f, 0.2f),
-                Element(SRPLensFlareType.Polygon, 1.3f, 0.2f, new Color(0.85f, 0.6f, 0.4f), 0.04f, 0.3f),
-                Element(SRPLensFlareType.Circle, 1.7f, 0.05f, new Color(1f, 0.8f, 0.5f), 0.06f, 0.4f),
+                Element(SRPLensFlareType.Circle, 0f, 0.7f, new Color(1f, 0.74f, 0.44f), 0.42f, 1f),         // glow round the sun
+                Element(SRPLensFlareType.Circle, 0f, 2.2f, new Color(1f, 0.7f, 0.42f), 0.08f, 1.6f),        // a wide soft bloom
+                Element(SRPLensFlareType.Ring, 0f, 1.0f, new Color(1f, 0.85f, 0.65f), 0.07f, 0.6f),         // a faint halo ring
+                Element(SRPLensFlareType.Polygon, 0.45f, 0.08f, new Color(0.9f, 0.75f, 0.45f), 0.12f, 0.3f), // ghosts on the axis
+                Element(SRPLensFlareType.Circle, 0.8f, 0.13f, new Color(0.55f, 0.75f, 0.9f), 0.08f, 0.2f),
+                Element(SRPLensFlareType.Polygon, 1.3f, 0.22f, new Color(0.85f, 0.6f, 0.4f), 0.06f, 0.3f),
+                Element(SRPLensFlareType.Circle, 1.7f, 0.06f, new Color(1f, 0.8f, 0.5f), 0.09f, 0.4f),
             };
             data.elements = list.ToArray();
-            { VhLookLibrary.EnsureAssetFolder(FlarePath); AssetDatabase.CreateAsset(data, FlarePath); }
+            if (fresh) { VhLookLibrary.EnsureAssetFolder(FlarePath); AssetDatabase.CreateAsset(data, FlarePath); }
+            else EditorUtility.SetDirty(data);
             return data;
         }
 

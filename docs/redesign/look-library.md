@@ -56,3 +56,18 @@ Extras: `VHM_Glass` (window glass), `VHM_Foliage` / `VHM_Foliage_Dry` (leaf crow
 
 Texel density target: ~500-1000 texels/m on walls and ground at eye height (1080p); detail beyond that is carried by the
 normal maps and the macro variation.
+
+## Pass 2 additions (2026-10-12)
+
+- **Regraded** (`tools/look/regrade-albedo.py`, runs once per file): `Concrete_Sidewalk` and `Concrete_Kerb` are now pale
+  warm grey (sRGB mean 0.67 / 0.62; the brightest surface on a golden-hour street), the `CoveredCar` prop's cover a faded
+  pale fabric, the `ManholeCover` dark cast iron.
+- **Painted atlases** (`tools/look/make-foliage-atlas.py`, `Look/Textures/`): `VH_LeafClusters` (redone: many small leaves,
+  olive/warm greens; cells maple, oak, birch, elm), `VH_GrassCards` (green tuft, dry tuft, wildflowers, weeds),
+  `VH_GroundDecals` (leaf litter, oil, dirt, grime), `VH_TreeBillboards` (whole trees for the impostor LOD), `VH_FarFields`.
+- **Materials**: `VhLookLibrary.GrassMaterial()` (foliage shader, grass atlas), `TreeBillboardMaterial(dry)`,
+  `LeafLitter()` (Lit, alpha-clip), `Stains()` (Lit, transparent), `FarFields()` / `FarCanopy()` (Simple Lit, no normal map,
+  no specular, no received shadows: the backdrop), `TerrainLayerVariant(name, variant, tint, tile)` (a retinted,
+  rescaled terrain layer: the repeat-breaker; used as `Grass_DirtMix__DryGold` and `Grass_Lawn__Clover`).
+- **Builders**: `VhLookTrees` (species and LODs), `VhLookHouses` (full / far houses), `VhLookGround` (terrain, tufts,
+  litter, stains, storm drains), `VhLookBackdrop` (the terrain ring). See look.md for the calls.

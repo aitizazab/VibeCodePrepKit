@@ -23,6 +23,7 @@ Shader "JamKit/Look/Atmosphere"
         float4 _VhAtmoSunDir;     // world direction to the sun
         float4 _VhHazeParams;     // density, base height, height falloff, start distance
         float4 _VhHazeParams2;    // sun focus, max opacity
+        float4 _VhFarHazeParams;  // far density, far start, far height falloff, far max opacity
         float4 _VhHazeColor;
         float4 _VhHazeSunColor;
         float4 _VhShaftParams;    // intensity, threshold, length, radius
@@ -80,7 +81,7 @@ Shader "JamKit/Look/Atmosphere"
             float2 uv = i.texcoord;
             float4 c = SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_PointClamp, uv, 0);
             float raw = SampleSceneDepth(uv);
-            if (!VhIsSky(raw) && _VhHazeParams.x > 0.0)
+            if (!VhIsSky(raw) && (_VhHazeParams.x > 0.0 || _VhFarHazeParams.x > 0.0))
             {
             #if !UNITY_REVERSED_Z
                 raw = lerp(UNITY_NEAR_CLIP_VALUE, 1.0, raw);
@@ -97,9 +98,19 @@ Shader "JamKit/Look/Atmosphere"
                 float shape = abs(k) > 1e-3 ? (1.0 - exp(-k)) / k : 1.0;
                 float optical = _VhHazeParams.x * exp(-f * h0) * shape * d;
                 float amount = min(1.0 - exp(-optical), _VhHazeParams2.y);
+                // Far haze: the same integral with its own start and a gentle height falloff, so it grows steadily with
+                // distance (the hill 300 m off goes soft, the ring at 2-3 km dissolves into the horizon's colour).
+                float d2 = max(dist - _VhFarHazeParams.y, 0.0);
+                float f2 = max(_VhFarHazeParams.z, 1e-5);
+                float h2 = max(_WorldSpaceCameraPos.y + dir.y * _VhFarHazeParams.y - _VhHazeParams.y, -40.0);
+                float k2 = f2 * dir.y * d2;
+                float shape2 = abs(k2) > 1e-3 ? (1.0 - exp(-k2)) / k2 : 1.0;
+                float optical2 = _VhFarHazeParams.x * exp(-f2 * max(h2, 0.0)) * shape2 * d2;
+                float amount2 = min(1.0 - exp(-optical2), _VhFarHazeParams.w);
+                float total = 1.0 - (1.0 - amount) * (1.0 - amount2);
                 float mu = saturate(dot(dir, _VhAtmoSunDir.xyz));
                 float3 hazeCol = lerp(_VhHazeColor.rgb, _VhHazeSunColor.rgb, pow(mu, _VhHazeParams2.x));
-                c.rgb = lerp(c.rgb, hazeCol, amount);
+                c.rgb = lerp(c.rgb, hazeCol, total);
             }
             float3 sh = SAMPLE_TEXTURE2D_LOD(_VhShaftTex, sampler_LinearClamp, uv, 0).rgb;
             float facing = saturate(_VhSunScreen.z * 1.6 + 0.2);

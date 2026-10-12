@@ -47,7 +47,7 @@ namespace JamKit.Look
 
         [Header("Shadows (main light; applied to the URP asset while this rig is enabled)")]
         public bool overrideShadows = true;
-        public float shadowDistance = 200f;
+        public float shadowDistance = 160f;
         [Range(1, 4)] public int shadowCascades = 4;
         public Vector3 cascadeSplits = new Vector3(0.035f, 0.11f, 0.32f);
         public float cascadeBorder = 0.15f;
@@ -64,6 +64,7 @@ namespace JamKit.Look
         static readonly int SunDiscDirId = Shader.PropertyToID("_VhSunDiscDir");
         static readonly int SunColorId = Shader.PropertyToID("_VhSunColor");
         static readonly int SkyRotationId = Shader.PropertyToID("_VhSkyRotation");
+        static readonly int SkyMatrixId = Shader.PropertyToID("_VhSkyMatrix");
         static readonly int SkyTimeId = Shader.PropertyToID("_VhSkyTime");
 
         UniversalRenderPipelineAsset _asset;
@@ -132,13 +133,33 @@ namespace JamKit.Look
                 bounce.transform.rotation = Quaternion.LookRotation(b.normalized, Vector3.up);
             }
             Shader.SetGlobalVector(SunDirId, toSun);
-            // The disc is drawn where the HDRI's own sun glow is (its elevation, our bearing): the light may sit a few
-            // degrees higher for nicer shadows without a second glow appearing in the sky.
-            Shader.SetGlobalVector(SunDiscDirId, Direction(hasSky ? hdriSunElevation : sunElevation, sunAzimuth));
+            // The sky is turned and tilted so the HDRI's own sun (its glow, its rays) sits exactly on the light, and the disc
+            // is drawn there too: the disc, the lens flare (on the light) and the sun shafts all come from one point.
+            Shader.SetGlobalVector(SunDiscDirId, toSun);
+            Shader.SetGlobalMatrix(SkyMatrixId, SkyMatrix(toSun, sunAzimuth, hdriSunElevation, hdriSunAzimuth));
             Color c = sun != null ? sun.color * sun.intensity : Color.white;
             Shader.SetGlobalVector(SunColorId, new Vector4(c.r, c.g, c.b, 1f));
             Shader.SetGlobalFloat(SkyRotationId, sunAzimuth - hdriSunAzimuth);
             Shader.SetGlobalFloat(SkyTimeId, Application.isPlaying ? Time.time * cloudDrift : 0f);
+        }
+
+        /// <summary>
+        /// World direction -> the HDRI's own frame: a yaw that brings the light's bearing round to the HDRI sun's, then the
+        /// small tilt (a few degrees) that lifts or lowers the HDRI's sun onto the light's elevation. The sky shader's
+        /// equirect lookup is done in that frame.
+        /// </summary>
+        public static Matrix4x4 SkyMatrix(Vector3 toSun, float sunAzimuthDeg, float hdriElevationDeg, float hdriAzimuthDeg)
+        {
+            float a = -(sunAzimuthDeg - hdriAzimuthDeg) * Mathf.Deg2Rad;
+            float s = Mathf.Sin(a), c = Mathf.Cos(a);
+            var yaw = Matrix4x4.identity;
+            yaw.m00 = c; yaw.m01 = 0f; yaw.m02 = s;
+            yaw.m10 = 0f; yaw.m11 = 1f; yaw.m12 = 0f;
+            yaw.m20 = -s; yaw.m21 = 0f; yaw.m22 = c;
+            Vector3 yawed = yaw.MultiplyVector(toSun);
+            Vector3 native = Direction(hdriElevationDeg, hdriAzimuthDeg);
+            var tilt = Matrix4x4.Rotate(Quaternion.FromToRotation(yawed, native));
+            return tilt * yaw;
         }
 
         /// <summary>Re-applies (or removes) the shadow override after <see cref="previewShadowsInEditor"/> changes.</summary>

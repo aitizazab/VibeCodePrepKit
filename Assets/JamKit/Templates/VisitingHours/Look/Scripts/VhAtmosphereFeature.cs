@@ -22,6 +22,9 @@ namespace JamKit.Look
 
         Material _material;
         AtmospherePass _pass;
+        static readonly int HorizonAwayId = Shader.PropertyToID("_VhHorizonAway");
+        static readonly int HorizonSunId = Shader.PropertyToID("_VhHorizonSun");
+        static readonly int HorizonFocusId = Shader.PropertyToID("_VhHorizonFocus");
 
         public override void Create()
         {
@@ -35,7 +38,17 @@ namespace JamKit.Look
             if (!renderingData.cameraData.postProcessEnabled) return;
             var stack = VolumeManager.instance.stack;
             var atmo = stack?.GetComponent<VhAtmosphere>();
-            if (atmo == null || !atmo.IsActive()) return;
+            if (atmo == null || !atmo.IsActive())
+            {
+                Shader.SetGlobalVector(HorizonAwayId, Vector4.zero);   // the sky falls back to its own horizon colour
+                return;
+            }
+            // The sky draws its horizon band in the haze's colours, so hazed far hills dissolve into it.
+            var hcol = atmo.hazeColor.value;
+            var scol = atmo.hazeSunColor.value;
+            Shader.SetGlobalVector(HorizonAwayId, new Vector4(hcol.r, hcol.g, hcol.b, 1f));
+            Shader.SetGlobalVector(HorizonSunId, new Vector4(scol.r, scol.g, scol.b, 1f));
+            Shader.SetGlobalFloat(HorizonFocusId, atmo.hazeSunFocus.value);
             if (_material == null)
             {
                 if (shader == null) shader = Shader.Find("JamKit/Look/Atmosphere");
@@ -62,6 +75,7 @@ namespace JamKit.Look
             static readonly int SunWorldDirId = Shader.PropertyToID("_VhAtmoSunDir");
             static readonly int HazeParamsId = Shader.PropertyToID("_VhHazeParams");
             static readonly int HazeParams2Id = Shader.PropertyToID("_VhHazeParams2");
+            static readonly int FarHazeParamsId = Shader.PropertyToID("_VhFarHazeParams");
             static readonly int HazeColorId = Shader.PropertyToID("_VhHazeColor");
             static readonly int HazeSunColorId = Shader.PropertyToID("_VhHazeSunColor");
             static readonly int ShaftParamsId = Shader.PropertyToID("_VhShaftParams");
@@ -72,6 +86,7 @@ namespace JamKit.Look
 
             Material _material;
             VhAtmosphere _atmo;
+            Vector4 _farHaze;
 
             sealed class PassData
             {
@@ -81,7 +96,7 @@ namespace JamKit.Look
                 public TextureHandle depth;
                 public int pass;
                 public float blurStep;
-                public Vector4 sunScreen, sunDir, hazeParams, hazeParams2, hazeColor, hazeSunColor, shaftParams, shaftTint;
+                public Vector4 sunScreen, sunDir, hazeParams, hazeParams2, farHazeParams, hazeColor, hazeSunColor, shaftParams, shaftTint;
                 public bool hasShafts;
             }
 
@@ -116,6 +131,7 @@ namespace JamKit.Look
                 var a = _atmo;
                 var hazeParams = new Vector4(a.hazeDensity.value, a.hazeBaseHeight.value, a.hazeHeightFalloff.value, a.hazeStart.value);
                 var hazeParams2 = new Vector4(a.hazeSunFocus.value, a.hazeMaxOpacity.value, 0f, 0f);
+                _farHaze = new Vector4(a.farHazeDensity.value, a.farHazeStart.value, a.farHazeHeightFalloff.value, a.farHazeMaxOpacity.value);
                 var hc = a.hazeColor.value;
                 var hs = a.hazeSunColor.value;
                 var tint = a.shaftTint.value;
@@ -174,6 +190,7 @@ namespace JamKit.Look
                     data.sunDir = sunDir;
                     data.hazeParams = hazeParams;
                     data.hazeParams2 = hazeParams2;
+                    data.farHazeParams = _farHaze;
                     data.hazeColor = hazeColor;
                     data.hazeSunColor = hazeSunColor;
                     data.shaftParams = shaftParams;
@@ -198,6 +215,7 @@ namespace JamKit.Look
                 Props.SetVector(SunWorldDirId, d.sunDir);
                 Props.SetVector(HazeParamsId, d.hazeParams);
                 Props.SetVector(HazeParams2Id, d.hazeParams2);
+                Props.SetVector(FarHazeParamsId, d.farHazeParams);
                 Props.SetVector(HazeColorId, d.hazeColor);
                 Props.SetVector(HazeSunColorId, d.hazeSunColor);
                 Props.SetVector(ShaftParamsId, d.shaftParams);

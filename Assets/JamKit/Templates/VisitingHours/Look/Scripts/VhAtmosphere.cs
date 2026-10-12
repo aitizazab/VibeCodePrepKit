@@ -37,6 +37,16 @@ namespace JamKit.Look
         [Tooltip("The most the haze can cover (keeps far silhouettes faintly visible).")]
         public ClampedFloatParameter hazeMaxOpacity = new ClampedFloatParameter(0.85f, 0f, 1f);
 
+        [Header("Far haze (aerial perspective: the far hills and the terrain ring dissolve into the sky's horizon)")]
+        [Tooltip("Extinction per metre beyond the far start (0 = off). 0.004 softens a hill 300 m off and dissolves 2 km.")]
+        public MinFloatParameter farHazeDensity = new MinFloatParameter(0f, 0f);
+        [Tooltip("Distance (m) where the far haze begins.")]
+        public MinFloatParameter farHazeStart = new MinFloatParameter(150f, 0f);
+        [Tooltip("How fast the far haze thins with height (per metre): gentle, so high hills still go soft.")]
+        public MinFloatParameter farHazeHeightFalloff = new MinFloatParameter(0.003f, 0f);
+        [Tooltip("The most the far haze can cover.")]
+        public ClampedFloatParameter farHazeMaxOpacity = new ClampedFloatParameter(0.97f, 0f, 1f);
+
         [Header("Sun shafts")]
         [Tooltip("Strength of the shafts (0 = off).")]
         public MinFloatParameter shaftIntensity = new MinFloatParameter(0f, 0f);
@@ -49,8 +59,8 @@ namespace JamKit.Look
         [Tooltip("Screen radius around the sun that can emit shafts.")]
         public ClampedFloatParameter shaftRadius = new ClampedFloatParameter(0.45f, 0.05f, 2f);
 
-        public bool IsActive() => hazeDensity.value > 0f || shaftIntensity.value > 0f;
-        public bool HazeActive => hazeDensity.value > 0f;
+        public bool IsActive() => hazeDensity.value > 0f || farHazeDensity.value > 0f || shaftIntensity.value > 0f;
+        public bool HazeActive => hazeDensity.value > 0f || farHazeDensity.value > 0f;
         public bool ShaftsActive => shaftIntensity.value > 0f;
     }
 }

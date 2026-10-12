@@ -39,10 +39,10 @@ namespace JamKit.Look.EditorTools
             public string sky = VhLookSky.Default;
             public float sunIntensity = 3.2f;
             public Color sunColor = new Color(1f, 0.77f, 0.52f);
-            public float bounceIntensity = 0.3f;
-            public Color bounceColor = new Color(1f, 0.8f, 0.6f);
+            public float bounceIntensity = 0.42f;
+            public Color bounceColor = new Color(1f, 0.78f, 0.55f);
             public float ambientIntensity = 1f;
-            public float shadowDistance = 200f;
+            public float shadowDistance = 160f;
             public bool lensFlare = true;
             /// <summary>Height (world y) where the haze is densest: the bottom of the valley.</summary>
             public float hazeBaseHeight = 0f;
@@ -118,9 +118,12 @@ namespace JamKit.Look.EditorTools
                     flare.lensFlareData = SunFlare();
                     flare.intensity = 1f;
                     flare.useOcclusion = true;
-                    flare.occlusionRadius = 0.02f;
-                    flare.sampleCount = 24;
+                    // A radius about the sun's own: partly hidden behind leaves, the flare flickers and dims instead of
+                    // switching off (pass 1's 0.02 was a point test, all or nothing).
+                    flare.occlusionRadius = 0.15f;
+                    flare.sampleCount = 32;
                     flare.allowOffScreen = false;
+                    flare.scale = 1f;
                 }
 
                 var bounce = new GameObject("Bounce (sunlit ground, fill)").AddComponent<Light>();
@@ -169,8 +172,23 @@ namespace JamKit.Look.EditorTools
             }
         }
 
-        /// <summary>The player's (or any gameplay) camera: HDR, post-processing on, SMAA high, NaN guard, dithering, far clip.</summary>
-        public static void SetupCamera(Camera cam, float farClip = 1500f)
+        /// <summary>A camera path for the <c>-perf-probe</c> player flag (VhPerfProbe flies it and logs frame-time percentiles):
+        /// eye positions and look-at points, a leg every <paramref name="secondsPerLeg"/> seconds.</summary>
+        public static VhPerfPath AddPerfPath(Transform parent, Vector3[] eyes, Vector3[] looks, float secondsPerLeg = 4f, float fieldOfView = 60f)
+        {
+            var go = new GameObject("Perf path");
+            if (parent != null) go.transform.SetParent(parent, false);
+            var path = go.AddComponent<VhPerfPath>();
+            path.eyes = eyes;
+            path.looks = looks;
+            path.secondsPerLeg = secondsPerLeg;
+            path.fieldOfView = fieldOfView;
+            return path;
+        }
+
+        /// <summary>The player's (or any gameplay) camera: HDR, post-processing on, SMAA high, NaN guard, dithering, far clip
+        /// 4 km (the terrain ring, VhLookBackdrop, reaches 2-3 km).</summary>
+        public static void SetupCamera(Camera cam, float farClip = 4000f)
         {
             if (cam == null) return;
             cam.allowHDR = true;

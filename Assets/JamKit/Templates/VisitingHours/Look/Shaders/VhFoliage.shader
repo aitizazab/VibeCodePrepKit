@@ -2,8 +2,10 @@
 // Leaf-cluster cards, alpha-tested, double-sided. The mesh carries canopy normals (pointing out from the crown's centre),
 // so a whole crown shades as one soft volume, the stylized-AAA way, instead of as hundreds of flat cards.
 // Lighting: the main light with wrap diffuse and its shadows (cascades, soft), sun translucency (the crown glows gold
-// when the sun is behind it), ambient from the probes/sky (SH), SSAO, fog. Vertex colour: rgb = per-cluster tint,
-// a = sway weight (0 at the trunk, 1 at the crown's edge) for a gentle wind.
+// when the sun is behind it, most at the crown's rim, where light passes through one or two leaves), ambient from the
+// probes/sky (SH), SSAO, fog. Vertex colour: rgb = per-cluster tint, a = sway weight (0 at the trunk, 1 at the crown's
+// edge) for a gentle wind. UV1.x = rim (0 deep inside the crown, 1 on its outer shell): translucency and a painted
+// occlusion. LOD cross-fade (dithered) so the trees' LODGroups don't pop. Also used for grass and flower cards.
 // Passes: UniversalForward, ShadowCaster, DepthOnly, DepthNormals (for SSAO and the depth prepass).
 Shader "JamKit/Look/Foliage"
 {
@@ -14,9 +16,10 @@ Shader "JamKit/Look/Foliage"
         _Cutoff ("Alpha cutoff", Range(0, 1)) = 0.45
         _Wrap ("Wrap diffuse", Range(0, 1)) = 0.45
         _ShadowFloor ("Light kept in self-shadow", Range(0, 1)) = 0.12
-        _TranslucencyColor ("Translucency colour", Color) = (0.95, 0.85, 0.25, 1)
-        _Translucency ("Translucency", Range(0, 3)) = 1.1
-        _TranslucencyFocus ("Translucency focus", Range(1, 16)) = 5
+        _TranslucencyColor ("Translucency colour", Color) = (1.0, 0.82, 0.32, 1)
+        _Translucency ("Translucency", Range(0, 4)) = 1.9
+        _TranslucencyFocus ("Translucency focus", Range(1, 16)) = 3
+        _RimOcclusion ("Darkening deep inside the crown", Range(0, 1)) = 0.35
         _AmbientBoost ("Ambient boost", Range(0, 2)) = 1.1
         _WindStrength ("Wind strength (m)", Range(0, 0.3)) = 0.05
         _WindSpeed ("Wind speed", Range(0, 4)) = 1.2
@@ -41,6 +44,7 @@ Shader "JamKit/Look/Foliage"
         float4 _TranslucencyColor;
         float _Translucency;
         float _TranslucencyFocus;
+        float _RimOcclusion;
         float _AmbientBoost;
         float _WindStrength;
         float _WindSpeed;
@@ -67,15 +71,18 @@ Shader "JamKit/Look/Foliage"
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma multi_compile_instancing
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Fog.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 
             struct Attributes
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
                 float2 uv : TEXCOORD0;
+                float2 uv1 : TEXCOORD1;
                 float4 color : COLOR;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
@@ -85,6 +92,7 @@ Shader "JamKit/Look/Foliage"
                 float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
                 float3 positionWS : TEXCOORD1;
+                float rim : TEXCOORD5;
                 float3 normalWS : TEXCOORD2;
                 float4 color : TEXCOORD3;
                 float fogFactor : TEXCOORD4;
@@ -104,6 +112,7 @@ Shader "JamKit/Look/Foliage"
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
                 o.uv = TRANSFORM_TEX(v.uv, _BaseMap);
                 o.color = v.color;
+                o.rim = v.uv1.x;
                 o.fogFactor = ComputeFogFactor(o.positionCS.z);
                 return o;
             }
@@ -113,7 +122,11 @@ Shader "JamKit/Look/Foliage"
                 UNITY_SETUP_INSTANCE_ID(i);
                 float4 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv);
                 clip(tex.a - _Cutoff);
-                float3 albedo = tex.rgb * _BaseColor.rgb * i.color.rgb;
+            #if defined(LOD_FADE_CROSSFADE)
+                LODFadeCrossFade(i.positionCS);
+            #endif
+                float rim = saturate(i.rim);
+                float3 albedo = tex.rgb * _BaseColor.rgb * i.color.rgb * lerp(1.0 - _RimOcclusion, 1.0, rim);
                 float3 n = normalize(i.normalWS);
                 float4 shadowCoord = TransformWorldToShadowCoord(i.positionWS);
                 Light light = GetMainLight(shadowCoord);
@@ -123,8 +136,10 @@ Shader "JamKit/Look/Foliage"
                 float lit = lerp(_ShadowFloor, 1.0, atten);
                 float3 v = normalize(GetWorldSpaceViewDir(i.positionWS));
                 float back = pow(saturate(dot(v, -light.direction)), _TranslucencyFocus);
+                // Light through the leaves: strongest looking into the sun, at the crown's rim (one or two leaves thick), and
+                // not fully killed by the crown's own shadow (that light is what passes through it).
                 float3 trans = _TranslucencyColor.rgb * light.color * _Translucency *
-                               (back * 0.85 + 0.15 * saturate(-ndl)) * lerp(0.3, 1.0, atten);
+                               (back * 0.9 + 0.12 * saturate(-ndl)) * lerp(0.3, 1.0, rim) * lerp(0.45, 1.0, atten);
                 float3 direct = light.color * wrap * lit;
                 float3 ambient = SampleSH(n) * _AmbientBoost;
             #if defined(_SCREEN_SPACE_OCCLUSION)
@@ -151,7 +166,9 @@ Shader "JamKit/Look/Foliage"
             #pragma fragment frag
             #pragma multi_compile_instancing
             #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 
             float3 _LightDirection;
             float3 _LightPosition;
@@ -190,6 +207,9 @@ Shader "JamKit/Look/Foliage"
             half4 frag(Varyings i) : SV_Target
             {
                 clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).a - _Cutoff);
+            #if defined(LOD_FADE_CROSSFADE)
+                LODFadeCrossFade(i.positionCS);
+            #endif
                 return 0;
             }
             ENDHLSL
@@ -206,6 +226,8 @@ Shader "JamKit/Look/Foliage"
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile_instancing
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 
             struct Attributes
             {
@@ -235,6 +257,9 @@ Shader "JamKit/Look/Foliage"
             half frag(Varyings i) : SV_Target
             {
                 clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).a - _Cutoff);
+            #if defined(LOD_FADE_CROSSFADE)
+                LODFadeCrossFade(i.positionCS);
+            #endif
                 return i.positionCS.z;
             }
             ENDHLSL
@@ -251,6 +276,8 @@ Shader "JamKit/Look/Foliage"
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile_instancing
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 
             struct Attributes
             {
@@ -283,6 +310,9 @@ Shader "JamKit/Look/Foliage"
             half4 frag(Varyings i) : SV_Target
             {
                 clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).a - _Cutoff);
+            #if defined(LOD_FADE_CROSSFADE)
+                LODFadeCrossFade(i.positionCS);
+            #endif
                 return half4(NormalizeNormalPerPixel(i.normalWS), 0.0);
             }
             ENDHLSL

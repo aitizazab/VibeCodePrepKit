@@ -107,6 +107,22 @@ namespace JamKit.Look.EditorTools
             m.SetFloat("_Exposure", exposure);
             m.SetColor("_HorizonColor", s.horizon * exposure);
             m.SetColor("_GroundColor", Color.Lerp(s.ground, new Color(0.46f, 0.43f, 0.4f), 0.5f) * exposure * 0.85f);
+            // Pass 2 (round 1: the sun's side was "a flat cream wash", no disc, no glow): a lighter warm lift and a narrower
+            // horizon band so the HDRI's gold-lit clouds and rays show, a brighter disc with a tight glow that blooms round
+            // foliage. Set here (not only as shader defaults) so existing materials pick them up.
+            m.SetColor("_WarmSide", new Color(1.06f, 0.99f, 0.92f, 1f));
+            m.SetFloat("_WarmFocus", 4f);
+            m.SetFloat("_HorizonHaze", 0.22f);
+            m.SetFloat("_HorizonHeight", 0.035f);
+            m.SetFloat("_Saturation", 1.08f);
+            m.SetColor("_SunDiscColor", new Color(1f, 0.82f, 0.55f, 1f));
+            m.SetFloat("_SunDiscIntensity", 110f);
+            m.SetFloat("_SunDiscSize", 0.6f);
+            m.SetColor("_SunGlowColor", new Color(1f, 0.74f, 0.44f, 1f));
+            m.SetFloat("_SunGlow", 2.8f);
+            m.SetFloat("_SunGlowFalloff", 320f);
+            m.SetFloat("_SunHalo", 0.18f);
+            m.SetFloat("_SunHaloFalloff", 12f);
             if (fresh) { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
             EditorUtility.SetDirty(m);
             return m;

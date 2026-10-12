@@ -27,6 +27,14 @@ namespace JamKit.Look.EditorTools
         public const string MatRoot = LookRoot + "Library/";
         public const string MacroPath = TexRoot + "VH_MacroVariation.png";
         public const string LeafAtlasPath = LookRoot + "Textures/VH_LeafClusters.png";
+        /// <summary>Grass and flower cards (tools/look/make-foliage-atlas.py): 0 green tuft, 1 dry tuft, 2 wildflowers, 3 low weeds.</summary>
+        public const string GrassAtlasPath = LookRoot + "Textures/VH_GrassCards.png";
+        /// <summary>Ground decals: 0 leaf litter, 1 oil stain, 2 dirt/water stain, 3 grime streak.</summary>
+        public const string DecalAtlasPath = LookRoot + "Textures/VH_GroundDecals.png";
+        /// <summary>Whole-tree silhouettes for the trees' impostor LOD: 0 maple, 1 oak, 2 birch, 3 elm.</summary>
+        public const string TreeBillboardAtlasPath = LookRoot + "Textures/VH_TreeBillboards.png";
+        /// <summary>Patchy far fields for the distant terrain ring (VhLookBackdrop).</summary>
+        public const string FarFieldsPath = LookRoot + "Textures/VH_FarFields.png";
 
         public struct Entry
         {
@@ -192,7 +200,11 @@ namespace JamKit.Look.EditorTools
                 Texture(d + "_Mask.png", false, false, 2048, changed);
                 Model(d + ".fbx", changed);
             }
-            Leaves(changed);
+            Leaves(LeafAtlasPath, changed);
+            Leaves(GrassAtlasPath, changed);
+            Leaves(DecalAtlasPath, changed);
+            Leaves(TreeBillboardAtlasPath, changed);
+            Texture(FarFieldsPath, true, false, 1024, changed);
             VhLookSky.ConfigureImporters(changed);
             if (changed.Count > 0) Debug.Log("JAMKIT_LOOK import settings set on " + changed.Count + " files");
         }
@@ -221,10 +233,10 @@ namespace JamKit.Look.EditorTools
             changed.Add(path);
         }
 
-        static void Leaves(List<string> changed)
+        static void Leaves(string path, List<string> changed)
         {
-            var ti = AssetImporter.GetAtPath(LeafAtlasPath) as TextureImporter;
-            if (ti == null) { Debug.LogWarning("JAMKIT_LOOK missing leaf atlas: " + LeafAtlasPath); return; }
+            var ti = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (ti == null) { Debug.LogWarning("JAMKIT_LOOK missing atlas (run tools/look/make-foliage-atlas.py?): " + path); return; }
             if (ti.mipMapsPreserveCoverage && ti.alphaIsTransparency && Mathf.Approximately(ti.alphaTestReferenceValue, 0.45f)) return;
             ti.textureType = TextureImporterType.Default;
             ti.sRGBTexture = true;
@@ -237,7 +249,7 @@ namespace JamKit.Look.EditorTools
             ti.maxTextureSize = 1024;
             ti.textureCompression = TextureImporterCompression.CompressedHQ;
             ti.SaveAndReimport();
-            changed.Add(LeafAtlasPath);
+            changed.Add(path);
         }
 
         static void Model(string path, List<string> changed)
@@ -408,26 +420,182 @@ namespace JamKit.Look.EditorTools
             return t;
         }
 
+        /// <summary>
+        /// A variant of a library terrain layer: the same textures with a colour remap (multiplies the albedo; URP's terrain
+        /// shader applies it) and its own tile size, so one texture blended with a retinted, rescaled copy of itself breaks up
+        /// the repeat (pass 2: the hillside "tiles as a stripe/checker grid"). Saved as VHT_&lt;name&gt;__&lt;variant&gt;.terrainlayer.
+        /// </summary>
+        public static TerrainLayer TerrainLayerVariant(string name, string variant, Color tint, float tileMetres, float smoothness = -1f)
+        {
+            if (!TryFind(name, out var e)) return null;
+            ConfigureImporters();
+            string d = TexRoot + e.name + "/" + e.name;
+            string path = MatRoot + "VHT_" + e.name + "__" + variant + ".terrainlayer";
+            var t = AssetDatabase.LoadAssetAtPath<TerrainLayer>(path);
+            bool fresh = t == null;
+            if (fresh) t = new TerrainLayer();
+            t.diffuseTexture = Load(d + "_Albedo.jpg");
+            t.normalMapTexture = Load(d + "_Normal.jpg");
+            t.maskMapTexture = Load(d + "_Mask.png");
+            t.tileSize = new Vector2(tileMetres, tileMetres);
+            t.tileOffset = new Vector2(tileMetres * 0.37f, tileMetres * 0.61f);
+            t.normalScale = e.normalScale;
+            t.diffuseRemapMax = new Vector4(e.tint.r * tint.r, e.tint.g * tint.g, e.tint.b * tint.b, 1f);
+            t.maskMapRemapMin = Vector4.zero;
+            t.maskMapRemapMax = new Vector4(1f, 1f, 1f, smoothness >= 0f ? smoothness : e.smoothness);
+            if (fresh) { EnsureAssetFolder(path); AssetDatabase.CreateAsset(t, path); }
+            EditorUtility.SetDirty(t);
+            return t;
+        }
+
         // ---------- Bark, foliage, props ----------
 
         public const string FoliageMaterialPath = MatRoot + "VHM_Foliage.mat";
         public const string FoliageDryMaterialPath = MatRoot + "VHM_Foliage_Dry.mat";
+        public const string GrassMaterialPath = MatRoot + "VHM_GrassCards.mat";
+        public const string TreeBoardMaterialPath = MatRoot + "VHM_TreeBillboard.mat";
+        public const string TreeBoardDryMaterialPath = MatRoot + "VHM_TreeBillboard_Dry.mat";
+
+        /// <summary>The trees' impostor LOD (the foliage shader with the whole-tree atlas: lit, backlit glow, no sway).</summary>
+        public static Material TreeBillboardMaterial(bool dry = false)
+        {
+            string path = dry ? TreeBoardDryMaterialPath : TreeBoardMaterialPath;
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m == null) { ConfigureImporters(); BuildBarkAndFoliage(); m = AssetDatabase.LoadAssetAtPath<Material>(path); }
+            if (m != null) m.SetFloat("_WindStrength", 0.02f);
+            return m;
+        }
 
         static void BuildBarkAndFoliage()
         {
-            Foliage(FoliageMaterialPath, new Color(1f, 1f, 1f));
-            Foliage(FoliageDryMaterialPath, new Color(1.08f, 0.98f, 0.72f));
+            Foliage(FoliageMaterialPath, new Color(1f, 0.98f, 0.9f), LeafAtlasPath);
+            Foliage(FoliageDryMaterialPath, new Color(1.08f, 0.96f, 0.7f), LeafAtlasPath);
+            Foliage(TreeBoardMaterialPath, new Color(1f, 0.98f, 0.9f), TreeBillboardAtlasPath);
+            Foliage(TreeBoardDryMaterialPath, new Color(1.08f, 0.96f, 0.7f), TreeBillboardAtlasPath);
+            var g = Foliage(GrassMaterialPath, new Color(1f, 1f, 0.92f), GrassAtlasPath);
+            if (g != null)
+            {
+                // Grass: thin blades, so a bit less wrap and more light through them (backlit grass glows at golden hour).
+                g.SetFloat("_Cutoff", 0.4f);
+                g.SetFloat("_Wrap", 0.35f);
+                g.SetFloat("_Translucency", 1.4f);
+                g.SetFloat("_RimOcclusion", 0.45f);
+                g.SetFloat("_WindStrength", 0.035f);
+                g.SetFloat("_WindSpeed", 1.6f);
+            }
         }
 
-        static Material Foliage(string path, Color tint)
+        /// <summary>Grass, wildflower and weed cards (the foliage shader with the grass atlas): VhLookGround's tufts.</summary>
+        public static Material GrassMaterial()
+        {
+            var m = AssetDatabase.LoadAssetAtPath<Material>(GrassMaterialPath);
+            if (m == null) { ConfigureImporters(); BuildBarkAndFoliage(); m = AssetDatabase.LoadAssetAtPath<Material>(GrassMaterialPath); }
+            return m;
+        }
+
+        /// <summary>Fallen leaves (alpha-clipped, lit) from the decal atlas's cell 0: drifts against kerbs, fences, under trees.</summary>
+        public static Material LeafLitter()
+        {
+            string path = MatRoot + "VHM_LeafLitter.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m != null) return m;
+            ConfigureImporters();
+            m = new Material(Lit) { name = "VHM_LeafLitter" };
+            m.SetTexture("_BaseMap", Load(DecalAtlasPath));
+            m.SetColor("_BaseColor", new Color(1f, 0.97f, 0.92f, 1f));
+            m.SetFloat("_AlphaClip", 1f);
+            m.SetFloat("_Cutoff", 0.5f);
+            m.SetFloat("_Smoothness", 0.2f);
+            m.SetFloat("_Cull", (float)CullMode.Off);
+            ValidateLit(m);
+            m.EnableKeyword("_ALPHATEST_ON");
+            m.enableInstancing = true;
+            EnsureAssetFolder(path);
+            AssetDatabase.CreateAsset(m, path);
+            return m;
+        }
+
+        /// <summary>Stains (oil, dirt, water, grime) from the decal atlas's cells 1-3: transparent, alpha-blended, lit, a little
+        /// glossier than the concrete (oil). Lay them as quads a few millimetres above the surface.</summary>
+        public static Material Stains()
+        {
+            string path = MatRoot + "VHM_Stains.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m != null) return m;
+            ConfigureImporters();
+            m = new Material(Lit) { name = "VHM_Stains" };
+            m.SetTexture("_BaseMap", Load(DecalAtlasPath));
+            m.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0.85f));
+            m.SetFloat("_Surface", 1f);
+            m.SetFloat("_Blend", 0f);
+            m.SetFloat("_Smoothness", 0.45f);
+            m.SetFloat("_ZWrite", 0f);
+            ValidateLit(m);
+            m.renderQueue = (int)RenderQueue.Transparent - 50;   // under other transparents (glass)
+            m.enableInstancing = true;
+            EnsureAssetFolder(path);
+            AssetDatabase.CreateAsset(m, path);
+            return m;
+        }
+
+        static Shader SimpleLit => Shader.Find("Universal Render Pipeline/Simple Lit");
+
+        /// <summary>A cheap material for far scenery: URP Simple Lit (no PBR), no normal map, no specular, doesn't receive
+        /// shadows. SRP Batcher-compatible, instancing on.</summary>
+        static Material Far(string name, Texture albedo, Color tint, float tileMetres)
+        {
+            string path = MatRoot + "VHM_" + name + ".mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            bool fresh = m == null;
+            if (fresh) m = new Material(SimpleLit) { name = "VHM_" + name };
+            else if (m.shader != SimpleLit) m.shader = SimpleLit;
+            m.SetTexture("_BaseMap", albedo);
+            m.SetTextureScale("_BaseMap", new Vector2(1f / tileMetres, 1f / tileMetres));
+            m.SetColor("_BaseColor", tint);
+            m.SetTexture("_BumpMap", null);
+            m.DisableKeyword("_NORMALMAP");
+            m.SetFloat("_SpecularHighlights", 0f);
+            m.DisableKeyword("_SPECULAR_COLOR");
+            m.SetFloat("_ReceiveShadows", 0f);
+            m.EnableKeyword("_RECEIVE_SHADOWS_OFF");
+            m.SetFloat("_Smoothness", 0.1f);
+            m.enableInstancing = true;
+            if (fresh) { EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>The distant terrain ring's ground: patchy fields (VH_FarFields) at a 420 m repeat. Seen only through haze,
+        /// so it's the cheap far material.</summary>
+        public static Material FarFields()
+        {
+            ConfigureImporters();
+            return Far("FarFields", Load(FarFieldsPath), new Color(0.95f, 0.95f, 0.9f), 420f);
+        }
+
+        /// <summary>Far canopy (the tree line's rounded crowns, 600 m - 3 km): the lawn texture as leafy noise, dark olive.</summary>
+        public static Material FarCanopy()
+        {
+            ConfigureImporters();
+            return Far("FarCanopy", Load(TexRoot + "Grass_Lawn/Grass_Lawn_Albedo.jpg"), new Color(0.6f, 0.6f, 0.44f), 7f);
+        }
+
+        static Material Foliage(string path, Color tint, string atlas)
         {
             var shader = Shader.Find("JamKit/Look/Foliage");
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
             bool fresh = m == null;
             if (fresh) m = new Material(shader);
             else if (m.shader != shader) m.shader = shader;
-            m.SetTexture("_BaseMap", Load(LeafAtlasPath));
+            m.SetTexture("_BaseMap", Load(atlas));
             m.SetColor("_BaseColor", tint);
+            // Light through the leaves (pass 2: backlit crowns glow at their rims). Set explicitly so older materials update.
+            m.SetColor("_TranslucencyColor", new Color(1f, 0.82f, 0.32f, 1f));
+            m.SetFloat("_Translucency", 1.9f);
+            m.SetFloat("_TranslucencyFocus", 3f);
+            m.SetFloat("_RimOcclusion", 0.35f);
+            m.SetFloat("_Wrap", 0.45f);
+            m.SetFloat("_Cutoff", 0.45f);
             m.enableInstancing = true;
             if (fresh) { VhLookLibrary.EnsureAssetFolder(path); AssetDatabase.CreateAsset(m, path); }
             EditorUtility.SetDirty(m);
