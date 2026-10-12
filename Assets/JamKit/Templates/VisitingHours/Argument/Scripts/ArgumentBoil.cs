@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace JamKit.Argument
 {
@@ -52,12 +53,18 @@ namespace JamKit.Argument
     /// which stands about 860 px tall on a 1080p screen (Lily stood about 360 px tall on the 1280 x 720 stage).
     /// It distorts whatever <see cref="ArgumentArt.Sprite"/> returns, so it stacks with <see cref="ArgumentArt.SetTreatment"/>.
     ///
-    /// Presets (F8 in the battle cycles them, the name and values shown under her): Gentle (the default), Subtle,
+    /// Presets (F10 in the battle cycles them, the name and values shown under her): Gentle (the default), Subtle,
     /// Lily-equivalent (Lily's 4 px / 0.02 scaled by the two figures' heights), Strong, Slow and heavy, Off.
-    /// F9 turns on <see cref="Reacting"/>: a little stronger and quicker when she's angry or rattled, calmer when softened.
+    /// Shift+F10 turns on <see cref="Reacting"/>: a little stronger and quicker when she's angry or rattled, calmer when softened.
+    /// (F10 because the other function keys are taken: F1 the debug menu, F3/F4/F6/F7 movement, F5/F9 the Story
+    /// template, F7/F8 the dream house's argument skips, F9 the opening editor; F11 is a browser's fullscreen.)
     /// </summary>
     public static class ArgumentBoil
     {
+        /// <summary>The battle's boil key: cycles the presets; with Shift, toggles <see cref="Reacting"/>.</summary>
+        public const Key CycleKey = Key.F10;
+        public const string CycleKeyName = "F10", ReactKeyName = "Shift+F10";
+
         /// <summary>Lily's defaults in the scene 2 prototype (stage pixels, 1280 x 720).</summary>
         public static readonly BoilSettings Lily = new BoilSettings("Lily (scene 2)", BoilStyle.Boil, 4f, 0.02f, 8f, 0.6f);
         /// <summary>Lily's figure on her stage and Lena's in the battle (pixels tall): the scale between them.</summary>
@@ -108,17 +115,17 @@ namespace JamKit.Argument
 
         public static int Find(string name)
         {
-            string key = Key(name);
+            string key = NameKey(name);
             if (key.Length == 0) return -1;
             for (int i = 0; i < Presets.Length; i++)
             {
-                string k = Key(Presets[i].name);
+                string k = NameKey(Presets[i].name);
                 if (k == key || k.StartsWith(key, StringComparison.Ordinal)) return i;
             }
             return -1;
         }
 
-        static string Key(string s)
+        static string NameKey(string s)
         {
             if (string.IsNullOrEmpty(s)) return "";
             var b = new System.Text.StringBuilder(s.Length);

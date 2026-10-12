@@ -158,8 +158,8 @@ bigger, that's a strong wobble, so the default is gentler.
 | Off | | | | the plain sprite, to compare |
 
 **Keys in the battle:**
-- **F8** cycles the presets. The name and values show under her for a few seconds.
-- **F9** makes the boil react to her mood:
+- **F10** cycles the presets. The name and values show under her for a few seconds.
+- **Shift+F10** makes the boil react to her mood:
   - angry: x1.4 strength, x1.25 rate;
   - rattled: x1.3 strength, x1.5 rate;
   - antagonistic: x1.15 strength;
@@ -167,6 +167,9 @@ bigger, that's a strong wobble, so the default is gentler.
   - hurt or pleading: x0.85 strength.
 
   Reacting is off by default until someone has seen it.
+
+  F10 because every other function key is taken: F1 the debug menu, F3/F4/F6/F7 movement, F5/F9 the Story
+  template, F7/F8 the dream house's argument skips, F9 the opening editor. F11 is a browser's fullscreen.
 
 **Capture** (from a Visiting Hours build, like the title's `-title-shot`):
 

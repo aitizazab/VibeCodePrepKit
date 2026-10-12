@@ -42,7 +42,7 @@ namespace JamKit.Argument
         readonly Label[] _slipLabels = new Label[2];
         readonly VisualElement _endContinue;
         string _shownSprite = "";
-        // The sprite's boil (ArgumentBoil): what it distorts, for which expression, and the label F8 shows.
+        // The sprite's boil (ArgumentBoil): what it distorts, for which expression, and the label F10 shows.
         readonly ArgumentBoilLayer _boil = new ArgumentBoilLayer();
         Texture2D _spriteTexture;
         Texture _spriteShown;
@@ -333,13 +333,14 @@ namespace JamKit.Argument
         public Texture SpriteShown => _spriteShown;
         public string BoilLabel => _boilLabel.style.display == DisplayStyle.Flex ? _boilLabel.text : "";
 
-        /// <summary>Shows the boil's preset and values under her for a few seconds (F8, F9), or for good (captures).</summary>
+        /// <summary>Shows the boil's preset and values under her for a few seconds (F10, Shift+F10), or for good (captures).</summary>
         public void ShowBoilLabel(bool always = false)
         {
             if (always) _boilLabelAlways = true;
             _boilLabelFor = 4f;
             var s = ArgumentBoil.For(_spriteExpression);
-            _boilLabel.text = "Boil (F8): " + s.Describe() + (ArgumentBoil.Reacting ? "  ·  reacting to her mood (F9)" : "  ·  F9: react to her mood");
+            _boilLabel.text = "Boil (" + ArgumentBoil.CycleKeyName + "): " + s.Describe()
+                + (ArgumentBoil.Reacting ? "  ·  reacting to her mood (" + ArgumentBoil.ReactKeyName + ")" : "  ·  " + ArgumentBoil.ReactKeyName + ": react to her mood");
             _boilLabel.style.display = DisplayStyle.Flex;
         }
 

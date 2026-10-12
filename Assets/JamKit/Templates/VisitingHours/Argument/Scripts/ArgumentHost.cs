@@ -261,14 +261,16 @@ namespace JamKit.Argument
             if (!UnityEngine.Cursor.visible && GameRoot.Input.HoverAllowed) UnityEngine.Cursor.visible = true;
         }
 
-        /// <summary>F8 cycles the sprite's boil presets, F9 makes it react to her mood (debug keys: the creator compares
+        /// <summary>F10 cycles the sprite's boil presets, Shift+F10 makes it react to her mood (debug keys: the creator compares
         /// them; the preset and its values show under her).</summary>
         void BoilKeys()
         {
             var kb = Keyboard.current;
             if (kb == null || !InputAllowed) return;
-            if (kb.f8Key.wasPressedThisFrame) { ArgumentBoil.Next(); _view.ShowBoilLabel(); }
-            if (kb.f9Key.wasPressedThisFrame) { ArgumentBoil.SetReacting(!ArgumentBoil.Reacting); _view.ShowBoilLabel(); }
+            if (!kb[ArgumentBoil.CycleKey].wasPressedThisFrame) return;
+            if (kb.shiftKey.isPressed) ArgumentBoil.SetReacting(!ArgumentBoil.Reacting);
+            else ArgumentBoil.Next();
+            _view.ShowBoilLabel();
         }
 
         void TickPressure(InputService input, bool allowed, float dt)

@@ -18,7 +18,7 @@ namespace JamKit.Argument
     /// expression.
     ///
     /// THE BOIL (<see cref="ArgumentBoil"/>): the view distorts whatever <see cref="Sprite"/> returns with Lily's
-    /// hand-drawn boil, so it stacks with a treatment. F8 in the battle cycles its presets.
+    /// hand-drawn boil, so it stacks with a treatment. F10 in the battle cycles its presets.
     ///
     /// TREATMENTS (a hook, no picker yet): with <see cref="SetTreatment"/>("bw") the slot first looks for
     /// &lt;who&gt;_bw_&lt;expression&gt;.png and falls back to the plain files above.

@@ -208,7 +208,7 @@ namespace JamKit.Argument.Tests
             Assert.That(heavy.rate, Is.LessThan(gentle.rate));
             Assert.That(ArgumentBoil.Presets[ArgumentBoil.Find("subtle")].strength, Is.LessThan(gentle.strength));
 
-            // F8 cycles and wraps; names are found loosely.
+            // F10 cycles and wraps; names are found loosely.
             for (int i = 1; i <= ArgumentBoil.Presets.Length; i++) Assert.That(ArgumentBoil.Next().name, Is.EqualTo(names[i % names.Length]));
             Assert.That(ArgumentBoil.Use("Slow-Heavy") && ArgumentBoil.Preset.name == "Slow and heavy", Is.True);
             Assert.That(ArgumentBoil.Use("strong") && ArgumentBoil.Preset.name == "Strong", Is.True);
@@ -246,6 +246,20 @@ namespace JamKit.Argument.Tests
         }
 
         [Test]
+        public void TheBoilKeyIsOneNothingElseUses()
+        {
+            // Taken elsewhere: F1 (debug menu), F3/F4/F6/F7 (movement), F5/F9 (Story), F7/F8 (the dream house's argument
+            // skips), F9 (the opening editor). F11 is a browser's fullscreen in the web build.
+            var taken = new[] { UnityEngine.InputSystem.Key.F1, UnityEngine.InputSystem.Key.F3, UnityEngine.InputSystem.Key.F4,
+                UnityEngine.InputSystem.Key.F5, UnityEngine.InputSystem.Key.F6, UnityEngine.InputSystem.Key.F7,
+                UnityEngine.InputSystem.Key.F8, UnityEngine.InputSystem.Key.F9, UnityEngine.InputSystem.Key.F11,
+                UnityEngine.InputSystem.Key.Backquote };
+            Assert.That(System.Array.IndexOf(taken, ArgumentBoil.CycleKey), Is.EqualTo(-1), "a key nothing else uses");
+            Assert.That(ArgumentBoil.CycleKey, Is.EqualTo(UnityEngine.InputSystem.Key.F10));
+            Assert.That(ArgumentBoil.CycleKeyName, Is.EqualTo("F10"));
+        }
+
+        [Test]
         public void HerMoodChangesTheBoilOnlyWhenReacting()
         {
             var gentle = ArgumentBoil.Preset;
@@ -268,10 +282,10 @@ namespace JamKit.Argument.Tests
             Assert.That(view.SpriteShown, Is.Not.Null, "the sprite, boiled where there's a graphics device");
             if (!ArgumentBoilLayer.Available) Assert.That(view.SpriteShown, Is.SameAs(ArgumentArt.Sprite("Lena", "angry", out _)), "no device: the plain sprite");
             view.Tick(0.2f);
-            Assert.That(view.BoilLabel, Is.Empty, "hidden until F8");
+            Assert.That(view.BoilLabel, Is.Empty, "hidden until F10");
             ArgumentBoil.Next();
             view.ShowBoilLabel();
-            Assert.That(view.BoilLabel, Does.Contain("Subtle").And.Contain("F8"));
+            Assert.That(view.BoilLabel, Does.Contain("Subtle").And.Contain("F10").And.Contain("Shift+F10"));
             view.Tick(5f);
             Assert.That(view.BoilLabel, Is.Empty, "it goes after a few seconds");
             view.ShowBoilLabel(true);
