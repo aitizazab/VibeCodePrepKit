@@ -19,6 +19,7 @@
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Look\Scripts\**\*.cs" />
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Look\Editor\**\*.cs" />
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Characters\Editor\**\*.cs" />
+    <Compile Include="$(ProjectAssets)Templates\VisitingHours\Perf\Editor\**\*.cs" />
     <EditorDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEditor*.dll" />
     <Reference Include="@(EditorDll)" Private="false" />
     <TestDll Include="$(ScriptAssemblies)UnityEngine.TestRunner.dll;$(ScriptAssemblies)UnityEditor.TestRunner.dll;$(ScriptAssemblies)InkEditor.dll" />

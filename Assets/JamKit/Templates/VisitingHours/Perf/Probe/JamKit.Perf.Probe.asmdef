@@ -1,0 +1,24 @@
+{
+    "name": "JamKit.Perf.Probe",
+    "rootNamespace": "JamKit.Perf",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "JamKit.Perf",
+        "JamKit.VisitingHours",
+        "JamKit.DreamEscape",
+        "JamKit.Argument",
+        "JamKit.MovementLab",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

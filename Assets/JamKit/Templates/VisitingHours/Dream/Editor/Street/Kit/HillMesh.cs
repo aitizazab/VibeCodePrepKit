@@ -463,6 +463,7 @@ namespace JamKit.DreamEscape.EditorTools
                 mesh.SetTriangles(part.t, 0);
                 mesh.RecalculateBounds();
                 mesh.RecalculateTangents();
+                JamKit.Perf.EditorTools.VhPerfMesh.Compact(mesh);   // Perf: 36 bytes a vertex, not 48 (RAM, VRAM, disk)
                 if (!string.IsNullOrEmpty(assetFolder))
                 {
                     string path = assetFolder + "/" + Safe(name) + "__" + Safe(kv.Key) + ".asset";

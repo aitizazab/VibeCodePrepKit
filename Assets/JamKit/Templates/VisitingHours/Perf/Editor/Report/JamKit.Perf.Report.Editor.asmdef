@@ -1,0 +1,28 @@
+{
+    "name": "JamKit.Perf.Report.Editor",
+    "rootNamespace": "JamKit.Perf.EditorTools",
+    "references": [
+        "JamKit.Core",
+        "JamKit.Unity",
+        "JamKit.Perf",
+        "JamKit.Perf.Probe",
+        "JamKit.Perf.Editor",
+        "JamKit.VisitingHours",
+        "JamKit.DreamEscape",
+        "JamKit.Argument",
+        "JamKit.MovementLab",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

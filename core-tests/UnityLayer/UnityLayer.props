@@ -29,6 +29,9 @@
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Argument\Scripts\**\*.cs" />
     <!-- The 3D cast's component (JamKit.VisitingHours.Characters), one level deeper too. -->
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Characters\Scripts\**\*.cs" />
+    <!-- Visiting Hours' performance tools (docs/redesign/perf.md): the tiers and cull distances, and the perf probe. -->
+    <Compile Include="$(ProjectAssets)Templates\VisitingHours\Perf\Scripts\**\*.cs" />
+    <Compile Include="$(ProjectAssets)Templates\VisitingHours\Perf\Probe\**\*.cs" />
     <EngineDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEngine*.dll" />
     <Reference Include="@(EngineDll)" Private="false" />
     <PkgDll Include="$(ScriptAssemblies)Unity.InputSystem.dll;$(ScriptAssemblies)UnityEngine.UI.dll;$(ScriptAssemblies)Ink.dll;$(ScriptAssemblies)Ink-Libraries.dll;$(ScriptAssemblies)Unity.RenderPipelines.Universal.Runtime.dll;$(ScriptAssemblies)Unity.RenderPipelines.Core.Runtime.dll;$(ScriptAssemblies)Unity.AI.Navigation.dll" />
