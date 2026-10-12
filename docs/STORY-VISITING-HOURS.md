@@ -1,6 +1,6 @@
 # *Visiting Hours*: a new story, built from first principles (draft for the creator)
 
-> **Status: draft 1 of the current story.** Its structure (layers, the dilemma, companions, endings) still stands, but **the premise details are superseded by `VISITING-HOURS.md`** (2026-10-10): Elias founded St. Brigid's and comes from money; the call is at 3 AM because he stayed late avoiding Nadia; the crash was crossfire between corporations; Lena is missing; the setting is a near-future dystopia.
+> **Status: draft 1 of the current story, kept for its structure** (layers, the dilemma, companions). **The premise and the endings are superseded** by the creator's writing (`VISITING-HOURS.md`, `STORY-PROSE.md`): Elias founded St. Brigid's and comes from money; the call is at 3 AM because he stayed late avoiding Nadia; the crash on Route 9 was crossfire, reported as gang violence (Larpaca is the gang, LeBaget a corporation); Lena is missing, not dead, and a stargazer; Theo was killed; the setting is a near-future dystopia. The endings are the creator's (Morning chosen or forced, Evening, the Long Night).
 
 A fresh start after *Ember* and *Dead Air*. Built in order: genre, setting, scope, message, then the checklist.
 
@@ -35,7 +35,7 @@ Reasonable people split on this the way they split over end-of-life decisions. T
 
 **Nadia Voss** is twenty-nine and works nights as a nurse at St. Brigid's. Six weeks ago her older brother
 **Elias**, a bike mechanic, fell asleep at the wheel after a double shift. His car crossed the median. His wife
-**Lena** and his ten-year-old son **Theo** died at the scene. Elias has been in bed 14 ever since. The scans say
+**Lena** went missing and his ten-year-old son **Theo** died at the scene. Elias has been in bed 14 ever since. The scans say
 his brain is fine. He just won't wake up.
 
 The hospital is running a trial. **Marguerite "Mags" Ilunga**, who operates the Dream Bridge and has done 212
@@ -51,7 +51,7 @@ eleven years ago. He fights her gently, almost apologetically. "Go home, Nadia. 
 **The second night (floor 2, the House)**, she reaches the front door. Lena and Theo are inside, alive, making
 pancakes. **And they know.** Lena knows what she is: a memory Elias rebuilds every night, the best of what he
 remembers of love. She stands in the doorway and fights to keep Nadia out, and every line she says is fair: "Do
-you know what's waiting for him out there? A grave, two coffins and a courtroom. Here he's happy. Who are you
+you know what's waiting for him out there? A grave, a missing wife and a courtroom. Here he's happy. Who are you
 saving him for?" Somewhere in that fight the action game turns over: **the bullets were never the dream attacking
 you. They're a grieving man's mind protecting the only place his family is still alive. You are the nightmare.**
 Theo watches from the stairs and asks the only question that matters: "Is Dad going to be sad?"
@@ -117,13 +117,8 @@ by him? The game never says. The player can find it, or not.
 - **Separate axis:** she reforms after a few seconds.
 
 ## Endings
-- **Morning:** he wakes. Months later, one scene at two graves. Whether he speaks to Nadia depends on whether
-  she told him the truth.
-- **Evening:** she leaves him there. He dies nine days later. On the monitor his heartbeat slows like someone
-  falling asleep after a good day.
-- **The Long Night** *(against the current)*: Nadia doesn't come back up. Mags's last line, alone in the booth.
-- **His Choice** *(needs the truth told, and Theo or Lena with you)*: Nadia tells him everything and lets him
-  decide. The game never shows what he chooses: you hear the monitor, and then the screen goes to black.
+The creator's endings replace this draft's: see `VISITING-HOURS.md` (Morning, chosen or forced; Evening; the Long
+Night). His Choice is folded into Morning.
 
 ## The mechanics in the world
 | Mechanic | In the dream |
@@ -134,7 +129,7 @@ by him? The game never says. The player can find it, or not.
 | Normal upgrades | Bits of the dream you take as you break its defences |
 | **Epics (bosses)** | A piece of each guardian: Abernathy's patience, Lena's anger, the Road's speed |
 | **Forge** | Elias's bike workshop in the garage: tune a memory up, and each extra turn of the wrench risks stripping it |
-| **Altar** | The family photo wall. Give one of your own memories of Elias to the dream and it accepts you a little more: power now, and a hidden **Belonging** score that pulls you towards staying (the Long Night) |
+| **Altar** | The family photo wall. Give one of your own memories of Elias to the dream and it accepts you a little more: power now (the Long Night is now built by the creator's hidden despair value instead) |
 | **Wager** | **The Barker**, a carnival figure from a fair their father took them to: their father, who gambled. He wagers, and he's the family history in the details |
 | **Trial board** | Notes on the fridge, the dream's chores ("water the roses without getting stung") |
 | **Trader** | The neighbours' yard sale, selling things from Nadia's own childhood. She's in his dream too |

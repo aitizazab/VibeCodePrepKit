@@ -15,7 +15,9 @@
   remembers, and can forget it.
 - **The battle:** Dream-Lena at the kitchen table, Night 2 ("Lena isn't willing to let Elias go"). Claim: "He stays.
   This is his home." The premise map follows `ARGUMENT-BATTLES.md` section 5 (L1 to L4). L5 is a hidden deepest
-  premise ("To him, you're the bad dream"), revealed by the paper-plane slip or by asking L3 twice.
+  premise, revealed by the paper-plane slip or by asking L3 twice. Its placeholder words ("To him, you're the bad dream",
+  from Theo's drawing) are a relic: the creator cut the drawing as an attack. The relic lines are listed in
+  `ARGUMENT-PROSE-BRIEF.md`; the creator is rewriting the battle's prose.
 - **The house:** the dream house (`DreamHouseGame.BeginArgument`) plays the same battle for its argument with Lena.
 
 ## Controls (one focus model everywhere)

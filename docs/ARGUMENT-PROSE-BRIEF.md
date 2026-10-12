@@ -5,6 +5,24 @@ This is a brief for writing the real lines. Every line in the prototype is a pla
 an editable text file with the same ids). For each line below: **who says it**, **when it shows**, **what it has to get
 across** (the logic the battle depends on), and the placeholder. Write over the placeholder freely; keep the job.
 
+## Relic lines: placeholders that contradict the creator (marked 2026-10-12)
+The creator's own writing outranks this brief and the placeholders (the creator, 2026-10-12: the battle text "is just a
+relic of stuff that didn't get updated"). The creator will rewrite the prose. Until then, each line below is marked
+**RELIC** in the tables further down. Only pure data that would mislead in play was changed in the game files (the
+keepsake's name and the police report card's place).
+
+| Line ids (in `lena_night2.txt`) | What the placeholder says | What it contradicts | The creator's version |
+|---|---|---|---|
+| `L1b.sound.reply`, every `L1c` line (the fallback premise L1'') | "He set it every Sunday for a year. You stopped coming." | STORY-PROSE:124: "Nadia shou;dn't have stopped coming to Sunday pancakes, at least if there was no time between the fight and accident" | Nadia never stopped coming; the fourth chair was always hers. L1' needs a different fallback (undecided) |
+| `L3.askAgainReply`, every `L5` line (`text`, `askReply`, `concedeLine`/`concedeReply`, `trueReply`, `pressLine`, `pressReply`, `slipName`), `pressedReply` | "To him, you're the bad dream: the woman in scrubs" (Theo's drawing; the paper plane "THE BAD DREAM") | STORY-PROSE:134: "Theo sliding his drawings across the table as some sort of psychological attack is out of character for how Elias would remember his son" | The drawing as an attack is cut. The creator's Night 2 idea: Nadia is the intruder, and Lena keeps Elias away from her, afraid she'd convince him to leave (STORY-PROSE:140). What replaces the buried premise is undecided |
+| `personalText` (and the note on `letItRestReply`) | "Lena's apron hair tie." | Lena has no apron, clay or workwear (CHARACTERS, round 3); she's a stargazer (the creator, 2026-10-12) | The keepsake is undecided. **Changed in the game file** to `[keepsake: undecided]` so play doesn't show the apron |
+| `truth_walt` (the card), `L3c.beside`, `L3c.nonsequitur` and their replies, the screen's `menu.noWalt` | Walt's truth ("Patching it isn't fixing it"), won by fully convincing Walt on Night 1 | STORY-PROSE:104: Walt's tutorial is "Rejected ... not the way it's currently built" | Whether Walt's battle survives, and so whether his truth exists as evidence, is undecided. "The same Saturday" (Walt's ledger, a deduction) still breaks L3'' without him |
+| `L3c.sound`, `L3c.sound.reply` | "forty-two times" | STORY-PROSE:51 and the ledger: 41 Saturdays | 41 (the creator rewrites the line) |
+| `opening` | "Sit down, Nadia. Pancakes are nearly done. He stays." (the battle opens before the pancakes) | STORY-PROSE:140: Nadia sits down for pancakes and plays hide-and-seek waiting for Elias; when he never comes she questions Lena, and Lena admits she won't let him go | The battle starts after the pancakes and the game, from Nadia's question about Elias |
+| `L4` (all lines) | "He called you first. You didn't pick up. So he called me." | Not a contradiction, but undecided: whether it stays in Night 2's argument (DESIGN-DECISIONS question 22). Nadia's guilt is survivor's guilt, not blame for the crash (STORY-PROSE:37) | Undecided |
+| The outcomes table above | Convinced and Heard out both leave Lena "Amenable" | STORY-PROSE:140: the battle ends with Lena "unsure of her conviction" (open to giving her blessing later) or condemning Nadia | Lena ends unsure or condemns |
+| `fact_police_report.note` | "The crash on Larch Street." | The crash was on Route 9 (Larch Street is the dream's childhood street) | **Changed in the game file** to "The crash on Route 9." |
+
 ## The situation
 Night 2, the kitchen of the dream house. Dream-Lena (Elias's wife, as his dream remembers her) is making pancakes. Her
 **claim**: Elias should stay in the dream; this is his home. Nadia has to take the claim apart, or hear Lena out.
@@ -43,17 +61,20 @@ Night 2, the kitchen of the dream house. Dream-Lena (Elias's wife, as his dream 
 Lena's case has three branches, and one buried root:
 - **L1 branch, "nothing's left for him out there":** true that Theo (their son) is dead out there. False that this
   means nothing's left: in the dream, Elias still sets a fourth chair, for Nadia. Lena falls back to a true sting
-  (L1''): he set it every Sunday for a year, and Nadia stopped coming.
+  (L1''). **RELIC:** the placeholder sting is that Nadia stopped coming on Sundays, which the creator rejected (see
+  Relic lines).
 - **L2 branch, "waking means searching forever":** true that nobody knows where the real Lena is. The link (L2') **can't
   be broken tonight**: Nadia can't promise an ending. That's the lesson; conceding it is right.
 - **L3 branch, "he chose this":** half true. False that this is the life he wanted: he worked that Saturday, so this
   breakfast is a regret, not a choice. Lena falls back: "then let him have his wish" (L3''), which only breaks with
-  **Walt's truth** or **the same Saturday**: he's lived this morning forty-two times, and Walt patches the same flat tyre
-  every time. A wish that needs repairing every night isn't peace.
+  **Walt's truth** or **the same Saturday**: he's lived this morning 41 times, and Walt patches the same flat tyre
+  every time. A wish that needs repairing every night isn't peace. **RELIC:** Walt's truth depends on Walt's battle,
+  which the creator rejected as built; the placeholder line says forty-two.
 - **The painful premise (L4)** surfaces by itself after L1'' or L3': Elias called Nadia first that night, and she didn't
   pick up. It isn't arguable; it's the truth the night is about.
-- **The buried root (L5)**: to Elias, Nadia is the bad dream, the woman in scrubs who takes people away. It's found by
-  catching a slip (the paper plane) or asking about L3 twice.
+- **The buried root (L5)**: **RELIC.** The placeholder (to Elias, Nadia is the bad dream, from Theo's drawing) is cut
+  as out of character. What the buried premise is now is undecided. It's found by catching a slip (the paper plane) or
+  asking about L3 twice.
 
 ---
 
@@ -63,7 +84,7 @@ Lena's case has three branches, and one buried root:
 | Id | Who / when | What it must get across | Placeholder |
 |---|---|---|---|
 | `claim` | The centre of the screen, the whole battle | Lena's position in one short line: he stays, this is home | He stays. This is his home. |
-| `opening` | Lena, as the battle starts | The domestic scene (pancakes), an invitation to sit, and then the claim, said as settled fact | Sit down, Nadia. Pancakes are nearly done. He stays. This is his home. |
+| `opening` | Lena, as the battle starts | **RELIC** (the battle now starts after the pancakes, from Nadia's question about Elias). The claim, said as settled fact | Sit down, Nadia. Pancakes are nearly done. He stays. This is his home. |
 | `noTouchReply` | Lena, when Nadia's evidence doesn't touch that premise | "That isn't what I'm saying": a redirect, a little irritated | That's not what I said. Listen to me. |
 
 ### Ending the argument on the claim itself
@@ -74,16 +95,16 @@ Lena's case has three branches, and one buried root:
 | `concedeClaimLine` | Nadia, conceding the claim (giving in) | Nadia gives up: maybe he should stay | ...Maybe he should stay. |
 | `concedeClaimReply` | Lena, answering | Relief and warmth; back to the domestic | Thank you. Now eat something. |
 | `letItRestLine` | Nadia, letting it rest | Nadia stops fighting and simply hears her | I hear you, Lena. |
-| `letItRestReply` | Lena, answering; she hands over the keepsake | She's moved that Nadia listened; gives the hair tie "for him" | ...You do, don't you. Here. Take this. Keep it for him. |
+| `letItRestReply` | Lena, answering; she hands over the keepsake | She's moved that Nadia listened; gives the keepsake (undecided) "for him" | ...You do, don't you. Here. Take this. Keep it for him. |
 
 ### The outcome lines
 | Id | Who / when | What it must get across | Placeholder |
 |---|---|---|---|
 | `truthText` | The truth Nadia wins (Convinced), shown and kept | What Nadia now understands about the real Lena: she wouldn't let him hide; she'd want him to live, even without her | The Lena he remembers wouldn't let him hide. She'd want him to live, even without her. |
-| `personalText` | The keepsake Nadia gets (Heard out) | Names the object | Lena's apron hair tie. |
+| `personalText` | The keepsake Nadia gets (Heard out) | Names the object. **RELIC:** the apron hair tie is gone (no apron); the object is undecided | [keepsake: undecided] |
 | `convincedReply` | Lena, Convinced | She sees it: the real Lena would hate her keeping him here | ...She'd hate this. Me, keeping him here. She'd hate it. |
 | `heardOutReply` | Lena, Heard out | Not convinced, but respected | I still think he's safer here. But I heard you. |
-| `pressedReply` | Lena, Pressed | Nadia won by force, and that's exactly what the bad dream does (sets up L5) | ...You sound like the bad dream. |
+| `pressedReply` | Lena, Pressed | **RELIC** (sets up the cut "bad dream" premise). Nadia won by force | ...You sound like the bad dream. |
 | `composureLostLine` | Nadia, at 160 bpm | Panic; she has to stop | I can't... I can't breathe in here. |
 
 ### L1, a fact (true): "Out there, Theo is dead."
@@ -106,7 +127,7 @@ Hidden until L1 is conceded. Broken with **the fourth chair**; Lena then falls b
 | `L1b.askReply` | Lena | What's out there: an empty house and a hospital bed | What's out there? An empty house and a hospital bed. |
 | `L1b.pressLine` / `pressReply` | Nadia insists / Lena | Nadia: there's plenty. Lena: name one thing | There's plenty left! / Name one thing. You can't. |
 | Sound reason | Nadia, with the fourth chair | **The proof**: in the dream he still sets a place for someone, and it's for Nadia. So someone is out there | In here he still sets a place for someone. He sets it for me. There's someone out there. |
-| its reply | Lena, rattled | Concedes the point, but stings back (this is L1'') | ...He set it every Sunday for a year. You stopped coming. |
+| its reply | Lena, rattled | **RELIC** (Nadia never stopped coming). Concedes the point, but stings back (this is L1'') | ...He set it every Sunday for a year. You stopped coming. |
 | Beside the point | Nadia | True, but it doesn't answer "nothing is left" | Theo would want his dad to wake up. |
 | its reply | Lena, angry | Why it misses: you don't speak for my son | Don't tell me what my son would want. |
 | Doesn't follow | Nadia | A bad inference from the same evidence | He set a chair, so he's ready to leave. |
@@ -115,7 +136,8 @@ Hidden until L1 is conceded. Broken with **the fourth chair**; Lena then falls b
 | its reply | Lena, angry | Hurt and fury; throws Nadia out | A dream. Is that all I am to you? Get out of my kitchen. |
 
 ### L1'', a fact (true): "He set it every Sunday for a year. You stopped coming."
-Lena's fallback. True; concede it.
+**RELIC, the whole premise:** the creator rejected Nadia abandoning Sunday pancakes (STORY-PROSE:124). Lena's fallback
+here needs new content (undecided).
 | Id | Who / when | What it must get across | Placeholder |
 |---|---|---|---|
 | `L1c.text` | The card | Nadia abandoned the Sunday dinners | He set it every Sunday for a year. You stopped coming. |
@@ -150,7 +172,7 @@ Visible from the start. Asking reveals L3'; asking **twice** reveals L5.
 |---|---|---|---|
 | `L3.text` | The card | Elias chose the dream; she knows him best | He chose this. I know him. |
 | `L3.askReply` | Lena | Twelve years married; this is the life he wanted (states L3') | Twelve years. I know what he wants. This is the life he wanted. |
-| `L3.askAgainReply` | Lena, asked again | Lets slip what he dreams about: the bad dream, a woman in scrubs (reveals L5) | ...You want to know what he dreams about? The bad dream. A woman in scrubs who comes to take us away. |
+| `L3.askAgainReply` | Lena, asked again | **RELIC** (the cut "bad dream"). Lets slip what lies under it (reveals L5) | ...You want to know what he dreams about? The bad dream. A woman in scrubs who comes to take us away. |
 | `L3.concedeLine` / `concedeReply` | Nadia / Lena | You know him best / so trust me | You know him better than anyone. / I do. So trust me. |
 | `L3.trueReply` | Lena | You weren't there | You weren't there. I was. |
 
@@ -169,21 +191,22 @@ Broken with **Saturday off**; Lena falls back to L3''.
 | its reply | Lena, angry | Cruel, and false | That's cruel, and it isn't even true. |
 
 ### L3'', a link (false, KEY): "Then let him have his wish."
-Breaks only with **Walt's truth** or **the same Saturday** (both give the same reasons).
+Breaks only with **Walt's truth** or **the same Saturday** (both give the same reasons). **RELIC:** Walt's truth
+depends on Walt's battle, rejected as built.
 | Id | Who / when | What it must get across | Placeholder |
 |---|---|---|---|
 | `L3c.text` | The card | Even if it's a regret, let him keep it | Then let him have his wish. |
 | `L3c.askReply` | Lena | Just one morning | One morning. Let him keep one morning. |
 | `L3c.pressLine` / `pressReply` | Nadia / Lena | "He can't have it" / you'd take this too? | He can't have it! / You'd take that from him too? |
-| Sound reason | Nadia | **The proof**: he's lived this morning 42 times, and Walt patches the same flat every time. A wish that needs repairing every night isn't peace | He's had this morning forty-two times, and Walt patches the same flat every one. A wish you have to repair every night isn't peace. |
-| its reply | Lena, softened | Shock: she thought it was the first time, every time | ...Forty-two. I thought it was the first time. Every time. |
+| Sound reason | Nadia | **The proof**: he's lived this morning 41 times, and Walt patches the same flat every time. A wish that needs repairing every night isn't peace. **RELIC:** the placeholder says forty-two | He's had this morning forty-two times, and Walt patches the same flat every one. A wish you have to repair every night isn't peace. |
+| its reply | Lena, softened | Shock: she thought it was the first time, every time. **RELIC:** forty-two, not 41 | ...Forty-two. I thought it was the first time. Every time. |
 | Beside the point | Nadia | True, but it supports staying | Walt misses him too. |
 | its reply | Lena | Everyone misses him, which is why he should stay | Everyone misses him. That's why he should stay. |
 | Doesn't follow | Nadia | An appeal to authority | Walt said so, so it's true. |
 | its reply | Lena | Dismissive | Walt says a lot of things. |
 
 ### L4, a fact (true, PAINFUL): "He called you first."
-Surfaces by itself (with the high pressure phase) after L1'' or L3'. Lena asks a question; Nadia can retort.
+Whether this stays in Night 2's argument is undecided. Surfaces by itself (with the high pressure phase) after L1'' or L3'. Lena asks a question; Nadia can retort.
 | Id | Who / when | What it must get across | Placeholder |
 |---|---|---|---|
 | `L4.text` | The card | Nadia isn't here for him. That night he called her first; she didn't pick up; so he called Lena | You're not here for him. He called you first. You didn't pick up. So he called me. |
@@ -195,7 +218,8 @@ Surfaces by itself (with the high pressure phase) after L1'' or L3'. Lena asks a
 | its reply | Lena, angry | Sees through it (Nadia is shaking); throws her out | Then why are you shaking? Get out. Get out of my house. |
 
 ### L5, a link (half true, the buried root): "To him, you're the bad dream."
-Found by catching the paper-plane slip ("THE BAD DREAM") or asking L3 twice.
+**RELIC, the whole premise:** Theo's drawing as an attack is out of character (STORY-PROSE:134). What replaces it is
+undecided. Found by catching the paper-plane slip or asking L3 twice.
 | Id | Who / when | What it must get across | Placeholder |
 |---|---|---|---|
 | `L5.slipName` | The slip, as it flies | What the paper plane says | a paper plane: THE BAD DREAM |
@@ -209,11 +233,11 @@ Found by catching the paper-plane slip ("THE BAD DREAM") or asking L3 twice.
 |---|---|---|
 | `mem_fourth_chair` | the fourth chair | A place set for someone who isn't here (breaks L1') |
 | `ded_saturday_off` | Saturday off | He was on shift the day this breakfast never happened (breaks L3') |
-| `truth_walt` | Walt's truth | "Patching it isn't fixing it." (breaks L3'') |
+| `truth_walt` | Walt's truth | "Patching it isn't fixing it." (breaks L3''). **RELIC:** depends on Walt's battle, rejected as built |
 | `ded_same_saturday` | the same Saturday | The same day every night: the same flat tyre (breaks L3'') |
 | `ded_why_lena_came` | why Lena came out | The call log and the voicemail (no premise uses it yet) |
 | `fact_chart` | his chart | Bed 14 (a decoy) |
-| `fact_police_report` | the police report | The crash on Larch Street (a decoy) |
+| `fact_police_report` | the police report | The crash on Route 9 (a decoy) |
 | `fact_photo` | the family photo | Four of them, at the lake (a decoy) |
 
 ### The screen's own words (prompts, not dialogue)

@@ -9,7 +9,7 @@ Directions in (brackets); change those too.
 Hey, Nads. It's me. You still good for picking me up? ... Well, it's three in the morning. You're probably asleep, and you'd pick up if your phone wasn't dead anyways... Look. About yesterday. I'm sorry. I shouldn't have said that. It's not true, and it was rude of me to even imply it. I'll see if I can get a cab back home, or maybe call Lena... (pause) ...G'night.
 
 ## The news report (Nicole reads it, through the tablet's speaker)
-Great Tragedy befell our district last night, as Doctor Elias Lasname and his family were caught in the crossfire between LeBaget and the Larpaca corporation, as he drove back from his workplace. The doctor is in critical condition, being treated by the best at his own hospital, Saint Brigid. This reporter gives her condolences to the Good Doctor, and the town eagerly awaits the day he wakes from his coma.
+Great Tragedy befell our district last night, as Doctor Elias Lasname and his family were caught in a crossfire involving the Larpaca gang, as he drove back from his workplace. The doctor is in critical condition, being treated by the best at his own hospital, Saint Brigid. This reporter gives her condolences to the Good Doctor, and the town eagerly awaits the day he wakes from his coma.
 
 ## The tablet's scrolling headline (the text along the bottom of the video)
 ROUTE 9: THREE CASUALTIES OF EARLY-MORNING GANG VIOLENCE - DOCTOR IN CRITICAL CONDITION - WIFE MISSING

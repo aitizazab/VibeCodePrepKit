@@ -9,15 +9,17 @@ adult), the **dream as billboards** (cutesy pastel doodle, with dread underneath
 
 ## The world
 A near-future city sliding into dystopia: Cyberpunk without the cybernetics. Corporations run the streets and
-still pretend to be decent. Two of them, **LeBaget** and a second (name to be decided; see the note at the end),
-fight a quiet war that spills into the streets. **Saint Brigid's** is a community hospital that shouldn't exist
+still pretend to be decent. **LeBaget** is a corporation (it may become a big part of the story: undecided) and
+**Larpaca** is a gang; the crash on Route 9 is reported as gang violence. **Saint Brigid's** is a community hospital that shouldn't exist
 in this city.
 
 ## Nadia (the protagonist)
 - **Role:** a nurse at Saint Brigid's; Elias's younger sister.
 - **Facts:**
   - She usually picks Elias up from work.
-  - The night of the crash she slept through his call.
+  - The night of the crash she played his voicemail, heard the start, and fell asleep as it played to its end.
+  - Her guilt is survivor's guilt (the creator): she believes herself at least partly responsible for losing Lena
+    and Theo. What Lena did or was that makes this make sense is undecided.
   - The day before, he'd implied she only got her job because she was his sister. It hurt because it's half
     true: she was qualified, but the other candidate was just as good.
 - **Want:** her brother back. **Need:** to forgive herself, or to let go.
@@ -32,16 +34,20 @@ in this city.
     room for a later answer.
   - A good man with an abrasive personality.
   - The night of the crash he stayed late at work because he was putting off facing Nadia. His car was **caught
-    in the crossfire** between two corporations. The cause was external, which leaves room for more later.
+    in the crossfire** on Route 9 (reported as gang violence). The cause was external, which leaves room for more
+    later.
 - **Look, waking world:** 34; sharp, well-kept, expensive-but-practical clothes worn without care (rolled
   sleeves, a good coat with a stain on it). In hospital: bandaged, monitors.
 - **Look, dream:** relaxed, smiling, softer than he ever was awake. The dream version is who he wishes he were.
 
 ## Lena
-- **Role:** Elias's wife. **Missing:** her body was never found, which leaves room for later.
+- **Role:** Elias's wife. **Missing, not dead** (the creator, 2026-10-12): her body was never found, and where she is
+  stays an open thread.
+- **Her passion: stargazing** (the creator). Her small observatory is the attic of the house (approved, with a raised
+  roof section over it). No ceramics, clay or apron.
 - **In the dream:** a memory Elias rebuilds every night, who knows what she is and defends his dream.
-- **Look (a proposal):** early 30s; warm, quick to laugh, paint or clay on her hands (an artist?). In the dream,
-  slightly too perfect.
+- **Look:** early 30s; warm, quick to laugh. In the dream, slightly too perfect (the chosen design is round 4
+  below).
 - **The creator's note (2026-10-10):** in the first sheets, Lena with her bun looked too much like Nadia. She gets
   **blonde hair or a clearly different hairstyle** (not a bun), so the two never read as the same woman.
 - **The rules for Lena's look (the creator, 2026-10-10, round 2).** Lena and Nadia aren't related, so nothing about
@@ -69,9 +75,6 @@ in this city.
     on the right ear), the habit of someone who notes things down and keeps things in order.
   - **In the dream, her ear is small and sits close to the head** under the hair, never sticking out; the pencil stays
     visible.
-  - **A passion (a proposal, open):** she keeps meticulous notebooks of the city's vanishing places, the old buildings
-    the corporations buy and tear down: walks, photographs, notes. It fits the pencil, the money, the dystopia, and gives
-    her somewhere else she goes.
   - Sheets: round 2 in `docs/art/vh-lena3-picks.json`, round 3 in `docs/art/vh-lena4-picks.json`.
 - **Round 4: CHOSEN (the creator, 2026-10-10): "4-a is what we'll work with."** Sheets in `docs/art/vh-lena5-picks.json`:
   waking turnaround `lena5-turn-take1`, dream billboard `lena5-bb-take2`, dream expressions `lena5-expr-take2`.
@@ -82,12 +85,13 @@ in this city.
   - **Why not the other designs:** the fresh design and the reconciled versions lost what the creator liked about 4-a:
     **the sketchbook look, the unique posing and the strength of the defining colour.** Keep those in every future
     sheet of her.
-  - **Open:** her dream billboard reads taller than the rest of the dream cast (about 6'2" against 5'8"–5'11", with Theo
-    smaller). The creator isn't against her being tallest but wants it thought through. Not changed yet.
+  - **Height:** her dream billboard reads about 6'2" against the rest of the cast's 5'8"–5'11" (Theo smaller). The
+    creator: 6'2" is fine.
 
 ## Theo
 - **Role:** Elias and Lena's son, ten, killed in the crash. In the dream, he's the one who asks the question that
-  matters: "Is Dad going to be sad?"
+  matters: "Is Dad going to be sad?" Whether Theo stays in the story is undecided (the creator is considering cutting
+  him; they liked his Night 2 hide-and-seek and his torch on Night 4).
 - **Look (a proposal):** ten; a gap-toothed grin; a hoodie too big for him. In the dream, the most cutesy figure
   of all.
 
@@ -103,6 +107,5 @@ in this city.
   hands on a red rag.
 
 ## A note on names
-**WeWork is a real company.** Showing it as a corporation whose violence killed a family, in a public, judged
-game, risks defamation and trademark trouble, the same issue as copied characters. A clearly fictional name, or
-a parody that reads as clearly fictional, avoids that.
+Both names on Route 9 are fictional: **LeBaget** (the corporation) and **Larpaca** (the gang). No real company may be
+shown in a negative light. The creator has also written "LaBaget"; which spelling is final is open.

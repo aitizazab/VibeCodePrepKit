@@ -1,17 +1,17 @@
 # *Visiting Hours*: the vertical slice (spec, 2026-10-09)
 
-> **Status: the spec the first slice was built from (2026-10-09).** Superseded where it conflicts with `VISITING-HOURS.md`: the **art** (now style E: 3D waking world, billboards only in the dream, a 3D dream), the **opening and title** (`OPENING-AND-TITLE.md`), and the premise. Its systems (journal, deductions, argument battle, rushing check, teaching plan) still stand.
+> **Status: the spec the first slice was built from (2026-10-09).** Superseded where it conflicts with `VISITING-HOURS.md`: the **art** (now style E: 3D waking world, billboards only in the dream, a 3D dream), the **opening and title** (`OPENING-AND-TITLE.md`), and the premise. The creator's notes in `STORY-PROSE.md` (2026-10-11) also overrule it: Walt's tutorial and the stage-strike exit are rejected as built, and the endings are the creator's (see `VISITING-HOURS.md`). Its systems (journal, deductions, argument battle, rushing check) still stand.
 
 The slice tests whether the format works before more is built: first-person exploration with no guns, a
 journal of facts and deductions, and Undertale-style argument battles. The story is in
 `STORY-VISITING-HOURS.md` (draft 1), and the decisions below supersede it where they differ.
 
 ## Story decisions since draft 1 (the creator, 2026-10-09)
-- **Elias is an ER doctor**, and the guilt is direct. At 5:52 AM, after a 30-hour shift, he called Nadia for a
-  ride. She let it ring.
+- **Elias is an ER doctor.** Around 3 AM, having stayed late to put off facing her, he called Nadia for a ride and
+  left a voicemail; she heard the start and fell asleep as it played (the premise in `VISITING-HOURS.md`).
 - **The call opens the game** (see "Opening"); it isn't hidden.
-- **The deeper hidden layer:** when Nadia didn't pick up, Elias called Lena (5:58). Lena drove out with Theo
-  asleep in the back, and he drove them home. Nadia doesn't know yet. The police report's call log is the bomb
+- **The deeper hidden layer:** when Nadia didn't pick up, Elias called Lena (3:07). Lena drove out with Theo
+  asleep in the back, and they drove home. Nadia doesn't know yet. The police report's call log is the bomb
   under the table for attentive players: it's shown, and nobody comments on it.
 - **The Dream Bridge is secret.** Mags runs it off the books after visiting hours. Forcing Elias out is selfish:
   if it's done "cleanly" he might think it was a dream. That's what Nadia believes.
@@ -21,8 +21,8 @@ journal of facts and deductions, and Undertale-style argument battles. The story
   - **Force** is the player imposing their will on Nadia. It's loud, she doubts herself at every step, and it
     can be called off at each doubt (with repercussions).
   - **The Long Night** creeps up. It needs a hard-to-reach but slippery hidden despair value, and it locks in
-    well before the end **through an innocuous choice** (for example, "Your phone is at 3%. The charger's across
-    the room. Leave it?").
+    well before the end **through an innocuous choice**: a strange, curious one that sneaks up on the player
+    (the creator, 2026-10-11, like Deltarune's Snowgrave). Which choice is undecided.
   - **The rule-break (the Sans equivalent) is broader than battles** (the creator, 2026-10-09). In the Force
     route it's **Lena as a character**: she breaks the game's rules wherever she appears, not only in her battle
     box. In the Despair route it's **the whole route after the lock-in**: the game itself stops behaving normally,
@@ -30,7 +30,7 @@ journal of facts and deductions, and Undertale-style argument battles. The story
 - **Teaching, each by someone it makes sense for:**
   - **Mags** explains the rig: movement and the journal.
   - **Nadia's charting habit** teaches recording facts (day 1).
-  - **Walt Abernathy** teaches the battle box ("Easy. Watch the pattern first.").
+  - **What teaches the argument battle** is undecided: Walt's tutorial as built was rejected (2026-10-11).
   - **The dream** teaches escapes (later).
   - Withhold meaning and stakes, never mechanics.
 - **A rushing check:** heading deeper with open questions in the journal makes Nadia think *"I don't know enough

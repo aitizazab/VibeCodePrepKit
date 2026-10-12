@@ -1,11 +1,17 @@
 # *Visiting Hours*: the current state (the working title; a better one is coming)
 
-**The single source of truth for the game.** Where an older doc disagrees, this one wins. Updated 2026-10-10.
+**The single source of truth for the game.** Where an older doc disagrees, this one wins. Updated 2026-10-12.
 
-## The premise (the creator's, as of 2026-10-10)
+**Precedence (the creator, 2026-10-12):** the creator's own writing outranks every agent-written doc. That means their
+`//` notes and prose in `STORY-PROSE.md`, their scripts (`script/opening-script.md`), their endings, and their
+decisions in WORKLOG and chat. An agent doc that disagrees is stale and gets updated.
+
+## The premise (the creator's, as of 2026-10-12)
 - **The world:** a near-future city sliding into dystopia, Cyberpunk without the cybernetics. Corporations run
-  the streets and still pretend to be decent. Two of them, **LeBaget** and **Larpaca** (both fictional; checked
-  that no real company has either name), fight a quiet war that spills into the streets.
+  the streets and still pretend to be decent. **LeBaget** is a corporation and **Larpaca** is a gang (both
+  fictional; checked that no real company has either name). The creator's script meant a gang and a corporation;
+  LeBaget may become a big part of the story (undecided), and if it shares the blame for the crash, that stays
+  hidden behind its well-intentioned face. The spelling LeBaget or LaBaget is open.
 - **Elias Lasname** (the surname is a placeholder) is an ER doctor who **founded Saint Brigid's** for the local
   community. He comes from money; where it came from is never said. A good man with an abrasive personality.
 - **Nadia**, his younger sister, is a nurse at Saint Brigid's and **usually picks him up from work.**
@@ -13,9 +19,11 @@
   true: she was qualified, but the other candidate was just as good.
 - **The night:** Elias stays late at work, **putting off facing her**. Around 3 AM he leaves a voicemail asking
   whether she's still picking him up, guesses she's asleep with a dead phone, apologises ("It's not true, and it
-  was rude of me to even imply it"), and says he'll get a cab or call Lena. Driving home, **his car is caught in
-  the crossfire** between LeBaget and Larpaca (the cause is external, which leaves room for more later).
-- **Lena**, his wife, is **missing**: her body was never found (for later). **Theo** (10) was killed.
+  was rude of me to even imply it"), and says he'll get a cab or call Lena. Nadia hears the start, then falls
+  asleep as it plays to its end. Driving home, **his car is caught in the crossfire** on Route 9; the news calls
+  it gang violence (the Larpaca gang). The cause is external, which leaves room for more later.
+- **Lena**, his wife, is **missing, not dead**: her body was never found. She's a **stargazer** (her small
+  observatory is the house's attic). **Theo** (10) was killed.
 - **Elias is in a coma** at his own hospital. **Mags** runs a **secret, off-the-books** Dream Bridge; Nadia
   goes into his dream.
 - The design story (layers, the dilemma, endings, the Force and Long Night spectrum) is in
@@ -27,15 +35,23 @@
   depending on what they choose to do or skip.
 - **The open threads** (Lena missing, the corporate crossfire, Elias's money) are **hinted, not resolved**:
   clues for the attentive player, perhaps one reframing reveal near the end, no full answers.
-- **Endings:**
-  - **The Long Night stays** (much of the premise was built for it).
-  - **Morning** absorbs "His Choice" **if that ending's outcome is shown in the game**, giving one ending with
-    two paths:
-    - **forced:** Nadia breaks the dream;
-    - **chosen:** she tells him the truth and he decides to wake.
-  - **Evening:** she lets him stay.
-  - The design docs propose the details for the creator to approve: `STORY-BIBLE.md`, `CHARACTER-BIBLE.md`,
-    `NIGHTS-GAMEPLAY.md`, `ARGUMENT-BATTLES.md` (written overnight 2026-10-10; each opens with its decisions table).
+- **Endings (the creator's, STORY-PROSE 2026-10-11; they replace the story bible's):**
+  - **Morning**, one ending with two paths. Nadia believes Lena wouldn't want either of them to give in to their
+    darkness.
+    - **chosen:** she convinces Elias; when it's amicable she takes him out of the city to go stargazing, to show him
+      that Lena lives on in his heart;
+    - **forced:** she's willing to force him out if he won't see reason.
+    - The creator wants both paths redone; the rest of each is undecided.
+  - **Evening:** she fails to convince him, and he dies. It ends with a memorial and a funeral, Nadia left on her own
+    as it rains. Whether she can also choose it by not arguing is undecided.
+  - **The Long Night** (the Despair route, built by a hidden despair value): Nadia, worn down by guilt until she
+    thinks she's unredeemable, dives in anyway, loses a scripted, near-unbeatable battle and takes Elias's hand, while
+    Mags tells her this Elias already died near the start of the battle. The lock-in rule and the last image are
+    undecided (the default image is Nadia's exhausted face).
+  - **His decision is granular:** anything that could affect it should, and he mentions the big ones.
+  - The design docs (`STORY-BIBLE.md`, `CHARACTER-BIBLE.md`, `NIGHTS-GAMEPLAY.md`, `ARGUMENT-BATTLES.md`) are agent
+    proposals; where they disagree with the creator's writing, the creator wins. What's still open:
+    `DESIGN-DECISIONS-STATUS.md`.
 - **The argument battles get rebuilt from the ground up:**
   - **Unique art per battle**, stylised battle icons and **arenas**: no dodging rectangles in the green or red
     half of a plain box.
@@ -65,8 +81,8 @@ Both are confirmed, as are the timings. No title yet; no How to Play.
 - **Elias's voicemail:** the creator's own recording (an earlier take, cleaned and in the game). A re-record to
   match the final script is due.
 - **The news report:** Kokoro's **af_nicole** (the creator's pick) through a tablet-speaker effect, generated
-  from the script by `tools/audio/make-vh-news.py`, with "her condolences" and Larpaca (swapped in at
-  generation until the creator's script says Larpaca).
+  from the script by `tools/audio/make-vh-news.py`. The script now names only the Larpaca gang (no LeBaget); the
+  recording in the build predates that and needs regenerating.
 - **Music:** the placeholder sad pad stays for now. The real score is composed with the creator.
 
 ## Movement (the dream)
@@ -80,7 +96,7 @@ course, then `MOVEMENT.md`.
 |---|---|
 | The slice (opening, Day 1, booth, street, journal, Walt's argument) | Built and verified in Unity, in the superseded painterly art and old opening |
 | The movement module and Movement Lab | Verified overnight: PlayMode 79/79, smoke pass, playable build |
-| The design docs (story, characters, nights, battles) | Proposals written, awaiting the creator's decisions |
+| The design docs (story, characters, nights, battles) | Proposals; brought in line with the creator's writing on 2026-10-12 (the open-tab ones wait in `docs/_pending/`) |
 | Style-E character sheets | Made; Lena redone (blonde, long loose waves) on `art/review/2026-10-10/visiting-hours-opening.html` |
 | Nadia's 3D model (Tripo) | Done, 80 credits (550 left) |
 | The opening and title rebuild (style E, 3D bedroom, table title) | Built and verified overnight (smoke pass, playable build); timed to the earlier voicemail take; needs its first look |
@@ -88,7 +104,6 @@ course, then `MOVEMENT.md`.
 | Music | With the creator, later |
 
 ## Open questions for the creator
-1. **The decisions tables** at the top of the four design docs.
-2. ~~Replace "WeWork" with "Larpaca" in the script~~: done by the creator (2026-10-10).
-3. **A re-record** of the voicemail to the final script.
-4. **The title** (later).
+1. **The story's open questions:** `DESIGN-DECISIONS-STATUS.md`.
+2. **A re-record** of the voicemail to the final script.
+3. **The title** (later).

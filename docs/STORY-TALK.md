@@ -4,6 +4,10 @@ Written overnight on 2026-10-11 from your `//` notes in STORY-PROSE (committed a
 is decided. Part 1 answers the questions you asked. Part 2 gives two or three options for each open problem, with what
 each option would change. No character dialogue is written here: that stays yours.
 
+**Settled since (2026-10-12):** Lena is a stargazer (the attic observatory is approved, with a raised roof section) and
+missing, not dead. LeBaget is the corporation and Larpaca the gang. Your endings replace the bible's. The news no longer
+names LeBaget.
+
 **Labels.** **Docs say** = written in the design docs. **Extrapolation** = my reading of what the docs meant, or a
 suggestion. **Unwritten** = the docs never decided it.
 **References.** PROSE = STORY-PROSE, SB = STORY-BIBLE, CB = CHARACTER-BIBLE, NG = NIGHTS-GAMEPLAY, AB = ARGUMENT-BATTLES,
@@ -24,7 +28,7 @@ six" before the dive gets too dangerous. That is the clock. The LeBaget transfer
 - **Unwritten:** why a key, and what it opens. My guess is that it comes from the old brass key Lena wore on a chain in
   the round 3 sheets (CH:66). Round 4 removed that key (CH:78), so the symbol no longer points to anything.
 - **Extrapolation:** if you keep it, the symbol needs a referent the player can find. With her stargazing hobby, it
-  could be the key to wherever she went on those nights (the attic observatory you suggested, or a rooftop). Or replace
+  could be the key to wherever she went on those nights (the attic observatory, now approved, or a rooftop). Or replace
   the key with a mark that fits stargazing, such as a moon phase drawn on each Thursday.
 
 ### Why the voicemail says "played to 0:09" when it plays to the end while she sleeps
@@ -118,7 +122,7 @@ about who drove).
   Theo. That's the last he sees of her, and it's why his first words were "Did Lena get out?" For the attentive player,
   the frozen frame holds one detail Nadia doesn't remark on, which hints that Lena was taken away alive rather than
   lost.
-  - **Changes:** Lena becomes someone worth Nadia's survivor's guilt, because she died saving him and Nadia was asleep.
+  - **Changes:** Lena becomes someone worth Nadia's survivor's guilt, because she saved him and vanished while Nadia was asleep.
     Elias's guilt becomes "she saved me and I couldn't move". "Missing" stays open, and for the player it tilts toward
     alive.
   - **Risk:** it needs a careful image, so "taken" doesn't turn the game into a thriller.
@@ -130,8 +134,8 @@ about who drove).
 - **C. The sponsor was there.** The memory shows that the side shooting at the car wore LeBaget's colours, or that
   LeBaget's people stopped the car. The dream distorts logos, so Nadia doesn't register it. A player who saw the
   cordon and the wreath at Route 9 does.
-  - **Changes:** this is your "hide LeBaget's share" thread, and it gives the friendly corporation a buried cost. The
-    news script must stop naming LeBaget.
+  - **Changes:** this is your "hide LeBaget's share" thread, and it gives the friendly corporation a buried cost. (The
+    news script no longer names LeBaget.)
   - **Risk:** it's about the world, not the family, so it does little for the final talk unless it's combined with A or
     B.
 - **What reveals it (options):**
@@ -197,7 +201,7 @@ Your premise: Nadia thinks the world would be better off if Lena had lived.
   the argument.
 - **B. Keep both in the back seats of the car** (your idea). They speak up during Nadia's final talk instead of Nadia
   reporting their wishes. Each needs one distinct message so they don't overlap.
-- **C. Cut him.** Elias and Lena had no child, and the crash kills or takes only Lena.
+- **C. Cut him.** Elias and Lena had no child, and the crash takes only Lena (she's missing).
   - **Changes:** the headline's casualty count, the hide-and-seek tutorial (it moves to Lena or is lost), and a lower
     loss, so Elias's wish to stay is less extreme.
 
@@ -237,12 +241,12 @@ Your question: does he come to it over the nights, or is he repressing what he a
   truth, or Nadia naming her own survivor's guilt so they carry it together. (You noted the last one may read weakly.)
 
 ### 11. Hiding LeBaget's share of the blame
-- **A. The news says gang violence only**, matching your "a corporation and a gang". LeBaget's part shows only in seeds:
-  the wreath, its security at the cordon.
+The news already says gang violence and names only Larpaca (the gang). Whether LeBaget had a share is undecided, and so
+is how big a part LeBaget plays in the story.
+- **A. Seeds only.** LeBaget's part shows only in seeds: the wreath, its security at the cordon.
 - **B. Generosity as cover.** The flowers and the lobby plaque are LeBaget buying silence. The player never gets proof.
-- **C. LeBaget had no share.** The fight was Larpaca against a gang, and LeBaget is only an opportunist. This is the
-  simplest option, and it drops the thread.
-- **Knock-on (A and B):** the news script in `script/opening-script.md` currently names LeBaget, so it must change.
+- **C. LeBaget had no share.** Larpaca fought someone else, and LeBaget is only an opportunist. This is the simplest
+  option, and it drops the thread.
 
 ### 12. The Morning endings (both to be redone) and the Long Night's last image
 - **Morning, chosen (your shape):** Nadia convinces him that Lena wouldn't want them to give in to the dark, and later

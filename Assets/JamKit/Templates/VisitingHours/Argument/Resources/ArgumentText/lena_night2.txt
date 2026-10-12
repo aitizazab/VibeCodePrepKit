@@ -25,7 +25,7 @@ letItRestReply: ...You do, don't you. Here. Take this. Keep it for him.
   ? their answer; they hand over their keepsake
 truthText: The Lena he remembers wouldn't let him hide. She'd want him to live, even without her.
   ? the truth Nadia wins (Convinced): what she now understands, kept for later battles
-personalText: Lena's apron hair tie.
+personalText: [keepsake: undecided]
   ? the keepsake Nadia gets (Heard out): names the object
 convincedReply: ...She'd hate this. Me, keeping him here. She'd hate it.
   ? their line when convinced
@@ -273,7 +273,7 @@ fact_chart.note: Bed 14.
   ? one line under the name: what it is
 fact_police_report.name: the police report
   ? the card's name, as it reads in a sentence ("the fourth chair")
-fact_police_report.note: The crash on Larch Street.
+fact_police_report.note: The crash on Route 9.
   ? one line under the name: what it is
 fact_photo.name: the family photo
   ? the card's name, as it reads in a sentence ("the fourth chair")
