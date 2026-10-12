@@ -2,6 +2,7 @@ using System.Collections;
 using JamKit.Presenting;
 using JamKit.Shell;
 using JamKit.Stealth;
+using JamKit.VisitingHours;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -10,11 +11,11 @@ using static JamKit.Tests.Play.ShellTestUtil;
 
 namespace JamKit.DreamEscape.Tests
 {
-    /// <summary>Night 2's house on the real controller: the autopilot gets through the way in (the hallway stretches, the
-    /// slide into the kitchen) and the pancakes start hide-and-seek; Theo finds a player standing in the open and counts
-    /// again; the memories count down and the last one says Nadia's line; the argument's debug choice "condemns" is kept
-    /// and brings the rain's point of no return nearer; the autopilot escapes the house tipping, out of the front door
-    /// under the umbrella. The save's Despair and condemns flags are cleared before and after each test.</summary>
+    /// <summary>Night 2's house on the real controller (docs/redesign/house.md): hide-and-seek starts with the place card
+    /// found and Theo counting; being found costs the last memory she found (the house hides it again somewhere else);
+    /// the third catch ends the round and Theo asks his question, and the answer is kept; every memory found ends on the
+    /// creator's line; the escape's autopilot gets out of the front door onto Chapel Row; a fall throws her out of the
+    /// dream with its costs. The save's flags this night writes are cleared before and after each test.</summary>
     public class DreamHousePlayTests
     {
         [UnitySetUp]
@@ -36,11 +37,16 @@ namespace JamKit.DreamEscape.Tests
 
         static void ClearFlags()
         {
-            GameRoot.Save.Data.SetEntry("vh_arguments", null);
-            GameRoot.Save.Data.ClearFlag(DreamRain.DespairFlag);
-            GameRoot.Save.Data.ClearFlag(DreamHouseStory.CondemnsFlag);
-            GameRoot.Save.Data.SetEntry(DreamHouseStory.TheoAnswerKey, null);
-            GameRoot.Save.Data.SetEntry(DreamJournal.Key, null);
+            var save = GameRoot.Save.Data;
+            save.SetEntry("vh_arguments", null);
+            save.ClearFlag(DreamRain.DespairFlag);
+            save.ClearFlag(DreamHouseStory.CondemnsFlag);
+            save.ClearFlag(DreamHouseStory.ThrownOutFlag);
+            save.SetEntry(DreamHouseStory.TheoAnswerKey, null);
+            save.SetEntry(DreamHouseStory.CatchesKey, null);
+            save.SetEntry(DreamHouseStory.CardsKey, null);
+            save.SetEntry(DreamJournal.Key, null);
+            save.SetEntry(Chain.LenaKey, null);
             DreamHouseGame.DebugSaturdayPaper = false;
         }
 
@@ -55,322 +61,114 @@ namespace JamKit.DreamEscape.Tests
             yield return Frames(3);
         }
 
-        [UnityTest]
-        public IEnumerator TheWayInLeadsToPancakesAndHideAndSeek()
+        static IEnumerator HideAndSeek()
         {
             yield return StartHouse();
-            Assert.That(Game.Phase, Is.EqualTo(HousePhase.WayIn));
-            Assert.That(Game.Checkpoint, Is.EqualTo(Game.House.arrivalCheckpoint));
-            DebugMenu.TimeScale = 2f;
-            int respawns = Game.Respawns;
-            Game.SetAutopilot(true);
-            yield return WaitFor(() => Game.Phase != HousePhase.WayIn, "the autopilot down the slide into the kitchen", 40f);
-            Game.SetAutopilot(false);
-            Assert.That(Game.HallwayStretched, Is.True, "the hallway stretched as she entered");
-            Assert.That(Game.hallwayEnd.position.z, Is.GreaterThan(Game.House.stretchFrom + 1f));
-            Assert.That(Game.Respawns - respawns, Is.LessThanOrEqualTo(1), "at most one slip");
-            Assert.That(Game.Phase, Is.EqualTo(HousePhase.Pancakes));
-            Assert.That(Game.LineText, Does.Contain(DreamHouseLines.Placeholder), "the pancake lines, marked placeholders");
-            Assert.That(Game.theo.Frozen, Is.True, "Theo waits at the table");
-            Game.SkipLines();
-            yield return Frames(2);
+            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
+            yield return Frames(3);
             Assert.That(Game.Phase, Is.EqualTo(HousePhase.HideAndSeek));
-            Assert.That(Game.theo.Counting, Is.True, "Theo counts");
+        }
+
+        [UnityTest]
+        public IEnumerator HideAndSeekStartsWithThePlaceCardAndTheoCounting()
+        {
+            yield return HideAndSeek();
+            Assert.That(Game.Theo.Counting, Is.True, "Theo counts at the table");
+            Assert.That(Game.Round.IsFound(DreamHouseStory.MemPlaceCard), Is.True, "the place card, found at the table");
+            Assert.That(Game.Round.FoundCount, Is.EqualTo(1));
+            Assert.That(Game.Hud.CounterText, Is.EqualTo("Memories 1 of " + Game.House.memories.Count), "the counter on screen");
+            Assert.That(StealthPlayer.Current, Is.Not.Null);
             Assert.That(StealthPlayer.Current.findable, Is.True);
         }
 
         [UnityTest]
-        public IEnumerator TheoFindsAPlayerStandingInTheOpenAndCountsAgain()
+        public IEnumerator BeingFoundCostsTheLastMemoryFound()
         {
-            yield return StartHouse();
-            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
-            yield return Frames(3);
-            Assert.That(Game.Phase, Is.EqualTo(HousePhase.HideAndSeek));
-            var open = Game.House.openFloor[0];
-            Game.player.Teleport(new Vector3(open.X, open.Y + 0.02f, open.Z), 0f, Vector3.zero);
-            DebugMenu.TimeScale = 3f;
-            yield return WaitFor(() => Game.Story.TimesFound > 0, "Theo to find her standing in the living room", 60f);
-            Assert.That(Game.Phase, Is.EqualTo(HousePhase.HideAndSeek), "found before every memory: another round");
-            Assert.That(Game.LineText, Does.Contain(DreamHouseLines.Theo));
-            yield return WaitFor(() => !Game.Speaking, "his line", 10f);
-            // The first time, he asks his question: answer it, and he counts again.
-            if (Game.AskingTheo) Game.AnswerTheo(TheoAnswer.Comfort);
-            yield return WaitFor(() => !Game.Speaking, "the answer and his reply", 12f);
+            yield return HideAndSeek();
+            Game.Collect(DreamHouseStory.MemCalendar, true);
+            Assert.That(Game.Round.IsFound(DreamHouseStory.MemCalendar), Is.True);
+            HouseMemoryView view = null;
+            foreach (var v in Game.memoryViews) if (v.id == DreamHouseStory.MemCalendar) view = v;
+            Assert.That(view, Is.Not.Null);
+            Assert.That(view.Found, Is.True, "its glow goes out");
+            var was = view.transform.position;
+            Game.FoundNow();
             yield return Frames(2);
-            Assert.That(Game.theo.Counting, Is.True, "he counts again");
-            Assert.That(Game.Story.Rounds, Is.EqualTo(2));
+            Assert.That(Game.Round.Catches, Is.EqualTo(1));
+            Assert.That(Game.Round.IsFound(DreamHouseStory.MemCalendar), Is.False, "the house took it back");
+            Assert.That(Game.Round.IsFound(DreamHouseStory.MemPlaceCard), Is.True, "not the place card: the last one she found");
+            Assert.That(view.Found, Is.False, "glowing again");
+            Assert.That(Vector3.Distance(view.transform.position, was), Is.GreaterThan(1f), "hidden somewhere else");
+            Assert.That(Game.Theo.Counting, Is.True, "he counts again");
+            Assert.That(Game.Hud.CounterText, Is.EqualTo("Memories 1 of " + Game.House.memories.Count));
         }
 
         [UnityTest]
-        public IEnumerator TheMemoriesCountDownAndTheLastOneSpeaks()
+        public IEnumerator TheThirdCatchEndsTheRoundAndTheoAsksIfDadWillBeSad()
         {
-            yield return StartHouse();
-            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
-            yield return Frames(3);
-            var h = Game.House;
-            Assert.That(Game.memories.Total, Is.EqualTo(5));
-            Assert.That(Game.memories.Remaining, Is.EqualTo(5));
-            for (int i = 0; i < h.memories.Count; i++)
-            {
-                var m = h.memories[i].standAt;   // where she stands to take it (one is on Theo's desk)
-                Game.player.Teleport(new Vector3(m.X, m.Y + 0.02f, m.Z), 0f, Vector3.zero);
-                int left = 5 - i - 1;
-                yield return WaitFor(() => Game.memories.Remaining == left, h.memories[i].name + " picked up", 5f);
-            }
-            Assert.That(Game.memories.AllCollected, Is.True);
-            Assert.That(Game.Story.AllMemoriesFound, Is.True);
-            Assert.That(Game.LineText, Does.Contain(DreamHouseLines.AllFoundStart), "Nadia's line on the last memory");
-            Assert.That(Game.LineText, Does.EndWith(DreamHouseLines.AllFoundEndings[1 - DreamHouseLines.DespairEnding]), "the normal route's ending (no Despair yet)");
-        }
-
-        [UnityTest]
-        public IEnumerator TheCounterReadsTwoOfFive()
-        {
-            yield return StartHouse();
-            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
-            yield return Frames(3);
-            Assert.That(Game.memories.Summary, Is.EqualTo("Memories: 0 of 5"));
-            var h = Game.House;
-            for (int i = 0; i < 2; i++)
-            {
-                var m = h.memories[i].standAt;
-                Game.player.Teleport(new Vector3(m.X, m.Y + 0.02f, m.Z), 0f, Vector3.zero);
-                int left = 5 - i - 1;
-                yield return WaitFor(() => Game.memories.Remaining == left, h.memories[i].name + " picked up", 5f);
-            }
-            Assert.That(Game.memories.Summary, Is.EqualTo("Memories: 2 of 5"), "the on-screen counter");
-            Assert.That(Game.Evidence.Count, Is.EqualTo(2), "what she'd carry into the battle so far");
-        }
-
-        [UnityTest]
-        public IEnumerator TheLastMemoryLineOnTheDespairRouteLongsForHisSmile()
-        {
-            GameRoot.Save.Data.SetFlag(DreamRain.DespairFlag);
-            yield return StartHouse();
-            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
-            yield return Frames(3);
-            var h = Game.House;
-            for (int i = 0; i < h.memories.Count; i++)
-            {
-                var m = h.memories[i].standAt;
-                Game.player.Teleport(new Vector3(m.X, m.Y + 0.02f, m.Z), 0f, Vector3.zero);
-                int left = 5 - i - 1;
-                yield return WaitFor(() => Game.memories.Remaining == left, h.memories[i].name + " picked up", 5f);
-            }
-            Assert.That(Game.LineText, Does.Contain(DreamHouseLines.AllFoundStart));
-            Assert.That(Game.LineText, Does.EndWith("it would be nice to see his smile again."), "the Despair route's ending");
-            Assert.That(Game.LineText, Does.Not.Contain(DreamHouseLines.Placeholder), "the creator's line as written");
-        }
-
-        [UnityTest]
-        public IEnumerator TheoAsksIfDadWillBeSadAndRemembersTheAnswer()
-        {
-            yield return StartHouse();
-            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
-            yield return Frames(3);
-            var open = Game.House.openFloor[0];
-            Game.player.Teleport(new Vector3(open.X, open.Y + 0.02f, open.Z), 0f, Vector3.zero);
+            yield return HideAndSeek();
             DebugMenu.TimeScale = 3f;
-            yield return WaitFor(() => Game.Story.TimesFound > 0, "Theo to find her", 60f);
-            Assert.That(Game.LineText, Does.Contain(DreamHouseLines.TheoQuestion), "his question");
-            yield return WaitFor(() => Game.AskingTheo, "the answer prompt", 10f);
+            for (int i = 0; i < HideAndSeekRound.MaxCatches; i++)
+            {
+                Game.FoundNow();
+                yield return Frames(2);
+            }
+            Assert.That(Game.Round.End, Is.EqualTo(RoundEnd.CaughtThreeTimes));
+            yield return WaitFor(() => Game.Phase == HousePhase.TheoAsks, "the round over", 10f);
+            yield return WaitFor(() => Game.Asking, "his question", 40f);
             Game.AnswerTheo(TheoAnswer.Honest);
             Assert.That(Game.Story.TheoAnswered, Is.EqualTo(TheoAnswer.Honest));
             Assert.That(DreamHouseGame.SavedTheoAnswer, Is.EqualTo("honest"), "kept in the save: he remembers");
-            Assert.That(GameRoot.Save.Data.GetEntry(DreamHouseStory.TheoAnswerKey), Is.EqualTo("honest"));
-            yield return WaitFor(() => !Game.Speaking, "her answer and his reply", 12f);
-            yield return Frames(2);
-            Assert.That(Game.theo.Counting, Is.True, "he counts again");
-            Assert.That(Game.AskingTheo, Is.False);
         }
 
         [UnityTest]
-        public IEnumerator TheSaturdayDeductionNeedsNightOnesPaperOrTheDebugToggle()
+        public IEnumerator EveryMemoryFoundEndsOnTheCreatorsLine()
         {
-            yield return StartHouse();
-            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterHideAndSeek), Is.EqualTo(JumpResult.Jumped));
-            yield return Frames(3);
-            var cal = Game.House.memories.Find(m => m.id == DreamHouseStory.MemCalendar).standAt;
-            Game.player.Teleport(new Vector3(cal.X, cal.Y + 0.02f, cal.Z), 0f, Vector3.zero);
-            yield return WaitFor(() => Game.memories.Remaining == 4, "the calendar picked up", 5f);
-            Assert.That(Game.Evidence, Does.Contain(DreamHouseStory.MemCalendar).And.Not.Contain(DreamHouseStory.DedSaturdayOff), "Night 2 alone: just the calendar");
-            DreamHouseGame.DebugSaturdayPaper = true;
-            Assert.That(Game.Evidence, Does.Contain(DreamHouseStory.DedSaturdayOff), "the debug toggle stands in for Night 1");
-            DreamHouseGame.DebugSaturdayPaper = false;
-            GameRoot.Save.Data.SetEntry(DreamJournal.Key, DreamJournal.Add(null, DreamJournal.SaturdayPaper));
-            Assert.That(Game.Evidence, Does.Contain(DreamHouseStory.DedSaturdayOff), "Night 1's paper in the shared journal");
+            yield return HideAndSeek();
+            foreach (var m in Game.House.memories)
+                if (!Game.Round.IsFound(m.id)) Game.Collect(m.id, false);
+            Assert.That(Game.Round.AllFound, Is.True);
+            Assert.That(Game.Hud.CounterText, Is.EqualTo("Memories " + Game.House.memories.Count + " of " + Game.House.memories.Count));
+            string line = DreamHouseLines.AllFound(false);
+            Assert.That(line, Does.StartWith(DreamHouseLines.AllFoundStart));
+            yield return WaitFor(() => Game.Hud.LineText.Contains(DreamHouseLines.AllFoundStart), "Nadia's line on the last memory", 30f);
+            Assert.That(Game.Hud.LineText, Does.Contain(line), "the normal route's ending (no Despair yet)");
+            Assert.That(Game.Phase, Is.EqualTo(HousePhase.HideAndSeek), "Theo still has to find her");
         }
 
         [UnityTest]
-        public IEnumerator TheDreamOffersAShortcutForAMemoryAtTheHardestSpot()
-        {
-            yield return StartHouse();
-            GameRoot.Save.Data.SetEntry(DreamHouseStory.MemoryGivenKey, null);
-            Game.JumpToEscapeAt(Game.House.hardCheckpoint);
-            yield return Frames(3);
-            Assert.That(Game.Phase, Is.EqualTo(HousePhase.Escape));
-            Game.NoteMemory(DreamHouseStory.MemPlaceCard);
-            Game.FellAtTheHardSpot();
-            Assert.That(Game.Offering, Is.False, "not after one fall");
-            Game.FellAtTheHardSpot();
-            Assert.That(Game.Offering, Is.True, "two falls at the hardest spot: the dream's offer");
-            Game.AnswerOffer(true);
-            yield return Frames(2);
-            Assert.That(Game.Checkpoint, Is.EqualTo(Game.House.hardSkipCheckpoint), "let through");
-            Assert.That(DreamHouseGame.MemoryGiven, Is.EqualTo(DreamHouseStory.MemPlaceCard), "it keeps what she gave it");
-            Assert.That(Game.Evidence, Does.Not.Contain(DreamHouseStory.MemPlaceCard), "gone from what she carries");
-            GameRoot.Save.Data.SetEntry(DreamHouseStory.MemoryGivenKey, null);
-        }
-
-        [UnityTest]
-        public IEnumerator UnsureOpensTheosWindowRoundTheHardestSpot()
-        {
-            yield return StartHouse();
-            Game.JumpToEscapeAt(Game.House.hardCheckpoint, ArgumentOutcome.Condemns);
-            yield return Frames(3);
-            Assert.That(Game.TheoWindowOpen, Is.False, "condemned: no window");
-            Assert.That(GameObject.Find(DreamHouseGame.TheoWindowShut), Is.Not.Null, "its curtain drawn");
-            Assert.That(GameObject.Find(DreamHouseGame.TheoWindowOpenName), Is.Null);
-
-            Game.JumpToEscapeAt(Game.House.hardCheckpoint, ArgumentOutcome.Unsure);
-            yield return Frames(3);
-            Assert.That(Game.TheoWindowOpen, Is.True, "unsure: Theo opens the window");
-            Assert.That(GameObject.Find(DreamHouseGame.TheoWindowOpenName), Is.Not.Null, "lit, with Theo in it");
-            Assert.That(GameObject.Find(DreamHouseGame.TheoWindowShut), Is.Null);
-            // Run to it: through the window, past the stairwell door.
-            var cp = Game.House.course.checkpoints[Game.House.hardCheckpoint].position;
-            Game.player.Teleport(new Vector3(DreamHouse.TheoWindowX + 0.6f, cp.Y + 0.02f, Game.House.theoWindowZ), 270f, Vector3.zero);
-            yield return WaitFor(() => Game.TookTheoWindow, "through Theo's window", 3f);
-            yield return Frames(2);
-            Assert.That(Game.Checkpoint, Is.EqualTo(Game.House.hardSkipCheckpoint), "out past the door, in the last hall");
-            Assert.That(Game.TheoWindowOpen, Is.False, "once");
-        }
-
-        [UnityTest]
-        public IEnumerator CondemnsFoldsTheHouseFasterAtTheHardestSpot()
-        {
-            yield return StartHouse();
-            float normal = Game.House.course.pursuer.targetGap;
-            Game.JumpToEscapeAt(Game.House.hardCheckpoint, ArgumentOutcome.Unsure);
-            yield return Frames(3);
-            Assert.That(Game.Chasing, Is.True);
-            Assert.That(Game.FoldGap, Is.EqualTo(normal), "unsure: the usual gap");
-            Game.JumpToEscapeAt(Game.House.escapeCheckpoint, ArgumentOutcome.Condemns);
-            yield return Frames(3);
-            Assert.That(Game.FoldGap, Is.EqualTo(normal), "condemned, but not yet at the hardest spot");
-            Game.JumpToEscapeAt(Game.House.hardCheckpoint, ArgumentOutcome.Condemns);
-            yield return Frames(3);
-            Assert.That(Game.Chasing, Is.True);
-            Assert.That(Game.FoldGap, Is.EqualTo(DreamHouseStory.CondemnedFoldGap).And.LessThan(normal), "condemned: the house closes in behind her");
-        }
-
-        [UnityTest]
-        public IEnumerator TheosAnswerPaysOffAsLenaTurnsHerOut()
-        {
-            yield return StartHouse();
-            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterArgument), Is.EqualTo(JumpResult.Jumped));
-            yield return Frames(3);
-            Assert.That(Game.Story.AnswerTheo(TheoAnswer.Silence), Is.True, "as if she'd said nothing when he asked");
-            Game.Choose(ArgumentOutcome.Unsure);
-            string parting = DreamHouseLines.PartingFor(TheoAnswer.Silence)[0].text;
-            DebugMenu.TimeScale = 3f;
-            yield return WaitFor(() => Game.LineText.Contains(parting), "Theo's parting line, for her silence", 10f);
-            Assert.That(Game.Phase, Is.EqualTo(HousePhase.Escape), "the story's moved on");
-            Assert.That(Game.Checkpoint, Is.Not.EqualTo(Game.House.escapeCheckpoint), "before the house tips");
-            yield return WaitFor(() => Game.Checkpoint == Game.House.escapeCheckpoint && !Game.Respawning, "then the house kicks her out", 10f);
-        }
-
-        [UnityTest]
-        public IEnumerator TheHouseFoldsShutRoomByRoomBehindHer()
+        public IEnumerator TheEscapeAutopilotGetsOutOntoChapelRow()
         {
             yield return StartHouse();
             Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterTips), Is.EqualTo(JumpResult.Jumped));
             yield return Frames(3);
-            var first = GameObject.Find(DreamHouseGame.RoomGroupPrefix + Game.House.escapeRooms[0].name);
-            Assert.That(first, Is.Not.Null, "the first room's group");
-            DebugMenu.TimeScale = 3f;
-            Game.SetAutopilot(true);
-            yield return WaitFor(() => Game.Room >= 3, "three rooms in", 30f);
-            yield return WaitFor(() => !first.activeSelf, "the first room folded shut behind her", 10f);
-            Game.SetAutopilot(false);
-            Assert.That(RenderSettings.fogColor, Is.Not.EqualTo(Color.clear));
-        }
-
-        [UnityTest]
-        public IEnumerator CondemnsIsKeptAndBringsTheDespairChoiceNearer()
-        {
-            yield return StartHouse();
-            float normal = Game.RainSpot.despairS;
-            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterArgument), Is.EqualTo(JumpResult.Jumped));
-            yield return Frames(3);
-            Assert.That(Game.Phase, Is.EqualTo(HousePhase.Argument));
-            Assert.That(Game.WaitingForChoice, Is.True, "the argument is up");
-            Assert.That(Game.ArgumentRunning, Is.True, "the argument battle runs over the house");
-            Assert.That(JamKit.Argument.ArgumentHost.Running, Is.True);
-            // The debug skip (what F8 does): Lena condemns; the battle closes.
-            Game.Choose(ArgumentOutcome.Condemns);
-            Assert.That(Game.ArgumentRunning, Is.False, "the skip closed the battle");
-            Assert.That(JamKit.Argument.ArgumentHost.Running, Is.False);
-            Assert.That(DreamHouseGame.LenaCondemned, Is.True, "kept in the save");
-            Assert.That(Game.LineText, Does.Contain(DreamHouseLines.Lena));
-            Game.SkipLines();
-            yield return WaitFor(() => Game.Checkpoint == Game.House.escapeCheckpoint && !Game.Respawning, "the house kicking her out", 5f);
             Assert.That(Game.Phase, Is.EqualTo(HousePhase.Escape));
             Assert.That(Game.Chasing, Is.True, "the house folds shut behind her");
-            Assert.That(Game.RainSpot.despairS, Is.LessThan(normal), "the point of no return is nearer");
-            Assert.That(Game.umbrella.Rain.Spot.despairS, Is.EqualTo(Game.RainSpot.despairS), "the umbrella's rain follows");
-        }
-
-        [UnityTest]
-        public IEnumerator TheArgumentBattlePlayedThroughDecidesTheOutcome()
-        {
-            yield return StartHouse();
-            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterArgument), Is.EqualTo(JumpResult.Jumped));
-            yield return Frames(3);
-            var battle = JamKit.Argument.ArgumentHost.Current;
-            Assert.That(battle, Is.Not.Null, "the battle is up");
-            Assert.That(GameRoot.Input.GameplayAllowed, Is.False, "the house waits while it runs");
-            battle.Autopilot = true;
-            yield return WaitFor(() => battle == null || battle.Ended, "the battle's autopilot to finish the argument", 150f);
-            Assert.That(battle.Ended, Is.True);
-            // The host builds its end card (and the record) on its next frame: Continue on the card, as a player would.
-            yield return Frames(3);
-            Assert.That(JamKit.Argument.ArgumentHost.Current, Is.SameAs(battle), "the end card waits for Continue");
-            battle.Continue();
-            yield return Frames(3);
-            Assert.That(Game.Phase, Is.EqualTo(HousePhase.Escape), "its end card closed: the house kicks her out");
-            // The battle's result for lena_night2, as the house's plug turns it into Unsure or Condemns (DreamBattles).
-            var record = JamKit.Argument.ArgumentHost.LoadLedger().Get(DreamHouseStory.LenaBattleId);
-            Assert.That(record, Is.Not.Null, "lena_night2's result is in the ledger");
-            var result = JamKit.Argument.ArgumentBattles.Result(JamKit.Argument.ArgumentBattles.Build(DreamHouseStory.LenaBattleId), record);
-            TestContext.Out.WriteLine("the battle ended " + result.outcome + ", Lena " + result.stance + "; the house: " + Game.Story.Outcome);
-            Assert.That(Game.Story.Outcome, Is.EqualTo(DreamBattles.OutcomeOf(result)), "the battle's ending decides");
-        }
-
-        [UnityTest]
-        public IEnumerator TheAutopilotEscapesTheTippingHouseUnderTheUmbrella()
-        {
-            yield return StartHouse();
-            Assert.That(PresenterMode.Jump(DreamHousePresenter.Scene, DreamHouse.ChapterTips), Is.EqualTo(JumpResult.Jumped));
-            yield return Frames(3);
-            DebugMenu.TimeScale = 3f;
-            int respawns = Game.Respawns, caught = Game.Caught, finishes = Game.Finishes;
             Game.SetAutopilot(true);
-            // The escape is long now (the night's peak: about a minute for the autopilot), room by room.
-            int rooms = 0, last = -1;
-            float until = Time.realtimeSinceStartup + 90f;
-            while (Game.Finishes == finishes && Time.realtimeSinceStartup < until)
-            {
-                if (Game.Room != last && Game.Room >= 0) { rooms++; last = Game.Room; }
-                yield return null;
-            }
-            Assert.That(Game.Finishes, Is.GreaterThan(finishes), "out of the front door to the end of the rain");
-            Assert.That(rooms, Is.GreaterThanOrEqualTo(Game.House.escapeRooms.Count - 1), "through the escape's rooms");
-            Game.SetAutopilot(false);
-            Assert.That(Game.Caught - caught, Is.EqualTo(0), "the house folding shut never caught it");
-            Assert.That(Game.Respawns - respawns, Is.LessThanOrEqualTo(1), "at most one slip on the real CharacterController");
-            Assert.That(Game.umbrella.HasUmbrella, Is.True, "the dream tool took the umbrella by the door");
-            Assert.That(DreamEscapeGame.Despair, Is.False);
+            yield return WaitFor(() => Game.Outside || Game.Phase == HousePhase.ThrownOut, "the autopilot out of the front door", 150f);
+            Assert.That(Game.Phase, Is.Not.EqualTo(HousePhase.ThrownOut), "not thrown out");
+            Assert.That(Game.Outside, Is.True);
+            Assert.That(Game.lenaInWindow.activeSelf, Is.True, "Lena at the tower's window");
+            yield return WaitFor(() => Game.Phase == HousePhase.Out, "up Chapel Row in the rain", 60f);
+            Assert.That(DreamHouseGame.WasThrownOut, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator BeingThrownOutCostsLenaAndTheEnding()
+        {
+            yield return StartHouse();
+            Game.JumpToEscape(Game.Escape.startCheckpoint, ArgumentOutcome.Unsure);
+            yield return Frames(3);
+            Assert.That(Game.Phase, Is.EqualTo(HousePhase.Escape));
+            Game.ThrowOutNow("a test fall");
+            yield return Frames(2);
+            Assert.That(Game.Phase, Is.EqualTo(HousePhase.ThrownOut));
+            Assert.That(Game.Story.Outcome, Is.EqualTo(ArgumentOutcome.Condemns), "Lena's mind is made up");
+            Assert.That(DreamHouseGame.WasThrownOut, Is.True);
+            Assert.That(DreamHouseGame.LenaCondemned, Is.True);
+            Assert.That(Chain.LenaOutcome(GameRoot.Save.Data), Is.EqualTo("Condemns"), "the chain hears it");
+            Assert.That(Game.player.InputEnabled, Is.False, "Mags has her");
+            yield return WaitFor(() => Game.Hud.LineText.Length > 0, "the fall's line", 5f);
         }
     }
 }

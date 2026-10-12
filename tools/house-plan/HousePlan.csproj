@@ -16,5 +16,6 @@
     <Compile Include="$(PkgRoot)Runtime\Core\Movement\**\*.cs" />
     <Compile Include="$(PkgRoot)Runtime\Core\Stealth\**\*.cs" />
     <Compile Include="$(PkgRoot)Runtime\Core\DreamEscape\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\DeepBlock\HillAnchors.cs" />
   </ItemGroup>
 </Project>

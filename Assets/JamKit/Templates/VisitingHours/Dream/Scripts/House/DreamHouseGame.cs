@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
-using JamKit.Argument;
 using JamKit.Flow;
 using JamKit.Movement;
 using JamKit.Presenting;
@@ -10,42 +8,45 @@ using JamKit.Shell;
 using JamKit.Stealth;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UIElements;
+using NVec3 = System.Numerics.Vector3;
 
 namespace JamKit.DreamEscape
 {
     /// <summary>
-    /// Night 2's house, played (docs/DREAM-HOUSE.md; core <see cref="DreamHouse"/> and <see cref="DreamHouseStory"/>):
-    /// <list type="number">
-    /// <item><b>The way in.</b> The house plays with her: the hallway stretches away as she enters, its floor gone (run
-    /// the gold-striped wall), and a door half open onto a slide takes her down into the kitchen.</item>
-    /// <item><b>Pancakes, then hide-and-seek.</b> Lena and Theo at the table set for four (placeholder lines). Theo
-    /// counts and seeks (the stealth kit's <see cref="SeekerAgent"/> in hide-and-seek mode, his cone and meter shown);
-    /// she hides (the pantry, the curtains, the coats, his wardrobe, low cover, shade) and finds the five memories,
-    /// counted on screen (<see cref="StealthHud"/>). Found before the last memory: he counts again. The last memory:
-    /// Nadia's line, hooked to <see cref="CollectibleCounter.AllFound"/>, its ending by route. The next time he finds
-    /// her, the game is over and Elias hasn't come.</item>
-    /// <item><b>The argument.</b> She questions Lena: the argument battle prototype (<see cref="ArgumentHost"/>,
-    /// <see cref="DreamLenaDemo"/>); its stance decides (Condemns: condemns; Amenable or Unsure: unsure). A debug skip
-    /// ends it at once (F7 unsure, F8 condemns; the autopilot skips it as unsure). Condemns is kept in the save (<see cref="LenaCondemned"/>) and makes the Despair route easier.</item>
-    /// <item><b>The house tips.</b> It kicks her out: she runs the house on its side (the floor a wall, the doorframes,
-    /// the staircase a slide) with the house folding shut behind her (a rubber-banded <see cref="Pursuer"/>), out of
-    /// the front door into the rain, where <see cref="DreamUmbrella"/> and its Despair choice wait.</item>
-    /// </list>
-    /// Every line is a PLACEHOLDER (the dialogue is the creator's). Without a listener on <see cref="Escaped"/> the
-    /// visit loops back to the front garden.
+    /// Night 2: the house (docs/redesign/house.md). Runs the night on core <see cref="DreamHouse"/> (the house),
+    /// <see cref="DreamHouseStory"/> (the order of things), <see cref="HideAndSeekRound"/> (the game's rules and the cost of
+    /// being found), <see cref="TheoBrain"/> (Theo seeking) and <see cref="HouseEscape"/> (the house throwing her out):
+    /// up to the front door and in, the hall breathing, sitting down at the fourth chair, pancakes, hide-and-seek through
+    /// the whole house, Theo's question, Lena (the argument battle), the house tipping, the corridor that keeps getting
+    /// longer, out onto the hill in the rain, or thrown out of the dream. The house's frame is <see cref="houseRoot"/> (the
+    /// hill places it); the escape is built at <see cref="escapeRoot"/>, upright, far below.
+    /// This file: the night's flow, the lines, the prompts. HideAndSeek, Escape and Drive are its other parts.
     /// </summary>
-    public sealed class DreamHouseGame : MonoBehaviour, IDreamRainHost
+    public sealed partial class DreamHouseGame : MonoBehaviour, IDreamRainHost
     {
+        // ---------- Wired by the builder ----------
         public MovementController player;
-        public SeekerAgent theo;
-        public CollectibleCounter memories;
-        /// <summary>The hallway's far end (it moves away as she enters: the house stretching the hallway).</summary>
-        public Transform hallwayEnd;
-        /// <summary>The house folding shut behind her in the escape (placed at the pursuer).</summary>
-        public Transform fold;
+        public Transform houseRoot, escapeRoot;
+        public TheoView theo;
+        /// <summary>Lena's figure (at the stove, at the table) and Lena in the tower's round window (seen from the hill).</summary>
+        public Transform lena;
+        public GameObject lenaInWindow;
+        public HouseMemoryView[] memoryViews;
+        public HouseCameraFx cameraFx;
         public DreamUmbrella umbrella;
-        /// <summary>Play the argument battle with Lena (the prototype, <see cref="ArgumentHost"/>). Off: the debug choice only.</summary>
+        /// <summary>The house folding shut behind her in the escape.</summary>
+        public Transform fold;
+        /// <summary>The door at the end of the corridor: its collider (off when it bursts open) and its leaf (swings).</summary>
+        public Collider corridorDoor;
+        public Transform corridorDoorLeaf;
+        /// <summary>Theo holding the corridor's door (Lena unsure): shown when he does.</summary>
+        public GameObject theoAtTheDoor;
+        /// <summary>The door she comes out of on the hill (its position and facing).</summary>
+        public Transform exitDoor;
+        /// <summary>Each escape room's dressing (folded away behind her).</summary>
+        public Transform[] escapeRoomGroups;
+        /// <summary>The fourth chair's collider (off while she sits in it).</summary>
+        public Collider nadiaChair;
         public bool useArgumentBattle = true;
 
         static DreamHouseGame _current;
@@ -59,834 +60,420 @@ namespace JamKit.DreamEscape
             DebugSaturdayPaper = false;
         }
 
-        /// <summary>Starts a battle by id with the evidence she carries, and calls back with how it ended (the argument's
-        /// battle API plugs in here: docs/NIGHTS-1-2.md, "Who builds what"). Null: the built-in stub (the battle
-        /// prototype over the house, its stance deciding).</summary>
+        /// <summary>The argument's battle API (DreamBattles plugs it in): starts battle <c>battleId</c> with the evidence
+        /// she carries; <c>done</c> gets how it ended.</summary>
         public delegate void BattleStarter(string battleId, IReadOnlyList<string> evidence, Action<ArgumentOutcome> done);
         public static BattleStarter StartBattle;
 
-        /// <summary>Debug (F6 in a debug build, and tests): pretend Night 1's Saturday paper is in the journal, so Night 2 can
-        /// be tested alone with <see cref="DreamHouseStory.DedSaturdayOff"/>.</summary>
+        /// <summary>Testing Night 2 alone: as if Night 1's Saturday paper were in the journal (F6 in a debug build).</summary>
         public static bool DebugSaturdayPaper;
-
-        /// <summary>Night 1's Saturday paper is in the shared journal (or the debug toggle is on).</summary>
-        public static bool HasSaturdayPaper => DebugSaturdayPaper
-            || (GameRoot.Exists && DreamJournal.Has(GameRoot.Save.Data.GetEntry(DreamJournal.Key), DreamJournal.SaturdayPaper));
-
-        /// <summary>The answer to Theo's question kept in the save ("honest", "comfort", "silence"), or null.</summary>
+        public static bool HasSaturdayPaper => DebugSaturdayPaper || (GameRoot.Exists && DreamJournal.Has(GameRoot.Save.Data.GetEntry(DreamJournal.Key), DreamJournal.SaturdayPaper));
         public static string SavedTheoAnswer => GameRoot.Exists ? GameRoot.Save.Data.GetEntry(DreamHouseStory.TheoAnswerKey) : null;
-
         public static DreamHouseGame Current => _current;
 
-        /// <summary>Fires when Nadia reaches the end of the rain path (wire the story here). Without a listener the visit loops.</summary>
+        /// <summary>The night is over: she's out (onto the hill, or thrown out of the dream). The chain listens.</summary>
         public static event Action Escaped
         {
             add => _escaped += value;
             remove => _escaped -= value;
         }
 
-        /// <summary>Lena condemned Nadia in an argument (kept in the save across visits; it makes the Despair route easier).</summary>
+        /// <summary>Lena condemned Nadia (this visit or an earlier one): the save's flag.</summary>
         public static bool LenaCondemned => GameRoot.Exists && GameRoot.Save.Data.HasFlag(DreamHouseStory.CondemnsFlag);
+        /// <summary>She was thrown out of Night 2 (the save's flag).</summary>
+        public static bool WasThrownOut => GameRoot.Exists && GameRoot.Save.Data.HasFlag(DreamHouseStory.ThrownOutFlag);
 
-        /// <summary>The builder groups each escape room's pieces under "Escape room: (its name)" (they fold shut as one), and
-        /// the hallway's things that turn over with it under <see cref="TurningGroup"/>.</summary>
-        public const string RoomGroupPrefix = "Escape room: ", TurningGroup = "The hallway's things (turning over)";
-        /// <summary>Theo's window at the hardest spot (the builder's): shut, or open with Theo in it when Lena ended unsure.</summary>
-        public const string TheoWindowShut = "Theo's window (shut)", TheoWindowOpenName = "Theo's window (open)";
-
+        // ---------- The night's state ----------
         DreamHouse _h;
-        LabCourse _course;
+        HouseEscape _e;
         readonly DreamHouseStory _story = new DreamHouseStory();
-        Pursuer _pursuer;
-        CourseAutopilot _pilot;
-        StealthHud _hud;
-        VisualElement _white;
-        Label _subtitle, _prompt;
-        float _s, _whiteAlpha;
-        int _checkpoint, _respawns, _caught, _falls, _finishes;
-        bool _chasing, _respawning, _leaving, _stretched, _waitingForChoice;
-        bool _saidArrival, _saidWindow, _waitingForTheo, _theoOver;
-        // The escape as the night's peak: its rooms (light, sound, the framed turn), the rooms folding shut behind her,
-        // the hallway turning over, the memory offer at the hardest spot.
-        int _room = -1, _hardFalls;
-        bool _offering, _offerUsed;
-        Transform[] _roomGroups;
-        Vector3[] _roomPos;
-        Quaternion[] _roomRot;
-        bool[] _folded;
-        Transform _turning;
-        GameObject _windowShut, _windowOpen;
-        bool _windowUsed, _saidTheoWindow;
-        Vector3 _turningPos;
-        Quaternion _turningRot;
-        Color _sky0, _equator0, _ground0, _fog0;
-        Coroutine _mood;
-        readonly List<string> _found = new List<string>();
-        float _stretchT = -1f;
-        Vector3 _hallwayHome;
+        HideAndSeekRound _round;
+        TheoBrain _theo;
+        StealthBoxWorld _sight;
+        WaypointGraph _graph;
+        HouseWalker _walker;
+        HouseHud _hud;
         readonly Queue<HouseLine> _lines = new Queue<HouseLine>();
-        float _lineLeft;
-        string _lineText = "";
         Action _afterLines;
-        DreamRainSpot _rain;
-        Func<IEnumerator> _smokeDriver;
+        float _lineLeft;
+        bool _speaking;
+        bool _saidDoor, _breathed, _busy, _asking, _battleUp;
+        string _promptFor;
         Func<bool> _skip;
-        const float FoundPause = 2.6f;
+        Func<IEnumerator> _smokeDriver;
 
         public DreamHouse House => _h;
+        public HouseEscape Escape => _e;
         public DreamHouseStory Story => _story;
+        public HideAndSeekRound Round => _round;
+        public TheoBrain Theo => _theo;
         public HousePhase Phase => _story.Phase;
-        public float S => _s;
-        public int Checkpoint => _checkpoint;
-        public bool Chasing => _chasing;
-        public int Respawns => _respawns;
-        public int Caught => _caught;
-        public int Finishes => _finishes;
-        public bool Respawning => _respawning;
-        public bool Leaving => _leaving;
-        public bool WaitingForChoice => _waitingForChoice;
-        /// <summary>Theo has asked "Is Dad going to be sad?" and waits for her answer.</summary>
-        public bool AskingTheo => _waitingForTheo;
-        /// <summary>The dream offers to let her through the hardest spot for a memory.</summary>
-        public bool Offering => _offering;
-        /// <summary>The escape room she's in (-1 outside the escape).</summary>
-        public int Room => _room;
-        /// <summary>Theo's window is open at the hardest spot (Lena ended unsure; not yet climbed through).</summary>
-        public bool TheoWindowOpen => _story.Phase == HousePhase.Escape && DreamHouseStory.TheoOpensTheWindow(_story.Outcome) && !_windowUsed;
-        /// <summary>She climbed through Theo's window this visit.</summary>
-        public bool TookTheoWindow => _windowUsed;
-        /// <summary>How close the fold keeps behind her now (m): nearer at the hardest spot when Lena condemned her.</summary>
-        public float FoldGap => _pursuer.targetGap;
-        /// <summary>The memory she gave the dream for the shortcut (the save's), or null.</summary>
-        public static string MemoryGiven => GameRoot.Exists ? GameRoot.Save.Data.GetEntry(DreamHouseStory.MemoryGivenKey) : null;
-        /// <summary>The evidence cards she'd carry into the battle now (the memories found; the calendar as the Saturday
-        /// deduction when she has Night 1's paper).</summary>
-        public List<string> Evidence => DreamHouseStory.EvidenceFor(_found, HasSaturdayPaper);
-        /// <summary>The line on screen ("" when none).</summary>
-        public string LineText => _lineText;
-        public bool Speaking => _lineText.Length > 0 || _lines.Count > 0;
+        public HouseHud Hud => _hud;
+        public bool Speaking => _speaking;
+        public bool Busy => _busy;
+        public bool Asking => _asking;
         public bool AutopilotOn => player != null && player.Autopilot != null;
-        public bool HallwayStretched => _stretched;
-        public StealthHud Hud => _hud;
         MovementController IDreamRainHost.Player => player;
-        public DreamRainSpot RainSpot => _rain;
+        public bool Respawning => false;
 
         void Start()
         {
-            Shader.SetGlobalColor("_VHWakeSky", Color.black);
-            Shader.SetGlobalColor("_VHWakeGround", Color.black);
-            Shader.SetGlobalFloat("_VHWakeSH", 0f);
-            if (!GameRoot.Exists || player == null)
+            if (!GameRoot.Exists || player == null || houseRoot == null || escapeRoot == null)
             {
-                Debug.LogError("DreamHouseGame: missing the player. Rebuild with JamKit > Rebuild Shell Scenes.");
+                Debug.LogError("DreamHouseGame: missing its wiring. Rebuild with JamKit > Dream House > Rebuild Scene.");
                 enabled = false;
                 return;
             }
             _current = this;
             _h = DreamHouse.Build();
-            _course = _h.course;
-            _rain = DreamHouseStory.RainFor(_h.rain, LenaCondemned);
-            var pp = _course.pursuer;
-            _pursuer = new Pursuer { targetGap = pp.targetGap, k = pp.k, minSpeed = pp.minSpeed, maxSpeed = pp.maxSpeed };
-            _pilot = new CourseAutopilot(_course);
+            _e = HouseEscape.Build();
+            _sight = _h.StealthWorld();
+            _graph = _h.Graph(_sight);
+            _theo = new TheoBrain(_h, _sight, _graph, null, Environment.TickCount);
+            _round = new HideAndSeekRound(_h);
+            _walker = new HouseWalker(_h, _sight, _graph);
+            BuildEscapeCourse();
             StealthLightZone.Ambient = _h.ambientLight;
-            if (memories == null) memories = CollectibleCounter.Current;
-            memories.AllFound += OnAllMemoriesFound;
-            memories.ItemCollected += OnMemory;
-            memories.summaryFormat = (found, total) => found >= total ? "All " + total + " memories found" : "Memories: " + found + " of " + total;
-            if (theo != null) theo.Found += OnTheoFound;
-            if (hallwayEnd != null) _hallwayHome = hallwayEnd.position;
-            _sky0 = RenderSettings.ambientSkyColor; _equator0 = RenderSettings.ambientEquatorColor; _ground0 = RenderSettings.ambientGroundColor; _fog0 = RenderSettings.fogColor;
-            int rooms = _h.escapeRooms.Count;
-            _roomGroups = new Transform[rooms]; _roomPos = new Vector3[rooms]; _roomRot = new Quaternion[rooms]; _folded = new bool[rooms];
-            foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-            {
-                if (t.name.StartsWith(RoomGroupPrefix))
-                {
-                    int i = _h.escapeRooms.FindIndex(r => r.name == t.name.Substring(RoomGroupPrefix.Length));
-                    if (i >= 0) { _roomGroups[i] = t; _roomPos[i] = t.position; _roomRot[i] = t.rotation; }
-                }
-                else if (t.name == TurningGroup) { _turning = t; _turningPos = t.position; _turningRot = t.rotation; }
-                else if (t.name == TheoWindowShut) _windowShut = t.gameObject;
-                else if (t.name == TheoWindowOpenName) _windowOpen = t.gameObject;
-            }
 
             GameRoot.Hud.Show();
             GameRoot.Hud.ShowHealth(false);
             GameRoot.Hud.SetScoreText("");
-            _hud = new StealthHud(GameRoot.Hud.Root);
-            BuildUi();
+            _hud = new HouseHud(GameRoot.Hud.Root, GameRoot.Ui.Root);
             MovementComfortScreen.Ensure();
+            _sky0 = RenderSettings.ambientSkyColor; _equator0 = RenderSettings.ambientEquatorColor; _fog0 = RenderSettings.fogColor;
 
             DreamHousePresenter.Register(PresenterMode.Chapters, this, this);
             PresenterMode.RegisterDriver(this, DreamHousePresenter.Scene, AttractDrive);
             _smokeDriver = SmokeDrive;
             SmokeRunner.GameplayDriver = _smokeDriver;
-            _skip = SkipToNextCheckpoint;
+            _skip = SkipAhead;
             DebugMenu.SkipHandler = _skip;
             GameRoot.Run.Set("Dream", "The house (Night 2)");
             GameRoot.Audio.StopMusic(0.4f);
             NewVisit();
+            RecorderStart();
         }
 
         void OnDestroy()
         {
             if (_current == this) _current = null;
-            if (memories != null) { memories.AllFound -= OnAllMemoriesFound; memories.ItemCollected -= OnMemory; }
             if (ArgumentRunning) CloseBattle();
-            if (theo != null) theo.Found -= OnTheoFound;
+            Time.timeScale = 1f;
             if (!GameRoot.Exists) return;
             PresenterMode.Unregister(this);
             if (SmokeRunner.GameplayDriver == _smokeDriver) SmokeRunner.GameplayDriver = null;
             if (DebugMenu.SkipHandler == _skip) DebugMenu.SkipHandler = null;
             MovementComfortScreen.Remove();
             _hud?.Remove();
-            _white?.RemoveFromHierarchy();
-            _subtitle?.RemoveFromHierarchy();
-            _prompt?.RemoveFromHierarchy();
         }
 
-        // ---------- The visit ----------
+        // =====================================================================================================
+        // The visit
+        // =====================================================================================================
 
-        /// <summary>A fresh visit: the front garden, the hallway unstretched, Theo at the table, every memory back.</summary>
+        /// <summary>A fresh visit: on the street, nothing found, Theo at the table, Lena at the stove.</summary>
         public void NewVisit()
         {
             StopAllCoroutines();
+            Time.timeScale = 1f;
             _story.Restart();
             ResetHouse();
-            PlaceAt(_h.arrivalCheckpoint, false);
+            ApplyBedside();
+            Teleport(ToWorld(_h.arrival), WorldYaw(_h.arrivalYaw), Vector3.zero);
             Say(DreamHouseLines.Street, null);
         }
 
         void ResetHouse()
         {
             if (ArgumentRunning) CloseBattle();
+            _battleUp = false;
             _lines.Clear();
-            _lineText = "";
-            _lineLeft = 0f;
+            _speaking = false;
             _afterLines = null;
-            _waitingForChoice = false;
-            _waitingForTheo = false;
-            _saidArrival = false;
-            _saidWindow = false;
-            _found.Clear();
-            _offering = false;
-            _offerUsed = false;
-            _hardFalls = 0;
-            _windowUsed = false;
-            _saidTheoWindow = false;
-            RestoreRooms(-1f);
-            SetMood(-1, true);
-            _leaving = false;
-            _stretched = false;
-            _stretchT = -1f;
-            if (hallwayEnd != null) hallwayEnd.position = _hallwayHome;
-            if (memories != null) memories.ResetAll();
-            SetTheoPlaying(false);
-            if (theo != null) theo.Restart();
-            if (theo != null) theo.Frozen = true;
-            SetWhite(0f);
-            _rain = DreamHouseStory.RainFor(_h.rain, LenaCondemned);
-            if (umbrella != null) umbrella.UseSpot(_rain, DreamHouseStory.RainDefFor(LenaCondemned));
-            _prompt.style.display = DisplayStyle.None;
-        }
-
-        void SetTheoPlaying(bool on)
-        {
-            var sp = StealthPlayer.Current;
-            if (sp != null) sp.findable = on;
-            if (theo != null) theo.Frozen = !on;
-            _hud?.Show(on);
+            _hud.ClearLine();
+            _hud.Prompt(null);
+            _hud.HideChoice();
+            _hud.Card(null, null);
+            _hud.Fade(Color.black, 0f, 0f);
+            _hud.ShowCounter(false);
+            _saidDoor = _breathed = _busy = _asking = false;
+            _promptFor = null;
+            _round.Reset();
+            foreach (var v in memoryViews)
+            {
+                if (v == null) continue;
+                var m = _h.Memory(v.id);
+                if (m == null) continue;
+                v.MoveTo(ToWorld(m.position), MemoryYaw(m.position));
+            }
+            SetTheoRoom(true);
+            _theo.Stop();
+            _theo.Place(_h.theoStart, _h.theoCountYaw);
+            PlaceTheo();
+            if (lena != null) lena.position = ToWorld(_h.lenaAt);
+            if (lenaInWindow != null) lenaInWindow.SetActive(false);
+            if (theoAtTheDoor != null) theoAtTheDoor.SetActive(false);
+            if (cameraFx != null) cameraFx.ResetAll();
+            if (nadiaChair != null) nadiaChair.enabled = true;
+            player.InputEnabled = true;
+            ResetEscape();
         }
 
         void Update()
         {
-            if (_course == null) return;
-            float dt = Time.deltaTime;
-            var p = player.transform.position;
-            _s = _course.route.Project(new System.Numerics.Vector3(p.x, p.y, p.z));
-            TickLines(dt);
-            AnimateStretch(dt);
-            if (_story.Phase == HousePhase.HideAndSeek) _hud.Tick();
-            if (GameRoot.Flow.Current == GameState.Playing && !_respawning) Tick(dt, p);
-            if (_waitingForChoice) ReadChoice();
-            if (_waitingForTheo) ReadTheoAnswer();
-            if (_offering) ReadOffer();
-            var kb = Keyboard.current;
+            if (_h == null) return;
+            float dt = Time.deltaTime, udt = Time.unscaledDeltaTime;
+            TickLines(udt);
+            _hud.Tick(udt);
+            if (GameRoot.Flow.Current == GameState.Playing)
+            {
+                switch (_story.Phase)
+                {
+                    case HousePhase.WayIn: TickWayIn(); break;
+                    case HousePhase.HideAndSeek: TickHideAndSeek(dt); break;
+                    case HousePhase.TheoAsks: ReadTheoAnswer(); break;
+                    case HousePhase.Argument: ReadDebugArgument(); break;
+                    case HousePhase.Escape:
+                    case HousePhase.Out: TickEscape(dt); break;
+                }
+            }
+            RecorderTick();
+            var kb = UnityEngine.InputSystem.Keyboard.current;
             if (DebugMenu.Allowed && kb != null && kb.f6Key.wasPressedThisFrame)
             {
                 DebugSaturdayPaper = !DebugSaturdayPaper;
-                GameRoot.Hud.Message("Debug: Night 1's Saturday paper " + (DebugSaturdayPaper ? "in the journal" : "not in the journal (unless found)"), 2.5f);
+                GameRoot.Hud.Message("Debug: Night 1's Saturday paper " + (DebugSaturdayPaper ? "in the journal" : "not in the journal"), 2.5f);
             }
         }
 
-        void Tick(float dt, Vector3 p)
+        // ---------- The house's frame ----------
+
+        public Vector3 ToWorld(NVec3 p) => houseRoot.TransformPoint(new Vector3(p.X, p.Y, p.Z));
+
+        public NVec3 ToHouse(Vector3 world)
         {
-            for (int i = _checkpoint + 1; i < _course.checkpoints.Count; i++)
+            var p = houseRoot.InverseTransformPoint(world);
+            return new NVec3(p.x, p.y, p.z);
+        }
+
+        float WorldYaw(float houseYaw) => houseYaw + houseRoot.eulerAngles.y;
+
+        /// <summary>A memory faces into its room.</summary>
+        float MemoryYaw(NVec3 p)
+        {
+            var room = _h.RoomAt(p + new NVec3(0f, -0.5f, 0f));
+            if (room == null) return 0f;
+            var c = room.Center;
+            return WorldYaw(Mathf.Atan2(c.X - p.X, c.Z - p.Z) * Mathf.Rad2Deg);
+        }
+
+        void Teleport(Vector3 feet, float yaw, Vector3 velocity) => player.Teleport(feet, yaw, velocity);
+
+        NVec3 Feet => ToHouse(player.transform.position);
+
+        // =====================================================================================================
+        // The way in: the street, the front door, the hall breathing, the fourth chair
+        // =====================================================================================================
+
+        void TickWayIn()
+        {
+            var f = Feet;
+            if (!_saidDoor && f.Z > -3.2f && Mathf.Abs(f.X) < 3f && f.Z < 0f)
             {
-                if (_s < _course.checkpoints[i].s) break;
-                if (_course.checkpoints[i].s > _course.checkpoints[_checkpoint].s + 60f && _story.Phase < HousePhase.Escape) break; // not past the ground floor
-                _checkpoint = i;
+                _saidDoor = true;
+                var at = new List<HouseLine>(DreamHouseLines.AtTheDoor);
+                if (Told(JamKit.VisitingHours.DreamChanges.LenaWary)) at.AddRange(DreamHouseLines.LenaWaryAtTheDoor);
+                else if (Told(JamKit.VisitingHours.DreamChanges.LenaSofter)) at.AddRange(DreamHouseLines.LenaSofterAtTheDoor);
+                Say(at, null);
             }
-            switch (_story.Phase)
+            if (!_breathed && f.Z > 0.6f && f.Z < 5f && Mathf.Abs(f.X) < 1.7f && f.Y > -0.5f && f.Y < 1f)
             {
-                case HousePhase.WayIn:
-                    if (!_saidArrival && _s >= -24f) { _saidArrival = true; Say(DreamHouseLines.Arrival, null); }
-                    if (!_stretched && _s >= _h.stretchTrigger) Stretch();
-                    if (DreamHouse.InHub(ToN(p)) && _s >= _h.kitchenS && _story.ReachKitchen())
-                    {
-                        _checkpoint = _h.hubCheckpoint;
-                        SitAtTheFourthChair();
-                        Say(DreamHouseLines.Pancakes, BeginHideAndSeek);
-                    }
-                    break;
-                case HousePhase.Escape:
-                    TickRooms();
-                    if (_chasing && !_offering)
-                    {
-                        var dir = _course.route.DirectionAt(_s);
-                        float along = Vector3.Dot(player.Velocity, new Vector3(dir.X, dir.Y, dir.Z));
-                        TunePursuer(_s);
-                        bool caught = _pursuer.Step(_s, along, dt) && !DebugMenu.PlayerInvincible;
-                        PlaceFold();
-                        if (_s >= _h.chaseEndS) StopChase();
-                        if (caught)
-                        {
-                            _caught++;
-                            FellAtTheHardSpot();
-                            GameRoot.Audio.Play("mv_caught", 0.8f);
-                            StartCoroutine(Respawn("The house folded shut on her."));
-                            return;
-                        }
-                    }
-                    if (TheoWindowOpen && _checkpoint == _h.hardCheckpoint && !_respawning && AtTheoWindow(p)) { ClimbThroughTheWindow(); return; }
-                    if (!_saidWindow && _s >= _rain.rainStartS + 1f) { _saidWindow = true; Say(DreamHouseLines.LenaAtTheWindow, null); }
-                    if (!_leaving && _s >= _rain.rainEndS && player.Sim.Grounded) StartCoroutine(Leave());
-                    break;
+                _breathed = true;
+                if (cameraFx != null) cameraFx.Breathe();
+                GameRoot.Audio.Play("glitch", 0.35f);
+                var hall = new List<HouseLine>(DreamHouseLines.HallBreathes);
+                if (Told(JamKit.VisitingHours.DreamChanges.PhotoWall)) hall.AddRange(DreamHouseLines.PhotoAlreadyUp);
+                Say(hall, null);
             }
-            if (p.y < _course.killY)
+            // The fourth chair: sit down.
+            float d = NVec3.Distance(new NVec3(f.X, 0f, f.Z), new NVec3(_h.nadiaChair.X, 0f, _h.nadiaChair.Z));
+            bool near = d < 1.7f && Mathf.Abs(f.Y - _h.nadiaChair.Y) < 0.6f && !_busy;
+            SetPrompt(near ? "sit" : null, "Sit down at the fourth chair");
+            if (near && (InteractPressed() || AutopilotOn)) StartCoroutine(SitDown());
+        }
+
+        static readonly NVec3 LenasChair = new NVec3(4.555f, 0f, 3.95f);
+
+        IEnumerator SitDown()
+        {
+            if (!_story.SitDown()) yield break;
+            _busy = true;
+            SetPrompt(null, null);
+            player.InputEnabled = false;
+            if (nadiaChair != null) nadiaChair.enabled = false;
+            var seat = ToWorld(_h.nadiaChair);
+            Teleport(seat, WorldYaw(_h.nadiaChairYaw), Vector3.zero);
+            player.SetLook(WorldYaw(_h.nadiaChairYaw), 12f);
+            if (cameraFx != null) cameraFx.Sit(true);
+            if (lena != null) lena.position = ToWorld(LenasChair);
+            _theo.Place(_h.theoAt, 0f);
+            PlaceTheo();
+            GameRoot.Audio.Play("chime", 0.4f);
+            // The place card: the first memory, found by sitting down.
+            Collect(DreamHouseStory.MemPlaceCard, true);
+            bool done = false;
+            Say(DreamHouseLines.Pancakes, () => done = true);
+            while (!done) yield return null;
+            // Up from the table: the game begins.
+            if (cameraFx != null) cameraFx.Sit(false);
+            Teleport(seat + houseRoot.TransformDirection(new Vector3(0.1f, 0f, -1.0f)), WorldYaw(180f), Vector3.zero);
+            if (nadiaChair != null) nadiaChair.enabled = true;
+            if (lena != null) lena.position = ToWorld(_h.lenaAt);
+            player.InputEnabled = true;
+            _busy = false;
+            BeginHideAndSeek();
+        }
+
+        // =====================================================================================================
+        // Theo's question, Elias not coming down, the argument
+        // =====================================================================================================
+
+        void AskTheo()
+        {
+            _busy = true;
+            _hud.ShowCounter(false);
+            var lead = new List<HouseLine>(DreamHouseLines.TheoAsksLead) { new HouseLine(DreamHouseLines.Theo, DreamHouseLines.TheoQuestion, 3f) };
+            Say(lead, () =>
             {
-                _falls++;
-                if (_story.Phase == HousePhase.Escape) FellAtTheHardSpot();
-                StartCoroutine(Respawn(_story.Phase == HousePhase.WayIn ? "The house puts her back at the door." : "The house let go of her."));
-            }
-        }
-
-        static System.Numerics.Vector3 ToN(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
-
-        // ---------- The way in: the hallway stretches ----------
-
-        void Stretch()
-        {
-            _stretched = true;
-            _stretchT = 0f;
-            GameRoot.Audio.Play("glitch", 0.45f);
-            // The house misbehaving: the movement intro (the wallrun along the striped wall over the gap).
-            Say(DreamHouseLines.HouseMisbehaves, null);
-            GameRoot.Hud.Message("The floor's gone: run along the striped wall (jump at it, keep running).", 4f);
-        }
-
-        /// <summary>The pancakes: she sits at the fourth chair, her place card in front of her (Night 2, step 3).</summary>
-        void SitAtTheFourthChair()
-        {
-            var m = _h.memories.Find(x => x.id == DreamHouseStory.MemPlaceCard);
-            if (m == null) return;
-            player.Teleport(new Vector3(m.standAt.X, m.standAt.Y + 0.02f, m.standAt.Z), 270f, Vector3.zero);
-        }
-
-        void AnimateStretch(float dt)
-        {
-            if (hallwayEnd == null || _stretchT < 0f || _stretchT >= 1f) return;
-            _stretchT = Mathf.Min(1f, _stretchT + dt / 1.6f);
-            float k = Mathf.SmoothStep(0f, 1f, _stretchT);
-            hallwayEnd.position = _hallwayHome + Vector3.forward * ((_h.stretchTo - _h.stretchFrom) * k);
-        }
-
-        // ---------- Hide-and-seek ----------
-
-        void BeginHideAndSeek()
-        {
-            if (!_story.StartHideAndSeek()) return;
-            SetTheoPlaying(true);
-            theo.Restart();
-            GameRoot.Hud.Message("Hide-and-seek: Theo counts to ten. Hide from him, and find the memories while he looks.", 4f);
-        }
-
-        void OnTheoFound(SeekerAgent s)
-        {
-            if (_story.Phase != HousePhase.HideAndSeek) return;
-            bool over = _story.TheoFoundHer();
-            SetTheoPlaying(false);
-            // The first time he finds her, his question (Night 2, step 5); he remembers her answer.
-            if (_story.TheoAnswered == TheoAnswer.None) { AskTheo(over); return; }
-            AfterFound(over);
-        }
-
-        void AfterFound(bool over)
-        {
-            if (over) Say(DreamHouseLines.EliasNotHere, BeginArgument);
-            else Say(DreamHouseLines.FoundYou, () =>
-            {
-                // Another round: he goes back to the table and counts again; the memories she found stay found.
-                SetTheoPlaying(true);
-                theo.Restart();
-            });
-        }
-
-        void AskTheo(bool over)
-        {
-            _theoOver = over;
-            Say(new[] { new HouseLine(DreamHouseLines.Theo, DreamHouseLines.TheoQuestion, 2.8f) }, () =>
-            {
-                _waitingForTheo = true;
-                _prompt.text = DreamHouseLines.TheoQuestionPrompt;
-                _prompt.style.display = DisplayStyle.Flex;
+                _hud.Choice("1   \"Yes. He will be.\"", "2   \"No. I promise.\"", "3   Say nothing");
+                _asking = true;
             });
         }
 
         void ReadTheoAnswer()
         {
-            var kb = Keyboard.current;
-            var pad = Gamepad.current;
-            if (AutopilotOn) { AnswerTheo(TheoAnswer.Comfort); return; }
+            if (!_asking) return;
+            if (AutopilotOn) { AnswerTheo(TheoAnswer.Honest); return; }
             if (!GameRoot.Input.GameplayAllowed) return;
-            if ((kb != null && (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame)) || (pad != null && pad.buttonWest.wasPressedThisFrame)) AnswerTheo(TheoAnswer.Honest);
-            else if ((kb != null && (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame)) || (pad != null && pad.buttonNorth.wasPressedThisFrame)) AnswerTheo(TheoAnswer.Comfort);
-            else if ((kb != null && (kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame)) || (pad != null && pad.buttonEast.wasPressedThisFrame)) AnswerTheo(TheoAnswer.Silence);
+            int pick = PickedOption();
+            if (pick > 0) AnswerTheo((TheoAnswer)pick);
         }
 
-        /// <summary>Her answer to Theo's question (the keys, the autopilot, tests): kept in the save, his reply, then the game
-        /// goes on (another round, or Elias not coming down).</summary>
+        static int PickedOption()
+        {
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            var pad = UnityEngine.InputSystem.Gamepad.current;
+            if ((kb != null && (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame)) || (pad != null && pad.buttonWest.wasPressedThisFrame)) return 1;
+            if ((kb != null && (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame)) || (pad != null && pad.buttonNorth.wasPressedThisFrame)) return 2;
+            if ((kb != null && (kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame)) || (pad != null && pad.buttonEast.wasPressedThisFrame)) return 3;
+            return 0;
+        }
+
+        /// <summary>Her answer (keys, autopilot, tests): kept in the save; his reply; then everyone back to the table.</summary>
         public void AnswerTheo(TheoAnswer answer)
         {
             if (!_story.AnswerTheo(answer)) return;
-            _waitingForTheo = false;
-            _prompt.style.display = DisplayStyle.None;
+            _asking = false;
+            _hud.HideChoice();
             if (GameRoot.Exists)
             {
                 GameRoot.Save.Data.SetEntry(DreamHouseStory.TheoAnswerKey, DreamHouseStory.AnswerText(answer));
                 GameRoot.Save.Save();
             }
             Debug.Log("JAMKIT_HOUSE Theo asked \"" + DreamHouseLines.TheoQuestion + "\": " + DreamHouseStory.AnswerText(answer));
-            var lines = DreamHouseLines.TheoAnswers[(int)answer - 1];
-            bool over = _theoOver;
-            // Over (every memory found): only her answer; his "I'll count again" is for another round.
-            Say(over ? new[] { lines[0] } : lines, () => AfterFound(over));
+            Say(DreamHouseLines.TheoAnswers[(int)answer - 1], () => StartCoroutine(BackToTheTable()));
         }
 
-        void OnMemory(Collectible item, int index)
+        IEnumerator BackToTheTable()
         {
-            if (item != null) NoteMemory(item.id);
+            _hud.Fade(Color.black, 1f, 2.5f);
+            yield return new WaitForSecondsRealtime(0.5f);
+            _theo.Stop();
+            _theo.Place(_h.theoAt, 0f);
+            PlaceTheo();
+            if (lena != null) lena.position = ToWorld(LenasChair);
+            Teleport(ToWorld(_h.nadiaChair) + houseRoot.TransformDirection(new Vector3(0.1f, 0f, -0.95f)), WorldYaw(-60f), Vector3.zero);
+            player.SetLook(WorldYaw(-60f), 6f);
+            _hud.Fade(Color.black, 0f, 2f);
+            _busy = false;
+            Say(DreamHouseLines.EliasNotHere, BeginArgument);
         }
 
-        void OnAllMemoriesFound()
-        {
-            if (_story.Phase != HousePhase.HideAndSeek) return;
-            string line = _story.FoundEveryMemory(DreamEscapeGame.Despair);
-            Say(new[] { new HouseLine(DreamHouseLines.Nadia, line, 6f) }, null);
-            Debug.Log("JAMKIT_HOUSE every memory found: \"" + line + "\"");
-        }
-
-        // ---------- The argument (a placeholder) ----------
-
-        /// <summary>The argument with Lena: the battle prototype runs over the house (the world waits while it's up); its
-        /// stance decides the outcome. Without the battle (or under the autopilot) the debug choice decides.</summary>
         void BeginArgument()
         {
-            var evidence = Evidence;
-            Debug.Log("JAMKIT_HOUSE the battle " + DreamHouseStory.LenaBattleId + " with " + (evidence.Count == 0 ? "no evidence" : string.Join(", ", evidence)));
-            _waitingForChoice = true;
-            if (StartBattle != null && !AutopilotOn)
+            var evidence = DreamHouseStory.EvidenceFor(_round.Found, HasSaturdayPaper);
+            if (GameRoot.Exists)
             {
-                _prompt.text = DebugSkipHint;
-                _prompt.style.display = DisplayStyle.Flex;
+                var save = GameRoot.Save.Data;
+                save.SetEntry(DreamHouseStory.CardsKey, string.Join(",", evidence));
+                save.SetEntry(DreamHouseStory.CatchesKey, _round.Catches.ToString());
+                foreach (var id in _round.Found) JamKit.VisitingHours.Chain.Record(save, id);
+                GameRoot.Save.Save();
+            }
+            Debug.Log("JAMKIT_HOUSE the battle " + DreamHouseStory.LenaBattleId + " with " + (evidence.Count == 0 ? "no evidence" : string.Join(", ", evidence)) + " (caught " + _round.Catches + " times)");
+            if (StartBattle != null && useArgumentBattle && !AutopilotOn)
+            {
+                if (DebugMenu.Allowed) _hud.Prompt("Debug: F7 ends the argument (Lena unsure), F8 (Lena condemns).");
+                _battleUp = true;
                 StartBattle(DreamHouseStory.LenaBattleId, evidence, outcome => Choose(outcome == ArgumentOutcome.None ? ArgumentOutcome.Unsure : outcome));
                 return;
             }
-            // The stub until the argument's battle API plugs in (StartBattle): the battle prototype, every card in hand.
-            bool battle = useArgumentBattle && !AutopilotOn;
-            _prompt.text = battle ? DebugSkipHint : DreamHouseLines.ArgumentPrompt;
-            _prompt.style.display = DisplayStyle.Flex;
-            if (battle) _battle = ArgumentHost.Begin(DreamLenaDemo.Build(), new ArgumentSetup { allEvidence = true }, OnArgumentClosed);
+            Choose(ArgumentOutcome.Unsure);
         }
 
-        const string DebugSkipHint = "Debug: F7 skips the argument (Lena unsure), F8 skips it (Lena condemns).";
-        ArgumentHost _battle;
+        /// <summary>The argument battle is on screen.</summary>
+        public bool ArgumentRunning => _battleUp && JamKit.Argument.ArgumentHost.Current != null;
 
-        /// <summary>The argument battle (or its prototype) is on screen.</summary>
-        public bool ArgumentRunning => (_battle != null && ArgumentHost.Current == _battle) || (_waitingForChoice && ArgumentHost.Current != null);
-
-        /// <summary>Closes the battle on screen, ours (the stub) or the real one started through <see cref="StartBattle"/>.</summary>
         void CloseBattle()
         {
-            _battle = null;
-            ArgumentHost.Current?.Close(false);
+            _battleUp = false;
+            JamKit.Argument.ArgumentHost.Current?.Close(false);
         }
 
-        /// <summary>The battle's end card was closed: its stance decides.</summary>
-        void OnArgumentClosed(ArgumentRecord record)
+        void ReadDebugArgument()
         {
-            _battle = null;
-            // Closed before its end card had a record (the battle's Continue the very frame it ended): the house still moves
-            // on, with Lena unsure (it kicks her out either way).
-            if (record == null)
-            {
-                Debug.LogWarning("JAMKIT_HOUSE the argument closed without a record: Lena unsure");
-                Choose(ArgumentOutcome.Unsure);
-                return;
-            }
-            Debug.Log("JAMKIT_HOUSE the argument with Lena: " + record.outcome + ", " + record.stance);
-            Choose(OutcomeOf(record.stance));
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb == null || !DebugMenu.Allowed) return;
+            if (kb.f7Key.wasPressedThisFrame) Choose(ArgumentOutcome.Unsure);
+            else if (kb.f8Key.wasPressedThisFrame) Choose(ArgumentOutcome.Condemns);
         }
 
         /// <summary>Lena condemns Nadia only on the battle's Condemns stance; Amenable and Unsure leave her unsure.</summary>
-        public static ArgumentOutcome OutcomeOf(ArgumentStance stance) => stance == ArgumentStance.Condemns ? ArgumentOutcome.Condemns : ArgumentOutcome.Unsure;
+        public static ArgumentOutcome OutcomeOf(JamKit.Argument.ArgumentStance stance) =>
+            stance == JamKit.Argument.ArgumentStance.Condemns ? ArgumentOutcome.Condemns : ArgumentOutcome.Unsure;
 
-        void ReadChoice()
-        {
-            var kb = Keyboard.current;
-            // The debug skip works over the battle too (it blocks gameplay input while it's up).
-            if (kb != null && kb.f7Key.wasPressedThisFrame) { Choose(ArgumentOutcome.Unsure); return; }
-            if (kb != null && kb.f8Key.wasPressedThisFrame) { Choose(ArgumentOutcome.Condemns); return; }
-            if (ArgumentRunning) return;
-            if (!GameRoot.Input.GameplayAllowed) return;
-            var pad = Gamepad.current;
-            if ((kb != null && (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame)) || (pad != null && pad.buttonWest.wasPressedThisFrame)) Choose(ArgumentOutcome.Unsure);
-            else if ((kb != null && (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame)) || (pad != null && pad.buttonNorth.wasPressedThisFrame)) Choose(ArgumentOutcome.Condemns);
-            else if (AutopilotOn) Choose(ArgumentOutcome.Unsure);
-        }
-
-        /// <summary>How the argument ends (the battle's stance, the debug skip; tests and attract call it): Lena's line, then
-        /// the house kicks her out. A battle still up is closed.</summary>
+        /// <summary>How the argument ended (the battle, the debug keys, the autopilot): Lena's line, Theo's parting line, and
+        /// the house throws her out.</summary>
         public void Choose(ArgumentOutcome outcome)
         {
             if (!_story.Choose(outcome)) return;
-            // Close whatever battle is up (ours, or the real one through StartBattle) before the choice is marked made:
-            // ArgumentRunning counts the real one only while the choice waits.
             if (ArgumentRunning) CloseBattle();
-            _waitingForChoice = false;
-            _prompt.style.display = DisplayStyle.None;
-            if (outcome == ArgumentOutcome.Condemns)
+            _battleUp = false;
+            _hud.Prompt(null);
+            if (outcome == ArgumentOutcome.Condemns && GameRoot.Exists)
             {
                 var save = GameRoot.Save.Data;
                 if (!save.HasFlag(DreamHouseStory.CondemnsFlag)) { save.SetFlag(DreamHouseStory.CondemnsFlag); GameRoot.Save.Save(); }
-                Debug.Log("JAMKIT_HOUSE Lena condemns Nadia (the save's " + DreamHouseStory.CondemnsFlag + " is set): the Despair route comes easier");
             }
-            // Theo's answer pays off: his parting line as Lena turns her out, by what she told him.
+            Debug.Log("JAMKIT_HOUSE the argument with Lena ended: " + outcome);
             var lines = new List<HouseLine>(outcome == ArgumentOutcome.Condemns ? DreamHouseLines.Condemns : DreamHouseLines.Unsure);
             lines.AddRange(DreamHouseLines.PartingFor(_story.TheoAnswered));
-            Say(lines, () => StartCoroutine(KickOut(true)));
+            lines.AddRange(DreamHouseLines.HouseTips);
+            Say(lines, () => StartCoroutine(TipOver()));
         }
 
-        // ---------- The house tips ----------
+        // =====================================================================================================
+        // Lines and prompts
+        // =====================================================================================================
 
-        IEnumerator KickOut(bool withLine)
-        {
-            if (withLine) Say(DreamHouseLines.KickedOut, null);
-            GameRoot.Juice.Shake(0.35f);
-            GameRoot.Audio.Play("mv_collapse", 0.9f);
-            for (float t = 0f; t < 0.35f; t += Time.unscaledDeltaTime) { SetWhite(t / 0.35f); yield return null; }
-            SetWhite(1f);
-            BeginEscape(_h.escapeCheckpoint);
-            yield return null;
-            for (float t = 0f; t < 0.4f; t += Time.unscaledDeltaTime) { SetWhite(1f - t / 0.4f); yield return null; }
-            SetWhite(0f);
-            GameRoot.Hud.Message("The house is turning over. Run for the front door.", 2.5f);
-        }
-
-        void BeginEscape(int checkpoint)
-        {
-            SetTheoPlaying(false);
-            bool condemned = _story.LenaCondemned || LenaCondemned;
-            _rain = DreamHouseStory.RainFor(_h.rain, condemned);
-            if (umbrella != null) umbrella.UseSpot(_rain, DreamHouseStory.RainDefFor(condemned));
-            PlaceAt(checkpoint, true);
-        }
-
-        void PlaceFold()
-        {
-            if (fold == null) return;
-            var at = _course.route.PointAt(_pursuer.S, 0f);
-            float floor = player.transform.position.y;
-            fold.position = new Vector3(0f, floor - 3f, at.Z);
-            fold.rotation = Quaternion.Euler(-12f * _pursuer.Threat(_s), 0f, 0f);
-        }
-
-        void StopChase()
-        {
-            _chasing = false;
-            if (fold != null) fold.gameObject.SetActive(false);
-        }
-
-        IEnumerator Leave()
-        {
-            _leaving = true;
-            _finishes++;
-            SetMood(-1, false);
-            _room = -1;
-            _story.Escaped();
-            GameRoot.Audio.Play("chime", 0.7f);
-            Debug.Log("JAMKIT_HOUSE out of the house" + (umbrella != null && umbrella.HasUmbrella ? " under the umbrella" : " in the rain") + (DreamEscapeGame.Despair ? " (Despair set)" : ""));
-            for (float t = 0f; t < 1.2f && _leaving && GameRoot.Flow.InRun; t += Time.unscaledDeltaTime) { SetWhite(0.8f * t / 1.2f); yield return null; }
-            if (!_leaving || !GameRoot.Flow.InRun) { SetWhite(0f); yield break; }
-            if (_escaped != null) { _escaped.Invoke(); yield break; }
-            float until = Time.unscaledTime + 1.5f;
-            while (Time.unscaledTime < until && _leaving && GameRoot.Flow.InRun) yield return null;
-            if (!_leaving || !GameRoot.Flow.InRun) { SetWhite(0f); yield break; }
-            NewVisit();
-        }
-
-        // ---------- Placing, falling ----------
-
-        /// <summary>Puts her at a checkpoint (running, in the escape), sets the chase to match.</summary>
-        void PlaceAt(int index, bool running)
-        {
-            index = Mathf.Clamp(index, 0, _course.checkpoints.Count - 1);
-            var cp = _course.checkpoints[index];
-            _checkpoint = index;
-            _leaving = false;
-            var pos = new Vector3(cp.position.X, cp.position.Y, cp.position.Z);
-            var fwd = Quaternion.Euler(0f, cp.yaw, 0f) * Vector3.forward;
-            player.Teleport(pos, cp.yaw, running ? fwd * player.Def.sprintSpeed : Vector3.zero);
-            _s = cp.s;
-            bool chase = _story.Phase == HousePhase.Escape && cp.s >= _h.chaseStartS && cp.s < _h.chaseEndS - 6f;
-            _chasing = chase;
-            if (chase) { TunePursuer(cp.s); _pursuer.Reset(cp.s, player.Def.sprintSpeed); }
-            SetTheoWindow(TheoWindowOpen);
-            if (fold != null) fold.gameObject.SetActive(chase);
-            if (chase) PlaceFold();
-            _pilot.Reset(cp.s);
-            if (_story.Phase == HousePhase.Escape)
-            {
-                RestoreRooms(cp.s - 12f);
-                _room = RoomAt(cp.s);
-                SetMood(_room, true);
-            }
-        }
-
-        IEnumerator Respawn(string message)
-        {
-            _respawning = true;
-            _respawns++;
-            for (float t = 0f; t < 0.15f; t += Time.unscaledDeltaTime) { SetWhite(t / 0.15f); yield return null; }
-            SetWhite(1f);
-            PlaceAt(_checkpoint, _story.Phase == HousePhase.Escape);
-            GameRoot.Hud.Message(message, 1.6f);
-            yield return null;
-            for (float t = 0f; t < 0.35f; t += Time.unscaledDeltaTime) { SetWhite(1f - t / 0.35f); yield return null; }
-            SetWhite(0f);
-            _respawning = false;
-        }
-
-        // ---------- The escape's rooms: light and sound, the framed turn, folding shut, the hallway turning over ----------
-
-        int RoomAt(float s)
-        {
-            int at = -1;
-            for (int i = 0; i < _h.escapeRooms.Count; i++) if (s >= _h.escapeRooms[i].s) at = i;
-            return at;
-        }
-
-        float RoomEnd(int i) => i + 1 < _h.escapeRooms.Count ? _h.escapeRooms[i + 1].s : _h.frontDoorZ;
-
-        void TickRooms()
-        {
-            int r = RoomAt(_s);
-            if (r != _room && !_respawning)
-            {
-                _room = r;
-                if (r >= 0)
-                {
-                    var room = _h.escapeRooms[r];
-                    SetMood(r, false);
-                    GameRoot.Audio.Play(room.sound, 0.55f);
-                    GameRoot.Hud.Message(room.name, 2.2f);
-                    // The framed turn: a breath of slow motion as she comes into each room (not for the autopilot).
-                    if (!AutopilotOn) GameRoot.Juice.HitStop(0.5f, 0.4f);
-                    if (TheoWindowOpen && !_saidTheoWindow && room.s >= _h.hardRoomS - 0.01f && room.s < _h.hardEndS)
-                    {
-                        _saidTheoWindow = true;
-                        Say(DreamHouseLines.TheoWindow, null);
-                    }
-                }
-            }
-            // The house folds shut room by room behind her (the pursuer's front).
-            if (_chasing && _roomGroups != null)
-                for (int i = 0; i < _roomGroups.Length; i++)
-                    if (!_folded[i] && _roomGroups[i] != null && RoomEnd(i) < _pursuer.S - 1f)
-                    {
-                        _folded[i] = true;
-                        StartCoroutine(FoldRoom(i));
-                    }
-            // The hallway turns over while she runs it: its things roll a quarter turn along the run.
-            if (_turning != null)
-            {
-                int hall = _h.escapeRooms.FindIndex(x => x.name == "The hallway turns over");
-                if (hall >= 0 && !_folded[hall])
-                {
-                    float s0 = _h.escapeRooms[hall].s, s1 = RoomEnd(hall);
-                    float k = Mathf.Clamp01((_s - s0 - 8f) / Mathf.Max(1f, (s1 - s0) * 0.5f));
-                    _turning.SetPositionAndRotation(_turningPos, _turningRot);
-                    _turning.RotateAround(new Vector3(0f, _turningPos.y, _turningPos.z), Vector3.forward, -90f * Mathf.SmoothStep(0f, 1f, k));
-                }
-            }
-        }
-
-        IEnumerator FoldRoom(int i)
-        {
-            var g = _roomGroups[i];
-            var hinge = new Vector3(0f, _h.escapeRooms[i].s < 0f ? 0f : g.position.y, RoomEnd(i));
-            GameRoot.Audio.Play("mv_collapse", 0.35f);
-            float secs = DreamHouseStory.FoldSecondsAt(_story.Outcome, AtHardSpot(_s));
-            for (float t = 0f; t < secs && g != null; t += Time.deltaTime)
-            {
-                g.SetPositionAndRotation(_roomPos[i], _roomRot[i]);
-                g.RotateAround(hinge, Vector3.right, -100f * Mathf.SmoothStep(0f, 1f, t / secs));
-                yield return null;
-            }
-            if (g != null) g.gameObject.SetActive(false);
-        }
-
-        /// <summary>Every room whole again, except those ending before <paramref name="foldedBefore"/> (folded away).</summary>
-        void RestoreRooms(float foldedBefore)
-        {
-            if (_roomGroups == null) return;
-            for (int i = 0; i < _roomGroups.Length; i++)
-            {
-                var g = _roomGroups[i];
-                if (g == null) continue;
-                g.SetPositionAndRotation(_roomPos[i], _roomRot[i]);
-                bool gone = RoomEnd(i) < foldedBefore;
-                g.gameObject.SetActive(!gone);
-                _folded[i] = gone;
-            }
-            if (_turning != null) _turning.SetPositionAndRotation(_turningPos, _turningRot);
-        }
-
-        /// <summary>The light of room <paramref name="i"/> (-1: the house's own), at once or over a second.</summary>
-        void SetMood(int i, bool now)
-        {
-            Color sky = _sky0, eq = _equator0, fog = _fog0;
-            if (i >= 0)
-            {
-                var r = _h.escapeRooms[i];
-                sky = new Color(r.ambient.X, r.ambient.Y, r.ambient.Z);
-                eq = Color.Lerp(sky, _equator0, 0.4f);
-                fog = new Color(r.fog.X, r.fog.Y, r.fog.Z);
-            }
-            if (_mood != null) { StopCoroutine(_mood); _mood = null; }
-            if (now || !isActiveAndEnabled)
-            {
-                RenderSettings.ambientSkyColor = sky; RenderSettings.ambientEquatorColor = eq; RenderSettings.fogColor = fog;
-                return;
-            }
-            _mood = StartCoroutine(Mood(sky, eq, fog));
-        }
-
-        IEnumerator Mood(Color sky, Color eq, Color fog)
-        {
-            Color s0 = RenderSettings.ambientSkyColor, e0 = RenderSettings.ambientEquatorColor, f0 = RenderSettings.fogColor;
-            for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime)
-            {
-                float k = Mathf.SmoothStep(0f, 1f, t);
-                RenderSettings.ambientSkyColor = Color.Lerp(s0, sky, k);
-                RenderSettings.ambientEquatorColor = Color.Lerp(e0, eq, k);
-                RenderSettings.fogColor = Color.Lerp(f0, fog, k);
-                yield return null;
-            }
-            RenderSettings.ambientSkyColor = sky; RenderSettings.ambientEquatorColor = eq; RenderSettings.fogColor = fog;
-            _mood = null;
-        }
-
-        // ---------- The outcome at the hardest spot: Theo's window (unsure), the fold closing in (condemns) ----------
-
-        bool AtHardSpot(float s) => s >= _h.hardRoomS && s < _h.hardEndS;
-
-        /// <summary>The fold's gap for where she is: nearer at the hardest spot when Lena condemned her.</summary>
-        void TunePursuer(float s) => _pursuer.targetGap = DreamHouseStory.FoldGapAt(_course.pursuer.targetGap, _story.Outcome, AtHardSpot(s));
-
-        void SetTheoWindow(bool open)
-        {
-            if (_windowOpen != null) _windowOpen.SetActive(open);
-            if (_windowShut != null) _windowShut.SetActive(!open);
-        }
-
-        bool AtTheoWindow(Vector3 p) =>
-            p.x < DreamHouse.TheoWindowX + 1.1f && Mathf.Abs(p.z - _h.theoWindowZ) < DreamHouse.TheoWindowWidth * 0.5f + 0.4f;
-
-        /// <summary>Through Theo's window (Lena ended unsure): past the stairwell door, to the last hall.</summary>
-        public void ClimbThroughTheWindow()
-        {
-            if (!TheoWindowOpen) return;
-            _windowUsed = true;
-            _offering = false;
-            _prompt.style.display = DisplayStyle.None;
-            Debug.Log("JAMKIT_HOUSE through Theo's window, past the stairwell door (Lena ended unsure)");
-            GameRoot.Audio.Play("chime", 0.6f);
-            PlaceAt(_h.hardSkipCheckpoint, true);
-            Say(DreamHouseLines.ThroughTheWindow, null);
-        }
-
-        // ---------- The memory-for-a-shortcut offer (the hardest spot, after two falls) ----------
-
-        /// <summary>A fall (or the house catching her) in the escape: two at the hardest spot and the dream makes its
-        /// offer (once a visit, if she has a memory to give).</summary>
-        public void FellAtTheHardSpot()
-        {
-            if (_story.Phase != HousePhase.Escape || _checkpoint != _h.hardCheckpoint || _offerUsed || _offering) return;
-            _hardFalls++;
-            if (_hardFalls < 2 || _found.Count == 0) return;
-            _offering = true;
-            Say(DreamHouseLines.MemoryOffer, null);
-            _prompt.text = DreamHouseLines.MemoryOfferPrompt;
-            _prompt.style.display = DisplayStyle.Flex;
-        }
-
-        void ReadOffer()
-        {
-            var kb = Keyboard.current;
-            var pad = Gamepad.current;
-            if ((kb != null && kb.yKey.wasPressedThisFrame) || (pad != null && pad.buttonNorth.wasPressedThisFrame)) AnswerOffer(true);
-            else if ((kb != null && kb.nKey.wasPressedThisFrame) || (pad != null && pad.buttonEast.wasPressedThisFrame)) AnswerOffer(false);
-        }
-
-        /// <summary>Her answer to the dream's offer: give it a memory (the last one she found; it's gone from what she
-        /// carries, and kept in the save) and be put past the hardest spot, or keep trying (it asks again after two more
-        /// falls).</summary>
-        public void AnswerOffer(bool give)
-        {
-            if (!_offering) return;
-            _offering = false;
-            _prompt.style.display = DisplayStyle.None;
-            if (!give) { _hardFalls = 0; return; }
-            _offerUsed = true;
-            string id = _found[_found.Count - 1];
-            _found.RemoveAt(_found.Count - 1);
-            if (GameRoot.Exists) { GameRoot.Save.Data.SetEntry(DreamHouseStory.MemoryGivenKey, id); GameRoot.Save.Save(); }
-            Debug.Log("JAMKIT_HOUSE the dream let her through the stairwell door for a memory: " + id);
-            PlaceAt(_h.hardSkipCheckpoint, true);
-            Say(DreamHouseLines.MemoryTaken, null);
-        }
-
-        /// <summary>A memory she found (the collect event, and tests).</summary>
-        public void NoteMemory(string id)
-        {
-            if (!string.IsNullOrEmpty(id) && !_found.Contains(id)) _found.Add(id);
-        }
-
-        /// <summary>Straight into the escape at checkpoint <paramref name="checkpoint"/>, running (chapters, smoke, tests).</summary>
-        public void JumpToEscapeAt(int checkpoint, ArgumentOutcome outcome = ArgumentOutcome.None) => JumpToEscape(checkpoint, outcome);
-
-        // ---------- Lines ----------
-
-        /// <summary>Plays lines one after another on the subtitle line, then calls <paramref name="after"/>.</summary>
-        void Say(IList<HouseLine> lines, Action after)
+        /// <summary>Plays lines one after another (each its own reveal), then calls <paramref name="after"/>.</summary>
+        public void Say(IList<HouseLine> lines, Action after)
         {
             _lines.Clear();
             foreach (var l in lines) _lines.Enqueue(l);
             _afterLines = after;
             _lineLeft = 0f;
-            _lineText = "";
+            _speaking = true;
             NextLine();
         }
 
@@ -894,172 +481,51 @@ namespace JamKit.DreamEscape
         {
             if (_lines.Count == 0)
             {
-                _lineText = "";
-                _subtitle.style.display = DisplayStyle.None;
+                _speaking = false;
+                _hud.ClearLine();
                 var after = _afterLines;
                 _afterLines = null;
                 after?.Invoke();
                 return;
             }
             var l = _lines.Dequeue();
-            _lineText = l.speaker + ": " + l.text;
             _lineLeft = l.seconds;
-            _subtitle.text = _lineText;
-            _subtitle.style.display = DisplayStyle.Flex;
-            GameRoot.Audio.Play("blip", 0.35f);
+            _hud.Line(l);
+            Debug.Log("JAMKIT_HOUSE_LINE " + (string.IsNullOrEmpty(l.speaker) ? "(Nadia, thinking)" : l.speaker) + ": " + l.text);
+            if (l.speaker == DreamHouseLines.Mags) GameRoot.Audio.Play("blip", 0.25f);
         }
 
         void TickLines(float dt)
         {
-            if (_lineText.Length == 0) return;
+            if (!_speaking) return;
+            float shown = _lineLeft;
             _lineLeft -= dt;
-            if (_lineLeft <= 0f) NextLine();
+            // Seated or still (not running for her life), a click moves the line on.
+            bool next = _story.Phase != HousePhase.Escape && GameRoot.Input.GameplayAllowed && shown < 99f && GameRoot.Input.Pressed(GameRoot.Input.Fire);
+            if (_lineLeft <= 0f || next) NextLine();
         }
 
-        /// <summary>Skips the lines on screen (tests, impatient presenters): the next step happens at once.</summary>
+        /// <summary>Skips the lines on screen (tests, the recorder): the next step happens at once.</summary>
         public void SkipLines()
         {
-            int guard = 16;
-            while ((_lineText.Length > 0 || _lines.Count > 0) && guard-- > 0) { _lineLeft = 0f; NextLine(); }
+            int guard = 32;
+            while (_speaking && guard-- > 0) { _lineLeft = 0f; NextLine(); }
         }
 
-        // ---------- Screen ----------
+        bool InteractPressed() => GameRoot.Input.GameplayAllowed && GameRoot.Input.Pressed(GameRoot.Input.Interact);
 
-        void BuildUi()
+        static string InteractKey()
         {
-            _white = new VisualElement { name = "house-whiteout", pickingMode = PickingMode.Ignore };
-            _white.style.position = Position.Absolute;
-            _white.style.left = 0; _white.style.right = 0; _white.style.top = 0; _white.style.bottom = 0;
-            _white.style.backgroundColor = new Color(1f, 0.98f, 0.95f, 1f);
-            _white.style.opacity = 0f;
-            _white.style.display = DisplayStyle.None;
-            GameRoot.Ui.Root.Add(_white);
-            _subtitle = Line("house-subtitle", 60, 22);
-            _prompt = Line("house-argument-prompt", 140, 20);
-            _prompt.style.backgroundColor = new Color(0.12f, 0.1f, 0.18f, 0.8f);
-            _prompt.style.color = new Color(1f, 0.9f, 0.7f);
+            var a = GameRoot.Input.Interact;
+            string k = a != null ? a.GetBindingDisplayString(0) : "E";
+            return string.IsNullOrEmpty(k) ? "E" : k;
         }
 
-        Label Line(string name, int bottom, int size)
+        void SetPrompt(string id, string text)
         {
-            var l = new Label { name = name, pickingMode = PickingMode.Ignore };
-            l.style.position = Position.Absolute;
-            l.style.left = Length.Percent(10); l.style.right = Length.Percent(10); l.style.bottom = bottom;
-            l.style.fontSize = size;
-            l.style.color = new Color(0.98f, 0.97f, 1f);
-            l.style.unityTextAlign = TextAnchor.MiddleCenter;
-            l.style.whiteSpace = WhiteSpace.Normal;
-            l.style.paddingLeft = 12; l.style.paddingRight = 12; l.style.paddingTop = 6; l.style.paddingBottom = 6;
-            l.style.backgroundColor = new Color(0.1f, 0.08f, 0.16f, 0.55f);
-            l.style.display = DisplayStyle.None;
-            GameRoot.Hud.Root.Add(l);
-            return l;
-        }
-
-        void SetWhite(float a)
-        {
-            _whiteAlpha = Mathf.Clamp01(a);
-            if (_white == null) return;
-            _white.style.opacity = _whiteAlpha;
-            _white.style.display = _whiteAlpha > 0.001f ? DisplayStyle.Flex : DisplayStyle.None;
-        }
-
-        // ---------- Presenter, smoke, autopilot ----------
-
-        /// <summary>Presenter chapter: the front garden, hide-and-seek (just begun), the argument (the debug choice), the
-        /// house tipping (the escape from its start, running), the front door (the umbrella and the rain).</summary>
-        public void JumpToChapter(string chapter)
-        {
-            StopAllCoroutines();
-            _respawning = false;
-            SetWhite(0f);
-            GameRoot.Ui.SetFade(0f);
-            switch (chapter)
-            {
-                case DreamHouse.ChapterArrival:
-                    NewVisit();
-                    break;
-                case DreamHouse.ChapterHideAndSeek:
-                    _story.JumpTo(HousePhase.Pancakes);
-                    ResetHouse();
-                    _stretched = true;
-                    PlaceAt(_h.hubCheckpoint, false);
-                    BeginHideAndSeek();
-                    break;
-                case DreamHouse.ChapterArgument:
-                    _story.JumpTo(HousePhase.Argument);
-                    ResetHouse();
-                    _stretched = true;
-                    PlaceAt(_h.hubCheckpoint, false);
-                    BeginArgument();
-                    break;
-                case DreamHouse.ChapterTips:
-                case DreamHouse.ChapterFrontDoor:
-                    JumpToEscape(chapter == DreamHouse.ChapterTips ? _h.escapeCheckpoint : _h.frontDoorCheckpoint);
-                    break;
-            }
-        }
-
-        /// <summary>The smoke run starts here (an escape checkpoint).</summary>
-        public const string SmokeCheckpoint = "The last door";
-
-        /// <summary>Straight into the escape at one of its checkpoints, running (chapters, the smoke run).</summary>
-        void JumpToEscape(int checkpoint, ArgumentOutcome outcome = ArgumentOutcome.None)
-        {
-            StopAllCoroutines();
-            _respawning = false;
-            SetWhite(0f);
-            _story.JumpTo(HousePhase.Escape, outcome);
-            ResetHouse();
-            _stretched = true;
-            BeginEscape(checkpoint < 0 ? _h.escapeCheckpoint : checkpoint);
-        }
-
-        bool SkipToNextCheckpoint()
-        {
-            if (_story.Phase == HousePhase.WayIn) JumpToChapter(DreamHouse.ChapterHideAndSeek);
-            else if (_story.Phase == HousePhase.HideAndSeek || _story.Phase == HousePhase.Pancakes) JumpToChapter(DreamHouse.ChapterArgument);
-            else if (_story.Phase == HousePhase.Argument) JumpToChapter(DreamHouse.ChapterTips);
-            else JumpToChapter(DreamHouse.ChapterFrontDoor);
-            return true;
-        }
-
-        /// <summary>The course autopilot drives her (tests, the smoke run, attract mode): through the way in and the escape.</summary>
-        public void SetAutopilot(bool on)
-        {
-            if (on)
-            {
-                _pilot.Reset(_s - 1f);
-                player.Autopilot = _pilot.Next;
-            }
-            else player.Autopilot = null;
-        }
-
-        IEnumerator AttractDrive(string segment, float seconds, SyntheticInput input)
-        {
-            SetAutopilot(true);
-            float end = Time.unscaledTime + seconds;
-            while (Time.unscaledTime < end && GameRoot.Flow.InRun) yield return null;
-            SetAutopilot(false);
-            input.Clear();
-        }
-
-        /// <summary>The smoke run: the end of the house tipping, driven by the autopilot from the staircase (now a slide) out of
-        /// the front door, past the umbrella, to the end of the rain: about 7 s, because the whole smoke run, credits and the
-        /// way back to the title included, has 20 s (the full escape from the tip-over takes about 15 s and didn't fit). It
-        /// must get out with no respawn; otherwise it logs an error, which fails the smoke run.</summary>
-        IEnumerator SmokeDrive()
-        {
-            JumpToEscape(_course.checkpoints.FindIndex(c => c.name == SmokeCheckpoint));
-            int respawns = _respawns, finishes = _finishes;
-            SetAutopilot(true);
-            float end = Time.realtimeSinceStartup + 11f;
-            while (Time.realtimeSinceStartup < end && GameRoot.Flow.InRun && _finishes == finishes) yield return null;
-            SetAutopilot(false);
-            bool out_ = _finishes > finishes;
-            string report = "out " + out_ + ", respawns " + (_respawns - respawns);
-            if (!out_ || _respawns != respawns) Debug.LogError("JAMKIT_HOUSE_SMOKE_FAIL the house tipping: " + report);
-            else Debug.Log("JAMKIT_HOUSE_SMOKE the house tipping ok: " + report);
+            if (id == _promptFor) return;
+            _promptFor = id;
+            _hud.Prompt(id == null ? null : "[" + InteractKey() + "]  " + text);
         }
     }
 }

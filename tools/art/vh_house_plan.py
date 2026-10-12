@@ -1,192 +1,335 @@
-# Night 2's house as labelled floor plans (the main floor and the attic), from core DreamHouse:
+# Night 2's house as labelled plans, from core DreamHouse and HouseEscape (docs/redesign/house.md):
 #   dotnet run -c Release --project tools/house-plan -- <plan.json>
 #   uv run --with pillow python tools/art/vh_house_plan.py <plan.json> <out dir>
-# Writes <out dir>/house-plan-main.png and house-plan-attic.png: rooms (with ceiling heights), walls and doorways,
-# furniture, the stairs and the hatch, hiding spots, the five memories, Theo's walking graph, the loops.
+# Writes <out dir>/house-plan-floors.png (the basement, ground floor, upper floor and attic, cut 1.2 m above each floor:
+# rooms, walls, doorways, windows, furniture, stairs, hiding spots, the memories and where the house re-hides them,
+# Theo's walking graph, lamps), house-plan-site.png (the lot: the front garden, the house and garage, the back yard,
+# the treehouse, the shed, Rowan Street, where she arrives and where Chapel Row's door lets her out) and
+# house-escape-route.png (the escape along its route: each room's floor height, the corridor that stretches, the beats).
 import json, os, sys
 from PIL import Image, ImageDraw, ImageFont
 
 P = json.load(open(sys.argv[1], encoding="utf8"))
 OUT = sys.argv[2]
 os.makedirs(OUT, exist_ok=True)
-S = 64                     # pixels per metre
-X0, X1, Z0, Z1 = P["hub"]
-MX, MZ = 1.6, 2.6          # margins (m)
-W, H = int((X1 - X0 + 2 * MX) * S), int((Z1 - Z0 + 2 * MZ) * S) + 230
+
+INK = (40, 34, 30)
+PAPER = (250, 247, 240)
+WALL = (52, 46, 42)
+FURN = (150, 140, 128)
+GLASS = (90, 150, 210)
+GOLD = (214, 160, 30)
+GREEN = (40, 140, 80)
+RED = (200, 70, 60)
+LAMP = (240, 200, 70)
+ROOM_FILLS = [(244, 226, 208), (226, 236, 222), (222, 230, 242), (242, 226, 232), (236, 232, 214), (228, 222, 240), (246, 236, 214)]
 
 
 def font(size, bold=False):
     for f in (("C:/Windows/Fonts/segoeuib.ttf" if bold else "C:/Windows/Fonts/segoeui.ttf"), "C:/Windows/Fonts/arial.ttf"):
-        if os.path.exists(f): return ImageFont.truetype(f, size)
+        if os.path.exists(f):
+            return ImageFont.truetype(f, size)
     return ImageFont.load_default()
 
 
-def px(x, z):  # plan view: north (+z) up, east (+x) right
-    return ((x - X0 + MX) * S, (Z1 + MZ - z) * S)
+F_ROOM, F_SMALL, F_TITLE, F_NUM = font(19, True), font(15), font(30, True), font(14, True)
+STOREYS = P["storeys"]
+FLOORS = [s[1] for s in STOREYS]
 
 
-def rect(d, x0, z0, x1, z1, **kw):
-    z0 = max(z0, Z0 - 1.4)   # the slide's walls run far south: only the house
-    if z1 <= z0: return
-    a, b = px(x0, z1), px(x1, z0)
-    d.rectangle([a, b], **kw)
+def storey_of(y):
+    k = 0
+    for i, f in enumerate(FLOORS):
+        if y >= f - 0.3:
+            k = i
+    return k
 
 
-ROOM_COL = {"Kitchen and dining": (253, 236, 186), "Living room": (205, 232, 205), "Bay window": (205, 232, 205), "Hall": (246, 208, 212),
-            "Pantry": (238, 230, 214), "Parents' room": (212, 218, 246), "Bath": (200, 236, 236), "Attic stairs": (226, 204, 186),
-            "Theo's room": (200, 222, 250), "Attic": (226, 210, 192)}
-INK, WALL, DOOR, FURN = (60, 50, 80), (70, 58, 92), (170, 150, 190), (196, 176, 160)
-SPOT, MEM, GRAPH, LOOP = (232, 128, 40), (214, 60, 110), (70, 120, 210), (40, 160, 110)
+class Panel:
+    def __init__(self, img, ox, oy, x0, x1, z0, z1, scale):
+        self.d = ImageDraw.Draw(img)
+        self.ox, self.oy, self.x0, self.z1, self.s = ox, oy, x0, z1, scale
+
+    def px(self, x, z):
+        return (self.ox + (x - self.x0) * self.s, self.oy + (self.z1 - z) * self.s)
+
+    def rect(self, x0, z0, x1, z1, **kw):
+        a, b = self.px(min(x0, x1), max(z0, z1)), self.px(max(x0, x1), min(z0, z1))
+        self.d.rectangle([a, b], **kw)
+
+    def line(self, p, q, **kw):
+        self.d.line([self.px(*p), self.px(*q)], **kw)
+
+    def dot(self, x, z, r, **kw):
+        cx, cy = self.px(x, z)
+        self.d.ellipse([cx - r, cy - r, cx + r, cy + r], **kw)
+
+    def text(self, x, z, t, f, fill=INK, anchor="mm"):
+        self.d.text(self.px(x, z), t, font=f, fill=fill, anchor=anchor)
 
 
-def plan(attic):
-    img = Image.new("RGB", (W, H), (250, 248, 244))
-    d = ImageDraw.Draw(img)
-    fy = P["attic"] if attic else P["ground"]
-    title = "The attic (Lena's observatory: a proposal; the family's stored life)" if attic else "The main floor (pancakes and hide-and-seek)"
-    d.text((20, 14), title, font=font(30, True), fill=INK)
-    # Rooms.
-    for r in P["rooms"]:
-        if (r["name"] == "Attic") != attic: continue
-        rect(d, r["x0"], r["z0"], r["x1"], r["z1"], fill=ROOM_COL.get(r["name"], (230, 230, 230)))
-    # The attic's roof: the eaves (low), the ridge, the dormer.
-    if attic:
-        hh = 1.0
-        ox = P.get("obsX1", X0)
-        for (za, zb) in ((Z0, Z0 + hh * 1.3), (Z1 - hh * 1.3, Z1)):
-            rect(d, ox, za, X1, zb, fill=(205, 186, 170))
-        d.line([px(ox, P["ridgeZ"]), px(X1, P["ridgeZ"])], fill=(150, 110, 90), width=4)
-        # The observatory: the roof cut and raised over it (full height wall to wall).
-        oz0, oz1 = P.get("obsZ", [Z0, Z1])
-        rect(d, X0, oz0, ox, oz1, fill=(214, 220, 240), outline=(60, 70, 160), width=4)
-        d.text(px(X0 + 0.2, oz1 + 1.6), f"the observatory tower: {P.get('obsHeight', 0):.1f} m high inside", font=font(14, True), fill=(60, 70, 160))
-        if "sky" in P:
-            sx, sz, sr = P["sky"]
-            a0, b0 = px(sx - sr, sz + sr), px(sx + sr, sz - sr)
-            d.ellipse([a0[0], a0[1], b0[0], b0[1]], outline=(60, 70, 160), width=2)
-            d.text(px(sx + sr + 0.1, sz + 0.2), "crescent skylight", font=font(13), fill=(60, 70, 160))
-        d.text(px(X1 - 3.0, P["ridgeZ"] + 0.15), "ridge (3.4 m)", font=font(16), fill=(120, 90, 70))
-        d.text(px(ox + 0.3, Z0 + 0.15), "low eaves: the roof slopes down to 0.8 m", font=font(15), fill=(120, 90, 70))
-        dx0, dx1, dz0 = P["dormer"]
-        rect(d, dx0, dz0, dx1, Z1, outline=(120, 90, 70), width=3)
-        d.text(px(dx0 + 0.1, Z1 - 0.6), "dormer (over the stairs)", font=font(15), fill=(120, 90, 70))
-    # Pieces at this level.
-    for p in P["pieces"]:
+def star(pn, x, z, r, fill, outline=INK):
+    import math
+    cx, cy = pn.px(x, z)
+    pts = []
+    for i in range(10):
+        a = -math.pi / 2 + i * math.pi / 5
+        rr = r if i % 2 == 0 else r * 0.45
+        pts.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
+    pn.d.polygon(pts, fill=fill, outline=outline)
+
+
+def cut(part, floor):
+    """The part crosses the plan's cut 1.2 m above this floor (or stands on it, for furniture)."""
+    lo, hi = part["min"][1], part["max"][1]
+    return lo <= floor + 1.2 <= hi
+
+
+def on_floor(part, floor):
+    lo = part["min"][1]
+    return floor - 0.05 <= lo <= floor + 1.3
+
+
+def short(name, n=34):
+    return name if len(name) <= n else name[: n - 1] + "..."
+
+
+MEM = P["memories"]
+SPOTS = P["spots"]
+INSIDE = [r for r in P["rooms"] if not r["outside"]]
+
+
+def draw_storey(img, k, ox, oy, x0, x1, z0, z1, scale):
+    pn = Panel(img, ox, oy, x0, x1, z0, z1, scale)
+    floor = FLOORS[k]
+    pn.d.text((ox, oy - 44), STOREYS[k][0] + "  (floor %+.1f m)" % floor, font=F_TITLE, fill=INK)
+    rooms = [r for r in INSIDE if r["storey"] == k and abs(r["floor"] - floor) < 1.0 and r["rects"][0][0] >= x0 - 0.5 and r["rects"][0][1] <= x1 + 0.5 and r["rects"][0][2] >= z0 - 0.5 and r["rects"][0][3] <= z1 + 0.5]
+    for i, r in enumerate(rooms):
+        for (a, b, c, d) in r["rects"]:
+            pn.rect(a, c, b, d, fill=ROOM_FILLS[i % len(ROOM_FILLS)])
+    for p in P["parts"]:
+        look = p["look"]
+        if look in ("Rug",) and on_floor(p, floor):
+            pn.rect(p["min"][0], p["min"][2], p["max"][0], p["max"][2], outline=(200, 180, 160), width=1)
+    for p in P["parts"]:
+        look = p["look"]
         mn, mx = p["min"], p["max"]
-        if attic:
-            if mx[1] <= fy + 0.05 or mn[1] > fy + 2.5 or mn[2] < Z0 - 0.4 or mx[2] > Z1 + 0.4: continue
+        if mx[0] < x0 or mn[0] > x1 or mx[2] < z0 or mn[2] > z1:
+            continue
+        if look in ("Furniture", "Cupboard", "Cloth", "Wood", "Chimney") and (on_floor(p, floor) or (look == "Chimney" and cut(p, floor))):
+            if look == "Chimney":
+                pn.rect(mn[0], mn[2], mx[0], mx[2], fill=(120, 100, 90), outline=WALL)
+            elif look == "Cloth":
+                pn.rect(mn[0], mn[2], mx[0], mx[2], outline=(170, 120, 160), width=2)
+            else:
+                pn.rect(mn[0], mn[2], mx[0], mx[2], fill=(236, 230, 220), outline=FURN, width=2)
+        elif look in ("Wall", "Rail", "GarageDoor") and cut(p, floor):
+            pn.rect(mn[0], mn[2], mx[0], mx[2], fill=WALL if look != "Rail" else (120, 110, 100))
+        elif look == "Glass" and cut(p, floor):
+            pn.rect(mn[0], mn[2], mx[0], mx[2], fill=GLASS)
+    # Stairs: treads and an arrow up.
+    for s in P["stairs"]:
+        a, b, c, d = s["rect"]
+        if not (s["bottom"] - 0.1 <= floor + 1.2 <= s["top"] + 1.2) or s["name"].startswith("The treehouse"):
+            continue
+        if not (floor - 0.1 <= s["bottom"] <= floor + 0.1 or floor - 0.1 <= s["top"] <= floor + 0.1):
+            continue
+        pn.rect(a, c, b, d, fill=(255, 252, 245), outline=INK, width=2)
+        n = 12
+        for i in range(1, n):
+            if s["alongX"]:
+                x = a + (b - a) * i / n
+                pn.line((x, c), (x, d), fill=(150, 140, 130), width=1)
+            else:
+                z = c + (d - c) * i / n
+                pn.line((a, z), (b, z), fill=(150, 140, 130), width=1)
+        going_up = abs(s["bottom"] - floor) < 0.1
+        label = ("up" if going_up else "down") + " to " + STOREYS[storey_of(s["top"] if going_up else s["bottom"])][0].lower()
+        if s["alongX"]:
+            pn.line((a + 0.2, (c + d) / 2), (b - 0.2, (c + d) / 2), fill=INK, width=2)
         else:
-            if mn[1] > fy + 2.0 or mx[1] <= fy + 0.05: continue
-        if p["look"] in ("Floor", "Ceiling", "RoofStep", "Roof", "Lawn", "Stairs") or p["kind"] == "Floor": continue
-        if p["look"] in ("Wall", "Chimney", "KneeWall", "Gable", "Railing"):
-            low = mx[1] - fy < 1.2   # a half wall or a railing
-            rect(d, mn[0], mn[2], mx[0], mx[2], fill=(150, 130, 170) if low else WALL)
-        elif p["look"] == "Header":
-            rect(d, mn[0], mn[2], mx[0], mx[2], fill=DOOR)
-        elif p["look"] == "Curtain":
-            rect(d, mn[0], mn[2], mx[0], mx[2], outline=(220, 120, 140), width=2)
-        elif p["solid"]:
-            rect(d, mn[0], mn[2], mx[0], mx[2], fill=FURN, outline=(150, 128, 112))
-            if attic and not p["name"].startswith("Boxes"):
-                x, y = px(mn[0], mn[2])
-                label = {"Observatory platform": "the observatory (telescope, Lena's chair, star charts)",
-                         "Old wardrobe (attic, under a dust sheet)": "old wardrobe (dust sheet)"}.get(p["name"], p["name"])
-                d.text((x + 3, y + 2), label, font=font(13, True), fill=INK)
-    if attic:
-        d.text(px(X0 + 0.1, P["ridgeZ"] + 0.35), "round window", font=font(14, True), fill=(60, 70, 160))
-        # The wall of stored things across the attic, and its one gap (the sheets on a line).
-        a, b = px(-2.55, 77.0), px(-2.55, 80.0)
-        for k in range(0, int(b[1] - a[1]) if b[1] > a[1] else int(a[1] - b[1]), 12):
-            y0 = min(a[1], b[1]) + k
-            d.line([(a[0], y0), (a[0], y0 + 6)], fill=(200, 120, 140), width=4)
-        x, y = px(-2.55, 78.5)
-        d.text((x + 10, y - 10), "sheets on a line: the way through", font=font(14, True), fill=(200, 90, 120))
-        x, y = px(-2.2, 74.2)
-        d.text((x + 6, y - 8), "a wall of stored things (boxes)", font=font(14, True), fill=INK)
-        x, y = px(3.2, 83.3)
-        d.text((x + 4, y - 8), "boxes under the eaves", font=font(13, True), fill=INK)
-        x, y = px(-2.2, 72.9)
-        d.text((x + 4, y - 8), "boxes under the eaves", font=font(13, True), fill=INK)
-    # The stairs (with their climb) and the hatch.
-    sx0, sx1, sz0, sz1 = P["stairs"]
-    rect(d, sx0, sz0, sx1, sz1, fill=(210, 180, 150), outline=INK)
-    for i in range(1, 13):
-        z = sz1 - (sz1 - sz0) * i / 13
-        d.line([px(sx0, z), px(sx1, z)], fill=(150, 120, 100), width=1)
-    a, b = px((sx0 + sx1) / 2, sz1 - 0.3), px((sx0 + sx1) / 2, sz0 + 0.2)
-    d.line([a, b], fill=INK, width=3)
-    d.polygon([(b[0] - 8, b[1] + 14), (b[0] + 8, b[1] + 14), b], fill=INK)
-    d.text(px(sx1 + 0.05, sz1 - 0.1) if not attic else px(sx1 + 0.05, sz0 + 0.5), "stairs UP to the attic" if not attic else "stairs arrive here", font=font(15, True), fill=INK)
-    hx0, hx1, hz0, hz1 = P["hatch"]
-    rect(d, hx0, hz0, hx1, hz1, outline=(60, 90, 200), width=3)
-    d.text(px(hx0 - 0.2, hz0 - 0.1), "hatch (drop down)" if attic else "hatch: the attic seen from below", font=font(14, True), fill=(60, 90, 200))
-    # Room names and ceilings.
-    for r in P["rooms"]:
-        if (r["name"] == "Attic") != attic or r["name"] in ("Bay window", "Attic stairs"): continue
-        cx, cz = (r["x0"] + r["x1"]) / 2, (r["z0"] + r["z1"]) / 2
-        if r["name"] == "Hall": cx = -3.6
-        if r["name"] == "Pantry": cz += 0.6
-        tx, ty = px(cx, cz)
-        f = font(17, True)
-        tw = d.textlength(r["name"], font=f)
-        d.text((tx - tw / 2, ty - 12), r["name"], font=f, fill=INK)
-        if not attic:
-            sub = f"ceiling {r['ceiling']:.1f} m"
-            f2 = font(14)
-            d.text((tx - d.textlength(sub, font=f2) / 2, ty + 8), sub, font=f2, fill=INK)
-    if not attic:
-        # Theo's walking graph.
-        nodes = P["nodes"]
-        for a_, b_ in P["edges"]:
-            d.line([px(nodes[a_][0], nodes[a_][2]), px(nodes[b_][0], nodes[b_][2])], fill=GRAPH, width=1)
-        for n in nodes:
-            x, y = px(n[0], n[2]); d.ellipse([x - 3, y - 3, x + 3, y + 3], fill=GRAPH)
-        # The loops (two ways between rooms).
-        loops = [[(-1, 73.4), (1.6, 74.4), (4.0, 73.1), (5.4, 77.1), (5.5, 79.1), (-0.7, 79.2), (-2.5, 79.0), (-2.5, 77.5), (-1, 73.4)],
-                 [(-5.3, 77.6), (-6.2, 78.6), (-6.2, 79.4), (-4.7, 79.4), (-2.5, 79.0), (-2.5, 77.5), (-5.3, 77.6)]]
-        for lp in loops:
-            pts = [px(x, z) for x, z in lp]
-            d.line(pts, fill=LOOP, width=4, joint="curve")
-        # Theo counting, Lena at the stove, the arrival (the slide).
-        x, y = px(P["theo"][0], P["theo"][2]); d.ellipse([x - 9, y - 9, x + 9, y + 9], fill=(250, 190, 60), outline=INK, width=2)
-        d.text((x + 10, y - 2), "Theo counts", font=font(14, True), fill=INK)
-        x, y = px(P["lena"][0], P["lena"][2]); d.ellipse([x - 9, y - 9, x + 9, y + 9], fill=(250, 220, 140), outline=INK, width=2)
-        d.text((x + 10, y - 20), "Lena (stove)", font=font(14, True), fill=INK)
-        ax, ay = px(0, P["hub"][2] - 1.6)
-        bx, by = px(0, P["arrive"][2])
-        d.line([(ax, ay), (bx, by)], fill=INK, width=4)
-        d.polygon([(bx - 9, by + 16), (bx + 9, by + 16), (bx, by)], fill=INK)
-        d.text((ax - 330, ay - 26), "the way in: the slide lands in the kitchen", font=font(15, True), fill=INK)
-    # Hiding spots and memories at this level.
-    for s in P["spots"]:
-        c, sz = s["center"], s["size"]
-        is_attic = c[1] > P["ground"] + 2.5
-        if is_attic != attic: continue
-        rect(d, c[0] - sz[0] / 2, c[2] - sz[2] / 2, c[0] + sz[0] / 2, c[2] + sz[2] / 2, outline=SPOT, width=3)
-        lx, ly = px(c[0] - sz[0] / 2, c[2] + sz[2] / 2)
-        d.text((lx + 3, ly + 2), "hide: " + s["name"].replace("The ", "the "), font=font(13, True), fill=SPOT)
-    for i, m in enumerate(P["memories"]):
-        if (m["at"][1] > P["ground"] + 2.9) != attic: continue
-        x, y = px(m["at"][0], m["at"][2])
-        d.regular_polygon((x, y, 11), 5, fill=MEM)
-        d.text((x + 9, y + 4), f"{i + 1}. {m['name']}", font=font(13, True), fill=MEM)
-    note = ("A vertical loop: up the steep stairs from Theo's room, along the attic, and down through the hatch into the hall."
-            if not attic else "Arrive at the top of the stairs on the storage side; through the sheets, the observatory's round window glows.")
-    d.text((20, H - 250), note, font=font(17, True), fill=LOOP if not attic else INK)
-    # Scale and legend.
-    lx, ly = 20, H - 210
-    d.line([(lx, ly), (lx + 5 * S, ly)], fill=INK, width=3)
-    d.text((lx, ly + 6), "5 m", font=font(15), fill=INK)
-    items = [(WALL, "wall"), (DOOR, "doorway (the wall over it)"), ((150, 130, 170), "half wall / railing"), (FURN, "furniture (solid, climbable)"),
-             (SPOT, "hiding spot"), (MEM, "memory (five to find)"), (GRAPH, "Theo's walking paths"), (LOOP, "loops: two ways round")]
-    for k, (col, lab) in enumerate(items):
-        x = lx + (k % 4) * 300; y = ly + 40 + (k // 4) * 34
-        d.rectangle([x, y, x + 26, y + 18], fill=col)
-        d.text((x + 34, y - 2), lab, font=font(16), fill=INK)
-    name = "house-plan-attic.png" if attic else "house-plan-main.png"
-    img.save(os.path.join(OUT, name))
-    print(name, img.size)
+            pn.line(((a + b) / 2, c + 0.2), ((a + b) / 2, d - 0.2), fill=INK, width=2)
+        pn.text((a + b) / 2, (c + d) / 2, label, F_SMALL, fill=RED)
+    # Theo's walking graph on this floor.
+    nodes = P["nodes"]
+    inside = lambda q: x0 <= q[0] <= x1 and z0 <= q[2] <= z1
+    for a, b in P["links"]:
+        pa, pb = nodes[a]["p"], nodes[b]["p"]
+        if storey_of(pa[1]) == k and storey_of(pb[1]) == k and inside(pa) and inside(pb):
+            pn.line((pa[0], pa[2]), (pb[0], pb[2]), fill=(230, 150, 140), width=1)
+    for n in nodes:
+        if storey_of(n["p"][1]) == k and inside(n["p"]):
+            pn.dot(n["p"][0], n["p"][2], 3, fill=(220, 110, 100))
+    for l in P["lamps"]:
+        if storey_of(l["p"][1] - 1.5) == k and inside(l["p"]):
+            pn.dot(l["p"][0], l["p"][2], 5, fill=LAMP, outline=INK)
+    # Room names.
+    for r in rooms:
+        a, b, c, d = max(r["rects"], key=lambda q: (q[1] - q[0]) * (q[3] - q[2]))
+        name = r["name"]
+        f = F_ROOM if (b - a) > 2.2 else F_SMALL
+        pn.text((a + b) / 2, (c + d) / 2 + 0.25, short(name, 26), f)
+        pn.text((a + b) / 2, (c + d) / 2 - 0.25, "%.1f x %.1f m, %.1f m high" % (b - a, d - c, r["ceiling"] - r["floor"]), F_SMALL, fill=(110, 100, 90))
+    # Hiding spots.
+    for i, s in enumerate(SPOTS):
+        c = s["center"]
+        if storey_of(c[1] - s["size"][1] / 2) != k or not (x0 <= c[0] <= x1 and z0 <= c[2] <= z1):
+            continue
+        hx, hz = s["size"][0] / 2, s["size"][2] / 2
+        pn.rect(c[0] - hx, c[2] - hz, c[0] + hx, c[2] + hz, outline=GREEN, width=3)
+        pn.dot(c[0], c[2], 11, fill=GREEN)
+        pn.text(c[0], c[2], "H%d" % (i + 1), F_NUM, fill=(255, 255, 255))
+    # Memories (stars) and where the house re-hides them (rings).
+    for i, m in enumerate(MEM):
+        for alt in m["alts"]:
+            q = alt["p"]
+            if storey_of(q[1] - 0.2) == k and x0 <= q[0] <= x1 and z0 <= q[2] <= z1:
+                pn.dot(q[0], q[2], 10, outline=GOLD, width=3)
+                pn.text(q[0], q[2], str(i + 1), F_NUM, fill=GOLD)
+        p = m["p"]
+        if storey_of(p[1] - 0.2) == k and x0 <= p[0] <= x1 and z0 <= p[2] <= z1:
+            star(pn, p[0], p[2], 16, GOLD)
+            pn.text(p[0], p[2] - 0.45, str(i + 1), F_NUM, fill=INK)
+    # Points of the story.
+    pts = P["points"]
+    if k == 1:
+        pn.dot(pts["theoStart"][0], pts["theoStart"][2], 9, fill=RED)
+        pn.text(pts["theoStart"][0] - 0.2, pts["theoStart"][2] - 0.5, "Theo counts", F_SMALL, fill=RED)
+        pn.dot(pts["nadiaChair"][0], pts["nadiaChair"][2], 9, fill=(80, 60, 160))
+        pn.text(pts["nadiaChair"][0] + 0.2, pts["nadiaChair"][2] + 0.55, "her chair", F_SMALL, fill=(80, 60, 160))
+        pn.dot(pts["lenaAt"][0], pts["lenaAt"][2], 9, fill=(160, 40, 80))
+        pn.text(pts["lenaAt"][0], pts["lenaAt"][2] - 0.5, "Lena", F_SMALL, fill=(160, 40, 80))
+        pn.text(pts["frontDoor"][0], pts["frontDoor"][2] - 0.8, "front door", F_SMALL, fill=RED)
+    if k == 3:
+        q = pts["lenaWindow"]
+        pn.dot(q[0], q[2], 9, fill=(160, 40, 80))
+        pn.text(q[0] + 0.3, q[2] - 0.6, "Lena at the round window (after)", F_SMALL, fill=(160, 40, 80))
+    # Scale bar.
+    bx, bz = x0 + 0.3, z0 + 0.3
+    pn.line((bx, bz), (bx + 5, bz), fill=INK, width=4)
+    pn.text(bx + 2.5, bz + 0.35, "5 m", F_SMALL)
 
 
-plan(False)
-plan(True)
+# ---------- The floors: 2 x 2 ----------
+X0, X1, Z0, Z1 = -8.6, 13.4, -1.6, 12.4
+S = 58
+PW, PH = int((X1 - X0) * S), int((Z1 - Z0) * S)
+GAP, TOP, LEG = 90, 70, 330
+img = Image.new("RGB", (PW * 2 + GAP * 3, (PH + TOP) * 2 + GAP + LEG), PAPER)
+# ground floor top left, upper floor top right, basement bottom left, attic bottom right
+layout = {1: (0, 0), 2: (1, 0), 0: (0, 1), 3: (1, 1)}
+for k, (cx, cy) in layout.items():
+    ox = GAP + cx * (PW + GAP)
+    oy = TOP + cy * (PH + TOP + GAP // 2)
+    draw_storey(img, k, ox, oy, X0, X1, Z0, Z1, S)
+d = ImageDraw.Draw(img)
+ly = (PH + TOP) * 2 + GAP // 2 + 20
+d.text((GAP, ly), "Memories (gold stars; rings = where the house re-hides one when Theo finds her)", font=F_ROOM, fill=INK)
+for i, m in enumerate(MEM):
+    alts = ", ".join(a["room"] for a in m["alts"])
+    d.text((GAP + (i % 2) * (PW + GAP), ly + 34 + (i // 2) * 26), "%d. %s  (%s; again: %s)" % (i + 1, m["name"], m["room"], alts), font=F_SMALL, fill=INK)
+hy = ly + 34 + 4 * 26 + 18
+d.text((GAP, hy), "Hiding places (green)", font=F_ROOM, fill=INK)
+for i, s in enumerate(SPOTS):
+    col, row = i % 3, i // 3
+    d.text((GAP + col * ((PW * 2 + GAP) // 3), hy + 30 + row * 22), "H%d. %s" % (i + 1, short(s["name"], 52)), font=F_SMALL, fill=INK)
+d.text((img.width - GAP, 18), "Night 2: the Lasname house. Plans cut 1.2 m above each floor. Red dots: Theo's walking graph. Yellow: lamps. Blue: glass.", font=F_SMALL, fill=(110, 100, 90), anchor="ra")
+img.save(os.path.join(OUT, "house-plan-floors.png"))
+
+# ---------- The site ----------
+YX0, YX1, FZ0, YZ1 = P["yard"]
+SX0, SX1, SZ0, SZ1 = YX0 - 3, YX1 + 3, P["streetZ0"] - 1, YZ1 + 2
+S2 = 30
+img2 = Image.new("RGB", (int((SX1 - SX0) * S2) + 160, int((SZ1 - SZ0) * S2) + 140), PAPER)
+pn = Panel(img2, 80, 90, SX0, SX1, SZ0, SZ1, S2)
+pn.d.text((80, 24), "Night 2: the lot, at ground level", font=F_TITLE, fill=INK)
+for r in P["rooms"]:
+    if r["outside"]:
+        fill = (214, 232, 200) if "garden" in r["name"] or "yard" in r["name"] else (210, 206, 200)
+        for (a, b, c, dd) in r["rects"]:
+            pn.rect(a, c, b, dd, fill=fill)
+for p in P["parts"]:
+    look, mn, mx = p["look"], p["min"], p["max"]
+    if look in ("Lawn",):
+        pn.rect(mn[0], mn[2], mx[0], mx[2], fill=(200, 226, 184))
+for p in P["parts"]:
+    look, mn, mx = p["look"], p["min"], p["max"]
+    if look in ("Street",):
+        pn.rect(mn[0], mn[2], mx[0], mx[2], fill=(150, 146, 140))
+    elif look in ("Path", "Porch"):
+        pn.rect(mn[0], mn[2], mx[0], mx[2], fill=(214, 200, 180))
+    elif look in ("Fence",):
+        pn.rect(mn[0], mn[2], mx[0], mx[2], fill=(150, 110, 70))
+    elif look in ("Hedge",):
+        pn.rect(mn[0], mn[2], mx[0], mx[2], fill=(80, 130, 70))
+    elif look == "Tree":
+        cx, cz = (mn[0] + mx[0]) / 2, (mn[2] + mx[2]) / 2
+        pn.dot(cx, cz, 4.5 * S2, fill=(150, 190, 130), outline=(90, 130, 80))
+        pn.dot(cx, cz, 0.5 * S2, fill=(110, 80, 50))
+    elif look == "Trampoline":
+        cx, cz = (mn[0] + mx[0]) / 2, (mn[2] + mx[2]) / 2
+        pn.dot(cx, cz, (mx[0] - mn[0]) / 2 * S2, outline=(40, 80, 140), width=3)
+for r in INSIDE:
+    if r["storey"] in (1, 2) and r["floor"] < 3.5:
+        for (a, b, c, dd) in r["rects"]:
+            pn.rect(a, c, b, dd, fill=(236, 226, 212), outline=WALL, width=2)
+for r in INSIDE:
+    if r["name"] in ("The garage", "The shed", "Theo's treehouse", "The mudroom"):
+        a, b, c, dd = r["rects"][0]
+        pn.text((a + b) / 2, (c + dd) / 2, r["name"], F_ROOM)
+fx0, fx1, fz0, fz1 = P["footprint"]
+pn.text((fx0 + fx1) / 2, (fz0 + fz1) / 2, "the house (3 storeys + basement)", F_ROOM)
+pts = P["points"]
+pn.dot(pts["arrival"][0], pts["arrival"][2], 10, fill=(80, 60, 160))
+pn.text(pts["arrival"][0], pts["arrival"][2] - 1.0, "she arrives (Rowan Street)", F_SMALL, fill=(80, 60, 160))
+pn.dot(pts["exitDoor"][0], min(pts["exitDoor"][2], SZ1 - 1), 10, fill=RED)
+pn.text(pts["exitDoor"][0], min(pts["exitDoor"][2], SZ1 - 1) + 1.0, "the dream's door onto Chapel Row (the escape's end), %.1f m up" % pts["exitDoor"][1], F_SMALL, fill=RED)
+for i, s in enumerate(SPOTS):
+    c = s["center"]
+    if (c[0] > fx1 + 0.2 and c[0] > 12.2) or c[2] > fz1 + 0.2 or c[2] < fz0 - 0.2 or c[0] < fx0 - 0.2:
+        pn.dot(c[0], c[2], 10, fill=GREEN)
+        pn.text(c[0], c[2], "H%d" % (i + 1), F_NUM, fill=(255, 255, 255))
+for i, m in enumerate(MEM):
+    p = m["p"]
+    if p[2] > fz1 + 0.2 or p[0] > 12.2 or p[0] < fx0 - 0.2:
+        star(pn, p[0], p[2], 14, GOLD)
+        pn.text(p[0], p[2] - 0.8, str(i + 1), F_NUM)
+pn.line((SX0 + 1, SZ0 + 1.5), (SX0 + 11, SZ0 + 1.5), fill=INK, width=4)
+pn.text(SX0 + 6, SZ0 + 2.2, "10 m", F_SMALL)
+img2.save(os.path.join(OUT, "house-plan-site.png"))
+
+# ---------- The escape route ----------
+E = P["escape"]
+L = E["frontDoorS"] + 12
+W3, H3 = 2400, 760
+img3 = Image.new("RGB", (W3, H3), PAPER)
+d3 = ImageDraw.Draw(img3)
+d3.text((40, 20), "The escape: the house throws her out (along the route; a player at a run ~9 m/s, 2-3 minutes with the corridor)", font=F_TITLE, fill=INK)
+ys = [r["floor"] for r in E["rooms"]] + [r["ceiling"] for r in E["rooms"]]
+ymin, ymax = min(ys) - 2, max(ys) + 2
+def ex(s): return 60 + s / L * (W3 - 120)
+def ey(y): return 120 + (ymax - y) / (ymax - ymin) * (H3 - 330)
+cols = [(244, 214, 190), (214, 228, 244), (230, 222, 206), (200, 196, 214), (236, 210, 222), (220, 236, 214), (40, 50, 90), (226, 222, 200)]
+for i, r in enumerate(E["rooms"]):
+    d3.rectangle([ex(r["s0"]), ey(r["ceiling"]), ex(r["s1"]), ey(r["floor"])], fill=cols[i % len(cols)], outline=INK)
+    d3.line([ex(r["s0"]), ey(r["floor"]), ex(r["s1"]), ey(r["floor"])], fill=INK, width=4)
+    tx = (ex(r["s0"]) + ex(r["s1"])) / 2
+    d3.text((tx, ey(r["ceiling"]) - 16), r["name"], font=F_SMALL, fill=INK, anchor="mm")
+    note = ("rolls %d" % r["roll"]) if r["roll"] else ""
+    if r["open"]:
+        note = "open to the stars"
+    if note:
+        d3.text((tx, ey(r["floor"]) + 16), note, font=F_SMALL, fill=(110, 100, 90), anchor="mm")
+c = E["corridor"]
+d3.rectangle([ex(c["triggerS"]), ey(ymax - 1), ex(c["doorS"]), ey(ymin + 1)], outline=RED, width=2)
+d3.text((ex(c["triggerS"]), ey(ymin + 1) + 30), "the corridor stretches %d m each time she nears its door below %.1f m/s" % (c["bay"], c["threshold"]), font=F_SMALL, fill=RED)
+for i, b in enumerate(E["beats"]):
+    x = ex(b["s"])
+    d3.line([x, H3 - 190, x, H3 - 150], fill=INK, width=2)
+    d3.text((x, H3 - 140 + (i % 3) * 20), "%s (%s)" % (b["name"], b["kind"]), font=F_SMALL, fill=INK, anchor="mm")
+for cp in E["checkpoints"]:
+    x = ex(cp["s"])
+    d3.polygon([(x, H3 - 200), (x - 7, H3 - 214), (x + 7, H3 - 214)], fill=GREEN)
+d3.text((40, H3 - 40), "Green: checkpoints (chapters). Below the floor line is the void: falling throws her out of the dream (Mags pulls her out; Lena condemns; the ending is lost).", font=F_SMALL, fill=(110, 100, 90))
+img3.save(os.path.join(OUT, "house-escape-route.png"))
+print("wrote", OUT)

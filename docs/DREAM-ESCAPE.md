@@ -92,9 +92,17 @@ doesn't have the umbrella and chooses to continue anyways, it allows her to cont
 ends with the Long Night)."
 
 **Where it lives.** It belongs to Night 2's house escape, which ends with her going out the front door into the rain.
-The house is now built (`docs/DREAM-HOUSE.md`) and has its own front door, umbrella and rain, from the same parts
-(`DreamRain` and `DreamUmbrella` on any `IDreamRainHost`, each with its own `DreamRainSpot`). This escape keeps its copy.
-The Despair flag is shared.
+The house (redesigned 2026-10-12: `docs/redesign/house.md`, `docs/DREAM-HOUSE.md`) has its own front door, umbrella and
+rain, from the same parts (`DreamRain` and `DreamUmbrella` on any `IDreamRainHost`, each with its own `DreamRainSpot`):
+the umbrella leans by the front door at the end of the house's escape (the last hall), and the rain falls on Chapel Row,
+on the path up the hill from the dream's door (`HillAnchors.EscapeExit`). This escape keeps its copy. The Despair flag
+is shared.
+
+**Night 2's house escape** (`HouseEscape`, `DreamHouseGame.Escape.cs`) is its own run, not this one: eight rooms that
+can't fit in the house (the dining room tips, the hall turns over, the stairs flatten into a slide, the corridor that
+stretches when she nears its door too slowly, Theo's room upside down, the kitchen come round again, the attic open to
+the stars, the last hall), the house folding shut behind her; falling or being caught throws her out of the dream
+(Mags pulls her out, `Chain.ForceOut`). Its route, beats and timings are in `docs/redesign/house.md`.
 
 **What happens, in order:**
 1. At s 446 on the lit porch, the chase ends: the time, the chime, and "It's raining past the door."

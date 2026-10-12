@@ -7,6 +7,8 @@
     <Compile Include="$(PkgRoot)Runtime\Core\DreamEscape\**\*.cs" />
     <!-- Night 2's house (DreamHouse) uses the stealth kit: Theo's hide-and-seek. -->
     <Compile Include="$(PkgRoot)Runtime\Core\Stealth\**\*.cs" />
+    <!-- The house stands on Larch Hill by the World agent's anchors. -->
+    <Compile Include="$(PkgRoot)Runtime\Core\DeepBlock\HillAnchors.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\Movement\BoxWorld.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\Movement\LabCourseTests.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\DreamEscape\**\*.cs" />

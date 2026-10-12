@@ -1,0 +1,2013 @@
+{
+ "notes": [
+  "Paths are relative to Assets/JamKit/Templates/VisitingHours/Dream/House/.",
+  "dims_m is [width x, height y, depth z] in metres, Unity order. Poly Haven's info 'dimensions' are [X, Y, Z] in mm in Blender's Z-up frame (width, depth, height); converted to metres and reordered to [X, Z, Y]. They are the bounding box of the whole asset as published; check the imported scale against them (Poly Haven FBX come from Blender; if a model imports 100x off, fix the importer scale, not the numbers).",
+  "Model textures keep the relative layout from Poly Haven's FBX 'include' map (textures/<name>_1k.<ext>). Most models' normal and metallic maps are EXR and some maps are PNG: set normal maps to the Normal Map texture type in Unity. 'materials' groups each model's maps by the material key in the file name ('_' = the model's single material); map keys: diff, nor_gl, roughness, metallic, ao, arm, alpha, disp.",
+  "Surface size_m is the real-world width one texture tile covers (Poly Haven info dimensions; ambientCG dimensionX in cm).",
+  "Surface normal maps are the OpenGL (Y+) variant, which is what Unity expects.",
+  "All assets are CC0 (public domain). See LICENSES.md."
+ ],
+ "models": [
+  {
+   "id": "sofa_02",
+   "role": "living.sofa",
+   "name": "Sofa 02",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/sofa_02",
+   "fbx": "Models/sofa_02/sofa_02_1k.fbx",
+   "dims_m": [
+    1.807,
+    0.709,
+    0.818
+   ],
+   "tris": 2728,
+   "textures": [
+    "Models/sofa_02/textures/sofa_02_diff_1k.jpg",
+    "Models/sofa_02/textures/sofa_02_metallic_1k.exr",
+    "Models/sofa_02/textures/sofa_02_nor_gl_1k.exr",
+    "Models/sofa_02/textures/sofa_02_roughness_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/sofa_02/textures/sofa_02_diff_1k.jpg",
+     "metallic": "Models/sofa_02/textures/sofa_02_metallic_1k.exr",
+     "nor_gl": "Models/sofa_02/textures/sofa_02_nor_gl_1k.exr",
+     "roughness": "Models/sofa_02/textures/sofa_02_roughness_1k.jpg"
+    }
+   },
+   "authors": [
+    "Kirill Sannikov"
+   ]
+  },
+  {
+   "id": "mid_century_lounge_chair",
+   "role": "living.armchair",
+   "name": "Mid Century Lounge Chair",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/mid_century_lounge_chair",
+   "fbx": "Models/mid_century_lounge_chair/mid_century_lounge_chair_1k.fbx",
+   "dims_m": [
+    1.009,
+    1.169,
+    1.19
+   ],
+   "tris": 6148,
+   "textures": [
+    "Models/mid_century_lounge_chair/textures/mid_century_lounge_chair_diff_1k.jpg",
+    "Models/mid_century_lounge_chair/textures/mid_century_lounge_chair_metal_1k.exr",
+    "Models/mid_century_lounge_chair/textures/mid_century_lounge_chair_nor_gl_1k.exr",
+    "Models/mid_century_lounge_chair/textures/mid_century_lounge_chair_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/mid_century_lounge_chair/textures/mid_century_lounge_chair_diff_1k.jpg",
+     "metallic": "Models/mid_century_lounge_chair/textures/mid_century_lounge_chair_metal_1k.exr",
+     "nor_gl": "Models/mid_century_lounge_chair/textures/mid_century_lounge_chair_nor_gl_1k.exr",
+     "roughness": "Models/mid_century_lounge_chair/textures/mid_century_lounge_chair_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Kuutti Siitonen"
+   ]
+  },
+  {
+   "id": "WoodenTable_01",
+   "role": "living.coffee_table",
+   "name": "Wooden Table 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/WoodenTable_01",
+   "fbx": "Models/WoodenTable_01/WoodenTable_01_1k.fbx",
+   "dims_m": [
+    1.8,
+    0.549,
+    0.657
+   ],
+   "tris": 952,
+   "textures": [
+    "Models/WoodenTable_01/textures/WoodenTable_01_diff_1k.jpg",
+    "Models/WoodenTable_01/textures/WoodenTable_01_metallic_1k.exr",
+    "Models/WoodenTable_01/textures/WoodenTable_01_nor_gl_1k.exr",
+    "Models/WoodenTable_01/textures/WoodenTable_01_roughness_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/WoodenTable_01/textures/WoodenTable_01_diff_1k.jpg",
+     "metallic": "Models/WoodenTable_01/textures/WoodenTable_01_metallic_1k.exr",
+     "nor_gl": "Models/WoodenTable_01/textures/WoodenTable_01_nor_gl_1k.exr",
+     "roughness": "Models/WoodenTable_01/textures/WoodenTable_01_roughness_1k.jpg"
+    }
+   },
+   "authors": [
+    "Ethan Place"
+   ]
+  },
+  {
+   "id": "side_table_01",
+   "role": "living.side_table",
+   "name": "Side Table 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/side_table_01",
+   "fbx": "Models/side_table_01/side_table_01_1k.fbx",
+   "dims_m": [
+    0.55,
+    0.551,
+    0.45
+   ],
+   "tris": 2756,
+   "textures": [
+    "Models/side_table_01/textures/side_table_01_diff_1k.jpg",
+    "Models/side_table_01/textures/side_table_01_metal_1k.exr",
+    "Models/side_table_01/textures/side_table_01_nor_gl_1k.exr",
+    "Models/side_table_01/textures/side_table_01_rough_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/side_table_01/textures/side_table_01_diff_1k.jpg",
+     "metallic": "Models/side_table_01/textures/side_table_01_metal_1k.exr",
+     "nor_gl": "Models/side_table_01/textures/side_table_01_nor_gl_1k.exr",
+     "roughness": "Models/side_table_01/textures/side_table_01_rough_1k.jpg"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "television_02",
+   "role": "living.tv",
+   "name": "Television 02",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/television_02",
+   "fbx": "Models/television_02/television_02_1k.fbx",
+   "dims_m": [
+    0.4,
+    0.411,
+    0.35
+   ],
+   "tris": 2310,
+   "textures": [
+    "Models/television_02/textures/television_02_diff_1k.jpg",
+    "Models/television_02/textures/television_02_metal_1k.exr",
+    "Models/television_02/textures/television_02_nor_gl_1k.exr",
+    "Models/television_02/textures/television_02_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/television_02/textures/television_02_diff_1k.jpg",
+     "metallic": "Models/television_02/textures/television_02_metal_1k.exr",
+     "nor_gl": "Models/television_02/textures/television_02_nor_gl_1k.exr",
+     "roughness": "Models/television_02/textures/television_02_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Benny Weimer"
+   ]
+  },
+  {
+   "id": "small_wooden_table_01",
+   "role": "living.tv_stand",
+   "name": "Small Wooden Table 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/small_wooden_table_01",
+   "fbx": "Models/small_wooden_table_01/small_wooden_table_01_1k.fbx",
+   "dims_m": [
+    0.916,
+    0.533,
+    0.44
+   ],
+   "tris": 3410,
+   "textures": [
+    "Models/small_wooden_table_01/textures/small_wooden_table_01_diff_1k.jpg",
+    "Models/small_wooden_table_01/textures/small_wooden_table_01_metal_1k.exr",
+    "Models/small_wooden_table_01/textures/small_wooden_table_01_nor_gl_1k.exr",
+    "Models/small_wooden_table_01/textures/small_wooden_table_01_rough_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/small_wooden_table_01/textures/small_wooden_table_01_diff_1k.jpg",
+     "metallic": "Models/small_wooden_table_01/textures/small_wooden_table_01_metal_1k.exr",
+     "nor_gl": "Models/small_wooden_table_01/textures/small_wooden_table_01_nor_gl_1k.exr",
+     "roughness": "Models/small_wooden_table_01/textures/small_wooden_table_01_rough_1k.jpg"
+    }
+   },
+   "authors": [
+    "Ulan Cabanilla"
+   ]
+  },
+  {
+   "id": "wooden_bookshelf_worn",
+   "role": "living.bookshelf",
+   "alt_roles": [
+    "study.bookshelf"
+   ],
+   "name": "Wooden Bookshelf Worn",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/wooden_bookshelf_worn",
+   "fbx": "Models/wooden_bookshelf_worn/wooden_bookshelf_worn_1k.fbx",
+   "dims_m": [
+    1.374,
+    2.063,
+    0.581
+   ],
+   "tris": 10106,
+   "textures": [
+    "Models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_diff_1k.jpg",
+    "Models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_metal_1k.exr",
+    "Models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_nor_gl_1k.exr",
+    "Models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_diff_1k.jpg",
+     "metallic": "Models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_metal_1k.exr",
+     "nor_gl": "Models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_nor_gl_1k.exr",
+     "roughness": "Models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Ulan Cabanilla"
+   ]
+  },
+  {
+   "id": "potted_plant_04",
+   "role": "living.plant.2",
+   "alt_roles": [
+    "kitchen.windowsill_plant"
+   ],
+   "name": "Potted Plant 04",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/potted_plant_04",
+   "fbx": "Models/potted_plant_04/potted_plant_04_1k.fbx",
+   "dims_m": [
+    0.17,
+    0.268,
+    0.186
+   ],
+   "tris": 6097,
+   "textures": [
+    "Models/potted_plant_04/textures/potted_plant_04_diff_1k.jpg",
+    "Models/potted_plant_04/textures/potted_plant_04_nor_gl_1k.exr",
+    "Models/potted_plant_04/textures/potted_plant_04_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/potted_plant_04/textures/potted_plant_04_diff_1k.jpg",
+     "nor_gl": "Models/potted_plant_04/textures/potted_plant_04_nor_gl_1k.exr",
+     "roughness": "Models/potted_plant_04/textures/potted_plant_04_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "mantel_clock_01",
+   "role": "living.mantel_clock",
+   "name": "Mantel Clock 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/mantel_clock_01",
+   "fbx": "Models/mantel_clock_01/mantel_clock_01_1k.fbx",
+   "dims_m": [
+    0.484,
+    0.161,
+    0.251
+   ],
+   "tris": 29742,
+   "textures": [
+    "Models/mantel_clock_01/textures/mantel_clock_01_anisotropy_angle_1k.png",
+    "Models/mantel_clock_01/textures/mantel_clock_01_anisotropy_level_1k.png",
+    "Models/mantel_clock_01/textures/mantel_clock_01_diff_1k.jpg",
+    "Models/mantel_clock_01/textures/mantel_clock_01_metal_1k.exr",
+    "Models/mantel_clock_01/textures/mantel_clock_01_nor_gl_1k.exr",
+    "Models/mantel_clock_01/textures/mantel_clock_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "anisotropy_angle": "Models/mantel_clock_01/textures/mantel_clock_01_anisotropy_angle_1k.png",
+     "anisotropy_level": "Models/mantel_clock_01/textures/mantel_clock_01_anisotropy_level_1k.png",
+     "diff": "Models/mantel_clock_01/textures/mantel_clock_01_diff_1k.jpg",
+     "metallic": "Models/mantel_clock_01/textures/mantel_clock_01_metal_1k.exr",
+     "nor_gl": "Models/mantel_clock_01/textures/mantel_clock_01_nor_gl_1k.exr",
+     "roughness": "Models/mantel_clock_01/textures/mantel_clock_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Yann Kervran",
+    "Rico Cilliers"
+   ],
+   "note": "Has anisotropy angle/level PNG maps that URP Lit does not use; ignore them."
+  },
+  {
+   "id": "ceramic_vase_02",
+   "role": "living.vase.1",
+   "alt_roles": [
+    "dining.vase"
+   ],
+   "name": "Ceramic Vase 02",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/ceramic_vase_02",
+   "fbx": "Models/ceramic_vase_02/ceramic_vase_02_1k.fbx",
+   "dims_m": [
+    0.22,
+    0.309,
+    0.221
+   ],
+   "tris": 2756,
+   "textures": [
+    "Models/ceramic_vase_02/textures/ceramic_vase_02_diff_1k.jpg",
+    "Models/ceramic_vase_02/textures/ceramic_vase_02_nor_gl_1k.exr",
+    "Models/ceramic_vase_02/textures/ceramic_vase_02_rough_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/ceramic_vase_02/textures/ceramic_vase_02_diff_1k.jpg",
+     "nor_gl": "Models/ceramic_vase_02/textures/ceramic_vase_02_nor_gl_1k.exr",
+     "roughness": "Models/ceramic_vase_02/textures/ceramic_vase_02_rough_1k.jpg"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "book_encyclopedia_set_01",
+   "role": "living.books",
+   "alt_roles": [
+    "study.books",
+    "bedroom.books"
+   ],
+   "name": "Book Encyclopedia Set 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/book_encyclopedia_set_01",
+   "fbx": "Models/book_encyclopedia_set_01/book_encyclopedia_set_01_1k.fbx",
+   "dims_m": [
+    0.551,
+    0.237,
+    0.163
+   ],
+   "tris": 67306,
+   "textures": [
+    "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_cover_diff_1k.png",
+    "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_cover_metallic_1k.png",
+    "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_cover_nor_gl_1k.png",
+    "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_cover_roughness_1k.png",
+    "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_paper_diff_1k.png",
+    "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_paper_nor_gl_1k.png",
+    "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_paper_roughness_1k.png"
+   ],
+   "materials": {
+    "cover": {
+     "diff": "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_cover_diff_1k.png",
+     "metallic": "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_cover_metallic_1k.png",
+     "nor_gl": "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_cover_nor_gl_1k.png",
+     "roughness": "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_cover_roughness_1k.png"
+    },
+    "paper": {
+     "diff": "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_paper_diff_1k.png",
+     "nor_gl": "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_paper_nor_gl_1k.png",
+     "roughness": "Models/book_encyclopedia_set_01/textures/book_encyclopedia_set_01_paper_roughness_1k.png"
+    }
+   },
+   "authors": [
+    "John Malcolm"
+   ],
+   "note": "Poly Haven CDN served empty bodies for five 1k PNG maps; they were rebuilt from the 1k JPG maps (cover roughness from the green channel of the cover ARM map) and saved under the PNG names the FBX expects."
+  },
+  {
+   "id": "standing_picture_frame_02",
+   "role": "living.photo_frame",
+   "alt_roles": [
+    "bedroom.photo_frame"
+   ],
+   "name": "Standing Picture Frame 02",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/standing_picture_frame_02",
+   "fbx": "Models/standing_picture_frame_02/standing_picture_frame_02_1k.fbx",
+   "dims_m": [
+    0.217,
+    0.266,
+    0.102
+   ],
+   "tris": 2986,
+   "textures": [
+    "Models/standing_picture_frame_02/textures/standing_picture_frame_02_artwork_diff_1k.png",
+    "Models/standing_picture_frame_02/textures/standing_picture_frame_02_artwork_rough_1k.png",
+    "Models/standing_picture_frame_02/textures/standing_picture_frame_02_diff_1k.jpg",
+    "Models/standing_picture_frame_02/textures/standing_picture_frame_02_metal_1k.exr",
+    "Models/standing_picture_frame_02/textures/standing_picture_frame_02_nor_gl_1k.exr",
+    "Models/standing_picture_frame_02/textures/standing_picture_frame_02_rough_1k.jpg"
+   ],
+   "materials": {
+    "artwork": {
+     "diff": "Models/standing_picture_frame_02/textures/standing_picture_frame_02_artwork_diff_1k.png",
+     "roughness": "Models/standing_picture_frame_02/textures/standing_picture_frame_02_artwork_rough_1k.png"
+    },
+    "_": {
+     "diff": "Models/standing_picture_frame_02/textures/standing_picture_frame_02_diff_1k.jpg",
+     "metallic": "Models/standing_picture_frame_02/textures/standing_picture_frame_02_metal_1k.exr",
+     "nor_gl": "Models/standing_picture_frame_02/textures/standing_picture_frame_02_nor_gl_1k.exr",
+     "roughness": "Models/standing_picture_frame_02/textures/standing_picture_frame_02_rough_1k.jpg"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "dining_table",
+   "role": "dining.table",
+   "name": "Dining Table",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/dining_table",
+   "fbx": "Models/dining_table/dining_table_1k.fbx",
+   "dims_m": [
+    2.256,
+    0.877,
+    1.39
+   ],
+   "tris": 1048,
+   "textures": [
+    "Models/dining_table/textures/dining_table_diff_1k.jpg",
+    "Models/dining_table/textures/dining_table_nor_gl_1k.exr",
+    "Models/dining_table/textures/dining_table_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/dining_table/textures/dining_table_diff_1k.jpg",
+     "nor_gl": "Models/dining_table/textures/dining_table_nor_gl_1k.exr",
+     "roughness": "Models/dining_table/textures/dining_table_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Aron Łyczek"
+   ]
+  },
+  {
+   "id": "painted_wooden_chair_01",
+   "role": "dining.chair",
+   "alt_roles": [
+    "kitchen.chair"
+   ],
+   "name": "Painted Wooden Chair 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/painted_wooden_chair_01",
+   "fbx": "Models/painted_wooden_chair_01/painted_wooden_chair_01_1k.fbx",
+   "dims_m": [
+    0.432,
+    0.956,
+    0.54
+   ],
+   "tris": 724,
+   "textures": [
+    "Models/painted_wooden_chair_01/textures/painted_wooden_chair_01_diff_1k.jpg",
+    "Models/painted_wooden_chair_01/textures/painted_wooden_chair_01_metal_1k.exr",
+    "Models/painted_wooden_chair_01/textures/painted_wooden_chair_01_nor_gl_1k.exr",
+    "Models/painted_wooden_chair_01/textures/painted_wooden_chair_01_rough_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/painted_wooden_chair_01/textures/painted_wooden_chair_01_diff_1k.jpg",
+     "metallic": "Models/painted_wooden_chair_01/textures/painted_wooden_chair_01_metal_1k.exr",
+     "nor_gl": "Models/painted_wooden_chair_01/textures/painted_wooden_chair_01_nor_gl_1k.exr",
+     "roughness": "Models/painted_wooden_chair_01/textures/painted_wooden_chair_01_rough_1k.jpg"
+    }
+   },
+   "authors": [
+    "Kuutti Siitonen"
+   ]
+  },
+  {
+   "id": "painted_wooden_cabinet",
+   "role": "dining.sideboard",
+   "name": "Painted Wooden Cabinet",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/painted_wooden_cabinet",
+   "fbx": "Models/painted_wooden_cabinet/painted_wooden_cabinet_1k.fbx",
+   "dims_m": [
+    1.195,
+    1.182,
+    0.617
+   ],
+   "tris": 2227,
+   "textures": [
+    "Models/painted_wooden_cabinet/textures/painted_wooden_cabinet_diff_1k.jpg",
+    "Models/painted_wooden_cabinet/textures/painted_wooden_cabinet_metal_1k.exr",
+    "Models/painted_wooden_cabinet/textures/painted_wooden_cabinet_nor_gl_1k.exr",
+    "Models/painted_wooden_cabinet/textures/painted_wooden_cabinet_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/painted_wooden_cabinet/textures/painted_wooden_cabinet_diff_1k.jpg",
+     "metallic": "Models/painted_wooden_cabinet/textures/painted_wooden_cabinet_metal_1k.exr",
+     "nor_gl": "Models/painted_wooden_cabinet/textures/painted_wooden_cabinet_nor_gl_1k.exr",
+     "roughness": "Models/painted_wooden_cabinet/textures/painted_wooden_cabinet_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Kirill Sannikov"
+   ]
+  },
+  {
+   "id": "modern_ceiling_lamp_01",
+   "role": "dining.pendant_lamp",
+   "alt_roles": [
+    "kitchen.pendant_lamp",
+    "hall.pendant_lamp"
+   ],
+   "name": "Modern Ceiling Lamp 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/modern_ceiling_lamp_01",
+   "fbx": "Models/modern_ceiling_lamp_01/modern_ceiling_lamp_01_1k.fbx",
+   "dims_m": [
+    0.432,
+    0.952,
+    0.432
+   ],
+   "tris": 5602,
+   "textures": [
+    "Models/modern_ceiling_lamp_01/textures/modern_ceiling_lamp_01_diff_1k.jpg",
+    "Models/modern_ceiling_lamp_01/textures/modern_ceiling_lamp_01_metal_1k.exr",
+    "Models/modern_ceiling_lamp_01/textures/modern_ceiling_lamp_01_nor_gl_1k.exr",
+    "Models/modern_ceiling_lamp_01/textures/modern_ceiling_lamp_01_rough_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/modern_ceiling_lamp_01/textures/modern_ceiling_lamp_01_diff_1k.jpg",
+     "metallic": "Models/modern_ceiling_lamp_01/textures/modern_ceiling_lamp_01_metal_1k.exr",
+     "nor_gl": "Models/modern_ceiling_lamp_01/textures/modern_ceiling_lamp_01_nor_gl_1k.exr",
+     "roughness": "Models/modern_ceiling_lamp_01/textures/modern_ceiling_lamp_01_rough_1k.jpg"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "vintage_electric_kettle",
+   "role": "kitchen.kettle",
+   "name": "Vintage Electric Kettle",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/vintage_electric_kettle",
+   "fbx": "Models/vintage_electric_kettle/vintage_electric_kettle_1k.fbx",
+   "dims_m": [
+    0.321,
+    0.305,
+    0.249
+   ],
+   "tris": 14838,
+   "textures": [
+    "Models/vintage_electric_kettle/textures/vintage_electric_kettle_alpha_1k.png",
+    "Models/vintage_electric_kettle/textures/vintage_electric_kettle_diff_1k.jpg",
+    "Models/vintage_electric_kettle/textures/vintage_electric_kettle_metal_1k.exr",
+    "Models/vintage_electric_kettle/textures/vintage_electric_kettle_nor_gl_1k.exr",
+    "Models/vintage_electric_kettle/textures/vintage_electric_kettle_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "alpha": "Models/vintage_electric_kettle/textures/vintage_electric_kettle_alpha_1k.png",
+     "diff": "Models/vintage_electric_kettle/textures/vintage_electric_kettle_diff_1k.jpg",
+     "metallic": "Models/vintage_electric_kettle/textures/vintage_electric_kettle_metal_1k.exr",
+     "nor_gl": "Models/vintage_electric_kettle/textures/vintage_electric_kettle_nor_gl_1k.exr",
+     "roughness": "Models/vintage_electric_kettle/textures/vintage_electric_kettle_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "SV Garip"
+   ]
+  },
+  {
+   "id": "pot_enamel_01",
+   "role": "kitchen.pot",
+   "name": "Pot Enamel 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/pot_enamel_01",
+   "fbx": "Models/pot_enamel_01/pot_enamel_01_1k.fbx",
+   "dims_m": [
+    0.263,
+    0.178,
+    0.18
+   ],
+   "tris": 11416,
+   "textures": [
+    "Models/pot_enamel_01/textures/pot_enamel_01_diff_1k.jpg",
+    "Models/pot_enamel_01/textures/pot_enamel_01_metal_1k.exr",
+    "Models/pot_enamel_01/textures/pot_enamel_01_nor_gl_1k.exr",
+    "Models/pot_enamel_01/textures/pot_enamel_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/pot_enamel_01/textures/pot_enamel_01_diff_1k.jpg",
+     "metallic": "Models/pot_enamel_01/textures/pot_enamel_01_metal_1k.exr",
+     "nor_gl": "Models/pot_enamel_01/textures/pot_enamel_01_nor_gl_1k.exr",
+     "roughness": "Models/pot_enamel_01/textures/pot_enamel_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Kuutti Siitonen"
+   ]
+  },
+  {
+   "id": "tea_set_01",
+   "role": "kitchen.dishes",
+   "alt_roles": [
+    "dining.dishes"
+   ],
+   "name": "Tea Set 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/tea_set_01",
+   "fbx": "Models/tea_set_01/tea_set_01_1k.fbx",
+   "dims_m": [
+    0.918,
+    0.165,
+    0.484
+   ],
+   "tris": 40296,
+   "textures": [
+    "Models/tea_set_01/textures/tea_set_01_diff_1k.jpg",
+    "Models/tea_set_01/textures/tea_set_01_metal_1k.exr",
+    "Models/tea_set_01/textures/tea_set_01_nor_gl_1k.exr",
+    "Models/tea_set_01/textures/tea_set_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/tea_set_01/textures/tea_set_01_diff_1k.jpg",
+     "metallic": "Models/tea_set_01/textures/tea_set_01_metal_1k.exr",
+     "nor_gl": "Models/tea_set_01/textures/tea_set_01_nor_gl_1k.exr",
+     "roughness": "Models/tea_set_01/textures/tea_set_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "James Ray Cock",
+    "Rico Cilliers",
+    "Jurita Burger"
+   ]
+  },
+  {
+   "id": "food_apple_01",
+   "role": "kitchen.fruit.1",
+   "name": "Food Apple 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/food_apple_01",
+   "fbx": "Models/food_apple_01/food_apple_01_1k.fbx",
+   "dims_m": [
+    0.098,
+    0.085,
+    0.096
+   ],
+   "tris": 7012,
+   "textures": [
+    "Models/food_apple_01/textures/food_apple_01_diff_1k.jpg",
+    "Models/food_apple_01/textures/food_apple_01_nor_gl_1k.exr",
+    "Models/food_apple_01/textures/food_apple_01_rough_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/food_apple_01/textures/food_apple_01_diff_1k.jpg",
+     "nor_gl": "Models/food_apple_01/textures/food_apple_01_nor_gl_1k.exr",
+     "roughness": "Models/food_apple_01/textures/food_apple_01_rough_1k.jpg"
+    }
+   },
+   "authors": [
+    "Oliver Harries"
+   ]
+  },
+  {
+   "id": "bananas",
+   "role": "kitchen.fruit.2",
+   "name": "Bananas",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/bananas",
+   "fbx": "Models/bananas/bananas_1k.fbx",
+   "dims_m": [
+    0.6,
+    0.179,
+    0.244
+   ],
+   "tris": 46868,
+   "textures": [
+    "Models/bananas/textures/bananas_diff_1k.jpg",
+    "Models/bananas/textures/bananas_nor_gl_1k.exr",
+    "Models/bananas/textures/bananas_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/bananas/textures/bananas_diff_1k.jpg",
+     "nor_gl": "Models/bananas/textures/bananas_nor_gl_1k.exr",
+     "roughness": "Models/bananas/textures/bananas_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Alexander Shulha"
+   ]
+  },
+  {
+   "id": "wooden_bowl_01",
+   "role": "kitchen.fruit_bowl",
+   "alt_roles": [
+    "dining.fruit_bowl"
+   ],
+   "name": "Wooden Bowl 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/wooden_bowl_01",
+   "fbx": "Models/wooden_bowl_01/wooden_bowl_01_1k.fbx",
+   "dims_m": [
+    0.313,
+    0.094,
+    0.309
+   ],
+   "tris": 14122,
+   "textures": [
+    "Models/wooden_bowl_01/textures/wooden_bowl_01_diff_1k.jpg",
+    "Models/wooden_bowl_01/textures/wooden_bowl_01_nor_gl_1k.exr",
+    "Models/wooden_bowl_01/textures/wooden_bowl_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/wooden_bowl_01/textures/wooden_bowl_01_diff_1k.jpg",
+     "nor_gl": "Models/wooden_bowl_01/textures/wooden_bowl_01_nor_gl_1k.exr",
+     "roughness": "Models/wooden_bowl_01/textures/wooden_bowl_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Oliver Harries"
+   ]
+  },
+  {
+   "id": "wooden_cutting_board",
+   "role": "kitchen.chopping_board",
+   "name": "Wooden Cutting Board",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/wooden_cutting_board",
+   "fbx": "Models/wooden_cutting_board/wooden_cutting_board_1k.fbx",
+   "dims_m": [
+    0.45,
+    0.041,
+    0.247
+   ],
+   "tris": 3520,
+   "textures": [
+    "Models/wooden_cutting_board/textures/wooden_cutting_board_diff_1k.jpg",
+    "Models/wooden_cutting_board/textures/wooden_cutting_board_nor_gl_1k.exr",
+    "Models/wooden_cutting_board/textures/wooden_cutting_board_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/wooden_cutting_board/textures/wooden_cutting_board_diff_1k.jpg",
+     "nor_gl": "Models/wooden_cutting_board/textures/wooden_cutting_board_nor_gl_1k.exr",
+     "roughness": "Models/wooden_cutting_board/textures/wooden_cutting_board_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Kuutti Siitonen"
+   ]
+  },
+  {
+   "id": "side_table_tall_01",
+   "role": "hall.console",
+   "name": "Side Table Tall 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/side_table_tall_01",
+   "fbx": "Models/side_table_tall_01/side_table_tall_01_1k.fbx",
+   "dims_m": [
+    0.384,
+    0.761,
+    0.384
+   ],
+   "tris": 6408,
+   "textures": [
+    "Models/side_table_tall_01/textures/side_table_tall_01_diff_1k.jpg",
+    "Models/side_table_tall_01/textures/side_table_tall_01_metal_1k.exr",
+    "Models/side_table_tall_01/textures/side_table_tall_01_nor_gl_1k.exr",
+    "Models/side_table_tall_01/textures/side_table_tall_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/side_table_tall_01/textures/side_table_tall_01_diff_1k.jpg",
+     "metallic": "Models/side_table_tall_01/textures/side_table_tall_01_metal_1k.exr",
+     "nor_gl": "Models/side_table_tall_01/textures/side_table_tall_01_nor_gl_1k.exr",
+     "roughness": "Models/side_table_tall_01/textures/side_table_tall_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "ornate_mirror_01",
+   "role": "hall.mirror",
+   "alt_roles": [
+    "bath.mirror",
+    "bedroom.mirror"
+   ],
+   "name": "Ornate Mirror 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/ornate_mirror_01",
+   "fbx": "Models/ornate_mirror_01/ornate_mirror_01_1k.fbx",
+   "dims_m": [
+    0.486,
+    0.744,
+    0.026
+   ],
+   "tris": 14246,
+   "textures": [
+    "Models/ornate_mirror_01/textures/ornate_mirror_01_diff_1k.jpg",
+    "Models/ornate_mirror_01/textures/ornate_mirror_01_metallic_1k.exr",
+    "Models/ornate_mirror_01/textures/ornate_mirror_01_nor_gl_1k.exr",
+    "Models/ornate_mirror_01/textures/ornate_mirror_01_roughness_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/ornate_mirror_01/textures/ornate_mirror_01_diff_1k.jpg",
+     "metallic": "Models/ornate_mirror_01/textures/ornate_mirror_01_metallic_1k.exr",
+     "nor_gl": "Models/ornate_mirror_01/textures/ornate_mirror_01_nor_gl_1k.exr",
+     "roughness": "Models/ornate_mirror_01/textures/ornate_mirror_01_roughness_1k.jpg"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "hanging_picture_frame_01",
+   "role": "hall.picture_frame",
+   "alt_roles": [
+    "living.picture_frame",
+    "study.picture_frame"
+   ],
+   "name": "Hanging Picture Frame 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/hanging_picture_frame_01",
+   "fbx": "Models/hanging_picture_frame_01/hanging_picture_frame_01_1k.fbx",
+   "dims_m": [
+    0.594,
+    0.841,
+    0.016
+   ],
+   "tris": 2586,
+   "textures": [
+    "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_artwork_diff_1k.png",
+    "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_artwork_nor_gl_1k.png",
+    "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_artwork_roughness_1k.png",
+    "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_diff_1k.jpg",
+    "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_metallic_1k.exr",
+    "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_nor_gl_1k.exr",
+    "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_opacity_1k.png",
+    "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_roughness_1k.jpg"
+   ],
+   "materials": {
+    "artwork": {
+     "diff": "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_artwork_diff_1k.png",
+     "nor_gl": "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_artwork_nor_gl_1k.png",
+     "roughness": "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_artwork_roughness_1k.png"
+    },
+    "_": {
+     "diff": "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_diff_1k.jpg",
+     "metallic": "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_metallic_1k.exr",
+     "nor_gl": "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_nor_gl_1k.exr",
+     "alpha": "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_opacity_1k.png",
+     "roughness": "Models/hanging_picture_frame_01/textures/hanging_picture_frame_01_roughness_1k.jpg"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "metal_office_desk",
+   "role": "study.desk",
+   "name": "Metal Office Desk",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/metal_office_desk",
+   "fbx": "Models/metal_office_desk/metal_office_desk_1k.fbx",
+   "dims_m": [
+    2.0,
+    0.788,
+    0.947
+   ],
+   "tris": 6898,
+   "textures": [
+    "Models/metal_office_desk/textures/metal_office_desk_diff_1k.jpg",
+    "Models/metal_office_desk/textures/metal_office_desk_metal_1k.exr",
+    "Models/metal_office_desk/textures/metal_office_desk_nor_gl_1k.exr",
+    "Models/metal_office_desk/textures/metal_office_desk_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/metal_office_desk/textures/metal_office_desk_diff_1k.jpg",
+     "metallic": "Models/metal_office_desk/textures/metal_office_desk_metal_1k.exr",
+     "nor_gl": "Models/metal_office_desk/textures/metal_office_desk_nor_gl_1k.exr",
+     "roughness": "Models/metal_office_desk/textures/metal_office_desk_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Ulan Cabanilla"
+   ]
+  },
+  {
+   "id": "vintage_wooden_drawer_01",
+   "role": "study.filing_cabinet",
+   "name": "Vintage Wooden Drawer 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/vintage_wooden_drawer_01",
+   "fbx": "Models/vintage_wooden_drawer_01/vintage_wooden_drawer_01_1k.fbx",
+   "dims_m": [
+    1.715,
+    1.091,
+    1.007
+   ],
+   "tris": 5184,
+   "textures": [
+    "Models/vintage_wooden_drawer_01/textures/vintage_wooden_drawer_01_diff_1k.jpg",
+    "Models/vintage_wooden_drawer_01/textures/vintage_wooden_drawer_01_metal_1k.exr",
+    "Models/vintage_wooden_drawer_01/textures/vintage_wooden_drawer_01_nor_gl_1k.exr",
+    "Models/vintage_wooden_drawer_01/textures/vintage_wooden_drawer_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/vintage_wooden_drawer_01/textures/vintage_wooden_drawer_01_diff_1k.jpg",
+     "metallic": "Models/vintage_wooden_drawer_01/textures/vintage_wooden_drawer_01_metal_1k.exr",
+     "nor_gl": "Models/vintage_wooden_drawer_01/textures/vintage_wooden_drawer_01_nor_gl_1k.exr",
+     "roughness": "Models/vintage_wooden_drawer_01/textures/vintage_wooden_drawer_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "painted_wooden_nightstand",
+   "role": "bedroom.nightstand",
+   "name": "Painted Wooden Nightstand",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/painted_wooden_nightstand",
+   "fbx": "Models/painted_wooden_nightstand/painted_wooden_nightstand_1k.fbx",
+   "dims_m": [
+    0.505,
+    0.616,
+    0.509
+   ],
+   "tris": 470,
+   "textures": [
+    "Models/painted_wooden_nightstand/textures/painted_wooden_nightstand_diff_1k.jpg",
+    "Models/painted_wooden_nightstand/textures/painted_wooden_nightstand_nor_gl_1k.exr",
+    "Models/painted_wooden_nightstand/textures/painted_wooden_nightstand_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/painted_wooden_nightstand/textures/painted_wooden_nightstand_diff_1k.jpg",
+     "nor_gl": "Models/painted_wooden_nightstand/textures/painted_wooden_nightstand_nor_gl_1k.exr",
+     "roughness": "Models/painted_wooden_nightstand/textures/painted_wooden_nightstand_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Kirill Sannikov"
+   ]
+  },
+  {
+   "id": "drawer_cabinet",
+   "role": "bedroom.dresser",
+   "name": "Drawer Cabinet",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/drawer_cabinet",
+   "fbx": "Models/drawer_cabinet/drawer_cabinet_1k.fbx",
+   "dims_m": [
+    1.141,
+    1.881,
+    0.488
+   ],
+   "tris": 26406,
+   "textures": [
+    "Models/drawer_cabinet/textures/drawer_cabinet_diff_1k.jpg",
+    "Models/drawer_cabinet/textures/drawer_cabinet_metallic_1k.exr",
+    "Models/drawer_cabinet/textures/drawer_cabinet_nor_gl_1k.exr",
+    "Models/drawer_cabinet/textures/drawer_cabinet_roughness_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/drawer_cabinet/textures/drawer_cabinet_diff_1k.jpg",
+     "metallic": "Models/drawer_cabinet/textures/drawer_cabinet_metallic_1k.exr",
+     "nor_gl": "Models/drawer_cabinet/textures/drawer_cabinet_nor_gl_1k.exr",
+     "roughness": "Models/drawer_cabinet/textures/drawer_cabinet_roughness_1k.jpg"
+    }
+   },
+   "authors": [
+    "Ulan Cabanilla"
+   ]
+  },
+  {
+   "id": "SchoolDesk_01",
+   "role": "bedroom.kid_desk",
+   "name": "School Desk 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/SchoolDesk_01",
+   "fbx": "Models/SchoolDesk_01/SchoolDesk_01_1k.fbx",
+   "dims_m": [
+    0.712,
+    0.883,
+    0.546
+   ],
+   "tris": 4162,
+   "textures": [
+    "Models/SchoolDesk_01/textures/SchoolDesk_01_diff_1k.jpg",
+    "Models/SchoolDesk_01/textures/SchoolDesk_01_metallic_1k.exr",
+    "Models/SchoolDesk_01/textures/SchoolDesk_01_nor_gl_1k.exr",
+    "Models/SchoolDesk_01/textures/SchoolDesk_01_roughness_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/SchoolDesk_01/textures/SchoolDesk_01_diff_1k.jpg",
+     "metallic": "Models/SchoolDesk_01/textures/SchoolDesk_01_metallic_1k.exr",
+     "nor_gl": "Models/SchoolDesk_01/textures/SchoolDesk_01_nor_gl_1k.exr",
+     "roughness": "Models/SchoolDesk_01/textures/SchoolDesk_01_roughness_1k.jpg"
+    }
+   },
+   "authors": [
+    "Ethan Place"
+   ]
+  },
+  {
+   "id": "SchoolChair_01",
+   "role": "bedroom.kid_chair",
+   "alt_roles": [
+    "study.chair"
+   ],
+   "name": "School Chair 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/SchoolChair_01",
+   "fbx": "Models/SchoolChair_01/SchoolChair_01_1k.fbx",
+   "dims_m": [
+    0.566,
+    1.006,
+    0.675
+   ],
+   "tris": 5072,
+   "textures": [
+    "Models/SchoolChair_01/textures/SchoolChair_01_diff_1k.jpg",
+    "Models/SchoolChair_01/textures/SchoolChair_01_metallic_1k.exr",
+    "Models/SchoolChair_01/textures/SchoolChair_01_nor_gl_1k.exr",
+    "Models/SchoolChair_01/textures/SchoolChair_01_roughness_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/SchoolChair_01/textures/SchoolChair_01_diff_1k.jpg",
+     "metallic": "Models/SchoolChair_01/textures/SchoolChair_01_metallic_1k.exr",
+     "nor_gl": "Models/SchoolChair_01/textures/SchoolChair_01_nor_gl_1k.exr",
+     "roughness": "Models/SchoolChair_01/textures/SchoolChair_01_roughness_1k.jpg"
+    }
+   },
+   "authors": [
+    "Ethan Place"
+   ]
+  },
+  {
+   "id": "alarm_clock_01",
+   "role": "bedroom.alarm_clock",
+   "name": "Alarm Clock 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/alarm_clock_01",
+   "fbx": "Models/alarm_clock_01/alarm_clock_01_1k.fbx",
+   "dims_m": [
+    0.228,
+    0.174,
+    0.168
+   ],
+   "tris": 13006,
+   "textures": [
+    "Models/alarm_clock_01/textures/alarm_clock_01_diff_1k.jpg",
+    "Models/alarm_clock_01/textures/alarm_clock_01_metal_1k.exr",
+    "Models/alarm_clock_01/textures/alarm_clock_01_nor_gl_1k.exr",
+    "Models/alarm_clock_01/textures/alarm_clock_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/alarm_clock_01/textures/alarm_clock_01_diff_1k.jpg",
+     "metallic": "Models/alarm_clock_01/textures/alarm_clock_01_metal_1k.exr",
+     "nor_gl": "Models/alarm_clock_01/textures/alarm_clock_01_nor_gl_1k.exr",
+     "roughness": "Models/alarm_clock_01/textures/alarm_clock_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Yann Kervran",
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "wooden_crate_01",
+   "role": "bedroom.toy_chest",
+   "alt_roles": [
+    "attic.trunk"
+   ],
+   "name": "Wooden Crate 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/wooden_crate_01",
+   "fbx": "Models/wooden_crate_01/wooden_crate_01_1k.fbx",
+   "dims_m": [
+    0.825,
+    0.35,
+    0.409
+   ],
+   "tris": 6576,
+   "textures": [
+    "Models/wooden_crate_01/textures/wooden_crate_01_diff_1k.jpg",
+    "Models/wooden_crate_01/textures/wooden_crate_01_metal_1k.exr",
+    "Models/wooden_crate_01/textures/wooden_crate_01_nor_gl_1k.exr",
+    "Models/wooden_crate_01/textures/wooden_crate_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/wooden_crate_01/textures/wooden_crate_01_diff_1k.jpg",
+     "metallic": "Models/wooden_crate_01/textures/wooden_crate_01_metal_1k.exr",
+     "nor_gl": "Models/wooden_crate_01/textures/wooden_crate_01_nor_gl_1k.exr",
+     "roughness": "Models/wooden_crate_01/textures/wooden_crate_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ]
+  },
+  {
+   "id": "rubber_duck_toy",
+   "role": "bath.toy",
+   "alt_roles": [
+    "bedroom.toy"
+   ],
+   "name": "Rubber Duck Toy",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/rubber_duck_toy",
+   "fbx": "Models/rubber_duck_toy/rubber_duck_toy_1k.fbx",
+   "dims_m": [
+    0.214,
+    0.286,
+    0.3
+   ],
+   "tris": 4288,
+   "textures": [
+    "Models/rubber_duck_toy/textures/rubber_duck_toy_diff_1k.jpg",
+    "Models/rubber_duck_toy/textures/rubber_duck_toy_metal_1k.exr",
+    "Models/rubber_duck_toy/textures/rubber_duck_toy_nor_gl_1k.exr",
+    "Models/rubber_duck_toy/textures/rubber_duck_toy_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/rubber_duck_toy/textures/rubber_duck_toy_diff_1k.jpg",
+     "metallic": "Models/rubber_duck_toy/textures/rubber_duck_toy_metal_1k.exr",
+     "nor_gl": "Models/rubber_duck_toy/textures/rubber_duck_toy_nor_gl_1k.exr",
+     "roughness": "Models/rubber_duck_toy/textures/rubber_duck_toy_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Plat251"
+   ]
+  },
+  {
+   "id": "WoodenTable_03",
+   "role": "garage.workbench",
+   "alt_roles": [
+    "basement.workbench"
+   ],
+   "name": "Wooden Table 03",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/WoodenTable_03",
+   "fbx": "Models/WoodenTable_03/WoodenTable_03_1k.fbx",
+   "dims_m": [
+    1.327,
+    0.83,
+    0.562
+   ],
+   "tris": 2298,
+   "textures": [
+    "Models/WoodenTable_03/textures/WoodenTable_03_diff_1k.jpg",
+    "Models/WoodenTable_03/textures/WoodenTable_03_metallic_1k.exr",
+    "Models/WoodenTable_03/textures/WoodenTable_03_nor_gl_1k.exr",
+    "Models/WoodenTable_03/textures/WoodenTable_03_roughness_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/WoodenTable_03/textures/WoodenTable_03_diff_1k.jpg",
+     "metallic": "Models/WoodenTable_03/textures/WoodenTable_03_metallic_1k.exr",
+     "nor_gl": "Models/WoodenTable_03/textures/WoodenTable_03_nor_gl_1k.exr",
+     "roughness": "Models/WoodenTable_03/textures/WoodenTable_03_roughness_1k.jpg"
+    }
+   },
+   "authors": [
+    "Gabriel Radić"
+   ]
+  },
+  {
+   "id": "worn_metal_rack",
+   "role": "garage.shelves",
+   "alt_roles": [
+    "basement.shelves"
+   ],
+   "name": "Worn Metal Rack",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/worn_metal_rack",
+   "fbx": "Models/worn_metal_rack/worn_metal_rack_1k.fbx",
+   "dims_m": [
+    0.915,
+    1.9,
+    0.6
+   ],
+   "tris": 6372,
+   "textures": [
+    "Models/worn_metal_rack/textures/worn_metal_rack_diff_1k.jpg",
+    "Models/worn_metal_rack/textures/worn_metal_rack_metal_1k.exr",
+    "Models/worn_metal_rack/textures/worn_metal_rack_nor_gl_1k.exr",
+    "Models/worn_metal_rack/textures/worn_metal_rack_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/worn_metal_rack/textures/worn_metal_rack_diff_1k.jpg",
+     "metallic": "Models/worn_metal_rack/textures/worn_metal_rack_metal_1k.exr",
+     "nor_gl": "Models/worn_metal_rack/textures/worn_metal_rack_nor_gl_1k.exr",
+     "roughness": "Models/worn_metal_rack/textures/worn_metal_rack_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Luca B"
+   ]
+  },
+  {
+   "id": "metal_tool_chest",
+   "role": "garage.toolbox",
+   "alt_roles": [
+    "basement.toolbox"
+   ],
+   "name": "Metal Tool Chest",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/metal_tool_chest",
+   "fbx": "Models/metal_tool_chest/metal_tool_chest_1k.fbx",
+   "dims_m": [
+    0.685,
+    0.652,
+    0.407
+   ],
+   "tris": 14576,
+   "textures": [
+    "Models/metal_tool_chest/textures/metal_tool_chest_diff_1k.jpg",
+    "Models/metal_tool_chest/textures/metal_tool_chest_metal_1k.exr",
+    "Models/metal_tool_chest/textures/metal_tool_chest_nor_gl_1k.exr",
+    "Models/metal_tool_chest/textures/metal_tool_chest_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/metal_tool_chest/textures/metal_tool_chest_diff_1k.jpg",
+     "metallic": "Models/metal_tool_chest/textures/metal_tool_chest_metal_1k.exr",
+     "nor_gl": "Models/metal_tool_chest/textures/metal_tool_chest_nor_gl_1k.exr",
+     "roughness": "Models/metal_tool_chest/textures/metal_tool_chest_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Yann Kervran",
+    "John Hutcheson"
+   ]
+  },
+  {
+   "id": "cardboard_box_01",
+   "role": "basement.box",
+   "alt_roles": [
+    "garage.box",
+    "attic.box"
+   ],
+   "name": "Cardboard Box 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/cardboard_box_01",
+   "fbx": "Models/cardboard_box_01/cardboard_box_01_1k.fbx",
+   "dims_m": [
+    0.387,
+    0.342,
+    0.516
+   ],
+   "tris": 16952,
+   "textures": [
+    "Models/cardboard_box_01/textures/cardboard_box_01_diff_1k.jpg",
+    "Models/cardboard_box_01/textures/cardboard_box_01_nor_gl_1k.exr",
+    "Models/cardboard_box_01/textures/cardboard_box_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/cardboard_box_01/textures/cardboard_box_01_diff_1k.jpg",
+     "nor_gl": "Models/cardboard_box_01/textures/cardboard_box_01_nor_gl_1k.exr",
+     "roughness": "Models/cardboard_box_01/textures/cardboard_box_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Rahul Chaudhary"
+   ]
+  },
+  {
+   "id": "plastic_jerrycan",
+   "role": "garage.gas_can",
+   "name": "Plastic Jerrycan",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/plastic_jerrycan",
+   "fbx": "Models/plastic_jerrycan/plastic_jerrycan_1k.fbx",
+   "dims_m": [
+    0.268,
+    0.318,
+    0.341
+   ],
+   "tris": 7348,
+   "textures": [
+    "Models/plastic_jerrycan/textures/plastic_jerrycan_diff_1k.jpg",
+    "Models/plastic_jerrycan/textures/plastic_jerrycan_nor_gl_1k.exr",
+    "Models/plastic_jerrycan/textures/plastic_jerrycan_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/plastic_jerrycan/textures/plastic_jerrycan_diff_1k.jpg",
+     "nor_gl": "Models/plastic_jerrycan/textures/plastic_jerrycan_nor_gl_1k.exr",
+     "roughness": "Models/plastic_jerrycan/textures/plastic_jerrycan_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Ulan Cabanilla"
+   ]
+  },
+  {
+   "id": "covered_car",
+   "role": "garage.car",
+   "name": "Covered Car",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/covered_car",
+   "fbx": "Models/covered_car/covered_car_1k.fbx",
+   "dims_m": [
+    1.789,
+    1.411,
+    4.38
+   ],
+   "tris": 12592,
+   "textures": [
+    "Models/covered_car/textures/covered_car_diff_1k.jpg",
+    "Models/covered_car/textures/covered_car_metal_1k.exr",
+    "Models/covered_car/textures/covered_car_nor_gl_1k.exr",
+    "Models/covered_car/textures/covered_car_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/covered_car/textures/covered_car_diff_1k.jpg",
+     "metallic": "Models/covered_car/textures/covered_car_metal_1k.exr",
+     "nor_gl": "Models/covered_car/textures/covered_car_nor_gl_1k.exr",
+     "roughness": "Models/covered_car/textures/covered_car_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "MP"
+   ],
+   "note": "A car under a dust cover (no CC0 uncovered family car on Poly Haven)."
+  },
+  {
+   "id": "Rockingchair_01",
+   "role": "attic.rocking_chair",
+   "name": "Rockingchair 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/Rockingchair_01",
+   "fbx": "Models/Rockingchair_01/Rockingchair_01_1k.fbx",
+   "dims_m": [
+    0.708,
+    0.995,
+    0.833
+   ],
+   "tris": 11866,
+   "textures": [
+    "Models/Rockingchair_01/textures/Rockingchair_01_diff_1k.jpg",
+    "Models/Rockingchair_01/textures/Rockingchair_01_metallic_1k.exr",
+    "Models/Rockingchair_01/textures/Rockingchair_01_nor_gl_1k.exr",
+    "Models/Rockingchair_01/textures/Rockingchair_01_roughness_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/Rockingchair_01/textures/Rockingchair_01_diff_1k.jpg",
+     "metallic": "Models/Rockingchair_01/textures/Rockingchair_01_metallic_1k.exr",
+     "nor_gl": "Models/Rockingchair_01/textures/Rockingchair_01_nor_gl_1k.exr",
+     "roughness": "Models/Rockingchair_01/textures/Rockingchair_01_roughness_1k.jpg"
+    }
+   },
+   "authors": [
+    "Jorge Camacho"
+   ]
+  },
+  {
+   "id": "vintage_oil_lamp",
+   "role": "attic.lamp",
+   "name": "Vintage Oil Lamp",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/vintage_oil_lamp",
+   "fbx": "Models/vintage_oil_lamp/vintage_oil_lamp_1k.fbx",
+   "dims_m": [
+    0.22,
+    0.802,
+    0.22
+   ],
+   "tris": 7208,
+   "textures": [
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_diff_1k.jpg",
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_flame_alpha_1k.png",
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_flame_diff_1k.png",
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_glass_alpha_1k.png",
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_glass_diff_1k.png",
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_glass_metal_1k.png",
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_glass_nor_gl_1k.png",
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_glass_rough_1k.png",
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_metal_1k.exr",
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_nor_gl_1k.exr",
+    "Models/vintage_oil_lamp/textures/vintage_oil_lamp_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_diff_1k.jpg",
+     "metallic": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_metal_1k.exr",
+     "nor_gl": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_nor_gl_1k.exr",
+     "roughness": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_rough_1k.exr"
+    },
+    "flame": {
+     "alpha": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_flame_alpha_1k.png",
+     "diff": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_flame_diff_1k.png"
+    },
+    "glass": {
+     "alpha": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_glass_alpha_1k.png",
+     "diff": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_glass_diff_1k.png",
+     "metallic": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_glass_metal_1k.png",
+     "nor_gl": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_glass_nor_gl_1k.png",
+     "roughness": "Models/vintage_oil_lamp/textures/vintage_oil_lamp_glass_rough_1k.png"
+    }
+   },
+   "authors": [
+    "Monsta3D"
+   ]
+  },
+  {
+   "id": "binoculars",
+   "role": "attic.binoculars",
+   "name": "Binoculars",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/binoculars",
+   "fbx": "Models/binoculars/binoculars_1k.fbx",
+   "dims_m": [
+    0.167,
+    0.077,
+    0.288
+   ],
+   "tris": 19248,
+   "textures": [
+    "Models/binoculars/textures/binoculars_alpha_1k.png",
+    "Models/binoculars/textures/binoculars_diff_1k.jpg",
+    "Models/binoculars/textures/binoculars_metal_1k.exr",
+    "Models/binoculars/textures/binoculars_nor_gl_1k.exr",
+    "Models/binoculars/textures/binoculars_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "alpha": "Models/binoculars/textures/binoculars_alpha_1k.png",
+     "diff": "Models/binoculars/textures/binoculars_diff_1k.jpg",
+     "metallic": "Models/binoculars/textures/binoculars_metal_1k.exr",
+     "nor_gl": "Models/binoculars/textures/binoculars_nor_gl_1k.exr",
+     "roughness": "Models/binoculars/textures/binoculars_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Derek Wight"
+   ]
+  },
+  {
+   "id": "plastic_monobloc_chair_01",
+   "role": "yard.patio_chair",
+   "name": "Plastic Monobloc Chair 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/plastic_monobloc_chair_01",
+   "fbx": "Models/plastic_monobloc_chair_01/plastic_monobloc_chair_01_1k.fbx",
+   "dims_m": [
+    0.642,
+    0.88,
+    0.628
+   ],
+   "tris": 3356,
+   "textures": [
+    "Models/plastic_monobloc_chair_01/textures/plastic_monobloc_chair_01_diff_1k.jpg",
+    "Models/plastic_monobloc_chair_01/textures/plastic_monobloc_chair_01_metal_1k.exr",
+    "Models/plastic_monobloc_chair_01/textures/plastic_monobloc_chair_01_nor_gl_1k.exr",
+    "Models/plastic_monobloc_chair_01/textures/plastic_monobloc_chair_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/plastic_monobloc_chair_01/textures/plastic_monobloc_chair_01_diff_1k.jpg",
+     "metallic": "Models/plastic_monobloc_chair_01/textures/plastic_monobloc_chair_01_metal_1k.exr",
+     "nor_gl": "Models/plastic_monobloc_chair_01/textures/plastic_monobloc_chair_01_nor_gl_1k.exr",
+     "roughness": "Models/plastic_monobloc_chair_01/textures/plastic_monobloc_chair_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Kuutti Siitonen"
+   ]
+  },
+  {
+   "id": "round_wooden_table_02",
+   "role": "yard.patio_table",
+   "name": "Round Wooden Table 02",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/round_wooden_table_02",
+   "fbx": "Models/round_wooden_table_02/round_wooden_table_02_1k.fbx",
+   "dims_m": [
+    0.796,
+    0.746,
+    0.796
+   ],
+   "tris": 4254,
+   "textures": [
+    "Models/round_wooden_table_02/textures/round_wooden_table_02_diff_1k.jpg",
+    "Models/round_wooden_table_02/textures/round_wooden_table_02_metal_1k.exr",
+    "Models/round_wooden_table_02/textures/round_wooden_table_02_nor_gl_1k.exr",
+    "Models/round_wooden_table_02/textures/round_wooden_table_02_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/round_wooden_table_02/textures/round_wooden_table_02_diff_1k.jpg",
+     "metallic": "Models/round_wooden_table_02/textures/round_wooden_table_02_metal_1k.exr",
+     "nor_gl": "Models/round_wooden_table_02/textures/round_wooden_table_02_nor_gl_1k.exr",
+     "roughness": "Models/round_wooden_table_02/textures/round_wooden_table_02_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Ulan Cabanilla"
+   ]
+  },
+  {
+   "id": "painted_wooden_bench",
+   "role": "yard.bench",
+   "name": "Painted Wooden Bench",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/painted_wooden_bench",
+   "fbx": "Models/painted_wooden_bench/painted_wooden_bench_1k.fbx",
+   "dims_m": [
+    1.165,
+    0.889,
+    0.497
+   ],
+   "tris": 630,
+   "textures": [
+    "Models/painted_wooden_bench/textures/painted_wooden_bench_diff_1k.jpg",
+    "Models/painted_wooden_bench/textures/painted_wooden_bench_nor_gl_1k.exr",
+    "Models/painted_wooden_bench/textures/painted_wooden_bench_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/painted_wooden_bench/textures/painted_wooden_bench_diff_1k.jpg",
+     "nor_gl": "Models/painted_wooden_bench/textures/painted_wooden_bench_nor_gl_1k.exr",
+     "roughness": "Models/painted_wooden_bench/textures/painted_wooden_bench_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Kirill Sannikov"
+   ]
+  },
+  {
+   "id": "stone_fire_pit",
+   "role": "yard.firepit",
+   "name": "Stone Fire Pit",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/stone_fire_pit",
+   "fbx": "Models/stone_fire_pit/stone_fire_pit_1k.fbx",
+   "dims_m": [
+    1.448,
+    0.388,
+    1.433
+   ],
+   "tris": 3887,
+   "textures": [
+    "Models/stone_fire_pit/textures/stone_fire_pit_diff_1k.jpg",
+    "Models/stone_fire_pit/textures/stone_fire_pit_nor_gl_1k.exr",
+    "Models/stone_fire_pit/textures/stone_fire_pit_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/stone_fire_pit/textures/stone_fire_pit_diff_1k.jpg",
+     "nor_gl": "Models/stone_fire_pit/textures/stone_fire_pit_nor_gl_1k.exr",
+     "roughness": "Models/stone_fire_pit/textures/stone_fire_pit_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Sebastian Platen"
+   ]
+  },
+  {
+   "id": "shrub_02",
+   "role": "yard.shrub",
+   "name": "Shrub 02",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/shrub_02",
+   "fbx": "Models/shrub_02/shrub_02_1k.fbx",
+   "dims_m": [
+    5.341,
+    2.071,
+    2.061
+   ],
+   "tris": 52317,
+   "textures": [
+    "Models/shrub_02/textures/shrub_02_alpha_1k.png",
+    "Models/shrub_02/textures/shrub_02_diff_1k.jpg",
+    "Models/shrub_02/textures/shrub_02_mask_1k.png",
+    "Models/shrub_02/textures/shrub_02_nor_gl_1k.exr",
+    "Models/shrub_02/textures/shrub_02_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "alpha": "Models/shrub_02/textures/shrub_02_alpha_1k.png",
+     "diff": "Models/shrub_02/textures/shrub_02_diff_1k.jpg",
+     "mask": "Models/shrub_02/textures/shrub_02_mask_1k.png",
+     "nor_gl": "Models/shrub_02/textures/shrub_02_nor_gl_1k.exr",
+     "roughness": "Models/shrub_02/textures/shrub_02_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Rico Cilliers"
+   ],
+   "note": "Foliage: needs alpha cutout (shrub_02_alpha_1k.png). The bounding box (5.3 m wide) suggests the FBX holds several shrub variants spread along X; split or pick one after import."
+  },
+  {
+   "id": "planter_pot_clay",
+   "role": "yard.flower_pot",
+   "name": "Planter Pot Clay",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/planter_pot_clay",
+   "fbx": "Models/planter_pot_clay/planter_pot_clay_1k.fbx",
+   "dims_m": [
+    0.266,
+    0.222,
+    0.263
+   ],
+   "tris": 3080,
+   "textures": [
+    "Models/planter_pot_clay/textures/planter_pot_clay_diff_1k.jpg",
+    "Models/planter_pot_clay/textures/planter_pot_clay_nor_gl_1k.exr",
+    "Models/planter_pot_clay/textures/planter_pot_clay_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/planter_pot_clay/textures/planter_pot_clay_diff_1k.jpg",
+     "nor_gl": "Models/planter_pot_clay/textures/planter_pot_clay_nor_gl_1k.exr",
+     "roughness": "Models/planter_pot_clay/textures/planter_pot_clay_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Amal Kumar"
+   ]
+  }
+ ],
+ "surfaces": [
+  {
+   "id": "wood_floor",
+   "role": "floor.wood",
+   "alt_roles": [
+    "stairs.wood"
+   ],
+   "name": "Wood Floor",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/wood_floor",
+   "albedo": "Textures/wood_floor/wood_floor_diff_1k.jpg",
+   "normal": "Textures/wood_floor/wood_floor_nor_gl_1k.jpg",
+   "roughness": "Textures/wood_floor/wood_floor_rough_1k.jpg",
+   "ao": "Textures/wood_floor/wood_floor_ao_1k.jpg",
+   "arm": null,
+   "size_m": 1.7,
+   "authors": [
+    "Dimitrios Savva"
+   ]
+  },
+  {
+   "id": "wood_floor_worn",
+   "role": "floor.attic",
+   "alt_roles": [
+    "attic.planks"
+   ],
+   "name": "Wood Floor Worn",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/wood_floor_worn",
+   "albedo": "Textures/wood_floor_worn/wood_floor_worn_diff_1k.jpg",
+   "normal": "Textures/wood_floor_worn/wood_floor_worn_nor_gl_1k.jpg",
+   "roughness": "Textures/wood_floor_worn/wood_floor_worn_rough_1k.jpg",
+   "ao": "Textures/wood_floor_worn/wood_floor_worn_ao_1k.jpg",
+   "arm": null,
+   "size_m": 2.0,
+   "authors": [
+    "Dimitrios Savva"
+   ]
+  },
+  {
+   "id": "white_plaster_02",
+   "role": "wall.plaster",
+   "alt_roles": [
+    "ceiling.plaster"
+   ],
+   "name": "White Plaster 02",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/white_plaster_02",
+   "albedo": "Textures/white_plaster_02/white_plaster_02_diff_1k.jpg",
+   "normal": "Textures/white_plaster_02/white_plaster_02_nor_gl_1k.jpg",
+   "roughness": "Textures/white_plaster_02/white_plaster_02_rough_1k.jpg",
+   "ao": "Textures/white_plaster_02/white_plaster_02_ao_1k.jpg",
+   "arm": null,
+   "size_m": 1.0,
+   "authors": [
+    "Rob Tuytel"
+   ]
+  },
+  {
+   "id": "beige_wall_001",
+   "role": "wall.plaster.2",
+   "name": "Beige Wall 001",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/beige_wall_001",
+   "albedo": "Textures/beige_wall_001/beige_wall_001_diff_1k.jpg",
+   "normal": "Textures/beige_wall_001/beige_wall_001_nor_gl_1k.jpg",
+   "roughness": "Textures/beige_wall_001/beige_wall_001_rough_1k.jpg",
+   "ao": "Textures/beige_wall_001/beige_wall_001_ao_1k.jpg",
+   "arm": null,
+   "size_m": 3.0,
+   "authors": [
+    "Dimitrios Savva",
+    "Rico Cilliers"
+   ]
+  },
+  {
+   "id": "wooden_panels",
+   "role": "wall.panelling",
+   "name": "Wooden Panels",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/wooden_panels",
+   "albedo": "Textures/wooden_panels/wooden_panels_diff_1k.jpg",
+   "normal": "Textures/wooden_panels/wooden_panels_nor_gl_1k.jpg",
+   "roughness": "Textures/wooden_panels/wooden_panels_rough_1k.jpg",
+   "ao": "Textures/wooden_panels/wooden_panels_ao_1k.jpg",
+   "arm": null,
+   "size_m": 2.1,
+   "authors": [
+    "Dimitrios Savva"
+   ]
+  },
+  {
+   "id": "Tiles133A",
+   "role": "wall.kitchen_tile",
+   "alt_roles": [
+    "wall.bath_tile"
+   ],
+   "name": "Tiles 133 A",
+   "source": "ambientcg",
+   "url": "https://ambientcg.com/a/Tiles133A",
+   "albedo": "Textures/Tiles133A/Tiles133A_1K-JPG_Color.jpg",
+   "normal": "Textures/Tiles133A/Tiles133A_1K-JPG_NormalGL.jpg",
+   "roughness": "Textures/Tiles133A/Tiles133A_1K-JPG_Roughness.jpg",
+   "ao": "Textures/Tiles133A/Tiles133A_1K-JPG_AmbientOcclusion.jpg",
+   "arm": null,
+   "size_m": 1.0,
+   "authors": [
+    "ambientCG (Lennart Demes)"
+   ],
+   "size_note": "ambientCG lists no physical size; 1.0 m estimated from the preview (about ten ~10 cm square tiles per repeat)."
+  },
+  {
+   "id": "old_linoleum_flooring_01",
+   "role": "floor.kitchen",
+   "name": "Old Linoleum Flooring 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/old_linoleum_flooring_01",
+   "albedo": "Textures/old_linoleum_flooring_01/old_linoleum_flooring_01_diff_1k.jpg",
+   "normal": "Textures/old_linoleum_flooring_01/old_linoleum_flooring_01_nor_gl_1k.jpg",
+   "roughness": "Textures/old_linoleum_flooring_01/old_linoleum_flooring_01_rough_1k.jpg",
+   "ao": "Textures/old_linoleum_flooring_01/old_linoleum_flooring_01_ao_1k.jpg",
+   "arm": null,
+   "size_m": 1.99,
+   "authors": [
+    "Charlotte Baglioni"
+   ]
+  },
+  {
+   "id": "interior_tiles",
+   "role": "floor.bath",
+   "name": "Interior Tiles",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/interior_tiles",
+   "albedo": "Textures/interior_tiles/interior_tiles_diff_1k.jpg",
+   "normal": "Textures/interior_tiles/interior_tiles_nor_gl_1k.jpg",
+   "roughness": "Textures/interior_tiles/interior_tiles_rough_1k.jpg",
+   "ao": "Textures/interior_tiles/interior_tiles_ao_1k.jpg",
+   "arm": null,
+   "size_m": 1.9,
+   "authors": [
+    "Charlotte Baglioni"
+   ]
+  },
+  {
+   "id": "Carpet016",
+   "role": "floor.carpet",
+   "alt_roles": [
+    "stairs.carpet"
+   ],
+   "name": "Carpet 016",
+   "source": "ambientcg",
+   "url": "https://ambientcg.com/a/Carpet016",
+   "albedo": "Textures/Carpet016/Carpet016_1K-JPG_Color.jpg",
+   "normal": "Textures/Carpet016/Carpet016_1K-JPG_NormalGL.jpg",
+   "roughness": "Textures/Carpet016/Carpet016_1K-JPG_Roughness.jpg",
+   "ao": "Textures/Carpet016/Carpet016_1K-JPG_AmbientOcclusion.jpg",
+   "arm": null,
+   "size_m": 1.7,
+   "authors": [
+    "ambientCG (Lennart Demes)"
+   ]
+  },
+  {
+   "id": "garage_floor",
+   "role": "floor.concrete",
+   "alt_roles": [
+    "wall.concrete"
+   ],
+   "name": "Garage Floor",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/garage_floor",
+   "albedo": "Textures/garage_floor/garage_floor_diff_1k.jpg",
+   "normal": "Textures/garage_floor/garage_floor_nor_gl_1k.jpg",
+   "roughness": "Textures/garage_floor/garage_floor_rough_1k.jpg",
+   "ao": "Textures/garage_floor/garage_floor_ao_1k.jpg",
+   "arm": null,
+   "size_m": 1.89,
+   "authors": [
+    "Jenelle van Heerden"
+   ]
+  },
+  {
+   "id": "red_brick",
+   "role": "wall.brick",
+   "alt_roles": [
+    "exterior.chimney"
+   ],
+   "name": "Red Brick",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/red_brick",
+   "albedo": "Textures/red_brick/red_brick_diff_1k.jpg",
+   "normal": "Textures/red_brick/red_brick_nor_gl_1k.jpg",
+   "roughness": "Textures/red_brick/red_brick_rough_1k.jpg",
+   "ao": "Textures/red_brick/red_brick_ao_1k.jpg",
+   "arm": null,
+   "size_m": 1.4,
+   "authors": [
+    "Rob Tuytel"
+   ]
+  },
+  {
+   "id": "white_planks_clean",
+   "role": "exterior.siding",
+   "name": "White Planks Clean",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/white_planks_clean",
+   "albedo": "Textures/white_planks_clean/white_planks_clean_diff_1k.jpg",
+   "normal": "Textures/white_planks_clean/white_planks_clean_nor_gl_1k.jpg",
+   "roughness": "Textures/white_planks_clean/white_planks_clean_rough_1k.jpg",
+   "ao": "Textures/white_planks_clean/white_planks_clean_ao_1k.jpg",
+   "arm": null,
+   "size_m": 1.8,
+   "authors": [
+    "Rob Tuytel"
+   ]
+  },
+  {
+   "id": "RoofingTiles009",
+   "role": "roof.tiles",
+   "name": "Roofing Tiles 009",
+   "source": "ambientcg",
+   "url": "https://ambientcg.com/a/RoofingTiles009",
+   "albedo": "Textures/RoofingTiles009/RoofingTiles009_1K-JPG_Color.jpg",
+   "normal": "Textures/RoofingTiles009/RoofingTiles009_1K-JPG_NormalGL.jpg",
+   "roughness": "Textures/RoofingTiles009/RoofingTiles009_1K-JPG_Roughness.jpg",
+   "ao": "Textures/RoofingTiles009/RoofingTiles009_1K-JPG_AmbientOcclusion.jpg",
+   "arm": null,
+   "size_m": 3.2,
+   "authors": [
+    "ambientCG (Lennart Demes)"
+   ]
+  },
+  {
+   "id": "Grass004",
+   "role": "ground.grass",
+   "name": "Grass 004",
+   "source": "ambientcg",
+   "url": "https://ambientcg.com/a/Grass004",
+   "albedo": "Textures/Grass004/Grass004_1K-JPG_Color.jpg",
+   "normal": "Textures/Grass004/Grass004_1K-JPG_NormalGL.jpg",
+   "roughness": "Textures/Grass004/Grass004_1K-JPG_Roughness.jpg",
+   "ao": "Textures/Grass004/Grass004_1K-JPG_AmbientOcclusion.jpg",
+   "arm": null,
+   "size_m": 1.4,
+   "authors": [
+    "ambientCG (Lennart Demes)"
+   ]
+  },
+  {
+   "id": "farm_soil",
+   "role": "ground.soil",
+   "name": "Farm Soil",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/farm_soil",
+   "albedo": "Textures/farm_soil/farm_soil_diff_1k.jpg",
+   "normal": "Textures/farm_soil/farm_soil_nor_gl_1k.jpg",
+   "roughness": "Textures/farm_soil/farm_soil_rough_1k.jpg",
+   "ao": "Textures/farm_soil/farm_soil_ao_1k.jpg",
+   "arm": null,
+   "size_m": 2.0,
+   "authors": [
+    "Amal Kumar"
+   ]
+  },
+  {
+   "id": "concrete_pavers",
+   "role": "ground.paving",
+   "name": "Concrete Pavers",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/concrete_pavers",
+   "albedo": "Textures/concrete_pavers/concrete_pavers_diff_1k.jpg",
+   "normal": "Textures/concrete_pavers/concrete_pavers_nor_gl_1k.jpg",
+   "roughness": "Textures/concrete_pavers/concrete_pavers_rough_1k.jpg",
+   "ao": "Textures/concrete_pavers/concrete_pavers_ao_1k.jpg",
+   "arm": null,
+   "size_m": 1.92,
+   "authors": [
+    "Amal Kumar"
+   ]
+  }
+ ],
+ "kenney_roles": [
+  "attic.box.2",
+  "basement.box.2",
+  "bath.bathtub",
+  "bath.sink",
+  "bath.toilet",
+  "bedroom.bunk_bed",
+  "bedroom.double_bed",
+  "bedroom.rug",
+  "bedroom.single_bed",
+  "bedroom.table_lamp",
+  "bedroom.teddy_bear",
+  "hall.coat_rack",
+  "hall.doormat",
+  "kitchen.cabinet",
+  "kitchen.cabinet_upper",
+  "kitchen.coffee_machine",
+  "kitchen.fridge",
+  "kitchen.plant_small",
+  "kitchen.sink",
+  "kitchen.stove",
+  "kitchen.toaster",
+  "living.floor_lamp",
+  "living.plant.3",
+  "living.radio",
+  "living.rug",
+  "living.rug_round",
+  "study.desk_chair",
+  "study.desk_lamp"
+ ],
+ "kenney_files": {
+  "attic.box.2": "ThirdParty/Kenney/FurnitureKit/cardboardBoxOpen.fbx",
+  "basement.box.2": "ThirdParty/Kenney/FurnitureKit/cardboardBoxClosed.fbx",
+  "bath.bathtub": "ThirdParty/Kenney/FurnitureKit/bathtub.fbx",
+  "bath.sink": "ThirdParty/Kenney/FurnitureKit/bathroomSink.fbx",
+  "bath.toilet": "ThirdParty/Kenney/FurnitureKit/toilet.fbx",
+  "bedroom.bunk_bed": "ThirdParty/Kenney/FurnitureKit/bedBunk.fbx",
+  "bedroom.double_bed": "ThirdParty/Kenney/FurnitureKit/bedDouble.fbx",
+  "bedroom.rug": "ThirdParty/Kenney/FurnitureKit/rugRounded.fbx",
+  "bedroom.single_bed": "ThirdParty/Kenney/FurnitureKit/bedSingle.fbx",
+  "bedroom.table_lamp": "ThirdParty/Kenney/FurnitureKit/lampRoundTable.fbx",
+  "bedroom.teddy_bear": "ThirdParty/Kenney/FurnitureKit/bear.fbx",
+  "hall.coat_rack": "ThirdParty/Kenney/FurnitureKit/coatRackStanding.fbx",
+  "hall.doormat": "ThirdParty/Kenney/FurnitureKit/rugDoormat.fbx",
+  "kitchen.cabinet": "ThirdParty/Kenney/FurnitureKit/kitchenCabinet.fbx",
+  "kitchen.cabinet_upper": "ThirdParty/Kenney/FurnitureKit/kitchenCabinetUpper.fbx",
+  "kitchen.coffee_machine": "ThirdParty/Kenney/FurnitureKit/kitchenCoffeeMachine.fbx",
+  "kitchen.fridge": "ThirdParty/Kenney/FurnitureKit/kitchenFridgeLarge.fbx",
+  "kitchen.plant_small": "ThirdParty/Kenney/FurnitureKit/plantSmall1.fbx",
+  "kitchen.sink": "ThirdParty/Kenney/FurnitureKit/kitchenSink.fbx",
+  "kitchen.stove": "ThirdParty/Kenney/FurnitureKit/kitchenStove.fbx",
+  "kitchen.toaster": "ThirdParty/Kenney/FurnitureKit/toaster.fbx",
+  "living.floor_lamp": "ThirdParty/Kenney/FurnitureKit/lampRoundFloor.fbx",
+  "living.plant.3": "ThirdParty/Kenney/FurnitureKit/pottedPlant.fbx",
+  "living.radio": "ThirdParty/Kenney/FurnitureKit/radio.fbx",
+  "living.rug": "ThirdParty/Kenney/FurnitureKit/rugRectangle.fbx",
+  "living.rug_round": "ThirdParty/Kenney/FurnitureKit/rugRound.fbx",
+  "study.desk_chair": "ThirdParty/Kenney/FurnitureKit/chairDesk.fbx",
+  "study.desk_lamp": "ThirdParty/Kenney/FurnitureKit/lampRoundTable.fbx"
+ },
+ "unfilled_roles": {
+  "bedroom.wardrobe": "No plain wardrobe on Poly Haven (only Gothic/Chinese cabinets); drawer_cabinet is the dresser.",
+  "hall.umbrella_stand": "None on Poly Haven.",
+  "bath.towels": "None on Poly Haven.",
+  "bath.vanity": "None on Poly Haven; Kenney bathroomSink covers the sink.",
+  "basement.washer_dryer": "None on Poly Haven, and the Kenney FurnitureKit in the repo has no washer either.",
+  "garage.bicycle": "None on Poly Haven.",
+  "garage.lawn_mower": "None on Poly Haven.",
+  "attic.telescope": "None on Poly Haven; binoculars (attic.binoculars) stand in for the observatory.",
+  "attic.rocking_horse": "None on Poly Haven; Rockingchair_01 fills the rocking role.",
+  "yard.bbq": "No grill on Poly Haven; stone_fire_pit (yard.firepit) is the nearest.",
+  "yard.tree": "No usable broadleaf: jacaranda_tree is a 132 MB FBX at 1k (312k tris, 24 m wide), tree_small_02 is 4.7M tris / 96 MB, the island trees 1.7-4.8M tris. Left out.",
+  "yard.wheelbarrow": "None on Poly Haven.",
+  "living.plant.large": "potted_plant_01/02 are 22-25 MB each at 1k (PNG maps); left out for size. potted_plant_04 (small succulent) plus Kenney pottedPlant/plantSmall cover plants.",
+  "study.desk_lamp": "desk_lamp_arm_01 (6.6 MB clamp-mounted industrial arm) left out for size; Kenney lampRoundTable."
+ }
+}

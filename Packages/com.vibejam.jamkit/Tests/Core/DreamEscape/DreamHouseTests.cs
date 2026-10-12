@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using JamKit.DreamEscape;
 using JamKit.Movement;
@@ -9,536 +10,494 @@ using NUnit.Framework;
 
 namespace JamKit.Tests.DreamEscape
 {
-    /// <summary>Night 2's house: the course autopilot gets through the way in (the stretched hallway's wall, the slide under
-    /// the half-open door) and through the escape (the house tipping: the floor-wall, the doorframes, the staircase slide,
-    /// out of the front door to the end of the rain) at 20 to 300 fps and with jitter, never caught by the house folding
-    /// shut; the route fits the movement's reach; Theo's graph reaches every room, spot and memory; Theo finds a player
-    /// standing still, and one hiding in the pantry; every memory can be reached; the story's phases, the creator's last-
-    /// memory line in both its endings, and Lena condemning Nadia making the Despair route easier. The architecture
-    /// (2026-10-12): real proportions, rooms of their own, ceilings of different heights, the attic as a vertical loop the
-    /// movement can do, Theo's sight stopped by walls, ceilings and the attic's floor, loops between rooms, doors that fit.</summary>
+    /// <summary>Night 2's house (the redesign, docs/redesign/house.md): the geometry (no two solids overlap; every room
+    /// closed in; doors she and Theo fit through; stairs at walkable slopes), the size (two floors, a basement, the attic,
+    /// the garage, the yard), on foot (she can walk from the table to every memory, up and down every stair), Theo's map
+    /// (one connected graph over every floor), his search (he counts, peeks, searches room by room over the whole house,
+    /// hears, checks hiding places, sees her and finds her), and the round's rules (the catch's cost, three catches end it).</summary>
     public class DreamHouseTests
     {
-        const float Dt = 1f / 60f;
-
         static DreamHouse Build() => DreamHouse.Build();
 
-        [TestCase(20, 0)]
-        [TestCase(60, 0)]
-        [TestCase(144, 0)]
-        [TestCase(300, 0)]
-        [TestCase(0, 7)]
-        public void TheAutopilotGetsThroughTheWayIntoTheKitchen(int fps, int jitter)
-        {
-            var h = Build();
-            var r = LabCourseTests.Drive(h.course, h.arrivalCheckpoint, h.kitchenS + 1f, 40f, fps == 0 ? 60 : fps, false, jitter, 0.04f);
-            if (!r.finished || r.falls > 0) TestContext.Out.WriteLine(r.log.ToString());
-            Assert.That(r.finished, Is.True, fps + " fps");
-            Assert.That(r.falls, Is.EqualTo(0), fps + " fps");
-        }
+        // =====================================================================================================
+        // Geometry
+        // =====================================================================================================
 
-        [TestCase(20, 0)]
-        [TestCase(60, 0)]
-        [TestCase(144, 0)]
-        [TestCase(300, 0)]
-        [TestCase(0, 7)]
-        [TestCase(0, 11)]
-        public void TheAutopilotEscapesTheTippingHouseIntoTheRain(int fps, int jitter)
+        [Test]
+        public void NoTwoSolidsOverlap()
         {
             var h = Build();
-            var r = LabCourseTests.Drive(h.course, h.escapeCheckpoint, h.rain.rainEndS, 160f, fps == 0 ? 60 : fps, true, jitter, 0.04f);
-            if (!r.finished || r.falls > 0 || r.caught > 0) TestContext.Out.WriteLine(r.log.ToString());
-            TestContext.Out.WriteLine($"{fps} fps: escape {r.seconds:0.0} s, top speed {r.topSpeed:0.0} m/s");
-            Assert.That(r.finished, Is.True, fps + " fps");
-            Assert.That(r.falls, Is.EqualTo(0), fps + " fps");
-            Assert.That(r.caught, Is.EqualTo(0), "the house folding shut never catches a good run");
-            // The creator: "unexpectedly long for how small the house looks": a player takes 75-120 s, the autopilot's
-            // near-perfect run a good minute.
-            Assert.That(r.seconds, Is.InRange(55f, 100f), "the escape's length (autopilot)");
+            var hits = HouseLint.Check(h.parts);
+            foreach (var hit in hits.Take(40)) TestContext.Out.WriteLine(HouseLint.Describe(h.parts, hit));
+            Assert.That(hits.Count, Is.EqualTo(0), "interpenetrating solids (first 40 above)");
         }
 
         [Test]
-        public void EveryEscapeCheckpointRunsToTheNext()
+        public void TheHouseHasTwoFloorsABasementAnAtticAGarageAndAYard()
         {
             var h = Build();
-            var c = h.course;
-            for (int i = h.escapeCheckpoint; i < c.checkpoints.Count; i++)
+            var storeys = h.rooms.Where(r => !r.outside).Select(r => r.storey).Distinct().ToList();
+            Assert.That(storeys, Is.EquivalentTo(new[] { 0, 1, 2, 3 }), "basement, ground, upper, attic");
+            foreach (var id in new[] { "garage", "yard", "treehouse", "observatory", "rec", "workshop", "kitchen", "dining", "living", "theo", "parents", "guest" })
+                Assert.That(h.Room(id), Is.Not.Null, id);
+            float area = h.rooms.Where(r => !r.outside).Sum(r => r.Area);
+            TestContext.Out.WriteLine($"{h.rooms.Count} rooms, {area:0} m2 indoors, {h.parts.Count} parts, {h.spots.Count} hiding spots, {h.nodes.Count} walking points");
+            Assert.That(area, Is.GreaterThan(400f), "a whole house, not a few small rooms");
+        }
+
+        [Test]
+        public void StairsAreWalkable()
+        {
+            var h = Build();
+            foreach (var s in h.stairs)
             {
-                float until = i + 1 < c.checkpoints.Count ? c.checkpoints[i + 1].s + 1f : h.rain.rainEndS;
-                var r = LabCourseTests.Drive(c, i, until, 40f, 60, true);
-                if (!r.finished || r.falls > 0) TestContext.Out.WriteLine(r.log.ToString());
-                Assert.That(r.finished, Is.True, c.checkpoints[i].name);
-                Assert.That(r.falls, Is.EqualTo(0), c.checkpoints[i].name);
-                // A checkpoint every 10-20 s for a player: at most about 12 s apart for the autopilot's near-perfect run.
-                Assert.That(r.seconds, Is.LessThan(12.5f), c.checkpoints[i].name + " to the next");
+                float run = s.alongX ? s.rect.x1 - s.rect.x0 : s.rect.z1 - s.rect.z0;
+                float angle = (float)(Math.Atan2(Math.Abs(s.topY - s.bottomY), run) * 180.0 / Math.PI);
+                TestContext.Out.WriteLine($"{s.name}: {angle:0.0} degrees");
+                Assert.That(angle, Is.LessThan(new MoveDef().slopeLimit - 2f), s.name);
+                float width = s.alongX ? s.rect.z1 - s.rect.z0 : s.rect.x1 - s.rect.x0;
+                Assert.That(width, Is.GreaterThanOrEqualTo(0.85f), s.name + " is wide enough");
             }
         }
 
         [Test]
-        public void TheEscapeRunsThroughRoomsThatCantFitInTheHouse()
+        public void DoorsFitHerAndTheo()
         {
             var h = Build();
-            var names = h.escapeRooms.ConvertAll(r => r.name);
-            foreach (var n in new[] { "The kitchen tilts", "The hallway turns over", "The stairs flatten", "The hallway, again",
-                "The observatory, open to the sky", "The kitchen, come round again", "The door onto the stairwell" })
-                Assert.That(names, Does.Contain(n));
-            for (int i = 1; i < h.escapeRooms.Count; i++) Assert.That(h.escapeRooms[i].s, Is.GreaterThan(h.escapeRooms[i - 1].s), "in order");
-            Assert.That(h.escapeRooms[0].s, Is.LessThanOrEqualTo(h.escapeStartS));
-            // The hardest spot: its checkpoint before it, the shortcut's after it, and the offer leaves her short of the door.
-            var c = h.course;
-            Assert.That(c.checkpoints[h.hardCheckpoint].s, Is.LessThan(h.hardStartS));
-            Assert.That(c.checkpoints[h.hardSkipCheckpoint].s, Is.GreaterThan(h.hardEndS));
-            Assert.That(h.hardSkipCheckpoint, Is.LessThan(h.frontDoorCheckpoint));
-            Assert.That(h.rain.rainStartS, Is.EqualTo(h.frontDoorZ));
-            Assert.That(h.course.killY, Is.LessThan(h.frontDoorFloor - 3f), "the floor at the end stays above the fall line");
-        }
-
-        [Test]
-        public void TheSmokeRunsLegFromTheStairsFitsItsBudget()
-        {
-            // DreamHouseGame's smoke drive runs from "The last door" (the whole smoke run, credits included, has 20 s).
-            var h = Build();
-            int stairs = h.course.checkpoints.FindIndex(c => c.name == "The last door");
-            Assert.That(stairs, Is.GreaterThan(h.escapeCheckpoint));
-            var r = LabCourseTests.Drive(h.course, stairs, h.rain.rainEndS, 20f, 60, true);
-            TestContext.Out.WriteLine("the stairs to the end of the rain: " + r.seconds.ToString("0.0") + " s");
-            Assert.That(r.finished, Is.True);
-            Assert.That(r.falls + r.caught, Is.EqualTo(0));
-            Assert.That(r.seconds, Is.LessThan(9f), "leaves room in the 20 s smoke budget");
-        }
-
-        [Test]
-        public void TheRouteFitsTheMovementsReach()
-        {
-            var h = Build();
-            var problems = h.CheckReach(new MoveDef());
-            Assert.That(problems, Is.Empty, string.Join("\n", problems));
-            var kinds = new HashSet<CourseBeatKind>();
-            foreach (var b in h.beats) kinds.Add(b.kind);
-            foreach (var k in new[] { CourseBeatKind.Wallrun, CourseBeatKind.WallToWall, CourseBeatKind.Slide, CourseBeatKind.SlideRamp })
-                Assert.That(kinds, Does.Contain(k), k.ToString());
-            Assert.That(h.looks.Count, Is.EqualTo(h.course.pieces.Count));
-            foreach (var ch in new[] { DreamHouse.ChapterArrival, DreamHouse.ChapterHideAndSeek, DreamHouse.ChapterTips, DreamHouse.ChapterFrontDoor })
-                Assert.That(h.CheckpointIndex(ch), Is.GreaterThanOrEqualTo(0), ch);
-            for (int i = 1; i < h.course.checkpoints.Count; i++) Assert.That(h.course.checkpoints[i].s, Is.GreaterThan(h.course.checkpoints[i - 1].s));
-            Assert.That(h.stretchTo, Is.GreaterThan(h.stretchFrom), "the hallway stretches away");
-        }
-
-        [Test]
-        public void TheosGraphReachesEveryRoomSpotAndMemory()
-        {
-            var h = Build();
-            var world = h.StealthWorld();
-            var g = h.Graph(world);
-            Assert.That(g.Connected(), Is.True, "one piece");
-            var boxes = LabCourseTests.WorldOf(h.course, null);
-            foreach (var n in h.nodes)
+            foreach (var d in h.doors)
             {
-                Assert.That(boxes.CapsuleFits(n + new Vector3(0f, 0.05f, 0f), 0.3f, 1.2f), Is.True, $"node {n} stands clear");
-                Assert.That(DreamHouse.InHub(n), Is.True, $"node {n} is in the house");
-            }
-            foreach (var s in h.spots)
-            {
-                int near = g.NearestReachable(world, s.Approach);
-                Assert.That(near, Is.GreaterThanOrEqualTo(0), s.name);
-                Assert.That(Flat(g[near], s.Approach), Is.LessThan(h.connectDistance), s.name + "'s approach is walkable");
-            }
-            Assert.That(h.spots.Exists(s => s.kind == HideKind.Closet), Is.True);
-            Assert.That(h.spots.Exists(s => s.kind == HideKind.Bush), Is.True);
-            Assert.That(h.memories.Count, Is.EqualTo(5));
-            foreach (var m in h.memories)
-            {
-                Assert.That(DreamHouse.InHub(m.position - new Vector3(0f, 1f, 0f)), Is.True, m.name);
-                Assert.That(CanReach(boxes, m), Is.True, m.name + " can be picked up from where she stands to take it");
-                Assert.That(g.NearestReachable(world, new Vector3(m.position.X, DreamHouse.Ground, m.position.Z)), Is.GreaterThanOrEqualTo(0), m.name);
+                float w = d.b - d.a, ht = d.y1 - d.y0;
+                Assert.That(w, Is.GreaterThanOrEqualTo(0.79f), d.name);
+                if (d.name.Contains("Low") || d.name.Contains("Cupboard") || d.name.Contains("Treehouse")) continue;
+                Assert.That(ht, Is.GreaterThanOrEqualTo(1.95f), d.name + " is tall enough to walk through");
             }
         }
 
         [Test]
-        public void TheHouseHasRealProportionsRoomsOfItsOwnAndAnAttic()
+        public void EveryRoomHasLight()
         {
             var h = Build();
-            Assert.That(DreamHouse.HubX1 - DreamHouse.HubX0, Is.InRange(10f, 16f), "a family home's width");
-            Assert.That(DreamHouse.HubZ1 - DreamHouse.HubZ0, Is.InRange(9f, 13f), "and depth");
-            foreach (var name in new[] { "Kitchen and dining", "Living room", "Hall", "Pantry", "Parents' room", "Bath", "Theo's room", "Attic" })
-                Assert.That(h.rooms.Exists(r => r.name == name), Is.True, name);
             foreach (var r in h.rooms)
             {
-                float area = (r.x1 - r.x0) * (r.z1 - r.z0);
-                if (r.name == "Attic") continue;
-                Assert.That(area, Is.LessThan(65f), r.name + " is a room, not a hall");
+                if (r.outside || r.id == "understairs" || r.id == "atticstairs") continue;
+                Assert.That(h.lamps.Any(l => r.Contains(l.position + new Vector3(0f, -0.5f, 0f)) || r.Contains(new Vector3(l.position.X, r.floorY + 0.5f, l.position.Z))), Is.True, r.name + " has a lamp");
             }
-            var hall = h.rooms.Find(r => r.name == "Hall");
-            Assert.That(hall.z1 - hall.z0, Is.LessThan(2.6f), "the hall is narrow");
-            // Ceilings of different heights (at least three), the attic over them.
-            var heights = new HashSet<float>();
-            foreach (var r in h.rooms) if (r.name != "Attic") heights.Add(r.ceiling);
-            Assert.That(heights.Count, Is.GreaterThanOrEqualTo(3));
-            var attic = h.rooms.Find(r => r.name == "Attic");
-            Assert.That(attic.floorY, Is.GreaterThan(DreamHouse.Ground + 2.5f));
-            Assert.That(DreamHouse.RoofAt(DreamHouse.RidgeZ), Is.EqualTo(DreamHouse.RidgeHeight).Within(0.01f), "the ridge");
-            Assert.That(DreamHouse.RoofAt(DreamHouse.HubZ0), Is.EqualTo(DreamHouse.KneeWall).Within(0.01f), "the eaves: a sloped ceiling");
         }
 
-        [Test]
-        public void TheAtticIsAVerticalLoopTheMovementCanDo()
+        // =====================================================================================================
+        // On foot
+        // =====================================================================================================
+
+        public static BoxWorld WorldOf(DreamHouse h)
         {
-            var h = Build();
-            var d = new MoveDef();
-            var boxes = LabCourseTests.WorldOf(h.course, null);
-            LabPiece Find(string n) => h.course.pieces.Find(p => p.name == n);
-            // Up: the stairs climb from Theo's room to the attic's floor, walkable (under the slope limit).
-            var stairs = Find("The attic stairs");
-            float rise = Math.Abs(stairs.rampTopStart - stairs.rampTopEnd), run = stairs.size.Z;
-            Assert.That(stairs.rampTopStart, Is.EqualTo(DreamHouse.AtticFloor).Within(0.01f), "they reach the attic");
-            Assert.That(stairs.rampTopEnd, Is.EqualTo(DreamHouse.Ground).Within(0.01f), "from the floor");
-            Assert.That(Math.Atan2(rise, run) * 180.0 / Math.PI, Is.LessThan(d.slopeLimit - 2f), "steep, but walkable");
-            // Their foot has a door from Theo's room, and the way in under the low ceiling fits a person.
-            var door = Find("Door (Theo | the attic stairs)");
-            Assert.That(door.Min.Y - DreamHouse.Ground, Is.GreaterThan(d.standHeight + 0.2f));
-            // Headroom all the way up (the slot is open to the attic over the stairs, the roof is high there).
-            for (float z = DreamHouse.StairZ0 + 0.4f; z < DreamHouse.StairZ1 - 0.3f; z += 0.2f)
+            var w = new BoxWorld();
+            foreach (var part in h.parts)
             {
-                float t = (z - stairs.Min.Z) / run;
-                float top = stairs.rampTopStart + (stairs.rampTopEnd - stairs.rampTopStart) * t;
-                float x = (DreamHouse.StairX0 + DreamHouse.StairX1) * 0.5f;
-                Assert.That(boxes.CapsuleFits(new Vector3(x, top + 0.08f, z), 0.3f, d.standHeight), Is.True, $"headroom on the stairs at z {z:0.0}");
+                var p = part.piece;
+                if (!p.solid || part.look == HouseLook.Roof && p.kind == LabPieceKind.Ramp) continue;
+                if (p.kind == LabPieceKind.Ramp)
+                {
+                    float bottom = Math.Min(p.rampTopStart, p.rampTopEnd) - 0.3f;
+                    if (part.rampAlongX) w.RampX(p.Min.X, p.Max.X, p.Min.Z, p.Max.Z, p.rampTopStart, p.rampTopEnd, bottom);
+                    else w.Ramp(p.Min.X, p.Max.X, p.Min.Z, p.Max.Z, p.rampTopStart, p.rampTopEnd, bottom);
+                }
+                else w.Add(p.center, p.size, p.runnable);
             }
-            // Down: the hatch over the hall is open from the attic's floor to the hall's floor.
-            float hx = (DreamHouse.HatchX0 + DreamHouse.HatchX1) * 0.5f, hz = (DreamHouse.HatchZ0 + DreamHouse.HatchZ1) * 0.5f;
-            Assert.That(boxes.CastDown(new Vector3(hx, DreamHouse.AtticFloor + 1f, hz), 0.3f, 6f, out var hit), Is.True, "the hatch is open");
-            Assert.That(hit.point.Y, Is.EqualTo(DreamHouse.Ground).Within(0.05f), "through the hatch to the hall's floor");
-            // The attic has room to stand along its middle, and the dormer.
-            Assert.That(boxes.CapsuleFits(new Vector3(0f, DreamHouse.AtticFloor + 0.05f, DreamHouse.RidgeZ), 0.38f, d.standHeight), Is.True, "standing under the ridge");
-            Assert.That(boxes.CapsuleFits(new Vector3(2.2f, DreamHouse.AtticFloor + 0.05f, 80.5f), 0.38f, d.standHeight), Is.True, "standing at the top of the stairs, under the dormer");
-            // The observatory: the roof cut and raised over it, so it's high all the way across, even by its walls; a double
-            // jump's peak fits under its ceiling, and the ceiling stops anything higher.
-            float peak = d.jumpHeight + d.doubleJumpHeight;
-            foreach (float z in new[] { DreamHouse.ObsZ0 + 0.45f, DreamHouse.RidgeZ, DreamHouse.ObsZ1 - 0.45f })
-                Assert.That(boxes.CapsuleFits(new Vector3(-4.6f, DreamHouse.AtticFloor + peak, z), 0.38f, d.standHeight), Is.True, $"a double jump fits in the observatory at z {z:0.0}");
-            Assert.That(DreamHouse.ObsHeight, Is.GreaterThan(DreamHouse.RidgeHeight + 1f), "a tower: higher than the rest of the attic");
-            Assert.That(DreamHouse.ObsZ1 - DreamHouse.ObsZ0, Is.LessThan((DreamHouse.HubZ1 - DreamHouse.HubZ0) * 0.5f), "a tower: narrower than the house, the sloped roof running on either side");
-            Assert.That(boxes.CapsuleFits(new Vector3(-4.6f, DreamHouse.AtticFloor + DreamHouse.ObsHeight - 1.0f, DreamHouse.RidgeZ), 0.38f, d.standHeight), Is.False, "its ceiling stops a jump");
-            Assert.That(boxes.CapsuleFits(new Vector3(-5.2f, DreamHouse.AtticFloor + 0.35f, 78f), 0.38f, d.standHeight), Is.True, "standing on the observatory's platform");
-            // A jump in the attic stays inside (the roof's solid steps).
-            Assert.That(boxes.CapsuleFits(new Vector3(0f, DreamHouse.AtticFloor + 2.6f, 73f), 0.38f, d.standHeight), Is.False, "the roof stops a jump near the eaves");
-            // The stored things wall the attic into two, and the only way through on foot is the gap hung with sheets: the
-            // observatory is a room you find, not the far end of one big floor.
-            float wallX = -2.55f;
-            for (float z = DreamHouse.HubZ0 + 0.5f; z < DreamHouse.HubZ1 - 0.4f; z += 0.25f)
-            {
-                bool gap = z > 77.4f && z < 79.6f;
-                if (z > 76.9f && z < 80.1f && !gap) continue;   // the gap's edges
-                Assert.That(boxes.CapsuleFits(new Vector3(wallX, DreamHouse.AtticFloor + 0.05f, z), 0.3f, 1.0f), Is.EqualTo(gap),
-                    gap ? $"the way through the sheets at z {z:0.00}" : $"the wall of stored things at z {z:0.00}");
-            }
+            return w;
         }
 
-        [Test]
-        public void TheosSightStopsAtWallsCeilingsAndTheAttic()
+        /// <summary>Walks her (the movement sim, walking pace) along Theo's graph from one point to another: true when she
+        /// gets within <paramref name="arrive"/> of it.</summary>
+        public static bool Walk(DreamHouse h, BoxWorld world, WaypointGraph g, Vector3 from, Vector3 to, out string log, float arrive = 0.7f, float seconds = 120f)
         {
-            var h = Build();
-            var w = h.StealthWorld();
-            var F = DreamHouse.Ground;
-            var eye = new Vector3(0f, 1.3f, 0f);
-            // In the same room: clear. Through a wall into the next room: blocked.
-            Assert.That(w.LineClear(new Vector3(5.2f, F, 73.4f) + eye, new Vector3(6.5f, F, 76.8f) + eye), Is.True, "across the living room");
-            Assert.That(w.LineClear(new Vector3(-1f, F, 73.4f) + eye, new Vector3(-3f, F, 82.4f) + eye), Is.False, "the kitchen can't see into the parents' room");
-            Assert.That(w.LineClear(new Vector3(-2.5f, F, 79f) + eye, new Vector3(4.5f, F, 81.6f) + eye), Is.False, "the hall can't see into Theo's room through the wall");
-            // Over the half wall (the pass-through): clear at eye height, blocked at the knee.
-            Assert.That(w.LineClear(new Vector3(1f, F, 76f) + eye, new Vector3(4f, F, 76f) + eye), Is.True, "over the pass-through");
-            Assert.That(w.LineClear(new Vector3(1f, F + 0.5f, 76f), new Vector3(4f, F + 0.5f, 76f)), Is.False, "not through the half wall");
-            // The attic: Theo on the main floor never sees her up there except through the open hatch and stairwell.
-            var atticPoint = new Vector3(4.5f, DreamHouse.AtticFloor + 1.2f, 77f);
-            foreach (var n in h.nodes)
-                Assert.That(w.LineClear(n + eye, atticPoint), Is.False, $"from {n} into the attic");
-            // The hiding spots' insides can't be seen from Theo's counting place.
-            foreach (var s in h.spots)
-                if (s.kind == HideKind.Closet)
-                    Assert.That(w.LineClear(h.theoStart + eye, s.Center), Is.False, s.name + " can't be seen into from the table");
-        }
-
-        [Test]
-        public void NothingToWalkToOrTakeIsInsideASolidBox()
-        {
-            var h = Build();
-            var boxes = LabCourseTests.WorldOf(h.course, null);
-            foreach (var n in h.nodes) Assert.That(boxes.CapsuleFits(n + new Vector3(0f, 0.05f, 0f), 0.3f, 1.2f), Is.True, "node " + n);
-            foreach (var s in h.spots) Assert.That(boxes.CapsuleFits(s.Approach + new Vector3(0f, 0.05f, 0f), 0.3f, 1.2f), Is.True, s.name + " check point");
-            foreach (var m in h.memories) Assert.That(boxes.CapsuleFits(m.standAt + new Vector3(0f, 0.04f, 0f), 0.38f, 1.7f), Is.True, m.name + ": where she stands");
-            foreach (var p in h.openFloor) Assert.That(boxes.CapsuleFits(p + new Vector3(0f, 0.04f, 0f), 0.38f, 1.7f), Is.True, "open floor " + p);
-            Assert.That(boxes.CapsuleFits(h.theoStart + new Vector3(0f, 0.04f, 0f), 0.3f, 1.2f), Is.True, "Theo at the table");
-            Assert.That(boxes.CapsuleFits(h.kitchenStart + new Vector3(0f, 0.04f, 0f), 0.38f, 1.7f), Is.True, "where she arrives");
-        }
-
-        [Test]
-        public void TheHouseHasLoopsAndEveryDoorFitsAPerson()
-        {
-            var h = Build();
-            var d = new MoveDef();
-            var world = h.StealthWorld();
-            var g = h.Graph(world);
-            // Loops: the kitchen to the living room through the archway, or round through the hall; the pantry's two doors.
-            int Near(float x, float z) => g.Nearest(new Vector3(x, DreamHouse.Ground, z));
+            var sim = new MoveSim(world, new MoveDef());
+            var driver = new MoveDriver(sim);
+            driver.Teleport(from + new Vector3(0f, 0.02f, 0f), 0f, Vector3.Zero);
             var path = new List<int>();
-            int kitchen = Near(-1f, 73.4f), living = Near(5.2f, 73.4f), hall = Near(-2.5f, 79f), pantryHall = Near(-4.7f, 79.4f);
-            Assert.That(g.FindPath(kitchen, living, path), Is.True);
-            Assert.That(path.Count, Is.LessThanOrEqualTo(3), "through the archway: a short way");
-            Assert.That(g.FindPath(kitchen, hall, path) && g.FindPath(hall, living, path), Is.True, "and round by the hall");
-            Assert.That(g.FindPath(Near(-5.3f, 77.6f), pantryHall, path), Is.True);
-            // Every door's header leaves room to walk under it (the cupboard under the stairs is a low door: crouch).
-            foreach (var p in h.course.pieces)
+            int a = NearestOnFloor(h, from, null), b = NearestOnFloor(h, to, h.StealthWorld());
+            log = "";
+            if (!g.FindPath(a, b, path)) { log = "no path"; return false; }
+            var pts = path.Select(i => g[i]).ToList();
+            pts.Add(to);
+            int k = 0;
+            const float dt = 1f / 60f;
+            for (float t = 0f; t < seconds; t += dt)
             {
-                if (p.Max.Z < DreamHouse.HubZ0 - 1f || p.Min.Z > DreamHouse.HubZ1 + 1f) continue;   // the house, not the escape
-                if (!p.name.StartsWith("Door") && !p.name.StartsWith("Archway") && !p.name.StartsWith("Pantry door")) continue;
-                Assert.That(p.Min.Y - DreamHouse.Ground, Is.GreaterThan(d.standHeight + 0.2f), p.name);
+                var p = sim.Position;
+                var target = pts[k];
+                var d = new Vector2(target.X - p.X, target.Z - p.Z);
+                if (d.Length() < (k == pts.Count - 1 ? arrive : 0.45f) && Math.Abs(target.Y - p.Y) < 1.0f)
+                {
+                    k++;
+                    if (k >= pts.Count) return true;
+                    continue;
+                }
+                float yaw = (float)(Math.Atan2(d.X, d.Y) * 180.0 / Math.PI);
+                // Crouch through the low doors (the cupboard, the treehouse).
+                bool low = h.doors.Any(dr => dr.y1 - dr.y0 < 1.6f && Vector2.Distance(new Vector2(p.X, p.Z), dr.alongX ? new Vector2((dr.a + dr.b) * 0.5f, dr.c) : new Vector2(dr.c, (dr.a + dr.b) * 0.5f)) < 1.6f && Math.Abs(p.Y - dr.y0) < 0.5f);
+                driver.Frame(dt, new MoveInput { move = new Vector2(0f, 1f), yaw = yaw, crouchHeld = low });
+                if (p.Y < -20f) { log = $"fell at {p}"; return false; }
             }
-            var cupboard = h.course.pieces.Find(p => p.name.StartsWith("Cupboard under the stairs"));
-            Assert.That(cupboard.Min.Y - DreamHouse.Ground, Is.InRange(d.slideHeight + 0.1f, d.standHeight), "the cupboard's low door: crouch in");
-            // Theo's drawing is on top of his bookcase: climbing his desk reaches it (the desk is a mantle).
-            var desk = h.course.pieces.Find(p => p.name == "Theo's desk");
-            Assert.That(desk.Max.Y - DreamHouse.Ground, Is.InRange(d.mantleMinHeight, d.mantleMaxHeight), "the desk mantles from the floor");
-            var drawing = h.memories.Find(m => m.id == DreamHouseStory.MemBadDream);
-            Assert.That(drawing.standAt.Y, Is.EqualTo(desk.Max.Y).Within(0.01f), "she stands on the desk to take it");
+            log = $"stuck at {sim.Position} heading for point {k}/{pts.Count} {pts[k]}";
+            return false;
         }
 
-        static float Flat(Vector3 a, Vector3 b) => (float)Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Z - b.Z) * (a.Z - b.Z));
-
-        /// <summary>Its stand point is somewhere she can stand (the capsule fits, on a surface), with her body centre within the
-        /// pick-up radius.</summary>
-        static bool CanReach(BoxWorld w, HouseMemory m)
+        static int NearestOnFloor(DreamHouse h, Vector3 p, IStealthWorld clear)
         {
-            var feet = m.standAt + new Vector3(0f, 0.02f, 0f);
-            if (Vector3.Distance(feet + new Vector3(0f, 0.9f, 0f), m.position) > 1.05f) return false;
-            if (!w.CapsuleFits(feet + new Vector3(0f, 0.04f, 0f), 0.38f, 1.7f)) return false;
-            return w.CastDown(feet + new Vector3(0f, 0.3f, 0f), 0.2f, 1f, out var hit) && Math.Abs(hit.point.Y - m.standAt.Y) < 0.06f;
+            var room = h.RoomAt(p + new Vector3(0f, 0.1f, 0f));
+            int best = -1;
+            float bd = float.MaxValue;
+            for (int i = 0; i < h.nodes.Count; i++)
+            {
+                var n = h.nodes[i].p;
+                float dy = Math.Abs(n.Y - p.Y);
+                if (dy > 1.6f) continue;
+                float d = Vector3.Distance(n, p) + (room != null && h.nodes[i].room != room.id ? 20f : 0f);
+                if (clear != null && Math.Abs(n.Y - p.Y) < 0.3f && !DreamHouse.WalkClear(clear, n, p, 0.3f)) d += 10f;
+                if (d < bd) { bd = d; best = i; }
+            }
+            return best;
         }
 
-        static SeekerBrain Theo(DreamHouse h, out StealthBoxWorld world)
+        [Test]
+        public void SheCanWalkFromHerChairToEveryMemoryAndEveryPlaceItCanBeMovedTo()
+        {
+            var h = Build();
+            var world = WorldOf(h);
+            var g = h.Graph(h.StealthWorld());
+            var start = h.nadiaChair + new Vector3(0f, 0f, -1.0f);
+            var fails = new List<string>();
+            foreach (var m in h.memories)
+            {
+                var places = new List<Vector3> { m.standAt };
+                places.AddRange(m.altStandAt);
+                foreach (var stand in places)
+                {
+                    if (m.atTable && stand == m.standAt) continue;
+                    bool ok = Walk(h, world, g, start, stand, out var log, 0.9f);
+                    if (!ok) fails.Add($"{m.name} at {stand}: {log}");
+                }
+            }
+            foreach (var f in fails) TestContext.Out.WriteLine(f);
+            Assert.That(fails, Is.Empty);
+        }
+
+        [Test]
+        public void EveryHidingSpotHasRoomForHerAndSheCanReachIt()
+        {
+            var h = Build();
+            var world = WorldOf(h);
+            var g = h.Graph(h.StealthWorld());
+            var start = h.nadiaChair + new Vector3(0f, 0f, -1.0f);
+            foreach (var s in h.spots)
+            {
+                var feet = new Vector3(s.cx, s.cy - s.sy * 0.5f, s.cz);
+                Assert.That(h.Free(feet, 0.3f, Math.Min(1.0f, s.sy - 0.1f)), Is.True, s.name + ": room to stand (or crouch) in it");
+                Assert.That(Walk(h, world, g, start, s.Approach, out var log, 0.9f), Is.True, s.name + "'s approach: " + log);
+            }
+        }
+
+        // =====================================================================================================
+        // Theo's map and his search
+        // =====================================================================================================
+
+        [Test]
+        public void TheosMapIsOneGraphOverEveryFloor()
+        {
+            var h = Build();
+            var g = h.Graph(h.StealthWorld());
+            var seen = new bool[g.Count];
+            var stack = new Stack<int>();
+            stack.Push(0); seen[0] = true;
+            while (stack.Count > 0) { int u = stack.Pop(); foreach (int v in g.Neighbours(u)) if (!seen[v]) { seen[v] = true; stack.Push(v); } }
+            var lost = Enumerable.Range(0, g.Count).Where(i => !seen[i]).Select(i => h.nodes[i].room + " " + h.nodes[i].p).ToList();
+            foreach (var l in lost) TestContext.Out.WriteLine("unreachable: " + l);
+            Assert.That(lost, Is.Empty);
+            foreach (var r in h.rooms)
+            {
+                if (r.id == "street" || r.id == "understairs" || r.id == "atticstairs") continue;
+                Assert.That(h.nodes.Any(n => n.room == r.id), Is.True, r.name + " has walking points");
+            }
+        }
+
+        static TheoBrain Theo(DreamHouse h, out StealthBoxWorld world, int seed = 10)
         {
             world = h.StealthWorld();
             var g = h.Graph(world);
-            var b = new SeekerBrain(new StealthDef(), world, g, h.spots, h.theoStart, h.theoYaw);
-            b.StartHideAndSeek(h.theoStart, h.theoCountYaw);
-            return b;
-        }
-
-        static float FindTime(SeekerBrain b, StealthTarget t, float limit, out int spot)
-        {
-            spot = -1;
-            for (float s = 0f; s < limit; s += Dt)
-            {
-                b.Tick(Dt, t, default);
-                if (b.Events.found) { spot = b.Events.foundInSpot; return s; }
-            }
-            return -1f;
+            return new TheoBrain(h, world, g, null, seed);
         }
 
         [Test]
-        public void TheoFindsAPlayerStandingStill()
+        public void TheoSearchesTheWholeHouseUpstairsAndDownAndOutside()
         {
             var h = Build();
-            foreach (var at in h.openFloor)
+            var theo = Theo(h, out _);
+            theo.StartCounting(h.theoStart, h.theoCountYaw, 3f, 0);
+            var visited = new HashSet<string>();
+            var storeys = new HashSet<int>();
+            const float dt = 1f / 30f;
+            for (float t = 0f; t < 600f; t += dt)
             {
-                var b = Theo(h, out _);
-                float found = FindTime(b, StealthTarget.At(at), 120f, out int spot);
-                TestContext.Out.WriteLine($"standing at {at}: found after {found:0.0} s (counting {b.def.countTime:0} s first)");
-                Assert.That(found, Is.GreaterThan(b.def.countTime - 0.5f), "not while counting");
-                Assert.That(spot, Is.EqualTo(-1), "by sight");
+                theo.Tick(dt, default, default);
+                var room = h.RoomAt(theo.Position + new Vector3(0f, 0.1f, 0f));
+                if (room != null) { visited.Add(room.id); storeys.Add(room.outside ? 4 : room.storey); }
+                if (theo.Sweeps >= 1) break;
             }
+            TestContext.Out.WriteLine("visited: " + string.Join(", ", visited));
+            Assert.That(storeys, Is.SupersetOf(new[] { 0, 1, 2, 3, 4 }), "every floor and the yard");
+            var missing = h.rooms.Where(r => r.id != "street" && r.id != "understairs" && r.id != "atticstairs" && r.id != "frontgarden" && !visited.Contains(r.id)).Select(r => r.name).ToList();
+            Assert.That(missing, Is.Empty, "rooms he never went into");
         }
 
         [Test]
-        public void TheoFindsAPlayerHidingInThePantryByCheckingIt()
+        public void TheoFindsHerStandingInTheOpenAndItCostsAMemory()
         {
             var h = Build();
-            int pantry = h.spots.FindIndex(s => s.name == "The pantry");
-            var b = Theo(h, out _);
-            var t = StealthTarget.At(h.spots[pantry].Center - new Vector3(0f, 1f, 0f));
-            t.hidingSpot = h.SpotAt(t.feet);
-            Assert.That(t.hidingSpot, Is.EqualTo(pantry));
-            float found = FindTime(b, t, 240f, out int spot);
-            TestContext.Out.WriteLine($"in the pantry: found after {found:0.0} s");
-            Assert.That(found, Is.GreaterThan(0f), "the sweep opens the pantry");
-            Assert.That(spot, Is.EqualTo(pantry));
+            var theo = Theo(h, out _);
+            var round = new HideAndSeekRound(h);
+            round.Collect(DreamHouseStory.MemPlaceCard, out _);
+            round.Collect(DreamHouseStory.MemCalendar, out _);
+            var her = h.openFloor[0];
+            theo.StartCounting(h.theoStart, h.theoCountYaw, 2f, 0);
+            var target = StealthTarget.At(her);
+            float foundAt = -1f;
+            const float dt = 1f / 30f;
+            for (float t = 0f; t < 400f && foundAt < 0f; t += dt)
+            {
+                theo.Tick(dt, target, default);
+                if (theo.Events.found) foundAt = t;
+            }
+            TestContext.Out.WriteLine($"found her in the living room after {foundAt:0.0} s");
+            Assert.That(foundAt, Is.GreaterThan(0f), "he found her");
+            var cost = round.Caught(her);
+            Assert.That(cost.catchNumber, Is.EqualTo(1));
+            Assert.That(cost.memoryTaken, Is.EqualTo(DreamHouseStory.MemCalendar), "the last memory she found");
+            Assert.That(round.IsFound(DreamHouseStory.MemCalendar), Is.False, "it's no longer found");
+            Assert.That(Vector3.Distance(round.PositionOf(DreamHouseStory.MemCalendar), h.Memory(DreamHouseStory.MemCalendar).position), Is.GreaterThan(3f), "hidden somewhere new");
+            Assert.That(round.FoundCount, Is.EqualTo(1));
         }
 
         [Test]
-        public void TheStoryRunsFromPancakesToTheRain()
+        public void TheoOpensTheCupboardSheHidesIn()
+        {
+            var h = Build();
+            var theo = Theo(h, out _);
+            int spot = h.spots.FindIndex(s => s.name.Contains("pantry"));
+            var sp = h.spots[spot];
+            var feet = new Vector3(sp.cx, sp.cy - sp.sy * 0.5f, sp.cz);
+            var target = StealthTarget.At(feet);
+            target.hidingSpot = spot;
+            theo.SetHerSpot(spot);
+            theo.StartCounting(h.theoStart, h.theoCountYaw, 2f, 2);
+            const float dt = 1f / 30f;
+            bool found = false;
+            int foundIn = -1;
+            for (float t = 0f; t < 900f && !found; t += dt)
+            {
+                theo.Tick(dt, target, default);
+                if (theo.Events.found) { found = true; foundIn = theo.Events.foundInSpot; }
+            }
+            Assert.That(found, Is.True, "he found her in the pantry");
+            Assert.That(foundIn, Is.EqualTo(spot), "by opening it (he can't see into a cupboard)");
+        }
+
+        [Test]
+        public void TheoHearsARunAndGoesToLook()
+        {
+            var h = Build();
+            var theo = Theo(h, out _);
+            theo.StartCounting(h.theoStart, h.theoCountYaw, 0.5f, 0);
+            const float dt = 1f / 30f;
+            for (float t = 0f; t < 1f; t += dt) theo.Tick(dt, default, default);
+            var noise = StealthNoise.Make(new Vector3(-4.6f, 0f, 1.5f), 22f, NoiseKind.Landing);   // the living room
+            theo.Tick(dt, default, noise);
+            Assert.That(theo.Events.say, Is.EqualTo(TheoSay.Heard));
+            Assert.That(theo.State, Is.EqualTo(TheoState.Investigating));
+        }
+
+        [Test]
+        public void TheoPeeksWhileHeCountsAndSaysWhereHeSawHerGo()
+        {
+            var h = Build();
+            bool saw = false;
+            for (int seed = 1; seed < 40 && !saw; seed++)
+            {
+                var theo = Theo(h, out _, seed);
+                theo.StartCounting(h.theoStart, h.theoCountYaw, 10f, 0);
+                var target = StealthTarget.At(new Vector3(4.6f, 0f, 4.2f));   // the dining room's far side, by the kitchen opening
+                const float dt = 1f / 30f;
+                for (float t = 0f; t < 10f; t += dt)
+                {
+                    theo.Tick(dt, target, default);
+                    if (theo.Events.say == TheoSay.SawYouGo) { saw = true; Assert.That(theo.Events.arg, Is.EqualTo(1), "the ground floor"); }
+                    Assert.That(theo.Events.found, Is.False, "a peek never finds her");
+                }
+            }
+            Assert.That(saw, Is.True, "with her in view he sees her when he peeks (some seed)");
+        }
+
+        /// <summary>The whole round in the fake world: she (the walker, sprinting) goes for the nearest memory she hasn't got,
+        /// Theo seeks her with his senses, a catch costs what the rules say; it ends with every memory found and him finding
+        /// her, or three catches. Prints how long it took.</summary>
+        [TestCase(10)]
+        [TestCase(22)]
+        public void TheWholeRoundPlaysOut(int seed)
+        {
+            var h = Build();
+            var world = WorldOf(h);
+            var sw = h.StealthWorld();
+            var g = h.Graph(sw);
+            var theo = new TheoBrain(h, sw, g, null, seed);
+            var round = new HideAndSeekRound(h);
+            round.Collect(DreamHouseStory.MemPlaceCard, out _);
+            var sim = new MoveSim(world, new MoveDef());
+            var driver = new MoveDriver(sim);
+            driver.Teleport(h.nadiaChair + new Vector3(0f, 0.02f, -1.0f), 0f, Vector3.Zero);
+            var walker = new HouseWalker(h, sw, g);
+            theo.StartCounting(h.theoStart, h.theoCountYaw, round.CountTime, 0);
+            string goingFor = null;
+            const float dt = 1f / 30f;
+            float t = 0f, fleeing = 0f;
+            var log = new List<string>();
+            int catches = 0;
+            for (; t < 900f && !round.Over; t += dt)
+            {
+                var p = sim.Position;
+                // A sensible player: seen, she breaks away (to the reachable point furthest from him) for a few seconds.
+                if (theo.Visibility > 0.05f && fleeing <= 0f && !round.AllFound)
+                {
+                    fleeing = 4f;
+                    var far = h.nodes.Where(n => Math.Abs(n.p.Y - p.Y) < 0.3f && Vector3.Distance(n.p, p) < 12f).OrderByDescending(n => Vector3.Distance(n.p, theo.Position)).FirstOrDefault();
+                    walker.Go(p, far.p);
+                    goingFor = null;
+                }
+                if (fleeing > 0f) { fleeing -= dt; if (fleeing > 0f) { driver.Frame(dt, walker.Next(sim, dt)); var tg = StealthTarget.At(sim.Position); tg.speed = sim.HorizontalSpeed; theo.Tick(dt, tg, default); if (theo.Events.found) { var c0 = round.Caught(sim.Position); if (!c0.roundOver) theo.StartCounting(theo.Position, theo.Yaw, round.CountTime, round.Catches); } continue; } }
+                if (goingFor == null || round.IsFound(goingFor) || walker.Arrived && !round.IsFound(goingFor) && Vector3.Distance(p, round.StandAtOf(goingFor)) > 1.5f || walker.Stuck)
+                {
+                    goingFor = null;
+                    float best = float.MaxValue;
+                    foreach (var m in h.memories)
+                    {
+                        if (round.IsFound(m.id)) continue;
+                        float d = Vector3.Distance(p, round.StandAtOf(m.id)) + Math.Abs(p.Y - round.StandAtOf(m.id).Y) * 6f;
+                        if (d < best) { best = d; goingFor = m.id; }
+                    }
+                    if (goingFor != null && !walker.Go(p, round.StandAtOf(goingFor))) TestContext.Out.WriteLine($"{t:0}s no way from {p} to {goingFor}");
+                    else if (goingFor != null && log.Count < 60) log.Add($"{t:0}s at {p} going for {goingFor} ({h.RoomAt(p + new Vector3(0, 0.1f, 0))?.id})");
+                }
+                if (goingFor != null && walker.Arrived && Vector3.Distance(p, round.StandAtOf(goingFor)) < 1.2f)
+                {
+                    round.Collect(goingFor, out bool last);
+                    if (last) theo.ComeFind(p);
+                    goingFor = null;
+                }
+                driver.Frame(dt, walker.Next(sim, dt));
+                var target = StealthTarget.At(sim.Position);
+                target.speed = sim.HorizontalSpeed;
+                theo.Tick(dt, target, default);
+                if (round.AllFound && theo.State != TheoState.Coming && theo.State != TheoState.Celebrating) theo.ComeFind(sim.Position);
+                if (theo.Events.found)
+                {
+                    var cost = round.Caught(sim.Position);
+                    if (!cost.roundOver) { catches++; theo.StartCounting(theo.Position, theo.Yaw, round.CountTime, round.Catches); }
+                }
+            }
+            foreach (var l in log) TestContext.Out.WriteLine(l);
+            TestContext.Out.WriteLine($"seed {seed}: the round took {t:0} s ({round.End}), {round.Catches} catches, {round.FoundCount} of {round.Total} memories");
+            Assert.That(round.Over, Is.True, "the round ends");
+        }
+
+        // =====================================================================================================
+        // The round
+        // =====================================================================================================
+
+        [Test]
+        public void ThreeCatchesEndTheRoundAndEachTakesTheLastMemory()
+        {
+            var h = Build();
+            var r = new HideAndSeekRound(h);
+            foreach (var id in new[] { DreamHouseStory.MemPlaceCard, DreamHouseStory.MemCalendar, DreamHouseStory.FactPhoto, DreamHouseStory.MemBadDream }) r.Collect(id, out _);
+            Assert.That(r.Counter, Is.EqualTo("Memories 4 of 8"));
+            var c1 = r.Caught(Vector3.Zero);
+            Assert.That(c1.memoryTaken, Is.EqualTo(DreamHouseStory.MemBadDream));
+            Assert.That(r.CountTime, Is.LessThan(HideAndSeekRound.CountSeconds[0]), "he counts less after a catch");
+            var c2 = r.Caught(Vector3.Zero);
+            Assert.That(c2.memoryTaken, Is.EqualTo(DreamHouseStory.FactPhoto));
+            Assert.That(r.Over, Is.False);
+            var c3 = r.Caught(Vector3.Zero);
+            Assert.That(c3.roundOver, Is.True);
+            Assert.That(r.End, Is.EqualTo(RoundEnd.CaughtThreeTimes));
+            Assert.That(r.FoundCount, Is.EqualTo(2), "she goes into the battle with what she's holding");
+        }
+
+        [Test]
+        public void ATakenMemoryCanBeFoundAgainWhereTheHouseMovedIt()
+        {
+            var h = Build();
+            var r = new HideAndSeekRound(h);
+            r.Collect(DreamHouseStory.MemRadio, out _);
+            var c = r.Caught(new Vector3(3.6f, -2.8f, 1f));
+            Assert.That(c.newRoom, Is.Not.EqualTo("workshop"));
+            Assert.That(r.Collect(DreamHouseStory.MemRadio, out _), Is.True, "found again");
+        }
+
+        [Test]
+        public void FindingEveryMemoryPlaysTheCreatorsLineAndHisFindingHerEndsTheRound()
+        {
+            var h = Build();
+            var r = new HideAndSeekRound(h);
+            bool last = false;
+            foreach (var m in h.memories) { r.Collect(m.id, out bool l); last |= l; }
+            Assert.That(last, Is.True);
+            Assert.That(DreamHouseLines.AllFound(false), Does.StartWith("I'm not sure if there's anything left to find. I could let Theo find me here..."));
+            Assert.That(DreamHouseLines.AllFound(true), Does.EndWith("it would be nice to see his smile again."));
+            Assert.That(DreamHouseLines.AllFound(false), Does.EndWith("but what does it matter, when he's not even real?"));
+            var c = r.Caught(Vector3.Zero);
+            Assert.That(c.roundOver, Is.True);
+            Assert.That(c.memoryTaken, Is.Null, "she let him: no cost");
+            Assert.That(r.End, Is.EqualTo(RoundEnd.AllFoundAndFound));
+        }
+
+        [Test]
+        public void TheMemoriesBecomeTheBattlesCards()
+        {
+            var cards = DreamHouseStory.EvidenceFor(new[] { DreamHouseStory.MemCalendar, DreamHouseStory.MemSaturdayPaper, DreamHouseStory.MemRadio, DreamHouseStory.MemPlaceCard }, false);
+            Assert.That(cards, Is.EquivalentTo(new[] { DreamHouseStory.DedSaturdayOff, DreamHouseStory.DedSameSaturday, DreamHouseStory.MemPlaceCard }));
+            Assert.That(DreamHouseStory.EvidenceFor(new[] { DreamHouseStory.MemCalendar }, false), Is.EquivalentTo(new[] { DreamHouseStory.MemCalendar }));
+            Assert.That(DreamHouseStory.EvidenceFor(new[] { DreamHouseStory.MemCalendar }, true), Is.EquivalentTo(new[] { DreamHouseStory.DedSaturdayOff }));
+        }
+
+        [Test]
+        public void TheStoryRunsInOrderAndThrownOutHardensLena()
         {
             var s = new DreamHouseStory();
             s.Restart();
-            Assert.That(s.Phase, Is.EqualTo(HousePhase.WayIn));
-            Assert.That(s.StartHideAndSeek(), Is.False, "not before the pancakes");
-            Assert.That(s.ReachKitchen(), Is.True);
-            Assert.That(s.ReachKitchen(), Is.False, "once");
-            Assert.That(s.Phase, Is.EqualTo(HousePhase.Pancakes));
+            Assert.That(s.SitDown(), Is.True);
             Assert.That(s.StartHideAndSeek(), Is.True);
-            Assert.That(s.Rounds, Is.EqualTo(1));
-            // Found before every memory: another round.
-            Assert.That(s.TheoFoundHer(), Is.False);
-            Assert.That(s.Phase, Is.EqualTo(HousePhase.HideAndSeek));
-            Assert.That(s.Rounds, Is.EqualTo(2));
-            string line = s.FoundEveryMemory(false);
-            Assert.That(line, Does.StartWith(DreamHouseLines.AllFoundStart), "the creator's own line (not a placeholder)");
-            Assert.That(line, Does.Contain(DreamHouseLines.AllFoundStart));
-            // Found after the last memory: Elias hasn't come; the argument.
-            Assert.That(s.TheoFoundHer(), Is.True);
-            Assert.That(s.Phase, Is.EqualTo(HousePhase.Argument));
-            Assert.That(s.Choose(ArgumentOutcome.None), Is.False);
-            Assert.That(s.Choose(ArgumentOutcome.Condemns), Is.True);
-            Assert.That(s.Phase, Is.EqualTo(HousePhase.Escape));
-            Assert.That(s.LenaCondemned, Is.True);
-            s.Escaped();
-            Assert.That(s.Phase, Is.EqualTo(HousePhase.Out));
-            s.JumpTo(HousePhase.Escape);
-            Assert.That(s.Outcome, Is.EqualTo(ArgumentOutcome.Unsure), "a chapter jump to the escape assumes the gentler ending");
-            Assert.That(s.AllMemoriesFound, Is.True);
+            Assert.That(s.RoundOver(), Is.True);
+            Assert.That(s.AnswerTheo(TheoAnswer.Honest), Is.True);
+            Assert.That(s.Choose(ArgumentOutcome.Unsure), Is.True);
+            Assert.That(s.Thrown(), Is.True);
+            Assert.That(s.Phase, Is.EqualTo(HousePhase.ThrownOut));
+            Assert.That(s.Outcome, Is.EqualTo(ArgumentOutcome.Condemns), "thrown out, Lena's mind is made up");
+            Assert.That(DreamHouseLines.TheoQuestion, Is.EqualTo("Is Dad going to be sad?"));
+            Assert.That(DreamHouseLines.Street[0].text, Is.EqualTo("Morning, Nadia!"));
         }
 
         [Test]
-        public void TheoAsksOnceAndTheAnswerIsKept()
+        public void NoLineIsAPlaceholder()
         {
-            var story = new DreamHouseStory();
-            story.Restart();
-            Assert.That(story.TheoAsks, Is.False, "not before hide-and-seek");
-            story.ReachKitchen();
-            story.StartHideAndSeek();
-            Assert.That(story.TheoAsks, Is.True);
-            Assert.That(story.AnswerTheo(TheoAnswer.None), Is.False);
-            Assert.That(story.AnswerTheo(TheoAnswer.Comfort), Is.True);
-            Assert.That(story.TheoAnswered, Is.EqualTo(TheoAnswer.Comfort));
-            Assert.That(story.TheoAsks, Is.False, "he asks once");
-            Assert.That(story.AnswerTheo(TheoAnswer.Honest), Is.False, "the first answer stays");
-            Assert.That(DreamHouseStory.AnswerText(TheoAnswer.Silence), Is.EqualTo("silence"));
-            Assert.That(DreamHouseLines.TheoAnswers.Length, Is.EqualTo(3), "an answer for honest, comfort and silence");
-        }
-
-        [Test]
-        public void TheMemoriesAreTheReplotsFiveAndTheCalendarMakesTheSaturdayDeduction()
-        {
-            var h = DreamHouse.Build();
-            var ids = h.memories.ConvertAll(m => m.id);
-            Assert.That(ids, Is.EquivalentTo(new[] { DreamHouseStory.MemPlaceCard, DreamHouseStory.MemCalendar, DreamHouseStory.MemBadDream, DreamHouseStory.MemHeightMarks, DreamHouseStory.FactPhoto }));
-            var bad = h.memories.Find(m => m.id == DreamHouseStory.MemBadDream);
-            var theo = h.rooms.Find(r => r.name == "Theo's room");
-            Assert.That(theo.Contains(bad.position.X, bad.position.Z), Is.True, "the bad dream is found in Theo's room");
-            Assert.That(DreamHouseStory.EvidenceFor(ids, false), Does.Contain(DreamHouseStory.MemCalendar).And.Not.Contain(DreamHouseStory.DedSaturdayOff));
-            var withPaper = DreamHouseStory.EvidenceFor(ids, true);
-            Assert.That(withPaper, Does.Contain(DreamHouseStory.DedSaturdayOff).And.Not.Contain(DreamHouseStory.MemCalendar), "the calendar + Night 1's Saturday paper");
-            Assert.That(withPaper, Does.Contain(DreamHouseStory.MemPlaceCard));
-            string j = DreamJournal.Add(null, DreamJournal.SaturdayPaper);
-            Assert.That(DreamJournal.Has(j, DreamJournal.SaturdayPaper), Is.True);
-            Assert.That(DreamJournal.Add(j, DreamJournal.SaturdayPaper), Is.EqualTo(j), "added once");
-            Assert.That(DreamJournal.Has("mem_x,mem_saturday_paper", DreamJournal.SaturdayPaper), Is.True);
-            Assert.That(DreamJournal.Has("", DreamJournal.SaturdayPaper), Is.False);
-        }
-
-        [Test]
-        public void TheVisitStartsOnTheStreetBeforeTheGarden()
-        {
-            var h = DreamHouse.Build();
-            var arrival = h.course.checkpoints[h.arrivalCheckpoint];
-            Assert.That(arrival.name, Is.EqualTo("The street"));
-            Assert.That(arrival.position.Z, Is.LessThan(-24f), "on the street, before the front garden");
-        }
-
-        [Test]
-        public void TheLastMemoryLineKeepsBothEndingsAndEveryOtherLineIsAPlaceholder()
-        {
-            string despair = DreamHouseLines.AllFound(true), normal = DreamHouseLines.AllFound(false);
-            Assert.That(despair, Is.Not.EqualTo(normal), "the ending differs by route");
-            Assert.That(DreamHouseLines.AllFoundEndings.Length, Is.EqualTo(2));
-            foreach (var e in DreamHouseLines.AllFoundEndings) Assert.That(despair.EndsWith(e) || normal.EndsWith(e), Is.True, e);
-            // Night 2's re-plot: the Despair route gets the longing ending, the normal route the clear-eyed one.
-            Assert.That(despair, Does.EndWith("it would be nice to see his smile again."));
-            Assert.That(normal, Does.EndWith("but what does it matter, when he's not even real?"));
-            Assert.That(normal, Does.Not.StartWith(DreamHouseLines.Placeholder), "the creator's line is shown as written");
-            var groups = new System.Collections.Generic.List<HouseLine[]> { DreamHouseLines.Street, DreamHouseLines.Arrival, DreamHouseLines.HouseMisbehaves, DreamHouseLines.Pancakes,
-                DreamHouseLines.FoundYou, DreamHouseLines.EliasNotHere, DreamHouseLines.Unsure, DreamHouseLines.Condemns, DreamHouseLines.KickedOut, DreamHouseLines.LenaAtTheWindow };
-            groups.AddRange(DreamHouseLines.TheoAnswers);
-            foreach (var group in groups)
-                foreach (var l in group)
-                {
-                    Assert.That(l.text, Does.StartWith(DreamHouseLines.Placeholder), l.text);
-                    Assert.That(l.speaker, Is.Not.Empty);
-                    Assert.That(l.seconds, Is.InRange(1.5f, 6f));
-                }
-            Assert.That(DreamHouseLines.ArgumentPrompt, Does.Contain("PLACEHOLDER"));
-        }
-
-        [Test]
-        public void LenaCondemningNadiaMakesTheDespairRouteEasier()
-        {
-            var h = Build();
-            var normal = DreamHouseStory.RainFor(h.rain, false);
-            var condemned = DreamHouseStory.RainFor(h.rain, true);
-            Assert.That(condemned.despairS, Is.LessThan(normal.despairS), "the point of no return comes sooner");
-            Assert.That(condemned.rainStartS, Is.EqualTo(normal.rainStartS));
-            Assert.That(h.rain.despairS, Is.EqualTo(normal.despairS), "the house's own spot is the normal one");
-            Assert.That(DreamHouseStory.RainDefFor(true).soakTime, Is.LessThan(DreamHouseStory.RainDefFor(false).soakTime), "and the rain soaks faster");
-            // Walking into the rain at the same pace: the condemned visit reaches the choice first.
-            var a = new DreamRain(normal) { def = DreamHouseStory.RainDefFor(false) };
-            var b = new DreamRain(condemned) { def = DreamHouseStory.RainDefFor(true) };
-            float sa = -1f, sb = -1f;
-            for (float s = normal.rainStartS - 2f; s < normal.rainEndS; s += 0.1f)
+            var all = new List<HouseLine>();
+            foreach (var f in typeof(DreamHouseLines).GetFields())
             {
-                if (a.Tick(0.02f, s).despairChosen) sa = s;
-                if (b.Tick(0.02f, s).despairChosen) sb = s;
+                if (f.FieldType == typeof(HouseLine[])) all.AddRange((HouseLine[])f.GetValue(null));
+                if (f.FieldType == typeof(HouseLine[][])) foreach (var a in (HouseLine[][])f.GetValue(null)) all.AddRange(a);
             }
-            Assert.That(sb, Is.GreaterThan(0f));
-            Assert.That(sa, Is.GreaterThan(sb));
-        }
-
-        [Test]
-        public void TheUmbrellaWaitsBesideTheFrontDoorOnTheHallFloor()
-        {
-            var h = Build();
-            var r = h.rain;
-            var boxes = LabCourseTests.WorldOf(h.course, null);
-            Assert.That(r.rainStartS, Is.GreaterThan(h.chaseEndS), "the house stops folding before the door");
-            Assert.That(Math.Abs(r.umbrella.Z - r.rainStartS), Is.LessThan(1.5f), "next to the door");
-            Assert.That(r.umbrella.Z, Is.LessThan(r.rainStartS), "inside");
-            Assert.That(Math.Abs(r.umbrella.X - h.course.LaneAt(r.umbrella.Z)), Is.InRange(1.5f, 4f), "beside the way out, not in it");
-            Assert.That(boxes.CastDown(new Vector3(r.umbrella.X, r.umbrella.Y, r.umbrella.Z), 0.1f, 1f, out var hit), Is.True, "on the hall floor");
-            Assert.That(hit.point.Y, Is.EqualTo(r.floorY).Within(0.01f));
-            Assert.That(r.resetS, Is.LessThan(r.umbrella.Z));
-            Assert.That(r.resetS, Is.GreaterThan(h.hubCheckpoint >= 0 ? h.course.checkpoints[h.hubCheckpoint].s : 0f), "a new visit puts it back");
-            Assert.That(r.rainEndS, Is.GreaterThan(r.despairS + 10f));
-        }
-
-        [Test]
-        public void TheOutcomeChangesTheHardestSpot()
-        {
-            // Unsure: Theo opens the window; condemns: the fold keeps closer there, and folds the rooms faster.
-            Assert.That(DreamHouseStory.TheoOpensTheWindow(ArgumentOutcome.Unsure), Is.True);
-            Assert.That(DreamHouseStory.TheoOpensTheWindow(ArgumentOutcome.Condemns), Is.False);
-            Assert.That(DreamHouseStory.FoldGapAt(12f, ArgumentOutcome.Condemns, true), Is.EqualTo(DreamHouseStory.CondemnedFoldGap));
-            Assert.That(DreamHouseStory.FoldGapAt(12f, ArgumentOutcome.Condemns, false), Is.EqualTo(12f), "only at the hardest spot");
-            Assert.That(DreamHouseStory.FoldGapAt(12f, ArgumentOutcome.Unsure, true), Is.EqualTo(12f));
-            Assert.That(DreamHouseStory.FoldSecondsAt(ArgumentOutcome.Condemns, true), Is.LessThan(DreamHouseStory.FoldSecondsAt(ArgumentOutcome.Unsure, true)));
-            Assert.That(DreamHouseStory.CondemnedFoldGap, Is.GreaterThan(new Pursuer().catchGap + 2f), "closer, still not on top of her");
-
-            var h = Build();
-            float cp = h.course.checkpoints[h.hardCheckpoint].s;
-            Assert.That(h.hardRoomS, Is.LessThanOrEqualTo(cp), "the hardest spot's room holds its checkpoint");
-            Assert.That(h.theoWindowZ, Is.GreaterThan(cp).And.LessThan(h.hardStartS - DreamHouse.TheoWindowWidth * 0.5f), "the window between the checkpoint and the door");
-            Assert.That(h.course.LaneAt(h.theoWindowZ), Is.GreaterThan(DreamHouse.TheoWindowX + 1.5f), "the run passes it by (the window is a choice)");
-            Assert.That(h.hardSkipCheckpoint, Is.GreaterThan(h.hardCheckpoint), "it lets her out past the door");
-        }
-
-        [Test]
-        public void TheoRemembersHerAnswerAsSheIsTurnedOut()
-        {
-            Assert.That(DreamHouseLines.PartingFor(TheoAnswer.None), Is.Empty, "he never asked: nothing");
-            var said = new HashSet<string>();
-            foreach (var a in new[] { TheoAnswer.Honest, TheoAnswer.Comfort, TheoAnswer.Silence })
+            Assert.That(all.Count, Is.GreaterThan(30));
+            foreach (var l in all)
             {
-                var l = DreamHouseLines.PartingFor(a);
-                Assert.That(l.Length, Is.EqualTo(1));
-                Assert.That(l[0].speaker, Is.EqualTo(DreamHouseLines.Theo));
-                Assert.That(l[0].text, Does.StartWith(DreamHouseLines.Placeholder), "a placeholder: the dialogue is the creator's");
-                Assert.That(said.Add(l[0].text), Is.True, "a different line for each answer");
+                Assert.That(l.text, Does.Not.Contain("placeholder").IgnoreCase);
+                Assert.That(l.text, Does.Not.Contain("["));
             }
         }
     }
