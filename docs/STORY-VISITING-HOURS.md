@@ -33,7 +33,7 @@ Reasonable people split on this the way they split over end-of-life decisions. T
 
 ## The story
 
-**Nadia Voss** is twenty-nine and works nights as a nurse at St. Brigid's. Six weeks ago her older brother
+**Nadia Lasname** is twenty-nine and works nights as a nurse at St. Brigid's. Six weeks ago her older brother
 **Elias**, a bike mechanic, fell asleep at the wheel after a double shift. His car crossed the median. His wife
 **Lena** went missing and his ten-year-old son **Theo** died at the scene. Elias has been in bed 14 ever since. The scans say
 his brain is fine. He just won't wake up.

@@ -5,8 +5,9 @@
 - Answered today: Lena is a stargazer (no ceramics) and missing, not dead; LeBaget is the corporation and Larpaca the
   gang (question 4 is answered); the creator's endings replace the bible's. Folded in the earlier answers: the attic
   observatory (approved, with a raised roof section), daytime jump fatigue after 3 jumps, Lena's 6'2" dream height.
-- Still open keeps only real questions; added the LeBaget/LaBaget spelling, LeBaget's role, and the Lena battle's
-  replacement keepsake and relic premises.
+- Still open keeps only real questions; added LeBaget's role, and the Lena battle's replacement keepsake and relic
+  premises. The spelling is LeBaget (confirmed). Theo and the keepsake are to be decided in discussion.
+- Authorship: the Lena battle text is agent placeholder prose, not the creator's (see docs/AUTHORSHIP.md).
 - Counts: 12 answered, 20 partly answered, 19 open.
 -->
 # Visiting Hours: which design decisions are still open
@@ -42,7 +43,7 @@ DESIGN-DECISIONS numbers only its first three questions; the rest are numbered 4
 4. **What each night is about** (30), Night 3 above all: what the dream hospital is for (32), what the Doctor argues
    and what wins it without the proxy form (51), and whether he's a second Elias (15).
 5. **Theo: in or out** (1, 24, 48): you consider cutting him, but you also endorsed his hide-and-seek on Night 2 and his
-   torch on Night 4. His blessing, his guide role and the "Tell" verb all hang on this.
+   torch on Night 4. His blessing, his guide role and the "Tell" verb all hang on this. To be decided in discussion.
 6. **The Long Night's lock-in** (3): which curious choices count, how many lock the route, and how it can be aborted.
    The umbrella is already one of them in the build.
 7. **The final arena** (31): is it the car, and if so, why are they back at the beginning?
@@ -50,8 +51,8 @@ DESIGN-DECISIONS numbers only its first three questions; the rest are numbered 4
    mean? The fridge calendar is already in the house art. (Her passion is settled: stargazing.)
 9. **Night 2's argument** (22): does "He called you first" stay in it, and what exactly makes Lena open to giving her
    blessing later? Your rewrite of the battle also needs three things the old placeholders got wrong (listed under
-   **Stale docs updated**): **the keepsake** she gives when heard out (the apron hair tie is gone; the game now shows
-   "[keepsake: undecided]"), **her fallback** after the fourth chair (it was "You stopped coming"), and **the buried
+   **Stale docs updated**): **the keepsake** she gives when heard out (to be decided in discussion; the apron hair tie
+   is gone and the game now shows "[keepsake: undecided]"), **her fallback** after the fourth chair (it was "You stopped coming"), and **the buried
    premise** (it was Theo's "THE BAD DREAM" drawing).
 
 **Blocks the story and the endings**
@@ -72,8 +73,7 @@ DESIGN-DECISIONS numbers only its first three questions; the rest are numbered 4
 19. **Rafael** (9, 27): he's now an intern. Is he still the other candidate for Nadia's job, and did Elias fund a post
     for him?
 20. **LeBaget** (4): how big a part it plays (you said it may become a big part of the story, undecided), and whether it
-    shares the blame for the crash (if it does, it stays hidden). Also the spelling: the docs say **LeBaget**, and you
-    wrote **LaBaget**. Which is right?
+    shares the blame for the crash (if it does, it stays hidden). (The spelling is LeBaget: confirmed.)
 21. **The family money** (10): inherited or earned? This only matters if any clue about it stays in.
 22. **The hope** (39): waits on the Night 4 truth.
 
@@ -109,7 +109,7 @@ DESIGN-DECISIONS numbers only its first three questions; the rest are numbered 4
 - **Route 9: LeBaget is the corporation and Larpaca the gang.** "My script meant to name a gang, LaBaget, and a
   corporation, Larpaca, but then you made LaBaget into a corporation and a big part of the story potentially (undecided
   if it will work), so now Larpaca is the gang." The news now names only the Larpaca gang (your PROSE:233 note: LeBaget's
-  share, if any, is hidden). Question 4 is answered.
+  share, if any, is hidden). The spelling is **LeBaget** (confirmed). Question 4 is answered.
 - **Your endings replace the bible's.** "The new endings I wrote overturn the 'bible'." (PROSE:56: Morning chosen and
   forced, Evening, the Long Night.)
 
@@ -150,7 +150,7 @@ Each of the old "contradictions" was an agent doc that hadn't caught up with you
 - `ARGUMENT-PROSE-BRIEF.md`: a **Relic lines** table, and every relic row marked (below).
 - `script/opening-script.md` (the news report): "the crossfire between LeBaget and the Larpaca corporation" became "a
   crossfire involving the Larpaca gang". Nothing else in your script changed.
-- The game's Lena battle file (`ArgumentText/lena_night2.txt`): two data lines only. The keepsake is now
+- The game's Lena battle file (`ArgumentText/lena_night2.txt`, agent placeholder prose): two data lines only. The keepsake is now
   "[keepsake: undecided]" (was the apron hair tie), and the police report card says Route 9 (it said Larch Street).
 
 **Waiting in `docs/_pending/` (swap in once you close the tabs; each starts with a comment listing its changes)**
@@ -167,16 +167,23 @@ Each of the old "contradictions" was an agent doc that hadn't caught up with you
   removed or re-themed, the cut premises no longer quoted.
 - This page.
 
-**Relic lines in the Lena battle, left for your rewrite** (full table in `ARGUMENT-PROSE-BRIEF.md`)
+**Relic lines in the Lena battle, left for your rewrite.** The whole battle text (`lena_night2.txt`, `screen.txt`) is
+agent placeholder prose, not yours: you never touched it (see `docs/AUTHORSHIP.md`). Full table in
+`ARGUMENT-PROSE-BRIEF.md`.
 - "You stopped coming" / "every Sunday for a year": her fallback after the fourth chair (you rejected Nadia
   abandoning Sunday pancakes, PROSE:124).
 - "To him, you're the bad dream" and the paper plane "THE BAD DREAM", plus "You sound like the bad dream": Theo's
   drawing as an attack is out of character (PROSE:134).
 - The keepsake: the apron hair tie is gone (the game now shows "[keepsake: undecided]").
 - Walt's truth as evidence: it comes from Walt's battle, which you rejected as built (PROSE:104).
-- "Forty-two times": it's 41.
+- "Forty-two times": it's 41 (a factual fix to forty-one waits in `docs/_pending/ArgumentText/lena_night2.txt`).
 - The opening line ("Pancakes are nearly done"): in your re-plot the argument starts after the pancakes and the game.
 - The outcomes: your Night 2 ends with Lena unsure or condemning Nadia.
+
+**Second pass (after "I never touched that file"):** `docs/AUTHORSHIP.md` lists who wrote every text. The slice's
+dialogue (`VisitingHours.ink`, agent-written) now says Lasname, not Voss; draft 1 says Nadia Lasname; the spelling is
+LeBaget in VISITING-HOURS and CHARACTERS; the relic table in ARGUMENT-PROSE-BRIEF now says the battle text is agent
+placeholder prose.
 
 **Left alone because it's your file:** STORY-PROSE spells Mags "Megs" twice in your scene (PROSE:83-84).
 
@@ -217,7 +224,7 @@ Each of the old "contradictions" was an agent doc that hadn't caught up with you
 - **Where:** your ruling (2026-10-12): LeBaget is the corporation and Larpaca the gang. SB:36: "corpo and a gang".
   PROSE:233: if LeBaget shares the blame, "that fact needs to be hidden ... meaning the news report will need to change".
 - **Note:** the news script now names only "the Larpaca gang". Still open (listed above): how big LeBaget's part is,
-  whether it shares the blame, and the spelling (LeBaget or LaBaget).
+  and whether it shares the blame. The spelling is LeBaget (confirmed 2026-10-12).
 
 **5. Did Nadia hear the call?**
 - **Status:** Answered

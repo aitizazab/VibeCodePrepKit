@@ -5,19 +5,21 @@ This is a brief for writing the real lines. Every line in the prototype is a pla
 an editable text file with the same ids). For each line below: **who says it**, **when it shows**, **what it has to get
 across** (the logic the battle depends on), and the placeholder. Write over the placeholder freely; keep the job.
 
-## Relic lines: placeholders that contradict the creator (marked 2026-10-12)
-The creator's own writing outranks this brief and the placeholders (the creator, 2026-10-12: the battle text "is just a
-relic of stuff that didn't get updated"). The creator will rewrite the prose. Until then, each line below is marked
-**RELIC** in the tables further down. Only pure data that would mislead in play was changed in the game files (the
-keepsake's name and the police report card's place).
+## Relic lines: agent placeholders that contradict the creator's decisions (marked 2026-10-12)
+**Who wrote the battle text:** agents. Every line in `lena_night2.txt` and `screen.txt` is agent-written placeholder
+prose (moved out of `DreamLenaDemo.cs` in e94c1e3); the creator has never edited either file ("I never touched that
+file", 2026-10-12; see `docs/AUTHORSHIP.md`). The creator will write the battle's prose. Until then, each placeholder
+below that contradicts a decision of theirs is marked **RELIC** in the tables further down. Only factual data was
+fixed in the game file (the keepsake's name, the police report card's place, and, waiting in
+`docs/_pending/ArgumentText/` while the file is open in their editor, forty-two to forty-one).
 
 | Line ids (in `lena_night2.txt`) | What the placeholder says | What it contradicts | The creator's version |
 |---|---|---|---|
 | `L1b.sound.reply`, every `L1c` line (the fallback premise L1'') | "He set it every Sunday for a year. You stopped coming." | STORY-PROSE:124: "Nadia shou;dn't have stopped coming to Sunday pancakes, at least if there was no time between the fight and accident" | Nadia never stopped coming; the fourth chair was always hers. L1' needs a different fallback (undecided) |
 | `L3.askAgainReply`, every `L5` line (`text`, `askReply`, `concedeLine`/`concedeReply`, `trueReply`, `pressLine`, `pressReply`, `slipName`), `pressedReply` | "To him, you're the bad dream: the woman in scrubs" (Theo's drawing; the paper plane "THE BAD DREAM") | STORY-PROSE:134: "Theo sliding his drawings across the table as some sort of psychological attack is out of character for how Elias would remember his son" | The drawing as an attack is cut. The creator's Night 2 idea: Nadia is the intruder, and Lena keeps Elias away from her, afraid she'd convince him to leave (STORY-PROSE:140). What replaces the buried premise is undecided |
-| `personalText` (and the note on `letItRestReply`) | "Lena's apron hair tie." | Lena has no apron, clay or workwear (CHARACTERS, round 3); she's a stargazer (the creator, 2026-10-12) | The keepsake is undecided. **Changed in the game file** to `[keepsake: undecided]` so play doesn't show the apron |
+| `personalText` (and the note on `letItRestReply`) | "Lena's apron hair tie." | Lena has no apron, clay or workwear (CHARACTERS, round 3); she's a stargazer (the creator, 2026-10-12) | The keepsake is open, to be decided in discussion. **Changed in the game file** to `[keepsake: undecided]` so play doesn't show the apron |
 | `truth_walt` (the card), `L3c.beside`, `L3c.nonsequitur` and their replies, the screen's `menu.noWalt` | Walt's truth ("Patching it isn't fixing it"), won by fully convincing Walt on Night 1 | STORY-PROSE:104: Walt's tutorial is "Rejected ... not the way it's currently built" | Whether Walt's battle survives, and so whether his truth exists as evidence, is undecided. "The same Saturday" (Walt's ledger, a deduction) still breaks L3'' without him |
-| `L3c.sound`, `L3c.sound.reply` | "forty-two times" | STORY-PROSE:51 and the ledger: 41 Saturdays | 41 (the creator rewrites the line) |
+| `L3c.sound`, `L3c.sound.reply` | "forty-two times" | STORY-PROSE:51 and the ledger: 41 Saturdays | 41: the factual fix (forty-one) waits in `docs/_pending/ArgumentText/lena_night2.txt` |
 | `opening` | "Sit down, Nadia. Pancakes are nearly done. He stays." (the battle opens before the pancakes) | STORY-PROSE:140: Nadia sits down for pancakes and plays hide-and-seek waiting for Elias; when he never comes she questions Lena, and Lena admits she won't let him go | The battle starts after the pancakes and the game, from Nadia's question about Elias |
 | `L4` (all lines) | "He called you first. You didn't pick up. So he called me." | Not a contradiction, but undecided: whether it stays in Night 2's argument (DESIGN-DECISIONS question 22). Nadia's guilt is survivor's guilt, not blame for the crash (STORY-PROSE:37) | Undecided |
 | The outcomes table above | Convinced and Heard out both leave Lena "Amenable" | STORY-PROSE:140: the battle ends with Lena "unsure of her conviction" (open to giving her blessing later) or condemning Nadia | Lena ends unsure or condemns |

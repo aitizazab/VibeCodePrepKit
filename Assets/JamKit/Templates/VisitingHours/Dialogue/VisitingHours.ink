@@ -34,7 +34,7 @@ The chart hangs off the foot of the bed. My handwriting, from last night.
 
 === examine_effects ===
 #speaker:Nadia
-His effects bag. "VOSS, E." in marker, in somebody else's writing.
+His effects bag. "LASNAME, E." in marker, in somebody else's writing.
 A keyring. The tag says "W.A. workshop". I haven't seen that tag since we were kids.
 And a card, folded small. <i>Walter Abernathy, 1941–2015.</i> #event:vh:record:fact_effects #sfx:page
 <i>He kept it. All this time.</i> #thought
@@ -178,7 +178,7 @@ Mr. Abernathy is at the grill, waving at me with the tongs. #event:vh:record:mem
 
 === walt_intro ===
 #speaker:Walt #portrait:Walt neutral left
-Nadia Voss. Look at you, all grown up.
+Nadia Lasname. Look at you, all grown up.
 You've come to take him home.
 #speaker:Nadia
 Walt, I...

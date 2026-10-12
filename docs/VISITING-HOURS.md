@@ -11,7 +11,7 @@ decisions in WORKLOG and chat. An agent doc that disagrees is stale and gets upd
   the streets and still pretend to be decent. **LeBaget** is a corporation and **Larpaca** is a gang (both
   fictional; checked that no real company has either name). The creator's script meant a gang and a corporation;
   LeBaget may become a big part of the story (undecided), and if it shares the blame for the crash, that stays
-  hidden behind its well-intentioned face. The spelling LeBaget or LaBaget is open.
+  hidden behind its well-intentioned face. The spelling is LeBaget (confirmed by the creator, 2026-10-12).
 - **Elias Lasname** (the surname is a placeholder) is an ER doctor who **founded Saint Brigid's** for the local
   community. He comes from money; where it came from is never said. A good man with an abrasive personality.
 - **Nadia**, his younger sister, is a nurse at Saint Brigid's and **usually picks him up from work.**

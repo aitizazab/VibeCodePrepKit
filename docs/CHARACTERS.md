@@ -108,4 +108,4 @@ in this city.
 
 ## A note on names
 Both names on Route 9 are fictional: **LeBaget** (the corporation) and **Larpaca** (the gang). No real company may be
-shown in a negative light. The creator has also written "LaBaget"; which spelling is final is open.
+shown in a negative light. The spelling is LeBaget (confirmed by the creator, 2026-10-12).
