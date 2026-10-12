@@ -16,25 +16,32 @@ namespace JamKit.DreamEscape.EditorTools
         const float F = DreamHouse.Ground;
         const float Wainscot = 0.9f;
 
-        /// <summary>A room's finish: its wallpaper colour, the wainscot's colour, and whether it gets a picture rail.</summary>
+        /// <summary>A room's finish: its wallpaper (a colour tile, tinted by <see cref="paper"/>: white is the tile as drawn),
+        /// the wainscot's colour, and whether the wainscot is tiled.</summary>
         sealed class Finish
         {
-            public Color paper, wainscot;
-            public float pattern = 0.32f;
+            public Color paper = Color.white, wainscot = Walnut;
             public bool tiled;
         }
 
+        /// <summary>The creator's picks (round 4, from the finish options): the oxblood regency stripe in every room with a
+        /// walnut wainscot (the kitchen's and the bath's tiles stay), exposed beams, the stepped crown, painted boards in
+        /// the attic. DreamCaptureVariants still shows the other options.</summary>
+        public const string WallTile = "dream_wall_oxblood-stripe";
+        public const float WallTileMetres = 0.5f;
+        static readonly Color Walnut = new Color(88f / 255f, 60f / 255f, 44f / 255f);
+
         static readonly Dictionary<string, Finish> Finishes = new Dictionary<string, Finish>
         {
-            { "Kitchen and dining", new Finish { paper = new Color(0.99f, 0.91f, 0.68f), wainscot = new Color(0.97f, 0.97f, 0.95f), tiled = true } },
-            { "Living room", new Finish { paper = new Color(0.72f, 0.86f, 0.72f), wainscot = new Color(0.96f, 0.93f, 0.86f) } },
-            { "Bay window", new Finish { paper = new Color(0.72f, 0.86f, 0.72f), wainscot = new Color(0.96f, 0.93f, 0.86f) } },
-            { "Hall", new Finish { paper = new Color(0.95f, 0.76f, 0.78f), wainscot = new Color(0.62f, 0.46f, 0.42f) } },
-            { "Pantry", new Finish { paper = new Color(0.94f, 0.9f, 0.82f), wainscot = new Color(0.94f, 0.9f, 0.82f), pattern = 0f } },
-            { "Parents' room", new Finish { paper = new Color(0.74f, 0.78f, 0.95f), wainscot = new Color(0.96f, 0.95f, 0.98f) } },
-            { "Bath", new Finish { paper = new Color(0.7f, 0.9f, 0.9f), wainscot = new Color(0.97f, 0.98f, 0.98f), tiled = true, pattern = 0f } },
-            { "Attic stairs", new Finish { paper = new Color(0.86f, 0.72f, 0.6f), wainscot = new Color(0.62f, 0.46f, 0.42f), pattern = 0f } },
-            { "Theo's room", new Finish { paper = new Color(0.68f, 0.82f, 0.98f), wainscot = new Color(0.99f, 0.86f, 0.5f) } },
+            { "Kitchen and dining", new Finish { wainscot = new Color(0.97f, 0.97f, 0.95f), tiled = true } },
+            { "Living room", new Finish() },
+            { "Bay window", new Finish() },
+            { "Hall", new Finish() },
+            { "Pantry", new Finish() },
+            { "Parents' room", new Finish() },
+            { "Bath", new Finish { wainscot = new Color(0.97f, 0.98f, 0.98f), tiled = true } },
+            { "Attic stairs", new Finish() },
+            { "Theo's room", new Finish() },
         };
 
         static Transform _root;
@@ -44,6 +51,7 @@ namespace JamKit.DreamEscape.EditorTools
             _root = new GameObject("Rooms (finish)").transform;
             _root.SetParent(root, false);
             WallFaces(h);
+            Beams(h);
             Windows();
             Stairs();
             Hatch();
@@ -134,44 +142,109 @@ namespace JamKit.DreamEscape.EditorTools
                 DreamEscapeBuilder.Box("Skirting", t, At(y0 + 0.07f, 0.02f), Size(len, 0.14f, 0.04f), trim);
             }
             if (room.ceiling >= 2.6f && y1 >= ceiling - 0.05f)
-                DreamEscapeBuilder.Box("Picture rail", t, At(ceiling - 0.32f, 0.02f), Size(len, 0.04f, 0.04f), trim);
+                DreamEscapeBuilder.Box("Picture rail", t, At(ceiling - 0.42f, 0.02f), Size(len, 0.04f, 0.04f), trim);
             if (y1 >= ceiling - 0.05f)
-                DreamEscapeBuilder.Box($"Cornice ({Mathf.RoundToInt(n.x)},{Mathf.RoundToInt(n.z)})", t, At(ceiling - 0.05f, 0.04f), Size(len, 0.1f, 0.08f), trim);
+            {
+                // The stepped crown (the creator's pick): three steps out from the wall under the ceiling.
+                DreamEscapeBuilder.Box($"Cornice ({Mathf.RoundToInt(n.x)},{Mathf.RoundToInt(n.z)})", t, At(ceiling - 0.11f, 0.0175f), Size(len, 0.22f, 0.035f), trim);
+                DreamEscapeBuilder.Box("Cornice step", t, At(ceiling - 0.065f, 0.0375f), Size(len, 0.13f, 0.075f), trim);
+                DreamEscapeBuilder.Box("Cornice step", t, At(ceiling - 0.03f, 0.0575f), Size(len, 0.06f, 0.115f), trim);
+            }
         }
+
+        /// <summary>Exposed beams across each room's short span, every 0.9 m (the creator's pick for the ceilings).</summary>
+        static void Beams(DreamHouse h)
+        {
+            var t = Group("Ceiling beams");
+            var wood = DreamEscapeBuilder.Pastel("CeilingBeam", new Color(0.56f, 0.4f, 0.32f), 0.03f);
+            foreach (var room in h.rooms)
+            {
+                if (room.name == "Attic" || room.name == "Attic stairs") continue;
+                float w = room.x1 - room.x0, d = room.z1 - room.z0, top = room.floorY + room.ceiling;
+                bool acrossX = w <= d;
+                float len = acrossX ? w : d, run = acrossX ? d : w;
+                int n = Mathf.Max(1, Mathf.FloorToInt(run / 0.9f));
+                for (int i = 0; i < n; i++)
+                {
+                    float a = (acrossX ? room.z0 : room.x0) + run * (i + 0.5f) / n;
+                    var at = acrossX ? new Vector3((room.x0 + room.x1) * 0.5f, top - 0.08f, a) : new Vector3(a, top - 0.08f, (room.z0 + room.z1) * 0.5f);
+                    DreamEscapeBuilder.Box("Ceiling beam", t, at, acrossX ? new Vector3(len, 0.16f, 0.14f) : new Vector3(0.14f, 0.16f, len), wood);
+                }
+            }
+        }
+
+        /// <summary>The attic's boards: painted tongue and groove (the creator's pick).</summary>
+        internal static Material AtticBoards(float outline = 0.02f) =>
+            DreamHouseDressing.Pattern(DreamEscapeBuilder.Pastel("AtticBoards", new Color(0.93f, 0.9f, 0.84f), outline), DreamHouseDressing.PatternFloorboards, 1.6f, 0.3f);
 
         static string Key(string room) => room.Replace(" ", "").Replace("'", "");
 
-        static Material Paper(string room, Finish fin)
-        {
-            var m = DreamEscapeBuilder.Pastel("RoomPaper_" + Key(room), fin.paper, 0f);
-            return fin.pattern > 0f ? DreamHouseDressing.Pattern(m, DreamHouseDressing.PatternWallpaper, 1.0f, fin.pattern) : m;
-        }
+        static Material Paper(string room, Finish fin) =>
+            DreamHouseDressing.ColourPattern(DreamEscapeBuilder.Pastel("RoomPaper_" + Key(room), fin.paper, 0f), WallTile, WallTileMetres);
 
         // ---------- Windows ----------
+
+        /// <summary>The house's windows (round 4: taller, for the higher rooms), on the rooms' wall faces: the centre (its
+        /// height above the floor), the face's normal into the room, the width and height. DreamHouseExterior shows the same
+        /// windows from outside.</summary>
+        internal static readonly (Vector3 c, Vector3 n, float w, float h)[] HouseWindows =
+        {
+            // The kitchen: over the counter (west and south walls).
+            (new Vector3(DreamHouse.HubX0, 1.75f, 73.9f), Vector3.right, 1.5f, 1.2f),
+            (new Vector3(-5.2f, 1.75f, DreamHouse.HubZ0), Vector3.forward, 1.5f, 1.2f),
+            // The living room's bay: a wide window in front, narrow ones in its sides.
+            (new Vector3((DreamHouse.BayX0 + DreamHouse.BayX1) * 0.5f, 1.6f, DreamHouse.BayZ0), Vector3.forward, 2.0f, 1.8f),
+            (new Vector3(DreamHouse.BayX0, 1.6f, (DreamHouse.BayZ0 + DreamHouse.HubZ0) * 0.5f - 0.1f), Vector3.right, 0.5f, 1.7f),
+            (new Vector3(DreamHouse.BayX1, 1.6f, (DreamHouse.BayZ0 + DreamHouse.HubZ0) * 0.5f - 0.1f), Vector3.left, 0.5f, 1.7f),
+            // The bedrooms and the bath, to the north (and the parents' room's west window).
+            (new Vector3(-3.0f, 1.65f, DreamHouse.HubZ1), Vector3.back, 1.4f, 1.4f),
+            (new Vector3(DreamHouse.HubX0, 1.65f, 82.6f), Vector3.right, 1.0f, 1.4f),
+            (new Vector3(0.1f, 2.05f, DreamHouse.HubZ1), Vector3.back, 0.7f, 0.5f),
+            (new Vector3(4.2f, 1.65f, DreamHouse.HubZ1), Vector3.back, 1.0f, 1.2f),
+            // The living room's east wall (the house's front), either side of the chimney breast: two tall, narrow windows.
+            (new Vector3(DreamHouse.HubX1, 1.75f, 72.9f), Vector3.left, 0.7f, 2.0f),
+            (new Vector3(DreamHouse.HubX1, 1.75f, 77.0f), Vector3.left, 0.7f, 2.0f),
+            // Theo's room: a small high window over his desk.
+            (new Vector3(DreamHouse.HubX1, 2.35f, 82.65f), Vector3.left, 0.6f, 0.4f),
+        };
 
         static void Windows()
         {
             var t = Group("Windows");
-            // The kitchen: over the counter (west and south walls).
-            Window(t, new Vector3(DreamHouse.HubX0 + 0.01f, F + 1.65f, 73.9f), Vector3.right, 1.5f, 1.0f);
-            Window(t, new Vector3(-5.2f, F + 1.65f, DreamHouse.HubZ0 + 0.01f), Vector3.forward, 1.5f, 1.0f);
-            // The living room's bay: a wide window in front, narrow ones in its sides.
-            Window(t, new Vector3((DreamHouse.BayX0 + DreamHouse.BayX1) * 0.5f, F + 1.45f, DreamHouse.BayZ0 + 0.01f), Vector3.forward, 2.0f, 1.5f);
-            Window(t, new Vector3(DreamHouse.BayX0 + 0.01f, F + 1.45f, (DreamHouse.BayZ0 + DreamHouse.HubZ0) * 0.5f - 0.1f), Vector3.right, 0.5f, 1.4f);
-            Window(t, new Vector3(DreamHouse.BayX1 - 0.01f, F + 1.45f, (DreamHouse.BayZ0 + DreamHouse.HubZ0) * 0.5f - 0.1f), Vector3.left, 0.5f, 1.4f);
-            // The bedrooms and the bath, to the north.
-            Window(t, new Vector3(-3.0f, F + 1.5f, DreamHouse.HubZ1 - 0.01f), Vector3.back, 1.4f, 1.2f);
-            Window(t, new Vector3(DreamHouse.HubX0 + 0.01f, F + 1.5f, 82.4f), Vector3.right, 1.0f, 1.2f);
-            Window(t, new Vector3(0.1f, F + 1.85f, DreamHouse.HubZ1 - 0.01f), Vector3.back, 0.7f, 0.5f);
-            Window(t, new Vector3(4.2f, F + 1.5f, DreamHouse.HubZ1 - 0.01f), Vector3.back, 1.0f, 1.0f);
-            // The living room's east wall, either side of the chimney breast: two tall, narrow windows.
-            Window(t, new Vector3(DreamHouse.HubX1 - 0.01f, F + 1.5f, 72.9f), Vector3.left, 0.7f, 1.6f);
-            Window(t, new Vector3(DreamHouse.HubX1 - 0.01f, F + 1.5f, 77.0f), Vector3.left, 0.7f, 1.6f);
+            foreach (var (c, n, w, h) in HouseWindows)
+                Window(t, new Vector3(c.x, F + c.y, c.z) + n * 0.01f, n, w, h);
+            FrontDoor();
+        }
+
+        /// <summary>The front door at the hall's east end (round 4: the outside matches the inside, its porch lines up with
+        /// the hall): the house's red double door, shut, its frame, a fanlight of daylight over it, knobs, a mat.</summary>
+        static void FrontDoor()
+        {
+            var t = Group("The front door (inside)");
+            float x = DreamHouse.HubX1 - 0.01f, z = (DreamHouse.HallZ0 + DreamHouse.HallZ1) * 0.5f, w = 1.5f, h = 1.95f;
+            var paint = DreamEscapeBuilder.Pastel("HouseFrontDoor", new Color(0.88f, 0.45f, 0.44f), 0.03f);
+            var panel = DreamEscapeBuilder.Pastel("HouseFrontDoorPanel", new Color(0.95f, 0.6f, 0.56f), 0.02f);
+            var frame = DreamEscapeBuilder.Pastel("HouseWindowFrame", DreamEscapeBuilder.Palette[0], 0.02f);
+            var brass = DreamEscapeBuilder.Pastel("DecorBrassKnob", new Color(0.95f, 0.78f, 0.38f), 0.01f);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                float lz = z + side * w * 0.25f;
+                DreamEscapeBuilder.Box("Front door (leaf)", t, new Vector3(x - 0.025f, F + h * 0.5f, lz), new Vector3(0.05f, h, w * 0.5f - 0.02f), paint);
+                foreach (float py in new[] { 0.55f, 1.4f })
+                    DreamEscapeBuilder.Box("Door panel", t, new Vector3(x - 0.06f, F + py, lz), new Vector3(0.02f, 0.6f, w * 0.5f - 0.24f), panel);
+                DreamEscapeBuilder.Part("Door knob", PrimitiveType.Sphere, t, Vector3.zero, Vector3.one * 0.07f, brass).transform.position = new Vector3(x - 0.09f, F + 1.0f, z + side * 0.1f);
+            }
+            DreamEscapeBuilder.Box("Door frame", t, new Vector3(x - 0.04f, F + h + 0.05f, z), new Vector3(0.08f, 0.1f, w + 0.2f), frame);
+            DreamEscapeBuilder.Box("Door frame", t, new Vector3(x - 0.04f, F + h * 0.5f, z - w * 0.5f - 0.05f), new Vector3(0.08f, h, 0.1f), frame);
+            DreamEscapeBuilder.Box("Door frame", t, new Vector3(x - 0.04f, F + h * 0.5f, z + w * 0.5f + 0.05f), new Vector3(0.08f, h, 0.1f), frame);
+            DreamEscapeBuilder.Quad("Fanlight", t, new Vector3(x - 0.012f, F + h + 0.2f, z), Vector3.left, w, 0.2f, DreamEscapeBuilder.Pastel("HouseWindowPane", new Color(0.8f, 0.88f, 1f), 0f, 0.55f));
+            DreamEscapeBuilder.Box("Door frame", t, new Vector3(x - 0.04f, F + h + 0.31f, z), new Vector3(0.08f, 0.05f, w + 0.2f), frame);
+            DreamEscapeBuilder.Box("Doormat", t, new Vector3(x - 0.45f, F + 0.012f, z), new Vector3(0.6f, 0.024f, 1.2f), DreamEscapeBuilder.Pastel("HouseDoormat", new Color(0.66f, 0.5f, 0.36f), 0.01f));
         }
 
         /// <summary>A window: a pane of soft daylight (unless <paramref name="pane"/> is false: the frame only), a white
         /// frame, glazing bars, a sill.</summary>
-        static void Window(Transform t, Vector3 c, Vector3 n, float w, float hgt, bool pane = true)
+        internal static void Window(Transform t, Vector3 c, Vector3 n, float w, float hgt, bool pane = true)
         {
             var frame = DreamEscapeBuilder.Pastel("HouseWindowFrame", DreamEscapeBuilder.Palette[0], 0.02f);
             if (pane)
@@ -223,7 +296,7 @@ namespace JamKit.DreamEscape.EditorTools
             var t = Group("The hatch (the attic's way down)");
             float x0 = DreamHouse.HatchX0, x1 = DreamHouse.HatchX1, z0 = DreamHouse.HatchZ0, z1 = DreamHouse.HatchZ1;
             var frame = DreamEscapeBuilder.Pastel("RoomTrim", new Color(0.99f, 0.97f, 0.93f), 0.02f);
-            float y = F + 2.4f;
+            float y = F + 2.4f + DreamHouse.CeilingRaise;
             DreamEscapeBuilder.Box("Hatch frame", t, new Vector3((x0 + x1) * 0.5f, y - 0.03f, z0), new Vector3(x1 - x0 + 0.12f, 0.06f, 0.06f), frame);
             DreamEscapeBuilder.Box("Hatch frame", t, new Vector3((x0 + x1) * 0.5f, y - 0.03f, z1), new Vector3(x1 - x0 + 0.12f, 0.06f, 0.06f), frame);
             DreamEscapeBuilder.Box("Hatch frame", t, new Vector3(x0, y - 0.03f, (z0 + z1) * 0.5f), new Vector3(0.06f, 0.06f, z1 - z0), frame);
@@ -251,11 +324,12 @@ namespace JamKit.DreamEscape.EditorTools
             float FA = DreamHouse.AtticFloor, x0 = DreamHouse.HubX0, x1 = DreamHouse.HubX1, z0 = DreamHouse.HubZ0, z1 = DreamHouse.HubZ1, rz = DreamHouse.RidgeZ;
             float rise = DreamHouse.RidgeHeight - DreamHouse.KneeWall, half = rz - z0;
             float slope = Mathf.Atan2(rise, half) * Mathf.Rad2Deg, length = Mathf.Sqrt(rise * rise + half * half);
-            var boards = DreamEscapeBuilder.Pastel("AtticBoards", new Color(0.84f, 0.7f, 0.58f), 0.02f);
+            var boards = AtticBoards();
             var beam = DreamEscapeBuilder.Pastel("AtticBeam", new Color(0.6f, 0.44f, 0.36f), 0.03f);
-            // The two slopes (the north one around the dormer).
-            Slope(t, "Roof (south)", x0, x1, true, slope, length, boards);
-            Slope(t, "Roof (north, west of the dormer)", x0, DreamHouse.DormerX0 - 0.2f, false, slope, length, boards);
+            // The two slopes (the north one around the dormer), east of the observatory (its roof is cut and raised).
+            float ox = DreamHouse.ObsX1;
+            Slope(t, "Roof (south)", ox, x1, true, slope, length, boards);
+            Slope(t, "Roof (north, west of the dormer)", ox, DreamHouse.DormerX0 - 0.2f, false, slope, length, boards);
             Slope(t, "Roof (north, east of the dormer)", DreamHouse.DormerX1 + 0.2f, x1, false, slope, length, boards);
             // Over the dormer, the north slope runs only from the ridge down to the dormer's roof.
             float dz = DreamHouse.DormerZ0 - rz, dh = DreamHouse.RoofAt(rz) - DreamHouse.RoofAt(DreamHouse.DormerZ0);
@@ -263,7 +337,7 @@ namespace JamKit.DreamEscape.EditorTools
             cap.transform.position = new Vector3((DreamHouse.DormerX0 + DreamHouse.DormerX1) * 0.5f, FA + (DreamHouse.RoofAt(rz) + DreamHouse.RoofAt(DreamHouse.DormerZ0)) * 0.5f + 0.03f, (rz + DreamHouse.DormerZ0) * 0.5f);
             cap.transform.rotation = Quaternion.Euler(slope, 0f, 0f);
             // The rafters (every 1.2 m), the ridge beam, two collar ties.
-            for (float x = x0 + 0.6f; x < x1; x += 1.2f)
+            for (float x = ox + 0.6f; x < x1; x += 1.2f)
                 foreach (bool south in new[] { true, false })
                 {
                     if (!south && x > DreamHouse.DormerX0 - 0.2f && x < DreamHouse.DormerX1 + 0.2f) continue;
@@ -271,8 +345,8 @@ namespace JamKit.DreamEscape.EditorTools
                     r.transform.position = new Vector3(x, FA + (DreamHouse.KneeWall + DreamHouse.RidgeHeight) * 0.5f - 0.1f, south ? z0 + half * 0.5f : z1 - half * 0.5f);
                     r.transform.rotation = Quaternion.Euler(south ? -slope : slope, 0f, 0f);
                 }
-            DreamEscapeBuilder.Box("Ridge beam", t, new Vector3((x0 + x1) * 0.5f, FA + DreamHouse.RidgeHeight - 0.12f, rz), new Vector3(x1 - x0, 0.22f, 0.2f), beam);
-            foreach (float x in new[] { -3.4f, 4.8f })
+            DreamEscapeBuilder.Box("Ridge beam", t, new Vector3((ox + x1) * 0.5f, FA + DreamHouse.RidgeHeight - 0.12f, rz), new Vector3(x1 - ox, 0.22f, 0.2f), beam);
+            foreach (float x in new[] { 0.4f, 4.8f })
                 DreamEscapeBuilder.Box("Collar tie", t, new Vector3(x, FA + 2.55f, rz), new Vector3(0.12f, 0.14f, 4.2f), beam);
             // The floorboards' look on the attic floor (the ceilings' tops), rough and plain, open over the hatch and the
             // stairwell (cut into cells round the two holes; the pattern is laid in world space, so the cells match).
@@ -280,7 +354,7 @@ namespace JamKit.DreamEscape.EditorTools
             var holes = new[]
             {
                 new Rect(DreamHouse.HatchX0, DreamHouse.HatchZ0, DreamHouse.HatchX1 - DreamHouse.HatchX0, DreamHouse.HatchZ1 - DreamHouse.HatchZ0),
-                new Rect(DreamHouse.StairX0, DreamHouse.StairZ0, DreamHouse.StairX1 - DreamHouse.StairX0, 83.4f - DreamHouse.StairZ0),
+                new Rect(DreamHouse.StairX0, DreamHouse.StairZ0, DreamHouse.StairX1 - DreamHouse.StairX0, DreamHouse.StairOpenZ1 - DreamHouse.StairZ0),
             };
             var xs = new List<float> { x0, x1 };
             var zs = new List<float> { z0, z1 };
@@ -297,10 +371,86 @@ namespace JamKit.DreamEscape.EditorTools
                     if (!open)
                         DreamEscapeBuilder.Quad("Attic floorboards", t, new Vector3(mid.x, FA + 0.004f, mid.y), Vector3.up, cw, cd, floorMat);
                 }
+            Observatory(t, boards, beam);
             // The observatory's round window in the west gable, full of stars (it's always night in Lena's attic).
             Stars(t, new Vector3(x0 + 0.01f, FA + 1.85f, rz), Vector3.right, 2.1f, round: true);
             // The dormer: its window to the north, also night.
             Stars(t, new Vector3((DreamHouse.DormerX0 + DreamHouse.DormerX1) * 0.5f, FA + 1.55f, z1 - 0.32f), Vector3.back, 1.8f, round: false);
+        }
+
+        /// <summary>Lena's observatory (round 4): the roof cut and raised over the attic's west end. Its walls rise full height
+        /// to a flat boarded ceiling with a skylight over the telescope; clerestory windows high in its long walls; where it
+        /// meets the sloped roof, a wall from the slopes up to its ceiling (the "cut-off").</summary>
+        static void Observatory(Transform t, Material boards, Material beam)
+        {
+            float FA = DreamHouse.AtticFloor, x0 = DreamHouse.HubX0, ox = DreamHouse.ObsX1, z0 = DreamHouse.HubZ0, z1 = DreamHouse.HubZ1;
+            float top = FA + DreamHouse.ObsHeight;
+            // The ceiling, open over the skylight.
+            var sky = new Rect(DreamHouse.SkyX0, DreamHouse.SkyZ0, DreamHouse.SkyX1 - DreamHouse.SkyX0, DreamHouse.SkyZ1 - DreamHouse.SkyZ0);
+            float[] xs = { x0, sky.xMin, sky.xMax, ox }, zs = { z0, sky.yMin, sky.yMax, z1 };
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                {
+                    if (i == 1 && j == 1) continue;
+                    DreamEscapeBuilder.Quad("Observatory ceiling", t, new Vector3((xs[i] + xs[i + 1]) * 0.5f, top - 0.004f, (zs[j] + zs[j + 1]) * 0.5f), Vector3.down, xs[i + 1] - xs[i], zs[j + 1] - zs[j], boards);
+                }
+            // Ceiling beams across, and a wall plate along each long wall.
+            for (float x = x0 + 0.7f; x < ox - 0.2f; x += 1.0f)
+                if (x < sky.xMin - 0.1f || x > sky.xMax + 0.1f)
+                    DreamEscapeBuilder.Box("Observatory beam", t, new Vector3(x, top - 0.09f, (z0 + z1) * 0.5f), new Vector3(0.12f, 0.18f, z1 - z0 - 0.6f), beam);
+            foreach (float z in new[] { z0 + 0.36f, z1 - 0.36f })
+                DreamEscapeBuilder.Box("Wall plate", t, new Vector3((x0 + ox) * 0.5f, top - 0.1f, z), new Vector3(ox - x0, 0.2f, 0.12f), beam);
+            // The skylight: a short light well up to a pane of night sky, its frame, stars.
+            var night = DreamEscapeBuilder.Pastel("AtticNight", new Color(0.18f, 0.2f, 0.42f), 0f, 0.8f);
+            float well = 0.35f;
+            DreamEscapeBuilder.Quad("Skylight (night)", t, new Vector3(sky.center.x, top + well, sky.center.y), Vector3.down, sky.width, sky.height, night);
+            DreamEscapeBuilder.Quad("Skylight well", t, new Vector3(sky.xMin, top + well * 0.5f, sky.center.y), Vector3.right, sky.height, well, boards);
+            DreamEscapeBuilder.Quad("Skylight well", t, new Vector3(sky.xMax, top + well * 0.5f, sky.center.y), Vector3.left, sky.height, well, boards);
+            DreamEscapeBuilder.Quad("Skylight well", t, new Vector3(sky.center.x, top + well * 0.5f, sky.yMin), Vector3.forward, sky.width, well, boards);
+            DreamEscapeBuilder.Quad("Skylight well", t, new Vector3(sky.center.x, top + well * 0.5f, sky.yMax), Vector3.back, sky.width, well, boards);
+            DreamEscapeBuilder.Box("Skylight bar", t, new Vector3(sky.center.x, top + well - 0.03f, sky.center.y), new Vector3(sky.width, 0.05f, 0.05f), beam);
+            DreamEscapeBuilder.Box("Skylight bar", t, new Vector3(sky.center.x, top + well - 0.03f, sky.center.y), new Vector3(0.05f, 0.05f, sky.height), beam);
+            var star = DreamEscapeBuilder.Glow("AtticStar", new Color(1f, 0.96f, 0.82f), 1.4f, 0f, 0.2f);
+            var rnd = new System.Random(23);
+            for (int i = 0; i < 18; i++)
+                DreamEscapeBuilder.Part("Star", PrimitiveType.Sphere, t, Vector3.zero, Vector3.one * (0.02f + 0.04f * (float)rnd.NextDouble()), star).transform.position =
+                    new Vector3(sky.xMin + sky.width * (float)rnd.NextDouble(), top + well - 0.02f, sky.yMin + sky.height * (float)rnd.NextDouble());
+            // Clerestory windows high in the long walls: more night sky.
+            foreach (float x in new[] { -6.0f, -4.2f })
+            {
+                Stars(t, new Vector3(x, FA + 3.0f, z0 + 0.31f), Vector3.forward, 1.1f, round: false);
+                Stars(t, new Vector3(x, FA + 3.0f, z1 - 0.31f), Vector3.back, 1.1f, round: false);
+            }
+            // The cut-off: the observatory's east wall, from the slopes up to its ceiling (both faces).
+            float k = DreamHouse.KneeWall, rh = DreamHouse.RidgeHeight, rz = DreamHouse.RidgeZ, H = DreamHouse.ObsHeight;
+            Poly(t, "Observatory wall over the slopes (south half)", boards, new Vector3(ox, FA + k, z0), new Vector3(ox, FA + rh, rz), new Vector3(ox, FA + H, rz), new Vector3(ox, FA + H, z0));
+            Poly(t, "Observatory wall over the slopes (north half)", boards, new Vector3(ox, FA + rh, rz), new Vector3(ox, FA + k, z1), new Vector3(ox, FA + H, z1), new Vector3(ox, FA + H, rz));
+            DreamEscapeBuilder.Box("Observatory beam (over the way in)", t, new Vector3(ox - 0.06f, FA + rh + 0.08f, rz), new Vector3(0.14f, 0.16f, 7.2f), beam);
+        }
+
+        /// <summary>A flat convex polygon (a fan), seen from both sides.</summary>
+        internal static void Poly(Transform t, string name, Material mat, params Vector3[] pts)
+        {
+            var mesh = new Mesh { name = name };
+            var verts = new List<Vector3>(pts);
+            verts.AddRange(pts);
+            var tris = new List<int>();
+            int n = pts.Length;
+            for (int i = 1; i + 1 < n; i++)
+            {
+                tris.Add(0); tris.Add(i); tris.Add(i + 1);
+                tris.Add(n); tris.Add(n + i + 1); tris.Add(n + i);
+            }
+            mesh.SetVertices(verts);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            var go = new GameObject(name);
+            go.transform.SetParent(t, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = ShadowCastingMode.Off;
         }
 
         static void Slope(Transform t, string name, float xa, float xb, bool south, float slope, float length, Material mat)

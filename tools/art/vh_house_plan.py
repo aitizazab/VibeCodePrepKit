@@ -52,14 +52,20 @@ def plan(attic):
     # The attic's roof: the eaves (low), the ridge, the dormer.
     if attic:
         hh = 1.0
+        ox = P.get("obsX1", X0)
         for (za, zb) in ((Z0, Z0 + hh * 1.3), (Z1 - hh * 1.3, Z1)):
-            rect(d, X0, za, X1, zb, fill=(205, 186, 170))
-        d.line([px(X0, P["ridgeZ"]), px(X1, P["ridgeZ"])], fill=(150, 110, 90), width=4)
+            rect(d, ox, za, X1, zb, fill=(205, 186, 170))
+        d.line([px(ox, P["ridgeZ"]), px(X1, P["ridgeZ"])], fill=(150, 110, 90), width=4)
+        # The observatory: the roof cut and raised over it (full height wall to wall).
+        rect(d, X0, Z0, ox, Z1, fill=(214, 220, 240), outline=(60, 70, 160), width=3)
+        d.text(px(X0 + 0.2, Z1 - 1.6), f"the observatory: roof raised, {P.get('obsHeight', 0):.1f} m all the way across", font=font(14, True), fill=(60, 70, 160))
+        rect(d, -6.6, 77.4, -5.4, 78.6, outline=(60, 70, 160), width=2)
+        d.text(px(-5.3, 77.3), "skylight", font=font(13), fill=(60, 70, 160))
         d.text(px(X1 - 3.0, P["ridgeZ"] + 0.15), "ridge (3.4 m)", font=font(16), fill=(120, 90, 70))
-        d.text(px(X0 + 0.3, Z0 + 0.15), "low eaves: the roof slopes down to 0.8 m", font=font(15), fill=(120, 90, 70))
+        d.text(px(ox + 0.3, Z0 + 0.15), "low eaves: the roof slopes down to 0.8 m", font=font(15), fill=(120, 90, 70))
         dx0, dx1, dz0 = P["dormer"]
         rect(d, dx0, dz0, dx1, Z1, outline=(120, 90, 70), width=3)
-        d.text(px(dx0 + 0.1, Z1 - 0.6), "dormer (night window)", font=font(15), fill=(120, 90, 70))
+        d.text(px(dx0 + 0.1, Z1 - 0.6), "dormer (over the stairs)", font=font(15), fill=(120, 90, 70))
     # Pieces at this level.
     for p in P["pieces"]:
         mn, mx = p["min"], p["max"]

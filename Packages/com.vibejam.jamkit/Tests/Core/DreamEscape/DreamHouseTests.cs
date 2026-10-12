@@ -173,7 +173,7 @@ namespace JamKit.Tests.DreamEscape
             var door = Find("Door (Theo | the attic stairs)");
             Assert.That(door.Min.Y - DreamHouse.Ground, Is.GreaterThan(d.standHeight + 0.2f));
             // Headroom all the way up (the slot is open to the attic over the stairs, the roof is high there).
-            for (float z = DreamHouse.StairZ0 + 0.4f; z < 83.3f; z += 0.2f)
+            for (float z = DreamHouse.StairZ0 + 0.4f; z < DreamHouse.StairZ1 - 0.3f; z += 0.2f)
             {
                 float t = (z - stairs.Min.Z) / run;
                 float top = stairs.rampTopStart + (stairs.rampTopEnd - stairs.rampTopStart) * t;
@@ -186,7 +186,15 @@ namespace JamKit.Tests.DreamEscape
             Assert.That(hit.point.Y, Is.EqualTo(DreamHouse.Ground).Within(0.05f), "through the hatch to the hall's floor");
             // The attic has room to stand along its middle, and the dormer.
             Assert.That(boxes.CapsuleFits(new Vector3(0f, DreamHouse.AtticFloor + 0.05f, DreamHouse.RidgeZ), 0.38f, d.standHeight), Is.True, "standing under the ridge");
-            Assert.That(boxes.CapsuleFits(new Vector3(-5.2f, DreamHouse.AtticFloor + 0.35f, 81.4f), 0.38f, d.standHeight), Is.True, "standing in the dormer, on the observatory's platform");
+            Assert.That(boxes.CapsuleFits(new Vector3(2.2f, DreamHouse.AtticFloor + 0.05f, 80.5f), 0.38f, d.standHeight), Is.True, "standing at the top of the stairs, under the dormer");
+            // The observatory: the roof cut and raised over it, so it's high all the way across, even by its walls; a double
+            // jump's peak fits under its ceiling, and the ceiling stops anything higher.
+            float peak = d.jumpHeight + d.doubleJumpHeight;
+            foreach (float z in new[] { DreamHouse.HubZ0 + 0.75f, DreamHouse.RidgeZ, DreamHouse.HubZ1 - 0.75f })
+                Assert.That(boxes.CapsuleFits(new Vector3(-4.6f, DreamHouse.AtticFloor + peak, z), 0.38f, d.standHeight), Is.True, $"a double jump fits in the observatory at z {z:0.0}");
+            Assert.That(DreamHouse.ObsHeight, Is.GreaterThan(DreamHouse.RidgeHeight + 0.5f), "higher than the rest of the attic");
+            Assert.That(boxes.CapsuleFits(new Vector3(-4.6f, DreamHouse.AtticFloor + DreamHouse.ObsHeight - 1.0f, DreamHouse.RidgeZ), 0.38f, d.standHeight), Is.False, "its ceiling stops a jump");
+            Assert.That(boxes.CapsuleFits(new Vector3(-5.2f, DreamHouse.AtticFloor + 0.35f, 78f), 0.38f, d.standHeight), Is.True, "standing on the observatory's platform");
             // A jump in the attic stays inside (the roof's solid steps).
             Assert.That(boxes.CapsuleFits(new Vector3(0f, DreamHouse.AtticFloor + 2.6f, 73f), 0.38f, d.standHeight), Is.False, "the roof stops a jump near the eaves");
             // The stored things wall the attic into two, and the only way through on foot is the gap hung with sheets: the

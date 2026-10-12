@@ -123,7 +123,7 @@ namespace JamKit.DreamEscape.EditorTools
             // The brother's and sister's childhood photos, climbing the wall beside the attic stairs.
             for (int i = 0; i < 4; i++)
             {
-                float z = 83.2f - i * 0.6f;
+                float z = DreamHouse.StairZ1 - 0.8f - i * 0.6f;
                 float stair = (DreamHouse.AtticFloor - F) * (DreamHouse.StairZ1 - z) / (DreamHouse.StairZ1 - DreamHouse.StairZ0);
                 Picture(t, "dream_pic_childhood_" + (i + 1), new Vector3(DreamHouse.StairX0 + 0.01f, F + stair + 1.45f, z), Vector3.right, 0.5f, 0.4f, null, true);
             }
@@ -137,8 +137,8 @@ namespace JamKit.DreamEscape.EditorTools
             Pendant(t, new Vector3(-4.2f, F, 82.3f), 2.7f);
             foreach (float x in new[] { -6.55f, -3.85f })
             {
-                Model(t, "cabinetBedDrawerTable", new Vector3(x, F, 83.7f), Vector3.back);
-                var lamp = Model(t, "lampRoundTable", new Vector3(x, F + 0.53f, 83.7f), Vector3.zero, 1.6f);
+                Model(t, "cabinetBedDrawerTable", new Vector3(x, F, DreamHouse.HubZ1 - 0.3f), Vector3.back);
+                var lamp = Model(t, "lampRoundTable", new Vector3(x, F + 0.53f, DreamHouse.HubZ1 - 0.3f), Vector3.zero, 1.6f);
                 LampGlow(t, lamp, 0.2f);
             }
             Picture(t, "dream_pic_photo_1", new Vector3(-5.2f, F + 1.7f, DreamHouse.HubZ1 - 0.012f), Vector3.back, 0.8f, 0.62f, null, true);
@@ -153,10 +153,10 @@ namespace JamKit.DreamEscape.EditorTools
             DreamEscapeBuilder.Quad("Mirror", t, new Vector3(1.37f, F + 1.55f, 81.4f), Vector3.left, 0.5f, 0.6f, DreamEscapeBuilder.Pastel("DecorMirror", new Color(0.82f, 0.9f, 1f), 0f, 0.35f));
             Model(t, "toilet", new Vector3(1.15f, F, 82.6f), Vector3.left);
             Rug(t, "rugDoormat", new Vector3(0.1f, F, 82.75f), 1.0f, 0.5f, new Color(0.7f, 0.9f, 0.9f));
-            DreamEscapeBuilder.Box("Curtain rail", t, new Vector3(0.1f, F + 2.05f, 83.2f), new Vector3(2.6f, 0.04f, 0.04f), DreamEscapeBuilder.Pastel("DecorChrome", new Color(0.85f, 0.88f, 0.92f), 0.01f));
+            DreamEscapeBuilder.Box("Curtain rail", t, new Vector3(0.1f, F + 2.05f, DreamHouse.HubZ1 - 0.8f), new Vector3(2.6f, 0.04f, 0.04f), DreamEscapeBuilder.Pastel("DecorChrome", new Color(0.85f, 0.88f, 0.92f), 0.01f));
             var curtain = DreamEscapeBuilder.Pastel("DecorShowerCurtain", new Color(0.98f, 0.82f, 0.86f), 0.01f);
             for (int i = 0; i < 4; i++)   // drawn half across, in folds
-                DreamEscapeBuilder.Box("Curtain fold", t, new Vector3(-1.0f + i * 0.28f, F + 1.15f, 83.2f + (i % 2 == 0 ? 0.05f : -0.05f)), new Vector3(0.28f, 1.8f, 0.06f), curtain);
+                DreamEscapeBuilder.Box("Curtain fold", t, new Vector3(-1.0f + i * 0.28f, F + 1.15f, DreamHouse.HubZ1 - 0.8f + (i % 2 == 0 ? 0.05f : -0.05f)), new Vector3(0.28f, 1.8f, 0.06f), curtain);
         }
 
         /// <summary>Theo's room: the round rug, the teddy on his bed, the bedside light, his desk's chair and the drawing
@@ -166,7 +166,7 @@ namespace JamKit.DreamEscape.EditorTools
             var t = Group("Theo's room");
             Rug(t, "rugRound", new Vector3(4.7f, F, 82.3f), 2.0f, 2.0f, new Color(0.98f, 0.8f, 0.45f));
             Pendant(t, new Vector3(4.8f, F, 82.2f), 2.6f);
-            Model(t, "bear", new Vector3(6.2f, F + 0.42f, 83.6f), Vector3.back, 1.1f);
+            Model(t, "bear", new Vector3(6.2f, F + 0.42f, DreamHouse.HubZ1 - 0.4f), Vector3.back, 1.1f);
             var nightLight = Model(t, "lampRoundTable", new Vector3(7.7f, F + 0.75f, 82.85f), Vector3.zero, 1.3f);
             LampGlow(t, nightLight, 0.18f);
             Model(t, "chairDesk", new Vector3(6.95f, F, 82.65f), Vector3.right);
@@ -181,7 +181,7 @@ namespace JamKit.DreamEscape.EditorTools
             for (int i = 0; i < 22; i++)
             {
                 float x = 3.3f + 4.5f * (float)rnd.NextDouble(), z = 81.0f + 2.8f * (float)rnd.NextDouble();
-                DreamEscapeBuilder.Quad("Ceiling star", t, new Vector3(x, F + 2.595f, z), Vector3.down, 0.09f, 0.09f, star);
+                DreamEscapeBuilder.Quad("Ceiling star", t, new Vector3(x, F + 2.595f + DreamHouse.CeilingRaise, z), Vector3.down, 0.09f, 0.09f, star);
             }
         }
 
@@ -245,7 +245,7 @@ namespace JamKit.DreamEscape.EditorTools
             // Star charts pinned to the gable and the rafters.
             for (int i = 0; i < 3; i++)
                 StarChart(t, new Vector3(DreamHouse.HubX0 + 0.012f, FA + 1.2f + (i == 1 ? 0.5f : 0f), 75.6f + i * 0.9f + (i == 2 ? 2.6f : 0f)), Vector3.right, 7 + i);
-            StarChart(t, new Vector3(-3.4f, FA + 2.3f, DreamHouse.RidgeZ + 0.09f), Vector3.forward, 21);
+            StarChart(t, new Vector3(DreamHouse.ObsX1 - 0.02f, FA + 3.2f, 76.6f), Vector3.left, 21);
             // The stored life: boxes on and round the crates and the trunk, the old bike, a rocking horse, the Christmas box.
             Model(t, "cardboardBoxClosed", new Vector3(5.3f, FA + 1.2f, 74.9f), Vector3.back, 2.2f);
             Model(t, "cardboardBoxOpen", new Vector3(6.4f, FA, 74.4f), Vector3.back, 2.2f);
@@ -265,7 +265,7 @@ namespace JamKit.DreamEscape.EditorTools
             RockingHorse(t, new Vector3(-1.6f, FA, 76.6f));
             // A stack of old picture frames against the north knee wall, faces to the wall.
             for (int i = 0; i < 4; i++)
-                DreamEscapeBuilder.Box("Old frame (back)", t, new Vector3(-1.2f + i * 0.08f, FA + 0.45f, 83.5f - i * 0.05f), new Vector3(0.06f, 0.8f - i * 0.1f, 0.7f),
+                DreamEscapeBuilder.Box("Old frame (back)", t, new Vector3(-1.2f + i * 0.08f, FA + 0.45f, 83.9f - i * 0.05f), new Vector3(0.06f, 0.8f - i * 0.1f, 0.7f),
                     DreamEscapeBuilder.Pastel("AtticStorage", new Color(0.74f, 0.6f, 0.5f), 0.02f)).transform.rotation = Quaternion.Euler(-14f, 90f, 0f);
             // The way through the wall of stored things: old sheets on a line, two drawn back, one half across, starlight
             // showing round them (the observatory beyond).
@@ -291,7 +291,11 @@ namespace JamKit.DreamEscape.EditorTools
             for (float x = 2.4f; x > DreamHouse.HubX0 + 0.6f; x -= 0.3f)
             {
                 float sag = 0.18f * Mathf.Sin(Mathf.Repeat((2.4f - x) / 1.2f, 1f) * Mathf.PI);   // drooping between rafters
-                Prim(t, "Fairy light", PrimitiveType.Sphere, new Vector3(x, FA + DreamHouse.RidgeHeight - 0.3f - sag, DreamHouse.RidgeZ + 0.14f), Vector3.one * 0.07f, fairy);
+                // Under the ridge on the storage side; in the observatory, under its higher ceiling, round the skylight.
+                bool obs = x < DreamHouse.ObsX1;
+                float y = obs ? FA + DreamHouse.ObsHeight - 0.45f - sag * 1.6f : FA + DreamHouse.RidgeHeight - 0.3f - sag;
+                if (obs && x > DreamHouse.SkyX0 - 0.1f && x < DreamHouse.SkyX1 + 0.1f) continue;
+                Prim(t, "Fairy light", PrimitiveType.Sphere, new Vector3(x, y, DreamHouse.RidgeZ + 0.14f), Vector3.one * 0.07f, fairy);
             }
             // A dim bulb hanging from the ridge in the middle.
             Prim(t, "Bulb (attic)", PrimitiveType.Sphere, new Vector3(1.2f, FA + 2.6f, DreamHouse.RidgeZ), Vector3.one * 0.2f,
@@ -438,9 +442,12 @@ namespace JamKit.DreamEscape.EditorTools
         {
             var cord = DreamProps.MeshLook("DecorCord", new Color(0.36f, 0.3f, 0.46f), 0f);
             var shade = DreamProps.MeshLook("DecorShade", new Color(0.99f, 0.93f, 0.8f), 0.01f);
-            Prim(parent, "Pendant cord", PrimitiveType.Cylinder, floor + new Vector3(0f, ceiling - 0.2f, 0f), new Vector3(0.02f, 0.2f, 0.02f), cord);
-            Prim(parent, "Pendant shade", PrimitiveType.Cylinder, floor + new Vector3(0f, ceiling - 0.48f, 0f), new Vector3(0.5f, 0.09f, 0.5f), shade);
-            Prim(parent, "Pendant glow", PrimitiveType.Sphere, floor + new Vector3(0f, ceiling - 0.58f, 0f), Vector3.one * 0.5f,
+            // The plan's ceiling plus the raise (round 4); a longer cord, so the shade hangs at the same height as before.
+            ceiling += DreamHouse.CeilingRaise;
+            float drop = 0.2f + DreamHouse.CeilingRaise * 0.5f;
+            Prim(parent, "Pendant cord", PrimitiveType.Cylinder, floor + new Vector3(0f, ceiling - drop, 0f), new Vector3(0.02f, drop, 0.02f), cord);
+            Prim(parent, "Pendant shade", PrimitiveType.Cylinder, floor + new Vector3(0f, ceiling - drop * 2f - 0.08f, 0f), new Vector3(0.5f, 0.09f, 0.5f), shade);
+            Prim(parent, "Pendant glow", PrimitiveType.Sphere, floor + new Vector3(0f, ceiling - drop * 2f - 0.18f, 0f), Vector3.one * 0.5f,
                 DreamEscapeBuilder.Glow("DecorLampGlow", new Color(1f, 0.86f, 0.6f), 0.55f, 0f, 0.1f));
         }
 

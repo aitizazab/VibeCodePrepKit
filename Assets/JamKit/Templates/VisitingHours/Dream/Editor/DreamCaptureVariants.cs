@@ -44,10 +44,11 @@ namespace JamKit.DreamEscape.EditorTools
             new WallOption("rose-sprig", 106, 34, 40, 0.45f),
         };
 
-        static readonly string[] CeilingOptions = { "current", "pressed-tin", "medallions", "beams", "coffers", "starry-paper" };
-        static readonly string[] CorniceOptions = { "current", "cove", "stepped", "dentil" };
-        static readonly float[] HeightOptions = { 0f, 0.4f, 0.8f };
-        static readonly string[] AtticOptions = { "current", "painted-boards", "dark-boards" };
+        // Round 4: the creator's picks are built in (the first option of each list: "...-chosen"); the rest still show.
+        static readonly string[] CeilingOptions = { "beams-chosen", "plain", "pressed-tin", "medallions", "coffers", "starry-paper" };
+        static readonly string[] CorniceOptions = { "stepped-chosen", "plain-strip", "cove", "dentil" };
+        static readonly float[] HeightOptions = { 0f, 0.4f };   // on top of the +0.4 m built in (round 4)
+        static readonly string[] AtticOptions = { "painted-chosen", "plain-boards", "dark-boards" };
 
         static List<Spot> WallSpots() => new List<Spot>
         {
@@ -111,7 +112,7 @@ namespace JamKit.DreamEscape.EditorTools
                 }
             if (Has("heights"))
                 foreach (float raise in HeightOptions)
-                    Scene(path, Named(CeilingSpots(), $"height-plus{Mathf.RoundToInt(raise * 100):000}cm"), dir, () => RaiseCeilings(raise));
+                    Scene(path, Named(CeilingSpots(), $"height-plus{Mathf.RoundToInt((DreamHouse.CeilingRaise + raise) * 100):000}cm"), dir, () => RaiseCeilings(raise));
             if (Has("attic"))
                 for (int k = 0; k < AtticOptions.Length; k++)
                 {
@@ -224,7 +225,10 @@ namespace JamKit.DreamEscape.EditorTools
         static void ApplyCeiling(string option)
         {
             _variantRoot = null;
-            if (option == "current") return;
+            if (option == "beams-chosen") return;
+            var builtBeams = GameObject.Find("Ceiling beams");
+            if (builtBeams != null) builtBeams.SetActive(false);
+            if (option == "plain") return;
             if (option == "pressed-tin" || option == "starry-paper")
             {
                 bool tin = option == "pressed-tin";
@@ -260,25 +264,6 @@ namespace JamKit.DreamEscape.EditorTools
                 }
                 return;
             }
-            if (option == "beams")
-            {
-                // Exposed beams across each room's short span, every 0.9 m.
-                var wood = Coloured(trim, new Color(0.56f, 0.4f, 0.32f));
-                foreach (var room in CeilingRooms())
-                {
-                    float w = room.x1 - room.x0, d = room.z1 - room.z0, top = room.floorY + room.ceiling;
-                    bool acrossX = w <= d;   // beams span the short way
-                    float len = acrossX ? w : d, run = acrossX ? d : w;
-                    int n = Mathf.Max(1, Mathf.FloorToInt(run / 0.9f));
-                    for (int i = 0; i < n; i++)
-                    {
-                        float a = (acrossX ? room.z0 : room.x0) + run * (i + 0.5f) / n;
-                        var at = acrossX ? new Vector3((room.x0 + room.x1) * 0.5f, top - 0.08f, a) : new Vector3(a, top - 0.08f, (room.z0 + room.z1) * 0.5f);
-                        Part(PrimitiveType.Cube, at, acrossX ? new Vector3(len, 0.16f, 0.14f) : new Vector3(0.14f, 0.16f, len), wood);
-                    }
-                }
-                return;
-            }
             if (option == "coffers")
             {
                 // A grid of shallow ribs (0.75 m panels) under a slightly deeper ceiling colour.
@@ -307,7 +292,9 @@ namespace JamKit.DreamEscape.EditorTools
         static void ApplyCornice(string option)
         {
             _variantRoot = null;
-            if (option == "current") return;
+            if (option == "stepped-chosen") return;
+            foreach (var r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+                if (r.name == "Cornice step") r.enabled = false;
             var trim = Trim();
             var cove = Coloured(trim, new Color(0.99f, 0.97f, 0.94f));
             cove.SetFloat("_OutlineWidth", 0f);
@@ -319,7 +306,8 @@ namespace JamKit.DreamEscape.EditorTools
                 var n = new Vector3(nx, 0f, nz);
                 var b = r.bounds;
                 bool alongZ = nx != 0;
-                float plane = alongZ ? b.center.x - n.x * 0.04f : b.center.z - n.z * 0.04f;
+                float depth = alongZ ? b.size.x : b.size.z;
+                float plane = alongZ ? b.center.x - n.x * depth * 0.5f : b.center.z - n.z * depth * 0.5f;
                 float along = alongZ ? b.center.z : b.center.x, len = alongZ ? b.size.z : b.size.x, top = b.max.y;
                 Vector3 At(float off, float y, float a) => alongZ ? new Vector3(plane + n.x * off, y, a) : new Vector3(a, y, plane + n.z * off);
                 Vector3 Size(float l, float h, float depth) => alongZ ? new Vector3(depth, h, l) : new Vector3(l, h, depth);
@@ -333,9 +321,8 @@ namespace JamKit.DreamEscape.EditorTools
                         Part(PrimitiveType.Cube, At(0.012f, top - 0.165f, along), Size(len, 0.03f, 0.024f), trim);
                         Part(PrimitiveType.Cube, At(0.165f, top - 0.012f, along), Size(len, 0.024f, 0.03f), trim);
                         break;
-                    case "stepped":
-                        foreach (var (proj, h) in new[] { (0.035f, 0.22f), (0.075f, 0.13f), (0.115f, 0.06f) })
-                            Part(PrimitiveType.Cube, At(proj * 0.5f, top - h * 0.5f, along), Size(len, h, proj), trim);
+                    case "plain-strip":
+                        Part(PrimitiveType.Cube, At(0.04f, top - 0.05f, along), Size(len, 0.1f, 0.08f), trim);
                         break;
                     case "dentil":
                         Part(PrimitiveType.Cube, At(0.035f, top - 0.06f, along), Size(len, 0.12f, 0.07f), trim);
@@ -353,7 +340,7 @@ namespace JamKit.DreamEscape.EditorTools
         {
             _variantRoot = null;
             if (raise <= 0f) return;
-            const float WallTop = F + 2.28f;   // the lowest ceiling is 2.3 m
+            const float WallTop = F + 2.28f + DreamHouse.CeilingRaise;   // the lowest ceiling (2.3 m on the plan, raised)
             var moved = new HashSet<Transform>();
             bool AncestorMoved(Transform t)
             {
@@ -373,7 +360,7 @@ namespace JamKit.DreamEscape.EditorTools
                 if (n.StartsWith("Pendant")) plan.Add((r, false));
                 else if (core) { if (b.min.y >= WallTop) plan.Add((r, false)); else if (b.max.y > WallTop) plan.Add((r, true)); }
                 else if (wallFace && b.max.y > WallTop && b.min.y < WallTop) plan.Add((r, true));
-                else if (b.min.y >= F + 2.15f) plan.Add((r, false));
+                else if (b.min.y >= F + 2.15f + DreamHouse.CeilingRaise) plan.Add((r, false));
             }
             foreach (var (r, stretch) in plan)
             {
@@ -395,16 +382,16 @@ namespace JamKit.DreamEscape.EditorTools
         static void ApplyAttic(string option)
         {
             _variantRoot = null;
-            if (option == "current") return;
+            if (option == "painted-chosen") return;
             var tex = Tile(DreamHouseDressing.PatternFloorboards, false);
-            bool painted = option == "painted-boards";
+            bool plain = option == "plain-boards";
             Remat("Pastel_AtticBoards", m =>
             {
-                m.SetColor("_Color", painted ? new Color(0.93f, 0.9f, 0.84f) : new Color(0.5f, 0.36f, 0.28f));
+                m.SetColor("_Color", plain ? new Color(0.84f, 0.7f, 0.58f) : new Color(0.5f, 0.36f, 0.28f));
                 m.SetTexture("_MainTex", tex);
-                m.SetFloat("_TexScale", painted ? 1.6f : 2.4f);
+                m.SetFloat("_TexScale", 2.4f);
                 m.SetFloat("_TexMean", 0.5f);
-                m.SetFloat("_TexStrength", tex != null ? (painted ? 0.3f : 0.45f) : 0f);
+                m.SetFloat("_TexStrength", plain || tex == null ? 0f : 0.45f);
                 return m;
             });
         }

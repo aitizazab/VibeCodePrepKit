@@ -45,9 +45,9 @@ core) and `tools/art/vh_house_plan.py` (draws them).
   kitchen and the hall, the parents' room with its en-suite bath, Theo's room. Ceilings 2.3 to 3.0 m by room.
 - **The attic** (under a gable roof, its ridge 3.4 m, the eaves down to 0.8 m): up steep stairs in their own slot,
   from a narrow door in Theo's room; down through a hatch into the hall. Lena's observatory at the west end (a round
-  window full of stars, her telescope, chair, star charts, notebook: **a proposal**, from the creator's note in
-  STORY-PROSE "maybe a small observatory in the attic?", tying to her Thursdays and the calendar's keys; nothing in the
-  story says so yet), and the family's stored life to the east (Theo's old crib, Elias's old bike, boxes, a rocking
+  window full of stars, her telescope, chair, star charts, notebook). **Approved** by the creator (2026-10-12), with a
+  raised roof section over it: Lena is a stargazer. Whether it ties to her Thursdays and the calendar's keys is
+  undecided. And the family's stored life to the east (Theo's old crib, Elias's old bike, boxes, a rocking
   horse, the Christmas box). It's always night in Lena's attic: the one place the dream exaggerates.
   **Two spaces, not one big floor** (second round, same day): a wall of stored things (stacked boxes, an old wardrobe
   under a dust sheet) runs across the attic, stepped down under the roof, with one gap hung with old sheets on a line.
@@ -106,6 +106,33 @@ her capsule is 1.7 m). The stills were taken from 1.6-1.65 m until round 3; they
 their eyes: the drawings have big heads (Lena's eyes 18.6% of the card down from its top, Theo's 26.2%), so at the old
 card heights (1.72 m, 1.38 m) Lena's eyes were at 1.40 m, under Nadia's. Now Lena's eyes are at 1.60 m (a 1.72 m
 woman's; card 1.97 m) and Theo's at 1.20 m (a ten-year-old's; card 1.63 m). `DreamHouseBuilder.LenaEye`/`TheoEye`.
+
+**Round 4 (2026-10-12): the picks built in, the observatory raised, the house from outside.**
+- **The finishes** (the creator's picks from the options page): the oxblood regency stripe in every room with a walnut
+  wainscot (the kitchen's and the bath's tiles stay; the stretched hallway and the tipped house use the same paper),
+  exposed beams on every ceiling, the stepped crown, painted tongue and groove in the attic. `DreamCaptureVariants`
+  still shows the alternatives (`-Variants all`).
+- **Ceilings +0.4 m, built for real** (`DreamHouse.CeilingRaise`): every room's ceiling and the attic's floor go up
+  (rooms 2.7 to 3.4 m); doors keep their 2.1 m, so the headers grow; the windows are taller; the pendants hang on longer
+  cords; the picture rails sit 0.42 m under the ceiling. The attic stairs climb 3.7 m, so the north rooms are 0.4 m
+  deeper (`HubZ1` 84.4, the ridge over z 78.2) and the stairs run 3.6 m (46 degrees, as before). A ground jump (her head
+  at 2.95 m) now clears the kitchen, living room, parents' room and Theo's room, not the hall, bath, pantry or bay.
+- **The observatory** (the creator: "a cut-off in the sloped roof so it remains high-roofed in the observatory"): the
+  attic west of x = -2.9 rises to a flat boarded ceiling 4.2 m over its floor, full height from wall to wall, with a
+  skylight over the telescope, clerestory windows in its long walls and, where it meets the sloped roof, a wall from the
+  slopes up to its ceiling. The dormer moved over the top of the attic stairs. Tested: a double jump fits under its
+  ceiling everywhere, even by its walls, and the ceiling stops anything higher (`TheAtticIsAVerticalLoopTheMovementCanDo`).
+- **The front door** is at the hall's east end (a red double door, like the way in's), the coats on the hall's north
+  wall beside it.
+- **The house from outside** (`DreamHouseExterior`): the front garden looks at the house's real shape, the plan turned
+  so the hall's east end faces the garden (x = hall z - 79.4, z = 8.2 - hall x; the right side 0.8 m wider than the
+  plan so the stretched hallway's wall stays inside). The living room's two tall windows either side of an outside brick
+  chimney (its stack and pots above the roof), the bay round the left side under a steeper roof, Theo's small window, a
+  shingled front gable, the dormer on the right slope, and at the back the observatory's raised block with its
+  clerestories, the round window and a little dome over the skylight (its windows show the attic's night). Plinth,
+  clapboard, corner boards, fascia, bargeboards, gutters and downpipes, shutters, a porch on posts with a lantern.
+  Tall hedges close the garden at the house's corners (colliders, so the routes outside don't change); a lawn and trees
+  behind. Every window outside is one of the rooms' windows (`DreamHouseRooms.HouseWindows`).
 
 ## Interior notes (art pass 5, 2026-10-12: a lived-in home)
 The creator: "it's not at all furnished... for the space Elias spent most of his life in, his memories of it are rather

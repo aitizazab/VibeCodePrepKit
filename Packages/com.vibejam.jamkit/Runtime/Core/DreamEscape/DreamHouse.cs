@@ -69,19 +69,35 @@ namespace JamKit.DreamEscape
         /// <summary>The ground floor's height (the hide-and-seek rooms).</summary>
         public const float Ground = -4f;
         /// <summary>The house's footprint (the main floor and the attic over it): x and z bounds.</summary>
-        public const float HubX0 = -7f, HubX1 = 8f, HubZ0 = 72f, HubZ1 = 84f;
+        public const float HubX0 = -7f, HubX1 = 8f, HubZ0 = 72f, HubZ1 = 84.4f;   // the north rooms 0.4 m deeper (round 4: the taller attic stairs need the run)
         /// <summary>The hall's walls (its south wall at z <see cref="HallZ0"/>, its north wall at <see cref="HallZ1"/>, 0.2 m each).</summary>
         public const float HallZ0 = 78f, HallZ1 = 80.6f;
         /// <summary>The living room's bay window.</summary>
         public const float BayX0 = 4f, BayX1 = 6.4f, BayZ0 = 71f;
         /// <summary>The attic stairs' slot (they climb south: their top at <see cref="StairZ0"/>, their foot at <see cref="StairZ1"/>).</summary>
-        public const float StairX0 = 1.6f, StairX1 = 2.8f, StairZ0 = 80.8f, StairZ1 = 84f;
+        public const float StairX0 = 1.6f, StairX1 = 2.8f, StairZ0 = 80.8f, StairZ1 = HubZ1;
         /// <summary>The hatch in the hall's ceiling (the attic's way down).</summary>
         public const float HatchX0 = -1.2f, HatchX1 = -0.2f, HatchZ0 = 78.9f, HatchZ1 = 79.9f;
+        /// <summary>The attic's floor is open over the stairs from <see cref="StairZ0"/> to here (a ceiling over their foot).</summary>
+        public const float StairOpenZ1 = HubZ1 - 0.6f;
         /// <summary>The attic: its floor, its knee walls, its ridge (over z <see cref="RidgeZ"/>), its dormer.</summary>
-        public const float AtticFloor = Ground + 3.3f, KneeWall = 0.8f, RidgeHeight = 3.4f, RidgeZ = 78f;
-        public const float DormerX0 = -6.4f, DormerX1 = -4f, DormerZ0 = 80f, DormerHeight = 2.4f;
+        public const float AtticFloor = Ground + 3.3f + CeilingRaise, KneeWall = 0.8f, RidgeHeight = 3.4f, RidgeZ = (HubZ0 + HubZ1) * 0.5f;
+        /// <summary>Round 4 (the creator picked +0.4 m): every main-floor ceiling is this much higher than the plan's numbers
+        /// (<see cref="Ceiling"/> and the rooms add it), and the attic's floor with them; doors keep their height.</summary>
+        public const float CeilingRaise = 0.4f;
+        /// <summary>The dormer on the north slope, over the top of the attic stairs (round 4: it was over the observatory).</summary>
+        public const float DormerX0 = 1.0f, DormerX1 = 3.4f, DormerZ0 = 80f, DormerHeight = 2.4f;
+        /// <summary>Lena's observatory (round 4, the creator: "a cut-off in the sloped roof so it remains high-roofed in the
+        /// observatory"): the attic west of <see cref="ObsX1"/> rises to a flat ceiling <see cref="ObsHeight"/> above the
+        /// attic's floor, full height from wall to wall, under its own low roof with a skylight.</summary>
+        public const float ObsX1 = -2.9f, ObsHeight = 4.2f;
+        /// <summary>The skylight over the telescope.</summary>
+        public const float SkyX0 = -6.6f, SkyX1 = -5.4f, SkyZ0 = 77.4f, SkyZ1 = 78.6f;
         public const float VoidBottom = -24f;
+        /// <summary>The house seen from its front garden (round 4): the main floor's plan turned so the hall's east end, the
+        /// front door, faces the garden (x = z - <see cref="FrontDoorZ"/>, z = 8.2 - x); the walls' outer faces and the eaves.</summary>
+        /// The right side stands 0.8 m further out than the plan, so the stretched hallway's wall (x 4.5..5.5) stays inside.
+        public const float FrontDoorZ = 79.4f, OutX0 = HubZ0 - 0.2f - FrontDoorZ, OutX1 = HubZ1 + 0.2f - FrontDoorZ + 0.8f, EaveY = AtticFloor - Ground + KneeWall;
 
         public readonly LabCourse course = new LabCourse();
         public readonly List<HouseLook> looks = new List<HouseLook>();
@@ -199,10 +215,10 @@ namespace JamKit.DreamEscape
 
         /// <summary>A room's ceiling: solid from <paramref name="height"/> above the floor up to the attic's floor.</summary>
         void Ceiling(string name, float x0, float x1, float z0, float z1, float height) =>
-            Add(name, LabPieceKind.Floor, HouseLook.Ceiling, new Vector3(x0, Ground + height, z0), new Vector3(x1, AtticFloor, z1));
+            Add(name, LabPieceKind.Floor, HouseLook.Ceiling, new Vector3(x0, Ground + height + CeilingRaise, z0), new Vector3(x1, AtticFloor, z1));
 
         void Room(string name, float x0, float x1, float z0, float z1, float floorY, float ceiling) =>
-            rooms.Add(new HouseRoom { name = name, x0 = x0, x1 = x1, z0 = z0, z1 = z1, floorY = floorY, ceiling = ceiling });
+            rooms.Add(new HouseRoom { name = name, x0 = x0, x1 = x1, z0 = z0, z1 = z1, floorY = floorY, ceiling = ceiling + (floorY == Ground ? CeilingRaise : 0f) });
 
         /// <summary>The attic roof's height over its floor at <paramref name="z"/> (the gable: knee walls at the eaves, the
         /// ridge over <see cref="RidgeZ"/>).</summary>
@@ -270,9 +286,16 @@ namespace JamKit.DreamEscape
             Lane(-24f, 0f);
             Add("Front garden", LabPieceKind.Floor, HouseLook.Lawn, V(-14f, -2f, -24f), V(14f, 0f, 0f));
             arrivalCheckpoint = Checkpoint("The house", -16f, 0f, ChapterArrival);
-            Add("House front (left)", LabPieceKind.Wall, HouseLook.Facade, V(-14f, 0f, 0f), V(-1.5f, 7f, 0.5f));
-            Add("House front (right)", LabPieceKind.Wall, HouseLook.Facade, V(1.5f, 0f, 0f), V(14f, 7f, 0.5f));
-            Add("Front door lintel", LabPieceKind.Wall, HouseLook.Facade, V(-1.5f, 2.6f, 0f), V(1.5f, 7f, 0.5f));
+            // The house from outside (round 4: it matches the inside, seen from its front, the hall's east end; the builder
+            // draws the rest of it, DreamHouseExterior): its front wall up to the eaves, the outside chimney, and tall
+            // hedges from its corners to the garden's edges.
+            Add("House front (left)", LabPieceKind.Wall, HouseLook.Facade, V(OutX0, 0f, 0f), V(-1.5f, EaveY, 0.5f));
+            Add("House front (right)", LabPieceKind.Wall, HouseLook.Facade, V(1.5f, 0f, 0f), V(OutX1, EaveY, 0.5f));
+            Add("Front door lintel", LabPieceKind.Wall, HouseLook.Facade, V(-1.5f, 2.6f, 0f), V(1.5f, EaveY, 0.5f));
+            Add("Chimney (outside, base)", LabPieceKind.Wall, HouseLook.RoofStep, V(-5.1f, 0f, -0.6f), V(-3.3f, 2f, 0f));
+            Add("Chimney (outside, stack)", LabPieceKind.Wall, HouseLook.RoofStep, V(-4.8f, 2f, -0.55f), V(-3.6f, 7.0f, 0f));
+            Add("Garden hedge (left)", LabPieceKind.Wall, HouseLook.RoofStep, V(-14f, 0f, -0.8f), V(OutX0, 2.6f, 0f));
+            Add("Garden hedge (right)", LabPieceKind.Wall, HouseLook.RoofStep, V(OutX1, 0f, -0.8f), V(14f, 2.6f, 0f));
             Section(0.5f, "The stretched hallway");
             Add("Hallway floor", LabPieceKind.Floor, HouseLook.Hallway, V(-4.5f, -2f, 0.5f), V(4.5f, 0f, 22f));
             Checkpoint("The hallway", 4f, 0f);
@@ -356,8 +379,8 @@ namespace JamKit.DreamEscape
             Header("Door (parents | bath)", -1.4f, -1.2f, 82f, 83f, 2.1f);
             Wall("Parents | bath (north end)", -1.4f, -1.2f, 83f, HubZ1);
             Wall("Bath | attic stairs", 1.4f, StairX0, HallZ1 + 0.2f, HubZ1);
-            Wall("Attic stairs | Theo", StairX1, 3f, HallZ1 + 0.2f, 83f);
-            Header("Door (Theo | the attic stairs)", StairX1, 3f, 83f, HubZ1, 2.1f);
+            Wall("Attic stairs | Theo", StairX1, 3f, HallZ1 + 0.2f, HubZ1 - 1f);
+            Header("Door (Theo | the attic stairs)", StairX1, 3f, HubZ1 - 1f, HubZ1, 2.1f);
             // The attic stairs: steep, in their own slot, climbing south from a narrow door in Theo's room to the floor over
             // the hall; the cupboard under their high end opens from the hall (a low door: crouch in).
             Ramp("The attic stairs", HouseLook.Stairs, StairX0, StairX1, StairZ0, StairZ1, AtticFloor, F);
@@ -375,7 +398,7 @@ namespace JamKit.DreamEscape
             Ceiling("Ceiling (hall, north)", -5.4f, HubX1, HatchZ1, HallZ1, 2.4f);
             Ceiling("Ceiling (parents' room)", HubX0, -1.4f, HallZ1, HubZ1, 2.7f);
             Ceiling("Ceiling (bath)", -1.4f, StairX0, HallZ1, HubZ1, 2.4f);
-            Ceiling("Ceiling (the foot of the attic stairs)", StairX0, StairX1, 83.4f, HubZ1, 2.6f);
+            Ceiling("Ceiling (the foot of the attic stairs)", StairX0, StairX1, StairOpenZ1, HubZ1, 2.6f);
             Ceiling("Ceiling (Theo's room)", StairX1, HubX1, HallZ1, HubZ1, 2.6f);
 
             // --- Furniture that counts (it blocks, Theo can't see through it, some of it is climbed).
@@ -401,18 +424,19 @@ namespace JamKit.DreamEscape
             Furniture("Armchair", HouseLook.Sofa, 6.6f, 7.4f, 76.8f, 77.7f, 0.9f);
             Furniture("Bookcase (living room)", HouseLook.Bookcase, 2.8f, 3.25f, 77.2f, HallZ0, 1.9f);
             Furniture("Window seat", HouseLook.WindowSeat, BayX0, BayX1, BayZ0, BayZ0 + 0.55f, 0.45f);
-            Add("Curtains", LabPieceKind.Wall, HouseLook.Curtain, V(BayX0, F, HubZ0 - 0.15f), V(BayX1, F + 2.4f, HubZ0 - 0.05f), solid: false);
+            Add("Curtains", LabPieceKind.Wall, HouseLook.Curtain, V(BayX0, F, HubZ0 - 0.15f), V(BayX1, F + 2.4f + CeilingRaise, HubZ0 - 0.05f), solid: false);
             Spot("The window seat", HideKind.Bush, V((BayX0 + BayX1) * 0.5f, F + 1.2f, (BayZ0 + HubZ0) * 0.5f), V(BayX1 - BayX0, 2.4f, HubZ0 - BayZ0), V(5.2f, F, 73.4f));
-            // The hall: the coats at its east end, on hooks.
-            Add("Coats", LabPieceKind.Wall, HouseLook.Curtain, V(7.3f, F + 0.4f, HallZ0 + 0.3f), V(HubX1, F + 2.2f, 79.9f), solid: false);
-            Spot("The coats", HideKind.Bush, V(7.6f, F + 1f, 79.1f), V(0.8f, 2f, 1.6f), V(6.5f, F, 79.1f));
+            // The hall: the front door at its east end (round 4: the outside matches the inside), the coats on hooks
+            // along the north wall beside it.
+            Add("Coats", LabPieceKind.Wall, HouseLook.Curtain, V(6.2f, F + 0.4f, HallZ1 - 0.7f), V(7.8f, F + 2.2f, HallZ1), solid: false);
+            Spot("The coats", HideKind.Bush, V(7.0f, F + 1f, HallZ1 - 0.35f), V(1.6f, 2f, 0.8f), V(7.0f, F, 79.2f));
             // The parents' room: the bed, head to the north wall. The bath: the tub (its curtain a hiding spot).
-            Furniture("Parents' bed", HouseLook.Bed, -6.2f, -4.2f, 82f, HubZ1, 0.55f);
-            Furniture("Bathtub", HouseLook.Bath, -1.2f, 1.4f, 83.25f, HubZ1, 0.6f);
-            Spot("The bath curtain", HideKind.Bush, V(0.1f, F + 1f, 83.6f), V(2.4f, 2f, 0.8f), V(0.1f, F, 82.2f));
+            Furniture("Parents' bed", HouseLook.Bed, -6.2f, -4.2f, HubZ1 - 2f, HubZ1, 0.55f);
+            Furniture("Bathtub", HouseLook.Bath, -1.2f, 1.4f, HubZ1 - 0.75f, HubZ1, 0.6f);
+            Spot("The bath curtain", HideKind.Bush, V(0.1f, F + 1f, HubZ1 - 0.4f), V(2.4f, 2f, 0.8f), V(0.1f, F, 82.6f));
             // Theo's room: the bunk bed, his wardrobe (a closet) by the door, his tall bookcase with the desk beside it
             // (climb the desk to see what's on top of the bookcase).
-            Furniture("Theo's bunk bed", HouseLook.Bed, 5.4f, 7.4f, 83.1f, HubZ1, 1.6f);
+            Furniture("Theo's bunk bed", HouseLook.Bed, 5.4f, 7.4f, HubZ1 - 0.9f, HubZ1, 1.6f);
             Furniture("Wardrobe side (west)", HouseLook.Closet, 5.4f, 5.6f, HallZ1 + 0.2f, 81.7f, 2.1f);
             Furniture("Wardrobe side (east)", HouseLook.Closet, 6.6f, 6.8f, HallZ1 + 0.2f, 81.7f, 2.1f);
             Add("Wardrobe roof", LabPieceKind.Ledge, HouseLook.Closet, V(5.4f, F + 2.1f, HallZ1 + 0.2f), V(6.8f, F + 2.25f, 81.7f));
@@ -424,19 +448,23 @@ namespace JamKit.DreamEscape
             // family's stored life. Up the stairs from Theo's room; down through the hatch into the hall (a loop).
             // Under a gable roof, its ridge running east-west over the middle of the house.
             // Railings round the stairwell (she arrives at its south end and steps off onto the floor over the hall).
-            Wall("Attic railing (stairwell, west)", StairX0 - 0.2f, StairX0, StairZ0, 83.6f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
-            Wall("Attic railing (stairwell, east)", StairX1, StairX1 + 0.2f, StairZ0, 83.6f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
-            Wall("Attic railing (stairwell, north)", StairX0 - 0.2f, StairX1 + 0.2f, 83.4f, 83.6f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
-            Wall("Attic knee wall (south)", HubX0, HubX1, HubZ0, HubZ0 + 0.3f, AtticFloor, AtticFloor + KneeWall, HouseLook.KneeWall);
-            Wall("Attic knee wall (north)", HubX0, HubX1, HubZ1 - 0.3f, HubZ1, AtticFloor, AtticFloor + KneeWall, HouseLook.KneeWall);
-            Add("Attic gable (west, the observatory window)", LabPieceKind.Wall, HouseLook.Gable, V(HubX0 - 0.3f, AtticFloor, HubZ0), V(HubX0, AtticFloor + RidgeHeight + 0.3f, HubZ1));
+            Wall("Attic railing (stairwell, west)", StairX0 - 0.2f, StairX0, StairZ0, StairOpenZ1 + 0.2f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
+            Wall("Attic railing (stairwell, east)", StairX1, StairX1 + 0.2f, StairZ0, StairOpenZ1 + 0.2f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
+            Wall("Attic railing (stairwell, north)", StairX0 - 0.2f, StairX1 + 0.2f, StairOpenZ1, StairOpenZ1 + 0.2f, AtticFloor, AtticFloor + 0.9f, HouseLook.Railing);
+            Wall("Attic knee wall (south)", ObsX1, HubX1, HubZ0, HubZ0 + 0.3f, AtticFloor, AtticFloor + KneeWall, HouseLook.KneeWall);
+            Wall("Attic knee wall (north)", ObsX1, HubX1, HubZ1 - 0.3f, HubZ1, AtticFloor, AtticFloor + KneeWall, HouseLook.KneeWall);
+            // The observatory: its walls rise full height to its flat ceiling (the roof cut and raised over it).
+            Wall("Observatory wall (south)", HubX0, ObsX1, HubZ0, HubZ0 + 0.3f, AtticFloor, AtticFloor + ObsHeight, HouseLook.Gable);
+            Wall("Observatory wall (north)", HubX0, ObsX1, HubZ1 - 0.3f, HubZ1, AtticFloor, AtticFloor + ObsHeight, HouseLook.Gable);
+            Add("Observatory ceiling", LabPieceKind.Floor, HouseLook.RoofStep, V(HubX0 - 0.3f, AtticFloor + ObsHeight, HubZ0), V(ObsX1, AtticFloor + ObsHeight + 0.3f, HubZ1));
+            Add("Attic gable (west, the observatory window)", LabPieceKind.Wall, HouseLook.Gable, V(HubX0 - 0.3f, AtticFloor, HubZ0), V(HubX0, AtticFloor + ObsHeight, HubZ1));
             Add("Attic gable (east)", LabPieceKind.Wall, HouseLook.Gable, V(HubX1, AtticFloor, HubZ0), V(HubX1 + 0.3f, AtticFloor + RidgeHeight + 0.3f, HubZ1));
             // The roof is drawn by the builder; these solid steps sit just behind its slopes so a jump can't leave the house.
-            RoofSteps(HubX0, HubX1, south: true, fromStep: 1);
-            RoofSteps(HubX0, DormerX0, south: false, fromStep: 1);
+            RoofSteps(ObsX1, HubX1, south: true, fromStep: 1);
+            RoofSteps(ObsX1, DormerX0, south: false, fromStep: 1);
             RoofSteps(DormerX1, HubX1, south: false, fromStep: 1);
             RoofSteps(DormerX0, DormerX1, south: false, fromStep: 3);   // over the dormer only the ridge cap
-            // The dormer on the north slope, over the observatory: its own walls and roof, a window to the north.
+            // The dormer on the north slope, over the top of the attic stairs: its own walls and roof, a window to the north.
             Wall("Dormer (west side)", DormerX0 - 0.2f, DormerX0, DormerZ0, HubZ1, AtticFloor, AtticFloor + DormerHeight, HouseLook.KneeWall);
             Wall("Dormer (east side)", DormerX1, DormerX1 + 0.2f, DormerZ0, HubZ1, AtticFloor, AtticFloor + DormerHeight, HouseLook.KneeWall);
             Add("Dormer roof", LabPieceKind.Floor, HouseLook.Roof, V(DormerX0 - 0.2f, AtticFloor + DormerHeight, DormerZ0), V(DormerX1 + 0.2f, AtticFloor + DormerHeight + 0.2f, HubZ1));
@@ -458,14 +486,14 @@ namespace JamKit.DreamEscape
             Storage("Boxes (the wall across, by the sheets)", px0, px1, 76.2f, 77f, 1.4f);
             // (z 77..80: the sheets on their line: the way through)
             Storage("Boxes (the wall across, north)", px0, px1, 80f, 81.4f, 1.5f);
-            Storage("Boxes (the wall across, north eave)", px0, px1, 81.4f, 82.6f, 1.1f);
-            Storage("Boxes (the wall across, north eave, low)", px0, px1, 82.6f, HubZ1 - 0.3f, 0.75f);
+            Storage("Boxes (the wall across, north eave)", px0, px1, 81.4f, 82.8f, 1.1f);
+            Storage("Boxes (the wall across, north eave, low)", px0, px1, 82.8f, HubZ1 - 0.3f, 0.75f);
             Storage("Old sofa (under a dust sheet)", 4.6f, 6.6f, 79.4f, 80.3f, 0.85f);
             Storage("Boxes (by the chimney: Christmas)", 6.2f, 7.4f, 76.6f, 77.6f, 1.2f);
             Storage("Boxes under the eaves (south, west)", px1, -0.6f, HubZ0 + 0.3f, 73.4f, 0.8f);
             Storage("Boxes under the eaves (south, east)", 1.0f, 7.4f, HubZ0 + 0.3f, 73.4f, 0.8f);
-            Storage("Boxes under the eaves (north, west)", -0.6f, StairX0 - 0.4f, 82.6f, HubZ1 - 0.3f, 0.75f);
-            Storage("Boxes under the eaves (north, east)", StairX1 + 0.4f, HubX1, 82.6f, HubZ1 - 0.3f, 0.75f);
+            Storage("Boxes under the eaves (north, west)", -0.6f, DormerX0 - 0.2f, 83.0f, HubZ1 - 0.3f, 0.75f);
+            Storage("Boxes under the eaves (north, east)", DormerX1 + 0.2f, HubX1, 83.0f, HubZ1 - 0.3f, 0.75f);
             Spot("The attic", HideKind.Closet, V((HubX0 + HubX1) * 0.5f, AtticFloor + 1.6f, (HubZ0 + HubZ1) * 0.5f), V(HubX1 - HubX0, 3.2f, HubZ1 - HubZ0),
                 V(3.6f, F, 83.3f));
 

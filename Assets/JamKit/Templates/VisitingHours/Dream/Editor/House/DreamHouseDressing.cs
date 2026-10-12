@@ -406,6 +406,36 @@ namespace JamKit.DreamEscape.EditorTools
         }
 
         /// <summary>Wallpaper or floorboards on a Pastel material (a brightness pattern; the colour stays).</summary>
+        /// <summary>A wallpaper drawn in colour (tools/art/vh_house_patterns.py): the tile is the paper's colours, tinted by
+        /// the material's colour (white: as drawn), laid in world space every <paramref name="tileMetres"/>.</summary>
+        public static Material ColourPattern(Material m, string pattern, float tileMetres)
+        {
+            string path = null;
+            foreach (var dir in new[] { DreamArt.ArtDir, DreamArt.LocalArtDir })
+                if (System.IO.File.Exists(dir + "/" + pattern + ".png")) { path = dir + "/" + pattern + ".png"; break; }
+            if (path == null)
+            {
+                if (!_missing.Contains(pattern)) _missing.Add(pattern);
+                m.SetFloat("_TexStrength", 0f);
+                return m;
+            }
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (imp != null && (imp.wrapMode != TextureWrapMode.Repeat || !imp.sRGBTexture || !imp.mipmapEnabled))
+            {
+                imp.textureType = TextureImporterType.Default;
+                imp.wrapMode = TextureWrapMode.Repeat;
+                imp.sRGBTexture = true;
+                imp.mipmapEnabled = true;
+                imp.SaveAndReimport();
+            }
+            m.SetTexture("_MainTex", AssetDatabase.LoadAssetAtPath<Texture2D>(path));
+            m.SetFloat("_TexScale", tileMetres);
+            m.SetFloat("_TexMean", 1f);
+            m.SetFloat("_TexStrength", 1f);
+            if (!_used.Contains(pattern)) _used.Add(pattern);
+            return m;
+        }
+
         public static Material Pattern(Material m, string pattern, float tileMetres, float strength)
         {
             string path = null;
