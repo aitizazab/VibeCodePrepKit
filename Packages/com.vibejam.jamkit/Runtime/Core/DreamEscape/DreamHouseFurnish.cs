@@ -107,7 +107,7 @@ namespace JamKit.DreamEscape
             Furniture("Chair (Nadia's: the fourth chair)", "dining.chair", 5.6f, 6.15f, 2.48f, 2.93f, G, 0.96f, -90f);
             nadiaChair = V(5.875f, G, 2.7f);
             nadiaChairYaw = -90f;
-            theoAt = V(4.55f, G, 1.8f);
+            theoAt = V(3.75f, G, 1.72f);   // beside his chair, not in it (his cut-out stood through it: house-1.md)
             Prop("Pancakes (Theo's)", "dining.pancakes", 4.55f, 2.3f, G + 0.76f, 0.26f, 0.26f, 0.09f);
             Prop("Pancakes (Lena's)", "dining.pancakes", 4.55f, 3.1f, G + 0.76f, 0.26f, 0.26f, 0.09f);
             Prop("Pancakes (Elias's: going cold)", "dining.pancakes", 3.75f, 2.7f, G + 0.76f, 0.26f, 0.26f, 0.09f);
@@ -170,15 +170,15 @@ namespace JamKit.DreamEscape
             // ---------- Theo's room: his bed, the wardrobe he hides in, his desk under the bookcase (his drawing on top),
             // the toy chest; the height marks on his door frame (a memory).
             _room = "theo";
-            Furniture("Theo's bed", "bedroom.single_bed", -5.9f, -3.9f, 3.95f, 4.92f, U, 0.6f, 90f);
+            Furniture("Theo's bed", "bedroom.single_bed", -5.9f, -3.9f, 3.95f, 4.92f, U, 0.95f, 90f);
             Wardrobe("Theo's wardrobe", -3.5f, -2.1f, 3.95f, 4.92f, U, 1);
             Furniture("Theo's desk", "bedroom.kid_desk", -4.4f, -3.69f, Z0 + e, 0.7f, U, 0.75f, 180f);
             Furniture("Theo's bookcase", "theo.bookcase", -3.62f, -2.82f, Z0 + e, 0.5f, U, 1.9f, 180f);
             Furniture("Theo's chair", "bedroom.kid_chair", -5.15f, -4.58f, 0.2f, 0.88f, U, 1.0f, 90f);
             Furniture("Toy chest", "bedroom.toy_chest", -7.3f, -6.89f, 0.6f, 1.42f, U, 0.35f, 90f);
-            Prop("Teddy (on the bed)", "bedroom.teddy_bear", -5.5f, 4.45f, U + 0.6f, 0.3f, 0.25f, 0.35f, 180f);
+            Prop("Teddy (on the toy chest)", "bedroom.teddy_bear", -7.1f, 0.78f, U + 0.35f, 0.3f, 0.25f, 0.35f, 90f);
             Prop("Alarm clock", "bedroom.alarm_clock", -3.85f, 0.45f, U + 0.75f, 0.23f, 0.17f, 0.17f, 180f);
-            Prop("Rubber duck (toy chest)", "bedroom.toy", -7.1f, 1.0f, U + 0.35f, 0.21f, 0.3f, 0.29f, 90f);
+            Prop("Rubber duck (toy chest)", "bedroom.toy", -7.1f, 1.22f, U + 0.35f, 0.21f, 0.3f, 0.29f, 90f);
             Rug("Rug (Theo's room)", "bedroom.rug", -5.8f, -3.4f, 1.6f, 3.6f, U);
             Picture("Theo's drawing (the house)", "dream_pic_kids_drawing_1", true, 4.925f, -1, -6.9f, -6.2f, U + 1.1f, U + 1.6f);
             Picture("Theo's drawing (the four of us)", "dream_pic_kids_drawing_2", true, 4.925f, -1, -3.8f, -3.55f, U + 1.6f, U + 1.95f);
@@ -193,7 +193,7 @@ namespace JamKit.DreamEscape
 
             // ---------- The guest room, made up for her: the bed with her old quilt, the wardrobe, the dresser.
             _room = "guest";
-            Furniture("Guest bed (made up for her)", "bedroom.double_bed", -5.2f, -3.6f, 8.85f, 10.85f, U, 0.6f, 180f);
+            Furniture("Guest bed (made up for her)", "bedroom.double_bed", -5.2f, -3.6f, 8.85f, 10.85f, U, 1.05f, 180f);
             Furniture("Nightstand (guest, west)", "bedroom.nightstand", -5.75f, -5.24f, 10.34f, 10.85f, U, 0.62f, 180f);
             Furniture("Nightstand (guest, east)", "bedroom.nightstand", -3.56f, -3.05f, 10.34f, 10.85f, U, 0.62f, 180f);
             Prop("Flowers (for her)", "living.vase.1", -3.3f, 10.6f, U + 0.62f, 0.22f, 0.22f, 0.31f);
@@ -204,14 +204,20 @@ namespace JamKit.DreamEscape
             _room = "upperhall";
             Furniture("Reading chair (landing)", "living.armchair", 0.55f, 1.6f, 0.2f, 1.35f, U, 1.1f, -45f);
             Rug("Runner (upper hall)", "living.rug", -0.3f, 0.9f, 6.2f, 10.4f, U);
-            Picture("Photo (upper hall)", "dream_pic_photo_6", false, 1.625f, -1, 7.0f, 7.6f, U + 1.3f, U + 1.8f);
+            Picture("Photo (upper hall)", "dream_pic_photo_6", false, 1.625f, -1, 8.1f, 8.7f, U + 1.3f, U + 1.8f);
+            // The linen press halfway along: the hall's 10 m run no longer shows end to end.
+            Furniture("Linen press (upper hall)", "upperhall.linen_press", 1.07f, 1.625f, 6.3f, 7.4f, U, 2.0f, -90f);
 
             // ---------- Elias and Lena's room: the bed, the nightstands, the dresser.
             _room = "parents";
-            Furniture("Their bed", "bedroom.double_bed", 5.35f, 7.35f, 2.9f, 4.5f, U, 0.6f, -90f);
-            Furniture("Nightstand (Lena's)", "bedroom.nightstand", 6.84f, 7.35f, 2.35f, 2.86f, U, 0.62f, -90f);
-            Furniture("Nightstand (Elias's)", "bedroom.nightstand", 6.84f, 7.35f, 4.55f, 5.06f, U, 0.62f, -90f);
-            Prop("Lamp (Lena's side)", "bedroom.table_lamp", 7.1f, 2.6f, U + 0.62f, 0.3f, 0.3f, 0.5f);
+            // A grown-ups' bed (house-1.md: it was child-sized in a 5.6 x 6.4 m room): 1.8 x 2.1, its headboard 1.1 high.
+            Furniture("Their bed", "bedroom.double_bed", 5.25f, 7.35f, 2.8f, 4.6f, U, 1.1f, -90f);
+            Furniture("Nightstand (Lena's)", "bedroom.nightstand", 6.84f, 7.35f, 2.24f, 2.75f, U, 0.62f, -90f);
+            Furniture("Nightstand (Elias's)", "bedroom.nightstand", 6.84f, 7.35f, 4.65f, 5.16f, U, 0.62f, -90f);
+            Prop("Lamp (Lena's side)", "bedroom.table_lamp", 7.1f, 2.5f, U + 0.62f, 0.3f, 0.3f, 0.5f);
+            // A dressing screen and her armchair: something between the door and the bed (he saw the whole room from the door).
+            Furniture("Dressing screen", "bedroom.screen", 2.5f, 3.9f, 3.3f, 3.55f, U, 1.75f, 90f);
+            Furniture("Armchair (theirs)", "living.armchair", 2.0f, 3.0f, 0.3f, 1.4f, U, 1.1f, 45f);
             Furniture("Dresser (theirs)", "bedroom.dresser", 3.4f, 4.54f, 6.03f, 6.52f, U, 1.88f, 180f);
             Rug("Rug (their room)", "living.rug", 3.2f, 5.2f, 2.4f, 5.0f, U);
             _room = "closet";
@@ -236,13 +242,22 @@ namespace JamKit.DreamEscape
             Furniture("Rocking chair (attic)", "attic.rocking_chair", 4.6f, 5.31f, 3.4f, 4.23f, A, 0.99f, -120f);
             Furniture("The Christmas box", "attic.box", 6.2f, 6.9f, 4.6f, 5.3f, A, 0.5f);
             Prop("Oil lamp (attic)", "attic.lamp", 3.41f, 2.2f, A + 0.35f, 0.22f, 0.22f, 0.8f);
+            // The family's stored life in rows (the attic was one vast empty hall: house-1.md): two runs of shelving
+            // across it under the ridge, the old wardrobe, a rolled rug, suitcases: bays to hide in and break his sight.
+            Furniture("Shelving across the attic (east)", "garage.shelves", 1.95f, 2.55f, 4.3f, 5.22f, A, 1.9f, 90f);
+            Furniture("Shelving across the attic (west)", "garage.shelves", -1.1f, -0.5f, 4.6f, 5.52f, A, 1.9f, 90f);
+            Furniture("The old wardrobe (attic)", "bedroom.dresser", 0.4f, 1.55f, 7.6f, 8.09f, A, 1.88f, 180f);
+            Furniture("Suitcases (attic)", "attic.suitcases", 5.5f, 6.3f, 6.3f, 6.8f, A, 0.55f);
+            Furniture("A rolled rug (attic)", "attic.rolled_rug", -2.6f, 0.0f, 3.2f, 3.5f, A, 0.3f);
             _room = "observatory";
-            Furniture("Telescope platform", "observatory.platform", -6.6f, -4.6f, 4.4f, 6.6f, A, 0.3f);
-            Furniture("Lena's telescope", "observatory.telescope", -6.0f, -5.2f, 5.1f, 5.9f, A + 0.3f, 1.55f, -90f);
+            // The dais under the round window (Lena stands on it to watch Chapel Row), the telescope on the floor aimed
+            // up through the window at the sky, her chart table, her chair, the bookcase on the west wall.
+            Furniture("Lena's dais (under the round window)", "observatory.platform", -6.0f, -4.5f, 7.0f, 7.85f, A, 1.0f);
+            Furniture("Lena's telescope", "observatory.telescope", -5.6f, -4.8f, 5.3f, 6.4f, A, 1.75f, 0f);
             Furniture("Lena's chart table", "observatory.chart_table", -4.4f, -3.6f, 6.6f, 7.4f, A, 0.75f);
             Furniture("Lena's chair", "attic.rocking_chair", -4.5f, -3.79f, 3.4f, 4.23f, A, 0.99f, 45f);
             Prop("Binoculars", "attic.binoculars", -3.8f, 6.8f, A + 0.75f, 0.17f, 0.29f, 0.08f);
-            Furniture("Bookcase (observatory)", "living.bookshelf", -7.34f, -6.76f, 6.4f, 7.77f, A, 2.06f, 90f);
+            Furniture("Bookcase (observatory)", "living.bookshelf", -7.34f, -6.76f, 4.0f, 5.37f, A, 2.06f, 90f);
 
             // ---------- The basement: the rec room (the old couch, the TV, the ping-pong table), the furnace room (dark:
             // hide behind the furnace), Elias's workshop (his bench, his radio), the laundry (washing on the line).
@@ -252,6 +267,8 @@ namespace JamKit.DreamEscape
             Furniture("TV stand (rec room)", "living.tv_stand", -2.68f, -2.24f, 0.6f, 1.52f, B, 0.53f, -90f);
             Prop("Old TV", "living.tv", -2.46f, 1.06f, B + 0.53f, 0.35f, 0.4f, 0.41f, -90f);
             Furniture("Games shelf", "basement.shelves", -3.2f, -2.28f, 5.9f, 6.42f, B, 1.9f, 180f);
+            // A bookcase standing out in the room past its doorway: the room was seen whole from the door.
+            Furniture("Old bookcase (rec room divider)", "living.bookshelf", -3.75f, -3.17f, 3.0f, 4.37f, B, 2.06f, 90f);
             _room = "furnace";
             Furniture("The furnace", "furnace.furnace", -6.4f, -5.2f, 9.6f, 10.85f, B, 1.8f);
             Furniture("Water heater", "furnace.heater", -4.6f, -3.9f, 10.15f, 10.85f, B, 1.6f);
@@ -316,7 +333,7 @@ namespace JamKit.DreamEscape
             Spot("Behind the washing", HideKind.Bush, "laundry", V(3.5f, B + 1f, 9.3f), V(2.6f, 2f, 0.9f), V(3.5f, B, 7.6f));
             Spot("Behind the car", HideKind.Bush, "garage", V(11.2f, GarageFloor + 1f, 3.4f), V(0.9f, 2f, 1.5f), V(11.1f, GarageFloor, 6.3f));
             Spot("The attic boxes", HideKind.Bush, "attic", V(6.3f, A + 0.8f, 2.2f), V(1.2f, 1.6f, 1.0f), V(5.0f, A, 4.0f));
-            Spot("Lena's observatory", HideKind.Closet, "observatory", V(-5.2f, A + 1f, 7.2f), V(2.6f, 2f, 1.1f), V(-2.2f, A, 5.4f));
+            Spot("Lena's observatory", HideKind.Bush, "observatory", V(-6.6f, A + 1f, 6.6f), V(1.1f, 2f, 1.4f), V(-4.2f, A, 5.6f));
             Spot("The shed", HideKind.Closet, "shed", V(15.0f, Yard + 1.05f, 19.9f), V(2.0f, 2f, 1.1f), V(12.9f, Yard, 19.1f));
             Spot("Behind the sheets on the line", HideKind.Bush, "yard", V(-0.9f, Yard + 1f, 16.0f), V(5.0f, 2f, 0.8f), V(-0.9f, Yard, 14.6f));
             Spot("The treehouse", HideKind.Closet, "treehouse", V(TreeX - 0.5f, TreeFloor + 0.8f, TreeZ), V(2.1f, 1.6f, 1.9f), V(TreeX + 5.3f, Yard, TreeZ));
@@ -472,7 +489,8 @@ namespace JamKit.DreamEscape
             Alt(m, "kitchen", V(6.99f, G + 1.25f, 9.31f), V(6.6f, G, 8.55f));
             Alt(m, "corridor", V(1.62f, B + 1.25f, 8.36f), V(0.8f, B, 8.7f));
 
-            m = Memory(DreamHouseStory.MemBadDream, "Theo's drawing: THE BAD DREAM", "theo", "dream_pic_bad_dream", V(-3.22f, U + 1.92f, 0.33f), V(-4.05f, U + 0.75f, 0.45f));
+            // Pinned to the wall over his desk at eye height (it lay flat on top of the bookcase, unreadable: house-1.md).
+            m = Memory(DreamHouseStory.MemBadDream, "Theo's drawing: THE BAD DREAM", "theo", "dream_pic_bad_dream", V(-4.05f, U + 1.35f, Z0 + e + 0.012f), V(-4.05f, U, 1.3f));
             Alt(m, "rec", V(-4.8f, B + 0.78f, 3.2f), V(-3.5f, B, 3.2f));
             Alt(m, "guest", V(-4.4f, U + 0.62f, 10.4f), V(-4.4f, U, 8.5f));
 
@@ -508,7 +526,7 @@ namespace JamKit.DreamEscape
             Lamp("Porch lantern", "porch", V(1.1f, Ground + 2.2f, -0.35f), 6f, 0.9f);
             Lamp("Lena's lamp", "table", V(7.1f, Upper + 1.0f, 2.6f), 3.5f, 0.7f);
             Lamp("Theo's night light", "table", V(-3.85f, Upper + 0.9f, 0.45f), 3f, 0.6f);
-            lenaWindow = V(-5.25f, Attic, TowerZ1 - e - 0.45f);
+            lenaWindow = V(-5.25f, Attic + 1.0f, TowerZ1 - e - 0.4f);   // on her dais, in the round window
             hallBreathFrom = V(0f, Ground + 1.5f, 0.9f);
             hallBreathTo = V(0.5f, Ground + 1.2f, 8.5f);
         }

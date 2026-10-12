@@ -296,7 +296,7 @@ namespace JamKit.DreamEscape
             if (cost.memoryTaken != null)
             {
                 var v = ViewOf(cost.memoryTaken);
-                if (v != null) v.MoveTo(ToWorld(cost.newPosition), MemoryYaw(cost.newPosition));
+                if (v != null) v.MoveTo(ToWorld(cost.newPosition), MemoryYaw(cost.newPosition, cost.newStandAt));
                 Say(DreamHouseLines.Caught[Mathf.Clamp(cost.catchNumber - 1, 0, 2)], null);
                 Debug.Log("JAMKIT_HOUSE caught (" + cost.catchNumber + "): the house took back " + cost.memoryTaken + " and hid it in " + cost.newRoom);
             }

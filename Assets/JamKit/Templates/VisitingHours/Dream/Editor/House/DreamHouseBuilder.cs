@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using JamKit.EditorTools;
 using JamKit.Look.EditorTools;
+using JamKit.Perf.EditorTools;
 using JamKit.Movement;
 using JamKit.Shell;
 using JamKit.Stealth;
@@ -51,10 +52,18 @@ namespace JamKit.DreamEscape.EditorTools
         public static void RebuildFromCommandLine()
         {
             int code = 0;
-            try { BuildEverything(null); }
+            try
+            {
+                BuildEverything(null);
+                // Built and saved, but the mesh lint found things wrong: fail loudly (the captures still run on it).
+                if (LastMeshLintIssues > 0) { Debug.LogError("JAMKIT_HOUSE_MESHLINT the rebuild exits 3: " + LastMeshLintIssues + " issues"); code = 3; }
+            }
             catch (System.Exception e) { Debug.LogException(e); code = 1; }
             EditorApplication.Exit(code);
         }
+
+        /// <summary>The last rebuild's mesh lint (<see cref="HouseMeshLintRun"/>): issues found.</summary>
+        public static int LastMeshLintIssues;
 
         public static string BuildEverything(SceneBuilder.Context ctx)
         {
@@ -65,6 +74,7 @@ namespace JamKit.DreamEscape.EditorTools
             DreamEscapeBuilder.ClearMaterials();
             HouseMaterials.Clear();
             HouseMaterials.ClearFinishes();
+            HouseEscapeLook.Clear();
             AssetDatabase.SaveAssets();
             string path = BuildScene();
             AssetDatabase.SaveAssets();
@@ -112,16 +122,22 @@ namespace JamKit.DreamEscape.EditorTools
             Debug.Log("JAMKIT_HOUSE_LINT " + lint.Count + " overlaps in " + h.parts.Count + " parts");
 
             var scene = SceneBuilder.NewScene(new Color(0.8f, 0.72f, 0.66f), out var cam);
-            VhLook.ApplyHouseInterior(scene);
+            // The evening outside (house-1.md: a flat peach void round the lot): Look's golden-hour rig (the low sun, the
+            // HDRI sky, haze, the golden grade) over everything, and inside the house the interior grade (no haze, the
+            // warmer exposure) as a local volume round the house's body.
+            VhLook.ApplyGoldenHour(scene, new VhLook.Options { sunAzimuth = 250f, sunElevation = 10f, hazeBaseHeight = 0f });
+            InteriorVolume();
 
             // The house, in its own frame (standing alone at the origin; on the hill World places it at HillAnchors).
             var houseRoot = new GameObject("The Lasname house (Night 2)").transform;
+            HouseMeshLintRun.Begin();
             HouseGeometry.Build(h, houseRoot, true);
             HouseFurnishing.Build(h, houseRoot, true);
             HouseFurnishing.Lamps(h, houseRoot);
             var memories = HouseFurnishing.Memories(h, houseRoot);
             DreamHouseExterior.Details(h, houseRoot);
             var theosDoor = DreamHouseExterior.TheosDoor(houseRoot);
+            HouseMeshLintRun.Pause();
             var standalone = new GameObject("Stand-ins (the house alone: Chapel Row)").transform;
             standalone.SetParent(houseRoot, false);
             DreamHouseExterior.Standalone(h, standalone);
@@ -129,8 +145,23 @@ namespace JamKit.DreamEscape.EditorTools
             // The cast: Lena (at the stove), Lena in the tower's round window (seen when she's out), Theo seeking.
             var lena = HouseFurnishing.CutOut("Lena", DreamArt.Lena, houseRoot, U(h.lenaAt), LenaCardHeight);
             var lenaWindow = HouseFurnishing.CutOut("Lena (at the tower's window)", DreamArt.Lena, houseRoot, U(h.lenaWindow), LenaCardHeight);
+            // She stands on her dais in the round window, facing the hill, lit by her reading lamp so she reads from Chapel
+            // Row (she was missing from the shot: house-1.md).
+            lenaWindow.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+            var lw = lenaWindow.GetComponent<DreamCutoutView>();
+            if (lw != null) lw.restYaw = 0f;
+            var lenaLight = new GameObject("Light on Lena (the window)").AddComponent<Light>();
+            lenaLight.transform.SetParent(lenaWindow.transform, false);
+            lenaLight.transform.localPosition = new Vector3(0.3f, 1.9f, -0.6f);
+            lenaLight.type = LightType.Point; lenaLight.range = 3f; lenaLight.intensity = 1.8f; lenaLight.color = new Color(1f, 0.8f, 0.55f);
+            lenaLight.shadows = LightShadows.None;
             lenaWindow.SetActive(false);
             var theo = HouseFurnishing.Theo(h, houseRoot);
+            var freeThings = new List<GameObject> { lena };
+            if (theo != null && theo.figure != null) freeThings.Add(theo.figure.gameObject);
+            var hung = new List<GameObject>();
+            foreach (var m in memories) if (m != null) hung.Add(ThingOf(m));
+            LastMeshLintIssues = HouseMeshLintRun.Finish(h, houseRoot, freeThings, hung);
 
             // The escape, upright, far below.
             var escapeRoot = new GameObject("The house throws her out (the escape)").transform;
@@ -139,6 +170,9 @@ namespace JamKit.DreamEscape.EditorTools
 
             // The player.
             var body = DreamEscapeBuilder.BuildPlayer(cam, new LabCheckpoint { name = "The street", position = h.arrival, yaw = h.arrivalYaw });
+            // The sky, not a solid colour, behind everything; the far clip out to Look's backdrop ring.
+            VhLook.SetupCamera(cam);
+            cam.clearFlags = CameraClearFlags.Skybox;
             body.onlyMarkedWalls = true;   // every wall marked runnable runs (in the house: every wall longer than 1.5 m)
             body.gameObject.AddComponent<StealthPlayer>().body = body;
             var rig = cam.transform.parent;
@@ -146,6 +180,23 @@ namespace JamKit.DreamEscape.EditorTools
             fx.cam = cam;
             fx.rig = rig;
             var sky = HouseEscapeBuilder.NightSky(cam);
+
+            // Perf (docs/redesign/perf.md, House): shadows from only the two nearest room lights (HouseLightBudget), no
+            // shadows from small things, small things culled with distance, the house's body static (batching, occludee,
+            // the big solids occluders) for the occlusion bake. Not the memories, the cast or anything that moves, and
+            // nothing of the escape (its rooms roll: HouseEscapeBuilder sets its own flags).
+            var budget = new GameObject("Light budget (two shadowed lights)").AddComponent<HouseLightBudget>();
+            budget.cam = cam;
+            budget.roots = new[] { houseRoot, escapeRoot };   // the stand-in hill is under houseRoot
+            foreach (var name in new[] { "Structure", "Furniture", "Lamps", "Outside details" })
+            {
+                var t = houseRoot.Find(name);
+                if (t == null) continue;
+                VhPerfShadows.Apply(t, VhPerfShadows.Rules.Indoor);
+                if (name != "Lamps") VhPerfBatching.MarkStatic(t);
+            }
+            int culled = VhPerfLod.CullSmall(houseRoot.Find("Furniture"));
+            Debug.Log("JAMKIT_HOUSE perf: " + culled + " small things culled with distance; static body marked; light budget on " + budget.roots.Length + " roots");
 
             // The game.
             var game = new GameObject("Dream House").AddComponent<DreamHouseGame>();
@@ -181,6 +232,31 @@ namespace JamKit.DreamEscape.EditorTools
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             return ScenePath;
+        }
+
+        /// <summary>The house's interior grade (Look's VH_HouseInterior: no haze, a warmer exposure) as a local volume
+        /// round the house's body, over the golden-hour global one; its collider is a trigger on Ignore Raycast, so nothing
+        /// walks or sees into it.</summary>
+        static void InteriorVolume()
+        {
+            var go = new GameObject("Post (inside the house)");
+            go.layer = 2;
+            go.transform.position = new Vector3((DreamHouse.OutX0 + DreamHouse.OutX1) * 0.5f, (DreamHouse.Basement + DreamHouse.Attic + DreamHouse.TowerH) * 0.5f, (DreamHouse.Z0 + DreamHouse.Z1) * 0.5f);
+            var box = go.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            box.size = new Vector3(DreamHouse.OutX1 - DreamHouse.OutX0 - 0.2f, DreamHouse.Attic + DreamHouse.TowerH - DreamHouse.Basement, DreamHouse.Z1 - DreamHouse.Z0 - 0.2f);
+            var v = go.AddComponent<UnityEngine.Rendering.Volume>();
+            v.isGlobal = false;
+            v.priority = 20f;
+            v.blendDistance = 0.8f;
+            v.sharedProfile = VhLookProfiles.BuildHouseInterior();
+        }
+
+        /// <summary>A memory's thing without its glow (the lint measures the thing).</summary>
+        static GameObject ThingOf(HouseMemoryView m)
+        {
+            var t = m.transform.Find("Thing");
+            return t != null ? t.gameObject : m.gameObject;
         }
 
         /// <summary>The escape's shared umbrella builder lays its rain along the route; here the rain falls on Chapel Row,

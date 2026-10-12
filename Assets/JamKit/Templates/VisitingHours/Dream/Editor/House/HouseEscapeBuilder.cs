@@ -1,18 +1,19 @@
-using System.Collections.Generic;
 using JamKit.Movement;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
 using NVec3 = System.Numerics.Vector3;
 
 namespace JamKit.DreamEscape.EditorTools
 {
     /// <summary>
-    /// The escape (core <see cref="HouseEscape"/>), built upright at its origin: each room in what its surfaces used to be
-    /// (a room on its side walks on its old wall, the old floor's boards run up one side and the old ceiling the other;
-    /// upside down, the ceiling is underfoot), every wall and ceiling solid (a collider for every piece, the side walls
-    /// runnable), the corridor's bays the same as each other (pictures, doors, lamps at the same places, so a stretch can't
-    /// be seen), the door at its end, the house folding shut behind her, a night sky for the attic, lamps in every room.
+    /// The escape (core <see cref="HouseEscape"/>), built upright at its origin: each room in what its surfaces used to be,
+    /// in its own palette (<see cref="HouseEscapeLook"/>: a room on its side walks on its old wall, the old floor's boards run
+    /// up one side and the old ceiling the other; upside down, the ceiling is underfoot), furnished and dressed as the room it
+    /// was, its things tipping into place as she comes (<see cref="HouseEscapeDressing"/>), every wall and ceiling solid (a
+    /// collider for every piece, the side walls runnable), the corridor's bays the same as each other (a landmark set in every
+    /// bay, so a stretch can be read) and its warm front door, the house folding shut behind her, the night sky over the
+    /// attic, the last hall's door onto a warm glow. Nothing that moves is static; nothing here is occluder-static (the
+    /// rooms' things tip and the fold moves).
     /// </summary>
     public static class HouseEscapeBuilder
     {
@@ -26,8 +27,12 @@ namespace JamKit.DreamEscape.EditorTools
             public Transform[] rooms;
         }
 
+        static GameObject _lastSky;
+
         public static Result Build(HouseEscape e, Transform root)
         {
+            HouseEscapeLook.Clear();
+            HouseEscapeDressing.Begin();
             var res = new Result();
             var colliders = new GameObject("Colliders").transform;
             colliders.SetParent(root, false);
@@ -39,65 +44,91 @@ namespace JamKit.DreamEscape.EditorTools
                 groups[r].SetParent(root, false);
                 builders[r] = new MeshBuilder();
             }
-            var rest = new MeshBuilder();
             for (int i = 0; i < e.course.pieces.Count; i++)
             {
                 var p = e.course.pieces[i];
                 var look = e.looks[i];
                 int r = Mathf.Max(0, e.RoomAt(p.center.Z));
                 var room = e.rooms[r];
-                var b = builders[r];
                 if (i == e.corridorDoor)
                 {
                     res.corridorDoor = CorridorDoor(p, root, out res.corridorDoorLeaf);
                     continue;
                 }
-                Piece(e, p, look, room, b);
-                if (p.solid) Collider(p, colliders, look);
+                Piece(e, p, look, room, builders[r]);
+                if (p.solid) Collider(p, colliders);
             }
             for (int r = 0; r < e.rooms.Count; r++)
             {
-                Dress(e, e.rooms[r], builders[r], groups[r]);
+                HouseEscapeDressing.Dress(e, r, groups[r], root, builders[r]);
                 builders[r].Build("Room", groups[r]);
-                RoomLamps(e, e.rooms[r], groups[r]);
             }
-            rest.Build("Escape (between rooms)", root);
             res.rooms = groups;
             res.fold = Fold(root);
             res.theoAtTheDoor = TheoAtTheDoor(e, root);
+            res.nightSky = HouseEscapeDressing.NightSky(e, root);
+            _lastSky = res.nightSky;
+            // Nothing in the escape is occluder-static (the rooms' things tip, the fold moves): batching and occludee only.
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                var f = GameObjectUtility.GetStaticEditorFlags(t.gameObject);
+                if ((f & StaticEditorFlags.OccluderStatic) != 0) GameObjectUtility.SetStaticEditorFlags(t.gameObject, f & ~StaticEditorFlags.OccluderStatic);
+            }
+            HouseEscapeDressing.End();
             return res;
+        }
+
+        /// <summary>The night sky for the attic open to the stars: the dome <see cref="Build"/> made round the attic (the game
+        /// shows it only there). Called after <see cref="Build"/>; with no build before it, it makes one.</summary>
+        public static GameObject NightSky(Camera cam)
+        {
+            if (_lastSky != null) return _lastSky;
+            var root = cam != null ? cam.transform.root : null;
+            return HouseEscapeDressing.NightSky(HouseEscape.Build(), root);
         }
 
         // ---------- The pieces, by what they used to be ----------
 
-        static Material Wallpaper => HouseMaterials.Wallpaper();
-        static Material Boards => HouseMaterials.Surface("wood_floor", null, null, 0.42f);
-        static Material Plaster => HouseMaterials.Ceiling();
-        static Material Wainscot => HouseMaterials.Surface("wooden_panels", "Walnut", new Color(0.62f, 0.42f, 0.3f), 0.4f);
+        static Material Planks => HouseMaterials.Planks();
+        static Material Trim => HouseEscapeLook.Clean("TrimWhite", new Color(0.93f, 0.91f, 0.86f), 0.45f);
+
+        static bool UpsideDown(EscapeRoom r) => Mathf.Abs(r.roll) > 179f;
 
         static void Piece(HouseEscape e, LabPiece p, HouseLook look, EscapeRoom room, MeshBuilder b)
         {
+            var pal = HouseEscapeLook.For(room);
             Vector3 mn = U(p.Min), mx = U(p.Max);
             switch (look)
             {
-                case HouseLook.EscWallpaperFloor: Top(b, p, room.roll == 180f ? Plaster : Wallpaper, Plaster); break;
-                case HouseLook.EscCeiling:
-                    if (p.kind == LabPieceKind.Ramp) Ramp(b, p, Plaster, Plaster);
-                    else if (p.Max.Y <= room.floorTop + 0.5f) Top(b, p, Plaster, Plaster);   // a ceiling underfoot (upside down)
-                    else Under(b, p, room.roll == 180f ? Boards : room.roll != 0f ? Wallpaper : Plaster);
+                case HouseLook.EscWallpaperFloor:
+                    Top(b, p, room.roll == 0f ? pal.oldFloor : UpsideDown(room) ? pal.oldCeiling : pal.wall, pal.edge);
                     break;
-                case HouseLook.EscFloorboardWall: SideWall(b, p, room); break;
-                case HouseLook.EscCorridorWall: CorridorWall(b, p, room); break;
-                case HouseLook.EscCorridorFloor: Ramp(b, p, HouseMaterials.Fabric("CorridorRunner", new Color(0.36f, 0.42f, 0.55f)), Plaster); break;
-                case HouseLook.EscTable: Ramp(b, p, HouseMaterials.TrimWalnut(), HouseMaterials.TrimWalnut()); break;
-                case HouseLook.EscStairs: StepsOnRamp(b, p); break;
-                case HouseLook.EscDoor: b.Box(mn, mx, HouseMaterials.Paint("EscapeDoor", new Color(0.93f, 0.91f, 0.86f))); break;
-                case HouseLook.EscFurniture: b.Box(mn, mx, HouseMaterials.TrimWalnut()); break;
+                case HouseLook.EscCeiling:
+                    if (p.kind == LabPieceKind.Ramp) Ramp(b, p, Planks, pal.oldCeiling);
+                    else if (p.Max.Y <= room.floorTop + 0.5f) Top(b, p, pal.oldCeiling, pal.edge);   // a ceiling underfoot (upside down)
+                    else Under(b, p, room.roll == 0f ? pal.oldCeiling : UpsideDown(room) ? pal.oldFloor : pal.wall);
+                    break;
+                case HouseLook.EscFloorboardWall: SideWall(b, p, room, pal); break;
+                case HouseLook.EscCorridorWall:
+                    if (p.runnable) b.Box(mn, mx, new[] { p.center.X < 0f ? Planks : pal.wall, p.center.X < 0f ? pal.wall : Planks, Planks, Planks, Planks, Planks });
+                    else EndWall(e, b, p);
+                    break;
+                case HouseLook.EscCorridorFloor: Ramp(b, p, pal.oldFloor, Planks); break;
+                case HouseLook.EscTable: Table(b, p); break;
+                case HouseLook.EscStairs: StepsOnRamp(b, p, pal); break;
+                case HouseLook.EscDoor:
+                    if (p.kind == LabPieceKind.Bar) DoorBar(b, p);
+                    else Doorframe(b, p, pal);
+                    break;
+                case HouseLook.EscFurniture:
+                    if (p.kind == LabPieceKind.Bar) FurnitureBar(b, p, room);
+                    else Top(b, p, UpsideDown(room) ? pal.oldCeiling : pal.oldFloor, pal.edge);   // Theo's things: a floor now
+                    break;
                 case HouseLook.EscSkyBoards:
-                case HouseLook.EscAtticBoards: b.Box(mn, mx, HouseMaterials.Planks()); break;
-                case HouseLook.EscLastHall: Top(b, p, Boards, Plaster); break;
+                case HouseLook.EscAtticBoards: b.Box(mn, mx, Planks); break;
+                case HouseLook.EscLastHall: Top(b, p, pal.oldFloor, pal.edge); break;
                 case HouseLook.EscRain: b.Box(mn, mx, HouseMaterials.Paving()); break;
-                default: b.Box(mn, mx, Wallpaper); break;
+                default: b.Box(mn, mx, pal.wall); break;
             }
         }
 
@@ -108,7 +139,7 @@ namespace JamKit.DreamEscape.EditorTools
 
         static void Under(MeshBuilder b, LabPiece p, Material under)
         {
-            var dark = HouseMaterials.Planks();
+            var dark = Planks;
             b.Box(U(p.Min), U(p.Max), new[] { dark, dark, under, dark, dark, dark });
         }
 
@@ -119,57 +150,181 @@ namespace JamKit.DreamEscape.EditorTools
             b.Obb(U(o.c), U(o.u0) * o.h.X, U(o.u1) * o.h.Y, U(o.u2) * o.h.Z, new[] { edge, edge, edge, edge, under, top });
         }
 
-        static void StepsOnRamp(MeshBuilder b, LabPiece p)
+        /// <summary>The table (a slide now): its top in walnut, an apron under its long edges, its legs hanging under it.</summary>
+        static void Table(MeshBuilder b, LabPiece p)
         {
-            // The staircase flattening into a slide: the treads drawn shallow, almost flat, on the slope.
-            Ramp(b, p, HouseMaterials.Fabric("StairRunner", new Color(0.36f, 0.42f, 0.55f)), HouseMaterials.TrimWhite());
+            var wood = HouseMaterials.TrimWalnut();
+            Ramp(b, p, wood, wood);
+            float x0 = p.Min.X, x1 = p.Max.X;
+            foreach (float zf in new[] { 0.06f, 0.94f })
+            {
+                float z = p.Min.Z + p.size.Z * zf;
+                float top = p.rampTopStart + (p.rampTopEnd - p.rampTopStart) * zf - HouseLint.RampThickness;
+                foreach (float x in new[] { x0 + 0.12f, x1 - 0.2f })
+                    b.Box(new Vector3(x, top - 0.72f, z - 0.04f), new Vector3(x + 0.08f, top, z + 0.04f), wood);
+            }
+            // The apron: a board under each long edge, along the slope.
+            for (int s = -1; s <= 1; s += 2)
+            {
+                float x = s < 0 ? x0 + 0.1f : x1 - 0.1f;
+                float y0 = p.rampTopStart - HouseLint.RampThickness, y1 = p.rampTopEnd - HouseLint.RampThickness;
+                b.Obb(new Vector3(x, (y0 + y1) * 0.5f - 0.08f, p.center.Z), new Vector3(0.02f, 0f, 0f), new Vector3(0f, (y1 - y0) * 0.5f, p.size.Z * 0.47f), new Vector3(0f, 0.08f, 0f), new[] { wood, wood, wood, wood, wood, wood });
+            }
+        }
+
+        /// <summary>The staircase flattening into a slide: the boards, the treads drawn shallow (almost flat) on the slope,
+        /// brass stair rods, the runner down its middle.</summary>
+        static void StepsOnRamp(MeshBuilder b, LabPiece p, HouseEscapeLook.Palette pal)
+        {
+            Ramp(b, p, pal.oldFloor, Trim);
             float len = p.size.Z;
             int n = Mathf.RoundToInt(len / 0.7f);
+            var brass = HouseEscapeLook.Brass();
             for (int k = 0; k < n; k++)
             {
                 float z0 = p.Min.Z + len * k / n, t = (k + 0.5f) / n;
                 float top = p.rampTopStart + (p.rampTopEnd - p.rampTopStart) * t;
                 b.Box(new Vector3(p.Min.X, top, z0), new Vector3(p.Max.X, top + 0.012f, z0 + 0.06f), HouseMaterials.TrimWalnut());
+                b.Box(new Vector3(-1.05f, top + 0.012f, z0 + 0.07f), new Vector3(1.05f, top + 0.026f, z0 + 0.09f), brass);
             }
+            var o = HouseLint.Of(p, false);
+            var c = U(o.c) + U(o.u2) * (o.h.Z + 0.004f);
+            var rug = pal.rug;
+            b.Obb(c, new Vector3(1.0f, 0f, 0f), U(o.u1) * o.h.Y, U(o.u2) * 0.004f, new[] { rug, rug, rug, rug, rug, rug });
         }
 
-        /// <summary>A room's side wall: only its inner face shows (what the room's turn makes it), with the old room's things
-        /// on it.</summary>
-        static void SideWall(MeshBuilder b, LabPiece p, EscapeRoom room)
+        /// <summary>A room's side wall: only its inner face shows (what the room's turn makes it).</summary>
+        static void SideWall(MeshBuilder b, LabPiece p, EscapeRoom room, HouseEscapeLook.Palette pal)
         {
             bool left = p.center.X < 0f;
             Material inner;
-            if (room.roll == 0f) inner = Wallpaper;
-            else if (room.roll == 180f) inner = Wallpaper;
-            else inner = (room.roll > 0f) == left ? Plaster : Boards;   // on its side: the old floor one side, the old ceiling the other
-            var back = HouseMaterials.Planks();
-            var faces = new[] { left ? back : inner, left ? inner : back, back, back, back, back };
-            b.Box(U(p.Min), U(p.Max), faces);
-            if (room.roll == 0f && room.halfWidth >= 2f)
-            {
-                // The wainscot band at the right way up.
-                float x = left ? p.Max.X : p.Min.X, d = left ? 0.012f : -0.012f;
-                b.Box(new Vector3(Mathf.Min(x, x + d), room.floorTop, p.Min.Z), new Vector3(Mathf.Max(x, x + d), room.floorTop + 0.9f, p.Max.Z), Wainscot);
-            }
+            if (room.roll == 0f || UpsideDown(room)) inner = pal.wall;
+            else inner = (room.roll > 0f) == left ? pal.oldCeiling : pal.oldFloor;   // on its side: the old floor one side, the old ceiling the other
+            var back = Planks;
+            b.Box(U(p.Min), U(p.Max), new[] { left ? back : inner, left ? inner : back, back, back, back, back });
         }
 
-        static void CorridorWall(MeshBuilder b, LabPiece p, EscapeRoom room)
+        /// <summary>A wall across the route with a doorway: each face in the paper of the room it faces; the doorway cased both
+        /// sides.</summary>
+        static void EndWall(HouseEscape e, MeshBuilder b, LabPiece p)
         {
-            bool runs = p.runnable;
-            b.Box(U(p.Min), U(p.Max), Wallpaper);
-            if (!runs) return;
-            // The wainscot along the corridor (it slopes with the floor: drawn in short steps).
-            bool left = p.center.X < 0f;
-            float x = left ? p.Max.X : p.Min.X, d = left ? 0.014f : -0.014f;
-            for (float z = p.Min.Z; z < p.Max.Z - 0.01f; z += 2f)
+            int owner = -1;
+            int colon = p.name.IndexOf(':');
+            if (colon > 0)
             {
-                float z1 = Mathf.Min(p.Max.Z, z + 2f);
-                float floor = room.floorTop - (z + 1f - room.s0) * 0.04f;
-                b.Box(new Vector3(Mathf.Min(x, x + d), floor - 0.05f, z), new Vector3(Mathf.Max(x, x + d), floor + 0.95f, z1), Wainscot);
+                string n = p.name.Substring(0, colon);
+                for (int i = 0; i < e.rooms.Count; i++) if (e.rooms[i].name == n) owner = i;
+            }
+            var before = owner >= 0 ? e.rooms[owner] : e.rooms[Mathf.Max(0, e.RoomAt(p.Min.Z - 0.01f))];
+            var after = owner >= 0 ? e.rooms[Mathf.Min(e.rooms.Count - 1, owner + 1)] : e.rooms[Mathf.Max(0, e.RoomAt(p.Max.Z + 0.01f))];
+            var pb = HouseEscapeLook.For(before);
+            var pa = HouseEscapeLook.For(after);
+            Material front = before.open ? Planks : pb.wall, back = after.open ? Planks : pa.wall;
+            b.Box(U(p.Min), U(p.Max), new[] { pb.edge, pb.edge, pb.edge, Planks, front, back });
+            if (!p.name.Contains("over the doorway")) return;
+            // The casing round the doorway (under this piece and up its jambs, both faces).
+            float x0 = p.Min.X, x1 = p.Max.X, y = p.Min.Y, foot = y - 3.6f;
+            foreach (float z in new[] { p.Min.Z - 0.025f, p.Max.Z })
+            {
+                b.Box(new Vector3(x0 - 0.1f, y, z), new Vector3(x1 + 0.1f, y + 0.12f, z + 0.025f), Trim);
+                b.Box(new Vector3(x0 - 0.1f, foot, z), new Vector3(x0, y, z + 0.025f), Trim);
+                b.Box(new Vector3(x1, foot, z), new Vector3(x1 + 0.1f, y, z + 0.025f), Trim);
             }
         }
 
-        static void Collider(LabPiece p, Transform parent, HouseLook look)
+        /// <summary>The hall's doorframes (free-standing walls she kicks between): papered, a dado, door casings along them.</summary>
+        static void Doorframe(MeshBuilder b, LabPiece p, HouseEscapeLook.Palette pal)
+        {
+            Vector3 mn = U(p.Min), mx = U(p.Max);
+            b.Box(mn, mx, new[] { pal.wall, pal.wall, pal.edge, pal.edge, pal.edge, pal.edge });
+            var door = HouseEscapeLook.Clean("HallDoors", new Color(0.9f, 0.88f, 0.82f), 0.5f);
+            float t = mx.y - 6f;   // the floor they stood on
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float x0 = side < 0 ? mn.x - 0.025f : mx.x, x1 = x0 + 0.025f;
+                b.Box(new Vector3(x0, t + 0.88f, mn.z), new Vector3(x1, t + 0.94f, mx.z), pal.rail);
+                for (float z = mn.z + 1.2f; z < mx.z - 1.4f; z += 4f)
+                {
+                    float d0 = side < 0 ? x0 + 0.01f : x0, d1 = side < 0 ? x1 : x1 - 0.01f;
+                    b.Box(new Vector3(d0, t, z), new Vector3(d1, t + 2.1f, z + 0.95f), door);
+                    b.Box(new Vector3(x0, t, z - 0.08f), new Vector3(x1, t + 2.18f, z), Trim);
+                    b.Box(new Vector3(x0, t, z + 0.95f), new Vector3(x1, t + 2.18f, z + 1.03f), Trim);
+                    b.Box(new Vector3(x0, t + 2.1f, z), new Vector3(x1, t + 2.18f, z + 0.95f), Trim);
+                }
+            }
+        }
+
+        /// <summary>The same door, half open, hanging across the corridor (slide under it): a panelled leaf with a brass knob.</summary>
+        static void DoorBar(MeshBuilder b, LabPiece p)
+        {
+            Vector3 mn = U(p.Min), mx = U(p.Max);
+            var paint = HouseEscapeLook.Clean("CorridorDoors", new Color(0.9f, 0.88f, 0.82f), 0.5f);
+            b.Box(mn, mx, paint);
+            float w = mx.x - mn.x, h = mx.y - mn.y;
+            foreach (float z in new[] { mn.z - 0.012f, mx.z })
+                for (int i = 0; i < 2; i++)
+                    for (int j = 0; j < 2; j++)
+                    {
+                        float x0 = mn.x + 0.15f + i * (w * 0.5f), y0 = mn.y + 0.15f + j * (h * 0.5f);
+                        b.Box(new Vector3(x0, y0, z), new Vector3(x0 + w * 0.5f - 0.3f, y0 + h * 0.5f - 0.3f, z + 0.012f), Trim);
+                    }
+            b.Box(new Vector3(mn.x + w * 0.85f, mn.y + h * 0.3f, mn.z - 0.06f), new Vector3(mn.x + w * 0.85f + 0.06f, mn.y + h * 0.3f + 0.06f, mx.z + 0.06f), HouseEscapeLook.Brass());
+        }
+
+        /// <summary>The things she slides under: the sideboard hanging off the dining room's wall (its doors and handles),
+        /// Theo's bed (slats, mattress, the duvet hanging over, its posts up to the floor that's now the ceiling), the
+        /// kitchen's fridge on its side (enamel, the door's seam, chrome handles, the calendar).</summary>
+        static void FurnitureBar(MeshBuilder b, LabPiece p, EscapeRoom room)
+        {
+            Vector3 mn = U(p.Min), mx = U(p.Max);
+            float h = mx.y - mn.y;
+            if (p.name.Contains("bed"))
+            {
+                var frame = HouseMaterials.TrimWalnut();
+                var sheet = HouseEscapeLook.Clean("Sheets", new Color(0.92f, 0.92f, 0.88f), 0.15f);
+                var duvet = HouseMaterials.Fabric("TheoDuvet", new Color(0.92f, 0.6f, 0.26f));
+                b.Box(mn, new Vector3(mx.x, mn.y + 0.3f, mx.z), frame);
+                b.Box(new Vector3(mn.x, mn.y + 0.3f, mn.z + 0.05f), new Vector3(mx.x, mn.y + 0.75f, mx.z - 0.05f), sheet);
+                b.Box(new Vector3(mn.x, mn.y + 0.75f, mn.z - 0.04f), new Vector3(mx.x, mx.y, mx.z + 0.04f), duvet);
+                for (float x = mn.x + 0.3f; x < mx.x - 0.2f; x += 0.45f)
+                    b.Box(new Vector3(x, mn.y - 0.03f, mn.z + 0.1f), new Vector3(x + 0.12f, mn.y, mx.z - 0.1f), frame);
+                foreach (float x in new[] { mn.x + 0.05f, mx.x - 0.17f })
+                    foreach (float z in new[] { mn.z + 0.02f, mx.z - 0.14f })
+                        b.Box(new Vector3(x, mx.y, z), new Vector3(x + 0.12f, room.ceilingY, z + 0.12f), frame);
+                return;
+            }
+            if (p.name.Contains("fridge"))
+            {
+                var enamel = HouseEscapeLook.Enamel("Fridge", new Color(0.93f, 0.92f, 0.86f));
+                var chrome = HouseEscapeLook.Chrome();
+                var seam = HouseEscapeLook.Clean("Seam", new Color(0.2f, 0.2f, 0.22f), 0.2f);
+                b.Box(mn, mx, enamel);
+                float ys = mn.y + h * 0.36f;
+                b.Box(new Vector3(mn.x + 0.05f, ys - 0.012f, mn.z - 0.006f), new Vector3(mx.x - 0.05f, ys + 0.012f, mn.z), seam);
+                b.Box(new Vector3(mn.x + 0.4f, ys + 0.15f, mn.z - 0.07f), new Vector3(mx.x - 0.4f, ys + 0.21f, mn.z - 0.02f), chrome);
+                b.Box(new Vector3(mn.x + 0.4f, ys - 0.21f, mn.z - 0.07f), new Vector3(mx.x - 0.4f, ys - 0.15f, mn.z - 0.02f), chrome);
+                b.Box(new Vector3(mn.x + 0.2f, mn.y, mn.z - 0.01f), new Vector3(mx.x - 0.2f, mn.y + 0.12f, mn.z), HouseEscapeLook.Clean("Grille", new Color(0.3f, 0.3f, 0.32f), 0.4f));
+                var paper = HouseEscapeLook.Clean("CalendarPaper", new Color(0.97f, 0.95f, 0.88f), 0.1f);
+                b.Box(new Vector3(-0.3f, ys + 0.35f, mn.z - 0.008f), new Vector3(0.3f, ys + 1.15f, mn.z - 0.002f), paper);
+                b.Box(new Vector3(-0.3f, ys + 1.05f, mn.z - 0.01f), new Vector3(0.3f, ys + 1.15f, mn.z - 0.008f), HouseEscapeLook.Clean("CalendarRed", new Color(0.7f, 0.18f, 0.16f), 0.2f));
+                return;
+            }
+            // The sideboard: a walnut carcass, a moulded top and plinth, a row of panelled doors and their brass handles.
+            var wood = HouseMaterials.TrimWalnut();
+            var panel = HouseEscapeLook.Clean("SideboardPanels", new Color(0.36f, 0.42f, 0.34f), 0.5f);
+            var brass = HouseEscapeLook.Brass();
+            b.Box(mn, mx, wood);
+            b.Box(new Vector3(mn.x, mx.y - 0.08f, mn.z - 0.05f), new Vector3(mx.x, mx.y, mx.z + 0.05f), wood);
+            b.Box(new Vector3(mn.x, mn.y, mn.z - 0.05f), new Vector3(mx.x, mn.y + 0.08f, mx.z + 0.05f), wood);
+            foreach (float z in new[] { mn.z - 0.012f, mx.z })
+                for (float x = mn.x + 0.2f; x < mx.x - 1.2f; x += 1.5f)
+                {
+                    b.Box(new Vector3(x, mn.y + 0.2f, z), new Vector3(x + 1.3f, mx.y - 0.25f, z + 0.012f), panel);
+                    b.Box(new Vector3(x + 1.1f, mn.y + h * 0.45f, z - 0.03f), new Vector3(x + 1.16f, mn.y + h * 0.45f + 0.16f, z + 0.042f), brass);
+                }
+        }
+
+        static void Collider(LabPiece p, Transform parent)
         {
             var go = new GameObject("Collider: " + p.name);
             go.transform.SetParent(parent, false);
@@ -200,22 +355,8 @@ namespace JamKit.DreamEscape.EditorTools
             col.center = new Vector3(p.size.X * 0.5f, p.size.Y * 0.5f, -p.size.Z * 0.5f);
             col.size = U(p.size);
             frame.gameObject.AddComponent<MovementSurface>().runnable = false;
-            // The leaf on its hinge (the left jamb): red, panelled, light round its edges.
-            leaf = new GameObject("Leaf (hinge)").transform;
-            leaf.SetParent(frame, false);
-            var b = new MeshBuilder();
-            var red = HouseMaterials.Paint("FrontDoorRed", new Color(0.66f, 0.16f, 0.14f), 1.4f);
-            b.Box(new Vector3(0f, 0f, -0.12f), new Vector3(p.size.X, p.size.Y, 0f), red);
-            for (int k = 0; k < 2; k++)
-                for (int j = 0; j < 2; j++)
-                {
-                    float x0 = 0.25f + k * (p.size.X * 0.5f - 0.1f), y0 = 0.3f + j * (p.size.Y * 0.5f - 0.1f);
-                    b.Box(new Vector3(x0, y0, -0.135f), new Vector3(x0 + p.size.X * 0.5f - 0.4f, y0 + p.size.Y * 0.5f - 0.45f, -0.12f), HouseMaterials.Paint("FrontDoorPanel", new Color(0.58f, 0.13f, 0.12f), 1.4f));
-                }
-            b.Build("The leaf", leaf);
-            // The light round its edges (the front door's daylight): thin glowing strips.
-            var glow = DreamEscapeBuilder.Glow("CorridorDoorLight", new Color(1f, 0.9f, 0.7f), 1.4f, 0f, 0.2f);
-            DreamEscapeBuilder.Box("Light under the door", frame, frame.TransformPoint(new Vector3(p.size.X * 0.5f, 0.015f, 0.02f)), new Vector3(p.size.X, 0.02f, 0.02f), glow);
+            // The lure: a warm lit front door; the game swings its leaves (EscapeDoubleDoor) when she bursts through.
+            leaf = HouseEscapeDressing.FrontDoor(p, frame, out _);
             return col;
         }
 
@@ -233,143 +374,19 @@ namespace JamKit.DreamEscape.EditorTools
             var fold = new GameObject("The house folding shut (pursuer)").transform;
             fold.SetParent(root, false);
             var b = new MeshBuilder();
-            b.Box(new Vector3(-6f, -6f, -0.4f), new Vector3(6f, 14f, 0f), new[] { Wallpaper, Wallpaper, Plaster, Plaster, Wallpaper, Wallpaper });
-            b.Box(new Vector3(-1.3f, 0f, 0f), new Vector3(1.3f, 3.4f, 0.12f), HouseMaterials.TrimWhite());
+            var paper = HouseEscapeLook.Oxblood();
+            var plaster = HouseMaterials.Ceiling();
+            b.Box(new Vector3(-6f, -6f, -0.4f), new Vector3(6f, 14f, 0f), new[] { paper, paper, plaster, plaster, paper, paper });
+            b.Box(new Vector3(-1.3f, 0f, 0f), new Vector3(1.3f, 3.4f, 0.12f), Trim);
             for (int k = 0; k < 6; k++)
             {
                 float y = -4f + k * 3f;
                 b.Box(new Vector3(-6.2f, y, -0.6f), new Vector3(6.2f, y + 0.2f, 0.1f), HouseMaterials.TrimWalnut());
             }
             b.Build("Folding wall", fold);
+            HouseEscapeDressing.Unstatic(fold.gameObject);   // it moves: never static-batched
             fold.gameObject.SetActive(false);
             return fold;
-        }
-
-        // ---------- Dressing and lamps ----------
-
-        /// <summary>Each room's things: picture frames on its walls the way they hang now (on their sides, upside down,
-        /// lying on the floor that was a wall), the corridor's bays the same as each other.</summary>
-        static void Dress(HouseEscape e, EscapeRoom room, MeshBuilder b, Transform group)
-        {
-            var frame = HouseMaterials.TrimWalnut();
-            float hw = room.halfWidth;
-            if (room.theme == "corridor")
-            {
-                var c = e.corridor;
-                // From the door back, a bay at a time: on each side a door and a photo, a wall lamp between.
-                for (float z = c.doorS - c.bay; z > c.startS + 2f; z -= c.bay)
-                {
-                    float floor = room.floorTop - (z - c.startS) * c.slope;
-                    for (int side = -1; side <= 1; side += 2)
-                    {
-                        float x = side * hw;
-                        float d = -side * 0.03f;
-                        // A closed door (a panel and its casing) at the same place in every bay.
-                        b.Box(new Vector3(Mathf.Min(x, x + d), floor, z + 4f), new Vector3(Mathf.Max(x, x + d), floor + 2.1f, z + 5f), HouseMaterials.Paint("CorridorDoors", new Color(0.92f, 0.9f, 0.84f)));
-                        // A photo: the same photo in every bay.
-                        b.Box(new Vector3(Mathf.Min(x, x + d * 0.6f), floor + 1.4f, z + 11f), new Vector3(Mathf.Max(x, x + d * 0.6f), floor + 1.9f, z + 11.6f), frame);
-                        var pic = HouseFurnishing.PictureMaterial("dream_pic_photo_3", DreamArt.Get("dream_pic_photo_3", out _));
-                        var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                        Object.DestroyImmediate(q.GetComponent<Collider>());
-                        q.transform.SetParent(group, false);
-                        q.transform.localPosition = new Vector3(x + d * 0.6f - side * 0.002f, floor + 1.65f, z + 11.3f);
-                        q.transform.localRotation = Quaternion.LookRotation(new Vector3(side, 0f, 0f), Vector3.up);
-                        q.transform.localScale = new Vector3(0.52f, 0.42f, 1f);
-                        q.GetComponent<MeshRenderer>().sharedMaterial = pic;
-                    }
-                }
-                return;
-            }
-            if (room.open) return;
-            // Frames along the walls every 6 m, hung by the room's turn.
-            for (float z = room.s0 + 3f; z < room.s1 - 2f; z += 6f)
-            {
-                for (int side = -1; side <= 1; side += 2)
-                {
-                    float x = side * hw, d = -side * 0.03f;
-                    float y = room.floorTop + (room.roll == 180f ? 4.2f : 1.5f);
-                    float w = room.roll == 0f || room.roll == 180f ? 0.6f : 0.45f, h = room.roll == 0f || room.roll == 180f ? 0.45f : 0.6f;
-                    b.Box(new Vector3(Mathf.Min(x, x + d), y, z), new Vector3(Mathf.Max(x, x + d), y + h, z + w), frame);
-                }
-            }
-        }
-
-        static void RoomLamps(HouseEscape e, EscapeRoom room, Transform group)
-        {
-            var c = new Color(room.ambient.X, room.ambient.Y, room.ambient.Z);
-            float end = room.s1 > room.s0 ? room.s1 : room.s0 + 30f;
-            // The corridor's lamps keep its bays' rhythm (one a bay, at the same place in each), so a stretch can't be seen.
-            bool corridor = room.theme == "corridor";
-            float step = corridor ? e.corridor.bay : 12f;
-            float startZ = corridor ? e.corridor.doorS - e.corridor.bay * 0.5f : room.s0 + 5f;
-            if (corridor) while (startZ - step > room.s0 + 2f) startZ -= step;
-            for (float z = startZ; z < end - 2f; z += step)
-            {
-                if (corridor)
-                {
-                    var cl = new GameObject("Lamp (corridor)");
-                    cl.transform.SetParent(group, false);
-                    cl.transform.localPosition = new Vector3(0f, room.floorTop - (z - e.corridor.startS) * e.corridor.slope + 2.6f, z);
-                    var lc = cl.AddComponent<Light>();
-                    lc.type = LightType.Point; lc.range = 9f; lc.intensity = 2.0f; lc.color = new Color(1f, 0.78f, 0.55f); lc.shadows = LightShadows.None;
-                    continue;
-                }
-                var go = new GameObject("Lamp");
-                go.transform.SetParent(group, false);
-                go.transform.localPosition = new Vector3(0f, room.floorTop + (room.open ? 4f : Mathf.Min(3.2f, room.ceilingY - room.floorTop - 0.6f)), z);
-                var l = go.AddComponent<Light>();
-                l.type = LightType.Point;
-                l.range = room.open ? 16f : 11f;
-                l.intensity = room.open ? 1.6f : 2.2f;
-                l.color = Color.Lerp(new Color(1f, 0.76f, 0.5f), c, 0.4f);
-                l.shadows = LightShadows.None;
-            }
-        }
-
-        /// <summary>A night sky for the attic open to the stars: a big inverted sphere on the camera, drawn behind
-        /// everything (the game shows it only there).</summary>
-        public static GameObject NightSky(Camera cam)
-        {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            Object.DestroyImmediate(go.GetComponent<Collider>());
-            go.name = "Night sky (the attic open to the stars)";
-            go.transform.SetParent(cam.transform, false);
-            go.transform.localScale = Vector3.one * 500f;
-            var mesh = Object.Instantiate(go.GetComponent<MeshFilter>().sharedMesh);
-            var tris = mesh.triangles;
-            for (int i = 0; i < tris.Length; i += 3) { int t = tris[i]; tris[i] = tris[i + 1]; tris[i + 1] = t; }
-            mesh.triangles = tris;
-            go.GetComponent<MeshFilter>().sharedMesh = mesh;
-            string dir = DreamEscapeBuilder.Root + "/Generated/House";
-            DreamEscapeBuilder.EnsureFolder(dir);
-            string texPath = dir + "/house_night_sky.png";
-            if (!System.IO.File.Exists(texPath))
-            {
-                const int n = 1024;
-                var t = new Texture2D(n, n / 2, TextureFormat.RGB24, false);
-                var r = new System.Random(11);
-                for (int y = 0; y < n / 2; y++)
-                    for (int x = 0; x < n; x++)
-                    {
-                        float k = y / (float)(n / 2);
-                        var c = Color.Lerp(new Color(0.12f, 0.1f, 0.24f), new Color(0.03f, 0.04f, 0.12f), k);
-                        if (r.NextDouble() < 0.0025) c = Color.Lerp(c, new Color(1f, 0.95f, 0.85f), 0.6f + (float)r.NextDouble() * 0.4f);
-                        t.SetPixel(x, y, c);
-                    }
-                t.Apply();
-                System.IO.File.WriteAllBytes(texPath, t.EncodeToPNG());
-                Object.DestroyImmediate(t);
-                AssetDatabase.ImportAsset(texPath);
-            }
-            var mat = DreamEscapeBuilder.Mat("House_NightSky", "Universal Render Pipeline/Unlit");
-            mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
-            mat.renderQueue = 1000;
-            var mr = go.GetComponent<MeshRenderer>();
-            mr.sharedMaterial = mat;
-            mr.shadowCastingMode = ShadowCastingMode.Off;
-            mr.receiveShadows = false;
-            go.SetActive(false);
-            return go;
         }
     }
 }

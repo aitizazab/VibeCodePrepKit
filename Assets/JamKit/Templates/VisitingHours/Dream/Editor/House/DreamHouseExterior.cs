@@ -31,7 +31,7 @@ namespace JamKit.DreamEscape.EditorTools
         /// <summary>The outside details over the structure.</summary>
         public static void Details(DreamHouse h, Transform root)
         {
-            var b = new MeshBuilder();
+            var b = new MeshBuilder { Kind = DrawnKind.Mounted, Owner = "Outside details" };
             var siding = HouseMaterials.Siding();
             var planks = HouseMaterials.Planks();
             var trim = HouseMaterials.TrimWhite();
@@ -74,9 +74,13 @@ namespace JamKit.DreamEscape.EditorTools
             b.Tri(t1, t0, apex, slate); b.Tri(t2, t1, apex, slate); b.Tri(t3, t2, apex, slate); b.Tri(t0, t3, apex, slate);
             var brass = HouseMaterials.Paint("Brass", new Color(0.78f, 0.6f, 0.3f), 1.7f);
             b.Box(apex + new Vector3(-0.06f, -0.05f, -0.06f), apex + new Vector3(0.06f, 0.7f, 0.06f), brass);
-            // The porch lantern by the door, the house number.
-            b.Box(new Vector3(0.95f, 1.95f, -0.37f), new Vector3(1.25f, 2.35f, -0.15f), HouseMaterials.Paint("Lantern", new Color(0.12f, 0.12f, 0.13f), 1.5f));
-            b.Box(new Vector3(0.99f, 2.0f, -0.35f), new Vector3(1.21f, 2.3f, -0.17f), DreamEscapeBuilder.Glow("PorchLantern", new Color(1f, 0.85f, 0.6f), 1.2f, 0f, 0.05f));
+            // The porch light by the door (a real wall lantern: it was a black cube, house-1.md), the house number.
+            var lantern = HouseMaterials.Model("porch.lantern", out string lanternId);
+            if (lantern != null)
+            {
+                var go = HouseFurnishing.Fit(lantern, lanternId, root, new Vector3(1.03f, 1.9f, -0.42f), new Vector3(1.21f, 2.3f, -0.151f), 180f, "Porch lantern", true);
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
             b.Box(new Vector3(-1.05f, 1.95f, -0.17f), new Vector3(-0.8f, 2.12f, -0.15f), brass);
             b.Build("Outside details", root);
             FrontDoor(root);
@@ -115,60 +119,9 @@ namespace JamKit.DreamEscape.EditorTools
             return go;
         }
 
-        /// <summary>Standing alone: Chapel Row above the back fence (a stand-in terrace at World's EscapeExit level, a
-        /// retaining wall, the lawn strip between), the dream's door on it that she bursts out of, lamp posts, trees in the
-        /// front garden.</summary>
-        public static Transform Standalone(DreamHouse h, Transform root)
-        {
-            var b = new MeshBuilder();
-            float ty = h.exitDoor.Y;
-            var paving = HouseMaterials.Paving();
-            var brick = HouseMaterials.Look("Brick_Dark");
-            void Solid(string name, Vector3 mn, Vector3 mx, Material[] faces)
-            {
-                b.Box(mn, mx, faces);
-                var go = new GameObject("Collider: " + name);
-                go.transform.SetParent(root, false);
-                go.transform.localPosition = (mn + mx) * 0.5f;
-                go.AddComponent<BoxCollider>().size = mx - mn;
-                go.AddComponent<MovementSurface>().runnable = mx.y - mn.y > 2f;
-            }
-            var lawn = HouseMaterials.Lawn();
-            Solid("The Chapel Steps' foot", new Vector3(DreamHouse.YardX0, -1f, DreamHouse.YardZ1 + 0.1f), new Vector3(DreamHouse.YardX1, 0f, 24.1f), new[] { lawn, lawn, null, lawn, lawn, lawn });
-            Solid("Chapel Row's wall", new Vector3(-22f, -1f, 24.1f), new Vector3(26f, ty, 24.6f), new[] { brick, brick, null, paving, brick, brick });
-            Solid("Chapel Row (a stand-in)", new Vector3(-22f, ty - 1f, 24.6f), new Vector3(26f, ty, 72f), new[] { brick, brick, null, paving, brick, brick });
-            Solid("Chapel Row's railing", new Vector3(-22f, ty, 24.6f), new Vector3(26f, ty + 1.0f, 24.7f), new[] { brick, brick, brick, brick, brick, brick });
-            // The dream's door on Chapel Row: a frame standing on its own, open, the way she comes out.
-            var ex = U(h.exitDoor);
-            var frame = HouseMaterials.TrimWhite();
-            Solid("The dream's door (left post)", new Vector3(ex.x - 0.75f, ty, ex.z - 0.15f), new Vector3(ex.x - 0.6f, ty + 2.3f, ex.z + 0.15f), new[] { frame, frame, frame, frame, frame, frame });
-            Solid("The dream's door (right post)", new Vector3(ex.x + 0.6f, ty, ex.z - 0.15f), new Vector3(ex.x + 0.75f, ty + 2.3f, ex.z + 0.15f), new[] { frame, frame, frame, frame, frame, frame });
-            Solid("The dream's door (head)", new Vector3(ex.x - 0.75f, ty + 2.3f, ex.z - 0.15f), new Vector3(ex.x + 0.75f, ty + 2.45f, ex.z + 0.15f), new[] { frame, frame, frame, frame, frame, frame });
-            var red = HouseMaterials.Paint("FrontDoorRed", new Color(0.66f, 0.16f, 0.14f), 1.4f);
-            Solid("The dream's door (leaf, open)", new Vector3(ex.x + 0.75f, ty, ex.z - 1.2f), new Vector3(ex.x + 0.8f, ty + 2.25f, ex.z - 0.15f), new[] { red, red, red, red, red, red });
-            b.Build("Chapel Row (stand-in)", root);
-            // Lamp posts along the path in the rain.
-            foreach (float dz in new[] { 12f, 26f })
-                for (int side = -1; side <= 1; side += 2)
-                {
-                    var p = new Vector3(ex.x + side * 2.6f, ty, ex.z + dz);
-                    var lb = new MeshBuilder();
-                    lb.Box(p + new Vector3(-0.06f, 0f, -0.06f), p + new Vector3(0.06f, 3.2f, 0.06f), HouseMaterials.Paint("LampPost", new Color(0.15f, 0.16f, 0.18f), 1.4f));
-                    lb.Box(p + new Vector3(-0.16f, 3.2f, -0.16f), p + new Vector3(0.16f, 3.6f, 0.16f), DreamEscapeBuilder.Glow("StreetLamp", new Color(1f, 0.86f, 0.62f), 1.2f, 0f, 0.05f));
-                    var go = lb.Build("Lamp post", root);
-                    var c = go.AddComponent<BoxCollider>(); c.center = p + new Vector3(0f, 1.6f, 0f); c.size = new Vector3(0.12f, 3.2f, 0.12f);
-                    var l = new GameObject("Light").AddComponent<Light>();
-                    l.transform.SetParent(go.transform, false);
-                    l.transform.localPosition = p + new Vector3(0f, 3.3f, 0f);
-                    l.type = LightType.Point; l.range = 9f; l.intensity = 1.6f; l.color = new Color(1f, 0.82f, 0.58f);
-                }
-            // Trees in the front garden's corners.
-            foreach (var (x, z, seed) in new[] { (-11f, -3.4f, 2), (15.5f, -3.4f, 5) })
-            {
-                var t = VhLookTrees.Place(root, new Vector3(x, DreamHouse.Yard, z), seed, 8.5f);
-                if (t != null) t.name = "Front garden tree";
-            }
-            return root;
-        }
+        /// <summary>Standing alone: the hill round the house as a stand-in for World's (the ground all round, the terraces,
+        /// the far ring) and Chapel Row above the back fence, a real street, with the dream's door she bursts out of
+        /// (<see cref="HouseEscapeChapelRow"/>).</summary>
+        public static Transform Standalone(DreamHouse h, Transform root) => HouseEscapeChapelRow.Build(h, root);
     }
 }

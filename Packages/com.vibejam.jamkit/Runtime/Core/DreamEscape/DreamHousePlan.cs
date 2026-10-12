@@ -126,9 +126,9 @@ namespace JamKit.DreamEscape
             Stairs("The main stairs", MainStair, Ground, Upper, false, 1);
 
             // --- The rooms (inner faces).
-            AddRoom("living", "Living room", Ground, GroundCeil, "oxblood", 0.95f, new PlanRect(X0 + e, -1.7f - i, Z0 + e, 6.0f - i));
+            AddRoom("living", "Living room", Ground, GroundCeil, "living", 0.95f, new PlanRect(X0 + e, -1.7f - i, Z0 + e, 6.0f - i));
             AddRoom("hall", "Front hall", Ground, GroundCeil, "hall", 0.6f, new PlanRect(-1.7f + i, 1.7f - i, Z0 + e, 6.0f - i));
-            AddRoom("dining", "Dining room", Ground, GroundCeil, "oxblood", 0.95f, new PlanRect(1.7f + i, X1 - e, Z0 + e, 5.4f - i));
+            AddRoom("dining", "Dining room", Ground, GroundCeil, "dining", 0.95f, new PlanRect(1.7f + i, X1 - e, Z0 + e, 5.4f - i));
             AddRoom("kitchen", "Kitchen", Ground, GroundCeil, "kitchen", 0.9f, new PlanRect(1.7f + i, X1 - e, 5.4f + i, 9.4f - i), new PlanRect(1.7f + i, 6.0f - i, 9.4f - i, Z1 - e));
             AddRoom("pantry", "Pantry", Ground, GroundCeil, "pantry", 0.2f, new PlanRect(6.0f + i, X1 - e, 9.4f + i, Z1 - e));
             AddRoom("den", "Den", Ground, GroundCeil, "study", 0.6f, new PlanRect(X0 + e, -1.7f - i, 6.0f + i, Z1 - e));
@@ -214,7 +214,7 @@ namespace JamKit.DreamEscape
             AddRoom("guest", "The guest room (made up for her)", Upper, UpperCeil, "guest", 0.7f,
                 new PlanRect(X0 + e, -1.7f - i, 7.6f + i, Z1 - e), new PlanRect(X0 + e, -4.2f - i, 5.0f + i, 7.6f + i));
             AddRoom("upperhall", "Upper hall", Upper, UpperCeil, "hall", 0.55f, new PlanRect(-1.7f + i, 1.7f - i, Z0 + e, Z1 - e));
-            AddRoom("parents", "Elias and Lena's room", Upper, UpperCeil, "oxblood", 0.85f, new PlanRect(1.7f + i, X1 - e, Z0 + e, 6.6f - i));
+            AddRoom("parents", "Elias and Lena's room", Upper, UpperCeil, "parents", 0.85f, new PlanRect(1.7f + i, X1 - e, Z0 + e, 6.6f - i));
             AddRoom("closet", "The walk-in closet", Upper, UpperCeil, "closet", 0.15f, new PlanRect(1.7f + i, 4.6f - i, 6.6f + i, 9.75f - i));
             AddRoom("ensuite", "The en-suite", Upper, UpperCeil, "bath", 0.7f, new PlanRect(4.6f + i, X1 - e, 6.6f + i, 9.75f - i));
             AddRoom("atticstairs", "The attic stairs", Upper, UpperCeil, "attic", 0.3f, new PlanRect(1.7f + i, X1 - e, 9.75f + i, Z1 - e));
@@ -274,7 +274,9 @@ namespace JamKit.DreamEscape
             WallX("Tower wall (south)", TowerZ0, X0 - e, TowerX1 + e, Attic, tt, ExtT);
             // The round window looks north, up the hill (Lena watches from it as Nadia comes out on Chapel Row).
             WallX("Tower wall (north, the round window)", TowerZ1, X0 - e, TowerX1 + e, Attic, tt, ExtT,
-                Opening.Window(-6.05f, -4.45f, 1.0f, 2.6f, "The round window"));
+                // Above the roof outside (it looked onto the roof's underside: house-1.md), a 1.6 m circle in the square
+                // opening; Lena's dais under it puts her head and shoulders in it, seen from Chapel Row.
+                Opening.Window(-6.05f, -4.45f, 2.35f, 3.95f, "The round window"));
             WallZ("Tower wall (west)", X0, TowerZ0 + e, TowerZ1 - e, Attic, tt, ExtT);
             WallZ("Tower wall (east, the door)", TowerX1, TowerZ0 + e, TowerZ1 - e, Attic, tt, ExtT,
                 Opening.Door(4.9f, 5.9f, "Observatory door"));

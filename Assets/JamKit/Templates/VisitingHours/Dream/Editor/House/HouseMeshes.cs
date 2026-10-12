@@ -101,7 +101,10 @@ namespace JamKit.DreamEscape.EditorTools
 
         /// <summary>When set, every box and shape drawn is recorded here (in the builder's frame) with
         /// <see cref="Owner"/>, <see cref="OwnerPart"/> and <see cref="Kind"/>.</summary>
-        public List<HouseDrawn> Record;
+        public List<HouseDrawn> Record = DefaultRecord;
+
+        /// <summary>New builders record into this while it's set (the house's build sets it for the mesh lint).</summary>
+        public static List<HouseDrawn> DefaultRecord;
         public string Owner = "";
         public int OwnerPart = -1;
         public DrawnKind Kind = DrawnKind.Owned;

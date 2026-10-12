@@ -206,7 +206,9 @@ namespace JamKit.DreamEscape
                     _target = target.present ? target.feet : _target;
                     if (Vector3.Distance(_pos, _target) <= _def.catchRange + 0.4f && Math.Abs(_pos.Y - _target.Y) < 1.2f) { Found(-1); return; }
                     _replan -= dt;
-                    if (_replan <= 0f || _act != Act.Walk) { _replan = 0.6f; WalkTo(_target, _def.investigateSpeed); }
+                    // Not while he's on a flight of stairs: from halfway up, the nearest point is the one he just left,
+                    // and replanning walked him back down for ever (the round never ended).
+                    if ((_replan <= 0f || _act != Act.Walk) && !(_act == Act.Walk && OnStairs)) { _replan = 0.6f; WalkTo(_target, _def.investigateSpeed); }
                     Step(dt);
                     if (_callCooldown <= 0f) { _callCooldown = 6f; Say(TheoSay.Coming); }
                     return;
@@ -222,6 +224,9 @@ namespace JamKit.DreamEscape
         }
 
         float _replan;
+
+        /// <summary>He's walking a link between floors (a flight, the ladder).</summary>
+        bool OnStairs => _pathIndex > 0 && _pathIndex < _path.Count && Math.Abs(_graph[_path[_pathIndex]].Y - _graph[_path[_pathIndex - 1]].Y) > 0.3f;
 
         void CountTick(float dt, in StealthTarget target)
         {

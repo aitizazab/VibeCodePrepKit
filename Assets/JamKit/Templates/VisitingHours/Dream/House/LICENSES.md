@@ -77,3 +77,18 @@ Every asset in this folder is **CC0 1.0 Universal (public domain)**. No attribut
 Note: book_encyclopedia_set_01: five 1k PNG maps came back empty from the Poly Haven CDN; they were rebuilt from the same asset's 1k JPG maps (cover roughness from the cover ARM map's green channel).
 
 The roughness and metalness maps (EXR) were removed after download (2026-10-12): the house uses only the colour, GL normal and AO maps. house-assets.json still lists them.
+
+## House round 2 (2026-10-13)
+
+- Electric Stove (`electric_stove`), Poly Haven, CC0, by Kuutti Siitonen: https://polyhaven.com/a/electric_stove
+- Wicker Basket 01 (`wicker_basket_01`), Poly Haven, CC0, by Kuutti Siitonen: https://polyhaven.com/a/wicker_basket_01
+- Industrial Wall Sconce (`industrial_wall_sconce`), Poly Haven, CC0, by Ulan Cabanilla: https://polyhaven.com/a/industrial_wall_sconce
+- Desk Lamp Arm 01 (`desk_lamp_arm_01`), Poly Haven, CC0, by Kuutti Siitonen, Yann Kervran: https://polyhaven.com/a/desk_lamp_arm_01
+- Decorative Book Set 01 (`decorative_book_set_01`), Poly Haven, CC0, by James Ray Cock: https://polyhaven.com/a/decorative_book_set_01
+- Pull Chain Light Socket (`pull_chain_light_socket`), Poly Haven, CC0, by Josh Dean: https://polyhaven.com/a/pull_chain_light_socket
+- Hanging Industrial Lamp (`hanging_industrial_lamp`), Poly Haven, CC0, by Kuutti Siitonen: https://polyhaven.com/a/hanging_industrial_lamp
+- Throw Pillows 01 (`throw_pillows_01`), Poly Haven, CC0, by Serhii Khromov: https://polyhaven.com/a/throw_pillows_01
+- Potted Plant 02 (`potted_plant_02`), Poly Haven, CC0, by Rico Cilliers: https://polyhaven.com/a/potted_plant_02
+- Wall Clock (`wall_clock`), Poly Haven, CC0, by PierreB3D: https://polyhaven.com/a/wall_clock
+- Watering Can Metal 01 (`watering_can_metal_01`), Poly Haven, CC0, by Charles Nderitu: https://polyhaven.com/a/watering_can_metal_01
+- Garden Hose Wall Mounted 01 (`garden_hose_wall_mounted_01`), Poly Haven, CC0, by Kuutti Siitonen: https://polyhaven.com/a/garden_hose_wall_mounted_01

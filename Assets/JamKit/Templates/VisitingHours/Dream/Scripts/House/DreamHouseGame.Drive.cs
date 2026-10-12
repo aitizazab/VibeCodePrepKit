@@ -220,6 +220,17 @@ namespace JamKit.DreamEscape
             StartCoroutine(Record());
         }
 
+        /// <summary>The built player's recorded run (<see cref="HouseRecordFlag"/>: <c>-house-record</c>): plays the night
+        /// on the autopilot into <paramref name="dir"/> and quits.</summary>
+        public void StartRecording(string dir, string run)
+        {
+            if (_recording || string.IsNullOrEmpty(dir)) return;
+            _recDir = dir;
+            _recRun = string.IsNullOrEmpty(run) ? "all" : run;
+            Directory.CreateDirectory(_recDir);
+            StartCoroutine(Record());
+        }
+
         void Note(string what)
         {
             string line = $"{Time.time,7:0.0}s  {what}";

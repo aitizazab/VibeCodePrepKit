@@ -143,7 +143,17 @@ namespace JamKit.DreamEscape.EditorTools
             DreamEscapeBuilder.EnsureFolder(MatDir);
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (m == null) { m = new Material(Shader.Find(LitShader)) { name = "VHH_Wallpaper_Oxblood" }; AssetDatabase.CreateAsset(m, path); }
-            var tex = DreamArt.Get("dream_wall_oxblood-stripe", out _);
+            // A Repeat copy beside the escape's papers: DreamArt imports its art Clamped, so one 0.5 m tile showed and its
+            // edge smeared (the flat oxblood walls, the escape's bright seam).
+            const string file = "escape_wallpaper_oxblood.png";
+            string dst = HouseEscapeLook.TexDir + "/" + file;
+            if (AssetDatabase.LoadAssetAtPath<Texture2D>(dst) == null)
+            {
+                var src = DreamArt.Get("dream_wall_oxblood-stripe", out bool placeholder);
+                string srcPath = src != null ? AssetDatabase.GetAssetPath(src) : null;
+                if (!string.IsNullOrEmpty(srcPath) && !placeholder) { DreamEscapeBuilder.EnsureFolder(HouseEscapeLook.TexDir); AssetDatabase.CopyAsset(srcPath, dst); }
+            }
+            var tex = HouseEscapeLook.Tex(file) ?? DreamArt.Get("dream_wall_oxblood-stripe", out _);
             m.SetTexture("_BaseMap", tex);
             m.SetTextureScale("_BaseMap", new Vector2(1f / 0.5f, 1f / 0.5f));
             m.SetColor("_BaseColor", Color.white);
@@ -173,8 +183,23 @@ namespace JamKit.DreamEscape.EditorTools
             var oak = Surface("wood_floor", null, null, 0.42f);
             var walnutPanel = Surface("wooden_panels", "Walnut", new Color(0.62f, 0.42f, 0.3f), 0.4f);
             var plaster = Look("Plaster_Interior", "HouseCream", Cream);
+            var whitePanel = Surface("wooden_panels", "PaintedWhite", new Color(0.93f, 0.92f, 0.88f), 0.45f);
             switch (style)
             {
+                // Each room its own colour (house-1.md: oxblood in nearly every room blurred them together). The creator's
+                // oxblood stripe stays in the halls, where the house starts.
+                case "living":
+                    f = new Finish { floor = oak, wall = HouseEscapeLook.Wallpaper("HouseSage", "escape_wallpaper_sage.png", 0.6f), wainscot = walnutPanel, wainscotHeight = 0.9f, ceiling = Ceiling(), skirting = TrimWalnut(), rail = TrimWalnut(), crown = true };
+                    break;
+                case "dining":
+                    f = new Finish { floor = oak, wall = HouseEscapeLook.Wallpaper("HouseBlue", "escape_wallpaper_blue.png", 0.6f), wainscot = whitePanel, wainscotHeight = 0.95f, ceiling = Ceiling(), skirting = TrimWhite(), rail = TrimWhite(), crown = true };
+                    break;
+                case "study":
+                    f = new Finish { floor = oak, wall = Look("Plaster_Interior", "DenGreen", new Color(0.42f, 0.52f, 0.42f)), wainscot = walnutPanel, wainscotHeight = 0.9f, ceiling = Ceiling(), skirting = TrimWalnut(), rail = TrimWalnut(), crown = true };
+                    break;
+                case "parents":
+                    f = new Finish { floor = oak, wall = Look("Plaster_Interior", "ParentsDove", new Color(0.82f, 0.78f, 0.82f)), wainscot = whitePanel, wainscotHeight = 0.9f, ceiling = Ceiling(), skirting = TrimWhite(), rail = TrimWhite(), crown = true };
+                    break;
                 case "kitchen":
                     f = new Finish { floor = Surface("old_linoleum_flooring_01", null, new Color(1f, 0.96f, 0.9f), 0.35f), wall = Look("Plaster_Interior", "KitchenButter", new Color(0.98f, 0.9f, 0.68f)), wainscot = Surface("Tiles133A", null, null, 0.7f), wainscotHeight = 1.4f, ceiling = Ceiling(), skirting = TrimWhite(), crown = true };
                     break;
@@ -186,11 +211,13 @@ namespace JamKit.DreamEscape.EditorTools
                     f = new Finish { floor = Surface("interior_tiles", null, null, 0.6f), wall = Look("Plaster_Interior", "BathSeafoam", new Color(0.8f, 0.92f, 0.88f)), wainscot = Surface("Tiles133A", null, null, 0.7f), wainscotHeight = 1.5f, ceiling = Ceiling(), skirting = TrimWhite() };
                     break;
                 case "theo":
-                    f = new Finish { floor = Fabric("TheoCarpet", new Color(0.55f, 0.66f, 0.82f)), wall = Wallpaper(), wainscot = walnutPanel, wainscotHeight = 0.9f, ceiling = Ceiling(), skirting = TrimWalnut(), rail = TrimWalnut(), crown = true };
+                    f = new Finish { floor = Fabric("TheoCarpet", new Color(0.55f, 0.66f, 0.82f)), wall = HouseEscapeLook.Wallpaper("HouseTheo", "escape_wallpaper_theo.png", 0.7f), wainscot = whitePanel, wainscotHeight = 0.9f, ceiling = Ceiling(), skirting = TrimWhite(), rail = TrimWhite(), crown = true };
                     break;
                 case "guest":
+                    f = new Finish { floor = Fabric("GuestCarpet", new Color(0.82f, 0.74f, 0.64f)), wall = HouseEscapeLook.Wallpaper("HouseTrellis", "escape_wallpaper_trellis.png", 0.6f), wainscot = whitePanel, wainscotHeight = 0.9f, ceiling = Ceiling(), skirting = TrimWhite(), rail = TrimWhite(), crown = true };
+                    break;
                 case "closet":
-                    f = new Finish { floor = Fabric("GuestCarpet", new Color(0.82f, 0.74f, 0.64f)), wall = Wallpaper(), wainscot = walnutPanel, wainscotHeight = 0.9f, ceiling = Ceiling(), skirting = TrimWalnut(), rail = TrimWalnut(), crown = true };
+                    f = new Finish { floor = Fabric("GuestCarpet", new Color(0.82f, 0.74f, 0.64f)), wall = plaster, wainscot = null, ceiling = Ceiling(), skirting = TrimWhite(), crown = false };
                     break;
                 case "basement":
                     f = new Finish { floor = Concrete(), wall = Look("Plaster_Painted", "BasementGrey", new Color(0.78f, 0.76f, 0.72f)), wainscot = null, ceiling = Look("Plaster_Painted", "BasementCeiling", new Color(0.7f, 0.68f, 0.64f)), skirting = null };

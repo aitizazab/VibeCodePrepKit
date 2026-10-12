@@ -204,7 +204,7 @@ namespace JamKit.DreamEscape
                 if (v == null) continue;
                 var m = _h.Memory(v.id);
                 if (m == null) continue;
-                v.MoveTo(ToWorld(m.position), MemoryYaw(m.position));
+                v.MoveTo(ToWorld(m.position), MemoryYaw(m.position, m.standAt));
             }
             SetTheoRoom(true);
             _theo.Stop();
@@ -258,13 +258,14 @@ namespace JamKit.DreamEscape
 
         float WorldYaw(float houseYaw) => houseYaw + houseRoot.eulerAngles.y;
 
-        /// <summary>A memory faces into its room.</summary>
-        float MemoryYaw(NVec3 p)
+        /// <summary>A memory faces where she stands to take it, square to its wall (snapped to 90 degrees: a calendar on
+        /// the fridge door, a photo on the wall, a card on the table turned to her chair).</summary>
+        float MemoryYaw(NVec3 p, NVec3 standAt)
         {
-            var room = _h.RoomAt(p + new NVec3(0f, -0.5f, 0f));
-            if (room == null) return 0f;
-            var c = room.Center;
-            return WorldYaw(Mathf.Atan2(c.X - p.X, c.Z - p.Z) * Mathf.Rad2Deg);
+            float dx = standAt.X - p.X, dz = standAt.Z - p.Z;
+            if (dx * dx + dz * dz < 1e-4f) return WorldYaw(0f);
+            float yaw = Mathf.Atan2(dx, dz) * Mathf.Rad2Deg;
+            return WorldYaw(Mathf.Round(yaw / 90f) * 90f);
         }
 
         void Teleport(Vector3 feet, float yaw, Vector3 velocity) => player.Teleport(feet, yaw, velocity);

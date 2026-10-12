@@ -906,7 +906,8 @@ namespace JamKit.DreamEscape.EditorTools
             DreamProps.Show("Shaft and handle", DreamProps.ShaftWithHook(1.02f), woodMesh, prop, new Vector3(0f, -0.47f, 0f), Quaternion.identity);
 
             // The highlight: a breathing gold glow around it and a gold pool at its foot ("use this").
-            var glow = Part("Umbrella glow (highlight)", PrimitiveType.Sphere, parent, Vector3.zero, Vector3.one * 1.5f, Glow("UmbrellaHalo", GoColor, 0.7f, 0f, 0.3f));
+            // A soft camera-facing glow (House round 2: the hard translucent sphere read as a flat disc round the umbrella).
+            var glow = Part("Umbrella glow (highlight)", PrimitiveType.Quad, parent, Vector3.zero, Vector3.one * 1.5f, HouseFurnishing.GlowMaterial("Umbrella", GoColor, 0.6f));
             glow.transform.position = at;
             Quad("Umbrella pool", glow.transform, at + new Vector3(0f, -0.5f, 0f), Vector3.up, 1.6f, 1.6f, Glow("UmbrellaPool", GoColor, 1f, 0f, 0.3f));
 

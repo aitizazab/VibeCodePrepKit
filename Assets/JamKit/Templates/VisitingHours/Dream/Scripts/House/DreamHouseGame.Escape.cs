@@ -85,7 +85,12 @@ namespace JamKit.DreamEscape
             if (escapeRoomGroups != null) foreach (var g in escapeRoomGroups) if (g != null) g.gameObject.SetActive(true);
             _e.corridor.Reset();
             if (corridorDoor != null) corridorDoor.enabled = true;
-            if (corridorDoorLeaf != null) corridorDoorLeaf.localRotation = Quaternion.identity;
+            if (corridorDoorLeaf != null)
+            {
+                corridorDoorLeaf.localRotation = Quaternion.identity;
+                var pair = corridorDoorLeaf.GetComponent<EscapeDoubleDoor>();
+                if (pair != null) pair.Close();
+            }
             if (fold != null) fold.gameObject.SetActive(false);
             if (nightSky != null) nightSky.SetActive(false);
             SetMood(-1, true);
@@ -211,11 +216,16 @@ namespace JamKit.DreamEscape
 
         static IEnumerator SwingOpen(Transform leaf)
         {
+            // The corridor's front door is a pair of leaves (EscapeDoubleDoor); an older build's single leaf still swings.
+            var pair = leaf != null ? leaf.GetComponent<EscapeDoubleDoor>() : null;
             for (float t = 0f; t < 0.35f && leaf != null; t += Time.unscaledDeltaTime)
             {
-                leaf.localRotation = Quaternion.Euler(0f, -110f * Mathf.SmoothStep(0f, 1f, t / 0.35f), 0f);
+                float k = Mathf.SmoothStep(0f, 1f, t / 0.35f);
+                if (pair != null) pair.Open(k);
+                else leaf.localRotation = Quaternion.Euler(0f, -110f * k, 0f);
                 yield return null;
             }
+            if (pair != null) pair.Open(1f);
         }
 
         void PlaceFold(Vector3 p)

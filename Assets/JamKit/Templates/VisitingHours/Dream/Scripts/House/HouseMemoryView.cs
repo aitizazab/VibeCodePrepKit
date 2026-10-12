@@ -4,7 +4,8 @@ namespace JamKit.DreamEscape
 {
     /// <summary>
     /// A memory in the house (<see cref="HouseMemory"/>): the thing itself (a calendar, a photo, a drawing, a radio, a paper
-    /// hat, a star wheel, the height marks), a soft glow that breathes so it can be found, and the picture shown up close
+    /// hat, a star wheel, the height marks), a soft camera-facing glow round it (JamKit/House/MemoryGlow: depth-faded, no
+    /// hard edge) that breathes so it can be found, a small light on the thing, and the picture shown up close
     /// when she takes it. The game moves it when the house takes it back (<see cref="MoveTo"/>) and hides it once found.
     /// </summary>
     public sealed class HouseMemoryView : MonoBehaviour
@@ -65,7 +66,7 @@ namespace JamKit.DreamEscape
             _t += Time.deltaTime;
             float k = 1f + 0.12f * Mathf.Sin(_t * 2.4f);
             if (glow != null) glow.localScale = Vector3.one * (_base * k);
-            if (lamp != null) lamp.intensity = 0.35f + 0.1f * Mathf.Sin(_t * 2.4f);
+            if (lamp != null) lamp.intensity = 0.5f + 0.1f * Mathf.Sin(_t * 2.4f);
         }
     }
 }

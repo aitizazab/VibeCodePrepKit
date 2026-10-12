@@ -26,21 +26,28 @@ namespace JamKit.DreamEscape.EditorTools
             var furniture = new GameObject("Furniture").transform;
             furniture.SetParent(root, false);
             var built = new MeshBuilder();
-            foreach (var part in h.parts)
+            for (int pi = 0; pi < h.parts.Count; pi++)
             {
+                var part = h.parts[pi];
                 if (!withOutside && HouseGeometry.IsOutsidePart(h, part)) continue;
                 var p = part.piece;
                 Vector3 mn = U(p.Min), mx = U(p.Max);
+                CurrentPart = pi;
+                built.Owner = p.name; built.OwnerPart = pi;
+                built.Kind = part.look == HouseLook.Picture ? DrawnKind.Owned : DrawnKind.Owned;
                 switch (part.look)
                 {
                     case HouseLook.Furniture: Furnish(part, furniture, built, mn, mx); break;
                     case HouseLook.Picture: Picture(part.model, part.yaw, furniture, built, mn, mx); break;
-                    case HouseLook.Cloth: Cloth(part.model, built, mn, mx); break;
+                    case HouseLook.Cloth:
+                        if (!HouseProps.Cloth(part.model, built, mn, mx, WallSide(h, mn, mx))) Cloth(part.model, built, mn, mx);
+                        break;
                     case HouseLook.Rug: Rug(part.model, furniture, built, mn, mx); break;
                     case HouseLook.Trampoline: Trampoline(furniture, mn, mx); break;
                     case HouseLook.Tree: if (part.model == "yard.tree") Oak(furniture, mn, mx); else Trunk(built, mn, mx); break;
                 }
             }
+            CurrentPart = -1;
             built.Build("Built furniture", furniture);
             if (_missing.Count > 0) Debug.Log("JAMKIT_HOUSE built in place of a model: " + string.Join(", ", _missing));
         }
@@ -70,6 +77,26 @@ namespace JamKit.DreamEscape.EditorTools
         /// under its own holder in <paramref name="parent"/>'s frame, box <paramref name="mn"/>-<paramref name="mx"/>, facing
         /// <paramref name="yaw"/> (0 = +z). For other builders (the escape dresses its rooms with the house's own things).
         /// Static flags are set for the house; clear them on anything that moves.</summary>
+        /// <summary>Which side of a thin box a wall stands against (-1 its min side, +1 its max side across its thin axis, 0
+        /// none): curtains and coats hang from it, facing away.</summary>
+        static int WallSide(DreamHouse h, Vector3 mn, Vector3 mx)
+        {
+            var size = mx - mn;
+            bool thinZ = size.x >= size.z;
+            foreach (var part in h.parts)
+            {
+                if (!part.piece.solid || part.look != HouseLook.Wall && part.look != HouseLook.Chimney) continue;
+                var q = part.piece;
+                bool overlapsAlong = thinZ ? q.Min.X < mx.x && q.Max.X > mn.x : q.Min.Z < mx.z && q.Max.Z > mn.z;
+                bool overlapsUp = q.Min.Y < mx.y && q.Max.Y > mn.y;
+                if (!overlapsAlong || !overlapsUp) continue;
+                float lo = thinZ ? mn.z : mn.x, hi = thinZ ? mx.z : mx.x, qlo = thinZ ? q.Min.Z : q.Min.X, qhi = thinZ ? q.Max.Z : q.Max.X;
+                if (Mathf.Abs(qhi - lo) < 0.05f) return -1;
+                if (Mathf.Abs(qlo - hi) < 0.05f) return 1;
+            }
+            return 0;
+        }
+
         public static GameObject Prop(string role, Transform parent, Vector3 mn, Vector3 mx, float yaw, string name)
         {
             var model = HouseMaterials.Model(role, out string id);
@@ -83,7 +110,9 @@ namespace JamKit.DreamEscape.EditorTools
         }
 
         /// <summary>Roles drawn here even when a model exists (they need the exact shape: counters run to the walls).</summary>
-        static bool BuiltFirst(string role) => role == "kitchen.counter" || role == "kitchen.sink_counter" || role == "kitchen.island" || role == "kitchen.cabinet_upper";
+        static bool BuiltFirst(string role) => role == "kitchen.counter" || role == "kitchen.sink_counter" || role == "kitchen.island" || role == "kitchen.cabinet_upper"
+            // Kenney's low-poly blocks read as grey boxes at eye height (house-1.md): built here properly instead.
+            || role == "kitchen.fridge" || role == "bath.sink" || role == "bath.bathtub" || role == "bedroom.single_bed" || role == "bedroom.double_bed";
 
         /// <summary>A model fitted into its box, kept for the mesh lint (<see cref="HouseMeshLint"/>).</summary>
         public sealed class FittedModel
@@ -100,9 +129,14 @@ namespace JamKit.DreamEscape.EditorTools
             public Vector3 scale;
             /// <summary>It hangs (a pendant, a mirror, a picture): it rests on nothing, it touches its wall or ceiling.</summary>
             public bool hangs;
+            /// <summary>Its part in the plan (-1: none).</summary>
+            public int owner = -1;
         }
 
         public static readonly List<FittedModel> Fitted = new List<FittedModel>();
+
+        /// <summary>The part being furnished (its index in the plan), for the lint's records; -1 outside the loop.</summary>
+        public static int CurrentPart = -1;
 
         /// <summary>A model fitted into the box: a holder at the box (the house's axes), the model turned to
         /// <paramref name="yaw"/> under it, the import's own transform kept (Poly Haven's FBX root carries Blender's
@@ -160,7 +194,7 @@ namespace JamKit.DreamEscape.EditorTools
             GameObjectUtility.SetStaticEditorFlags(holder, StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI);
             foreach (var t in holder.GetComponentsInChildren<Transform>(true))
                 GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI);
-            Fitted.Add(new FittedModel { go = holder, id = id, name = name, boxMin = mn, boxMax = mx, space = parent, spec = spec, modelSize = Vector3.Scale(modelSize, Vector3.one * Mathf.Min(scale.x, Mathf.Min(scale.y, scale.z))), scale = scale, hangs = hangs });
+            Fitted.Add(new FittedModel { go = holder, id = id, name = name, boxMin = mn, boxMax = mx, space = parent, spec = spec, modelSize = Vector3.Scale(modelSize, Vector3.one * Mathf.Min(scale.x, Mathf.Min(scale.y, scale.z))), scale = scale, hangs = hangs, owner = CurrentPart });
             return holder;
         }
 
@@ -205,7 +239,8 @@ namespace JamKit.DreamEscape.EditorTools
             }
             if (m.shader != null && m.shader.name == "Universal Render Pipeline/Lit" && m.GetTexture("_BaseMap") != null) return m;
             var c = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.HasProperty("_Color") ? m.GetColor("_Color") : Color.white;
-            return HouseMaterials.Paint("Kenney_" + m.name.Replace(" ", "_"), c, 0.9f);
+            // Kenney's flat colours as clean painted / glazed surfaces (on the plaster they read as cloud noise).
+            return HouseEscapeLook.Clean("Kenney_" + m.name.Replace(" ", "_"), c, 0.55f);
         }
 
         // =====================================================================================================
@@ -217,6 +252,7 @@ namespace JamKit.DreamEscape.EditorTools
 
         static void Built(string role, string name, MeshBuilder b, Vector3 mn, Vector3 mx, float yaw)
         {
+            if (HouseProps.Build(role, b, mn, mx, yaw)) return;
             var size = mx - mn;
             var cab = Paint("Cabinets", new Color(0.66f, 0.74f, 0.66f));
             var top = HouseMaterials.Surface("wood_floor", "Butcher", new Color(0.86f, 0.7f, 0.52f), 0.5f);
@@ -515,62 +551,45 @@ namespace JamKit.DreamEscape.EditorTools
 
         static void Trampoline(Transform parent, Vector3 mn, Vector3 mx)
         {
-            var go = new GameObject("Trampoline");
-            go.transform.SetParent(parent, false);
+            // A real trampoline (it was three primitive cylinders): the padded rim on its round frame, the black mat a
+            // little lower, six legs bent into W-feet, springs all round.
+            var b = new MeshBuilder { Owner = "Trampoline", OwnerPart = CurrentPart, Kind = DrawnKind.Owned };
             var c = (mn + mx) * 0.5f;
-            float r = (mx.x - mn.x) * 0.5f;
-            var frame = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            Object.DestroyImmediate(frame.GetComponent<Collider>());
-            frame.name = "Frame and mat";
-            frame.transform.SetParent(go.transform, false);
-            frame.transform.position = new Vector3(c.x, mx.y - 0.05f, c.z);
-            frame.transform.localScale = new Vector3(r * 2f, 0.05f, r * 2f);
-            frame.GetComponent<MeshRenderer>().sharedMaterial = HouseMaterials.Paint("TrampolineMat", new Color(0.1f, 0.1f, 0.12f), 0.6f);
-            var pad = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            Object.DestroyImmediate(pad.GetComponent<Collider>());
-            pad.name = "Pad";
-            pad.transform.SetParent(go.transform, false);
-            pad.transform.position = new Vector3(c.x, mx.y - 0.04f, c.z);
-            pad.transform.localScale = new Vector3(r * 2.02f, 0.045f, r * 2.02f);
-            pad.GetComponent<MeshRenderer>().sharedMaterial = HouseMaterials.Paint("TrampolinePad", new Color(0.2f, 0.42f, 0.7f));
+            float r = Mathf.Min(mx.x - mn.x, mx.z - mn.z) * 0.5f - 0.04f, top = mx.y - 0.05f;
+            var steel = HouseEscapeLook.Clean("TrampolineSteel", new Color(0.62f, 0.64f, 0.66f), 0.6f, 1f);
+            const int seg = 36;
+            var ring = new Vector3[seg + 1];
+            for (int i = 0; i <= seg; i++) { float a = i * Mathf.PI * 2f / seg; ring[i] = new Vector3(c.x + Mathf.Cos(a) * r, top, c.z + Mathf.Sin(a) * r); }
+            HouseShapes.Tube(b, ring, 0.035f, steel, 8);
+            var pad = new Vector3[seg + 1];
+            for (int i = 0; i <= seg; i++) pad[i] = ring[i] + Vector3.up * 0.04f;
+            HouseShapes.Tube(b, pad, 0.045f, HouseEscapeLook.Clean("TrampolinePad", new Color(0.2f, 0.42f, 0.7f), 0.25f), 8);
+            HouseShapes.Lathe(b, new Vector3(c.x, top - 0.06f, c.z), Quaternion.identity, new[] { new Vector2(0f, 0f), new Vector2(r - 0.22f, 0f), new Vector2(r - 0.22f, 0.006f), new Vector2(0f, 0.006f) }, HouseEscapeLook.Clean("TrampolineMat", new Color(0.06f, 0.06f, 0.07f), 0.3f), seg);
+            for (int i = 0; i < seg; i += 2)
+            {
+                float a = i * Mathf.PI * 2f / seg;
+                var d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                HouseShapes.Rod(b, new Vector3(c.x, top - 0.055f, c.z) + d * (r - 0.22f), new Vector3(c.x, top, c.z) + d * (r - 0.03f), 0.008f, steel, 5);
+            }
             for (int k = 0; k < 6; k++)
             {
                 float a = k * Mathf.PI / 3f;
-                var leg = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                Object.DestroyImmediate(leg.GetComponent<Collider>());
-                leg.transform.SetParent(go.transform, false);
-                leg.transform.position = new Vector3(c.x + Mathf.Cos(a) * (r - 0.06f), mn.y + (mx.y - mn.y) * 0.45f, c.z + Mathf.Sin(a) * (r - 0.06f));
-                leg.transform.localScale = new Vector3(0.05f, (mx.y - mn.y) * 0.45f, 0.05f);
-                leg.GetComponent<MeshRenderer>().sharedMaterial = HouseMaterials.Metal();
+                var d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                var t = new Vector3(c.x, top, c.z) + d * (r - 0.01f);
+                HouseShapes.Tube(b, new[] { t, new Vector3(t.x, mn.y + 0.08f, t.z), new Vector3(t.x, mn.y + 0.02f, t.z) + d * 0.08f }, 0.022f, steel, 8);
             }
+            b.Build("Trampoline", parent);
         }
 
-        /// <summary>The oak: a round trunk (its collider is the part's box), the Look library's leaf crown lifted clear of
-        /// the treehouse's roof.</summary>
+        /// <summary>The oak: Look's oak, whole (trunk, limbs and crown, its own LODs), its colliders gone (the part's box is
+        /// its collider). The old one was a primitive pole with the crown lifted off it, nothing joining them (house-1.md).</summary>
         static void Oak(Transform parent, Vector3 mn, Vector3 mx)
         {
             var c = (mn + mx) * 0.5f;
-            var trunk = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            Object.DestroyImmediate(trunk.GetComponent<Collider>());
-            trunk.name = "The oak (trunk)";
-            trunk.transform.SetParent(parent, false);
-            float top = DreamHouse.TreeFloor + 6.0f;
-            trunk.transform.position = new Vector3(c.x, (mn.y + top) * 0.5f, c.z);
-            trunk.transform.localScale = new Vector3(mx.x - mn.x, (top - mn.y) * 0.5f, mx.z - mn.z);
-            trunk.GetComponent<MeshRenderer>().sharedMaterial = HouseMaterials.Bark();
-            var tree = VhLookTrees.Place(parent, new Vector3(c.x, mn.y, c.z), 3, 13f);
+            var tree = VhLookTrees.Place(parent, new Vector3(c.x, mn.y, c.z), VhLookTrees.Species.Oak, 1, 13f, false, 30f);
             if (tree == null) return;
-            tree.name = "The oak (crown)";
+            tree.name = "The oak";
             foreach (var col in tree.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(col);
-            var t = tree.transform.Find("Trunk");
-            if (t != null) Object.DestroyImmediate(t.gameObject);
-            var crown = tree.transform.Find("Crown");
-            if (crown != null)
-            {
-                var r = crown.GetComponent<Renderer>();
-                float clear = DreamHouse.TreeFloor + 2.3f;
-                if (r != null && r.bounds.min.y < clear) crown.position += Vector3.up * (clear - r.bounds.min.y);
-            }
         }
 
         static void Trunk(MeshBuilder b, Vector3 mn, Vector3 mx) { }
@@ -583,42 +602,116 @@ namespace JamKit.DreamEscape.EditorTools
         {
             var lamps = new GameObject("Lamps").transform;
             lamps.SetParent(root, false);
-            int shadowed = 0;
+            // Fixtures: what each light hangs in (a ceiling dome, a bare bulb on its socket), drawn without shadows (a
+            // shade casting its own bulb's shadow drew a dark band round every room: the recorded run).
+            var fixtures = new MeshBuilder { Kind = DrawnKind.Mounted, Owner = "Lamp fixtures" };
+            var warmGlow = HouseEscapeLook.Glow("HouseLampGlow", new Color(1f, 0.82f, 0.55f), 2.2f);
+            var brass = HouseEscapeLook.Brass();
+            var bulbModel = HouseMaterials.Model("basement.bulb", out string bulbId);
             foreach (var l in h.lamps)
             {
-                var go = new GameObject("Lamp: " + l.name + " (" + l.kind + ")");
+                var pos = U(l.position);
+                var room = h.RoomAt(l.position + new NVec3(0f, -0.3f, 0f));
+                float ceiling = room != null ? room.ceilingY : pos.y + 0.45f;
+                bool roomLight = l.kind == "pendant" || l.kind == "bulb" || l.kind == "fairy";
+                var go = new GameObject("Lamp: " + l.name + " (" + l.kind + ")" + (roomLight ? " (main)" : ""));
                 go.transform.SetParent(lamps, false);
-                go.transform.localPosition = U(l.position);
                 var light = go.AddComponent<Light>();
+                light.renderMode = LightRenderMode.ForcePixel;
+                light.shadows = LightShadows.None;   // HouseLightBudget gives the two nearest "(main)" lights their shadows
+                if (roomLight)
+                {
+                    // A room light: a spot pointing down from just under its fixture (it no longer blasts the ceiling
+                    // above it: house-1.md's blown hotspots), wide enough to light the room's walls.
+                    float hang = PendantBottom(h, pos, ceiling);
+                    bool hasPendant = hang < ceiling - 0.3f;
+                    float y = hasPendant ? hang - 0.05f : ceiling - 0.22f;
+                    go.transform.localPosition = new Vector3(pos.x, y, pos.z);
+                    go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                    light.type = LightType.Spot;
+                    light.spotAngle = 150f;
+                    light.innerSpotAngle = 70f;
+                    float span = room != null ? Mathf.Max(3f, Mathf.Sqrt(room.Area)) : 4f;
+                    light.range = Mathf.Max(5f, (y - (room != null ? room.floorY : y - 2.5f)) + span * 0.8f);
+                    light.color = l.kind == "bulb" ? new Color(1f, 0.8f, 0.56f) : new Color(1f, 0.76f, 0.52f);
+                    light.intensity = (l.kind == "fairy" ? 1.4f : 1.7f) + 1.3f * Mathf.Clamp01(l.intensity);
+                    if (!hasPendant)
+                    {
+                        if (l.kind == "bulb" && bulbModel != null)
+                        {
+                            Fit(bulbModel, bulbId, lamps, new Vector3(pos.x - 0.06f, ceiling - 0.17f, pos.z - 0.06f), new Vector3(pos.x + 0.06f, ceiling, pos.z + 0.06f), 0f, "Bulb socket: " + l.name, true);
+                            HouseShapes.Lathe(fixtures, new Vector3(pos.x, ceiling - 0.3f, pos.z), Quaternion.identity, new[] { new Vector2(0f, 0f), new Vector2(0.03f, 0.02f), new Vector2(0.032f, 0.06f), new Vector2(0.015f, 0.11f), new Vector2(0f, 0.12f) }, warmGlow, 12);
+                        }
+                        else
+                        {
+                            // A flush dome: a brass rim on the ceiling, the glowing glass under it.
+                            HouseShapes.Lathe(fixtures, new Vector3(pos.x, ceiling - 0.02f, pos.z), Quaternion.identity, new[] { new Vector2(0f, 0f), new Vector2(0.2f, 0f), new Vector2(0.21f, 0.02f), new Vector2(0f, 0.02f) }, brass, 20);
+                            HouseShapes.Lathe(fixtures, new Vector3(pos.x, ceiling - 0.14f, pos.z), Quaternion.identity, new[] { new Vector2(0f, 0f), new Vector2(0.09f, 0.01f), new Vector2(0.17f, 0.06f), new Vector2(0.19f, 0.12f), new Vector2(0f, 0.12f) }, warmGlow, 20);
+                        }
+                    }
+                    continue;
+                }
+                go.transform.localPosition = pos;
                 light.type = LightType.Point;
                 light.range = l.range;
                 switch (l.kind)
                 {
-                    case "moon": light.color = new Color(0.62f, 0.72f, 1f); light.intensity = 1.2f * l.intensity; break;
+                    case "moon": light.color = new Color(0.62f, 0.72f, 1f); light.intensity = 1.0f * l.intensity + 0.4f; break;
                     case "fire": light.color = new Color(1f, 0.55f, 0.25f); light.intensity = 2.6f * l.intensity; break;
-                    case "bulb": light.color = new Color(1f, 0.82f, 0.58f); light.intensity = 1.8f; break;
-                    case "fairy": light.color = new Color(1f, 0.78f, 0.5f); light.intensity = 1.1f; break;
-                    default: light.color = new Color(1f, 0.74f, 0.48f); light.intensity = 2.4f; break;   // 2700 K
+                    case "porch":
+                        light.type = LightType.Spot; light.spotAngle = 140f; light.innerSpotAngle = 50f; light.range = 7f;
+                        go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                        light.color = new Color(1f, 0.8f, 0.55f); light.intensity = 2.2f;
+                        break;
+                    default: light.color = new Color(1f, 0.74f, 0.48f); light.intensity = 1.3f * Mathf.Max(0.6f, l.intensity) + 0.4f; break;   // table lamps, 2700 K
                 }
-                bool main = l.kind == "pendant" && (l.name.StartsWith("Living") || l.name.StartsWith("Dining") || l.name.StartsWith("Kitchen") || l.name.StartsWith("Theo") || l.name.StartsWith("Front hall") || l.name.StartsWith("Upper hall"));
-                light.shadows = main && shadowed < 8 ? LightShadows.Soft : LightShadows.None;
-                if (light.shadows != LightShadows.None) shadowed++;
-                light.renderMode = LightRenderMode.ForcePixel;
             }
-            // Reflection probes, a storey each (the rooms' gleam on the floors and the glass).
-            foreach (var (name, y, hgt) in new[] { ("ground", 1.45f, 2.9f), ("upper", 4.5f, 2.6f), ("basement", -1.55f, 2.5f) })
+            // Lena's reading lamp on her chart table (the observatory read murky under the moon alone: house-1.md).
+            {
+                var go = new GameObject("Lamp: Lena's reading lamp (table)");
+                go.transform.SetParent(lamps, false);
+                go.transform.localPosition = new Vector3(-4.0f, DreamHouse.Attic + 1.15f, 7.1f);
+                var light = go.AddComponent<Light>();
+                light.type = LightType.Point; light.range = 4.5f; light.intensity = 1.6f; light.color = new Color(1f, 0.78f, 0.5f);
+                light.shadows = LightShadows.None;
+            }
+            fixtures.Build("Lamp fixtures", lamps, false);
+            // Reflection probes, baked (realtime probes never render: realtime probes are off in every quality level,
+            // perf.md): a storey each and the hall's stairwell. Look's bake (or the probes' own) fills them; until then
+            // they fall back to the sky.
+            foreach (var (name, center, size) in new[]
+            {
+                ("ground", new Vector3(0f, 1.45f, 5.5f), new Vector3(15.5f, 2.9f, 11.5f)),
+                ("upper", new Vector3(0f, 4.5f, 5.5f), new Vector3(15.5f, 2.6f, 11.5f)),
+                ("basement", new Vector3(0f, -1.55f, 5.5f), new Vector3(15.5f, 2.5f, 11.5f)),
+                ("attic", new Vector3(0f, 7.4f, 5.5f), new Vector3(15.5f, 3.4f, 11.5f)),
+            })
             {
                 var pg = new GameObject("Reflections (" + name + ")");
                 pg.transform.SetParent(lamps, false);
-                pg.transform.localPosition = new Vector3(0f, y, 5.5f);
+                pg.transform.localPosition = center;
                 var probe = pg.AddComponent<ReflectionProbe>();
-                probe.mode = ReflectionProbeMode.Realtime;
-                probe.refreshMode = ReflectionProbeRefreshMode.OnAwake;
-                probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
-                probe.size = new Vector3(15.5f, hgt, 11.5f);
+                probe.mode = ReflectionProbeMode.Baked;
+                probe.size = size;
                 probe.boxProjection = true;
                 probe.resolution = 128;
+                probe.hdr = true;
+                probe.blendDistance = 1f;
             }
+        }
+
+        /// <summary>The bottom of a pendant model's box hanging over (x, z) under this ceiling, or the ceiling.</summary>
+        static float PendantBottom(DreamHouse h, Vector3 at, float ceiling)
+        {
+            foreach (var part in h.parts)
+            {
+                if (part.model == null || !part.model.Contains("pendant")) continue;
+                var p = part.piece;
+                if (System.Math.Abs(p.Max.Y - ceiling) > 0.05f) continue;
+                if (at.x < p.Min.X - 0.6f || at.x > p.Max.X + 0.6f || at.z < p.Min.Z - 0.6f || at.z > p.Max.Z + 0.6f) continue;
+                return p.Min.Y;
+            }
+            return ceiling;
         }
 
         // =====================================================================================================
@@ -629,13 +722,17 @@ namespace JamKit.DreamEscape.EditorTools
         {
             var parent = new GameObject("Memories").transform;
             parent.SetParent(root, false);
-            var glow = DreamEscapeBuilder.Glow("MemoryGlow", new Color(1f, 0.84f, 0.5f), 0.55f, 0f, 0.3f);
+            var glow = GlowMaterial();
             var views = new List<HouseMemoryView>();
             foreach (var m in h.memories)
             {
                 var go = new GameObject("Memory: " + m.name);
                 go.transform.SetParent(parent, false);
                 go.transform.localPosition = U(m.position);
+                // Square to its wall, facing where she stands to take it (the game does the same when it moves it).
+                float dx = m.standAt.X - m.position.X, dz = m.standAt.Z - m.position.Z;
+                float yaw = dx * dx + dz * dz > 1e-4f ? Mathf.Round(Mathf.Atan2(dx, dz) * Mathf.Rad2Deg / 90f) * 90f : 0f;
+                go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
                 var view = go.AddComponent<HouseMemoryView>();
                 view.id = m.id;
                 Texture2D tex = m.picture != null ? DreamArt.Get(m.picture, out bool ph) : null;
@@ -643,15 +740,30 @@ namespace JamKit.DreamEscape.EditorTools
                 if (m.id == DreamHouseStory.MemSaturdayPaper) tex = Generated("house_paper_hat", PaperHat);
                 if (m.id == DreamHouseStory.MemLenaThursdays) tex = Generated("house_star_wheel", StarWheel);
                 view.picture = tex;
-                Thing(m, go.transform, tex);
-                var g = DreamEscapeBuilder.Part("Glow", PrimitiveType.Sphere, go.transform, Vector3.zero, Vector3.one * 0.55f, glow);
+                var thing = new GameObject("Thing").transform;
+                thing.SetParent(go.transform, false);
+                float size = Thing(m, thing, tex);
+                // The glow: a soft camera-facing disc round the thing (depth-faded: no hard edge where it meets the wall or
+                // the bookcase), a little in front of it; and a small warm light that lights the thing itself.
+                var g = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                Object.DestroyImmediate(g.GetComponent<Collider>());
+                g.name = "Glow";
+                g.transform.SetParent(go.transform, false);
+                g.transform.localPosition = new Vector3(0f, 0f, 0.06f);
+                g.transform.localScale = Vector3.one * size;
+                var gr = g.GetComponent<MeshRenderer>();
+                gr.sharedMaterial = glow;
+                gr.shadowCastingMode = ShadowCastingMode.Off;
+                gr.receiveShadows = false;
+                GameObjectUtility.SetStaticEditorFlags(g, 0);
                 view.glow = g.transform;
                 var lamp = new GameObject("Glow light").AddComponent<Light>();
                 lamp.transform.SetParent(go.transform, false);
+                lamp.transform.localPosition = new Vector3(0f, 0.12f, 0.4f);
                 lamp.type = LightType.Point;
-                lamp.range = 1.6f;
-                lamp.intensity = 0.4f;
-                lamp.color = new Color(1f, 0.82f, 0.5f);
+                lamp.range = 1.8f;
+                lamp.intensity = 0.55f;
+                lamp.color = new Color(1f, 0.82f, 0.55f);
                 lamp.shadows = LightShadows.None;
                 view.lamp = lamp;
                 views.Add(view);
@@ -659,74 +771,156 @@ namespace JamKit.DreamEscape.EditorTools
             return views.ToArray();
         }
 
-        /// <summary>The thing a memory is, in its local space (it faces +z; the game turns it into its room).</summary>
-        static void Thing(HouseMemory m, Transform t, Texture2D tex)
+        /// <summary>The memories' glow material (the soft disc shader in Dream/House/Shaders).</summary>
+        public static Material GlowMaterial() => GlowMaterial("Memory", new Color(1f, 0.82f, 0.5f), 0.85f);
+
+        /// <summary>A soft glow material (JamKit/House/MemoryGlow) in a colour.</summary>
+        public static Material GlowMaterial(string name, Color colour, float intensity)
+        {
+            string path = HouseMaterials.MatDir + "/VHH_" + name + "Glow.mat";
+            DreamEscapeBuilder.EnsureFolder(HouseMaterials.MatDir);
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            var shader = Shader.Find("JamKit/House/MemoryGlow");
+            if (m == null) { m = new Material(shader != null ? shader : Shader.Find("Universal Render Pipeline/Unlit")); AssetDatabase.CreateAsset(m, path); }
+            if (shader != null) m.shader = shader;
+            m.SetColor("_Color", colour);
+            m.SetFloat("_Intensity", intensity);
+            m.SetFloat("_Softness", 0.4f);
+            m.renderQueue = 3010;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        static GameObject PictureQuad(Transform t, string name, Material mat, Vector3 pos, Vector2 size, Quaternion? rot = null)
+        {
+            var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            Object.DestroyImmediate(q.GetComponent<Collider>());
+            q.name = name;
+            q.transform.SetParent(t, false);
+            q.transform.localPosition = pos;
+            q.transform.localRotation = rot ?? Quaternion.Euler(0f, 180f, 0f);   // a quad shows its -z side: turned to face +z
+            q.transform.localScale = new Vector3(size.x, size.y, 1f);
+            var r = q.GetComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = ShadowCastingMode.Off;
+            return q;
+        }
+
+        /// <summary>The thing a memory is, readable, in its local space (it faces +z, toward where she stands; its back
+        /// against its wall or its foot on its table). Returns the glow's size.</summary>
+        static float Thing(HouseMemory m, Transform t, Texture2D tex)
         {
             Material Pic(string key) => PictureMaterial(key, tex);
+            var b = new MeshBuilder { Kind = DrawnKind.Free, Owner = m.name, Record = null };
+            var paper = HouseMaterials.Paint("MemoryPaper", new Color(0.97f, 0.95f, 0.9f), 0.6f);
+            float glow = 0.8f;
             switch (m.id)
             {
                 case DreamHouseStory.MemRadio:
                 {
                     var model = HouseMaterials.Model("living.radio", out string id);
-                    if (model != null) Fit(model, id, t, new Vector3(-0.17f, 0f, -0.08f), new Vector3(0.17f, 0.2f, 0.08f), 180f, "The radio");
-                    return;
+                    if (model != null)
+                    {
+                        var radio = Fit(model, id, t, new Vector3(-0.17f, 0f, -0.08f), new Vector3(0.17f, 0.2f, 0.08f), 0f, "The radio");
+                        foreach (var tr in radio.GetComponentsInChildren<Transform>(true)) GameObjectUtility.SetStaticEditorFlags(tr.gameObject, 0);
+                        Fitted.RemoveAt(Fitted.Count - 1);
+                    }
+                    glow = 0.75f;
+                    break;
                 }
                 case DreamHouseStory.MemSaturdayPaper:
                 {
-                    // A paper hat: two leaning sheets of newsprint.
-                    var mat = Pic("house_paper_hat");
-                    for (int s = -1; s <= 1; s += 2)
-                    {
-                        var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                        Object.DestroyImmediate(q.GetComponent<Collider>());
-                        q.transform.SetParent(t, false);
-                        q.transform.localPosition = new Vector3(0f, 0.08f, s * 0.04f);
-                        q.transform.localRotation = Quaternion.Euler(s * 28f, s > 0 ? 180f : 0f, 0f);
-                        q.transform.localScale = new Vector3(0.3f, 0.18f, 1f);
-                        q.GetComponent<MeshRenderer>().sharedMaterial = mat;
-                    }
-                    return;
+                    // Today's paper folded into a hat: two newsprint triangles leaning together on a brim band.
+                    var news = Pic("house_paper_hat");
+                    const float w = 0.16f, ht = 0.17f, dd = 0.045f;
+                    b.Box(new Vector3(-w, 0f, -dd - 0.004f), new Vector3(w, 0.035f, dd + 0.004f), paper);
+                    b.Owner = m.name;
+                    var apexF = new Vector3(0f, ht, 0.004f); var apexB = new Vector3(0f, ht, -0.004f);
+                    b.Tri(new Vector3(-w, 0.035f, dd), new Vector3(w, 0.035f, dd), apexF, news);
+                    b.Tri(new Vector3(w, 0.035f, dd), new Vector3(-w, 0.035f, dd), apexF, news);
+                    b.Tri(new Vector3(w, 0.035f, -dd), new Vector3(-w, 0.035f, -dd), apexB, news);
+                    b.Tri(new Vector3(-w, 0.035f, -dd), new Vector3(w, 0.035f, -dd), apexB, news);
+                    glow = 0.6f;
+                    break;
                 }
                 case DreamHouseStory.MemLenaThursdays:
                 {
+                    // Lena's planisphere: a card star wheel on its brass-rimmed base, tilted up on a little easel to be read.
+                    var brass = HouseMaterials.Paint("Brass", new Color(0.78f, 0.6f, 0.3f), 1.7f);
+                    b.Box(new Vector3(-0.15f, 0f, -0.06f), new Vector3(0.15f, 0.012f, 0.1f), HouseMaterials.TrimWalnut());
+                    b.Box(new Vector3(-0.02f, 0.012f, -0.07f), new Vector3(0.02f, 0.14f, -0.05f), brass);
                     var disc = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                     Object.DestroyImmediate(disc.GetComponent<Collider>());
                     disc.name = "The star wheel";
                     disc.transform.SetParent(t, false);
-                    disc.transform.localPosition = new Vector3(0f, 0.006f, 0f);
-                    disc.transform.localScale = new Vector3(0.26f, 0.006f, 0.26f);
+                    disc.transform.localPosition = new Vector3(0f, 0.15f, 0.0f);
+                    disc.transform.localRotation = Quaternion.Euler(60f, 0f, 0f);
+                    disc.transform.localScale = new Vector3(0.28f, 0.004f, 0.28f);
                     disc.GetComponent<MeshRenderer>().sharedMaterial = Pic("house_star_wheel");
-                    return;
+                    glow = 0.7f;
+                    break;
                 }
-                case DreamHouseStory.MemBadDream:
                 case DreamHouseStory.MemPlaceCard:
                 {
-                    // Lying flat (the drawing on the bookcase) or standing folded (the place card).
-                    bool card = m.id == DreamHouseStory.MemPlaceCard;
-                    var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                    Object.DestroyImmediate(q.GetComponent<Collider>());
-                    q.transform.SetParent(t, false);
-                    q.transform.localPosition = card ? new Vector3(0f, 0.04f, 0f) : new Vector3(0f, 0.004f, 0f);
-                    q.transform.localRotation = card ? Quaternion.Euler(-12f, 180f, 0f) : Quaternion.Euler(90f, 0f, 0f);
-                    q.transform.localScale = card ? new Vector3(0.12f, 0.075f, 1f) : new Vector3(0.32f, 0.24f, 1f);
-                    q.GetComponent<MeshRenderer>().sharedMaterial = Pic(m.picture);
-                    return;
+                    // A folded place card standing on the table: her name side toward her chair.
+                    var card = Pic(m.picture);
+                    PictureQuad(t, "Place card (front)", card, new Vector3(0f, 0.037f, 0.012f), new Vector2(0.12f, 0.075f), Quaternion.Euler(-18f, 180f, 0f));
+                    PictureQuad(t, "Place card (back)", paper, new Vector3(0f, 0.037f, -0.012f), new Vector2(0.12f, 0.075f), Quaternion.Euler(18f, 0f, 0f));
+                    b.Box(new Vector3(-0.06f, 0f, -0.013f), new Vector3(0.06f, 0.002f, 0.013f), paper);
+                    glow = 0.45f;
+                    break;
+                }
+                case DreamHouseStory.MemHeightMarks:
+                {
+                    // Pencil marks up the door frame (on the casing's face).
+                    PictureQuad(t, "Height marks", Pic("house_height_marks"), new Vector3(0f, 0f, 0.012f), new Vector2(0.07f, 1.3f));
+                    glow = 0.9f;
+                    break;
+                }
+                case DreamHouseStory.MemBadDream:
+                {
+                    // THE BAD DREAM pinned to the wall over his desk: the paper, its curl, two red pins.
+                    PictureQuad(t, "THE BAD DREAM", Pic(m.picture), new Vector3(0f, 0f, 0.006f), new Vector2(0.42f, 0.3f));
+                    b.Box(new Vector3(-0.215f, -0.155f, 0f), new Vector3(0.215f, 0.155f, 0.004f), paper);
+                    var pin = HouseMaterials.Paint("Pin", new Color(0.8f, 0.15f, 0.12f), 1.5f);
+                    b.Box(new Vector3(-0.19f, 0.12f, 0.004f), new Vector3(-0.17f, 0.14f, 0.016f), pin);
+                    b.Box(new Vector3(0.17f, 0.12f, 0.004f), new Vector3(0.19f, 0.14f, 0.016f), pin);
+                    glow = 0.8f;
+                    break;
+                }
+                case DreamHouseStory.MemCalendar:
+                {
+                    // The calendar on the fridge door: a card back, the month, a ring binding, a magnet clip.
+                    b.Box(new Vector3(-0.16f, -0.24f, 0f), new Vector3(0.16f, 0.24f, 0.005f), paper);
+                    PictureQuad(t, "The calendar", Pic(m.picture), new Vector3(0f, -0.02f, 0.0065f), new Vector2(0.3f, 0.42f));
+                    var ring = HouseMaterials.Metal();
+                    b.Box(new Vector3(-0.14f, 0.2f, 0.005f), new Vector3(0.14f, 0.212f, 0.012f), ring);
+                    b.Box(new Vector3(-0.03f, 0.215f, 0f), new Vector3(0.03f, 0.25f, 0.018f), HouseMaterials.Paint("Magnet", new Color(0.86f, 0.3f, 0.22f), 1.4f));
+                    glow = 0.95f;
+                    break;
                 }
                 default:
                 {
-                    // On a wall: the calendar, the photo, the height marks (a picture just off the wall, facing +z).
-                    float w = m.id == DreamHouseStory.MemHeightMarks ? 0.12f : m.id == DreamHouseStory.MemCalendar ? 0.32f : 0.42f;
-                    float hgt = m.id == DreamHouseStory.MemHeightMarks ? 1.3f : m.id == DreamHouseStory.MemCalendar ? 0.46f : 0.32f;
-                    var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                    Object.DestroyImmediate(q.GetComponent<Collider>());
-                    q.transform.SetParent(t, false);
-                    q.transform.localPosition = new Vector3(0f, 0f, 0.004f);
-                    q.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
-                    q.transform.localScale = new Vector3(w, hgt, 1f);
-                    q.GetComponent<MeshRenderer>().sharedMaterial = Pic(m.picture ?? m.id);
-                    return;
+                    // The photo of the four of them at the lake: framed, on the wall.
+                    var wood = HouseMaterials.TrimWalnut();
+                    const float fw = 0.25f, fh = 0.2f, bw = 0.035f;
+                    b.Box(new Vector3(-fw, -fh, 0f), new Vector3(fw, fh, 0.008f), paper);
+                    b.Box(new Vector3(-fw, fh - bw, 0f), new Vector3(fw, fh, 0.022f), wood);
+                    b.Box(new Vector3(-fw, -fh, 0f), new Vector3(fw, -fh + bw, 0.022f), wood);
+                    b.Box(new Vector3(-fw, -fh + bw, 0f), new Vector3(-fw + bw, fh - bw, 0.022f), wood);
+                    b.Box(new Vector3(fw - bw, -fh + bw, 0f), new Vector3(fw, fh - bw, 0.022f), wood);
+                    PictureQuad(t, "The photo", Pic(m.picture ?? m.id), new Vector3(0f, 0f, 0.0095f), new Vector2(fw * 2f - bw * 2f - 0.03f, fh * 2f - bw * 2f - 0.03f));
+                    glow = 0.9f;
+                    break;
                 }
             }
+            b.Record = null;
+            if (!b.Empty)
+            {
+                var go = b.Build("Made", t, false);
+                GameObjectUtility.SetStaticEditorFlags(go, 0);
+            }
+            return glow;
         }
 
         // ---------- Generated pictures (until the art pipeline draws them) ----------

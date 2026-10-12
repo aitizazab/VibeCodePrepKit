@@ -1651,6 +1651,657 @@
    "authors": [
     "Amal Kumar"
    ]
+  },
+  {
+   "id": "electric_stove",
+   "role": "kitchen.stove",
+   "name": "Electric Stove",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/electric_stove",
+   "fbx": "Models/electric_stove/electric_stove_1k.fbx",
+   "dims_m": [
+    0.503,
+    0.859,
+    0.648
+   ],
+   "tris": 13914,
+   "textures": [
+    "Models/electric_stove/textures/electric_stove_diff_1k.jpg",
+    "Models/electric_stove/textures/electric_stove_metal_1k.exr",
+    "Models/electric_stove/textures/electric_stove_nor_gl_1k.exr",
+    "Models/electric_stove/textures/electric_stove_opacity_1k.png",
+    "Models/electric_stove/textures/electric_stove_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "metal": "Models/electric_stove/textures/electric_stove_metal_1k.exr",
+     "nor_gl": "Models/electric_stove/textures/electric_stove_nor_gl_1k.exr",
+     "rough": "Models/electric_stove/textures/electric_stove_rough_1k.exr",
+     "diff": "Models/electric_stove/textures/electric_stove_diff_1k.jpg",
+     "opacity": "Models/electric_stove/textures/electric_stove_opacity_1k.png"
+    }
+   },
+   "authors": [
+    "Kuutti Siitonen"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "wicker_basket_01",
+   "role": "laundry.basket",
+   "name": "Wicker Basket 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/wicker_basket_01",
+   "fbx": "Models/wicker_basket_01/wicker_basket_01_1k.fbx",
+   "dims_m": [
+    0.383,
+    0.117,
+    0.295
+   ],
+   "tris": 22276,
+   "textures": [
+    "Models/wicker_basket_01/textures/wicker_basket_01_diff_1k.jpg",
+    "Models/wicker_basket_01/textures/wicker_basket_01_nor_gl_1k.exr",
+    "Models/wicker_basket_01/textures/wicker_basket_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "nor_gl": "Models/wicker_basket_01/textures/wicker_basket_01_nor_gl_1k.exr",
+     "diff": "Models/wicker_basket_01/textures/wicker_basket_01_diff_1k.jpg",
+     "rough": "Models/wicker_basket_01/textures/wicker_basket_01_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Kuutti Siitonen"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "industrial_wall_sconce",
+   "role": "porch.lantern",
+   "name": "Industrial Wall Sconce",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/industrial_wall_sconce",
+   "fbx": "Models/industrial_wall_sconce/industrial_wall_sconce_1k.fbx",
+   "dims_m": [
+    0.15,
+    0.342,
+    0.252
+   ],
+   "tris": 9826,
+   "textures": [
+    "Models/industrial_wall_sconce/textures/industrial_wall_sconce_bulb_diff_1k.png",
+    "Models/industrial_wall_sconce/textures/industrial_wall_sconce_diff_1k.jpg",
+    "Models/industrial_wall_sconce/textures/industrial_wall_sconce_metal_1k.exr",
+    "Models/industrial_wall_sconce/textures/industrial_wall_sconce_nor_gl_1k.exr",
+    "Models/industrial_wall_sconce/textures/industrial_wall_sconce_rough_1k.exr"
+   ],
+   "materials": {
+    "bulb": {
+     "diff": "Models/industrial_wall_sconce/textures/industrial_wall_sconce_bulb_diff_1k.png"
+    },
+    "_": {
+     "diff": "Models/industrial_wall_sconce/textures/industrial_wall_sconce_diff_1k.jpg",
+     "metal": "Models/industrial_wall_sconce/textures/industrial_wall_sconce_metal_1k.exr",
+     "nor_gl": "Models/industrial_wall_sconce/textures/industrial_wall_sconce_nor_gl_1k.exr",
+     "rough": "Models/industrial_wall_sconce/textures/industrial_wall_sconce_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Ulan Cabanilla"
+   ],
+   "alt_roles": [
+    "hall.sconce"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "desk_lamp_arm_01",
+   "role": "study.desk_lamp",
+   "name": "Desk Lamp Arm 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/desk_lamp_arm_01",
+   "fbx": "Models/desk_lamp_arm_01/desk_lamp_arm_01_1k.fbx",
+   "dims_m": [
+    0.617,
+    0.879,
+    0.408
+   ],
+   "tris": 25710,
+   "textures": [
+    "Models/desk_lamp_arm_01/textures/desk_lamp_arm_01_diff_1k.jpg",
+    "Models/desk_lamp_arm_01/textures/desk_lamp_arm_01_mask01_1k.png",
+    "Models/desk_lamp_arm_01/textures/desk_lamp_arm_01_metal_1k.exr",
+    "Models/desk_lamp_arm_01/textures/desk_lamp_arm_01_nor_gl_1k.exr",
+    "Models/desk_lamp_arm_01/textures/desk_lamp_arm_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "metal": "Models/desk_lamp_arm_01/textures/desk_lamp_arm_01_metal_1k.exr",
+     "mask01": "Models/desk_lamp_arm_01/textures/desk_lamp_arm_01_mask01_1k.png",
+     "rough": "Models/desk_lamp_arm_01/textures/desk_lamp_arm_01_rough_1k.exr",
+     "nor_gl": "Models/desk_lamp_arm_01/textures/desk_lamp_arm_01_nor_gl_1k.exr",
+     "diff": "Models/desk_lamp_arm_01/textures/desk_lamp_arm_01_diff_1k.jpg"
+    }
+   },
+   "authors": [
+    "Kuutti Siitonen",
+    "Yann Kervran"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "decorative_book_set_01",
+   "role": "books.row",
+   "name": "Decorative Book Set 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/decorative_book_set_01",
+   "fbx": "Models/decorative_book_set_01/decorative_book_set_01_1k.fbx",
+   "dims_m": [
+    2.505,
+    0.286,
+    0.321
+   ],
+   "tris": 112560,
+   "textures": [
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover02_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover06_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover07_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover08_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover13_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover15_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover23_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover24_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover29_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover34_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover35_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover36_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover37_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover41_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover42_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover47_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover48_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover49_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover51_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover54_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover62_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover65_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover66_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover68_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover69_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover75_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover79_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover80_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover83_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover85_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_cover87_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_diff_1k.jpg",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_mask01_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_mask02_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_mask03_1k.png",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_nor_gl_1k.exr",
+    "Models/decorative_book_set_01/textures/book_hardcover_01_roughness_1k.jpg",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover01_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover04_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover05_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover09_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover11_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover12_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover14_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover25_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover27_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover28_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover31_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover32_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover33_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover38_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover39_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover40_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover45_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover46_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover52_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover56_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover58_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover59_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover61_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover63_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover64_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover67_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover70_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover76_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover77_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover78_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover81_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover82_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover86_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_cover88_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_diff_1k.jpg",
+    "Models/decorative_book_set_01/textures/book_softcover_01_mask01_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_mask02_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_mask03_1k.png",
+    "Models/decorative_book_set_01/textures/book_softcover_01_nor_gl_1k.exr",
+    "Models/decorative_book_set_01/textures/book_softcover_01_roughness_1k.jpg",
+    "Models/decorative_book_set_01/textures/catalogue_hardcover_01_cover03_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_hardcover_01_cover44_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_hardcover_01_cover55_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_hardcover_01_cover60_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_hardcover_01_diff_1k.jpg",
+    "Models/decorative_book_set_01/textures/catalogue_hardcover_01_mask01_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_hardcover_01_mask02_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_hardcover_01_mask03_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_hardcover_01_nor_gl_1k.exr",
+    "Models/decorative_book_set_01/textures/catalogue_hardcover_01_roughness_1k.jpg",
+    "Models/decorative_book_set_01/textures/catalogue_softcover_01_cover10_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_softcover_01_cover26_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_softcover_01_cover57_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_softcover_01_diff_1k.jpg",
+    "Models/decorative_book_set_01/textures/catalogue_softcover_01_mask01_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_softcover_01_mask02_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_softcover_01_mask03_1k.png",
+    "Models/decorative_book_set_01/textures/catalogue_softcover_01_nor_gl_1k.exr",
+    "Models/decorative_book_set_01/textures/catalogue_softcover_01_roughness_1k.jpg",
+    "Models/decorative_book_set_01/textures/magazine_01_cover16_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover17_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover18_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover19_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover20_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover21_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover22_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover43_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover50_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover53_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover71_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover72_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover73_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover74_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_cover89_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_diff_1k.jpg",
+    "Models/decorative_book_set_01/textures/magazine_01_mask01_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_mask02_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_mask03_1k.png",
+    "Models/decorative_book_set_01/textures/magazine_01_nor_gl_1k.exr",
+    "Models/decorative_book_set_01/textures/magazine_01_roughness_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "book_hardcover_01_cover34": "Models/decorative_book_set_01/textures/book_hardcover_01_cover34_1k.png",
+     "book_hardcover_01_cover36": "Models/decorative_book_set_01/textures/book_hardcover_01_cover36_1k.png",
+     "book_hardcover_01_cover35": "Models/decorative_book_set_01/textures/book_hardcover_01_cover35_1k.png",
+     "catalogue_softcover_01_cover57": "Models/decorative_book_set_01/textures/catalogue_softcover_01_cover57_1k.png",
+     "book_hardcover_01_cover75": "Models/decorative_book_set_01/textures/book_hardcover_01_cover75_1k.png",
+     "book_hardcover_01_cover37": "Models/decorative_book_set_01/textures/book_hardcover_01_cover37_1k.png",
+     "magazine_01_cover43": "Models/decorative_book_set_01/textures/magazine_01_cover43_1k.png",
+     "book_softcover_01_cover25": "Models/decorative_book_set_01/textures/book_softcover_01_cover25_1k.png",
+     "book_softcover_01_cover27": "Models/decorative_book_set_01/textures/book_softcover_01_cover27_1k.png",
+     "book_softcover_01_cover64": "Models/decorative_book_set_01/textures/book_softcover_01_cover64_1k.png",
+     "book_hardcover_01_cover79": "Models/decorative_book_set_01/textures/book_hardcover_01_cover79_1k.png",
+     "book_softcover_01_cover28": "Models/decorative_book_set_01/textures/book_softcover_01_cover28_1k.png",
+     "catalogue_softcover_01_cover10": "Models/decorative_book_set_01/textures/catalogue_softcover_01_cover10_1k.png",
+     "book_softcover_01_cover59": "Models/decorative_book_set_01/textures/book_softcover_01_cover59_1k.png",
+     "magazine_01_cover74": "Models/decorative_book_set_01/textures/magazine_01_cover74_1k.png",
+     "magazine_01_cover89": "Models/decorative_book_set_01/textures/magazine_01_cover89_1k.png",
+     "book_hardcover_01_mask02": "Models/decorative_book_set_01/textures/book_hardcover_01_mask02_1k.png",
+     "book_softcover_01_mask02": "Models/decorative_book_set_01/textures/book_softcover_01_mask02_1k.png",
+     "magazine_01_mask02": "Models/decorative_book_set_01/textures/magazine_01_mask02_1k.png",
+     "book_hardcover_01_cover41": "Models/decorative_book_set_01/textures/book_hardcover_01_cover41_1k.png",
+     "book_hardcover_01_cover08": "Models/decorative_book_set_01/textures/book_hardcover_01_cover08_1k.png",
+     "catalogue_hardcover_01_cover03": "Models/decorative_book_set_01/textures/catalogue_hardcover_01_cover03_1k.png",
+     "magazine_01_cover18": "Models/decorative_book_set_01/textures/magazine_01_cover18_1k.png",
+     "book_hardcover_01_cover80": "Models/decorative_book_set_01/textures/book_hardcover_01_cover80_1k.png",
+     "book_hardcover_01_cover23": "Models/decorative_book_set_01/textures/book_hardcover_01_cover23_1k.png",
+     "book_hardcover_01_cover48": "Models/decorative_book_set_01/textures/book_hardcover_01_cover48_1k.png",
+     "magazine_01_cover72": "Models/decorative_book_set_01/textures/magazine_01_cover72_1k.png",
+     "book_hardcover_01_cover49": "Models/decorative_book_set_01/textures/book_hardcover_01_cover49_1k.png",
+     "magazine_01_cover73": "Models/decorative_book_set_01/textures/magazine_01_cover73_1k.png",
+     "book_hardcover_01_cover66": "Models/decorative_book_set_01/textures/book_hardcover_01_cover66_1k.png",
+     "book_softcover_01_cover33": "Models/decorative_book_set_01/textures/book_softcover_01_cover33_1k.png",
+     "book_softcover_01_cover11": "Models/decorative_book_set_01/textures/book_softcover_01_cover11_1k.png",
+     "book_hardcover_01_cover62": "Models/decorative_book_set_01/textures/book_hardcover_01_cover62_1k.png",
+     "book_softcover_01_cover12": "Models/decorative_book_set_01/textures/book_softcover_01_cover12_1k.png",
+     "magazine_01_cover50": "Models/decorative_book_set_01/textures/magazine_01_cover50_1k.png",
+     "book_softcover_01_cover38": "Models/decorative_book_set_01/textures/book_softcover_01_cover38_1k.png",
+     "book_softcover_01_cover63": "Models/decorative_book_set_01/textures/book_softcover_01_cover63_1k.png",
+     "book_softcover_01_cover56": "Models/decorative_book_set_01/textures/book_softcover_01_cover56_1k.png",
+     "book_softcover_01_cover81": "Models/decorative_book_set_01/textures/book_softcover_01_cover81_1k.png",
+     "catalogue_hardcover_01_cover55": "Models/decorative_book_set_01/textures/catalogue_hardcover_01_cover55_1k.png",
+     "catalogue_softcover_01_cover26": "Models/decorative_book_set_01/textures/catalogue_softcover_01_cover26_1k.png",
+     "book_hardcover_01_cover85": "Models/decorative_book_set_01/textures/book_hardcover_01_cover85_1k.png",
+     "catalogue_hardcover_01_cover44": "Models/decorative_book_set_01/textures/catalogue_hardcover_01_cover44_1k.png",
+     "book_softcover_01_cover52": "Models/decorative_book_set_01/textures/book_softcover_01_cover52_1k.png",
+     "book_softcover_01_cover45": "Models/decorative_book_set_01/textures/book_softcover_01_cover45_1k.png",
+     "book_hardcover_01_mask01": "Models/decorative_book_set_01/textures/book_hardcover_01_mask01_1k.png",
+     "book_softcover_01_mask01": "Models/decorative_book_set_01/textures/book_softcover_01_mask01_1k.png",
+     "book_softcover_01_cover67": "Models/decorative_book_set_01/textures/book_softcover_01_cover67_1k.png",
+     "book_softcover_01_cover70": "Models/decorative_book_set_01/textures/book_softcover_01_cover70_1k.png",
+     "magazine_01_mask03": "Models/decorative_book_set_01/textures/magazine_01_mask03_1k.png",
+     "book_softcover_01_cover78": "Models/decorative_book_set_01/textures/book_softcover_01_cover78_1k.png",
+     "magazine_01_cover22": "Models/decorative_book_set_01/textures/magazine_01_cover22_1k.png",
+     "book_hardcover_01_cover15": "Models/decorative_book_set_01/textures/book_hardcover_01_cover15_1k.png",
+     "book_hardcover_01_cover13": "Models/decorative_book_set_01/textures/book_hardcover_01_cover13_1k.png",
+     "book_softcover_01_cover01": "Models/decorative_book_set_01/textures/book_softcover_01_cover01_1k.png",
+     "catalogue_hardcover_01_mask01": "Models/decorative_book_set_01/textures/catalogue_hardcover_01_mask01_1k.png",
+     "magazine_01_cover20": "Models/decorative_book_set_01/textures/magazine_01_cover20_1k.png",
+     "magazine_01_cover21": "Models/decorative_book_set_01/textures/magazine_01_cover21_1k.png",
+     "book_softcover_01_cover40": "Models/decorative_book_set_01/textures/book_softcover_01_cover40_1k.png",
+     "book_softcover_01_cover05": "Models/decorative_book_set_01/textures/book_softcover_01_cover05_1k.png",
+     "book_softcover_01_cover04": "Models/decorative_book_set_01/textures/book_softcover_01_cover04_1k.png",
+     "catalogue_softcover_01_mask03": "Models/decorative_book_set_01/textures/catalogue_softcover_01_mask03_1k.png",
+     "catalogue_hardcover_01_mask03": "Models/decorative_book_set_01/textures/catalogue_hardcover_01_mask03_1k.png",
+     "catalogue_softcover_01_mask02": "Models/decorative_book_set_01/textures/catalogue_softcover_01_mask02_1k.png",
+     "catalogue_softcover_01_mask01": "Models/decorative_book_set_01/textures/catalogue_softcover_01_mask01_1k.png",
+     "catalogue_hardcover_01_mask02": "Models/decorative_book_set_01/textures/catalogue_hardcover_01_mask02_1k.png",
+     "book_softcover_01_cover09": "Models/decorative_book_set_01/textures/book_softcover_01_cover09_1k.png",
+     "book_hardcover_01_cover51": "Models/decorative_book_set_01/textures/book_hardcover_01_cover51_1k.png",
+     "book_hardcover_01_cover54": "Models/decorative_book_set_01/textures/book_hardcover_01_cover54_1k.png",
+     "book_softcover_01_cover39": "Models/decorative_book_set_01/textures/book_softcover_01_cover39_1k.png",
+     "book_softcover_01_cover82": "Models/decorative_book_set_01/textures/book_softcover_01_cover82_1k.png",
+     "book_softcover_01_cover46": "Models/decorative_book_set_01/textures/book_softcover_01_cover46_1k.png",
+     "book_softcover_01_cover88": "Models/decorative_book_set_01/textures/book_softcover_01_cover88_1k.png",
+     "book_softcover_01_cover86": "Models/decorative_book_set_01/textures/book_softcover_01_cover86_1k.png",
+     "magazine_01_cover19": "Models/decorative_book_set_01/textures/magazine_01_cover19_1k.png",
+     "book_softcover_01_cover77": "Models/decorative_book_set_01/textures/book_softcover_01_cover77_1k.png",
+     "book_hardcover_01_cover07": "Models/decorative_book_set_01/textures/book_hardcover_01_cover07_1k.png",
+     "book_hardcover_01_cover06": "Models/decorative_book_set_01/textures/book_hardcover_01_cover06_1k.png",
+     "book_hardcover_01_cover42": "Models/decorative_book_set_01/textures/book_hardcover_01_cover42_1k.png",
+     "magazine_01_cover17": "Models/decorative_book_set_01/textures/magazine_01_cover17_1k.png",
+     "magazine_01_cover16": "Models/decorative_book_set_01/textures/magazine_01_cover16_1k.png",
+     "book_hardcover_01_cover29": "Models/decorative_book_set_01/textures/book_hardcover_01_cover29_1k.png",
+     "book_hardcover_01_cover24": "Models/decorative_book_set_01/textures/book_hardcover_01_cover24_1k.png",
+     "book_softcover_01_cover31": "Models/decorative_book_set_01/textures/book_softcover_01_cover31_1k.png",
+     "book_softcover_01_cover14": "Models/decorative_book_set_01/textures/book_softcover_01_cover14_1k.png",
+     "magazine_01_cover71": "Models/decorative_book_set_01/textures/magazine_01_cover71_1k.png",
+     "book_hardcover_01_cover65": "Models/decorative_book_set_01/textures/book_hardcover_01_cover65_1k.png",
+     "book_hardcover_01_cover47": "Models/decorative_book_set_01/textures/book_hardcover_01_cover47_1k.png",
+     "book_softcover_01_cover32": "Models/decorative_book_set_01/textures/book_softcover_01_cover32_1k.png",
+     "catalogue_hardcover_01_cover60": "Models/decorative_book_set_01/textures/catalogue_hardcover_01_cover60_1k.png",
+     "book_hardcover_01_cover69": "Models/decorative_book_set_01/textures/book_hardcover_01_cover69_1k.png",
+     "book_hardcover_01_cover68": "Models/decorative_book_set_01/textures/book_hardcover_01_cover68_1k.png",
+     "magazine_01_cover53": "Models/decorative_book_set_01/textures/magazine_01_cover53_1k.png",
+     "book_softcover_01_cover61": "Models/decorative_book_set_01/textures/book_softcover_01_cover61_1k.png",
+     "book_softcover_01_cover58": "Models/decorative_book_set_01/textures/book_softcover_01_cover58_1k.png",
+     "book_hardcover_01_cover87": "Models/decorative_book_set_01/textures/book_hardcover_01_cover87_1k.png",
+     "book_hardcover_01_cover83": "Models/decorative_book_set_01/textures/book_hardcover_01_cover83_1k.png",
+     "book_hardcover_01_mask03": "Models/decorative_book_set_01/textures/book_hardcover_01_mask03_1k.png",
+     "book_softcover_01_mask03": "Models/decorative_book_set_01/textures/book_softcover_01_mask03_1k.png",
+     "book_hardcover_01_cover02": "Models/decorative_book_set_01/textures/book_hardcover_01_cover02_1k.png",
+     "book_softcover_01_cover76": "Models/decorative_book_set_01/textures/book_softcover_01_cover76_1k.png",
+     "magazine_01_mask01": "Models/decorative_book_set_01/textures/magazine_01_mask01_1k.png"
+    },
+    "catalogue_hardcover_01": {
+     "nor_gl": "Models/decorative_book_set_01/textures/catalogue_hardcover_01_nor_gl_1k.exr",
+     "diff": "Models/decorative_book_set_01/textures/catalogue_hardcover_01_diff_1k.jpg",
+     "roughness": "Models/decorative_book_set_01/textures/catalogue_hardcover_01_roughness_1k.jpg"
+    },
+    "catalogue_softcover_01": {
+     "nor_gl": "Models/decorative_book_set_01/textures/catalogue_softcover_01_nor_gl_1k.exr",
+     "diff": "Models/decorative_book_set_01/textures/catalogue_softcover_01_diff_1k.jpg",
+     "roughness": "Models/decorative_book_set_01/textures/catalogue_softcover_01_roughness_1k.jpg"
+    },
+    "book_hardcover_01": {
+     "roughness": "Models/decorative_book_set_01/textures/book_hardcover_01_roughness_1k.jpg",
+     "diff": "Models/decorative_book_set_01/textures/book_hardcover_01_diff_1k.jpg",
+     "nor_gl": "Models/decorative_book_set_01/textures/book_hardcover_01_nor_gl_1k.exr"
+    },
+    "magazine_01": {
+     "nor_gl": "Models/decorative_book_set_01/textures/magazine_01_nor_gl_1k.exr",
+     "roughness": "Models/decorative_book_set_01/textures/magazine_01_roughness_1k.jpg",
+     "diff": "Models/decorative_book_set_01/textures/magazine_01_diff_1k.jpg"
+    },
+    "book_softcover_01": {
+     "roughness": "Models/decorative_book_set_01/textures/book_softcover_01_roughness_1k.jpg",
+     "diff": "Models/decorative_book_set_01/textures/book_softcover_01_diff_1k.jpg",
+     "nor_gl": "Models/decorative_book_set_01/textures/book_softcover_01_nor_gl_1k.exr"
+    }
+   },
+   "authors": [
+    "James Ray Cock"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "pull_chain_light_socket",
+   "role": "basement.bulb",
+   "name": "Pull Chain Light Socket",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/pull_chain_light_socket",
+   "fbx": "Models/pull_chain_light_socket/pull_chain_light_socket_1k.fbx",
+   "dims_m": [
+    0.11,
+    0.165,
+    0.11
+   ],
+   "tris": 10902,
+   "textures": [
+    "Models/pull_chain_light_socket/textures/pull_chain_light_socket_diff_1k.jpg",
+    "Models/pull_chain_light_socket/textures/pull_chain_light_socket_metal_1k.exr",
+    "Models/pull_chain_light_socket/textures/pull_chain_light_socket_nor_gl_1k.exr",
+    "Models/pull_chain_light_socket/textures/pull_chain_light_socket_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "metal": "Models/pull_chain_light_socket/textures/pull_chain_light_socket_metal_1k.exr",
+     "diff": "Models/pull_chain_light_socket/textures/pull_chain_light_socket_diff_1k.jpg",
+     "nor_gl": "Models/pull_chain_light_socket/textures/pull_chain_light_socket_nor_gl_1k.exr",
+     "rough": "Models/pull_chain_light_socket/textures/pull_chain_light_socket_rough_1k.exr"
+    }
+   },
+   "authors": [
+    "Josh Dean"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "hanging_industrial_lamp",
+   "role": "workshop.pendant",
+   "name": "Hanging Industrial Lamp",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/hanging_industrial_lamp",
+   "fbx": "Models/hanging_industrial_lamp/hanging_industrial_lamp_1k.fbx",
+   "dims_m": [
+    0.55,
+    1.355,
+    0.55
+   ],
+   "tris": 9530,
+   "textures": [
+    "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_diff_1k.jpg",
+    "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_emissive_1k.png",
+    "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_glass_nor_gl_1k.png",
+    "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_metal_1k.exr",
+    "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_nor_gl_1k.exr",
+    "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_diff_1k.jpg",
+     "emissive": "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_emissive_1k.png",
+     "metal": "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_metal_1k.exr",
+     "nor_gl": "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_nor_gl_1k.exr",
+     "rough": "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_rough_1k.exr"
+    },
+    "glass": {
+     "nor_gl": "Models/hanging_industrial_lamp/textures/hanging_industrial_lamp_glass_nor_gl_1k.png"
+    }
+   },
+   "authors": [
+    "Kuutti Siitonen"
+   ],
+   "alt_roles": [
+    "garage.pendant"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "throw_pillows_01",
+   "role": "living.throw_pillows",
+   "name": "Throw Pillows 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/throw_pillows_01",
+   "fbx": "Models/throw_pillows_01/throw_pillows_01_1k.fbx",
+   "dims_m": [
+    1.022,
+    0.45,
+    0.627
+   ],
+   "tris": 6362,
+   "textures": [
+    "Models/throw_pillows_01/textures/throw_pillows_01_diff_1k.jpg",
+    "Models/throw_pillows_01/textures/throw_pillows_01_nor_gl_1k.exr",
+    "Models/throw_pillows_01/textures/throw_pillows_01_rough_1k.jpg"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/throw_pillows_01/textures/throw_pillows_01_diff_1k.jpg",
+     "rough": "Models/throw_pillows_01/textures/throw_pillows_01_rough_1k.jpg",
+     "nor_gl": "Models/throw_pillows_01/textures/throw_pillows_01_nor_gl_1k.exr"
+    }
+   },
+   "authors": [
+    "Serhii Khromov"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "potted_plant_02",
+   "role": "living.plant.3",
+   "name": "Potted Plant 02",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/potted_plant_02",
+   "fbx": "Models/potted_plant_02/potted_plant_02_1k.fbx",
+   "dims_m": [
+    0.701,
+    0.841,
+    0.657
+   ],
+   "tris": 69806,
+   "textures": [
+    "Models/potted_plant_02/textures/potted_plant_02_leaves_alpha_1k.png",
+    "Models/potted_plant_02/textures/potted_plant_02_leaves_diff_1k.png",
+    "Models/potted_plant_02/textures/potted_plant_02_leaves_nor_gl_1k.png",
+    "Models/potted_plant_02/textures/potted_plant_02_leaves_rough_1k.png",
+    "Models/potted_plant_02/textures/potted_plant_02_pot_diff_1k.png",
+    "Models/potted_plant_02/textures/potted_plant_02_pot_nor_gl_1k.png",
+    "Models/potted_plant_02/textures/potted_plant_02_pot_rough_1k.png"
+   ],
+   "materials": {
+    "pot": {
+     "rough": "Models/potted_plant_02/textures/potted_plant_02_pot_rough_1k.png",
+     "diff": "Models/potted_plant_02/textures/potted_plant_02_pot_diff_1k.png",
+     "nor_gl": "Models/potted_plant_02/textures/potted_plant_02_pot_nor_gl_1k.png"
+    },
+    "leaves": {
+     "rough": "Models/potted_plant_02/textures/potted_plant_02_leaves_rough_1k.png",
+     "nor_gl": "Models/potted_plant_02/textures/potted_plant_02_leaves_nor_gl_1k.png",
+     "alpha": "Models/potted_plant_02/textures/potted_plant_02_leaves_alpha_1k.png",
+     "diff": "Models/potted_plant_02/textures/potted_plant_02_leaves_diff_1k.png"
+    }
+   },
+   "authors": [
+    "Rico Cilliers"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "wall_clock",
+   "role": "kitchen.wall_clock",
+   "name": "Wall Clock",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/wall_clock",
+   "fbx": "Models/wall_clock/wall_clock_1k.fbx",
+   "dims_m": [
+    0.32,
+    0.32,
+    0.047
+   ],
+   "tris": 3658,
+   "textures": [
+    "Models/wall_clock/textures/wall_clock_diff_1k.jpg",
+    "Models/wall_clock/textures/wall_clock_glass_alpha_1k.png",
+    "Models/wall_clock/textures/wall_clock_glass_rough_1k.png",
+    "Models/wall_clock/textures/wall_clock_metal_1k.exr",
+    "Models/wall_clock/textures/wall_clock_nor_gl_1k.exr",
+    "Models/wall_clock/textures/wall_clock_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "diff": "Models/wall_clock/textures/wall_clock_diff_1k.jpg",
+     "metal": "Models/wall_clock/textures/wall_clock_metal_1k.exr",
+     "nor_gl": "Models/wall_clock/textures/wall_clock_nor_gl_1k.exr",
+     "rough": "Models/wall_clock/textures/wall_clock_rough_1k.exr"
+    },
+    "glass": {
+     "alpha": "Models/wall_clock/textures/wall_clock_glass_alpha_1k.png",
+     "rough": "Models/wall_clock/textures/wall_clock_glass_rough_1k.png"
+    }
+   },
+   "authors": [
+    "PierreB3D"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "watering_can_metal_01",
+   "role": "yard.watering_can",
+   "name": "Watering Can Metal 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/watering_can_metal_01",
+   "fbx": "Models/watering_can_metal_01/watering_can_metal_01_1k.fbx",
+   "dims_m": [
+    0.191,
+    0.197,
+    0.452
+   ],
+   "tris": 11837,
+   "textures": [
+    "Models/watering_can_metal_01/textures/watering_can_metal_01_diff_1k.jpg",
+    "Models/watering_can_metal_01/textures/watering_can_metal_01_metal_1k.exr",
+    "Models/watering_can_metal_01/textures/watering_can_metal_01_nor_gl_1k.exr",
+    "Models/watering_can_metal_01/textures/watering_can_metal_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "nor_gl": "Models/watering_can_metal_01/textures/watering_can_metal_01_nor_gl_1k.exr",
+     "rough": "Models/watering_can_metal_01/textures/watering_can_metal_01_rough_1k.exr",
+     "metal": "Models/watering_can_metal_01/textures/watering_can_metal_01_metal_1k.exr",
+     "diff": "Models/watering_can_metal_01/textures/watering_can_metal_01_diff_1k.jpg"
+    }
+   },
+   "authors": [
+    "Charles Nderitu"
+   ],
+   "note": "House round 2 (2026-10-13)."
+  },
+  {
+   "id": "garden_hose_wall_mounted_01",
+   "role": "yard.hose",
+   "name": "Garden Hose Wall Mounted 01",
+   "source": "polyhaven",
+   "url": "https://polyhaven.com/a/garden_hose_wall_mounted_01",
+   "fbx": "Models/garden_hose_wall_mounted_01/garden_hose_wall_mounted_01_1k.fbx",
+   "dims_m": [
+    0.467,
+    0.557,
+    0.25
+   ],
+   "tris": 11684,
+   "textures": [
+    "Models/garden_hose_wall_mounted_01/textures/garden_hose_wall_mounted_01_diff_1k.jpg",
+    "Models/garden_hose_wall_mounted_01/textures/garden_hose_wall_mounted_01_metal_1k.exr",
+    "Models/garden_hose_wall_mounted_01/textures/garden_hose_wall_mounted_01_nor_gl_1k.exr",
+    "Models/garden_hose_wall_mounted_01/textures/garden_hose_wall_mounted_01_rough_1k.exr"
+   ],
+   "materials": {
+    "_": {
+     "rough": "Models/garden_hose_wall_mounted_01/textures/garden_hose_wall_mounted_01_rough_1k.exr",
+     "diff": "Models/garden_hose_wall_mounted_01/textures/garden_hose_wall_mounted_01_diff_1k.jpg",
+     "metal": "Models/garden_hose_wall_mounted_01/textures/garden_hose_wall_mounted_01_metal_1k.exr",
+     "nor_gl": "Models/garden_hose_wall_mounted_01/textures/garden_hose_wall_mounted_01_nor_gl_1k.exr"
+    }
+   },
+   "authors": [
+    "Kuutti Siitonen"
+   ],
+   "note": "House round 2 (2026-10-13)."
   }
  ],
  "surfaces": [
