@@ -4,14 +4,17 @@
  "title": "Visiting Hours: the house tips (Night 2's escape, room by room)",
  "subtitle": "The escape rebuilt as the night's peak: eleven rooms the house can't hold, each with its own light and sound, folding shut behind her. One still from each checkpoint, looking ahead. At full speed it takes about a minute (62 to 64 s), with a checkpoint every 10 to 20 s.",
  "questions": [
+  "Ceilings: closed in (the default, shown here: every room but the observatory has one, so the hallways and kitchens feel shut in), or open to the sky over the walls? It's one switch.",
+  "Theo's window: if Lena ends unsure, Theo opens a window beside the stairwell door, and climbing through it skips the drop. If she condemns Nadia, the house folds faster behind her there instead. Do those two endings feel different enough?",
   "Length: about a minute, eleven rooms. Too long, too short, or right for a fever dream?",
   "Does each room still read as a room of this house (the kitchen, the hallway, Theo's room, the attic), or do they blur together?",
   "The stairwell door is the hardest spot. After two falls there, the dream offers to let her through in exchange for a memory. Does that offer feel right, or should the spot just be easier?"
  ],
  "notes": [
-  "Each room now has its two walls. In the tipped rooms that means the old floor on the left and the old ceiling on the right; the last hall is papered; the attic is in its boards. The pendant, the clock, the upside-down calendar and the hanging counters hang on those walls. The observatory's far end is night around a framed doorway into the attic.",
-  "The walls are only pictures and have no collision, so the course, its wallruns and its timings are unchanged.",
-  "The rooms have no ceilings: the sky shows over the walls. Say if you want them closed in."
+  "Each room has its two walls and a ceiling. In the tipped rooms that means the old floor on the left, the old ceiling on the right and the papered old wall overhead; the last hall is the right way up; the attic is in its boards. The observatory stays open to the night, with a framed doorway into the attic.",
+  "Fixed after these stills: thin slots of sky show either side under the ceilings, where a room's floor stops (over the slides and the gaps). The walls now run each room's whole length; next to a wall she runs along, only the strip above it is added, so that wall still stands out.",
+  "Theo's answer pays off too: as Lena turns Nadia out, he has a parting line that depends on what she told him (honest, comfort or silence). The lines are placeholders.",
+  "The walls and ceilings are only pictures and have no collision, so the course, its wallruns and its timings are unchanged."
  ],
  "sections": [
   {
@@ -75,6 +78,10 @@
      "label": "The stairwell door: it opens onto the drop (the memory offer comes here after two falls)"
     },
     {
+     "file": "art/review/2026-10-13/house-escape/escape-house-11b-theos-window-open.png",
+     "label": "Theo's window, open: when Lena ends unsure he opens it, and climbing through skips the drop (shut, with the curtain drawn, otherwise)"
+    },
+    {
      "file": "art/review/2026-10-13/house-escape/escape-house-12-the-last-door.png",
      "label": "The last hall, the right way up, to the front door and the rain"
     }
@@ -95,6 +102,24 @@
     {
      "file": "art/review/2026-10-13/house-escape/house-17-lena-at-the-window.png",
      "label": "Lena at the window as Nadia leaves"
+    }
+   ]
+  },
+  {
+   "title": "The new drawings in place: the pancakes, the place card, THE BAD DREAM",
+   "cols": 3,
+   "items": [
+    {
+     "file": "art/review/2026-10-13/house-escape/house-04-table-and-lena.png",
+     "label": "The pancakes: Theo and Lena at the table"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/house-04b-place-card.png",
+     "label": "Nadia's place card at the fourth chair"
+    },
+    {
+     "file": "art/review/2026-10-13/house-escape/house-11d-the-bad-dream.png",
+     "label": "THE BAD DREAM on top of Theo's bookcase (it reads upside down from this side)"
     }
    ]
   }

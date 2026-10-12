@@ -540,14 +540,32 @@ namespace JamKit.DreamEscape.EditorTools
                     bool lastHall = er.name == LastHallRoom, attic = er.name == AtticStairsRoom;
                     Material left = lastHall ? paper : attic ? boards : oldFloor, right = lastHall ? paper : attic ? boards : oldCeiling;
                     Material over = lastHall ? oldCeiling : attic ? boards : paper;
-                    float top = float.MinValue;
-                    foreach (var p in floors) top = Mathf.Max(top, p.Max.Y);
+                    float top = float.MinValue, low = float.MaxValue;
+                    foreach (var p in floors) { top = Mathf.Max(top, p.Max.Y); low = Mathf.Min(low, p.Max.Y); }
                     float ceil = top + (lastHall ? LastHallHeight : EscapeRoomHeight);   // the last hall meets the front door's wall
-                    foreach (var p in floors)
+                    // The walls run the room's whole length (2026-10-13 capture: between its floors, over the slides and the
+                    // gaps, the sky showed through in slots under the ceiling). Where a run wall stands on that side (and the
+                    // 3 m run-up to it), only the strip above it, so the wall she runs stays the one that reads.
+                    foreach (float side in new[] { -1f, 1f })
                     {
-                        float y0 = p.Max.Y - 2f, len = p.size.Z;
-                        DreamEscapeBuilder.Box("Room wall (left)", g, new Vector3(-4.6f, (y0 + ceil) * 0.5f, p.center.Z), new Vector3(0.1f, ceil - y0, len), left);
-                        DreamEscapeBuilder.Box("Room wall (right)", g, new Vector3(4.6f, (y0 + ceil) * 0.5f, p.center.Z), new Vector3(0.1f, ceil - y0, len), right);
+                        var runs = h.course.pieces.FindAll(p => p.kind == LabPieceKind.Wall && p.center.X * side > 4f && p.Max.Z > er.s && p.Min.Z < re);
+                        runs.Sort((a, b) => a.Min.Z.CompareTo(b.Min.Z));
+                        float z = er.s;
+                        void Full(float z0, float z1)
+                        {
+                            if (z1 - z0 < 0.05f) return;
+                            float y0 = low - 2f;
+                            DreamEscapeBuilder.Box(side < 0f ? "Room wall (left)" : "Room wall (right)", g, new Vector3(4.6f * side, (y0 + ceil) * 0.5f, (z0 + z1) * 0.5f), new Vector3(0.1f, ceil - y0, z1 - z0), side < 0f ? left : right);
+                        }
+                        foreach (var w in runs)
+                        {
+                            float a = Mathf.Max(z, w.Min.Z - 3f), b = Mathf.Min(re, w.Max.Z);
+                            Full(z, a);
+                            if (b > a && ceil > w.Max.Y + 0.05f)
+                                DreamEscapeBuilder.Box(side < 0f ? "Room wall (left, over the run)" : "Room wall (right, over the run)", g, new Vector3(4.6f * side, (w.Max.Y + ceil) * 0.5f, (a + b) * 0.5f), new Vector3(0.1f, ceil - w.Max.Y, b - a), side < 0f ? left : right);
+                            z = Mathf.Max(z, b);
+                        }
+                        Full(z, re);
                     }
                     if (EscapeCeilings)
                         DreamEscapeBuilder.Box("Room ceiling", g, new Vector3(0f, ceil + 0.05f, (er.s + re) * 0.5f), new Vector3(9.3f, 0.1f, re - er.s), over);
