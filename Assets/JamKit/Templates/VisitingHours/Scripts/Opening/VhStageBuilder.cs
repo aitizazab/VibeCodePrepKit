@@ -735,60 +735,28 @@ namespace JamKit.VisitingHours
             VhMeshKit.Show(tablePiece.transform, "Table top", s.meshes.RoundedBox(new Vector3(1.5f, 0.045f, 1.1f), 0.015f, 3), st.Mat(VhWakingStyle.WoodPale, woodTex), new Vector3(0f, 0.7275f, 0.15f), Quaternion.identity);
             FinishPiece(tablePiece, false);
 
-            // Where the camera sits for the title (the tablet faces it): seated at the table's near edge, looking down at it.
-            Vector3 camPos = t.TransformPoint(TableCamera);
+            // Laid out to the creator's sketch (art/review/2026-10-12/title-screen/creator-sketch.png), seen from straight
+            // above (see TableCamera): the tablet large and turned, upper left, running off the left edge; the quit piece
+            // upper right (the mug's handle cut by the right edge); the notepad at the bottom, cut by it; the badge bottom
+            // right with its lanyard. The frame shows the table from x -0.31 to 0.31 m and z -0.175 to 0.175 m.
 
-            // The tablet (Play), big, propped on its folio, its screen to the camera: most of the frame.
-            Vector3 tabletFoot = new Vector3(0f, 0.75f, 0.08f);
-            Vector3 footWorld = t.TransformPoint(tabletFoot);
+            // The tablet (Play), lying flat, screen up, turned 11.5 degrees (its right side further away).
             const float tabW = 0.46f, tabH = 0.30f;
-            Vector3 toCam = (camPos - (footWorld + Vector3.up * (tabH * 0.45f))).normalized;
-            Vector3 screenUp = (Vector3.up - toCam * Vector3.Dot(Vector3.up, toCam)).normalized;
-            var tablet = Piece(s, t, "tablet", VhTitleAction.Play, tabletFoot, Quaternion.LookRotation(screenUp, toCam));
-            tablet.lift = 0.008f;
-            tablet.tilt = 1.5f;
-            var device = Pivot(tablet.transform, "Tablet", new Vector3(0f, 0f, tabH * 0.5f), Quaternion.identity);
-            BuildDevice(s, device, tabW, tabH, 0.008f, 0.018f, 0.01f, 0.015f, out var tabletScreen, out _, -0.004f);
+            var tablet = Piece(s, t, "tablet", VhTitleAction.Play, new Vector3(-0.119f, 0.75f, 0.063f), Quaternion.Euler(0f, -11.5f, 0f));
+            tablet.lift = 0.006f;
+            tablet.tilt = 0.8f;
+            var device = Pivot(tablet.transform, "Tablet", Vector3.zero, Quaternion.identity);
+            BuildDevice(s, device, tabW, tabH, 0.008f, 0.018f, 0.01f, 0.015f, out var tabletScreen, out _, 0f);
             s.tabletScreenMat = tabletScreen;
-            // A front camera in the top bezel.
-            VhMeshKit.Show(device, "Front camera", s.meshes.Disc(0.0018f, 10), st.Mat(new Color(0.08f, 0.09f, 0.11f), null, 0f), new Vector3(0f, 0.0047f, tabH * 0.5f - 0.005f), Quaternion.identity, false);
-            // The folio's flap behind it, from halfway up its back down to the table.
-            Vector3 a = new Vector3(0f, -0.006f, tabH * 0.55f);
-            Vector3 aWorld = tablet.transform.TransformPoint(a);
-            Vector3 back = Vector3.ProjectOnPlane(-toCam, Vector3.up).normalized;
-            Vector3 bWorld = new Vector3(aWorld.x, footWorld.y + 0.003f, aWorld.z) + back * 0.1f;
-            Vector3 flapMid = tablet.transform.InverseTransformPoint((aWorld + bWorld) * 0.5f);
-            Quaternion flapRot = Quaternion.Inverse(tablet.transform.rotation) * Quaternion.LookRotation(bWorld - aWorld, toCam);
-            Box(s, tablet.transform, "Folio flap", new Vector3(tabW * 0.9f, 0.005f, Vector3.Distance(aWorld, bWorld)), flapMid, st.Mat(new Color(0.24f, 0.26f, 0.30f)), 1f, flapRot);
+            VhMeshKit.Show(device, "Front camera", s.meshes.Disc(0.0018f, 10), st.Mat(new Color(0.08f, 0.09f, 0.11f), null, 0f), new Vector3(0f, 0.0087f, tabH * 0.5f - 0.005f), Quaternion.identity, false);
             FinishPiece(tablet, true);
 
-            // The mug (Quit): half drunk, "Quit" in the milk.
-            var mug = Piece(s, t, "mug", VhTitleAction.Quit, new Vector3(0.26f, 0.75f, 0.0f), Quaternion.Euler(0f, -10f, 0f));
-            var mugMat = st.Mat(VhWakingStyle.Mug);
-            VhMeshKit.Show(mug.transform, "Mug", s.meshes.Cylinder(0.041f, 0.044f, 0.096f, 32, false, true), mugMat, Vector3.zero, Quaternion.identity);
-            VhMeshKit.Show(mug.transform, "Inside", s.meshes.Cylinder(0.038f, 0.0405f, 0.09f, 32, false, false, true), st.Mat(VhWakingStyle.Mug * 0.92f, null, 0f), new Vector3(0f, 0.006f, 0f), Quaternion.identity, false);
-            var ring = new List<Vector3>();
-            for (int i = 0; i <= 40; i++)
-            {
-                float ang = i / 40f * Mathf.PI * 2f;
-                ring.Add(new Vector3(Mathf.Cos(ang) * 0.0422f, 0.096f, Mathf.Sin(ang) * 0.0422f));
-            }
-            VhMeshKit.Show(mug.transform, "Rim", s.meshes.Tube(ring, 0.0022f, 6), mugMat, Vector3.zero, Quaternion.identity, false);
-            var handle = new List<Vector3>();
-            for (int i = 0; i <= 14; i++)
-            {
-                float ang = Mathf.Lerp(-75f, 75f, i / 14f) * Mathf.Deg2Rad;
-                handle.Add(new Vector3(0.04f + Mathf.Cos(ang) * 0.027f, 0.05f + Mathf.Sin(ang) * 0.03f, 0f));
-            }
-            VhMeshKit.Show(mug.transform, "Handle", s.meshes.Tube(handle, 0.0065f, 8), mugMat, Vector3.zero, Quaternion.identity);
-            var coffee = Art(s, "coffee_quit", () => tx.CoffeeQuit(s.boot != null ? s.boot.Art("coffee_swirl") : null));
-            // Counter-turn the coffee so "Quit" reads straight to the camera.
-            VhMeshKit.Show(mug.transform, "Coffee", s.meshes.Disc(0.0395f, 40), Crop(st.Mat(Color.white, coffee, 0f), coffee, 1f, 1.1f), new Vector3(0f, 0.081f, 0f), Quaternion.Euler(0f, 10f, 0f), false);
-            FinishPiece(mug, true);
-            if (!VhTitleTable.QuitAvailable) mug.action = VhTitleAction.None;
+            // The quit piece, upper right: one setting picks it (QuitPiece); on the Despair route it's the pill bottle.
+            var quit = BuildQuitPiece(s, t, QuitVariant());
+            if (!VhTitleTable.QuitAvailable) quit.action = VhTitleAction.None;
 
-            // The notepad (Credits: written at the top of its page) with the pen on it, at the front left.
-            var pad = Piece(s, t, "notepad", VhTitleAction.Credits, new Vector3(-0.25f, 0.75f, -0.03f), Quaternion.Euler(0f, 15f, 0f));
+            // The notepad (Credits: written at the top of its page) at the bottom, cut by the bottom edge, the pen on it.
+            var pad = Piece(s, t, "notepad", VhTitleAction.Credits, new Vector3(-0.0125f, 0.75f, -0.218f), Quaternion.Euler(0f, 12f, 0f));
             VhMeshKit.Show(pad.transform, "Pad", s.meshes.RoundedBox(new Vector3(0.15f, 0.014f, 0.21f), 0.003f, 3), st.Mat(VhWakingStyle.Paper), new Vector3(0f, 0.007f, 0f), Quaternion.identity);
             var pageArt = s.boot != null ? s.boot.Art("notepad_page") : null;
             if (pageArt == null && !s.missingArt.Contains("notepad_page")) s.missingArt.Add("notepad_page");
@@ -796,7 +764,7 @@ namespace JamKit.VisitingHours
             VhMeshKit.Show(pad.transform, "Page", s.meshes.Quad(0.144f, 0.2f), Crop(st.Mat(Color.white, page, 0f), page, 0.144f / 0.2f), new Vector3(0f, 0.0143f, -0.003f), Quaternion.Euler(90f, 0f, 0f), false);
             VhMeshKit.Show(pad.transform, "Binding", s.meshes.RoundedBox(new Vector3(0.152f, 0.012f, 0.02f), 0.004f, 3), st.Mat(new Color(0.22f, 0.24f, 0.28f)), new Vector3(0f, 0.013f, 0.1f), Quaternion.identity);
             FinishPiece(pad, true);
-            var pen = Piece(s, t, "pen", VhTitleAction.Credits, new Vector3(-0.225f, 0.769f, -0.065f), Quaternion.Euler(0f, 39f, 90f), "notepad");
+            var pen = Piece(s, t, "pen", VhTitleAction.Credits, new Vector3(0.035f, 0.769f, -0.15f), Quaternion.Euler(0f, 70f, 90f), "notepad");
             var navy = st.Mat(new Color(0.18f, 0.21f, 0.32f));
             VhMeshKit.Show(pen.transform, "Barrel", s.meshes.Cylinder(0.0045f, 0.0045f, 0.12f, 12), navy, new Vector3(0f, -0.06f, 0f), Quaternion.identity);
             VhMeshKit.Show(pen.transform, "Tip", s.meshes.Cylinder(0.0045f, 0.0008f, 0.018f, 12), st.Mat(VhWakingStyle.Metal), new Vector3(0f, 0.06f, 0f), Quaternion.identity);
@@ -804,8 +772,10 @@ namespace JamKit.VisitingHours
             pen.lift = 0.012f;
             FinishPiece(pen, true);
 
-            // Nadia's ID badge on its lanyard (Settings: a gear and the word on the card), at the front right by the mug.
-            var badge = Piece(s, t, "badge", VhTitleAction.Settings, new Vector3(0.06f, 0.75f, -0.04f), Quaternion.Euler(0f, -20f, 0f));
+            // Nadia's ID badge on its lanyard (Settings: a gear and the word on the card), bottom right, cut by the bottom
+            // edge; a little larger than life so "Settings" reads from above. The lanyard arches up from the clip and curls left.
+            var badge = Piece(s, t, "badge", VhTitleAction.Settings, new Vector3(0.258f, 0.75f, -0.131f), Quaternion.Euler(0f, -6f, 0f));
+            badge.transform.localScale = Vector3.one * 1.4f;
             VhMeshKit.Show(badge.transform, "Card", s.meshes.RoundedBox(new Vector3(0.056f, 0.002f, 0.088f), 0.0015f, 2), st.Mat(new Color(0.9f, 0.9f, 0.88f)), new Vector3(0f, 0.001f, 0f), Quaternion.identity);
             var photo = s.boot != null ? s.boot.Art("badge_photo") : null;
             var faceArt = s.boot != null ? s.boot.Art("badge_face") : null;
@@ -827,7 +797,7 @@ namespace JamKit.VisitingHours
             VhMeshKit.Show(badge.transform, "Lanyard", s.meshes.Tube(lanyard, 0.0036f, 10), st.Mat(VhWakingStyle.Lanyard, null, 0.6f), Vector3.zero, Quaternion.identity);
             FinishPiece(badge, true);
 
-            var keyGo = new GameObject("Morning (light)");
+            var keyGo = new GameObject(TableLampName);
             keyGo.transform.SetParent(t, false);
             keyGo.transform.rotation = Quaternion.Euler(48f, 40f, 0f);
             var key = keyGo.AddComponent<Light>();
@@ -841,9 +811,90 @@ namespace JamKit.VisitingHours
 
         // ---------- Camera poses ----------
 
-        /// <summary>The title's camera (table space): seated at the near edge, looking down at the tablet, and its field of view.</summary>
-        static readonly Vector3 TableCamera = new Vector3(0f, 1.17f, -0.50f), TableLook = new Vector3(0f, 0.82f, 0.06f);
+        /// <summary>The title's camera (table space): straight down over the table, 0.37 m above it, the far side of the
+        /// table at the top of the frame (the creator's sketch); its field of view.</summary>
+        static readonly Vector3 TableCamera = new Vector3(0f, 1.12f, 0f), TableLook = new Vector3(0f, 0.75f, 0f);
         const float TableFov = 50f;
+
+        /// <summary>The light over the title table (the editor's "title-lamp"; the lighting places it).</summary>
+        public const string TableLampName = "Lamp over the table (light)";
+
+        /// <summary>
+        /// The title's quit piece on the normal route (the creator hasn't picked its thematic object yet: change this one
+        /// setting when they do, and add the object to <see cref="BuildQuitPiece"/>). "mug": the coffee mug with "Quit" in
+        /// its milk. On the Despair route it's always the pill bottle labelled "Give Up".
+        /// </summary>
+        public const string QuitPiece = "mug";
+
+        /// <summary>Tests and the title capture: force the quit piece's variant ("normal", "despair"); null = the save decides.</summary>
+        public static string QuitVariantOverride;
+
+        /// <summary>"despair" when the save has the Despair route (she went on into the rain without the umbrella), else "normal".</summary>
+        public static string QuitVariant()
+        {
+            if (!string.IsNullOrEmpty(QuitVariantOverride)) return QuitVariantOverride;
+            bool despair = GameRoot.Exists && GameRoot.Save != null && GameRoot.Save.Data != null && GameRoot.Save.Data.HasFlag(JamKit.DreamEscape.DreamRain.DespairFlag);
+            return despair ? "despair" : "normal";
+        }
+
+        /// <summary>
+        /// The quit piece (piece id "mug": the quit slot, whatever object fills it; the opening's cues and the editor's
+        /// "title-mug" use it), upper right: on the Despair route a pill bottle on its side labelled "Give Up", else
+        /// <see cref="QuitPiece"/>.
+        /// </summary>
+        static VhTitlePiece BuildQuitPiece(VhStage s, Transform t, string variant)
+        {
+            var st = s.style;
+            if (variant == "despair")
+            {
+                // An amber pharmacy bottle lying on its side, its white cap to the right, its label up.
+                var bottle = Piece(s, t, "mug", VhTitleAction.Quit, new Vector3(0.235f, 0.75f, 0.07f), Quaternion.Euler(0f, -18f, 0f));
+                const float r = 0.019f, len = 0.072f;
+                var amber = st.Mat(new Color(0.78f, 0.42f, 0.12f), null, 0.85f);
+                VhMeshKit.Show(bottle.transform, "Bottle", s.meshes.Cylinder(r, r, len, 28, true, true), amber, new Vector3(-len * 0.5f, r, 0f), Quaternion.Euler(0f, 0f, -90f));
+                var cap = st.Mat(new Color(0.93f, 0.93f, 0.92f));
+                VhMeshKit.Show(bottle.transform, "Cap", s.meshes.Cylinder(r * 1.12f, r * 1.12f, 0.02f, 28, true, true), cap, new Vector3(len * 0.5f, r, 0f), Quaternion.Euler(0f, 0f, -90f));
+                var label = s.textures.PillLabel();
+                VhMeshKit.Show(bottle.transform, "Label", s.meshes.Quad(0.056f, 0.028f), st.Mat(Color.white, label, 0f), new Vector3(-0.002f, r * 2f + 0.0006f, 0f), Quaternion.Euler(90f, 0f, 0f), false);
+                FinishPiece(bottle, true);
+                return bottle;
+            }
+            switch (QuitPiece)
+            {
+                default:
+                    return BuildMug(s, t, new Vector3(0.245f, 0.75f, 0.0665f), 0f);
+            }
+        }
+
+        /// <summary>The mug (Quit): half drunk, "Quit" in the milk, read straight from above whatever its turn.</summary>
+        static VhTitlePiece BuildMug(VhStage s, Transform t, Vector3 at, float yaw)
+        {
+            var st = s.style;
+            var tx = s.textures;
+            var mug = Piece(s, t, "mug", VhTitleAction.Quit, at, Quaternion.Euler(0f, yaw, 0f));
+            var mugMat = st.Mat(VhWakingStyle.Mug);
+            VhMeshKit.Show(mug.transform, "Mug", s.meshes.Cylinder(0.041f, 0.044f, 0.096f, 32, false, true), mugMat, Vector3.zero, Quaternion.identity);
+            VhMeshKit.Show(mug.transform, "Inside", s.meshes.Cylinder(0.038f, 0.0405f, 0.09f, 32, false, false, true), st.Mat(VhWakingStyle.Mug * 0.92f, null, 0f), new Vector3(0f, 0.006f, 0f), Quaternion.identity, false);
+            var ring = new List<Vector3>();
+            for (int i = 0; i <= 40; i++)
+            {
+                float ang = i / 40f * Mathf.PI * 2f;
+                ring.Add(new Vector3(Mathf.Cos(ang) * 0.0422f, 0.096f, Mathf.Sin(ang) * 0.0422f));
+            }
+            VhMeshKit.Show(mug.transform, "Rim", s.meshes.Tube(ring, 0.0022f, 6), mugMat, Vector3.zero, Quaternion.identity, false);
+            var handle = new List<Vector3>();
+            for (int i = 0; i <= 14; i++)
+            {
+                float ang = Mathf.Lerp(-75f, 75f, i / 14f) * Mathf.Deg2Rad;
+                handle.Add(new Vector3(0.04f + Mathf.Cos(ang) * 0.027f, 0.05f + Mathf.Sin(ang) * 0.03f, 0f));
+            }
+            VhMeshKit.Show(mug.transform, "Handle", s.meshes.Tube(handle, 0.0065f, 8), mugMat, Vector3.zero, Quaternion.identity);
+            var coffee = Art(s, "coffee_quit", () => tx.CoffeeQuit(s.boot != null ? s.boot.Art("coffee_swirl") : null));
+            // Counter-turn the coffee so "Quit" reads straight to the camera.
+            VhMeshKit.Show(mug.transform, "Coffee", s.meshes.Disc(0.0395f, 40), Crop(st.Mat(Color.white, coffee, 0f), coffee, 1f, 1.1f), new Vector3(0f, 0.081f, 0f), Quaternion.Euler(0f, -yaw, 0f), false);
+            FinishPiece(mug, true);
+            return mug;
+        }
 
         static void Poses(VhStage s)
         {
@@ -854,7 +905,7 @@ namespace JamKit.VisitingHours
             s.AddPose("away", eyes + new Vector3(0.04f, -0.03f, -0.02f), b.TransformPoint(new Vector3(1.2f, 0.7f, 0.9f)), Vector3.up, 24f, 62f);
             s.AddPose("overhead", b.TransformPoint(new Vector3(-0.52f, 1.62f, 0.98f)), b.TransformPoint(new Vector3(-0.6f, 0.55f, 1.24f)), Vector3.forward, 0f, 50f);
             var t = s.tableRoot;
-            s.AddPose("table", t.TransformPoint(TableCamera), t.TransformPoint(TableLook), Vector3.up, 0f, TableFov);
+            s.AddPose("table", t.TransformPoint(TableCamera), t.TransformPoint(TableLook), t.forward, 0f, TableFov);
         }
 
         // ---------- Sound sources ----------

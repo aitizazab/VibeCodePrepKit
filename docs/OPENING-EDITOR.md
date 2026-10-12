@@ -123,7 +123,7 @@ built.
   face a moved title camera: turn it.
 - **The streetlight's blind stripes** are worked out when the sets are built. Press **Rebuild with my edits** to see
   them follow a moved streetlight.
-- **The morning sun, and the lamps the lighting adds itself**, are placed by the lighting. Your moves are applied on
+- **The lamp over the title table, and the lamps the lighting adds itself**, are placed by the lighting. Your moves are applied on
   top of that.
 - These notes show in the right-hand panel when the thing is selected.
 
@@ -131,7 +131,7 @@ built.
 **Ctrl+S**, or the Save button. Closing the editor also saves any unsaved edits.
 
 **What's saved:** `VisitingHoursOpeningEdits.json`. It holds only what differs from the built scene, keyed by stable
-ids such as `phone`, `phone-held`, `nightstand`, `bed`, `title-tablet`, `sun` and `shot:table`. The format hasn't changed since the
+ids such as `phone`, `phone-held`, `nightstand`, `bed`, `title-tablet`, `title-lamp` and `shot:table`. The format hasn't changed since the
 first version of the editor, so files saved then still load.
 
 **Where it's saved:**

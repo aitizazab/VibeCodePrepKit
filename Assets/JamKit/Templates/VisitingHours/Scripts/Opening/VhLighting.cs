@@ -13,10 +13,10 @@ namespace JamKit.VisitingHours
     /// a cool glow on the nightstand and, in her hand, on her fingers and the blanket. Graded teal shadows and warm highlights,
     /// dark but not black, a vignette, bloom on the practicals, a little grain; the background falls out of focus behind
     /// the phone.</para>
-    /// <para><b>The table in the morning:</b> low, warm sun through an off-screen window, its panes and mullions laid across
-    /// the table and the wall behind (a cookie on the sun), long soft shadows, a cool sky fill from the room side, the
-    /// tablet's screen on the table (red and blue from the report's emergency lights while it plays). Graded warm and quiet,
-    /// slightly lifted blacks, soft bloom, a gentle vignette, the wall behind out of focus.</para>
+    /// <para><b>The table at night</b> (the creator's sketch, 2026-10-12: the same night as the opening, real light): seen from
+    /// straight above, lit by one warm lamp off the frame's upper right (a soft-shadowed spot, its pool falling off towards the
+    /// lower left), a faint cold moonlight fill, a dark cool room, and the tablet's screen on the table (red and blue from the
+    /// report's emergency lights while it plays). Graded like the bedroom's night: teal shadows, warm highlights.</para>
     /// <para><b>The streetlight's stripes</b> come from a cookie traced from the real window and slats, on every platform: the
     /// spot's own soft shadows (PC) thicken the 4 mm slats until they close the gaps (round 2's PC captures had no stripes), and
     /// WebGL (the Mobile quality level) has no spot-light shadows at all. Everything used (cookies, Gaussian depth of field,
@@ -40,7 +40,16 @@ namespace JamKit.VisitingHours
         public static readonly Color ScreenColor = new Color(0.66f, 0.78f, 1f);
         public const float PhoneGlowIntensity = 0.012f, PhoneGlowRange = 1.5f, PhoneGlowHeight = 0.12f;
 
-        // ---- The table ----
+        // ---- The table (at night, under a lamp) ----
+        /// <summary>The room's ambient at the table at night: dim and cool, so the lamp shapes the table.</summary>
+        public static readonly Color TableNightSky = new Color(0.050f, 0.058f, 0.085f), TableNightGround = new Color(0.026f, 0.024f, 0.026f);
+        /// <summary>The lamp: warm tungsten, off the frame's upper right, about half a metre above the table, aimed across it.</summary>
+        public static readonly Color LampColor = new Color(1f, 0.74f, 0.46f);
+        public const float LampIntensity = 0.75f;
+        public static readonly Vector3 LampPosition = new Vector3(0.42f, 1.25f, 0.32f), LampTarget = new Vector3(-0.02f, 0.75f, -0.02f);
+        /// <summary>A faint cold moonlight from the other side, so the shadows aren't black.</summary>
+        public const float MoonFillIntensity = 0.07f;
+        // (The morning set-up, kept for reference: the title was a morning table before the creator's sketch.)
         public static readonly Color MorningSky = new Color(0.24f, 0.26f, 0.32f), MorningGround = new Color(0.17f, 0.145f, 0.12f);
         /// <summary>The sun: warm, about 35 degrees up, from the camera's left and a little behind it.</summary>
         public static readonly Color SunColor = new Color(1f, 0.90f, 0.76f);
@@ -212,41 +221,36 @@ namespace JamKit.VisitingHours
 
         static void LightTable(VhStage s, VhLightingRig rig)
         {
-            s.tableSky = MorningSky;
-            s.tableGround = MorningGround;
-            s.tableBackground = new Color(0.16f, 0.14f, 0.13f);
+            s.tableSky = TableNightSky;
+            s.tableGround = TableNightGround;
+            s.tableBackground = new Color(0.012f, 0.012f, 0.018f);
             var t = s.tableRoot;
             if (s.tableKey != null && t != null)
             {
+                // The lamp: a warm spot off the frame's upper right, soft shadows falling to the lower left.
                 var k = s.tableKey;
-                k.color = SunColor;
-                k.intensity = SunIntensity;
-                // The window cookie is centred on the light's position.
-                k.transform.position = t.TransformPoint(SunPatchCentre);
-                k.transform.rotation = Quaternion.LookRotation(SunDirection.normalized, Vector3.up);
+                k.type = LightType.Spot;
+                k.color = LampColor;
+                k.intensity = LampIntensity;
+                k.range = 4f;
+                k.spotAngle = 120f;
+                k.innerSpotAngle = 50f;
+                k.transform.position = t.TransformPoint(LampPosition);
+                k.transform.rotation = Quaternion.LookRotation((LampTarget - LampPosition).normalized, Vector3.up);
                 k.shadows = LightShadows.Soft;
-                k.shadowStrength = 0.85f;
-                Shadows(k, 0.02f, 0.2f, SoftShadowQuality.High);
-                var cookie = WindowCookie();
-                rig.owned.Add(cookie);
-                k.cookie = cookie;
-                var data = k.GetUniversalAdditionalLightData();
-                if (data != null)
-                {
-                    data.lightCookieSize = new Vector2(WindowCookieSize, WindowCookieSize);
-                    data.lightCookieOffset = Vector2.zero;
-                }
+                k.shadowStrength = 0.8f;
+                Shadows(k, 0.01f, 0.15f, SoftShadowQuality.High);
             }
             if (t != null)
             {
-                // The sky fill from the room side (with the table root, so it's only on at the table).
-                var fillGo = new GameObject("Sky fill (light)");
+                // A faint cold moonlight from the room's other side (with the table root, so it's only on at the table).
+                var fillGo = new GameObject("Moonlight at the table (light)");
                 fillGo.transform.SetParent(t, false);
-                fillGo.transform.rotation = Quaternion.LookRotation(new Vector3(-0.6f, -0.55f, 0.55f), Vector3.up);
+                fillGo.transform.rotation = Quaternion.LookRotation(new Vector3(0.5f, -0.8f, -0.3f), Vector3.up);
                 var f = fillGo.AddComponent<Light>();
                 f.type = LightType.Directional;
-                f.color = FillColor;
-                f.intensity = FillIntensity;
+                f.color = MoonColor;
+                f.intensity = MoonFillIntensity;
                 f.shadows = LightShadows.None;
 
                 var glowGo = new GameObject("Tablet glow (light)");
@@ -258,19 +262,6 @@ namespace JamKit.VisitingHours
                 g.intensity = rig.tabletGlowIntensity;
                 g.shadows = LightShadows.None;
                 rig.tabletGlow = g;
-
-                var wallGo = new GameObject("Morning on the wall (light)");
-                wallGo.transform.SetParent(t, false);
-                wallGo.transform.localPosition = new Vector3(-0.7f, 1.7f, 0.7f);
-                wallGo.transform.localRotation = Quaternion.LookRotation(new Vector3(0.35f, -0.15f, 1f), Vector3.up);
-                var w = wallGo.AddComponent<Light>();
-                w.type = LightType.Spot;
-                w.spotAngle = 110f;
-                w.innerSpotAngle = 20f;
-                w.range = 3.5f;
-                w.color = WallGlowColor;
-                w.intensity = WallGlowIntensity;
-                w.shadows = LightShadows.None;
             }
         }
 
@@ -366,20 +357,21 @@ namespace JamKit.VisitingHours
             rig.nightDof = nd;
             rig.nightColor = nc;
 
-            // Morning: warm and quiet, blacks a touch lifted, soft bloom on the sun patches, the wall out of focus.
-            var morning = Profile(rig, "VH morning grade");
+            // The table at night (the rig's "morning" volume, kept by that name): like the bedroom's night, a touch brighter
+            // for the menu: teal shadows, warm lamp highlights, soft bloom, a vignette.
+            var morning = Profile(rig, "VH table night grade");
             morning.Add<Tonemapping>().mode.Override(TonemappingMode.ACES);
             var mc = morning.Add<ColorAdjustments>();
-            mc.postExposure.Override(0.25f);
-            mc.contrast.Override(14f);
-            mc.saturation.Override(-14f);
+            mc.postExposure.Override(0.3f);
+            mc.contrast.Override(12f);
+            mc.saturation.Override(-8f);
             var mw = morning.Add<WhiteBalance>();
-            mw.temperature.Override(10f);
-            mw.tint.Override(2f);
+            mw.temperature.Override(-3f);
+            mw.tint.Override(0f);
             var msmh = morning.Add<ShadowsMidtonesHighlights>();
-            msmh.shadows.Override(new Vector4(0.94f, 0.98f, 1.06f, 0f));
-            msmh.highlights.Override(new Vector4(1.06f, 1.0f, 0.92f, 0f));
-            morning.Add<LiftGammaGain>().lift.Override(new Vector4(1.02f, 1f, 0.98f, 0.025f));
+            msmh.shadows.Override(new Vector4(0.88f, 0.98f, 1.10f, 0f));
+            msmh.highlights.Override(new Vector4(1.08f, 1.0f, 0.90f, 0f));
+            morning.Add<LiftGammaGain>().lift.Override(new Vector4(0.98f, 1f, 1.04f, 0.014f));
             var mb = morning.Add<Bloom>();
             mb.threshold.Override(0.9f);
             mb.intensity.Override(0.45f);
@@ -388,7 +380,7 @@ namespace JamKit.VisitingHours
             mb.highQualityFiltering.Override(true);
             mb.clamp.Override(20f);
             var mv = morning.Add<Vignette>();
-            mv.intensity.Override(0.28f);
+            mv.intensity.Override(0.38f);
             mv.smoothness.Override(0.5f);
             var mg = morning.Add<FilmGrain>();
             mg.type.Override(FilmGrainLookup.Thin1);

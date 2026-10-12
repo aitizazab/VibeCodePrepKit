@@ -438,6 +438,35 @@ namespace JamKit.VisitingHours
         /// The notepad page with the credits on it: the page art (or the drawn page, which already has them) with
         /// "Credits" written on its top lines, underlined, and a few lines of handwritten names under it.
         /// </summary>
+        /// <summary>The pill bottle's label (the Despair route's quit piece): pharmacy white paper, a coloured band, "Give Up"
+        /// in dark ink, a few printed lines.</summary>
+        public Texture2D PillLabel()
+        {
+            const int W = 512, H = 256;
+            var px = new Color[W * H];
+            Color paper = new Color(0.95f, 0.94f, 0.90f), band = new Color(0.62f, 0.22f, 0.22f), ink = new Color(0.13f, 0.14f, 0.18f);
+            for (int y = 0; y < H; y++)
+                for (int x = 0; x < W; x++)
+                {
+                    float n = Noise(x / 32f, y / 32f, 16, 31) * 0.025f;
+                    Color c = new Color(paper.r - n, paper.g - n, paper.b - n);
+                    if (y > H - 30) c = band;
+                    px[y * W + x] = c;
+                }
+            var brush = new Brush(px, W, H);
+            StrokeText.Draw(brush, "Give Up", new Vector2(0.5f, 0.52f), 0.17f, 0f, W, 6f, ink, 0.97f, (float)H / W);
+            var path = new List<Vector2>();
+            for (int row = 0; row < 2; row++)
+            {
+                path.Clear();
+                float y = (40f - row * 16f) / H;
+                path.Add(new Vector2(0.12f, y));
+                path.Add(new Vector2(row == 0 ? 0.8f : 0.55f, y));
+                brush.Stroke(path, W, 2.2f, new Color(0.45f, 0.46f, 0.5f), 0.9f, (float)H / W);
+            }
+            return Make("pill_label", W, H, px, false);
+        }
+
         public Texture2D NotepadCredits(Texture2D art)
         {
             if (art == null || !art.isReadable) return NotepadPage();
@@ -540,6 +569,19 @@ namespace JamKit.VisitingHours
                     case 'S':
                         Begin(); Arc(0.36f, 0.72f, 0.26f, 0.23f, 25f, 270f, 16); Arc(0.36f, 0.25f, 0.29f, 0.25f, 90f, -165f, 16); End();
                         return 0.74f;
+                    case 'G':
+                        Begin(); Arc(0.42f, 0.5f, 0.38f, 0.48f, 50f, 330f, 32); Pts.Add(new Vector2(0.79f, 0.44f)); Pts.Add(new Vector2(0.52f, 0.44f)); End();
+                        return 0.86f;
+                    case 'v':
+                        Begin(); Pts.Add(new Vector2(0.04f, 0.55f)); Pts.Add(new Vector2(0.26f, 0.0f)); Pts.Add(new Vector2(0.48f, 0.55f)); End();
+                        return 0.54f;
+                    case 'U':
+                        Begin(); Pts.Add(new Vector2(0.08f, 0.95f)); Pts.Add(new Vector2(0.08f, 0.3f)); Arc(0.38f, 0.3f, 0.3f, 0.3f, 180f, 360f, 14); Pts.Add(new Vector2(0.68f, 0.95f)); End();
+                        return 0.8f;
+                    case 'p':
+                        Begin(); Pts.Add(new Vector2(0.08f, 0.55f)); Pts.Add(new Vector2(0.08f, -0.35f)); End();
+                        Begin(); Arc(0.29f, 0.27f, 0.21f, 0.27f, 180f, 540f, 24); End();
+                        return 0.58f;
                     case 'n':
                         Begin(); Pts.Add(new Vector2(0.08f, 0.55f)); Pts.Add(new Vector2(0.08f, 0.0f)); End();
                         Begin(); Pts.Add(new Vector2(0.08f, 0.3f)); Arc(0.28f, 0.32f, 0.2f, 0.22f, 175f, 0f, 10); Pts.Add(new Vector2(0.48f, 0.0f)); End();

@@ -445,12 +445,13 @@ namespace JamKit.VisitingHours
             AddPiece(r, s, "title-table", "The table (and everything on it)", "table", "Carries the tablet, the mug, the notepad, the pen and the badge.", carried);
             AddPiece(r, s, "title-room", "The room behind the table (floor and wall)", "room", "");
             AddPiece(r, s, "title-tablet", "The tablet (Play)", "tablet", "It doesn't turn to face a moved title camera by itself: turn it.");
-            AddPiece(r, s, "title-mug", "The coffee mug (Quit)", "mug", "");
+            AddPiece(r, s, "title-mug", VhStageBuilder.QuitVariant() == "despair" ? "The pill bottle (Give Up: the Despair route's Quit)" : "The coffee mug (Quit)", "mug",
+                "The quit piece. On the Despair route it's the pill bottle, in this same place.");
             AddPiece(r, s, "title-notepad", "The notepad (Credits)", "notepad", "");
             AddPiece(r, s, "title-pen", "The pen", "pen", "");
             AddPiece(r, s, "title-badge", "The ID badge (Settings)", "badge", "");
-            var sun = Child(t, "Morning (light)");
-            var eSun = r.Add("sun", "The morning sun", Lights, sun, false, "The lighting places it over the table: your move is applied after that.");
+            var sun = Child(t, VhStageBuilder.TableLampName);
+            var eSun = r.Add("title-lamp", "The lamp over the table", Lights, sun, false, "The lighting places it over the table: your move is applied after that.");
             if (eSun != null) eSun.afterLighting = true;
 
             // The shots: a handle for each pose, in its set; moving it moves the pose (one key each).

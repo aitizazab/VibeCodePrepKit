@@ -79,7 +79,7 @@ namespace JamKit.VisitingHours.Tests
                 Assert.That(e.label, Is.Not.Empty, e.id);
             }
             foreach (var id in new[] { "bed", "nightstand", "lamp", "phone", "photo-frame", "streetlight", "moon", "title-table", "title-room",
-                         "title-tablet", "title-mug", "title-notepad", "title-pen", "title-badge", "sun",
+                         "title-tablet", "title-mug", "title-notepad", "title-pen", "title-badge", "title-lamp",
                          "shot:pillow", "shot:nightstand", "shot:away", "shot:overhead", "shot:table" })
                 Assert.That(ids.Contains(id), Is.True, "editable: " + id);
             if (s.nadia != null) Assert.That(ids.Contains("nadia"), Is.True);

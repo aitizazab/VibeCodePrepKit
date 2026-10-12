@@ -117,11 +117,18 @@ table presses them), so Play, Settings, Credits and Quit behave exactly as befor
    own headline scrolls along the bottom of the video. When the report ends the video pauses and its play button
    comes up: the title takes input.
 
-**The title table:** seen from a seat at its near edge (the camera at 1.17 m, 0.58 m in front of the tablet's
-foot, looking down at it, 50 degrees field of view). A big tablet (46 x 30 cm, a 16:10 screen in a thin bezel, a
-front camera) stands on its folio in the middle (about 40% of the frame's width, half its height); the mug stands
-at its right, handle out; the badge lies in front of it, its lanyard in a loop towards the middle; the notepad
-lies at the left with the pen across it. Everything is in the frame with room round it (nothing cut by its edges). The badge's card has a gear and "Settings" on its lower
+**The title table** (laid out to the creator's sketch, 2026-10-12: `FableAnimationTests/art/review/2026-10-12/title-screen/creator-sketch.png`):
+seen from straight above (the camera 0.37 m over the table, 50 degrees field of view), at night under one warm lamp off
+the frame's upper right, with a faint cold moonlight fill; graded like the bedroom's night. The big tablet (46 x 30 cm)
+lies flat, screen up, turned 11.5 degrees, filling the upper left and running off the left edge (its right side about
+70% across). The quit piece is upper right: the mug, its handle cut by the right edge and "Quit" in its milk reading
+straight up. The notepad is at the bottom, cut by it, with the pen across it. The badge (1.4 times life size, so
+"Settings" reads) is bottom right, cut by the bottom edge, its lanyard arching from the clip and curling left.
+**The quit piece** is one setting (`VhStageBuilder.QuitPiece`, now "mug"; the creator is choosing a thematic object). On
+the **Despair route** (the save's `vh_despair`) it's an amber pill bottle lying on its side, its label reading "Give Up".
+Its piece id stays "mug" (the quit slot), so the cues and the editor's "title-mug" cover both.
+**Checking it from a build:** `VisitingHours.exe -title-shot "<path>.png" [-title-variant normal|despair]` skips the
+opening, waits for the table, saves a screenshot and quits (`VhTitleShot`). The badge's card has a gear and "Settings" on its lower
 band, the notepad's page "Credits" (underlined) with handwritten names under it: both are written onto the
 pictures in code (`VhTextures.BadgeSettings`, `NotepadCredits`; the builder imports `op-badge` and `op-notepad`
 readable for it). The tablet is Play, the mug Quit (inert and never highlighted in the web build), the ID badge
