@@ -860,9 +860,20 @@ namespace JamKit.VisitingHours
             TakeCamera();
             var b = BoundsOf(_sel);
             float radius = Mathf.Max(0.04f, b.extents.magnitude);
-            float dist = radius / Mathf.Sin(_fov * 0.5f * Mathf.Deg2Rad) * 1.15f;
-            var fwd = CamRot * Vector3.forward;
-            _camPos = b.center - fwd * dist;
+            // Fit it in the part of the view the panels leave free (not the whole screen: the bars would cover it), with
+            // a margin, whatever the field of view (a shot's narrow lens included), and centre it there.
+            var full = _root != null ? _root.worldBound : new Rect(0f, 0f, 1920f, 1080f);
+            var area = ViewArea();
+            float fracV = Mathf.Clamp(area.height / Mathf.Max(1f, full.height), 0.3f, 1f);
+            float fracH = Mathf.Clamp(area.width / Mathf.Max(1f, full.width), 0.3f, 1f);
+            float tanV = Mathf.Tan(_fov * 0.5f * Mathf.Deg2Rad), aspect = Screen.width / Mathf.Max(1f, (float)Screen.height);
+            float half = Mathf.Atan(Mathf.Min(tanV * fracV, tanV * aspect * fracH));
+            float dist = radius / Mathf.Sin(half) * 1.12f;
+            var rot = CamRot;
+            float ox = (area.center.x - full.center.x) / Mathf.Max(1f, full.width * 0.5f);
+            float oy = -(area.center.y - full.center.y) / Mathf.Max(1f, full.height * 0.5f);
+            Vector3 rel = rot * new Vector3(ox * dist * tanV * aspect, oy * dist * tanV, dist);
+            _camPos = b.center - rel;
             _pivotDist = dist;
             _camAuto = false;
             _throughShot = null;

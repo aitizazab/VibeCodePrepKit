@@ -288,12 +288,35 @@ namespace JamKit.VisitingHours.Tests
             _in.SetButton(MouseButton.Right, false);
             yield return Frames(2);
             yield return _in.Tap(Key.F);
-            var centre = Ed.Selected.target.GetComponentInChildren<Renderer>().bounds.center;
-            Vector3 sp = Ed.Stage.cam.WorldToScreenPoint(centre);
-            Assert.That(sp.z, Is.GreaterThan(0f), "F: it's in front");
-            Assert.That(Mathf.Abs(sp.x / Screen.width - 0.5f), Is.LessThan(0.15f), "F: centred across");
-            Assert.That(Mathf.Abs(sp.y / Screen.height - 0.5f), Is.LessThan(0.15f), "F: centred up and down");
-            Assert.That(sp.z, Is.LessThan(2f), "F: close to it");
+            // Framed: the whole thing in the part of the view the panels leave free, filling a good share of it, in its
+            // middle (whatever the lens: the title shot's is narrow).
+            Bounds b = default;
+            bool any = false;
+            foreach (var r in Ed.Selected.target.GetComponentsInChildren<Renderer>())
+            {
+                if (!r.enabled) continue;
+                if (!any) b = r.bounds;
+                else b.Encapsulate(r.bounds);
+                any = true;
+            }
+            Assert.That(any, Is.True, "the tablet is drawn");
+            var view = Ed.ViewScreenRect();
+            float x0 = float.MaxValue, y0 = float.MaxValue, x1 = float.MinValue, y1 = float.MinValue;
+            for (int k = 0; k < 8; k++)
+            {
+                var c = b.center + Vector3.Scale(b.extents, new Vector3((k & 1) == 0 ? -1 : 1, (k & 2) == 0 ? -1 : 1, (k & 4) == 0 ? -1 : 1));
+                Vector3 sp = Ed.Stage.cam.WorldToScreenPoint(c);
+                Assert.That(sp.z, Is.GreaterThan(0f), "F: all of it in front of the camera");
+                x0 = Mathf.Min(x0, sp.x);
+                y0 = Mathf.Min(y0, sp.y);
+                x1 = Mathf.Max(x1, sp.x);
+                y1 = Mathf.Max(y1, sp.y);
+            }
+            string seen = "box " + Rect.MinMaxRect(x0, y0, x1, y1) + " in the free view " + view;
+            Assert.That(x0 >= view.xMin - 2f && x1 <= view.xMax + 2f && y0 >= view.yMin - 2f && y1 <= view.yMax + 2f, Is.True, "F: all of it in the free view, under no panel (" + seen + ")");
+            Assert.That(Mathf.Max((x1 - x0) / view.width, (y1 - y0) / view.height), Is.GreaterThan(0.35f), "F: it fills a good share of the view (" + seen + ")");
+            Assert.That(Mathf.Abs((x0 + x1) * 0.5f - view.center.x) / view.width, Is.LessThan(0.12f), "F: centred across the free view (" + seen + ")");
+            Assert.That(Mathf.Abs((y0 + y1) * 0.5f - view.center.y) / view.height, Is.LessThan(0.12f), "F: centred up and down (" + seen + ")");
         }
 
         // ---------- Selecting, handles, snapping, undo ----------

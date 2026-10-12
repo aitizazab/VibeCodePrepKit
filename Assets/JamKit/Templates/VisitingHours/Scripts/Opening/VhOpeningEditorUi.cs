@@ -1399,6 +1399,14 @@ namespace JamKit.VisitingHours
             return false;
         }
 
+        /// <summary>The part of the screen the panels leave for the view, in screen pixels (bottom-left origin).</summary>
+        public Rect ViewScreenRect()
+        {
+            var a = ViewArea();
+            Vector2 p0 = PanelToScreen(new Vector2(a.xMin, a.yMax)), p1 = PanelToScreen(new Vector2(a.xMax, a.yMin));
+            return Rect.MinMaxRect(Mathf.Min(p0.x, p1.x), Mathf.Min(p0.y, p1.y), Mathf.Max(p0.x, p1.x), Mathf.Max(p0.y, p1.y));
+        }
+
         /// <summary>True when the screen point is over one of the editor's panels.</summary>
         public bool IsOverPanels(Vector2 screen) => OverUi(ScreenToPanel(screen));
     }
