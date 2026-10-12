@@ -38,6 +38,7 @@ def main(path):
     okN = ok[idx][:, idx]
     zN = pos[..., 2][idx][:, idx]
     yN = pos[..., 1][idx][:, idx]
+    xN = pos[..., 0][idx][:, idx]
 
     # Prototypes: the median colour of front-facing texels near each sample point (x, z); a class may list several
     # ("samples") and is then the nearest of them.
@@ -98,6 +99,12 @@ def main(path):
                 gate &= yy <= c["ymax"]
             if "ymin" in c:
                 gate &= yy >= c["ymin"]
+            if "zskip" in c:   # a band this class may not take (hair under a bandage)
+                gate &= (zz < c["zskip"][0]) | (zz > c["zskip"][1])
+            if "not_in" in c:  # ellipsoids this class may not take: [cx, cy, cz, rx, ry, rz] (the face, for hair)
+                for e in c["not_in"]:
+                    xx_ = xN[r0:r0 + band]
+                    gate &= ((xx_ - e[0]) / e[3]) ** 2 + ((yy - e[1]) / e[4]) ** 2 + ((zz - e[2]) / e[5]) ** 2 > 1
             d[..., k] = np.where(gate | ~inside, d[..., k], np.inf)
             if c.get("islands_only"):
                 d[..., k] = np.where(inside, d[..., k], np.inf)
@@ -134,7 +141,7 @@ def main(path):
     s["_tex_orig"] = tex
     s["_normal_W"] = None
     if s.get("back_paint"):
-        back_paint(s, m, out, P)
+        delta += back_paint(s, m, out, P)
     if s.get("back_of_head"):
         delta += back_of_head(s, m, out, P)
     Image.fromarray(np.clip(out * 255 + 0.5, 0, 255).astype(np.uint8)).save(s["out"], quality=95)
@@ -146,6 +153,10 @@ def main(path):
         for k, c in enumerate(s["classes"]):
             if "roughness" in c:
                 rough[cls == k] = c["roughness"]
+        # Regions repainted from 3D (the back of the head's hair, the garment backs) get their own roughness: the
+        # hair matte, the fabric plain (Tripo's roughness there still traced the front's print).
+        for Wr, val in s.get("_rough_w", []):
+            blend_up(rough.reshape(N, N, 1), Wr, np.full(Wr.shape + (1,), val, dtype=np.float32))
         Image.fromarray(np.clip(rough * 255 + 0.5, 0, 255).astype(np.uint8)).save(s["rough_out"], quality=95)
 
     if s.get("vertex_moves"):
@@ -304,7 +315,26 @@ def back_paint(s, m, out, P):
     Wall, COL = grow(Wall, COL, ok.copy())
     blend_up(out, Wall, COL)
     s["_normal_W"] = Wall
+    s.setdefault("_rough_w", []).append((Wall, s.get("back_roughness", 0.82)))
     print("back paint: repainted", int((Wall > 0.5).sum()), "texels at 2048")
+    # The front's relief on the back (a bib's edge, a pocket, a placket) is in the mesh too: smooth it away there.
+    V = m["verts"]
+    Nv = m["normals"]
+    wv = np.zeros(len(V), dtype=np.float32)
+    iters = 0
+    for r in s["back_paint"]:
+        if not r.get("smooth"):
+            continue
+        iters = max(iters, r["smooth"])
+        w = np.clip((Nv[:, 1] - 0.05) / 0.35, 0, 1) * np.clip((V[:, 1] - r["ymin"]) / 0.02, 0, 1)
+        w *= np.clip((V[:, 2] - r["zmin"]) / 0.015, 0, 1) * np.clip((r["zmax"] - V[:, 2]) / 0.015, 0, 1)
+        w *= np.clip((r["xmax"] - np.abs(V[:, 0])) / 0.02, 0, 1)
+        wv = np.maximum(wv, w.astype(np.float32))
+    if iters == 0:
+        return np.zeros_like(V)
+    X = taubin(V, m["tris"], wv, iters)
+    print("back paint: smoothed", int((wv > 0.5).sum()), "verts, max move", round(float(np.abs(X - V).max()) * 1000, 2), "mm")
+    return X - V
 
 
 def back_of_head(s, m, out, P):
@@ -336,13 +366,24 @@ def back_of_head(s, m, out, P):
     theta = np.arctan2(d[..., 0], d[..., 1])
     z = pos[..., 2]
     if b.get("pattern", "strands") == "curls":
-        rng = np.random.default_rng(3)
+        # Tight curls as painted on the front: round tufts (cellular noise in 3D: bright crowns, dark gaps between).
+        cell = b.get("curl_size", 0.0045)
+        q = np.zeros(z.shape + (3,), dtype=np.float32)
+        sel = region(pos) > 0
+        P3 = pos[sel] / cell
+        base = np.floor(P3)
+        best = np.full(len(P3), 9.0, dtype=np.float32)
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for dz in (-1, 0, 1):
+                    cc = base + np.array([dx, dy, dz], dtype=np.float32)
+                    h = np.sin(cc @ np.array([127.1, 311.7, 74.7])) * 43758.5453
+                    jit = np.stack([np.modf(np.abs(h))[0], np.modf(np.abs(h * 1.37))[0], np.modf(np.abs(h * 1.91))[0]], -1)
+                    d = np.linalg.norm(P3 - (cc + jit), axis=1)
+                    best = np.minimum(best, d)
         pat = np.zeros(z.shape, dtype=np.float32)
-        for _ in range(6):
-            k = rng.normal(size=3)
-            k = k / np.linalg.norm(k) * rng.uniform(*b.get("curl_freq", [650, 950]))
-            pat += np.sin(pos @ k + rng.uniform(0, 6.28))
-        pat = np.abs(pat / 6.0) * 2.2
+        pat[sel] = np.clip(1.25 - best * 1.1, 0, 1) ** 0.8
+        del q
     else:
         pat = 0.5 + 0.5 * np.sin(theta * 70 + 9 * np.sin(z * 55) + 3 * np.sin(theta * 13))
         pat = 0.6 * pat + 0.4 * (0.5 + 0.5 * np.sin(theta * 160 + 5 * np.sin(z * 120)))
@@ -370,12 +411,26 @@ def back_of_head(s, m, out, P):
             have |= take
     # Up to the texture's size (each 2048 texel covers 2x2).
     blend_up(out, w, col)
+    # Matte hair: the repainted region's roughness (hair above the hairline, skin below keeps a softer value).
+    s.setdefault("_rough_w", []).append((w * t.astype(np.float32), b.get("roughness", 0.86)))
     if b.get("normal_in") and b.get("normal_out"):
         Wn = w if s.get("_normal_W") is None else np.maximum(w, s["_normal_W"])
         nm = np.asarray(Image.open(b["normal_in"]).convert("RGB"), dtype=np.float32) / 255.0
         if nm.shape[0] != N:
             nm = np.asarray(Image.open(b["normal_in"]).convert("RGB").resize((N, N)), dtype=np.float32) / 255.0
-        flat = np.broadcast_to(np.array([0.5, 0.5, 1.0], dtype=np.float32), Wn.shape + (3,))
+        flat = np.zeros(Wn.shape + (3,), dtype=np.float32)
+        flat[:] = [0.5, 0.5, 1.0]
+        # Strands in the normal map where the hair is: grooves along the hair's fall (a height field from the same
+        # pattern, differentiated in UV space: tangent x = +u, y = +v).
+        hs = b.get("strand_normal", 0.0)
+        if hs > 0:
+            hgt = pat.astype(np.float32)
+            gy, gx = np.gradient(hgt)
+            k = hs * 6.0
+            nrm_t = np.stack([-gx * k, gy * k, np.ones_like(hgt)], -1)
+            nrm_t /= np.linalg.norm(nrm_t, axis=-1, keepdims=True)
+            hairw = (t * ok).astype(np.float32)[..., None]
+            flat = flat * (1 - hairw) + (nrm_t * 0.5 + 0.5) * hairw
         blend_up(nm, Wn, flat)
         Image.fromarray(np.clip(nm * 255 + 0.5, 0, 255).astype(np.uint8)).save(b["normal_out"])
     print("back of head: repainted", int((w > 0.5).sum()), "texels at 2048")
@@ -432,6 +487,22 @@ def back_of_head(s, m, out, P):
         print("back of head: sank", int(sink.sum()), "dark verts")
     X = V + (target - V) * wv[:, None]
     X = taubin(X, m["tris"], np.clip(wv * 1.5, 0, 1) * (wv > 0.02), b.get("smooth", 12))
+    # The hair mass: the rounded skull is wrapped in hair of real thickness, thicker at the crown, thinning toward the
+    # nape, in clumps that run with the fall, ending at the hairline (just above the collar) in a soft lip.
+    hm = b.get("hair_mass")
+    if hm:
+        d3 = X - c
+        dirv = d3 / np.maximum(1e-6, np.linalg.norm(d3, axis=1, keepdims=True))
+        zv = X[:, 2]
+        th = np.interp(zv, [b["hairline"], c[2], c[2] + 0.06], [hm["nape"], hm["mid"], hm["crown"]])
+        thv = np.arctan2(d3[:, 0], d3[:, 1])
+        clump = 0.5 + 0.5 * np.sin(thv * hm.get("clumps", 11) + 2.5 * np.sin(zv * 60 + thv * 2))
+        th = th + hm.get("clump", 0.002) * (clump - 0.5)
+        edge = b["hairline"] + 0.006 * np.sin(thv * 9)
+        hv = np.clip((zv - edge) / hm.get("lip", 0.006), 0, 1)
+        hv = hv * hv * (3 - 2 * hv)
+        X = X + dirv * (th * hv * np.clip(wv * 1.4, 0, 1))[:, None]
+        print("back of head: hair mass up to", round(float((th * hv * wv).max()) * 1000, 1), "mm")
     print("back of head: skull radii", np.round(radii, 4), "moved", int((wv > 0.5).sum()), "verts")
     return X - V
 

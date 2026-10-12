@@ -17,6 +17,12 @@ namespace JamKit.VisitingHours.Characters
     /// The watch's local frame: +Y out of the face (the back of the wrist), +Z along the forearm toward the fingers; the
     /// child "Head" (case, dial, hands) is turned so twelve points across the wrist, toward the little finger.
     /// Sizes are in metres whatever the body's scale. No per-frame allocation.
+    ///
+    /// Fit (round 3, after the judge's "half the case sunk in the forearm, the strap an arch with a gap"): Attach bakes the
+    /// body's skinned mesh once and measures the forearm's real cross-section where the watch sits (a slab of the skin's
+    /// vertices across the arm): the strap is an ellipse at that radius (plus a hair), the case sits on the strap at the
+    /// back of the wrist, offset along the arm's own normal there. Without a skinned mesh it falls back to a wrist sized
+    /// from the body's height.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class VhKeepsakeWatch : MonoBehaviour
@@ -47,7 +53,7 @@ namespace JamKit.VisitingHours.Characters
 
         public bool Owned => owned;
 
-        static Material gold, enamel, steel, leather;
+        static Material gold, enamel, steel, leather, wineHand;
         static Texture2D dial;
 
         // ---- Use ----
@@ -85,7 +91,6 @@ namespace JamKit.VisitingHours.Characters
             var w = go.AddComponent<VhKeepsakeWatch>();
             float k = height / 1.65f;
             w.wrist *= k;
-            w.Build();
 
             // Frame: along the forearm toward the hand; the back of the hand is up (right hand: thumb x fingers).
             Vector3 along = (hand.position - forearm.position).normalized;
@@ -96,9 +101,20 @@ namespace JamKit.VisitingHours.Characters
             back = Vector3.ProjectOnPlane(back, along).normalized;
             if (back.sqrMagnitude < 0.5f) back = Vector3.ProjectOnPlane(Vector3.up, along).normalized;
             if (w.faceIn) back = -back;
+            Vector3 side = Vector3.Cross(back, along).normalized;
+            Vector3 centre = hand.position - along * w.upForearm * k;
+
+            // The real forearm where the watch sits: the skin's cross-section there (centre, half width, half depth).
+            if (MeasureWrist(body, centre, along, side, back, out var c2, out var halfSide, out var halfBack))
+            {
+                centre = c2;
+                w.wrist = new Vector2(halfSide, halfBack);
+                w.measured = true;
+            }
+            w.Build();
             var rot = Quaternion.LookRotation(along, back);
-            Vector3 pos = hand.position - along * w.upForearm * k + back * w.wrist.y;
-            go.transform.SetPositionAndRotation(pos, rot);
+            // The origin on the back of the wrist's skin; the strap's ellipse is centred wrist.y under it.
+            go.transform.SetPositionAndRotation(centre + back * w.wrist.y, rot);
             go.transform.SetParent(forearm, true);
             // Real size whatever the rig's scale.
             var ls = forearm.lossyScale;
@@ -106,6 +122,47 @@ namespace JamKit.VisitingHours.Characters
             go.transform.localScale = Vector3.one / s;
             w.Apply();
             return w;
+        }
+
+        [Tooltip("True when the wrist was measured from the skinned mesh (else sized from the body's height).")]
+        public bool measured;
+
+        /// <summary>Bakes the body's skinned meshes (once, at attach) and takes the vertices in a 2.4 cm slab across the
+        /// forearm at <paramref name="at"/>: their spread across (side) and through (back) the arm, robustly (the 3rd and
+        /// 97th percentiles of the nearest ring of skin), gives the ellipse the strap wraps.</summary>
+        static bool MeasureWrist(Transform body, Vector3 at, Vector3 along, Vector3 side, Vector3 back,
+            out Vector3 centre, out float halfSide, out float halfBack)
+        {
+            centre = at; halfSide = halfBack = 0f;
+            var xs = new List<float>();
+            var ys = new List<float>();
+            var baked = new Mesh();
+            var verts = new List<Vector3>();
+            foreach (var smr in body.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (smr.sharedMesh == null || !smr.enabled || smr.GetComponentInParent<VhKeepsakeWatch>() != null) continue;
+                smr.BakeMesh(baked, true);
+                baked.GetVertices(verts);
+                var m = Matrix4x4.TRS(smr.transform.position, smr.transform.rotation, Vector3.one);
+                for (int i = 0; i < verts.Count; i++)
+                {
+                    Vector3 d = m.MultiplyPoint3x4(verts[i]) - at;
+                    if (Mathf.Abs(Vector3.Dot(d, along)) > 0.012f) continue;
+                    float x = Vector3.Dot(d, side), y = Vector3.Dot(d, back);
+                    if (x * x + y * y > 0.07f * 0.07f) continue;   // only the forearm, not the body beside it
+                    xs.Add(x); ys.Add(y);
+                }
+            }
+            if (Application.isPlaying) Destroy(baked); else DestroyImmediate(baked);
+            if (xs.Count < 12) return false;
+            xs.Sort(); ys.Sort();
+            float x0 = xs[(int)(xs.Count * 0.03f)], x1 = xs[(int)(xs.Count * 0.97f)];
+            float y0 = ys[(int)(ys.Count * 0.03f)], y1 = ys[(int)(ys.Count * 0.97f)];
+            halfSide = Mathf.Max(0.012f, (x1 - x0) * 0.5f);
+            halfBack = Mathf.Max(0.01f, (y1 - y0) * 0.5f);
+            if (halfSide > 0.06f || halfBack > 0.06f) return false;   // something else got in: keep the estimate
+            centre = at + side * ((x0 + x1) * 0.5f) + back * ((y0 + y1) * 0.5f);
+            return true;
         }
 
         public void SetOwned(bool on)
@@ -154,10 +211,12 @@ namespace JamKit.VisitingHours.Characters
 
         // ---- Building ----
 
-        const float R = 0.0175f;          // the star's outer radius (35 mm point to point)
-        const float Inner = 0.55f;        // inner radius / outer
-        const float CaseH = 0.0075f;      // case height above the strap
-        const float FaceY = 0.0062f;      // the dial's height
+        // Larger than a real 35 mm star so the hands read from her eyes in first person (the judge: "a speck").
+        const float R = 0.021f;           // the star's outer radius (42 mm point to point)
+        const float Inner = 0.56f;        // inner radius / outer
+        const float StrapT = 0.0022f;     // the strap's thickness (the case sits on it)
+        const float CaseH = 0.0072f;      // case height above its seat
+        const float FaceY = 0.0058f;      // the dial's height
 
         public void Build()
         {
@@ -168,18 +227,23 @@ namespace JamKit.VisitingHours.Characters
             }
             Materials();
             Part("Strap", Strap(), leather, transform);
+            // The head sits on the strap: its underside at the strap's outer surface.
+            var seat = new GameObject("Seat").transform;
+            seat.SetParent(transform, false);
+            seat.localPosition = new Vector3(0f, StrapT + 0.0012f, 0f);
             // The head: twelve and six where the strap leaves the case (across the forearm), twelve toward the little
             // finger, so it reads upright when she lifts her right forearm across her body to look.
             var head = new GameObject("Head").transform;
-            head.SetParent(transform, false);
+            head.SetParent(seat, false);
             head.localRotation = Quaternion.Euler(0f, 90f, 0f);
             Part("Case", StarCase(), gold, head);
             Part("Dial", StarDial(), enamel, head);
             Part("Lugs", Lugs(), gold, head);
-            Part("Centre cap", Disc(0.0011f, FaceY + 0.0016f, 16), gold, head);
-            hourHand = Part("Hour hand", Hand(0.0068f, 0.0011f, FaceY + 0.0006f, 0.0018f), steel, head).transform;
-            minuteHand = Part("Minute hand", Hand(0.0105f, 0.0008f, FaceY + 0.0009f, 0.0022f), steel, head).transform;
-            secondHand = Part("Second hand", Hand(0.0118f, 0.00028f, FaceY + 0.0012f, 0.0030f), leather, head).transform;
+            Part("Centre cap", Disc(0.0016f, FaceY + 0.0017f, 20), gold, head);
+            // Bold, dark, matte hands: readable on the cream enamel from arm's length.
+            hourHand = Part("Hour hand", Hand(0.0082f, 0.00185f, FaceY + 0.0006f, 0.0022f), steel, head).transform;
+            minuteHand = Part("Minute hand", Hand(0.0128f, 0.0013f, FaceY + 0.0010f, 0.0026f), steel, head).transform;
+            secondHand = Part("Second hand", Hand(0.0136f, 0.00034f, FaceY + 0.0014f, 0.0034f), wineHand, head).transform;
             renderers.Clear();
             GetComponentsInChildren(true, renderers);
             Apply();
@@ -204,10 +268,14 @@ namespace JamKit.VisitingHours.Characters
             gold.SetColor("_BaseColor", new Color(1f, 0.79f, 0.45f));
             gold.SetFloat("_Metallic", 1f);
             gold.SetFloat("_Smoothness", 0.78f);
-            steel = new Material(lit) { name = "Watch hands" };
-            steel.SetColor("_BaseColor", new Color(0.09f, 0.11f, 0.2f));
-            steel.SetFloat("_Metallic", 0.85f);
-            steel.SetFloat("_Smoothness", 0.8f);
+            steel = new Material(lit) { name = "Watch hands (blued, matte)" };
+            steel.SetColor("_BaseColor", new Color(0.035f, 0.04f, 0.085f));
+            steel.SetFloat("_Metallic", 0.15f);
+            steel.SetFloat("_Smoothness", 0.45f);
+            wineHand = new Material(lit) { name = "Watch second hand" };
+            wineHand.SetColor("_BaseColor", new Color(0.62f, 0.08f, 0.15f));
+            wineHand.SetFloat("_Metallic", 0f);
+            wineHand.SetFloat("_Smoothness", 0.5f);
             leather = new Material(lit) { name = "Watch strap (wine leather)" };
             leather.SetColor("_BaseColor", new Color(0.42f, 0.09f, 0.14f));
             leather.SetFloat("_Metallic", 0f);
@@ -217,15 +285,15 @@ namespace JamKit.VisitingHours.Characters
             enamel.SetTexture("_BaseMap", dial);
             enamel.SetColor("_BaseColor", Color.white);
             enamel.SetFloat("_Metallic", 0f);
-            enamel.SetFloat("_Smoothness", 0.82f);
+            enamel.SetFloat("_Smoothness", 0.55f);   // glossy enamel washed the dial out against the sky
         }
 
         /// <summary>The dial: cream enamel with a fine gold inner star, twelve markers (bars at the star's points and at
         /// three, six, nine; dots between) and a tiny wine-red star under twelve. UV (0.5, 0.5) is the centre, +V toward twelve.</summary>
         static Texture2D DialTexture()
         {
-            const int S = 512;
-            var t = new Texture2D(S, S, TextureFormat.RGBA32, true) { name = "Watch dial", wrapMode = TextureWrapMode.Clamp, anisoLevel = 4 };
+            const int S = 1024;
+            var t = new Texture2D(S, S, TextureFormat.RGBA32, true) { name = "Watch dial", wrapMode = TextureWrapMode.Clamp, anisoLevel = 8, filterMode = FilterMode.Trilinear };
             var px = new Color32[S * S];
             var cream = new Color(0.97f, 0.93f, 0.84f);
             var goldC = new Color(0.78f, 0.6f, 0.3f);
@@ -237,10 +305,10 @@ namespace JamKit.VisitingHours.Characters
                     float u = (x + 0.5f) / S * 2f - 1f, v = (y + 0.5f) / S * 2f - 1f;   // -1..1, v up = twelve
                     float r = Mathf.Sqrt(u * u + v * v);
                     float ang = Mathf.Atan2(u, v);                                       // 0 at twelve, clockwise
-                    var c = cream * (0.97f + 0.03f * Mathf.Sin(r * 60f));               // a faint guilloché
+                    var c = cream * (1f - 0.05f * r * r);                                // clean enamel, a soft falloff
                     // The fine gold star line, at 0.78 of the dial's star.
                     float sd = StarDistance(u, v, 0.78f);
-                    c = Color.Lerp(c, goldC, Mathf.Clamp01(1f - Mathf.Abs(sd) / 0.012f));
+                    c = Color.Lerp(c, goldC, Mathf.Clamp01(1.5f - Mathf.Abs(sd) / 0.009f));
                     // Markers.
                     for (int i = 0; i < 12; i++)
                     {
@@ -248,12 +316,14 @@ namespace JamKit.VisitingHours.Characters
                         float du = Mathf.Sin(a), dv = Mathf.Cos(a);
                         float along = u * du + v * dv, across = -u * dv + v * du;
                         bool big = i % 3 == 0;
-                        float r0 = big ? 0.36f : 0.4f, r1 = big ? 0.52f : 0.46f, wdt = big ? 0.035f : 0.022f;
-                        if (along > r0 && along < r1 && Mathf.Abs(across) < wdt) c = ink;
+                        float r0 = big ? 0.34f : 0.4f, r1 = big ? 0.54f : 0.48f, wdt = big ? 0.045f : 0.026f;
+                        // Antialiased bars (the dial is seen small): coverage from the distance to the bar's edges.
+                        float cov = Mathf.Clamp01((wdt - Mathf.Abs(across)) * S * 0.5f) * Mathf.Clamp01((along - r0) * S * 0.5f) * Mathf.Clamp01((r1 - along) * S * 0.5f);
+                        c = Color.Lerp(c, ink, cov);
                     }
                     // The little star under twelve.
-                    float ss = StarDistance(u, v - 0.2f, 0.09f);
-                    if (ss < 0f) c = wine;
+                    float ss = StarDistance(u, v - 0.2f, 0.1f);
+                    c = Color.Lerp(c, wine, Mathf.Clamp01(-ss * S * 0.5f + 0.5f));
                     px[y * S + x] = c;
                 }
             t.SetPixels32(px);
@@ -378,7 +448,7 @@ namespace JamKit.VisitingHours.Characters
             var tris = new List<int>();
             foreach (float sz in new[] { -1f, 1f })
                 foreach (float sx in new[] { -1f, 1f })
-                    Box(v, tris, new Vector3(sx * 0.0068f, 0.0018f, sz * (R * 0.78f)), new Vector3(0.0016f, 0.0028f, 0.006f));
+                    Box(v, tris, new Vector3(sx * 0.0055f, 0.0012f, sz * (R * 0.92f)), new Vector3(0.0011f, 0.0012f, 0.0024f));
             return Finish("Watch lugs", v, tris);
         }
 
@@ -395,42 +465,57 @@ namespace JamKit.VisitingHours.Characters
             }
         }
 
-        /// <summary>The strap: a band round the wrist (an ellipse about the forearm's axis, Z), 18 mm wide, 2.5 mm thick,
-        /// with soft rounded edges; it passes under the case.</summary>
+        /// <summary>The strap: a band round the wrist at the arm's measured radius (an ellipse about the forearm's axis, Z,
+        /// half a millimetre off the skin), 16 mm wide, 2.2 mm thick, rounded edges; it passes under the case. Every
+        /// triangle faces away from the band's core line, so no side is culled (round 1 showed an arch with a gap).</summary>
         Mesh Strap()
         {
-            const int seg = 64, across = 6;
-            float half = 0.009f, thick = 0.0025f;
+            const int seg = 72, across = 6;
+            float half = 0.008f, thick = StrapT, gap = 0.0005f;
             var v = new List<Vector3>();
+            var core = new List<Vector3>();
             var tris = new List<int>();
-            float cy = -wrist.y;
-            // A cross-section: a rounded rectangle (thick x width), swept round the ellipse.
+            float ex = wrist.x + gap, ey = wrist.y + gap, cy = -wrist.y;
             var section = new Vector2[across * 2];
             for (int i = 0; i < across; i++)
             {
                 float t = i / (float)(across - 1);
                 float z = Mathf.Lerp(-half, half, t);
                 float round = 1f - Mathf.Pow(Mathf.Abs(t * 2f - 1f), 6f);
-                section[i] = new Vector2(thick * (0.55f + 0.45f * round), z);          // outer surface
-                section[across * 2 - 1 - i] = new Vector2(0f, z);                        // inner surface (on the skin)
+                section[i] = new Vector2(thick * (0.5f + 0.5f * round), z);                 // outer surface
+                section[across * 2 - 1 - i] = new Vector2(thick * 0.08f * (1f - round), z); // inner surface (on the skin)
             }
             int sn = section.Length;
             for (int s = 0; s <= seg; s++)
             {
                 float a = s / (float)seg * Mathf.PI * 2f;
-                var dir = new Vector2(Mathf.Sin(a), Mathf.Cos(a));                       // a = 0 at the top (under the case)
-                var p = new Vector2(dir.x * wrist.x, cy + dir.y * wrist.y);
-                var nrm = new Vector2(dir.x / wrist.x, dir.y / wrist.y).normalized;
-                foreach (var sc in section) v.Add(new Vector3(p.x + nrm.x * sc.x, p.y + nrm.y * sc.x, sc.y));
+                var dir = new Vector2(Mathf.Sin(a), Mathf.Cos(a));                          // a = 0 at the top (under the case)
+                var p = new Vector2(dir.x * ex, cy + dir.y * ey);
+                var nrm = new Vector2(dir.x / ex, dir.y / ey).normalized;
+                foreach (var sc in section)
+                {
+                    v.Add(new Vector3(p.x + nrm.x * sc.x, p.y + nrm.y * sc.x, sc.y));
+                    core.Add(new Vector3(p.x + nrm.x * thick * 0.4f, p.y + nrm.y * thick * 0.4f, 0f));
+                }
             }
             for (int s = 0; s < seg; s++)
                 for (int i = 0; i < sn; i++)
                 {
                     int a = s * sn + i, b = s * sn + (i + 1) % sn, c = (s + 1) * sn + i, d = (s + 1) * sn + (i + 1) % sn;
-                    tris.Add(a); tris.Add(b); tris.Add(c);
-                    tris.Add(b); tris.Add(d); tris.Add(c);
+                    AddFacingOut(v, core, tris, a, b, c);
+                    AddFacingOut(v, core, tris, b, d, c);
                 }
             return Finish("Watch strap", v, tris);
+        }
+
+        /// <summary>Adds a triangle wound so its normal points away from the band's core line.</summary>
+        static void AddFacingOut(List<Vector3> v, List<Vector3> core, List<int> tris, int a, int b, int c)
+        {
+            Vector3 n = Vector3.Cross(v[b] - v[a], v[c] - v[a]);
+            Vector3 mid = (v[a] + v[b] + v[c]) / 3f, cm = (core[a] + core[b] + core[c]) / 3f;
+            Vector3 outDir = mid - new Vector3(cm.x, cm.y, mid.z * 0.2f);
+            if (Vector3.Dot(n, outDir) >= 0f) { tris.Add(a); tris.Add(b); tris.Add(c); }
+            else { tris.Add(a); tris.Add(c); tris.Add(b); }
         }
 
         static Mesh Finish(string name, List<Vector3> v, List<int> tris, List<Vector2> uv = null)

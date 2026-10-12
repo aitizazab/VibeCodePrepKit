@@ -205,13 +205,17 @@ def delete_regions(obj, regions):
     log("deleted", len(kill), "verts in loose parts")
 
 
+def is_point(v):
+    return isinstance(v, list) and len(v) == 3 and all(isinstance(x, (int, float)) for x in v)
+
+
 def add_shape_keys(obj, face):
     """face: landmarks in world metres (Blender, the character facing -Y): eyeL, eyeR, mouthL, mouthR, mouth (centre of
     the lip line), chin, browL, browR; plus 'scale' (head size, metres between the eyes' centres)."""
     if not face:
         return {}
     co = world_verts(obj)
-    L = {k: np.array(v, dtype=np.float32) for k, v in face.items() if isinstance(v, list)}
+    L = {k: np.array(v, dtype=np.float32) for k, v in face.items() if is_point(v)}
     eye = float(np.linalg.norm(L["eyeL"] - L["eyeR"]))       # interocular distance: the face's unit
     up = np.array([0, 0, 1], dtype=np.float32)
     fwd = np.array([0, -1, 0], dtype=np.float32)
@@ -289,9 +293,21 @@ def decal_patch(obj, face, size_px):
     nrm = nrm @ m[:3, :3].T
     keep = (cen[:, 0] > x0) & (cen[:, 0] < x1) & (cen[:, 2] > z0) & (cen[:, 2] < z1) & (nrm[:, 1] < -0.2) \
         & (cen[:, 1] < face["mouth"][1] + 0.03)
-    # Nothing standing proud of the eyes' plane above the mouth (glasses, the nose): the lids are drawn on the skin.
+    # Nothing standing well proud of the eyes' plane above the mouth (the nose's tip, a frame's front).
     eye_y = min(face["eyeL"][1], face["eyeR"][1])
-    keep &= ~((cen[:, 1] < eye_y - 0.004) & (cen[:, 2] > face["mouth"][2] + 0.012))
+    keep &= ~((cen[:, 1] < eye_y - face.get("proud", 0.05)) & (cen[:, 2] > face["mouth"][2] + 0.012))
+    # The glasses' frames and cords (vh_face.py's list, carried as the "_NoDecal" vertex group): the drawing is never
+    # laid over them, so a frame passes in front of the drawn eyes.
+    vg = dec.vertex_groups.get("_NoDecal")
+    if vg is not None:
+        flag = np.zeros(len(me.vertices), dtype=bool)
+        for v in me.vertices:
+            for g in v.groups:
+                if g.group == vg.index and g.weight > 0.5:
+                    flag[v.index] = True
+        for i, poly in enumerate(me.polygons):
+            if keep[i] and flag[list(poly.vertices)].any():
+                keep[i] = False
     bm = bmesh.new()
     bm.from_mesh(me)
     bm.faces.ensure_lookup_table()
@@ -372,6 +388,27 @@ def add_accessories(arm, items, collection):
     return out
 
 
+def make_lod(obj, ratio):
+    """<Name>_LOD1: the body decimated (no shape keys: no face at that distance), same skin weights and material.
+    VhPeopleBuild puts it in the prefab's LODGroup."""
+    if not ratio or ratio >= 1:
+        return None
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.duplicate()
+    lod = bpy.context.active_object
+    lod.name = obj.name + "_LOD1"
+    if lod.data.shape_keys:
+        lod.shape_key_clear()
+    mod = lod.modifiers.new("decimate", "DECIMATE")
+    mod.ratio = ratio
+    bpy.ops.object.modifier_move_to_index(modifier="decimate", index=0)
+    bpy.ops.object.modifier_apply(modifier="decimate")
+    log("LOD1", len(lod.data.polygons), "faces")
+    return lod
+
+
 def set_textures(obj, tex):
     """Points the body material at the given images (absolute paths), so the FBX exports them alongside."""
     if not tex:
@@ -410,7 +447,7 @@ def follow(before, after, bone, p):
 def follow_face(face, before, after):
     f = dict(face)
     for k, v in face.items():
-        if isinstance(v, list) and len(v) == 3:
+        if is_point(v):
             f[k] = follow(before, after, "Head", v)
     x0, z0, x1, z1 = face["decal"]
     y = face["mouth"][1]
@@ -486,6 +523,13 @@ def build(spec_path):
         obj.data.vertices.foreach_set("co", (co @ inv[:3, :3].T + inv[:3, 3]).ravel())
         obj.data.update()
         log("vertex moves applied, max", float(np.abs(delta).max()))
+    # The decal's exclusions (dump order, so before anything deletes vertices) as a vertex group.
+    if spec.get("face", {}).get("decal_exclude") and os.path.exists(spec["face"]["decal_exclude"]):
+        idx = np.load(spec["face"]["decal_exclude"])["index"]
+        if len(idx):
+            g = obj.vertex_groups.new(name="_NoDecal")
+            g.add([int(i) for i in idx], 1.0, "REPLACE")
+            log("no-decal vertices", len(idx))
     # 2. Proportions; everything placed in the original pose below follows its bone.
     before = rest_matrices(arm)
     bake_proportions(obj, arm, spec.get("proportions"), spec.get("no_inherit", []))
@@ -506,6 +550,10 @@ def build(spec_path):
         it["location"] = follow(before, after, it["bone"], it["location"])
         items.append(it)
     acc = add_accessories(arm, items, None)
+    for o in (obj, dec):
+        if o is not None and o.vertex_groups.get("_NoDecal") is not None:
+            o.vertex_groups.remove(o.vertex_groups["_NoDecal"])
+    lod = make_lod(obj, spec.get("lod_ratio", 0.3))
     out = spec["out"]
     os.makedirs(os.path.dirname(out), exist_ok=True)
     bpy.ops.object.select_all(action="SELECT")
@@ -518,6 +566,7 @@ def build(spec_path):
         save_preview(spec["preview"], obj, dec, acc)
     info = {"out": out, "verts": len(obj.data.vertices), "keys": keys, "decal": dec.name if dec else None,
             "decal_faces": len(dec.data.polygons) if dec else 0, "accessories": [o.name for o in acc],
+            "lod": lod.name if lod else None, "lod_faces": len(lod.data.polygons) if lod else 0,
             "face": face, "bones": bone_heads(arm)}
     json.dump(info, open(spec.get("info", os.path.splitext(out)[0] + ".build.json"), "w"), indent=1)
     log("exported", out)

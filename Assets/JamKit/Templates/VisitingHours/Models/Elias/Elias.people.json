@@ -8,7 +8,7 @@
  "decal": "Elias_FaceDecal",
  "atlas": "Elias_FaceAtlas.png",
  "columns": 6,
- "rows": 1,
+ "rows": 9,
  "blink": true,
  "expressions": [
   {
@@ -20,7 +20,7 @@
    "shapes": [
     {
      "shape": "Smile",
-     "weight": 45
+     "weight": 55
     }
    ]
   },
@@ -29,11 +29,11 @@
    "shapes": [
     {
      "shape": "Smile",
-     "weight": 90
+     "weight": 75
     },
     {
      "shape": "BrowsUp",
-     "weight": 25
+     "weight": 35
     }
    ]
   },
@@ -42,11 +42,11 @@
    "shapes": [
     {
      "shape": "Frown",
-     "weight": 60
+     "weight": 80
     },
     {
      "shape": "BrowsSad",
-     "weight": 85
+     "weight": 100
     }
    ]
   },
@@ -55,11 +55,15 @@
    "shapes": [
     {
      "shape": "BrowsSad",
-     "weight": 70
+     "weight": 85
     },
     {
      "shape": "Frown",
-     "weight": 25
+     "weight": 35
+    },
+    {
+     "shape": "MouthOpen",
+     "weight": 6
     }
    ]
   },
@@ -72,7 +76,11 @@
     },
     {
      "shape": "Frown",
-     "weight": 55
+     "weight": 70
+    },
+    {
+     "shape": "MouthOpen",
+     "weight": 12
     }
    ]
   },
@@ -81,11 +89,11 @@
    "shapes": [
     {
      "shape": "BrowsDown",
-     "weight": 85
+     "weight": 100
     },
     {
      "shape": "Frown",
-     "weight": 45
+     "weight": 55
     }
    ]
   },
@@ -94,7 +102,11 @@
    "shapes": [
     {
      "shape": "BrowsUp",
-     "weight": 95
+     "weight": 100
+    },
+    {
+     "shape": "MouthOpen",
+     "weight": 35
     }
    ]
   },
@@ -103,15 +115,15 @@
    "shapes": [
     {
      "shape": "BrowsDown",
-     "weight": 35
+     "weight": 30
     },
     {
      "shape": "Frown",
-     "weight": 20
+     "weight": 25
     },
     {
      "shape": "Smile",
-     "weight": 15
+     "weight": 25
     }
    ]
   }

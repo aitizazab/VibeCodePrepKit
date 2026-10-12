@@ -47,15 +47,82 @@
    25,
    806
   ],
-  "lips": [
-   18,
-   6
+  "jaw": 0.22,
+  "smile": 0.3,
+  "brow": 0.22,
+  "frown": 0.26,
+  "draw": {
+   "closed": true,
+   "brow": [
+    0.27,
+    0.16,
+    0.1
+   ],
+   "brow_thick": 3.6,
+   "lash": [
+    0.12,
+    0.07,
+    0.05
+   ],
+   "lip": [
+    0.62,
+    0.4,
+    0.37
+   ],
+   "lip_line": [
+    0.22,
+    0.1,
+    0.08
+   ],
+   "lip_alpha": 0.7,
+   "eye_scale": [
+    1.05,
+    3.6
+   ],
+   "mouth_line_w": 1.5
+  },
+  "clean": [
+   [
+    -30,
+    850,
+    16,
+    6.5
+   ],
+   [
+    32,
+    850,
+    16,
+    6.5
+   ],
+   [
+    -10,
+    866,
+    6,
+    6
+   ],
+   [
+    12,
+    866,
+    6,
+    6
+   ]
   ],
-  "lids": false,
-  "jaw": 0.12,
-  "smile": 0.2,
-  "brow": 0.14,
-  "frown": 0.15
+  "fill_regions": [
+   {
+    "ellipse": [
+     2,
+     795,
+     22,
+     11
+    ],
+    "proto": [
+     0.3,
+     0.2,
+     0.16
+    ],
+    "dist": 0.18
+   }
+  ]
  },
  "alter": {
   "classes": [
@@ -76,7 +143,12 @@
      0.01
     ],
     "zmin": 0.86,
-    "target": null
+    "target": null,
+    "zskip": [
+     0.862,
+     0.905
+    ],
+    "roughness": 0.82
    },
    {
     "name": "bandage",
@@ -86,7 +158,12 @@
      0.01
     ],
     "zmin": 0.86,
-    "target": null
+    "target": [
+     0.93,
+     0.92,
+     0.88
+    ],
+    "flatten": 0.5
    }
   ],
   "back_of_head": {
@@ -95,11 +172,11 @@
     0.0,
     0.865
    ],
-   "y0": 0.02,
-   "y1": 0.04,
+   "y0": 0.008,
+   "y1": 0.03,
    "zmin": 0.75,
    "radius": 0.14,
-   "hairline": 0.8,
+   "hairline": 0.772,
    "hair": "hair",
    "skin": "skin",
    "pattern": "strands",
@@ -118,7 +195,17 @@
    },
    "z_occ": 0.83,
    "zramp": 0.012,
-   "pattern_strength": 0.55
+   "pattern_strength": 0.8,
+   "hair_mass": {
+    "crown": 0.005,
+    "mid": 0.005,
+    "nape": 0.003,
+    "clumps": 13,
+    "clump": 0.0022,
+    "lip": 0.005
+   },
+   "strand_normal": 0.6,
+   "roughness": 0.86
   }
  },
  "idle": "lie"

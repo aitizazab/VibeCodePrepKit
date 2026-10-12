@@ -47,19 +47,97 @@
    30,
    822
   ],
-  "lips": [
-   20,
-   6
+  "jaw": 0.3,
+  "smile": 0.34,
+  "brow": 0.24,
+  "frown": 0.28,
+  "lenses": [
+   [
+    -27,
+    854,
+    17,
+    8
+   ],
+   [
+    31,
+    854,
+    17,
+    8
+   ]
   ],
-  "lids": true,
-  "lid_scale": [
-   1.04,
-   0.9
+  "frame_protos": [
+   [
+    0.07,
+    0.08,
+    0.1
+   ],
+   [
+    0.15,
+    0.17,
+    0.19
+   ],
+   [
+    0.26,
+    0.28,
+    0.3
+   ]
   ],
-  "jaw": 0.16,
-  "smile": 0.2,
-  "brow": 0.14,
-  "frown": 0.15
+  "frame_dist": 0.12,
+  "draw": {
+   "iris": [
+    0.3,
+    0.17,
+    0.1
+   ],
+   "iris_dark": [
+    0.08,
+    0.05,
+    0.03
+   ],
+   "brow": [
+    0.6,
+    0.6,
+    0.58
+   ],
+   "brow_thick": 3.4,
+   "lash": [
+    0.07,
+    0.05,
+    0.05
+   ],
+   "lip": [
+    0.46,
+    0.25,
+    0.24
+   ],
+   "lip_line": [
+    0.18,
+    0.08,
+    0.07
+   ],
+   "lip_alpha": 0.75,
+   "eye_scale": [
+    1.04,
+    1.25
+   ],
+   "rest_lid": 0.12,
+   "mouth_line_w": 1.6,
+   "brow_arch": 0.35
+  },
+  "clean": [
+   [
+    15,
+    888,
+    3.5,
+    3.5
+   ],
+   [
+    2,
+    813,
+    30,
+    9
+   ]
+  ]
  },
  "alter": {
   "classes": [
@@ -80,7 +158,8 @@
      0.012
     ],
     "zmin": 0.86,
-    "target": null
+    "target": null,
+    "roughness": 0.85
    },
    {
     "name": "cardigan",
@@ -103,11 +182,11 @@
    "y1": 0.035,
    "zmin": 0.77,
    "radius": 0.14,
-   "hairline": 0.815,
+   "hairline": 0.79,
    "hair": "hair",
    "skin": "skin",
    "pattern": "curls",
-   "smooth": 40,
+   "smooth": 80,
    "neck": {
     "center_y": -0.02,
     "rx": 0.056,
@@ -115,7 +194,18 @@
    },
    "z_occ": 0.845,
    "zramp": 0.012,
-   "pattern_strength": 0.45
+   "pattern_strength": 0.9,
+   "hair_mass": {
+    "crown": 0.004,
+    "mid": 0.0035,
+    "nape": 0.002,
+    "clumps": 17,
+    "clump": 0.0018,
+    "lip": 0.004
+   },
+   "strand_normal": 0.5,
+   "roughness": 0.88,
+   "curl_size": 0.0042
   },
   "back_paint": [
    {
@@ -125,7 +215,8 @@
     "ymin": 0.01,
     "class": "cardigan",
     "pattern": "knit",
-    "strength": 0.14
+    "strength": 0.14,
+    "smooth": 24
    }
   ]
  }

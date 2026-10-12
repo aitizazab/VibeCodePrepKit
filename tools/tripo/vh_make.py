@@ -1,6 +1,7 @@
 """One character, end to end (docs/redesign/people.md "The pipeline"). Config: tools/tripo/people/<Name>.json.
 
-    uv run --with pillow --with numpy python tools/tripo/vh_make.py prep   <Name>   # recolour, face atlas, build spec
+    uv run --with pillow --with numpy python tools/tripo/vh_make.py prep   <Name>   # recolour, back fixes, face, build spec
+    uv run --with pillow --with numpy python tools/tripo/vh_make.py face   <Name>   # only the face step again (after prep)
     node C:/Users/User/.claude/hooks/gpu-short-run.mjs -- <blender> -b --factory-startup -P tools/tripo/vh_blender.py -- build <spec>
     uv run --with pillow --with numpy python tools/tripo/vh_make.py finish <Name>   # textures + sidecar into Models/<Name>/, preview
 
@@ -59,17 +60,43 @@ def prep(name):
         json.dump(a, open(os.path.join(w, "alter.json"), "w"), indent=1)
         run(PY + [os.path.join(HERE, "vh_alter.py"), os.path.join(w, "alter.json")])
         color = a["out"]
+    # Keep the alter step's maps: the face step reads them and writes the final ones (so it can re-run alone).
+    normal = os.path.join(w, name + "_Normal.png")
+    shutil.copy2(color, os.path.join(w, name + "_Color_alter.jpg"))
+    shutil.copy2(normal if os.path.exists(normal) else c["_tex"]["Normal"], os.path.join(w, name + "_Normal_alter.png"))
     if c.get("face"):
-        f = dict(c["face"])
-        f.update({"npz": c["_dump"], "tex": color, "atlas": os.path.join(w, name + "_FaceAtlas.png"),
-                  "block": os.path.join(w, "face-block.json"), "check": os.path.join(w, "face-check.png")})
-        json.dump(f, open(os.path.join(w, "face.json"), "w"), indent=1)
-        run(PY + [os.path.join(HERE, "vh_face.py"), os.path.join(w, "face.json")])
-        spec["face"] = json.load(open(f["block"]))
+        spec["face"] = face_step(name, c)
     for k in ("proportions", "no_inherit", "delete", "accessories", "moves"):
         if c.get(k):
             spec[k] = c[k]
     path = os.path.join(w, "build-spec.json")
+    json.dump(spec, open(path, "w"), indent=1)
+    print("NEXT: node C:/Users/User/.claude/hooks/gpu-short-run.mjs -- \"%s\" -b --factory-startup -P \"%s\" -- build \"%s\""
+          % (BLENDER, os.path.join(HERE, "vh_blender.py"), path))
+
+
+def face_step(name, c=None):
+    """The hybrid cartoon face (vh_face.py): paints the model's own eyes, brows and lips out of the alter step's maps
+    and draws the expression atlas. Returns the landmark block for the Blender build."""
+    c = c or cfg(name)
+    w = c["_work"]
+    f = dict(c["face"])
+    f.update({"npz": c["_dump"], "tex_in": os.path.join(w, name + "_Color_alter.jpg"), "tex": os.path.join(w, name + "_Color.jpg"),
+              "normal_in": os.path.join(w, name + "_Normal_alter.png"), "normal": os.path.join(w, name + "_Normal.png"),
+              "atlas": os.path.join(w, name + "_FaceAtlas.png"), "block": os.path.join(w, "face-block.json"),
+              "check": os.path.join(w, "face-check.png"), "decal_exclude": os.path.join(w, "decal-exclude.npz"),
+              "expressions": [e["name"] for e in (c.get("expressions") or DEFAULT_EXPRESSIONS)]})
+    json.dump(f, open(os.path.join(w, "face.json"), "w"), indent=1)
+    run(PY + [os.path.join(HERE, "vh_face.py"), os.path.join(w, "face.json")])
+    return json.load(open(f["block"]))
+
+
+def face_only(name):
+    """Re-runs only the face step (after a prep) and rewrites the build spec's face block."""
+    c = cfg(name)
+    path = os.path.join(c["_work"], "build-spec.json")
+    spec = json.load(open(path))
+    spec["face"] = face_step(name, c)
     json.dump(spec, open(path, "w"), indent=1)
     print("NEXT: node C:/Users/User/.claude/hooks/gpu-short-run.mjs -- \"%s\" -b --factory-startup -P \"%s\" -- build \"%s\""
           % (BLENDER, os.path.join(HERE, "vh_blender.py"), path))
@@ -102,7 +129,8 @@ def sidecar(name, c=None):
     dst = os.path.join(MODELS, name)
     info = json.load(open(os.path.join(w, "build.json")))
     side = {"name": name, "height": c["height"], "idle": c.get("idle", "idle"), "colour": c.get("colour", ""),
-            "note": c.get("note", ""), "hasFace": bool(c.get("face")), "decal": "", "atlas": "", "columns": 6, "rows": 1,
+            "note": c.get("note", ""), "hasFace": bool(c.get("face")), "decal": "", "atlas": "", "columns": 6,
+            "rows": len(c.get("expressions") or DEFAULT_EXPRESSIONS),
             "blink": True, "expressions": [], "accessories": []}
     if c.get("face"):
         shutil.copy2(os.path.join(w, name + "_FaceAtlas.png"), os.path.join(dst, name + "_FaceAtlas.png"))
@@ -115,18 +143,20 @@ def sidecar(name, c=None):
     json.dump(side, open(os.path.join(dst, name + ".people.json"), "w"), indent=1)
 
 
-# Expressions: blendshape weights (0-100) per named expression; the first is the default. VhFace blends between them.
+# Expressions: blendshape weights (0-100) per named expression; the first is the default. VhFace blends between them,
+# and the decal atlas has one row per expression in this order (vh_face.py EXPR draws each). The keys move the face in
+# 3D under the drawing: the cheeks and mouth corners (Smile / Frown), the brow ridge (Brows*), the jaw (MouthOpen).
 DEFAULT_EXPRESSIONS = [
     {"name": "neutral", "shapes": {}},
-    {"name": "warm", "shapes": {"Smile": 45}},
-    {"name": "happy", "shapes": {"Smile": 90, "BrowsUp": 25}},
-    {"name": "sad", "shapes": {"Frown": 60, "BrowsSad": 85}},
-    {"name": "worried", "shapes": {"BrowsSad": 70, "Frown": 25}},
-    {"name": "hurt", "shapes": {"BrowsSad": 100, "Frown": 55}},
-    {"name": "angry", "shapes": {"BrowsDown": 85, "Frown": 45}},
-    {"name": "surprised", "shapes": {"BrowsUp": 95}},
-    {"name": "doubtful", "shapes": {"BrowsDown": 35, "Frown": 20, "Smile": 15}},
+    {"name": "warm", "shapes": {"Smile": 55}},
+    {"name": "happy", "shapes": {"Smile": 75, "BrowsUp": 35}},
+    {"name": "sad", "shapes": {"Frown": 80, "BrowsSad": 100}},
+    {"name": "worried", "shapes": {"BrowsSad": 85, "Frown": 35, "MouthOpen": 6}},
+    {"name": "hurt", "shapes": {"BrowsSad": 100, "Frown": 70, "MouthOpen": 12}},
+    {"name": "angry", "shapes": {"BrowsDown": 100, "Frown": 55}},
+    {"name": "surprised", "shapes": {"BrowsUp": 100, "MouthOpen": 35}},
+    {"name": "doubtful", "shapes": {"BrowsDown": 30, "Frown": 25, "Smile": 25}},
 ]
 
 if __name__ == "__main__":
-    {"prep": prep, "finish": finish, "sidecar": sidecar}[sys.argv[1]](sys.argv[2])
+    {"prep": prep, "face": face_only, "finish": finish, "sidecar": sidecar}[sys.argv[1]](sys.argv[2])

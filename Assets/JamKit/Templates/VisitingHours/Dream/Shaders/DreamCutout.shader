@@ -13,11 +13,13 @@ Shader "JamKit/Dream/Cutout"
         _Color ("Tint", Color) = (1, 0.98, 0.95, 1)
         _Cutoff ("Alpha cut-off", Range(0, 1)) = 0.5
         _BackShade ("Back side shade (plain quads)", Range(0, 1)) = 0.7
-        _BackColor ("Card back", Color) = (0.93, 0.9, 0.84, 1)
+        _BackColor ("Card back (mid-grey board)", Color) = (0.5, 0.49, 0.47, 1)
         _EdgeColor ("Card edge (core)", Color) = (0.86, 0.82, 0.74, 1)
-        _ShowThrough ("Print showing through the back", Range(0, 1)) = 0.12
+        _ShowThrough ("Print showing through the back", Range(0, 1)) = 0.06
         _Wrap ("Wrap diffuse", Range(0, 1)) = 0.35
-        _Translucency ("Light through the paper", Range(0, 2)) = 0.45
+        _Translucency ("Light through the paper (backlit)", Range(0, 2)) = 0.3
+        _Overlay ("Overlay (same UVs as the picture; alpha over it)", 2D) = "white" {}
+        _OverlayOn ("Overlay on", Range(0, 1)) = 0
         _Grain ("Paper grain", Range(0, 0.2)) = 0.045
         _Boil ("Boil (UV shift)", Range(0, 0.01)) = 0.0012
         _BoilRate ("Boil frames per second", Range(0, 24)) = 8
@@ -35,6 +37,8 @@ Shader "JamKit/Dream/Cutout"
 
         TEXTURE2D(_MainTex);
         SAMPLER(sampler_MainTex);
+        TEXTURE2D(_Overlay);
+        SAMPLER(sampler_Overlay);
 
         CBUFFER_START(UnityPerMaterial)
             float4 _MainTex_ST;
@@ -51,6 +55,7 @@ Shader "JamKit/Dream/Cutout"
             float _BoilRate;
             float _Phase;
             half _Sheen;
+            half _OverlayOn;
         CBUFFER_END
 
         float VhHash(float2 p) { return frac(sin(dot(p, float2(127.1, 311.7))) * 43758.5453); }
@@ -136,10 +141,12 @@ Shader "JamKit/Dream/Cutout"
                 half ndl = dot(n, light.direction);
                 half d = saturate((ndl + wrap) / (1.0 + wrap));
                 // Light through the paper: from behind the card, softened, warm.
+                // About a third of the light on the far side comes through (the board is thick card, not tracing paper),
+                // a touch warm from the fibres.
                 half through = saturate(-ndl) * _Translucency * lerp(0.35, 1.0, light.shadowAttenuation) * light.distanceAttenuation;
                 half3 h = normalize(light.direction + v);
                 half spec = pow(saturate(dot(n, h)), 24.0) * _Sheen;
-                return light.color * (albedo * d * atten + albedo * through * half3(1.0, 0.86, 0.7) + spec * atten);
+                return light.color * (albedo * d * atten + albedo * through * half3(1.0, 0.95, 0.88) + spec * atten);
             }
 
             half4 Frag(Varyings i, FRONT_FACE_TYPE face : FRONT_FACE_SEMANTIC) : SV_Target
@@ -156,7 +163,14 @@ Shader "JamKit/Dream/Cutout"
                 half frontFacing = IS_FRONT_VFACE(face, 1.0, 0.0);
                 if (!isEdge) n = frontFacing > 0.5 ? n : -n;
 
-                half4 pic = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, VhBoil(i.uv));
+                float2 buv = VhBoil(i.uv);
+                half4 pic = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, buv);
+                // A separate overlay printed over the picture (Lena's star watch over the round one she was drawn with).
+                if (_OverlayOn > 0.5 && !isBack && !isEdge)
+                {
+                    half4 ov = SAMPLE_TEXTURE2D(_Overlay, sampler_Overlay, buv);
+                    pic.rgb = lerp(pic.rgb, ov.rgb, ov.a);
+                }
                 half grain = (VhNoise(i.uv * float2(380.0, 380.0)) - 0.5) * 0.6 + (VhNoise(i.uv * float2(90.0, 1400.0)) - 0.5) * 0.4;
                 half3 albedo;
                 if (isEdge) albedo = _EdgeColor.rgb * (1.0 + grain * 0.6);

@@ -14,9 +14,11 @@ namespace JamKit.VisitingHours.Characters
     ///   mouth closed, mouth half open, mouth open, then the same three with the eyes closed. The atlas cell is picked
     ///   through a MaterialPropertyBlock (_BaseMap_ST), so no material is copied.
     ///
-    /// The cast uses both at once (docs/redesign/people.md "Faces"): blendshapes move the jaw, the mouth corners and the
-    /// brows; the decal, a skinned copy of the face's front carrying the same blendshapes (listed in <see cref="followers"/>),
-    /// draws the closed lids and the mouth's inside, which stretches open with the jaw.
+    /// The cast uses both at once (docs/redesign/people.md "Faces", the hybrid cartoon face): blendshapes move the jaw, the
+    /// cheeks, the mouth corners and the brow ridge; the decal, a skinned copy of the face's front carrying the same
+    /// blendshapes (listed in <see cref="followers"/>), carries the drawn brows, eyes and mouth (the model's own painted
+    /// features are painted out of its texture), one atlas row per expression. Weights and the decal cell are only
+    /// written when they change.
     ///
     /// Talking is a syllable rhythm (a new mouth target every 70-150 ms, eased), not lip-sync to audio.
     /// Nothing here allocates per frame.
@@ -69,7 +71,9 @@ namespace JamKit.VisitingHours.Characters
         float mouth, mouthTarget, nextSyllable;
         float nextBlink, blinkUntil;
         int mouthIndex = -1, blinkIndex = -1;
-        float[] weights;
+        float[] weights, written;
+        float[][] followerWritten;
+        int lastCell = -1;
         int[][] followerMap;
         MaterialPropertyBlock block;
         static readonly int BaseMapSt = Shader.PropertyToID("_BaseMap_ST");
@@ -87,6 +91,8 @@ namespace JamKit.VisitingHours.Characters
             {
                 var mesh = shapes.sharedMesh;
                 weights = new float[mesh.blendShapeCount];
+                written = new float[mesh.blendShapeCount];
+                for (int i = 0; i < written.Length; i++) written[i] = float.NaN;
                 mouthIndex = string.IsNullOrEmpty(mouthOpenShape) ? -1 : mesh.GetBlendShapeIndex(mouthOpenShape);
                 blinkIndex = string.IsNullOrEmpty(blinkShape) ? -1 : mesh.GetBlendShapeIndex(blinkShape);
                 if (expressions != null)
@@ -97,8 +103,11 @@ namespace JamKit.VisitingHours.Characters
                     }
                 // Each follower's blendshape index for each of ours (-1 = it has none of that name).
                 followerMap = new int[followers == null ? 0 : followers.Length][];
+                followerWritten = new float[followerMap.Length][];
                 for (int f = 0; f < followerMap.Length; f++)
                 {
+                    followerWritten[f] = new float[mesh.blendShapeCount];
+                    for (int i = 0; i < mesh.blendShapeCount; i++) followerWritten[f][i] = float.NaN;
                     var fm = followers[f] != null ? followers[f].sharedMesh : null;
                     followerMap[f] = new int[mesh.blendShapeCount];
                     for (int i = 0; i < mesh.blendShapeCount; i++)
@@ -140,6 +149,19 @@ namespace JamKit.VisitingHours.Characters
         /// <summary>Blinks now (e.g. on a beat in the line).</summary>
         public void Blink() { blinkUntil = Time.time + blinkSeconds; ScheduleBlink(blinkUntil); }
 
+        /// <summary>Blinks at a given clock time (captures drive the face with their own clock through <see cref="Tick"/>).</summary>
+        public void BlinkAt(float now) { blinkUntil = now + blinkSeconds; ScheduleBlink(blinkUntil); }
+
+        /// <summary>Restarts the talking and blinking rhythm on a given clock (captures; deterministic with Random.InitState).</summary>
+        public void ResetClock(float now)
+        {
+            if (weights == null && shapes != null) Cache();
+            nextSyllable = now;
+            blinkUntil = -1f;
+            ScheduleBlink(now);
+            ForgetWritten();
+        }
+
         void ScheduleBlink(float from) { nextBlink = from + UnityEngine.Random.Range(blinkEverySeconds.x, blinkEverySeconds.y); }
 
         void Update() { Tick(Time.time, Time.deltaTime); }
@@ -147,6 +169,7 @@ namespace JamKit.VisitingHours.Characters
         /// <summary>Advances the face by dt at time now (Update calls it; captures call it directly in edit mode).</summary>
         public void Tick(float now, float dt)
         {
+            if (weights == null && shapes != null) Cache();   // edit mode (captures): Awake has not run
             if (blend < 1f) blend = fadeSeconds <= 0f ? 1f : Mathf.Min(1f, blend + dt / fadeSeconds);
 
             if (talking)
@@ -176,9 +199,20 @@ namespace JamKit.VisitingHours.Characters
             current = previous = Mathf.Max(0, expressionIndex);
             blend = 1f;
             mouth = Mathf.Clamp01(mouthOpen);
+            ForgetWritten();
             ApplyShapes(eyesClosed);
             ApplyDecal(eyesClosed);
         }
+
+        /// <summary>Forgets what was last written, so the next apply writes every weight and the decal cell again.</summary>
+        public void ForgetWritten()
+        {
+            lastCell = -1;
+            if (written != null) for (int i = 0; i < written.Length; i++) written[i] = float.NaN;
+            if (followerWritten != null) foreach (var fw in followerWritten) for (int i = 0; i < fw.Length; i++) fw[i] = float.NaN;
+        }
+
+        void OnEnable() { ForgetWritten(); }
 
         void ApplyShapes(bool eyesClosed)
         {
@@ -191,14 +225,29 @@ namespace JamKit.VisitingHours.Characters
             }
             if (mouthIndex >= 0) weights[mouthIndex] = Mathf.Max(weights[mouthIndex], mouth * 100f);
             if (blinkIndex >= 0 && eyesClosed) weights[blinkIndex] = 100f;
-            for (int i = 0; i < weights.Length; i++) shapes.SetBlendShapeWeight(i, weights[i]);
+            // Only the weights that changed are written (each SetBlendShapeWeight dirties the skinned mesh).
+            for (int i = 0; i < weights.Length; i++)
+            {
+                float w = weights[i];
+                if (Mathf.Abs(w - written[i]) < 0.01f) continue;   // NaN (never written) always fails the test
+                shapes.SetBlendShapeWeight(i, w);
+                written[i] = w;
+            }
             if (followerMap == null) return;
             for (int f = 0; f < followerMap.Length; f++)
             {
                 var fr = followers[f];
                 if (fr == null) continue;
                 var map = followerMap[f];
-                for (int i = 0; i < map.Length; i++) if (map[i] >= 0) fr.SetBlendShapeWeight(map[i], weights[i]);
+                var fw = followerWritten[f];
+                for (int i = 0; i < map.Length; i++)
+                {
+                    if (map[i] < 0) continue;
+                    float w = weights[i];
+                    if (Mathf.Abs(w - fw[i]) < 0.01f) continue;
+                    fr.SetBlendShapeWeight(map[i], w);
+                    fw[i] = w;
+                }
             }
         }
 
@@ -214,6 +263,9 @@ namespace JamKit.VisitingHours.Characters
             if (decal == null || decalColumns <= 0 || decalRows <= 0) return;
             int row = Mathf.Clamp(blend < 0.5f ? previous : current, 0, decalRows - 1);
             int col = (mouth < 0.25f ? 0 : mouth < 0.7f ? 1 : 2) + (eyesClosed && decalColumns >= 6 ? 3 : 0);
+            int cell = row * decalColumns + col;
+            if (cell == lastCell) return;   // the property block is only touched when the cell changes
+            lastCell = cell;
             float w = 1f / decalColumns, h = 1f / decalRows;
             // Row 0 is the top of the atlas; UV v grows upwards.
             var st = new Vector4(w, h, col * w, 1f - (row + 1) * h);

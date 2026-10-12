@@ -15,7 +15,7 @@ import vh_make
 COLS = 6
 
 
-def render(V, T, UV, N, tex, rect, W, H, cell=None):
+def render(V, T, UV, N, tex, rect, W, H, cell=None, rows=1):
     x0, z0, x1, z1 = rect
     P = V[T]
     pts = np.stack([(P[:, :, 0] - x0) / (x1 - x0) * W, (1 - (P[:, :, 2] - z0) / (z1 - z0)) * H], -1)
@@ -29,7 +29,8 @@ def render(V, T, UV, N, tex, rect, W, H, cell=None):
     b = bary[ok]
     uv = (UV[t] * b[:, :, None]).sum(1)
     if cell is not None:
-        uv = np.stack([(cell + uv[:, 0]) / COLS, uv[:, 1]], 1)
+        row, col = cell if isinstance(cell, tuple) else (0, cell)
+        uv = np.stack([(col + uv[:, 0]) / COLS, (rows - row - 1 + uv[:, 1]) / rows], 1)
     col = vt.sample(tex, uv)
     n = (N[T[t]] * b[:, :, None]).sum(1)
     n /= np.maximum(1e-8, np.linalg.norm(n, axis=1, keepdims=True))
@@ -66,12 +67,17 @@ def main(npz, colp, atlasp, out):
     half = max(hi[0] - lo[0], hi[2] - lo[2]) * 0.62
     rect = (cx - half, cz - half, cx + half, cz + half)
     S = 360
-    shots = [("neutral", {}, 0), ("talk half", {"MouthOpen": 50}, 1), ("talk open", {"MouthOpen": 100}, 2), ("blink", {}, 3)]
-    for e in vh_make.DEFAULT_EXPRESSIONS[1:]:
-        shots.append((e["name"], e["shapes"], 0))
-    shots.append(("happy talking", {"Smile": 70, "MouthOpen": 80}, 2))
-    rows = (len(shots) + 3) // 4
-    sheet = Image.new("RGB", (S * 4, S * rows), (40, 40, 44))
+    ex = vh_make.DEFAULT_EXPRESSIONS
+    rows = len(ex)
+    if atlas is not None and atlas.shape[0] / rows < 200:
+        rows = 1   # an old one-row atlas
+    shots = [("neutral", {}, (0, 0)), ("talk half", {"MouthOpen": 50}, (0, 1)), ("talk open", {"MouthOpen": 95}, (0, 2)), ("blink", {}, (0, 3))]
+    for i, e in enumerate(ex[1:], 1):
+        shots.append((e["name"], e["shapes"], (min(i, rows - 1), 0)))
+    hw = dict(ex[2]["shapes"]); hw["MouthOpen"] = 95
+    shots.append(("happy talking", hw, (min(2, rows - 1), 2)))
+    sheet_rows = (len(shots) + 3) // 4
+    sheet = Image.new("RGB", (S * 4, S * sheet_rows), (40, 40, 44))
     draw = ImageDraw.Draw(sheet)
     for i, (label, w, cell) in enumerate(shots):
         V = bv.copy()
@@ -84,7 +90,7 @@ def main(npz, colp, atlasp, out):
             for k, v in w.items():
                 if k in dkeys:
                     DV += dkeys[k] * (v / 100.0)
-            dimg, ddepth = render(DV, d["decal_tris"], d["decal_uv"], d["decal_normals"], atlas, rect, S, S, cell=cell)
+            dimg, ddepth = render(DV, d["decal_tris"], d["decal_uv"], d["decal_normals"], atlas, rect, S, S, cell=cell, rows=rows)
             a = dimg[..., 3:] * (ddepth <= depth + 0.002)[..., None]
             img[..., :3] = img[..., :3] * (1 - a) + dimg[..., :3] * a
         bg = np.full((S, S, 3), 0.25, dtype=np.float32)

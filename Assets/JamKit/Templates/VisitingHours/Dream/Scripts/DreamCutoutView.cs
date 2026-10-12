@@ -8,11 +8,12 @@ namespace JamKit.DreamEscape
     /// A memory as a paper cut-out (docs/REDESIGN.md section 7; docs/redesign/people.md "Billboards"): Lena, Theo, Walt,
     /// the neighbours, the dog. The two real minds (Nadia, Elias) are solid; everyone else in the dream is card.
     ///
-    /// The card is real paper: its picture on the front, plain card stock on the back, and an edge of real thickness cut
+    /// The card is real paper: its picture on the front, mid-grey board on the back, and an edge of real thickness cut
     /// along the figure's outline (traced from the picture's alpha once per picture and shared by every cut-out that uses
-    /// it). The shader (JamKit/Dream/Cutout) lights it with the scene's sun and lamps, casts and receives shadows, glows
-    /// warm through the paper when backlit, and has a faint fibre grain and a hand-drawn "boil" (the picture shifts by a
-    /// hair a few times a second).
+    /// it). The shader (JamKit/Dream/Cutout) lights it with the scene's sun and lamps, casts and receives shadows, lets
+    /// about 30% of the light through when backlit, prints an overlay over the picture where one exists (Lena's star
+    /// watch), and has a faint fibre grain and a hand-drawn "boil" (the picture shifts by a hair a few times a second).
+    /// Paper meshes are prewarmed after every scene load (<see cref="Prewarm"/>).
     ///
     /// Alive: a slow sway and breath about its feet. Facing: it stands facing <see cref="restYaw"/>; once you come within
     /// <see cref="noticeDistance"/> it turns about its feet to watch you, a beat late, and keeps watching after you've
@@ -60,7 +61,23 @@ namespace JamKit.DreamEscape
 
         static readonly int MainTexId = Shader.PropertyToID("_MainTex");
         static readonly int PhaseId = Shader.PropertyToID("_Phase");
+        static readonly int BackColorId = Shader.PropertyToID("_BackColor");
+        static readonly int TranslucencyId = Shader.PropertyToID("_Translucency");
+        static readonly int ShowThroughId = Shader.PropertyToID("_ShowThrough");
+        static readonly int OverlayId = Shader.PropertyToID("_Overlay");
+        static readonly int OverlayOnId = Shader.PropertyToID("_OverlayOn");
         static readonly Dictionary<Texture, Mesh> Meshes = new Dictionary<Texture, Mesh>();
+        static readonly Dictionary<string, Texture2D> Overlays = new Dictionary<string, Texture2D>();
+
+        /// <summary>The card's back: mid-grey board (the judge, round 1: the cream back "glowed like a peach ghost").
+        /// Forced through the property block, so saved materials with the old values follow.</summary>
+        public static readonly Color CardBack = new Color(0.5f, 0.49f, 0.47f, 1f);
+        /// <summary>Light through the card when backlit: about 30% (thick card, not tracing paper).</summary>
+        public const float Translucency = 0.3f;
+        /// <summary>Overlays printed over a picture, by the picture's name: Resources/People/Overlays/&lt;picture&gt;.png, the
+        /// same size as the picture, transparent except what it changes (Lena's star watch over the round one in her
+        /// drawing). The drawings themselves are not touched.</summary>
+        public const string OverlayFolder = "People/Overlays/";
 
         /// <summary>The cut-out's yaw now (degrees).</summary>
         public float Yaw => _yaw;
@@ -169,8 +186,54 @@ namespace JamKit.DreamEscape
             _paperRenderer.GetPropertyBlock(_block);
             if (_picture != null) _block.SetTexture(MainTexId, _picture);
             _block.SetFloat(PhaseId, Mathf.Repeat(_phase * 0.37f, 1f));
+            _block.SetColor(BackColorId, CardBack);
+            _block.SetFloat(TranslucencyId, Translucency);
+            _block.SetFloat(ShowThroughId, 0.06f);
+            var overlay = OverlayFor(_picture);
+            _block.SetTexture(OverlayId, overlay != null ? overlay : Texture2D.whiteTexture);
+            _block.SetFloat(OverlayOnId, overlay != null ? 1f : 0f);
             _paperRenderer.SetPropertyBlock(_block);
         }
+
+        /// <summary>The overlay for a picture (Resources/People/Overlays/&lt;name&gt;), or null; looked up once per name.</summary>
+        public static Texture2D OverlayFor(Texture picture)
+        {
+            if (picture == null) return null;
+            if (Overlays.TryGetValue(picture.name, out var o)) return o;
+            o = Resources.Load<Texture2D>(OverlayFolder + picture.name);
+            Overlays[picture.name] = o;
+            return o;
+        }
+
+        /// <summary>Builds every paper mesh now, so no cut-out traces its outline (a GPU read-back and marching squares)
+        /// in the middle of play: the cut-outs in the loaded scenes (inactive ones too) and any extra pictures (flip
+        /// poses). Runs by itself after each scene load; builders may call it again behind a loading screen.</summary>
+        public static int Prewarm(IList<Texture> extraPictures = null)
+        {
+            int n = 0;
+            foreach (var v in Object.FindObjectsByType<DreamCutoutView>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (v == null || v.card == null) continue;
+                var r = v.card.GetComponent<MeshRenderer>();
+                var pic = v._picture != null ? v._picture : r != null && r.sharedMaterial != null ? r.sharedMaterial.GetTexture(MainTexId) : null;
+                if (pic != null && !Meshes.ContainsKey(pic) && PaperMesh(pic, v.thickness) != null) n++;
+                OverlayFor(pic);
+            }
+            if (extraPictures != null)
+                foreach (var pic in extraPictures)
+                    if (pic != null && !Meshes.ContainsKey(pic) && PaperMesh(pic, 0.016f) != null) n++;
+            return n;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void PrewarmOnLoad()
+        {
+            Prewarm();
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode) { Prewarm(); }
 
         // ---------------------------------------------------------------------------------------------------------
         // Behaviour

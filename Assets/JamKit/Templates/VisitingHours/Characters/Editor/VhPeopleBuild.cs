@@ -62,8 +62,9 @@ namespace JamKit.VisitingHours.Characters.EditorTools
 
         /// <summary>The cast: prefab name, model path under Models/, standing height in metres.</summary>
         /// <remarks>docs/REDESIGN.md section 7: in the dream only Nadia and Elias are 3D (Lena, Theo, Walt and the
-        /// neighbours are paper cut-outs, DreamCutoutView); in the waking world Mags and Elias in bed, with Rafael altered
-        /// from Elias and LeBaget's representative from Mags (tools/tripo/people/*.json). Nadia is not here:
+        /// neighbours are paper cut-outs, DreamCutoutView); in the waking world Mags and Elias in bed, Rafael (his own Tripo
+        /// model, the creator, 2026-10-13) and LeBaget's representative, altered from a 3D Lena that is also kept as its own
+        /// prefab (tools/tripo/people/*.json). Nadia is not here:
         /// Models/Nadia/Nadia.fbx is imported as Generic for the World agent's first-person body (MovementBody /
         /// MixamoBodyRig), and switching it to Humanoid would break that.</remarks>
         public static readonly Spec[] Cast =
@@ -71,8 +72,9 @@ namespace JamKit.VisitingHours.Characters.EditorTools
             new Spec("Elias", "Elias/Elias.fbx", 1.83f, "the dream Elias at the barbecue: cornflower apron on white"),
             new Spec("EliasBed", "EliasBed/EliasBed.fbx", 1.83f, "the waking Elias in the hospital gown, asleep", "lie"),
             new Spec("Mags", "Mags/Mags.fbx", 1.62f, "Marguerite Ilunga: oatmeal cardigan over pale-blue scrubs"),
-            new Spec("Rafael", "Rafael/Rafael.fbx", 1.76f, "the intern: teal scrubs, white apron, two pens"),
-            new Spec("Representative", "Representative/Representative.fbx", 1.72f, "LeBaget's Community Partnerships representative"),
+            new Spec("Rafael", "Rafael/Rafael.fbx", 1.76f, "the intern: teal scrubs over charcoal sleeves, two pens behind his ears"),
+            new Spec("Representative", "Representative/Representative.fbx", 1.74f, "LeBaget's Community Partnerships representative (altered from the 3D Lena)"),
+            new Spec("Lena", "Lena/Lena.fbx", 1.88f, "Lena, plain (the base the representative is made from; kept for later)"),
         };
 
         /// <summary>States that loop (a clip name starting with any of these). Everything else is a one-shot.</summary>
@@ -240,6 +242,21 @@ namespace JamKit.VisitingHours.Characters.EditorTools
                     }
                 }
 
+                // LODs: the body decimated in Blender ("<Name>_LOD1", no face) past a fifth of the screen's height.
+                Renderer lod1 = null;
+                var lod0 = new List<Renderer>();
+                foreach (var r in body.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r.gameObject.name.EndsWith("_LOD1", StringComparison.Ordinal)) lod1 = r; else lod0.Add(r);
+                }
+                if (lod1 != null)
+                {
+                    var group = body.AddComponent<LODGroup>();
+                    group.SetLODs(new[] { new LOD(0.2f, lod0.ToArray()), new LOD(0.012f, new[] { lod1 }) });
+                    group.fadeMode = LODFadeMode.None;
+                    group.RecalculateBounds();
+                }
+
                 var face = root.AddComponent<VhFace>();
                 face.shapes = shapes;
                 if (decal != null)
@@ -276,7 +293,8 @@ namespace JamKit.VisitingHours.Characters.EditorTools
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
                 return spec.name + ": " + prefabPath + " · " + h.ToString("0.00") + " m · " + avatarNote + " · " + controller.layers[0].stateMachine.states.Length
                     + " states (default " + ch.idleState + ") · " + shapeCount + " blendshapes · face decal " + (decal != null ? "yes" : "no")
-                    + " · " + face.ExpressionCount + " expressions" + (accNote.Length > 0 ? " · accessories" + accNote : "");
+                    + " · " + face.ExpressionCount + " expressions (atlas " + face.decalRows + " x " + face.decalColumns + ")"
+                    + " · LOD1 " + (lod1 != null ? "yes" : "no") + (accNote.Length > 0 ? " · accessories" + accNote : "");
             }
             finally { UnityEngine.Object.DestroyImmediate(root); }
         }
