@@ -27,6 +27,8 @@ namespace JamKit.DreamEscape.EditorTools
         public const string Lena = "dream_lena";
         public const string Theo = "dream_theo";
         public const string WaspMask = "dream_wasp_mask";
+        /// <summary>Night 1's Elias (at the barbecue, at the stove in the window): the cast's sticker style, a blue apron and tongs.</summary>
+        public const string Elias = "dream_elias";
         /// <summary>Night 2's story pictures (style-E files only; no placeholders are drawn: the plain cards stay):
         /// the photo wall <c>dream_pic_photo_1</c> to <c>_6</c>, the fridge calendar, Theo's drawing.</summary>
         public const string PicPhoto = "dream_pic_photo_";

@@ -93,7 +93,7 @@ Every line is a **placeholder**, marked so on screen. The lines quoted from the 
 5. **The climb.**
    - On terrace 1, by the east hairpin, a neighbour at his grill chats as she passes (one line).
    - Walt's ledger on the workbench is optional (`mem_walt_ledger`).
-6. **The top.** Elias (a **placeholder figure**: there's no art of him yet) is at the barbecue and goes in as she
+6. **The top.** Elias (his dream cut-out, `dream_elias`, eyes at 1.66 m: a little taller than Lena) is at the barbecue and goes in as she
    arrives.
 7. **The garden gate.** No chase:
    - She is held at the gate. Through the window Theo sets the table and Elias stands at the stove.
@@ -116,7 +116,7 @@ Every line is a **placeholder**, marked so on screen. The lines quoted from the 
 
 ## What's open
 
-- **Placeholders.** Elias has no art yet (a placeholder figure, at the barbecue and in the window). The shop's sign has
+- **Placeholders.** The shop's sign has
   no lettering.
 - **The chain.** The night says it's over through `DreamStreetGame.NightEnded`. The chain's runner listens to the house
   and the escape, so it needs that event too, or this game can call `Chain.Done()` once the chain's code is committed.

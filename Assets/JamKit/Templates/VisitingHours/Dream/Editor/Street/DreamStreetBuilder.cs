@@ -16,7 +16,7 @@ namespace JamKit.DreamEscape.EditorTools
     /// bike shop at the bottom by the creek, the terraced houses, the stepped row, the garden stairs, the ravine, the
     /// Lasname house at the top (its outside is <see cref="DreamHouseExterior"/>, the house builder's; this adds its front,
     /// the room behind the window and the people in it, the door and the porch light) with the beacon standing up out of its
-    /// tower, the cast (Walt, the neighbour, the dog, Elias at the barbecue: a PLACEHOLDER figure), the neighbours' loop
+    /// tower, the cast (Walt, the neighbour, the dog, Elias at the barbecue), the neighbours' loop
     /// (the sprinkler, the ball), the memories, Nadia, and the game. A step of "JamKit/Rebuild Shell Scenes";
     /// "JamKit/Dream Street/Rebuild Scene" rebuilds only it.
     /// </summary>
@@ -42,8 +42,10 @@ namespace JamKit.DreamEscape.EditorTools
             new Color(0.93f, 0.55f, 0.52f), new Color(0.6f, 0.52f, 0.78f), new Color(0.42f, 0.7f, 0.74f), new Color(0.95f, 0.66f, 0.42f),
         };
 
-        // The cast's eye heights, as the house's (Nadia's eye is 1.5 m).
+        // The cast's eye heights, as the house's (Nadia's eye is 1.5 m, Lena's 1.60): sized by the eyes, not feet to hair.
         const float WaltEye = 1.62f, WaltEyeFromTop = 0.2f;
+        /// <summary>Elias: a little taller than Lena (eyes at 1.66 m); his drawing's eyes are 24.4% of the card down from its top.</summary>
+        public const float EliasEye = 1.66f, EliasEyeFromTop = 0.244f, EliasCardHeight = EliasEye / (1f - EliasEyeFromTop);
 
         [JamKitBuildStep(247)]
         static void Build(SceneBuilder.Context ctx)
@@ -186,7 +188,7 @@ namespace JamKit.DreamEscape.EditorTools
             var beacon = Beacon(h, root);
             var barbecue = U(h.Spot(LarchHill.SpotBarbecue).position);
             DreamEscapeBuilder.Box("The barbecue", root, barbecue + new Vector3(0.9f, 0.45f, 0.3f), new Vector3(0.9f, 0.9f, 0.6f), DreamEscapeBuilder.Pastel("StreetBarbecue", Plum, 0.04f));
-            var eliasOut = Figure("Elias (at the barbecue, PLACEHOLDER figure)", root, barbecue);
+            var eliasOut = CutOut("Elias (at the barbecue)", DreamArt.Elias, root, barbecue, EliasCardHeight);
 
             var game = new GameObject("Dream Street").AddComponent<DreamStreetGame>();
             game.player = body;
@@ -458,7 +460,7 @@ namespace JamKit.DreamEscape.EditorTools
 
         /// <summary>The Lasname house: <see cref="DreamHouseExterior"/> (the round 5 outside, the house builder's) built at the
         /// origin, then this scene's front wall (its window and door), the warm room behind the window with Theo setting the
-        /// table, Elias at the stove (a PLACEHOLDER figure) and Lena out of sight beside it, the door on its hinge, the porch
+        /// table, Elias at the stove and Lena out of sight beside it, the door on its hinge, the porch
         /// light; then the whole thing moved onto the knoll.</summary>
         static Transform House(LarchHill h, Transform root, out HouseParts parts)
         {
@@ -513,7 +515,7 @@ namespace JamKit.DreamEscape.EditorTools
 
             // The people in the window: Theo setting the table, Elias at the stove; Lena out of sight to the left.
             var theo = CutOut("Theo (setting the table)", DreamArt.Theo, room, new Vector3(-2.4f, 0f, 2.6f), DreamHouseBuilder.TheoCardHeight);
-            var elias = Figure("Elias (at the stove, PLACEHOLDER figure)", room, new Vector3(-4.5f, 0f, 2.7f));
+            var elias = CutOut("Elias (at the stove)", DreamArt.Elias, room, new Vector3(-4.5f, 0f, 2.7f), EliasCardHeight);
             var lena = CutOut("Lena (out of sight)", DreamArt.Lena, room, new Vector3(-7.0f, 0f, 2.4f), DreamHouseBuilder.LenaCardHeight);
 
             // The door on its hinge (open: swung in), and the porch light under the exterior's lantern.
@@ -565,19 +567,6 @@ namespace JamKit.DreamEscape.EditorTools
             r.sharedMaterial = mat;
             r.shadowCastingMode = ShadowCastingMode.Off;
             r.receiveShadows = false;
-            return go;
-        }
-
-        /// <summary>Elias, until he's drawn: a PLACEHOLDER figure (a body, a head, his apron's colour), no colliders.</summary>
-        static GameObject Figure(string name, Transform parent, Vector3 feet)
-        {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            go.transform.position = feet;
-            var body = DreamEscapeBuilder.Pastel("StreetEliasPlaceholder", new Color(0.5f, 0.62f, 0.86f), 0.06f);
-            var skin = DreamEscapeBuilder.Pastel("StreetEliasSkin", new Color(0.96f, 0.8f, 0.68f), 0.06f);
-            DreamEscapeBuilder.Part("Body", PrimitiveType.Capsule, go.transform, new Vector3(0f, 0.9f, 0f), new Vector3(0.62f, 0.85f, 0.42f), body);
-            DreamEscapeBuilder.Part("Head", PrimitiveType.Sphere, go.transform, new Vector3(0f, 1.66f, 0f), Vector3.one * 0.32f, skin);
             return go;
         }
     }
