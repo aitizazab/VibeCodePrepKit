@@ -67,8 +67,25 @@ namespace JamKit.VisitingHours
             if (SmokeRunner.Active) SmokeRunner.TitleGate = SmokeGate;
         }
 
-        /// <summary>The smoke run presses Play once the table is up and the opening is over.</summary>
-        static bool SmokeGate() => !IsActive || (Stage != null && Stage.Interactive && Opening == null);
+        /// <summary>
+        /// The smoke run presses Play once the table is up and the opening is over. It plays the bedroom part (fast) but
+        /// doesn't sit through the news report: once the opening reaches the table, it ends the opening there (the title's
+        /// final state, as a skip leaves it), so the smoke's time budget never depends on the report's length. The real
+        /// game's pacing is untouched (this gate is only set under the smoke run).
+        /// </summary>
+        static bool SmokeGate()
+        {
+            if (!IsActive) return true;
+            var stage = Stage;
+            if (stage == null) return false;
+            var opening = Opening;
+            if (opening != null && opening.Running && stage.Pose == "table")
+            {
+                UnityEngine.Debug.Log("JAMKIT_SMOKE_VH the opening reached the table at " + Time.realtimeSinceStartup.ToString("0.0") + " s: ending it there (the report isn't sat through)");
+                opening.Finish(false);
+            }
+            return stage.Interactive && Opening == null;
+        }
 
         /// <summary>True when Play starts the slice.</summary>
         public static bool IsActive => GameRoot.Exists && _boot != null && GameRoot.Config.firstGameplayScene == _boot.sceneName;
@@ -147,7 +164,9 @@ namespace JamKit.VisitingHours
         {
             if (stage != null) return true;
             if (!OnTitleScene || boot == null) return false;
+            float t0 = Time.realtimeSinceStartup;
             stage = VhStageBuilder.Build(boot, true);
+            if (SmokeRunner.Active) Debug.Log("JAMKIT_SMOKE_VH the title's sets built in " + (Time.realtimeSinceStartup - t0).ToString("0.00") + " s (at " + Time.realtimeSinceStartup.ToString("0.0") + " s)");
             if (!openingWanted && !openingOnTitle) stage.ShowTitleFinal();
             ApplyShellLook(GameRoot.Ui.Title, true);
             return true;
@@ -186,6 +205,7 @@ namespace JamKit.VisitingHours
             opening = null;
             if (stage == null) return;
             opening = new VhOpening(boot, stage, GameRoot.Ui.Title) { speed = speed };
+            if (SmokeRunner.Active) Debug.Log("JAMKIT_SMOKE_VH the opening starts at " + Time.realtimeSinceStartup.ToString("0.0") + " s (x" + speed + ", " + opening.Length.ToString("0.0") + " s long)");
             var started = opening;
             opening.Finished += () => { if (opening == started) opening = null; };
             opening.Start();

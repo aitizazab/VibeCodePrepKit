@@ -190,7 +190,8 @@ new art lands.
 give an id a clip in the Audio Registry to replace it. The music is still the placeholder pad.
 
 **Skipping and testing.** Hold Escape (or B) to skip to the title. Tests skip the opening (batch mode) and play it
-fast on purpose; the smoke run plays it at 30x and waits for the table before pressing Play (`SmokeRunner.TitleGate`).
+fast on purpose; the smoke run plays the bedroom part at 30x and, once the opening reaches the table, ends it there
+(it doesn't sit through the news report) before pressing Play (`SmokeRunner.TitleGate`, `VhBoot.SmokeGate`).
 
 ## Lighting (built 2026-10-11)
 The creator asked for a severe overhaul: "it's not at all cinematic", and the title is the first thing every player sees.
