@@ -12,7 +12,7 @@
  ],
  "notes": [
   "Each room has its two walls and a ceiling. In the tipped rooms that means the old floor on the left, the old ceiling on the right and the papered old wall overhead; the last hall is the right way up; the attic is in its boards. The observatory stays open to the night, with a framed doorway into the attic.",
-  "Fixed after these stills: thin slots of sky show either side under the ceilings, where a room's floor stops (over the slides and the gaps). The walls now run each room's whole length; next to a wall she runs along, only the strip above it is added, so that wall still stands out.",
+  "Fixed: the walls now run each room's whole length, so no sky shows under the ceilings over the slides and gaps; next to a wall she runs along, only the strip above it is added, so that wall still stands out.",
   "Theo's answer pays off too: as Lena turns Nadia out, he has a parting line that depends on what she told him (honest, comfort or silence). The lines are placeholders.",
   "The walls and ceilings are only pictures and have no collision, so the course, its wallruns and its timings are unchanged."
  ],
