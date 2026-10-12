@@ -508,7 +508,7 @@ namespace JamKit.DeepBlock
             AddSpot(SpotTopArrive, "the top", -20f, Top + 3f, 140f, 160f, 8f, 76f);
             AddSpot(SpotGate, "the garden gate", -2f, Knoll + 1f, 109.5f, 4f, 3f, 3f);
             // On the side lawn by the knoll, in sight as she comes up onto the top (on the knoll he was hidden behind its face).
-            AddSpot(SpotBarbecue, "the barbecue (Elias)", 20f, Top, 112f, yaw: 240f);
+            AddSpot(SpotBarbecue, "the barbecue (Elias)", 22f, Top, 111f, yaw: 240f);
             AddSpot(SpotElias, "Elias, at the stove (through the window)", houseOrigin.X - 4.3f, Knoll, houseOrigin.Z + 2.2f, yaw: 180f);
             AddSpot(SpotWindow, "the front window", houseOrigin.X - 4.3f, Knoll + 1.65f, houseOrigin.Z);
             AddSpot(SpotDoor, "the front door", houseOrigin.X, Knoll, houseOrigin.Z);
@@ -609,7 +609,8 @@ namespace JamKit.DeepBlock
             views.Add(new HillView { name = "street-08-the-ravine-culvert", eye = new Vector3(54f, RavineBed + eye, 12f), look = new Vector3(54f, RavineBed + 0.6f, 30f) });
             float fallsEye = RavineBed + (Top - RavineBed) / 28f * 7f + eye;
             views.Add(new HillView { name = "street-09-the-ravine-falls", eye = new Vector3(54f, fallsEye, 60f), look = new Vector3(54f, fallsEye + 12f, 110f) });
-            views.Add(new HillView { name = "street-10-top-elias-at-the-barbecue", eye = new Vector3(4f, Top + eye, 104f), look = new Vector3(20f, Top + 1.2f, 112f) });
+            // Elias at his barbecue (7 m off) with the house over his shoulder, for his scale.
+            views.Add(new HillView { name = "street-10-top-elias-at-the-barbecue", eye = new Vector3(26f, Top + eye, 104f), look = new Vector3(14f, Top + 2f, 115f) });
         }
     }
 }
