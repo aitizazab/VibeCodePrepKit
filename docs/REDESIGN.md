@@ -140,3 +140,8 @@ judge's findings.
 - **The keepsake** (Heard out): "can be anything related to stargazing ... but again, does she really need to give us a
   keepsake? And if it's meant for us, not to convince Elias, then it should be something Lena shares with Nadia, so it
   means something." Open: whether there is one at all, and if so, something Lena and Nadia shared.
+- **The keepsake, settled (the creator, 2026-10-12):** "a watch in the shape of a star, that sits on Nadia's right arm?
+  And later, we can tie it into a mechanic for Night 4." So Heard out gives Nadia Lena's star-shaped watch (her
+  sheet already has her wearing a watch face-in); from then on it's on Nadia's right wrist in first person (the body
+  rig), in the dream and, if it carries over, in the waking world. Night 4's mechanic around it is for later (time is
+  Night 4's subject: the 3:03 and 3:06 calls). This replaces the planisphere placeholder.
