@@ -453,10 +453,23 @@ namespace JamKit.DreamEscape.EditorTools
         /// mesh drew its ink outline over itself), neither taking shadows (the dream's flats don't).</summary>
         internal static void Poly(Transform t, string name, Material mat, params Vector3[] pts)
         {
+            mat = Flat(mat);
             OneSided(t, name, mat, pts);
             var back = (Vector3[])pts.Clone();
             System.Array.Reverse(back);
             OneSided(t, name + " (back)", mat, back);
+        }
+
+        /// <summary>The same look with no ink outline: the outline's inverted hull only works on closed shapes, and on a flat
+        /// it covered the face in ink (the front gable read dark).</summary>
+        static Material Flat(Material mat)
+        {
+            string key = mat.name.StartsWith("Pastel_") ? mat.name.Substring(7) : mat.name;
+            var flat = DreamEscapeBuilder.Pastel(key + "_Flat", mat.GetColor("_Color"), 0f);
+            foreach (var prop in new[] { "_TexScale", "_TexMean", "_TexStrength" })
+                if (mat.HasProperty(prop)) flat.SetFloat(prop, mat.GetFloat(prop));
+            if (mat.HasProperty("_MainTex")) flat.SetTexture("_MainTex", mat.GetTexture("_MainTex"));
+            return flat;
         }
 
         static void OneSided(Transform t, string name, Material mat, Vector3[] pts)
