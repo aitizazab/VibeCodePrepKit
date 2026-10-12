@@ -9,7 +9,7 @@ namespace JamKit.Tests.Play
     /// <summary>
     /// Watches a first-person body while something (an autopilot) moves the player: the wall hand reaches
     /// its spot by the second frame after each wallrun catch, the ankles reach the slide pose's feet, the
-    /// head stays inside the camera's cut-away, and the body has no colliders. For any template whose
+    /// head stays inside the first-person cut-away, and the body has no colliders. For any template whose
     /// MovementBody has a real rig (the Movement Lab, the dream escape).
     /// </summary>
     public static class BodyTestUtil
@@ -18,12 +18,14 @@ namespace JamKit.Tests.Play
         {
             public int catches, catchesChecked, slideFrames, reachedEarly;
             public float leastLeadForward = float.MaxValue, leastLeadUp = float.MaxValue, worstWallGap;
-            public float worstWallHand, worstSlideFoot, worstHead, cutout;
+            public float worstWallHand, worstSlideFoot, worstHead, cutout, leastHeadMargin = float.MaxValue;
+            public int firstPersonFrames;
             public override string ToString() =>
                 $"catches {catches} (reaching out before contact on {reachedEarly}, checked {catchesChecked}, worst hand off its target {worstWallHand:0.000} m, "
                 + $"worst gap to the wall {worstWallGap:0.00} m), slide frames {slideFrames}"
                 + (slideFrames > 0 ? $" (worst ankle off its target {worstSlideFoot:0.000} m, leading ankle at least {leastLeadForward:0.00} m ahead and {leastLeadUp:0.00} m up)" : "")
-                + $", head {worstHead:0.000} m from the eye (cut-away {cutout:0.00} m)";
+                + $", head bone at most {worstHead:0.000} m from the camera, the head's sphere at least {leastHeadMargin:0.000} m inside the cut-away "
+                + $"(up to {cutout:0.00} m, {firstPersonFrames} first-person frames)";
         }
 
         public static MixamoBodyRig RigOf(MovementController player)
@@ -43,7 +45,6 @@ namespace JamKit.Tests.Play
         {
             var mb = player.GetComponentInChildren<MovementBody>(true);
             var rig = RigOf(player);
-            r.cutout = rig.CutoutRadius;
             int catchFrame = -1, wallIdx = 0;
             bool counted = false;
             float end = Time.realtimeSinceStartup + seconds;
@@ -78,6 +79,12 @@ namespace JamKit.Tests.Play
                     r.leastLeadUp = Mathf.Min(r.leastLeadUp, lead.y);
                 }
                 r.worstHead = Mathf.Max(r.worstHead, rig.HeadDistance);
+                if (rig.CutoutRadius > 0f)
+                {
+                    r.firstPersonFrames++;
+                    r.cutout = Mathf.Max(r.cutout, rig.CutoutRadius);
+                    r.leastHeadMargin = Mathf.Min(r.leastHeadMargin, rig.HeadMargin);
+                }
                 yield return null;
             }
         }
@@ -102,7 +109,8 @@ namespace JamKit.Tests.Play
                 Assert.That(r.leastLeadForward, Is.GreaterThan(0.45f), "the leading foot is out in front in the slide");
                 Assert.That(r.leastLeadUp, Is.GreaterThan(0.12f), "and up off the ground, where the camera sees it");
             }
-            Assert.That(r.worstHead, Is.LessThan(r.cutout - 0.04f), "the head stays inside the cut-away: the first-person camera never sees it");
+            Assert.That(r.firstPersonFrames, Is.GreaterThan(0), "first-person frames were watched");
+            Assert.That(r.leastHeadMargin, Is.GreaterThanOrEqualTo(0f), "the head, hair and neck stay inside the cut-away: the first-person camera never sees them");
         }
     }
 }

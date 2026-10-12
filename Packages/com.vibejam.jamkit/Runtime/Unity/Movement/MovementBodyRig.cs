@@ -43,7 +43,7 @@ namespace JamKit.Movement
         /// <summary>The head's centre (world): what the first-person camera must not see.</summary>
         public abstract Vector3 HeadPosition { get; }
 
-        /// <summary>How far around the camera the visible body is cut away in first person (m).</summary>
+        /// <summary>The radius of the sphere the visible body is cut away inside in first person (m; 0: nothing is cut away).</summary>
         public abstract float CutoutRadius { get; }
 
         /// <summary>Where an arm starts (world; 0 left, 1 right) and how far its hand can reach from there (m), so a

@@ -10,9 +10,11 @@ namespace JamKit.Movement
     /// LeftForeArm, LeftHand, LeftUpLeg, LeftLeg, LeftFoot...): each frame it goes back to the bind pose,
     /// stands the model at the body's feet facing its yaw, leans the torso, puts the eyes on the camera's
     /// head, and reaches the hands and feet to the feel's targets with two-bone IK (elbows and knees towards
-    /// their hints). In first person the visible copy is cut away around the camera (the head, the hair and
-    /// the neck: a material property, <see cref="cutoutProperty"/>) while a shadow-only copy, sharing the
-    /// same bones, casts the whole body's shadow, head included. No colliders; layer Ignore Raycast.
+    /// their hints). In first person the neck follows only part of the view's pitch, and the visible copy is
+    /// cut away inside one sphere around the posed head, hair and neck (measured from the mesh) and the camera
+    /// (a material property, <see cref="cutoutProperty"/>), while a shadow-only copy, sharing the same bones,
+    /// casts the whole body's shadow, head included. A frame it isn't posed in, the visible copy hides.
+    /// No colliders; layer Ignore Raycast.
     /// </summary>
     [DefaultExecutionOrder(61)]
     public sealed class MixamoBodyRig : MovementBodyRig
@@ -21,8 +23,18 @@ namespace JamKit.Movement
         public Transform model;
         [Tooltip("Material property (xyz centre, w radius) the visible copy's shader cuts away around; JamKit/VisitingHours/Waking has it.")]
         public string cutoutProperty = "_CameraCutout";
-        [Tooltip("How far around the camera the visible body is cut away in first person (m): the head and the hair.")]
-        public float cutoutRadius = 0.24f;
+        [Tooltip("The head, hair and neck as a sphere in the head bone's frame: its centre (measured from the mesh by MeasureHead when the builder wires her; estimated from the bones when it's empty).")]
+        public Vector3 headCentre;
+        [Tooltip("That sphere's radius (head bone units; 0: not measured yet).")]
+        public float headRadius;
+        [Tooltip("First person: the cut-away reaches this much past the head's sphere (m).")]
+        public float cutoutMargin = 0.01f;
+        [Tooltip("First person: the cut-away also keeps this much room around the camera (m): the neck and collar just under it.")]
+        public float cameraClearance = 0.1f;
+        [Tooltip("First person: how much of the view's pitch the neck follows (the shadow nods). A full nod swung her face out of the cut-away and into view when looking down.")]
+        [Range(0f, 1f)] public float neckFollow = 0.25f;
+        [Tooltip("First person: the most the neck turns from her torso (degrees).")]
+        public float neckFollowMax = 20f;
         [Tooltip("The eyes, from the head bone: forward and up (m).")]
         public float eyeForward = 0.09f, eyeUp = 0.07f;
         [Tooltip("The ankle above the sole (m).")]
@@ -52,9 +64,14 @@ namespace JamKit.Movement
         bool _ready;
         Vector3 _camPos;
         bool _third;
+        Vector4 _cutout;
+        int _posedFrame = -1;
+        bool _shown = true;
 
         public override bool Ready => _ready;
-        public override float CutoutRadius => _third ? 0f : cutoutRadius;
+        public override float CutoutRadius => _third ? 0f : _cutout.w;
+        /// <summary>The last pose's cut-away (xyz centre, w radius; 0 in third person), as the visible copy's material got it.</summary>
+        public Vector4 Cutout => _cutout;
         public override Vector3 HeadPosition => _head != null ? _head.position : transform.position;
         public override Vector3 HandPosition(int side) => _hand[side] != null ? _hand[side].position : Vector3.zero;
         public override Vector3 FootPosition(int side) => _foot[side] != null ? _foot[side].position : Vector3.zero;
@@ -71,6 +88,8 @@ namespace JamKit.Movement
         /// <summary>After the last pose: each ankle in the body's frame (x right, y up from the soles, z forward).</summary>
         public readonly Vector3[] FootLocal = new Vector3[2];
         public float HeadDistance;
+        /// <summary>After the last pose: how far inside the cut-away the head's sphere sits (m; negative: part of the head shows).</summary>
+        public float HeadMargin;
 
         void Awake() => Bind();
 
@@ -78,28 +97,7 @@ namespace JamKit.Movement
         public bool Bind()
         {
             if (_ready) return true;
-            if (model == null) model = transform;
-            _hips = Bone("Hips");
-            _spine = Bone("Spine");
-            _spine1 = Bone("Spine1");
-            _chest = Bone("Spine2") ?? _spine1;
-            _neck = Bone("Neck");
-            _head = Bone("Head");
-            string[] s = { "Left", "Right" };
-            for (int i = 0; i < 2; i++)
-            {
-                _shoulder[i] = Bone(s[i] + "Shoulder");
-                _arm[i] = Bone(s[i] + "Arm");
-                _fore[i] = Bone(s[i] + "ForeArm");
-                _hand[i] = Bone(s[i] + "Hand");
-                _finger[i] = Bone(s[i] + "HandMiddle1");
-                _up[i] = Bone(s[i] + "UpLeg");
-                _leg[i] = Bone(s[i] + "Leg");
-                _foot[i] = Bone(s[i] + "Foot");
-                _toe[i] = Bone(s[i] + "ToeBase");
-                if (_arm[i] == null || _fore[i] == null || _hand[i] == null || _up[i] == null || _leg[i] == null || _foot[i] == null) return false;
-            }
-            if (_hips == null || _head == null) return false;
+            if (!FindBones()) return false;
 
             foreach (var a in model.GetComponentsInChildren<Animator>(true)) a.enabled = false;
             foreach (var c in model.GetComponentsInChildren<Collider>(true))
@@ -155,8 +153,143 @@ namespace JamKit.Movement
             _visible = list.ToArray();
             _block = new MaterialPropertyBlock();
             _cutoutId = Shader.PropertyToID(cutoutProperty);
+            if (headRadius <= 0f && !MeasureHead()) EstimateHead();
             _ready = true;
             return true;
+        }
+
+        /// <summary>Finds the Mixamo bones; false when the arms, legs, hips or head aren't there.</summary>
+        bool FindBones()
+        {
+            if (model == null) model = transform;
+            _hips = Bone("Hips");
+            _spine = Bone("Spine");
+            _spine1 = Bone("Spine1");
+            _chest = Bone("Spine2") ?? _spine1;
+            _neck = Bone("Neck");
+            _head = Bone("Head");
+            string[] s = { "Left", "Right" };
+            for (int i = 0; i < 2; i++)
+            {
+                _shoulder[i] = Bone(s[i] + "Shoulder");
+                _arm[i] = Bone(s[i] + "Arm");
+                _fore[i] = Bone(s[i] + "ForeArm");
+                _hand[i] = Bone(s[i] + "Hand");
+                _finger[i] = Bone(s[i] + "HandMiddle1");
+                _up[i] = Bone(s[i] + "UpLeg");
+                _leg[i] = Bone(s[i] + "Leg");
+                _foot[i] = Bone(s[i] + "Foot");
+                _toe[i] = Bone(s[i] + "ToeBase");
+                if (_arm[i] == null || _fore[i] == null || _hand[i] == null || _up[i] == null || _leg[i] == null || _foot[i] == null) return false;
+            }
+            return _hips != null && _head != null;
+        }
+
+        /// <summary>
+        /// Measures the head, the hair and the neck (the vertices skinned at least half to the Neck, the Head or the head's
+        /// children) as a sphere in the head bone's frame: <see cref="headCentre"/>, <see cref="headRadius"/>. The first-person
+        /// cut-away is centred on it wherever the head is posed. Needs the mesh's data: in the editor outside Play mode (the
+        /// builders call it when they wire her, and it's saved with the scene) or a Read/Write mesh. False when it can't.
+        /// </summary>
+        public bool MeasureHead()
+        {
+            if (_head == null && !FindBones()) return false;
+            var pts = new List<Vector3>();
+            foreach (var smr in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (smr.name.EndsWith(" (shadow)", System.StringComparison.Ordinal)) continue;
+                var mesh = smr.sharedMesh;
+                if (mesh == null || (!mesh.isReadable && Application.isPlaying)) continue;
+                var bones = smr.bones;
+                int headIdx = System.Array.IndexOf(bones, _head);
+                if (headIdx < 0) continue;
+                var inHead = new bool[bones.Length];
+                for (int b = 0; b < bones.Length; b++)
+                    inHead[b] = bones[b] != null && (bones[b] == _neck || bones[b].IsChildOf(_head));
+                var bindposes = mesh.bindposes;
+                var verts = mesh.vertices;
+                var weights = mesh.boneWeights;
+                if (bindposes.Length != bones.Length || weights.Length != verts.Length) continue;
+                var toHead = bindposes[headIdx];
+                for (int v = 0; v < verts.Length; v++)
+                {
+                    var bw = weights[v];
+                    float w = (inHead[bw.boneIndex0] ? bw.weight0 : 0f) + (inHead[bw.boneIndex1] ? bw.weight1 : 0f)
+                        + (inHead[bw.boneIndex2] ? bw.weight2 : 0f) + (inHead[bw.boneIndex3] ? bw.weight3 : 0f);
+                    if (w >= 0.5f) pts.Add(toHead.MultiplyPoint3x4(verts[v]));
+                }
+            }
+            if (pts.Count < 4) return false;
+            // The smallest sphere around them, near enough (Badoiu-Clarkson: step towards the farthest point).
+            Vector3 c = Vector3.zero;
+            foreach (var p in pts) c += p;
+            c /= pts.Count;
+            for (int k = 0; k < 300; k++)
+            {
+                Vector3 far = c;
+                float best = -1f;
+                foreach (var p in pts)
+                {
+                    float d = (p - c).sqrMagnitude;
+                    if (d > best) { best = d; far = p; }
+                }
+                c += (far - c) / (k + 2f);
+            }
+            float r = 0f;
+            foreach (var p in pts) r = Mathf.Max(r, (p - c).magnitude);
+            headCentre = c;
+            headRadius = r;
+            return true;
+        }
+
+        /// <summary>Without the mesh's data: a generous sphere from the neck to the top of the head (the head's farthest child).</summary>
+        void EstimateHead()
+        {
+            Vector3 top = _head.position;
+            float far = 0f;
+            foreach (var t in _head.GetComponentsInChildren<Transform>(true))
+            {
+                float d = (t.position - _head.position).sqrMagnitude;
+                if (d > far) { far = d; top = t.position; }
+            }
+            Vector3 bottom = _neck != null ? _neck.position : _head.position;
+            if (far < 1e-6f) top = _head.position + (_head.position - bottom) * 2f;
+            float len = Mathf.Max(0.15f, (top - bottom).magnitude);
+            headCentre = _head.InverseTransformPoint((top + bottom) * 0.5f);
+            headRadius = len * 0.6f / Mathf.Max(1e-4f, MaxScale(_head));
+        }
+
+        static float MaxScale(Transform t)
+        {
+            Vector3 s = t.lossyScale;
+            return Mathf.Max(Mathf.Abs(s.x), Mathf.Max(Mathf.Abs(s.y), Mathf.Abs(s.z)));
+        }
+
+        /// <summary>The smallest sphere around two spheres (<paramref name="a"/>, <paramref name="ra"/>) and (<paramref name="b"/>, <paramref name="rb"/>).</summary>
+        public static void Enclose(Vector3 a, float ra, Vector3 b, float rb, out Vector3 centre, out float radius)
+        {
+            Vector3 d = b - a;
+            float len = d.magnitude;
+            if (len + rb <= ra) { centre = a; radius = ra; return; }
+            if (len + ra <= rb) { centre = b; radius = rb; return; }
+            radius = (len + ra + rb) * 0.5f;
+            centre = a + d * ((radius - ra) / len);
+        }
+
+        /// <summary>A frame the body wasn't posed in (the MovementBody skipped it, or is off): the visible copy hides, so a stale
+        /// pose, or the bind pose before the first one, never shows its head outside the cut-away.</summary>
+        void LateUpdate()
+        {
+            if (!_ready) return;
+            bool posed = _posedFrame == Time.frameCount;
+            if (posed != _shown) Show(posed);
+        }
+
+        void Show(bool on)
+        {
+            _shown = on;
+            for (int i = 0; i < _visible.Length; i++)
+                if (_visible[i] != null) _visible[i].enabled = on;
         }
 
         Transform Bone(string name)
@@ -195,9 +328,12 @@ namespace JamKit.Movement
             // The eyes on the camera's head, the body taking its landing dip.
             Vector3 eyes = _head.position + fwd * eyeForward + Vector3.up * eyeUp;
             _hips.position += f.eyes + Vector3.up * pose.bodyDip - eyes;
-            // Then the head looks where the camera looks (the shadow shows it).
+            // Then the head looks where the camera looks (the shadow shows it). In first person the neck follows only part of
+            // the pitch: a full nod swings the face forward and down around the neck, out past the eyes and into view.
             var neck = _neck != null ? _neck : _head;
-            neck.rotation = Quaternion.AngleAxis(f.pitch - pose.torsoPitch, right) * neck.rotation;
+            float nod = _third ? f.pitch - pose.torsoPitch
+                : Mathf.Clamp(f.pitch * neckFollow - pose.torsoPitch, -neckFollowMax, neckFollowMax);
+            neck.rotation = Quaternion.AngleAxis(nod, right) * neck.rotation;
 
             if (_chest != null) _chest.localScale = Vector3.Scale(_chest.localScale, Vector3.one * (1f + breathChest * pose.breath));
             if (lanyardBone != null) lanyardBone.localRotation = _lanyardBind * Quaternion.Euler(pose.lanyardPitch, 0f, pose.lanyardRoll);
@@ -245,10 +381,17 @@ namespace JamKit.Movement
                 }
             }
 
-            // First person: cut the head and hair away around the camera (the shadow copy keeps them).
+            // First person: cut the head, hair and neck away wherever they're posed, and the room right around the camera
+            // (one sphere around both; the shadow copy keeps them).
             _camPos = cam.position;
             HeadDistance = Vector3.Distance(_head.position, _camPos);
-            var v = new Vector4(_camPos.x, _camPos.y, _camPos.z, CutoutRadius);
+            Vector3 hc = _head.TransformPoint(headCentre);
+            float hr = headRadius * MaxScale(_head);
+            Enclose(hc, hr + cutoutMargin, _camPos, cameraClearance, out var centre, out float radius);
+            if (_third) radius = 0f;
+            HeadMargin = radius - (Vector3.Distance(centre, hc) + hr);
+            _cutout = new Vector4(centre.x, centre.y, centre.z, radius);
+            var v = _cutout;
             for (int i = 0; i < _visible.Length; i++)
             {
                 var r = _visible[i];
@@ -256,6 +399,8 @@ namespace JamKit.Movement
                 _block.SetVector(_cutoutId, v);
                 r.SetPropertyBlock(_block);
             }
+            _posedFrame = Time.frameCount;
+            if (!_shown) Show(true);
         }
 
         /// <summary>Two-bone IK in world space: <paramref name="a"/> (shoulder or hip), <paramref name="b"/> (elbow or knee),

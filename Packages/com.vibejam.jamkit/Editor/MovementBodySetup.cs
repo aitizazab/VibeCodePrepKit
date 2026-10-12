@@ -37,6 +37,9 @@ namespace JamKit.EditorTools
             foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 2;
             var rig = go.AddComponent<MixamoBodyRig>();
             rig.model = go.transform;
+            // The head, hair and neck's sphere for the first-person cut-away, measured here (the mesh isn't Read/Write, so a
+            // player can't measure it) and saved with the scene.
+            if (!rig.MeasureHead()) Debug.Log("JAMKIT_MOVEMENT body: couldn't measure " + modelPath + "'s head; the rig estimates it from the bones.");
             body.rig = rig;
             return rig;
         }

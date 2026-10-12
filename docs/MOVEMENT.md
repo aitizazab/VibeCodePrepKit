@@ -489,14 +489,27 @@ other templates, tests and headless runs work the same.
   - puts the model back in its bind pose;
   - stands her at the body's feet, facing its yaw, and leans her torso;
   - puts her eyes on the controller's head, plus the body's dip;
-  - aims her head where the camera looks;
+  - aims her head where the camera looks: fully in the F4 orbit view, but in first person the neck follows only a
+    quarter of the pitch, at most 20° from her torso (`neckFollow`, `neckFollowMax`), so her shadow nods a little;
   - reaches her arms and legs to the targets with two-bone IK (the elbows and knees towards their hints, the
     collarbone helping a far hand by up to 20°).
 
-  In first person the visible copy is cut away within 0.24 m of the camera (the head, the hair and the neck: the
-  waking shader's `_CameraCutout`, set per frame). A shadow-only copy shares the bones and casts the whole body's
-  shadow, head included. She has no colliders and sits on Ignore Raycast, so the movement is exactly as before. The
-  builders wire her with `MovementBodySetup.Wire` (package editor code; the paths come from the template).
+  In first person the visible copy is cut away inside one sphere (the waking shader's `_CameraCutout`, set per
+  frame) around two things: her head, hair and neck wherever they're posed, and 0.1 m around the camera
+  (`cameraClearance`: the collar right under it). The head's sphere (`headCentre`, `headRadius`, in the head bone's
+  frame; about 0.18 m for Nadia) is measured from the mesh by `MovementBodySetup.Wire` when the builders wire her
+  (her mesh isn't Read/Write, so a player can't measure it) and saved with the scene; an unmeasured rig estimates it
+  from the bones. On a frame the body isn't posed in, the visible copy hides. A shadow-only copy shares the bones and
+  casts the whole body's shadow, head included. She has no colliders and sits on Ignore Raycast, so the movement is
+  exactly as before. The builders wire her with `MovementBodySetup.Wire` (package editor code; the paths come from the
+  template).
+
+  **Her own head looking down (fixed 2026-10-12).** The neck used to follow the whole pitch, which swung her face
+  forward and down around the neck, out of a 0.24 m cut-away centred on the camera: looking 60° or more down (50° in a slide,
+  where the neck also undid the 30° recline), 300 to 2,000 of her head vertices were in view. The neck now follows a
+  quarter of the pitch and the cut-away goes where the head is; `NadiaHeadCutoutEditorTests` poses her real mesh at
+  every pitch, standing, sliding and mantling, and checks every head and hair vertex is inside the cut-away and her
+  chest outside it looking 70° down.
 
 **What she does (the creator judges these).** Evidence for each move is in RESEARCH-MOVEMENT 8.7. **TF2** means
 Titanfall 2's game files or its runners; **ours** means no source, our own choice, kept subtle.
@@ -939,6 +952,7 @@ a double gap, a wall-to-wall finale), **Finish** (your time and best, then back 
 | Unity EditMode (`MovementAudioEditorTests`) | every movement event has clips and a generated fallback, at least 3 variants per one-shot, the recorded CC0 sets are there and mono, the loops are seamless, nothing peaks above -1 dBFS; the lab scene drives the speed music (stem set `lab`); the stems and their muffled copies exist, in step. `DreamEscapeEditorTests`: the escape's chase music rides on the stems and the player drives them; the peak stem is the chase loops' length |
 | Unity PlayMode (`MovementMusicPlayTests`) | the autopilot's run raises the stems playing (to drive at least), every switch lands on a bar line, the sound reads the visuals' own tier every frame, and every boom finds the music already at flying |
 | Unity EditMode (`MovementLabEditorTests`) | chapters and attract script, sprint opt-in in the tuning and the Shift, LB, L3 and R3 bindings, scene/tuning/preset/materials, Build Settings, every player part, sound ids and the Crouch binding |
+| Unity EditMode (`NadiaHeadCutoutEditorTests`) | Nadia's first-person head: her real mesh skinned on the CPU at every pitch from 85° up to 85° down, standing, sliding and mantling, with the camera on her eyes and dipped 0.12 m ahead of the body: every head and hair vertex inside the cut-away the material gets; her chest outside it looking 70° down; the old full nod showed her head; no cut-away in the orbit view |
 | `core-tests/Movement` (`WallFeelTests`) | the creator's controller notes: the first 0.5 s on a wall keeps all the speed, then 1.2/s; a kick in the grace keeps the entry speed; a stick at 50° into or away from the wall, at 80°, or the view 50° off keeps the run and its speed; only clear backward input or no stick brakes; a 30 ms flick away doesn't drop you, holding away does; the catch says why it refused (too slow, stick away, no stick, head-on, out of reach, the same wall) and clears on a catch; a catch refused for the stick is retried 0.1 s with more reach; the double jump adds +1 m/s up to sprint, nothing above it, along the view with the stick neutral; the Gauntlet's slide ramp adds over 2 m/s (measured +3.4) |
 | `core-tests/Movement` (`GauntletTests`) | the Gauntlet: the autopilot runs it clean (no falls, every marker) at 20, 60, 144 and 300 fps and with jittery frames, in its pinned `AutopilotTime`; Mags's time is 1.5× the developer's, to the nearest 2.5 s; every section reaches the next; reach and the slide-gap clearance (an old 0.35 m crouched step offset is caught); every move is used, mantles at three heights, a marker in every section; the safe lines are hoppable and stay off the fast lane; the old course is kept unchanged before it; the clock starts at the gate, splits, penalises a missed marker 2 s, resets on restart, keeps the best; the ghost records at a fixed rate and replays |
 | Unity EditMode (`GauntletEditorTests`) | the run loop, ghost and one plate per marker are wired; the gate and finish stand there; a gold stripe on every runnable wall; the materials compile; the route fits the lab's real tuning and controller; the best record round-trips through the save; the developer's records ship (31.42 with 1 missed, a 589-sample ghost from the gate, the dream tool's 28.17, Mags 47.5 / 42.5) and both runs are wired to them, the dream tool with its own ghost figure |
