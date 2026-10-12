@@ -1459,3 +1459,15 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   EscapeExit; World: Walt's shop front/counter, hospital scale, laundry, asphalt yards, interpenetrations, vertex and
   shadow-caster counts, neighbour art mapping; Day: run VhWardLibraryBuilder + the ward probe bake in the next Unity run;
   Perf: point VH_Low_RPAsset at VH_Low_Renderer.asset.
+- 2026-10-13, ~02:05: **pausing for usage** (the creator: a clean stopping point; usage resets ~09:00). State at the pause:
+  - Done and pushed, unseen in Unity: Battle round 2 (e72ace3: arguing and dodging as separate sections, notebook pages,
+    hush/answer-me/notes/sky, the watch hand-over line, debate behind a switch), Day round 2, House round 2, World round 3
+    (+c887f01 the watch on the hill), Look pass 4, 16 new neighbour cut-outs (4a095ad; the creator: "they all belong").
+  - Automated, no Claude needed: the main run in VibeJamKit-play (build, then game-window captures parked until
+    scratchpad/players-ok exists), then the quick renders in VibeJamKit-look (look, hill, house) into out/*-captures.
+  - On resume: send each builder its render (Look ac5d535f, World ae6790a0, House a14e9742 are waiting on "RENDER"),
+    they self-check, then judges; People round 3 resumes from people.md's resume section; Rafael via Tripo and the
+    representative from a 3D Lena. Bedtime: create players-ok once the other sessions' jobs are done (~2 h after bed).
+  - For the creator to veto: Lena's new hand-over line (letItRestReply, their second half kept as a // note).
+  - Known: the recorded Night 1 PlayMode run crashes Unity (likely memory); the occlusion bake didn't run (my script's
+    -Extra argument parsing); Day's ward library + probe bake not yet run.
