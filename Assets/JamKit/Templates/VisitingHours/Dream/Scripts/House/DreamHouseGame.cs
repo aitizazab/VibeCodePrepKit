@@ -545,8 +545,10 @@ namespace JamKit.DreamEscape
         public void Choose(ArgumentOutcome outcome)
         {
             if (!_story.Choose(outcome)) return;
-            _waitingForChoice = false;
+            // Close whatever battle is up (ours, or the real one through StartBattle) before the choice is marked made:
+            // ArgumentRunning counts the real one only while the choice waits.
             if (ArgumentRunning) CloseBattle();
+            _waitingForChoice = false;
             _prompt.style.display = DisplayStyle.None;
             if (outcome == ArgumentOutcome.Condemns)
             {

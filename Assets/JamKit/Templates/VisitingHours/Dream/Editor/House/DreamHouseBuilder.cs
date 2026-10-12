@@ -478,6 +478,34 @@ namespace JamKit.DreamEscape.EditorTools
             var bulb = DreamEscapeBuilder.Glow("StairBulb", new Color(1f, 0.86f, 0.6f), 1.0f, 0f, 0.1f);
             var rnd = new System.Random(31);
 
+            // The rooms' walls (2026-10-13 review: the escape's floors read as strips in a void, the pendant, the clock, the
+            // calendar and the hanging counters floated). Each floor gets its two side walls, picture only (no collider, so
+            // the course and its wallruns are unchanged), as tall as the run walls: in the tipped rooms the old floor on the
+            // left and the old ceiling on the right; the last hall the right way up, papered; the attic in its boards. The
+            // observatory keeps its open night (closed at the far end below).
+            if (h.escapeRooms.Count > 0)
+            {
+                var oldFloor = Look(HouseLook.TippedFloor);
+                var oldCeiling = Look(HouseLook.Ceiling);
+                var paper = Look(HouseLook.Wall);
+                var boards = Look(HouseLook.Roof);
+                float s0 = h.escapeRooms[0].s - 0.01f;
+                foreach (var p in h.course.pieces)
+                {
+                    if (p.kind != LabPieceKind.Floor || p.center.Z < s0 || p.center.Z >= h.frontDoorZ - 0.3f) continue;
+                    if (p.name == "The entrance hall") continue;
+                    string room = h.escapeRooms[0].name;
+                    foreach (var er in h.escapeRooms) if (p.center.Z >= er.s - 0.01f) room = er.name;
+                    if (room == "The observatory, open to the sky" || !groups.TryGetValue(room, out var g)) continue;
+                    Material left = oldFloor, right = oldCeiling;
+                    if (room == "The last hall") left = right = paper;
+                    else if (room == "The attic stairs, the wrong way") left = right = boards;
+                    float top = p.Max.Y, len = p.size.Z;
+                    DreamEscapeBuilder.Box("Room wall (left)", g, new Vector3(-4.6f, top + 2f, p.center.Z), new Vector3(0.1f, 8f, len), left);
+                    DreamEscapeBuilder.Box("Room wall (right)", g, new Vector3(4.6f, top + 2f, p.center.Z), new Vector3(0.1f, 8f, len), right);
+                }
+            }
+
             void Photo(Transform g, Vector3 at, Vector3 n, int pic, float roll)
             {
                 var q = DreamEscapeBuilder.Quad("Photo (in the wrong place)", g, at, n, 0.7f, 0.55f, Picture(DreamArt.PicPhoto + (1 + pic % 6), white));
@@ -504,6 +532,7 @@ namespace JamKit.DreamEscape.EditorTools
                 }
                 var pend = MeshPart("Pendant (hanging sideways)", PrimitiveType.Cylinder, kitchen, new Vector3(3.2f, floor.Max.Y + 2.4f, floor.Min.Z + 9f), new Vector3(0.5f, 0.1f, 0.5f), DreamProps.MeshLook("DecorShade", new Color(0.99f, 0.93f, 0.8f), 0.01f));
                 pend.transform.rotation = Quaternion.Euler(0f, 0f, 90f);
+                DreamEscapeBuilder.Box("Pendant cord (to the old ceiling)", kitchen, new Vector3(3.925f, floor.Max.Y + 2.4f, floor.Min.Z + 9f), new Vector3(1.25f, 0.03f, 0.03f), frame);
                 var hatch = P("The hatch (its frame: slide under)");
                 DreamEscapeBuilder.Box("Hatch frame (bottom)", kitchen, new Vector3(0f, hatch.Min.Y - 0.06f, hatch.center.Z), new Vector3(9f, 0.12f, hatch.size.Z + 0.1f), white);
             }
@@ -581,6 +610,15 @@ namespace JamKit.DreamEscape.EditorTools
                 DreamEscapeBuilder.Quad("Night (right)", obs, new Vector3(14f, y + 2f, (z0 + z1) * 0.5f), Vector3.left, z1 - z0, 30f, night);
                 DreamEscapeBuilder.Quad("Night (below)", obs, new Vector3(0f, y - 9f, (z0 + z1) * 0.5f), Vector3.up, 28f, z1 - z0, night);
                 DreamEscapeBuilder.Quad("Night (above)", obs, new Vector3(0f, y + 16f, (z0 + z1) * 0.5f), Vector3.down, 28f, z1 - z0, night);
+                // The far end (2026-10-13 review: it was open, a bare hole onto the void): night round a doorway into the
+                // attic, framed.
+                DreamEscapeBuilder.Quad("Night (far, left)", obs, new Vector3(-9.35f, y + 3.5f, z1), Vector3.back, 9.3f, 25f, night);
+                DreamEscapeBuilder.Quad("Night (far, right)", obs, new Vector3(9.35f, y + 3.5f, z1), Vector3.back, 9.3f, 25f, night);
+                DreamEscapeBuilder.Quad("Night (far, over the door)", obs, new Vector3(0f, y + 11f, z1), Vector3.back, 9.4f, 10f, night);
+                DreamEscapeBuilder.Quad("Night (far, under the door)", obs, new Vector3(0f, y - 6.1f, z1), Vector3.back, 9.4f, 5.8f, night);
+                DreamEscapeBuilder.Box("Attic door frame (top)", obs, new Vector3(0f, y + 6f, z1 - 0.05f), new Vector3(9.6f, 0.2f, 0.1f), white);
+                foreach (float x in new[] { -4.75f, 4.75f })
+                    DreamEscapeBuilder.Box("Attic door frame (side)", obs, new Vector3(x, y + 1.4f, z1 - 0.05f), new Vector3(0.2f, 9.2f, 0.1f), white);
                 for (int i = 0; i < 140; i++)
                 {
                     float sx = (float)(rnd.NextDouble() * 26 - 13), sy = y - 8f + (float)rnd.NextDouble() * 23f, sz = z0 + (float)rnd.NextDouble() * (z1 - z0);
