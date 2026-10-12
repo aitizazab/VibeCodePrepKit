@@ -93,7 +93,7 @@ Every line is a **placeholder**, marked so on screen. The lines quoted from the 
 5. **The climb.**
    - On terrace 1, by the east hairpin, a neighbour at his grill chats as she passes (one line).
    - Walt's ledger on the workbench is optional (`mem_walt_ledger`).
-6. **The top.** Elias (his dream cut-out, `dream_elias`, eyes at 1.66 m: a little taller than Lena) is at the barbecue and goes in as she
+6. **The top.** Elias (his dream cut-out, `dream_elias`, eyes at 1.66 m: a little taller than Lena) is at the barbecue on the side lawn by the knoll and goes in as she
    arrives.
 7. **The garden gate.** No chase:
    - She is held at the gate. Through the window Theo sets the table and Elias stands at the stove.
