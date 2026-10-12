@@ -277,7 +277,8 @@ namespace JamKit.DreamEscape
             if (treehouseMemory != null) treehouseMemory.SetActive(true);
             if (eliasOutside != null) { eliasOutside.SetActive(true); eliasOutside.transform.position = _eliasHome; }
             if (_eliasModel != null) _eliasModel.Play("idle");
-            SetKeepsakeOwned(keepsakeOwned);
+            // Lena's watch on her wrist once it's hers (the Battle agent saves vh_lena_watch when Lena ends Heard out).
+            SetKeepsakeOwned(keepsakeOwned || GameRoot.Exists && JamKit.VisitingHours.Chain.HasLenaWatch(GameRoot.Save.Data));
             SetWindow(false);
             if (frontDoor != null) frontDoor.localRotation = Quaternion.Euler(0f, frontDoorOpenYaw, 0f);
             if (porchLight != null) porchLight.enabled = true;

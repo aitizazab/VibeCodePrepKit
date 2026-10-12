@@ -320,7 +320,8 @@ Commit after the build: the `.meta` files Unity writes for the new scripts (`Dre
 - Characters are billboards and spots (Elias at the grill is 3D since round 2).
 - Round 2: the family's cut-outs stand where milestone 1's room was (house-local x -2.4 to -7, z 2.4-2.7): check in the
   captures that they're in a room you see through the front window. Lena's watch is built hidden on Nadia's body
-  (`DreamStreetGame.SetKeepsakeOwned(true)` shows it); nothing owns the keepsake yet (a Night 4 mechanic).
+  (`DreamStreetGame.SetKeepsakeOwned(true)` shows it); each night it shows once the save says she has it
+  (`Chain.HasLenaWatch`: the Battle agent saves `vh_lena_watch` when Lena ends Heard out).
 - Round 2 left for later: VhLookHouses for a far town south of the far bank; the Look library's litter, stains and storm
   drains (the hill keeps its own decals, fewer of them); impostors for the hill's own oak and conifer; milestone 2's
   middle-band challenge lines and the top band.
