@@ -1,0 +1,369 @@
+{
+ "name": "visiting-hours-house-round4",
+ "title": "Visiting Hours: the house with your picks, the observatory raised, and the house from outside",
+ "subtitle": "Built in: the oxblood regency stripe with a walnut wainscot in every room (the kitchen's and bath's tiles stay), exposed beams, the stepped crown, painted boards in the attic, and every ceiling 0.4 m higher for real (doors keep their height, windows are taller, the north rooms 0.4 m deeper so the attic stairs keep their slope). The attic's roof is cut and raised over the observatory. The front door is at the hall's end, and the outside of the house now matches the inside. Movement and stealth values unchanged; all tests pass (EditMode 903, PlayMode 154). Grey = before, green = after.",
+ "questions": [
+  "Does the outside read as their house now (the gable front, the chimney between the tall windows, the bay round the side, the dormer, the observatory's raised block)?",
+  "The observatory: high all the way across, with a skylight and clerestories, and a little dome outside. Is that the cut-off you meant, or should the raised part read more like a tower?",
+  "The oxblood in every room: right everywhere, or should one room (Theo's, the bath) get a lighter oxblood? It's also on the stretched hallway on the way in and on the tipped house, so the whole house matches.",
+  "The beams: right on every ceiling, or only in the bigger rooms (living room, kitchen) with the hall and bedrooms plain?",
+  "The garden now runs round both sides of the house (so the bay shows) to tall hedges. OK as the edge of her world, or should the garden open out more?"
+ ],
+ "notes": [
+  "Lena's cut-out in the house is her real art: Art/Dream/dream_lena.png, her approved design (cream turtleneck, wine trousers, boots, notebook, the pencil in her hair; no apron), drawn full length in the dream's sticker style like Theo's. The apron was only ever in a fallback drawing the game makes if that file is missing (never used); it's now redrawn to her current design too. Her battle sprites weren't used here because they're cut off at the thighs. Her eyes sit at 1.60 m, a little above Nadia's.",
+  "The front door moved to the hall's east end (where the porch is) and the coats moved beside it, along the hall's north wall; hide-and-seek and its tests are unchanged otherwise.",
+  "A ground jump now clears the kitchen, living room, parents' room and Theo's room; the observatory takes a double jump. Details in docs/DREAM-HOUSE.md, 'Round 4'.",
+  "The finish options page (visiting-hours-house-finish.html) still shows the alternatives; the capture can show them against these defaults any time."
+ ],
+ "sections": [
+  {
+   "title": "The plans (from the game's data)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r4/house-plan-main.png",
+     "label": "The main floor: the rooms 0.4 m higher (ceilings listed), the north rooms 0.4 m deeper, the front door at the hall's east end",
+     "verdict": "pick"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/house-plan-attic.png",
+     "label": "The attic: the observatory under its raised roof (blue), the storage side, the dormer over the stairs",
+     "verdict": "pick"
+    }
+   ]
+  },
+  {
+   "title": "The house from outside (it now matches the inside)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-01-front-garden-door.png",
+     "label": "Before: a flat two-storey front with nothing behind it",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-01-front-garden-door.png",
+     "label": "After: the front: the hall's red double door under the porch, the living room's two tall windows either side of the chimney, Theo's small window, the shingled gable",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-16-umbrella-open.png",
+     "label": "Before: the old front from the garden",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-exterior-01-from-the-street.png",
+     "label": "After: from the street",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-exterior-02-garden-left.png",
+     "label": "After: the left: the bay under its steeper roof, the kitchen window, the observatory's block behind",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-exterior-03-garden-right.png",
+     "label": "After: the right: the bedrooms' windows, the dormer on the roof, the observatory behind",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-exterior-04-porch.png",
+     "label": "After: the porch: posts, a lantern, the double door",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-exterior-06-side-garden-left.png",
+     "label": "After: the side garden: the bay",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-exterior-05-observatory-roof.png",
+     "label": "After: the dormer and the observatory's raised block (its windows show the attic's night)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-exterior-07-observatory-from-the-side.png",
+     "label": "After: the observatory from the side garden",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The observatory: the roof cut and raised",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-12c-attic-observatory.png",
+     "label": "Before: under the sloped roof",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-12c-attic-observatory.png",
+     "label": "After: full height wall to wall (4.2 m), the round window, the telescope",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-12bc-attic-through-the-sheets.png",
+     "label": "Before: through the sheets",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-12bc-attic-through-the-sheets.png",
+     "label": "After: through the sheets: the cut-off wall where the slopes stop and the observatory rises",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-12f-observatory-skylight.png",
+     "label": "After: the skylight over the telescope, the clerestory windows",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-12g-observatory-across.png",
+     "label": "After: across it",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-12b-attic-arrival.png",
+     "label": "Before: the top of the stairs",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-12b-attic-arrival.png",
+     "label": "After: the top of the stairs (painted boards, the dormer over the stairs)",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Lena in the house (her real art, no apron)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-04-table-and-lena.png",
+     "label": "After: Lena at the stove, Theo by the table",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-07-theo-counting.png",
+     "label": "After: Theo counting, Lena behind him",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Kitchen and dining (3.2 m; the oxblood stripe over its tiles, beams)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-03-kitchen-from-slide.png",
+     "label": "Before: the kitchen from the slide",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-03-kitchen-from-slide.png",
+     "label": "After: the kitchen from the slide",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-04-table-and-lena.png",
+     "label": "Before: the table and Lena",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-04-table-and-lena.png",
+     "label": "After: the table and Lena",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-05-counter-stove.png",
+     "label": "After: the counter and the fridge",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The living room (3.4 m)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-08-living-room.png",
+     "label": "Before: the living room",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-08-living-room.png",
+     "label": "After: the living room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-08b-fireplace.png",
+     "label": "Before: the fireplace",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-08b-fireplace.png",
+     "label": "After: the fireplace, its tall windows either side",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-08c-bay-window.png",
+     "label": "Before: the bay",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-08c-bay-window.png",
+     "label": "After: the bay (its lower ceiling, the step papered)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-08d-pass-through.png",
+     "label": "After: the pass-through from the kitchen",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The hall (2.8 m) and the front door",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-09-hall.png",
+     "label": "Before: the hall",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-09-hall.png",
+     "label": "After: the hall, the front door at its end",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-09d-front-door-inside.png",
+     "label": "After: the front door from inside, the coats beside it",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-09b-photo-wall.png",
+     "label": "After: the photo wall",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-09c-hatch-from-below.png",
+     "label": "After: the hatch, open between the beams",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The parents' room and the bath",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-10-parents-room.png",
+     "label": "Before: the parents' room",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-10-parents-room.png",
+     "label": "After: the parents' room (3.1 m)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-10b-bath.png",
+     "label": "Before: the bath",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-10b-bath.png",
+     "label": "After: the bath (2.8 m; its tiles stay)",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "Theo's room (3.0 m)",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-11-theos-room.png",
+     "label": "Before: Theo's room",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-11-theos-room.png",
+     "label": "After: Theo's room",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-11b-theos-desk-bookcase.png",
+     "label": "After: his desk, the small window over it, his wardrobe",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-11c-attic-stairs-door.png",
+     "label": "After: the door to the attic stairs",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "title": "The stairs and the attic's storage side",
+   "cols": 2,
+   "items": [
+    {
+     "file": "art/review/2026-10-12/house-r4/before-house-12-attic-stairs-up.png",
+     "label": "Before: the attic stairs",
+     "verdict": "alt"
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-12-attic-stairs-up.png",
+     "label": "After: the attic stairs (3.7 m up, 3.6 m long: 46 degrees as before)",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-12d-attic-storage.png",
+     "label": "After: the storage side",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "art/review/2026-10-12/house-r4/after-house-12e-attic-hatch.png",
+     "label": "After: the hatch from above",
+     "verdict": "pick",
+     "note": ""
+    }
+   ]
+  }
+ ]
+}
