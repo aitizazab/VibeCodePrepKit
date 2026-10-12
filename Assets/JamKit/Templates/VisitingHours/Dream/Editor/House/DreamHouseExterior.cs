@@ -193,7 +193,9 @@ namespace JamKit.DreamEscape.EditorTools
             // the back of the house, from the ground at the back up past the ridge, in dark stone (the capture's variants show
             // dark polished wood too), under a steep slate roof with the crescent skylight in it and a brass finial.
             float tx0 = DreamHouse.ObsZ0 - 0.3f - DreamHouse.FrontDoorZ, tx1 = DreamHouse.ObsZ1 + 0.3f - DreamHouse.FrontDoorZ;
-            float tz0 = ObsZ, tz1 = BackZ + 0.3f, top = Up + DreamHouse.ObsHeight;
+            // Outside it stands 2.2 m taller than the room inside (a lantern storey over its ceiling), so it rises well clear
+            // of the ridge: a tower, not a box on the roof.
+            float tz0 = ObsZ, tz1 = BackZ + 0.3f, top = Up + DreamHouse.ObsHeight + 2.2f;
             var stone = DreamEscapeBuilder.Pastel("TowerStone", new Color(0.34f, 0.32f, 0.38f), 0.04f);
             var joint = DreamEscapeBuilder.Pastel("TowerJoint", new Color(0.22f, 0.2f, 0.27f), 0f);
             var grain = DreamEscapeBuilder.Pastel("TowerGrain", new Color(0.24f, 0.14f, 0.1f), 0f);
@@ -300,6 +302,19 @@ namespace JamKit.DreamEscape.EditorTools
                 float z = 8.2f - hx;
                 NightWindow(new Vector3(tx0 - 0.01f, Up + 3.9f, z), Vector3.left, 1.1f, 0.82f);
                 NightWindow(new Vector3(tx1 + 0.01f, Up + 3.9f, z), Vector3.right, 1.1f, 0.82f);
+            }
+            // The lantern storey: tall narrow windows on every face, under a band of trim.
+            float ly = top - 1.15f;
+            BoxMinMax("Tower band", new Vector3(tx0 - 0.08f, ly - 1.0f, tz0 - 0.08f), new Vector3(tx1 + 0.08f, ly - 0.88f, tz1 + 0.08f), _trim);
+            foreach (float z in new[] { tz0 + 1.2f, (tz0 + tz1) * 0.5f, tz1 - 1.2f })
+            {
+                NightWindow(new Vector3(tx0 - 0.01f, ly, z), Vector3.left, 0.55f, 1.3f);
+                NightWindow(new Vector3(tx1 + 0.01f, ly, z), Vector3.right, 0.55f, 1.3f);
+            }
+            foreach (float x in new[] { tx0 + 1.3f, (tx0 + tx1) * 0.5f, tx1 - 1.3f })
+            {
+                NightWindow(new Vector3(x, ly, tz0 - 0.01f), Vector3.back, 0.55f, 1.3f);
+                NightWindow(new Vector3(x, ly, tz1 + 0.01f), Vector3.forward, 0.55f, 1.3f);
             }
         }
 

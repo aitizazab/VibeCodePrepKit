@@ -33,7 +33,11 @@ namespace JamKit.DreamEscape.EditorTools
             /// <summary>Above 0: keep the model's proportions at this height (m), centred on the box (a chair's box is
             /// only its seat, the cover Theo can't see over).</summary>
             public float height;
+            /// <summary>Round 5: the model's fabric (its strongly red/pink materials) in this colour instead, for the oxblood.</summary>
+            public Color? fabric;
         }
+
+        static readonly Color DeepGreen = new Color(0.3f, 0.48f, 0.42f);
 
         static readonly Vector3 TableCentre = new Vector3(-3.4f, 0f, 75.7f);
 
@@ -49,12 +53,12 @@ namespace JamKit.DreamEscape.EditorTools
             ("Chair", new Dress { models = new[] { "chair" }, faceTablePoint = true, height = 0.95f }),
             ("Pantry shelves", new Dress { models = new[] { "bookcaseOpen", "bookcaseOpen", "bookcaseOpen" }, facing = Vector3.right }),
             // The living room: the sofa faces the fireplace (east); the armchair turned to it; the coffee table; the bookcase.
-            ("Sofa", new Dress { models = new[] { "loungeSofa" }, facing = Vector3.right }),
-            ("Armchair", new Dress { models = new[] { "loungeChair" }, facing = Vector3.back }),
+            ("Sofa", new Dress { models = new[] { "loungeSofa" }, facing = Vector3.right, fabric = DeepGreen }),
+            ("Armchair", new Dress { models = new[] { "loungeChair" }, facing = Vector3.back, fabric = DeepGreen }),
             ("Coffee table", new Dress { models = new[] { "tableCoffee" } }),
             ("Bookcase (living room)", new Dress { models = new[] { "bookcaseOpen" }, facing = Vector3.right }),
             // The bedrooms and the bath.
-            ("Parents' bed", new Dress { models = new[] { "bedDouble" }, facing = Vector3.back }),
+            ("Parents' bed", new Dress { models = new[] { "bedDouble" }, facing = Vector3.back, fabric = new Color(0.34f, 0.4f, 0.6f) }),
             ("Bathtub", new Dress { models = new[] { "bathtub" }, facing = Vector3.back }),
             ("Theo's bunk bed", new Dress { models = new[] { "bedBunk" }, facing = Vector3.back }),
             ("Theo's desk", new Dress { models = new[] { "desk" }, facing = Vector3.left }),
@@ -125,7 +129,7 @@ namespace JamKit.DreamEscape.EditorTools
                     float start = (alongZ ? b.min.z : b.min.x) + len * (i + 0.5f);
                     if (alongZ) { size.z = len; centre.z = start; } else { size.x = len; centre.x = start; }
                 }
-                Fit(prefabs[i], parent, new Bounds(centre, size), float.IsNaN(rowTurn) ? 0f : rowTurn, dress.height);
+                Fit(prefabs[i], parent, new Bounds(centre, size), float.IsNaN(rowTurn) ? 0f : rowTurn, dress.height, dress.fabric);
                 if (!_used.Contains(prefabs[i].name)) _used.Add(prefabs[i].name);
             }
             box.GetComponent<MeshRenderer>().enabled = false;
@@ -321,7 +325,7 @@ namespace JamKit.DreamEscape.EditorTools
 
         /// <summary>One model squeezed into <paramref name="box"/> (its bottom on the box's floor), turned by
         /// <paramref name="turn"/> degrees first; with <paramref name="height"/> above 0 it keeps its proportions instead.</summary>
-        static void Fit(GameObject prefab, Transform parent, Bounds box, float turn, float height)
+        static void Fit(GameObject prefab, Transform parent, Bounds box, float turn, float height, Color? fabric = null)
         {
             var pivot = new GameObject(prefab.name).transform;
             pivot.SetParent(parent, false);
@@ -346,7 +350,19 @@ namespace JamKit.DreamEscape.EditorTools
             foreach (var r in model.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
-                for (int k = 0; k < mats.Length; k++) mats[k] = Pastelise(mats[k]);
+                for (int k = 0; k < mats.Length; k++)
+                {
+                    mats[k] = Pastelise(mats[k]);
+                    var c = mats[k].GetColor("_Color");
+                    if (fabric.HasValue && c.r - Mathf.Max(c.g, c.b) > 0.1f)
+                    {
+                        var f = DreamEscapeBuilder.Mat("Mesh_Fabric_" + ColorUtility.ToHtmlStringRGB(fabric.Value), "JamKit/Dream/PastelMesh");
+                        f.SetColor("_Color", fabric.Value);
+                        f.SetVector("_SunDir", DreamEscapeBuilder.SunDir);
+                        f.SetFloat("_OutlineWidth", 0.012f);
+                        mats[k] = f;
+                    }
+                }
                 r.sharedMaterials = mats;
                 r.shadowCastingMode = ShadowCastingMode.Off;
             }
