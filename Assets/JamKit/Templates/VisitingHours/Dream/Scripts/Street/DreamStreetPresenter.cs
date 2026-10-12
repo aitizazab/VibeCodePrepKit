@@ -6,8 +6,8 @@ using UnityEngine;
 namespace JamKit.DreamEscape
 {
     /// <summary>
-    /// Night 1's street in presenter mode (docs/PRESENTING.md): the creek (the night from the start), Walt (in the yard),
-    /// each of the four ways up (from its start, Walt already aside) and the top (by the lookout).
+    /// Night 1 on Larch Hill in presenter mode (docs/PRESENTING.md): the creek (the night from the start), Walt (in the
+    /// shop), the back way, Back Lane B, the old oak, the Rewind and the house (docs/redesign/world.md).
     /// </summary>
     public static class DreamStreetPresenter
     {
@@ -15,8 +15,8 @@ namespace JamKit.DreamEscape
 
         public static readonly string[] Chapters =
         {
-            LarchHill.ChapterArrival, LarchHill.ChapterWalt, LarchHill.ChapterRoad, LarchHill.ChapterStairs, LarchHill.ChapterRoofs,
-            LarchHill.ChapterRavine, LarchHill.ChapterTop,
+            LarchHill.ChapterArrival, LarchHill.ChapterWalt, LarchHill.ChapterBackWay, LarchHill.ChapterLane, LarchHill.ChapterOak,
+            LarchHill.ChapterRewind, LarchHill.ChapterHouse,
         };
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]

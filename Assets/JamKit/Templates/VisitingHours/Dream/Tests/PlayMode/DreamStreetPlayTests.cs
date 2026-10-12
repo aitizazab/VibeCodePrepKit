@@ -1,4 +1,7 @@
+using System;
 using System.Collections;
+using System.IO;
+using System.Text;
 using JamKit.DeepBlock;
 using JamKit.Presenting;
 using JamKit.Shell;
@@ -10,11 +13,11 @@ using static JamKit.Tests.Play.ShellTestUtil;
 
 namespace JamKit.DreamEscape.Tests
 {
-    /// <summary>Night 1's street on the real controller (docs/LARCH-HILL.md): the autopilot's way in double jumps the creek,
-    /// slides under the garage door and meets Walt (the memory and the deduction in the save's dream journal), and the
-    /// gate opens once he steps aside; the road climbs to the top; at the garden gate the door closes and the porch light
-    /// goes out, and the night ends; the neighbours' loop heard twice and the paper make the same Saturday. The save's
-    /// dream journal and Walt's outcome are cleared before and after each test.</summary>
+    /// <summary>Night 1 on Larch Hill on the real controller (docs/redesign/world.md): the way in (the creek's double jump,
+    /// the garage door's slide, the paper, Walt and his argument); each leg of the critical path under the autopilot; the
+    /// Rewind catching her when she stops and letting her through when she runs; the gate and the door; the loop and the
+    /// paper before Walt; the bedside's dream changes; and the recorded run of the whole critical path (Explicit: it writes
+    /// a frame every 0.5 s to out/hill-run/&lt;time&gt;/). The save's journal and Walt's outcome are cleared around each test.</summary>
     public class DreamStreetPlayTests
     {
         [UnitySetUp]
@@ -49,48 +52,72 @@ namespace JamKit.DreamEscape.Tests
         {
             Assert.That(GameRoot.Instance.SceneService.Load(DreamStreetPresenter.Scene), Is.True, "DreamStreet is in Build Settings");
             yield return WaitFor(() => GameRoot.Flow.InRun && !GameRoot.IsLoadingScene && SceneManager.GetActiveScene().name == DreamStreetPresenter.Scene
-                && Game != null && Game.Hill != null, "the street");
+                && Game != null && Game.Hill != null, "the hill");
             yield return WaitFor(() => GameRoot.Ui.FadeAlpha == 0f, "the scene's fade-in", 5f);
             yield return Frames(3);
         }
 
         [UnityTest]
-        public IEnumerator TheWayInCrossesTheCreekAndTheShopAndWaltStepsAside()
+        public IEnumerator TheWayInCrossesTheCreekAndTheShopAndWaltGetsUp()
         {
             yield return StartStreet();
             Assert.That(Game.Phase, Is.EqualTo(StreetPhase.Arrival));
-            Assert.That(Game.LineText, Does.Contain(LarchStreetLines.Placeholder), "Mags, marked a placeholder");
-            Assert.That(Game.waltGate.activeSelf, Is.True, "the way up is shut");
+            Assert.That(Game.waltGate.activeSelf, Is.True, "Walt on his wall");
             DebugMenu.TimeScale = 2f;
             Game.Drive(Game.Hill.wayIn);
-            yield return WaitFor(() => Game.Phase >= StreetPhase.Yard, "the autopilot over the creek and through the shop", 30f);
-            Assert.That(Game.Respawns, Is.EqualTo(0), "no fall: the double jump made the creek");
-            Assert.That(Game.Story.Knows(LarchStreetStory.MemWaltAlive), Is.True, "Walt alive, waving");
+            yield return WaitFor(() => Game.Phase >= StreetPhase.Yard, "the autopilot over the creek and through the shop", 40f);
+            Assert.That(Game.Wading, Is.False, "the double jump made the creek");
+            Assert.That(Game.Story.Knows(LarchStreetStory.MemSaturdayPaper), Is.True, "the paper on the counter, on the way through");
             Assert.That(Game.Story.Knows(LarchStreetStory.DedWaltDead), Is.True, "with Day 1's card: Walt died in 2015");
-            Assert.That(DreamJournal.Has(Journal, LarchStreetStory.DedWaltDead), Is.True, "kept in the save's dream journal");
-            // Under the autopilot the argument is the debug choice (heard out): he steps aside.
-            yield return WaitFor(() => Game.Story.WaltAside, "Walt's argument and his stepping aside", 30f);
+            yield return WaitFor(() => Game.Story.WaltAside, "Walt's argument and his getting up", 40f);
             Game.Drive(null);
-            Assert.That(Game.waltGate.activeSelf, Is.False, "the gate opens");
-            Assert.That(GameRoot.Save.Data.GetEntry(LarchStreetStory.WaltOutcomeKey), Is.EqualTo("heardout"), "how she treated him, kept");
+            Assert.That(Game.waltGate.activeSelf, Is.False, "the low wall is free");
+            Assert.That(GameRoot.Save.Data.GetEntry(LarchStreetStory.WaltOutcomeKey), Is.EqualTo("heardout"));
             Assert.That(Game.Phase, Is.EqualTo(StreetPhase.Climb));
         }
 
         [UnityTest]
-        public IEnumerator TheRoadClimbsToTheTopAndAtTheGateTheDoorCloses()
+        public IEnumerator EachLegOfTheCriticalPathRunsOnTheRealController([Values(0, 1, 2, 3)] int leg)
         {
             yield return StartStreet();
-            Game.JumpToChapter(LarchHill.ChapterRoad);
+            string[] chapters = { LarchHill.ChapterBackWay, LarchHill.ChapterLane, LarchHill.ChapterLane, LarchHill.ChapterOak };
+            Game.JumpToChapter(chapters[leg]);
             yield return Frames(2);
-            Assert.That(Game.Phase, Is.EqualTo(StreetPhase.Climb));
+            var route = Game.Hill.night1[leg];
+            Game.player.Teleport(new Vector3(route.start.X, route.start.Y, route.start.Z), route.startYaw, Vector3.zero);
+            yield return Frames(2);
             DebugMenu.TimeScale = 2f;
-            var road = Game.Hill.routes.Find(r => r.name == LarchHill.RouteRoad);
-            Game.Drive(road);
-            yield return WaitFor(() => Game.Phase >= StreetPhase.Top, "the autopilot up the road's two switchbacks to the top", 60f);
-            Game.Drive(null);
-            Assert.That(Game.eliasOutside.activeSelf || Game.Speaking, Is.True, "Elias at the barbecue, going in as she arrives");
+            Game.Drive(route);
+            float finish = Game.Hill.finishY[route];
+            var end = route.course.route.PointAt(route.finishS, 0f);
+            yield return WaitFor(() => Game.player.Sim.Grounded && Vector2.Distance(new Vector2(Game.player.transform.position.x, Game.player.transform.position.z), new Vector2(end.X, end.Z)) < 1.5f
+                && Game.player.transform.position.y > finish - 0.3f, route.name + " on the real controller", 60f);
+            Assert.That(Game.Respawns, Is.EqualTo(0), "never out of the world");
+        }
+
+        [UnityTest]
+        public IEnumerator TheRewindCatchesHerWhenSheStopsAndLetsHerThroughWhenSheRuns()
+        {
+            yield return StartStreet();
+            Game.JumpToChapter(LarchHill.ChapterRewind);
+            yield return Frames(3);
+            yield return WaitFor(() => Game.WaveOn, "the Rewind begins when she's on Rowan Street", 5f);
+            yield return WaitFor(() => Game.Catches >= 1, "standing still, the wave catches her", 30f);
+            Assert.That(Game.player.transform.position.x, Is.LessThan(-100f), "back at the west end");
+            yield return WaitFor(() => Game.WaveOn, "the wave again", 5f);
+            Game.Drive(Game.Hill.night1[4]);
+            yield return WaitFor(() => Game.Ending || Game.player.transform.position.x >= LarchHill.RewindSafeX, "she outruns the wave to the gate", 60f);
+            Assert.That(Game.Catches, Is.EqualTo(1), "a clean run isn't caught");
+        }
+
+        [UnityTest]
+        public IEnumerator AtTheGateTheDoorClosesAndTheNightEnds()
+        {
+            yield return StartStreet();
+            Game.JumpToChapter(LarchHill.ChapterHouse);
+            yield return Frames(2);
             bool ended = false;
-            System.Action onEnd = () => ended = true;
+            Action onEnd = () => ended = true;
             DreamStreetGame.NightEnded += onEnd;
             try
             {
@@ -98,41 +125,89 @@ namespace JamKit.DreamEscape.Tests
                 Game.player.Teleport(new Vector3(gate.X, gate.Y - 0.98f, gate.Z), 0f, Vector3.zero);
                 yield return WaitFor(() => Game.Ending, "the garden gate", 3f);
                 Assert.That(Game.porchLight.enabled, Is.True, "the porch light on");
-                Assert.That(Game.eliasInside.gameObject.activeSelf, Is.True, "Elias in the window");
+                Assert.That(Game.eliasInside.gameObject.activeSelf, Is.True, "Eli in the window");
                 yield return WaitFor(() => !Game.porchLight.enabled, "the door shut and the porch light out", 20f);
                 Assert.That(Quaternion.Angle(Game.frontDoor.localRotation, Quaternion.identity), Is.LessThan(1f), "the door is shut");
-                Assert.That(Game.eliasInside.gameObject.activeSelf, Is.False, "Lena took him inside");
                 yield return WaitFor(() => ended, "Mags's last line and the fade", 20f);
-                Assert.That(Game.Phase, Is.EqualTo(StreetPhase.Ended));
                 Assert.That(DreamJournal.Has(Journal, LarchStreetStory.MemTheHouse), Is.True);
                 Assert.That(GameRoot.Save.Data.HasFlag(LarchStreetStory.NightDoneFlag), Is.True);
             }
-            finally
-            {
-                DreamStreetGame.NightEnded -= onEnd;
-            }
+            finally { DreamStreetGame.NightEnded -= onEnd; }
         }
 
         [UnityTest]
-        public IEnumerator TheLoopOnTheFarBankAndThePaperInWaltsYardMakeTheSameSaturdayBeforeWalt()
+        public IEnumerator TheLoopAndThePaperMakeTheSameSaturdayBeforeWalt()
         {
             yield return StartStreet();
-            // Where she arrives: the neighbours' loop, until her line comes round twice (a 24 s loop).
             DebugMenu.TimeScale = 4f;
-            yield return WaitFor(() => Game.HeardLine >= 2, "her line, twice, heard from the arrival", 30f);
+            yield return WaitFor(() => Game.HeardLine >= 2, "Mrs. Lindqvist's line, twice, heard from the arrival", 40f);
             DebugMenu.TimeScale = 1f;
             Assert.That(Game.Story.Knows(LarchStreetStory.MemNeighboursLoop), Is.True);
-            Assert.That(Game.Phase, Is.EqualTo(StreetPhase.Arrival), "before the creek");
-            // Saturday's paper on Walt's yard bench.
             var paper = Game.paper.transform.position;
-            Game.player.Teleport(new Vector3(paper.x + 1.2f, 0.02f, paper.z), 0f, Vector3.zero);   // beside the bench
+            Game.player.Teleport(new Vector3(paper.x, 0.02f, paper.z - 1.2f), 0f, Vector3.zero);
             yield return WaitFor(() => Game.Story.Knows(LarchStreetStory.MemSaturdayPaper), "Saturday's paper", 3f);
-            Assert.That(Game.paper.activeSelf, Is.False);
             Assert.That(Game.Story.Knows(LarchStreetStory.DedSameSaturday), Is.True, "He's living one Saturday, over and over");
-            Assert.That(Game.Story.WaltAside, Is.False, "made before Walt's argument: his optional premise can break");
-            Assert.That(Game.Evidence(), Does.Contain(LarchStreetStory.DedSameSaturday), "in what his battle gets");
-            Assert.That(DreamJournal.Has(Journal, DreamJournal.SaturdayPaper), Is.True, "the id Night 2 looks for, in the journal");
-            Assert.That(DreamJournal.Has(Journal, LarchStreetStory.DedSameSaturday), Is.True, "for Night 2's battle");
+            Assert.That(Game.Story.WaltAside, Is.False, "before Walt's argument");
+            Assert.That(DreamJournal.Has(Journal, DreamJournal.SaturdayPaper), Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator TheBedsideChangesTheNight()
+        {
+            yield return StartStreet();
+            Assert.That(Game.creekPlank.activeSelf, Is.False, "no plank unless she told him about the creek");
+            Assert.That(Game.hospitalLit.activeSelf, Is.False);
+            Assert.That(Game.ledger.activeSelf, Is.False, "Walt's ledger is put away");
+            Game.forceDreamChanges = new[] { JamKit.VisitingHours.DreamChanges.CreekPlank, JamKit.VisitingHours.DreamChanges.HospitalLit,
+                JamKit.VisitingHours.DreamChanges.WaltLedger, JamKit.VisitingHours.DreamChanges.WaltWarm };
+            Game.NewNight();
+            yield return Frames(2);
+            Assert.That(Game.creekPlank.activeSelf, Is.True, "the plank across the creek");
+            Assert.That(Game.hospitalLit.activeSelf, Is.True, "St. Brigid's lit");
+            Assert.That(Game.ledger.activeSelf, Is.True, "the ledger open on the bench");
+            Assert.That(Game.WaltWarm, Is.True);
+        }
+
+        /// <summary>The recorded run (main runs it for the judge): the whole of Night 1's critical path under the autopilot
+        /// on the real controller, a 1920 x 1080 frame every 0.5 s and a timeline (time, leg, phase, position, speed, mode)
+        /// to out/hill-run/&lt;time&gt;/.</summary>
+        [UnityTest, Explicit, Timeout(900000)]
+        public IEnumerator RecordTheNight1CriticalPath()
+        {
+            yield return StartStreet();
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "out", "hill-run", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+            Directory.CreateDirectory(dir);
+            var cam = Game.player.cam;
+            var rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32) { name = "hill-run" };
+            var tex = new Texture2D(1920, 1080, TextureFormat.RGB24, false);
+            var timeline = new StringBuilder("t,leg,phase,x,y,z,speed,mode,catches\n");
+            Game.DriveNight1();
+            float t = 0f, nextShot = 0f;
+            int frame = 0;
+            while (t < 600f && !Game.Ending)
+            {
+                yield return null;
+                t += Time.deltaTime;
+                var p = Game.player.transform.position;
+                timeline.AppendFormat(System.Globalization.CultureInfo.InvariantCulture, "{0:0.00},{1},{2},{3:0.00},{4:0.00},{5:0.00},{6:0.0},{7},{8}\n",
+                    t, Game.ChainLeg, Game.Phase, p.x, p.y, p.z, Game.player.Speed, Game.player.Mode, Game.Catches);
+                if (t < nextShot) continue;
+                nextShot += 0.5f;
+                var prev = cam.targetTexture;
+                cam.targetTexture = rt;
+                cam.Render();
+                cam.targetTexture = prev;
+                RenderTexture.active = rt;
+                tex.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0);
+                tex.Apply();
+                RenderTexture.active = null;
+                File.WriteAllBytes(Path.Combine(dir, $"run-{frame++:0000}.jpg"), tex.EncodeToJPG(88));
+            }
+            File.WriteAllText(Path.Combine(dir, "timeline.csv"), timeline.ToString());
+            UnityEngine.Object.Destroy(rt);
+            UnityEngine.Object.Destroy(tex);
+            Debug.Log("JAMKIT_HILL_RUN " + dir + " (" + frame + " frames, " + t.ToString("0.0") + " s, ended at the gate: " + Game.Ending + ")");
+            Assert.That(Game.Ending, Is.True, "the autopilot reached the Lasnames' gate; see " + dir);
         }
     }
 }

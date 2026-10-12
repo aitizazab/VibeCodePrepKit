@@ -34,6 +34,8 @@ namespace JamKit.DeepBlock
         public int switchIndex = -1;
         public bool presentWhenOpen = true;
         public string layer = "";
+        /// <summary>How the hill draws it (a fence's or wall's style: "picket", "board", "stone_retaining"...; "" the kind's default).</summary>
+        public string style = "";
 
         public Vector3 Min => center - size * 0.5f;
         public Vector3 Max => center + size * 0.5f;

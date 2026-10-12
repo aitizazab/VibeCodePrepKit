@@ -6,7 +6,9 @@
         "JamKit.Unity",
         "JamKit.Editor",
         "JamKit.DreamEscape",
-        "Unity.RenderPipelines.Universal.Runtime"
+        "Unity.RenderPipelines.Universal.Runtime",
+        "JamKit.Look",
+        "JamKit.Look.Editor"
     ],
     "includePlatforms": [
         "Editor"

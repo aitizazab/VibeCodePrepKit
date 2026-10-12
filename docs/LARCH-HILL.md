@@ -1,4 +1,9 @@
-# Night 1: Larch Street on a hill
+# Night 1: Larch Street on a hill (history)
+
+**Superseded on 2026-10-12 by the redesign: [docs/redesign/world.md](redesign/world.md)** (Larch Hill, one hill for
+Nights 1-3: the switchbacks through the back yards, the house low on the hill, St. Brigid's on the summit, the Rewind).
+What follows is the first hill (the four routes and the beacon) as it was built, kept for its history.
+
 
 This is the build of docs/NIGHTS-1-2.md, "Night 1: The Street" (2026-10-13 overnight). The creator didn't love the
 flat deep block ("it didn't reveal how large the setting was") and offered "work vertically and set it on a hill".
