@@ -325,14 +325,14 @@ namespace JamKit.VisitingHours
             },
         };
 
-        /// <summary>The news report (18.45 s: a clear newsreader, cut by clauses). No markers needed: the table's pieces
+        /// <summary>The news report (17.60 s: a clear newsreader, cut by clauses; the Larpaca-gang wording). No markers needed: the table's pieces
         /// hang off shares of its length ("news:40%"), its start and its end, so another take re-paces them.</summary>
         public static VoiceTrack NewsTrack() => new VoiceTrack
         {
             name = "news",
             clip = "vo_news_anchor",
             speaker = "News",
-            recordedLength = 18.45f,
+            recordedLength = 17.60f,
             markers = new List<VoiceMarker>(),
         };
 

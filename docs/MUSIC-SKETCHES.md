@@ -277,7 +277,7 @@ Bars are counted from 1. Times are from the start of the loop file.
 
 ### 4. The opening and the title screen: `04-opening.intro.wav` then `04-opening.loop.wav` (72 bpm)
 - **Where it plays:** the music cue comes 3 s after the voicemail ends (`SliceContent`: `voicemail:end` + 3 s, with a
-  5 s fade-in). The news report starts 3 s later and runs 18.45 s. Then the title screen waits on the tablet's Play.
+  5 s fade-in). The news report starts 3 s later and runs 17.6 s. Then the title screen waits on the tablet's Play.
 - **So it's in two parts:**
 
   | Part | File | Length | Plays |

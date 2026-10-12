@@ -112,8 +112,8 @@ table presses them), so Play, Settings, Credits and Quit behave exactly as befor
 6. "G'night": the room's light goes, the phone's screen last, then black. Silence; the music blooms.
 7. The table: out of the black as the news report starts, the pieces arrive one after another, paced by the
    report's own length (cues anchored to shares of it, "news:14%"): the coffee (2%), the badge (14%), the notepad and
-   its pen (27%), the tablet (41%), the table under them (54%), the room, its floor and wall (67%). On the 18.45 s
-   report (a clear newsreader) that's every 2.4 s or so, all up by about 15 s. The tablet's video drifts and crossfades its frames, the emergency lights pulse, the LIVE tag and its
+   its pen (27%), the tablet (41%), the table under them (54%), the room, its floor and wall (67%). On the 17.6 s
+   report (a clear newsreader) that's every 2.3 s or so, the room starting at about 11.8 s and all up by about 14 s. The tablet's video drifts and crossfades its frames, the emergency lights pulse, the LIVE tag and its
    own headline scrolls along the bottom of the video. When the report ends the video pauses and its play button
    comes up: the title takes input.
 
