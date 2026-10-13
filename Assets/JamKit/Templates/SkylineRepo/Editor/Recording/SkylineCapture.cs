@@ -1,3 +1,4 @@
+#if JAMKIT_RECORDER
 using System;
 using System.IO;
 using UnityEditor;
@@ -248,3 +249,4 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
         }
     }
 }
+#endif

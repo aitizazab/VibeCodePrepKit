@@ -23,6 +23,7 @@
     <Compile Include="$(PkgRoot)Runtime\Unity\**\*.cs" />
     <Compile Include="$(ProjectAssets)Sandbox\Scripts\**\*.cs" />
     <Compile Include="$(ProjectAssets)Templates\*\Scripts\**\*.cs" />
+    <Compile Remove="$(ProjectAssets)Templates\SkylineRepo\**\*.cs" />
     <!-- A template nested one level deeper: Visiting Hours' dream escape. -->
     <Compile Include="$(ProjectAssets)Templates\VisitingHours\Dream\Scripts\**\*.cs" />
     <!-- The argument battle prototype's own assembly (JamKit.Argument), also one level deeper. -->

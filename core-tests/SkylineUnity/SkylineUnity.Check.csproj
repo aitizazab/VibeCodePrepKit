@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Compile-only check of Skyline Repo's Unity side (docs/SKYLINE-DESIGN.md section 9): the pure runtime (JamKit.Skyline), its
+    tests, and everything under Assets/JamKit/Templates/SkylineRepo (scripts, editor tools, the Recorder capture), compiled
+    against the Unity editor's DLLs and the assemblies Unity already built in Library/ScriptAssemblies. It lives apart from
+    core-tests/UnityLayer* on purpose: Skyline needs its own assembly, and a Skyline compile error must never break the
+    Visiting Hours gate (those projects Compile Remove the SkylineRepo folder). Nothing runs.
+    Needs: Unity 6000.3.25f1 installed and the project opened (or batch-run) once.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <IsTestProject>false</IsTestProject>
+    <NoWarn>$(NoWarn);MSB3270;MSB3277;CS0649;CS0414;CS8019</NoWarn>
+    <UnityEditorDir Condition="'$(UnityEditorDir)' == ''">C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor</UnityEditorDir>
+    <ScriptAssemblies>$(MSBuildThisFileDirectory)..\..\Library\ScriptAssemblies\</ScriptAssemblies>
+    <ProjectAssets>$(MSBuildThisFileDirectory)..\..\Assets\JamKit\</ProjectAssets>
+    <DefineConstants>$(DefineConstants);UNITY_6000_0_OR_NEWER;UNITY_2023_1_OR_NEWER;UNITY_EDITOR;UNITY_INCLUDE_TESTS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Remove="Microsoft.NET.Test.Sdk" />
+    <PackageReference Remove="NUnit" />
+    <PackageReference Remove="NUnit3TestAdapter" />
+    <Compile Include="$(PkgRoot)Runtime\Core\**\*.cs" Exclude="$(PkgRoot)Runtime\Core\Shared\**\*.cs" />
+    <Compile Remove="$(PkgRoot)Tests\Core\Shared\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Skyline\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Skyline\**\*.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Movement\BoxWorld.cs" />
+    <Compile Include="$(ProjectAssets)Templates\SkylineRepo\**\*.cs" />
+    <EngineDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEngine*.dll" />
+    <Reference Include="@(EngineDll)" Private="false" />
+    <EditorDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEditor*.dll" />
+    <Reference Include="@(EditorDll)" Private="false" />
+    <TestDll Include="$(ScriptAssemblies)UnityEngine.TestRunner.dll;$(ScriptAssemblies)UnityEditor.TestRunner.dll" />
+    <Reference Include="@(TestDll)" Private="false" />
+    <UnityNUnit Include="$(MSBuildThisFileDirectory)..\..\Library\PackageCache\com.unity.ext.nunit@*\net40\unity-custom\nunit.framework.dll" />
+    <Reference Include="nunit.framework"><HintPath>@(UnityNUnit)</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <!-- The capture code (Editor/Recording) compiles only once Unity has built the Recorder's assemblies; until then it is
+       #if'd out, as in Unity without the package. -->
+  <PropertyGroup Condition="Exists('$(ScriptAssemblies)Unity.Recorder.Editor.dll')">
+    <DefineConstants>$(DefineConstants);JAMKIT_RECORDER</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(ScriptAssemblies)Unity.Recorder.Editor.dll')">
+    <RecorderDll Include="$(ScriptAssemblies)Unity.Recorder*.dll" />
+    <Reference Include="@(RecorderDll)" Private="false" />
+  </ItemGroup>
+</Project>
