@@ -100,3 +100,13 @@ Newest first. Every agent result and every Unity pass gets an entry (what was do
 - **The creator's calls today** are in the spec's section 14, including per-floor music (comical to serious; floor 1 a
   Subway Surfers reimagining, rights question pending).
 - **Next:** Task 13 (scenes and the pass) is with an implementer; Tasks 14-17 are Unity, run by the main session.
+
+## 2026-10-13 (evening): M1 code complete through Task 16
+
+- **Done and reviewed:** Task 13 (scenes, pass, still cameras, sync check, contracts), Task 14 (the player and both
+  guns, the firing range showcase), Task 15 (the four bots incl. the gondola; FightSim is the behaviour reference;
+  cracked-casing spots; sparking wrecks; the gallery), Task 16 (the arena from `HallCover()`, three fights started from
+  the entry zone, the teaching-line queue, the demo with a watchdog, the lint). Nothing has run in Unity yet.
+- **The ears** judge is done (CLAP + Gemini, measurements overrule claims); the secrets guard is the rewritten .mjs, live.
+- **Budget:** the creator raised the stop to 15% weekly. Stopped at 6% for a PC restart.
+- **Next:** Task 17, the main session's Unity pass (metas, stage A, recordings, the checklists in task-13..16-report.md).
