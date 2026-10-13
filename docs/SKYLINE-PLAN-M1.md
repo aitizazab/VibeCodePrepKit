@@ -30,6 +30,45 @@ document into a scratch copy (never the repo), compiled with the repo's own sour
 (M0's included), the forge files round-trip, the first-cut sounds render, the synccheck tests pass, and
 the Movement suite with the push hook passes 197 of 198 (the one left is `SharedTuningTests`, ignored outside the repo), all 9 `OutsidePushTests` included. The dodge numbers in Task 11 and the onset times in Task 5 are that run's measurements.
 
+## Amendments (controller rulings after an independent plan review, 2026-10-13) — these override the task text
+
+The review re-ran the chain in its own scratch copy: every task's tests pass at its own point (Skyline 149/149 at the
+end), and Movement is 210/210 with the hook, SharedTuningTests included (the "197 of 198" above was a dry-run artifact).
+
+1. **Commits:** every commit is `git commit -m "..." -- <the same explicit paths>` (path-limited), never a bare
+   `git commit` after `git add`, so another session's or agent's staged files can never be swept in. Content agents
+   (Tasks 18-21) do NOT commit: they hand their file list back and the main session commits.
+2. **Task 12 (engine edits in shared files):** before touching MoveSim.cs / MovementController.cs, `git diff HEAD --stat`
+   on both must be empty; prepare the edits in a scratch copy, run the gate there, then copy both files over in one step
+   and commit immediately; afterwards `git show --stat HEAD` must list only those files. The controller notifies the
+   Visiting Hours session before the copy-over. Prefer the smaller shared edit: drop `allowOutsidePush` and `AddPush`
+   from MovementController (Skyline sets `Sim.OutsidePushEnabled` / calls `Sim.AddPush` itself); keep only the opt-in
+   `InputOverride` there. `AddPush` returns a bool (false when the engine drops it: mantle or ignored states), and the
+   Breacher's boost charge is spent only when it returns true.
+3. **Engine gate:** `engine-gate.ps1` also runs `--filter SharedTuningTests` and requires Passed 1, Skipped 0.
+4. **Sync check (Tasks 13/14/17):** the range director timestamps with `Time.unscaledTime` and the demo disables hit
+   stop; the marker is found by its 440 Hz energy (not `onsets[0]`); detectability is judged from the forge-rendered
+   clips, and only reload events count toward the 90%.
+5. **Encounter geometry:** bearings and the dodge harness use each zone's ENTRY point as the anchor (`EncounterDodge`
+   translates spawns by the anchor); re-tune so every encounter has >= 90° spread from its entry; report the new ratios.
+6. **Clean line:** add a scripted clean-line route per encounter with a headless test showing zero hits on Normal; if a
+   route can't be found, record it as a gap for the creator rather than weakening the test.
+7. **Parallel content agents:** split shared data into per-gun and per-bot files so no two agents edit one file; CREDITS
+   lines are collected by the main session; each agent that builds tests passes its own
+   `-p:BaseIntermediateOutputPath=<unique>` so `core-tests/*/obj` isn't contended.
+8. **asmdef references:** Task 13 adds `Unity.RenderPipelines.Universal.Runtime` and `Unity.RenderPipelines.Core.Runtime`
+   where Tasks 14 and 21 need them; the main session runs stage A alone right after Task 13 and again before Tasks 14-16
+   are committed, so a Unity compile error never sits on the shared main.
+9. **Perf window:** stage D measures the arena (start the perf demo at the arena entry, or measure ~45 s covering it).
+10. **Missing-sound check:** Task 14's "no SKYLINE_SOUND missing" covers `writ/` and `breacher/` only until Task 20.
+11. **Aim assist:** the demo includes a `lookFromPad` segment logging `SKYLINE_AIMASSIST target turnScale`, checked in
+    Task 17.
+12. **Teaching:** add Nan's warm-up beat teaching the double jump + mantle the kiosk ledge needs (spec 6.8 row 1).
+13. **Design calls taken by the planner** (Writ spots consumed on hit, max 3, 6 s; the spotlight beam sweeping at its
+    lock speed; the dodge band 1.6-2.5 with a 3° drone aim error and floor-care excluded; walls open in M1;
+    strip-by-touch; a wrecked Unit restarts the warm-up) stand as tunable data defaults and go to the creator in the
+    morning report, before Task 14.
+
 ## Global Constraints
 
 - C# 9 only: no file-scoped namespaces, no `global using`, no records, no nullable annotations, no implicit usings.
