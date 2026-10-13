@@ -171,6 +171,8 @@ namespace JamKit.Tests.Skyline
             Assert.That(loadout.Active, Is.SameAs(b));
             Assert.That(a.State.IsReloading, Is.False);
             Assert.That(a.Equipped, Is.False);
+            Assert.That(a.Handling.Playing, Is.False, "the holstered gun's reload clip is stopped (a.Tick would return early, so check it directly)");
+            Assert.That(a.Handling.Clip == null || a.Handling.Clip.kind != HandlingClipKind.ReloadPartial, Is.True);
             for (int i = 0; i < 120; i++) { a.Tick(H, false, false, cues); b.Tick(H, false, false, cues); }
             for (int i = afterSwap; i < cues.Count; i++)
                 Assert.That(cues[i].clip == HandlingClipKind.ReloadPartial, Is.False, "no reload sound after the swap");
@@ -220,6 +222,44 @@ namespace JamKit.Tests.Skyline
             Assert.That(d.FalloffScale(20f), Is.EqualTo(0.7f).Within(1e-5f));
             Assert.That(d.FalloffScale(100f), Is.EqualTo(0.4f));
             Assert.That(d.FalloffScale(float.NaN), Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void SeveralShotsInOneTickEachPlayTheirShotSound()
+        {
+            var d = TestGun();
+            d.weapon = new WeaponDef { magazineSize = 30, fireMode = FireMode.Auto, fireInterval = 0.05f };
+            var r = new Rig(d);
+            r.Press();   // engages the trigger; the held auto fire then runs from here
+            var before = r.cues.Count;
+            r.gun.Tick(0.25f, true, false, r.cues);   // one long held tick
+            int shots = 0, sounds = 0, starts = 0;
+            for (int i = before; i < r.cues.Count; i++)
+            {
+                if (r.cues[i].kind == GunCueKind.Shot) shots++;
+                if (r.cues[i].kind == GunCueKind.Event && r.cues[i].ev.id == "shot") sounds++;
+                if (r.cues[i].kind == GunCueKind.ClipStarted && r.cues[i].clip == HandlingClipKind.Fire) starts++;
+            }
+            Assert.That(shots, Is.GreaterThanOrEqualTo(4), "a long tick fires several shots");
+            Assert.That(starts, Is.EqualTo(shots));
+            Assert.That(sounds, Is.EqualTo(shots), "one shot sound per shot, not one per tick");
+        }
+
+        [Test]
+        public void TheLoadoutsFirstEquipIsNotASwapButLaterOnesAre()
+        {
+            var cues = new List<GunCue>();
+            var loadout = new Loadout(new SkylineGun(TestGun()), new SkylineGun(TestGun()), cues);
+            var log = new DecisionLog(8);
+            int added = 0;
+            foreach (var c in cues) added += GunDecisions.Append(log, c, 0, 0f, Vector3.Zero, DecisionContext.None, 0f, 3);
+            Assert.That(added, Is.EqualTo(0), "the first equip when the loadout is built is not a decision");
+            Assert.That(log.Count, Is.EqualTo(0));
+            int from = cues.Count;
+            loadout.Swap(cues);
+            for (int i = from; i < cues.Count; i++) added += GunDecisions.Append(log, cues[i], 1, 1f, Vector3.Zero, DecisionContext.None, 0f, 3);
+            Assert.That(added, Is.EqualTo(1), "swapping is a decision");
+            Assert.That(log[0].kind, Is.EqualTo(DecisionKind.Swap));
         }
 
         [Test]

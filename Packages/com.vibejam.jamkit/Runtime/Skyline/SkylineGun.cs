@@ -84,6 +84,8 @@ namespace JamKit.Skyline
         public HandlingEvent ev;
         /// <summary>Shot: how long before the end of this tick it was fired (s), as WeaponState reports.</summary>
         public float age;
+        /// <summary>ClipStarted: the equip a <see cref="Loadout"/> made when it was built (not a swap).</summary>
+        public bool initial;
     }
 
     /// <summary>
@@ -258,6 +260,7 @@ namespace JamKit.Skyline
         {
             _handling.Play(Def.Clip(kind), speed);
             Add(new GunCue { kind = GunCueKind.ClipStarted, clip = kind, seconds = _handling.Duration });
+            Flush(0f);   // the events at 0 fire now: several shots in one tick each restart the clip and must each be heard
         }
 
         void Flush(float dt)
@@ -288,7 +291,14 @@ namespace JamKit.Skyline
             if (first == null) throw new ArgumentNullException(nameof(first));
             if (second == null) throw new ArgumentNullException(nameof(second));
             _guns = new[] { first, second };
+            int from = cues == null ? 0 : cues.Count;
             first.Equip(cues);
+            if (cues != null)
+                for (int i = from; i < cues.Count; i++)
+                {
+                    var c = cues[i];
+                    if (c.kind == GunCueKind.ClipStarted && c.clip == HandlingClipKind.Equip) { c.initial = true; cues[i] = c; }
+                }
         }
 
         public void Swap(List<GunCue> cues)
@@ -302,7 +312,7 @@ namespace JamKit.Skyline
     /// <summary>Gun cues as decision events (4.1, recorded from M1 on for Baja).</summary>
     public static class GunDecisions
     {
-        /// <summary>A shot is Fire, a reload clip starting is Reload, an equip clip starting is Swap; other cues add nothing.
+        /// <summary>A shot is Fire, a reload clip starting is Reload, an equip clip starting is Swap (except the loadout's first equip); other cues add nothing.
         /// <paramref name="slot"/> is the loadout slot (the decision's subject). Returns how many were added.</summary>
         public static int Append(DecisionLog log, in GunCue cue, int slot, float time, Vector3 position, DecisionContext context,
             float threatBearing, int ammo)
@@ -311,7 +321,7 @@ namespace JamKit.Skyline
             DecisionKind kind;
             if (cue.kind == GunCueKind.Shot) kind = DecisionKind.Fire;
             else if (cue.kind == GunCueKind.ClipStarted && (cue.clip == HandlingClipKind.ReloadPartial || cue.clip == HandlingClipKind.ReloadEmpty)) kind = DecisionKind.Reload;
-            else if (cue.kind == GunCueKind.ClipStarted && cue.clip == HandlingClipKind.Equip) kind = DecisionKind.Swap;
+            else if (cue.kind == GunCueKind.ClipStarted && cue.clip == HandlingClipKind.Equip && !cue.initial) kind = DecisionKind.Swap;
             else return 0;
             log.Add(new DecisionEvent
             {
