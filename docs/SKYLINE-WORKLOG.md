@@ -2,6 +2,28 @@
 
 Newest first. Every agent result and every Unity pass gets an entry (what was done, numbers, paths, decisions needed).
 
+## 2026-10-13 (later): M0 being built (plan docs/SKYLINE-PLAN-M0.md, one agent per task, reviewed task by task)
+
+- **Done and reviewed:**
+  - **The Skyline C# assembly:**
+    - its own assembly and test project (`tools/skyline/test.ps1`; 40 Skyline tests, and Movement's 201 still pass);
+    - the decision-event log;
+    - the Ledger's recording side (combat-only; wall use measured by opportunity);
+    - the aim models and the spotlight's telegraphed shot, plus the never-mix rule;
+    - frame stats.
+  - **The headless combat sim and dodge report.** The first measurement was misleading: the jinking bot moved towards and away from the shooter, which barely changes where a leading shot must go. The bot was fixed to reverse across the line of fire, averaged over 5 seeds.
+    - Result: a straight-line bot takes 12 hits a minute from one leading drone, and a jinking bot 2.0.
+    - The ratio is 6.0, against M1's target of about 2. M1 tunes it with real encounters (enemies on 2+ bearings).
+    - Also for M1: as tuned, the spotlight's lag lets straight running dodge it too.
+  - **The sound forge** (`tools/skyline/soundforge`, 17 tests). Review fixes: a true constant-power pan (it had a 3 dB jump at hard pan), and every bad input now gives an error that names the layer or event.
+  - **The ears skill** (`~/.claude/skills/ears`, 17 tests): measurements, pictures, reference comparison and sound-event timing. Review fixes:
+    - the event detector no longer mistakes bass ripple for hits (it found 10 events in a 3-shot clip);
+    - a video with no audio track gives a clean error;
+    - out-of-phase stereo is detected;
+    - comparing against a silent take says so.
+- **In progress:** the Unity lock helper (a race fix so two sessions can't both take a dead lock), the Unity recording/build/perf jobs (under review), then the `SkylinePass` runner and the first Unity pass.
+- Free memory was 2.1 GB at this point, so the first pass waits for memory through the cap.
+
 ## 2026-10-13
 
 - **Design brainstorm with the creator, finished.** Six sections were approved one by one and written up as
