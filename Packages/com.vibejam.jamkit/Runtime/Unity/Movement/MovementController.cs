@@ -86,6 +86,11 @@ namespace JamKit.Movement
         public Func<MoveSim, MoveInput> Autopilot;
         /// <summary>Off: the body ignores input (cutscenes, menus); it still falls and lands.</summary>
         public bool InputEnabled = true;
+        /// <summary>Opt-in (Skyline Repo, docs/SKYLINE-DESIGN.md 8): when set, it drives the body instead of the shell's input
+        /// and the autopilot, with or without GameRoot (Skyline's scenes remove it). It gets the sim and the frame's dt and
+        /// returns the step's input; that input's yaw becomes the view's. Null (the default) changes nothing. (The outside
+        /// push is the sim's own: <see cref="MoveSim.OutsidePushEnabled"/> and <see cref="MoveSim.AddPush"/> on <see cref="Sim"/>.)</summary>
+        public Func<MoveSim, float, MoveInput> InputOverride;
 
         public MoveSim Sim => _sim;
         public MoveDriver Driver => _driver;
@@ -245,6 +250,12 @@ namespace JamKit.Movement
             _leanWant = 0;
             _leanAllowed = false;
             var input = new MoveInput { yaw = _yaw };
+            if (InputOverride != null)
+            {
+                var o = InputOverride(_sim, dt);
+                _yaw = o.yaw;
+                return o;
+            }
             bool shell = GameRoot.Exists;
             bool allowed = shell && GameRoot.Input.GameplayAllowed;
             if (Autopilot != null)

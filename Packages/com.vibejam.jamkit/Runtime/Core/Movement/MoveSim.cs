@@ -78,6 +78,10 @@ namespace JamKit.Movement
 
         MoveEvents _events;
 
+        // The outside push (opt-in; Skyline Repo's Breacher, docs/SKYLINE-DESIGN.md 8)
+        Vector3 _push;
+        bool _pushPending, _pushEnabled;
+
         public MoveSim(IMoveWorld world, MoveDef def)
         {
             _world = world;
@@ -142,6 +146,36 @@ namespace JamKit.Movement
         /// <summary>The horizontal speed cap: the def's, or the profile's if it sets a lower one.</summary>
         public float MaxSpeed => _profile != null && _profile.speedCap > 0f ? Math.Min(def.maxHorizontalSpeed, _profile.speedCap) : def.maxHorizontalSpeed;
 
+        /// <summary>Opt-in (Skyline Repo): lets <see cref="AddPush"/> change the velocity. Off by default, so every game that
+        /// doesn't turn it on moves exactly as before. Turning it off drops a queued push.</summary>
+        public bool OutsidePushEnabled
+        {
+            get => _pushEnabled;
+            set
+            {
+                _pushEnabled = value;
+                if (!value) { _push = Vector3.Zero; _pushPending = false; }
+            }
+        }
+
+        /// <summary>Queues a velocity change (m/s) from outside the body (the Breacher's self-knockback), applied at the start
+        /// of the next step under these rules: an upward part forces leaving the ground and ends a wall-run (with no
+        /// wall-coyote jump after it); it is ignored during a mantle; the horizontal speed stays within <see cref="MaxSpeed"/>
+        /// (CapFlat); it never refreshes the double jump. Pushes queued before one step add up. Returns true when the push
+        /// was queued, false when the engine drops it: <see cref="OutsidePushEnabled"/> is off, the push isn't finite, or
+        /// the body is mantling (a caller spends its boost only on true).</summary>
+        public bool AddPush(Vector3 deltaV)
+        {
+            if (!_pushEnabled) return false;
+            if (!(IsFinite(deltaV.X) && IsFinite(deltaV.Y) && IsFinite(deltaV.Z))) return false;
+            if (_mode == MoveMode.Mantle) return false;
+            _push += deltaV;
+            _pushPending = true;
+            return true;
+        }
+
+        static bool IsFinite(float v) => !float.IsNaN(v) && !float.IsInfinity(v);
+
         /// <summary>Puts the body somewhere (spawn, respawn, tests), with a velocity, in the air until it finds ground.</summary>
         public void Teleport(Vector3 feet, float yaw, Vector3 velocity)
         {
@@ -174,6 +208,8 @@ namespace JamKit.Movement
             _catchMiss = WallCatchMiss.None;
             _lastKick = -999f;
             _events = default;
+            _push = Vector3.Zero;
+            _pushPending = false;
             if (_world.CastDown(feet, def.radius * 0.9f, def.groundEpsilon + 0.05f, out var g) && g.normal.Y > 0.2f)
             {
                 _grounded = true;
@@ -192,6 +228,7 @@ namespace JamKit.Movement
             if (!(h > 0f)) return;
             _events = default;
             _time += h;
+            if (_pushPending) ApplyPush();
             // How fast the view turns (deg/s, smoothed over about 0.06 s: a frame's turn lands on its first step).
             float dyaw = _hasLastYaw ? Math.Abs(DeltaYaw(_lastYaw, input.yaw)) / h : 0f;
             _yawRate += (dyaw - _yawRate) * (1f - (float)Math.Exp(-h / 0.06f));
@@ -241,6 +278,39 @@ namespace JamKit.Movement
             if (_mode == MoveMode.Mantle) return; // started this step; moves from the next
 
             Integrate(input, h);
+        }
+
+        // ---------- The outside push ----------
+
+        void ApplyPush()
+        {
+            Vector3 p = _push;
+            _push = Vector3.Zero;
+            _pushPending = false;
+            if (_mode == MoveMode.Mantle) return;
+            bool doubleJump = _doubleJump;
+            if (p.Y > 0f)
+            {
+                if (_mode == MoveMode.Wallrun)
+                {
+                    LeaveWall();
+                    _wallCoyote = false;
+                }
+                else if (_mode == MoveMode.Grounded || _mode == MoveMode.Sprint || _mode == MoveMode.Slide)
+                {
+                    // On the ground StepGround zeroes vertical speed, so an upward push must take off here.
+                    if (_mode == MoveMode.Slide) _events.slideEnded = true;
+                    _mode = MoveMode.Air;
+                    _grounded = false;
+                    _jumpedSinceGround = true;   // no coyote jump on top of a push
+                    _sinceJump = 0f;
+                    _landGrace = 0f;
+                    _events.leftGround = true;
+                    if (_crouched) SetCrouched(false);
+                }
+            }
+            _vel = CapFlat(_vel + p, MaxSpeed);
+            _doubleJump = doubleJump;
         }
 
         // ---------- Ground ----------

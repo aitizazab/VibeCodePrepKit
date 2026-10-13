@@ -25,6 +25,7 @@
     <Compile Include="$(PkgRoot)Runtime\Skyline\**\*.cs" />
     <Compile Include="$(PkgRoot)Tests\Skyline\**\*.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\Movement\BoxWorld.cs" />
+    <Compile Include="$(PkgRoot)Tests\Core\Movement\MoveTestKit.cs" />
     <Compile Include="$(ProjectAssets)Templates\SkylineRepo\**\*.cs" />
     <EngineDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEngine*.dll" />
     <Reference Include="@(EngineDll)" Private="false" />
