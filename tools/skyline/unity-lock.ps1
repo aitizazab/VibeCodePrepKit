@@ -31,6 +31,33 @@ function Test-UnityLockStale {
     try { return ((Get-Date) - (Get-Item -LiteralPath $Dir -ErrorAction Stop).LastWriteTime).TotalSeconds -gt 60 } catch { return $false }
 }
 
+# Claim a lock folder judged stale ($Observed = the owner read when it was judged) by renaming it to a name only this process uses:
+# a rename is atomic, so of several waiters that saw the same dead owner exactly one wins. Nobody deletes $Dir itself.
+# Returns 'taken' (the stale folder is gone; retry mkdir), 'restored' (it turned out to be a live lock and was moved back),
+# 'kept' (a live lock was caught but can't be moved back; it is left at the .stale- name, never deleted) or 'lost' (another waiter won).
+# $AfterRename is a test hook run between the rename and the verification, to inject a changed owner.
+function Invoke-UnityLockClaimStale {
+    param([string]$Dir, $Observed, [scriptblock]$AfterRename)
+    $claimed = "$Dir.stale-$PID-$([DateTime]::UtcNow.Ticks)"
+    try { [IO.Directory]::Move($Dir, $claimed) } catch { return 'lost' }
+    if ($AfterRename) { & $AfterRename $claimed }
+    # The rename isn't conditional: a fresh live lock may have replaced the stale one between the check and the rename. Only a
+    # positive match with what was judged stale lets us delete; an unknown owner matches only while the folder is still over 60 s old.
+    $now = Get-UnityLockOwner -Dir $claimed
+    $isMatch = ($now.Pid -eq $Observed.Pid) -and ($now.Text -eq $Observed.Text)
+    if ($isMatch -and $Observed.Pid -le 0) {
+        try { $isMatch = ((Get-Date) - (Get-Item -LiteralPath $claimed -ErrorAction Stop).LastWriteTime).TotalSeconds -gt 60 } catch { $isMatch = $false }
+    }
+    if ($isMatch) {
+        Write-Host "Unity lock: owner '$($Observed.Text)' is gone; took over the stale lock."
+        Remove-Item -LiteralPath $claimed -Recurse -Force -ErrorAction SilentlyContinue
+        return 'taken'
+    }
+    try { [IO.Directory]::Move($claimed, $Dir); return 'restored' } catch { }
+    Write-Host "Unity lock: WARNING: '$claimed' holds a live lock ('$($now.Text)') that was renamed by mistake and could not be restored; left in place, not deleted."
+    return 'kept'
+}
+
 function Enter-UnityLock {
     param([string]$Who = 'skyline-repo', [int]$TimeoutMinutes = 180, [string]$Dir = $script:LockDir, [int]$PollSeconds = 30)
     # Local, so a caller running under $ErrorActionPreference = 'Stop' (pass.ps1) can't turn mkdir's expected stderr on contention
@@ -53,21 +80,8 @@ function Enter-UnityLock {
         }
         $o = Get-UnityLockOwner -Dir $Dir
         if (Test-UnityLockStale -Dir $Dir -OwnerPid $o.Pid) {
-            # Claim the stale folder by renaming it to a name only this process uses: a rename is atomic, so of several waiters that
-            # all saw the same dead owner exactly one wins; the rest fail the Move-Item and just loop. Nobody deletes $Dir itself.
-            $claimed = "$Dir.stale-$PID-$([DateTime]::UtcNow.Ticks)"
-            $moved = $false
-            try { Move-Item -LiteralPath $Dir -Destination $claimed -ErrorAction Stop; $moved = $true } catch { }
-            if ($moved) {
-                # The rename isn't conditional: a fresh live lock may have replaced the stale one between the check and the rename.
-                $now = Get-UnityLockOwner -Dir $claimed
-                if ($now.Pid -ne $o.Pid -or $now.Text -ne $o.Text) {
-                    try { Move-Item -LiteralPath $claimed -Destination $Dir -ErrorAction Stop; continue } catch { }
-                }
-                Write-Host "Unity lock: owner '$($o.Text)' is gone; took over the stale lock."
-                Remove-Item -LiteralPath $claimed -Recurse -Force -ErrorAction SilentlyContinue
-                continue
-            }
+            $result = Invoke-UnityLockClaimStale -Dir $Dir -Observed $o
+            if ($result -eq 'taken' -or $result -eq 'restored') { continue }
         }
         if ((Get-Date) -gt $deadline) {
             $heldBy = (Get-UnityLockOwner -Dir $Dir).Text
@@ -167,6 +181,33 @@ function Test-UnityLockSelf {
         $a, $b = $spans | Sort-Object Start
         if ($a.End -gt $b.Start) { throw 'selftest: race: two waiters held the stale lock at the same time' }
         if (Test-Path $dir) { throw 'selftest: race: lock left behind' }
+
+        # 8. the claim's mismatch paths (injected through -AfterRename): a live lock caught by the rename is moved back, and when it
+        #    can't be moved back it is kept, never deleted; a brand-new ownerless folder never matches an "unknown owner" verdict
+        $mkStale = { New-Item -ItemType Directory $dir | Out-Null; Set-Content (Join-Path $dir 'owner.txt') '999999 ghost 2026-01-01' -Encoding ascii }
+        $liveOwner = "$parent otherwaiter 2026-01-01"
+        & $mkStale
+        $r = Invoke-UnityLockClaimStale -Dir $dir -Observed (Get-UnityLockOwner -Dir $dir) -AfterRename { param($c) Set-Content (Join-Path $c 'owner.txt') $liveOwner -Encoding ascii }
+        if ($r -ne 'restored') { throw "selftest: claim mismatch returned '$r', expected 'restored'" }
+        if ((Get-UnityLockOwner -Dir $dir).Text -ne $liveOwner) { throw 'selftest: claim mismatch did not move the live lock back' }
+        if (@(Get-ChildItem -LiteralPath ([IO.Path]::GetTempPath()) -Filter "skyline-lock-selftest-$PID.stale-*").Count -ne 0) { throw 'selftest: claim mismatch left a renamed folder' }
+        Remove-Item -Recurse -Force $dir
+
+        & $mkStale
+        $r = Invoke-UnityLockClaimStale -Dir $dir -Observed (Get-UnityLockOwner -Dir $dir) -AfterRename {
+            param($c)
+            Set-Content (Join-Path $c 'owner.txt') $liveOwner -Encoding ascii
+            New-Item -ItemType Directory $dir | Out-Null   # someone recreated the lock folder meanwhile, so the move-back must fail
+        }
+        if ($r -ne 'kept') { throw "selftest: unrestorable claim returned '$r', expected 'kept'" }
+        $kept = @(Get-ChildItem -LiteralPath ([IO.Path]::GetTempPath()) -Filter "skyline-lock-selftest-$PID.stale-*")
+        if ($kept.Count -ne 1 -or (Get-UnityLockOwner -Dir $kept[0].FullName).Text -ne $liveOwner) { throw 'selftest: the unrestorable live lock was deleted or altered' }
+        Remove-Item -Recurse -Force $dir, $kept[0].FullName
+
+        New-Item -ItemType Directory $dir | Out-Null   # ownerless and brand new, judged "unknown"
+        $r = Invoke-UnityLockClaimStale -Dir $dir -Observed (Get-UnityLockOwner -Dir $dir)
+        if ($r -ne 'restored' -or -not (Test-Path $dir)) { throw "selftest: a fresh ownerless folder was claimed/deleted (result '$r')" }
+        Remove-Item -Recurse -Force $dir
     } finally {
         $script:HeldLock = $null
         & $clean
