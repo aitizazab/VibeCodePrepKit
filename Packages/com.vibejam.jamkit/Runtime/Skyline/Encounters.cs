@@ -120,7 +120,7 @@ namespace JamKit.Skyline
     public static class Difficulties
     {
         /// <summary>Normal: tuned so the straight-line bot takes about twice the jinking bot's hits (Task 11).</summary>
-        public static DifficultyDef Normal() => new DifficultyDef { id = "normal", leadFactor = 0.75f, scrapScale = 1f };
+        public static DifficultyDef Normal() => new DifficultyDef { id = "normal", leadFactor = 0.6f, scrapScale = 1f };
     }
 
     /// <summary>

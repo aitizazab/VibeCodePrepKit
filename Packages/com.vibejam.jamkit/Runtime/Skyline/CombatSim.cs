@@ -24,6 +24,10 @@ namespace JamKit.Skyline
         public float projectileRadius = 0.15f;
         /// <summary>Seconds into the fight before the first shot.</summary>
         public float firstShotAt = 0.5f;
+        /// <summary>Degrees of random aim error on a projectile (uniform over a cone); 0 is a perfect shot.</summary>
+        public float aimSpreadDeg;
+        /// <summary>A telegraphed hitscan's beam (projectileSpeed 0): its telegraph, lock, follow rate and hit radius.</summary>
+        public float beamTelegraph = 0.8f, beamLockBefore = 0.25f, beamFollowRate = 10f, beamHitRadius = 0.6f;
 
         internal float nextFire = -1f;
         internal TelegraphedShot telegraphShot;
@@ -32,6 +36,7 @@ namespace JamKit.Skyline
     /// <summary>
     /// A headless fight: the real movement engine moving the player, stationary shooters, straight projectiles and the
     /// spotlight's telegraphed hitscan. It measures how often a way of moving gets hit (the dodging measurement, 2.6).
+    /// The seed drives the shooters' aim error, so a fight repeats exactly.
     /// </summary>
     public sealed class CombatSim
     {
@@ -47,17 +52,23 @@ namespace JamKit.Skyline
         readonly IPlayerBot _bot;
         readonly List<Shooter> _shooters;
         readonly List<Projectile> _shots = new List<Projectile>();
+        readonly Rng _rng;
 
         public int Hits { get; private set; }
         public int ShotsFired { get; private set; }
         public float Time { get; private set; }
 
-        public CombatSim(MoveSim player, IPlayerBot bot, IEnumerable<Shooter> shooters)
+        public CombatSim(MoveSim player, IPlayerBot bot, IEnumerable<Shooter> shooters, ulong seed = 1)
         {
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _bot = bot ?? throw new ArgumentNullException(nameof(bot));
             _shooters = new List<Shooter>(shooters);
-            foreach (var s in _shooters) s.nextFire = s.firstShotAt;
+            _rng = new Rng(seed);
+            foreach (var s in _shooters)
+            {
+                s.nextFire = s.firstShotAt;
+                s.telegraphShot = null;   // a shooter reused across fights starts with no beam in flight
+            }
         }
 
         public void Run(float seconds)
@@ -87,7 +98,11 @@ namespace JamKit.Skyline
                 ShotsFired++;
                 if (s.projectileSpeed <= 0f)
                 {
-                    if (s.telegraphShot == null) s.telegraphShot = new TelegraphedShot();
+                    if (s.telegraphShot == null)
+                        s.telegraphShot = new TelegraphedShot
+                        {
+                            telegraph = s.beamTelegraph, lockBefore = s.beamLockBefore, followRate = s.beamFollowRate, hitRadius = s.beamHitRadius,
+                        };
                     s.telegraphShot.Start(Chest);
                     continue;
                 }
@@ -97,7 +112,7 @@ namespace JamKit.Skyline
                 Vector3 dir = aimAt - s.position;
                 float len = dir.Length();
                 if (len < 1e-4f) continue;
-                _shots.Add(new Projectile { pos = s.position, vel = dir / len * s.projectileSpeed, radius = s.projectileRadius });
+                _shots.Add(new Projectile { pos = s.position, vel = Spread(dir / len, s.aimSpreadDeg) * s.projectileSpeed, radius = s.projectileRadius });
             }
 
             for (int i = _shots.Count - 1; i >= 0; i--)
@@ -109,6 +124,17 @@ namespace JamKit.Skyline
                 if (p.age > MaxProjectileAge) { _shots.RemoveAt(i); continue; }
                 _shots[i] = p;
             }
+        }
+
+        /// <summary>The direction tilted by a random error uniform over a cone of <paramref name="deg"/> degrees.</summary>
+        Vector3 Spread(Vector3 dir, float deg)
+        {
+            if (!(deg > 0f)) return dir;
+            Vector3 side = Vector3.Normalize(Vector3.Cross(dir, MathF.Abs(dir.Y) < 0.99f ? Vector3.UnitY : Vector3.UnitX));
+            Vector3 up = Vector3.Cross(side, dir);
+            float angle = _rng.Range(0f, 2f * MathF.PI);
+            float r = MathF.Tan(deg * MathF.PI / 180f) * MathF.Sqrt(_rng.NextFloat());
+            return Vector3.Normalize(dir + (side * MathF.Cos(angle) + up * MathF.Sin(angle)) * r);
         }
 
         /// <summary>The player's capsule: a vertical segment from feet+radius to feet+height-radius, thickened by the radius.</summary>
@@ -126,40 +152,63 @@ namespace JamKit.Skyline
 
     public struct DodgeResult
     {
+        /// <summary>straightHits and jinkHits are the means below, rounded.</summary>
         public int straightHits, jinkHits, shots;
-        /// <summary>The jinking bot's hits averaged over the seeds run (jinkHits is this, rounded).</summary>
-        public float jinkHitsMean;
+        /// <summary>Each bot's hits averaged over the seeds run.</summary>
+        public float straightHitsMean, jinkHitsMean;
         public int seeds;
         public float seconds;
-        public float Ratio => jinkHitsMean > 0f ? straightHits / jinkHitsMean : float.PositiveInfinity;
+        public float Ratio => jinkHitsMean > 0f ? straightHitsMean / jinkHitsMean : float.PositiveInfinity;
     }
 
     /// <summary>The dodging measurement (2.6): the same fight run by a straight-line bot and a jinking bot. Target on
     /// Normal: the straight-line bot takes about twice the hits, and neither goes unhit.</summary>
     public static class DodgeReport
     {
-        /// <summary>The straight-line bot is deterministic, so it runs once; the jinking bot runs with seeds
-        /// <paramref name="seed"/>..<paramref name="seed"/>+<paramref name="seeds"/>-1 and its hits are averaged.</summary>
+        /// <summary>Both bots run with seeds <paramref name="seed"/>..<paramref name="seed"/>+<paramref name="seeds"/>-1 (the
+        /// seed drives the jinking bot's reversals and the shooters' aim error) and their hits are averaged. With no aim
+        /// error the straight-line bot's runs are identical.</summary>
         public static DodgeResult Run(Func<IMoveWorld> makeWorld, Func<List<Shooter>> makeShooters, float seconds, ulong seed, int seeds = 5)
         {
             if (seeds < 1) seeds = 1;
-            var straight = Fight(makeWorld(), new StraightLineBot(), makeShooters(), seconds);
-            int total = 0;
+            int straightTotal = 0, jinkTotal = 0, shots = 0;
             for (int i = 0; i < seeds; i++)
-                total += Fight(makeWorld(), new JinkingBot(seed + (ulong)i), makeShooters(), seconds).Hits;
-            float mean = (float)total / seeds;
+            {
+                ulong s = seed + (ulong)i;
+                var straight = Fight(makeWorld(), new StraightLineBot(), makeShooters(), seconds, s);
+                straightTotal += straight.Hits;
+                if (i == 0) shots = straight.ShotsFired;
+                jinkTotal += Fight(makeWorld(), new JinkingBot(s), makeShooters(), seconds, s).Hits;
+            }
+            float straightMean = (float)straightTotal / seeds, jinkMean = (float)jinkTotal / seeds;
             return new DodgeResult
             {
-                straightHits = straight.Hits, jinkHits = (int)MathF.Round(mean), jinkHitsMean = mean,
-                seeds = seeds, shots = straight.ShotsFired, seconds = seconds,
+                straightHits = (int)MathF.Round(straightMean), straightHitsMean = straightMean,
+                jinkHits = (int)MathF.Round(jinkMean), jinkHitsMean = jinkMean,
+                seeds = seeds, shots = shots, seconds = seconds,
             };
         }
 
-        static CombatSim Fight(IMoveWorld world, IPlayerBot bot, List<Shooter> shooters, float seconds)
+        /// <summary>One bot's hits in each of the fights with seeds <paramref name="seed"/>..<paramref name="seed"/>+<paramref name="seeds"/>-1
+        /// (<paramref name="makeBot"/> gets the seed): the scripted clean-line routes use this to show a route takes no hits.</summary>
+        public static int[] HitsPerSeed(Func<IMoveWorld> makeWorld, Func<List<Shooter>> makeShooters, Func<ulong, IPlayerBot> makeBot,
+            float seconds, ulong seed, int seeds = 5)
+        {
+            if (seeds < 1) seeds = 1;
+            var hits = new int[seeds];
+            for (int i = 0; i < seeds; i++)
+            {
+                ulong s = seed + (ulong)i;
+                hits[i] = Fight(makeWorld(), makeBot(s), makeShooters(), seconds, s).Hits;
+            }
+            return hits;
+        }
+
+        static CombatSim Fight(IMoveWorld world, IPlayerBot bot, List<Shooter> shooters, float seconds, ulong seed)
         {
             var sim = new MoveSim(world, new MoveDef());
             sim.Teleport(Vector3.Zero, 0f, Vector3.Zero);
-            var c = new CombatSim(sim, bot, shooters);
+            var c = new CombatSim(sim, bot, shooters, seed);
             c.Run(seconds);
             return c;
         }

@@ -39,6 +39,9 @@ namespace JamKit.Skyline
         /// <summary>m/s; 0 is a telegraphed hitscan (the spotlight).</summary>
         public float projectileSpeed = 30f;
         public float projectileRadius = 0.15f;
+        /// <summary>Degrees of random aim error on a projectile shot (a drone isn't a perfect shot; it also makes the dodge
+        /// measurement a dial instead of a cliff). 0 for none.</summary>
+        public float aimSpreadDeg;
         public float attackDamage = 10f;
         public float range = 40f;
         // The spotlight's beam (TelegraphedShot); its telegraph is telegraphSeconds.
@@ -60,7 +63,7 @@ namespace JamKit.Skyline
             id = DroneId, displayName = "Mall-cop drone", aim = AimModel.LeadsYou, layer = ThreatLayer.Air,
             chassisHp = 50f, plates = new[] { new PlateDef("shell", 30f), new PlateDef("lens-guard", 20f) }, bodyRadius = 0.45f,
             alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 1.2f, loseSightSeconds = 3f,
-            projectileSpeed = 30f, projectileRadius = 0.15f, attackDamage = 12f, range = 45f, scrapPlating = 20f,
+            projectileSpeed = 30f, projectileRadius = 0.15f, aimSpreadDeg = 8f, attackDamage = 12f, range = 45f, scrapPlating = 20f,
         };
 
         /// <summary>A roomba with a happy face, angry at "stains"; an ankle-height acid sweep (punishes staying on the floor).
@@ -80,9 +83,9 @@ namespace JamKit.Skyline
         {
             id = SpotlightId, displayName = "Spotlight", aim = AimModel.FiresAtWhereYouAre, layer = ThreatLayer.Air,
             chassisHp = 70f, plates = new[] { new PlateDef("housing-left", 30f), new PlateDef("housing-right", 30f) }, bodyRadius = 0.6f,
-            alertSeconds = 0.5f, telegraphSeconds = 0.8f, fireInterval = 2.2f, loseSightSeconds = 3f,
+            alertSeconds = 0.5f, telegraphSeconds = 0.8f, fireInterval = 2.4f, loseSightSeconds = 3f,
             projectileSpeed = 0f, attackDamage = 30f, range = 60f,
-            beamFollowRate = 10f, beamHitRadius = 0.6f, beamLockBefore = 0.25f, scrapPlating = 25f,
+            beamFollowRate = 12f, beamHitRadius = 1.0f, beamLockBefore = 0.25f, scrapPlating = 25f,
         };
 
         public static EnemyDef[] All() => new[] { MallCopDrone(), FloorCareUnit(), Spotlight() };
