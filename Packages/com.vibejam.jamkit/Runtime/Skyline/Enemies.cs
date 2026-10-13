@@ -1,0 +1,256 @@
+using System;
+
+namespace JamKit.Skyline
+{
+    /// <summary>The layer of the player's space a bot threatens (docs/SKYLINE-DESIGN.md 2.5-2.6).</summary>
+    public enum ThreatLayer { Floor, Walls, Air }
+
+    /// <summary>A plate of armour over a bot's chassis; it absorbs hits where it sits and sheds when broken (2.3).</summary>
+    public sealed class PlateDef
+    {
+        public string id;
+        public float hp;
+
+        public PlateDef(string id, float hp)
+        {
+            this.id = id;
+            this.hp = hp;
+        }
+    }
+
+    /// <summary>One bot as data (2.5): its tags, its body and its attack. Each bot's identity agent owns and tunes it; the
+    /// dodge measurement (Task 11) tunes the aimed attacks on Normal.</summary>
+    public sealed class EnemyDef
+    {
+        public string id = "", displayName = "";
+        public AimModel aim;
+        public ThreatLayer layer;
+        public float chassisHp = 50f;
+        public PlateDef[] plates = new PlateDef[0];
+        /// <summary>The bot's size for aim assist and line-of-sight checks (m).</summary>
+        public float bodyRadius = 0.5f;
+        // The behaviour clock (BotBrain): alert, then a cycle of telegraph + attack + recovery.
+        public float alertSeconds = 0.6f;
+        public float telegraphSeconds = 0.4f;
+        /// <summary>One full attack cycle (s): the telegraph plus the recovery.</summary>
+        public float fireInterval = 1.4f;
+        public float loseSightSeconds = 3f;
+        // A shot.
+        /// <summary>m/s; 0 is a telegraphed hitscan (the spotlight).</summary>
+        public float projectileSpeed = 30f;
+        public float projectileRadius = 0.15f;
+        public float attackDamage = 10f;
+        public float range = 40f;
+        // The spotlight's beam (TelegraphedShot); its telegraph is telegraphSeconds.
+        public float beamFollowRate = 10f, beamHitRadius = 0.6f, beamLockBefore = 0.25f;
+        // The floor-care unit's acid sweep (AcidSweep).
+        public float sweepSeconds = 0.8f, sweepRadius = 4.5f, sweepArcDeg = 120f, sweepWidthDeg = 24f, ankleHeight = 0.4f;
+        /// <summary>Plating a fresh wreck gives back when stripped, on Normal (2.4, 7.4).</summary>
+        public float scrapPlating = 20f;
+    }
+
+    /// <summary>M1's three bots (11.2). Each call returns a new instance.</summary>
+    public static class SkylineEnemies
+    {
+        public const string DroneId = "mall-cop-drone", FloorCareId = "floor-care-unit", SpotlightId = "spotlight";
+
+        /// <summary>Officious; shots that lead your movement (punishes straight lines). Aim: leads you. Layer: air.</summary>
+        public static EnemyDef MallCopDrone() => new EnemyDef
+        {
+            id = DroneId, displayName = "Mall-cop drone", aim = AimModel.LeadsYou, layer = ThreatLayer.Air,
+            chassisHp = 50f, plates = new[] { new PlateDef("shell", 30f), new PlateDef("lens-guard", 20f) }, bodyRadius = 0.45f,
+            alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 1.2f, loseSightSeconds = 3f,
+            projectileSpeed = 30f, projectileRadius = 0.15f, attackDamage = 12f, range = 45f, scrapPlating = 20f,
+        };
+
+        /// <summary>A roomba with a happy face, angry at "stains"; an ankle-height acid sweep (punishes staying on the floor).
+        /// Aim: area. Layer: floor.</summary>
+        public static EnemyDef FloorCareUnit() => new EnemyDef
+        {
+            id = FloorCareId, displayName = "Floor-care unit", aim = AimModel.Area, layer = ThreatLayer.Floor,
+            chassisHp = 80f, plates = new[] { new PlateDef("lid", 40f), new PlateDef("bumper", 30f) }, bodyRadius = 0.5f,
+            alertSeconds = 0.8f, telegraphSeconds = 0.6f, fireInterval = 3f, loseSightSeconds = 3f,
+            projectileSpeed = 0f, attackDamage = 8f, range = 10f,
+            sweepSeconds = 0.8f, sweepRadius = 4.5f, sweepArcDeg = 120f, sweepWidthDeg = 24f, ankleHeight = 0.4f, scrapPlating = 30f,
+        };
+
+        /// <summary>A searchlight with a rifle: a 0.8 s laser telegraph that follows you with a lag and locks 0.25 s before a
+        /// hitscan shot (punishes lingering exposed up high). Aim: fires at where you are now. Layer: air.</summary>
+        public static EnemyDef Spotlight() => new EnemyDef
+        {
+            id = SpotlightId, displayName = "Spotlight", aim = AimModel.FiresAtWhereYouAre, layer = ThreatLayer.Air,
+            chassisHp = 70f, plates = new[] { new PlateDef("housing-left", 30f), new PlateDef("housing-right", 30f) }, bodyRadius = 0.6f,
+            alertSeconds = 0.5f, telegraphSeconds = 0.8f, fireInterval = 2.2f, loseSightSeconds = 3f,
+            projectileSpeed = 0f, attackDamage = 30f, range = 60f,
+            beamFollowRate = 10f, beamHitRadius = 0.6f, beamLockBefore = 0.25f, scrapPlating = 25f,
+        };
+
+        public static EnemyDef[] All() => new[] { MallCopDrone(), FloorCareUnit(), Spotlight() };
+
+        public static EnemyDef Find(string id) =>
+            id == DroneId ? MallCopDrone() : id == FloorCareId ? FloorCareUnit() : id == SpotlightId ? Spotlight() : null;
+    }
+
+    public struct BotDamage
+    {
+        public float toPlate, toChassis;
+        /// <summary>The plate this hit knocked off, or -1.</summary>
+        public int plateShed;
+        /// <summary>This hit wrecked the bot.</summary>
+        public bool wrecked;
+        public float Applied => toPlate + toChassis;
+    }
+
+    /// <summary>A bot's plates and chassis. A hit on a plate that's still on is absorbed by it first; what's left carries
+    /// into the chassis. A plate sheds once, where it was hit; the bot is wrecked once.</summary>
+    public sealed class EnemyBody
+    {
+        readonly float[] _plates;
+
+        public EnemyDef Def { get; }
+        public float Chassis { get; private set; }
+        public bool Wrecked { get; private set; }
+        public int PlateCount => _plates.Length;
+
+        public EnemyBody(EnemyDef def)
+        {
+            Def = def ?? throw new ArgumentNullException(nameof(def));
+            int n = def.plates != null ? def.plates.Length : 0;
+            _plates = new float[n];
+            for (int i = 0; i < n; i++) _plates[i] = def.plates[i] != null ? NonNegative(def.plates[i].hp) : 0f;
+            Chassis = Math.Max(1f, def.chassisHp > 0f ? def.chassisHp : 1f); // NaN or negative: a 1 hp chassis
+        }
+
+        // NaN and negatives are 0 (Math.Max would pass a NaN through).
+        static float NonNegative(float v) => v > 0f ? v : 0f;
+
+        public float PlateHp(int i) => i >= 0 && i < _plates.Length ? _plates[i] : 0f;
+        public bool PlateOn(int i) => PlateHp(i) > 0f;
+
+        /// <summary><paramref name="amount"/> after every multiplier, at <paramref name="plate"/> (an index into the def's
+        /// plates; -1 or a shed plate means the chassis). Zero, negative and NaN do nothing; huge amounts are capped.</summary>
+        public BotDamage Damage(float amount, int plate)
+        {
+            var r = new BotDamage { plateShed = -1 };
+            if (Wrecked || !(amount > 0f)) return r;
+            float left = Math.Min(amount, 1e6f);
+            if (PlateOn(plate))
+            {
+                float take = Math.Min(left, _plates[plate]);
+                _plates[plate] -= take;
+                left -= take;
+                r.toPlate = take;
+                if (_plates[plate] <= 0f)
+                {
+                    _plates[plate] = 0f;
+                    r.plateShed = plate;
+                }
+            }
+            if (left > 0f)
+            {
+                float take = Math.Min(left, Chassis);
+                Chassis -= take;
+                r.toChassis = take;
+                if (Chassis <= 0f)
+                {
+                    Chassis = 0f;
+                    Wrecked = true;
+                    r.wrecked = true;
+                }
+            }
+            return r;
+        }
+    }
+
+    public struct ArmorHit
+    {
+        public float toPlating, toChassis;
+        /// <summary>This hit took the plating to zero (the first time is Dot's teaching beat, 6.8).</summary>
+        public bool platingBroke;
+        public bool wrecked;
+    }
+
+    /// <summary>A wrecked bot's remains: scrap can be stripped once while it's fresh (2.4: "aggression heals").</summary>
+    public sealed class Wreck
+    {
+        public EnemyDef def;
+        public float wreckedAt;
+        /// <summary>How long (s) after the wreck its scrap can still be stripped (tunable; the creator hasn't set it).</summary>
+        public float freshSeconds = 8f;
+        public bool stripped;
+
+        public Wreck(EnemyDef def, float wreckedAt)
+        {
+            this.def = def;
+            this.wreckedAt = wreckedAt;
+        }
+
+        public bool Fresh(float now) => !stripped && now >= wreckedAt && now - wreckedAt <= freshSeconds;
+    }
+
+    /// <summary>The Unit's health (2.4): plating over the chassis. Plating absorbs first and comes back only from scrap
+    /// stripped off fresh wrecks; the chassis never regenerates (repair rewards and vending machines come later).</summary>
+    public sealed class PlayerArmor
+    {
+        public float PlatingMax { get; }
+        public float Plating { get; private set; }
+        public float ChassisMax { get; }
+        public float Chassis { get; private set; }
+        public bool Wrecked { get; private set; }
+        /// <summary>How many times the plating has broken this run.</summary>
+        public int PlatingBreaks { get; private set; }
+
+        public PlayerArmor(float platingMax = 100f, float chassisMax = 100f)
+        {
+            PlatingMax = platingMax > 0f ? platingMax : 0f; // NaN or negative: no plating
+            Plating = PlatingMax;
+            ChassisMax = chassisMax > 1f ? chassisMax : 1f;
+            Chassis = ChassisMax;
+        }
+
+        public ArmorHit Damage(float amount)
+        {
+            var r = new ArmorHit();
+            if (Wrecked || !(amount > 0f)) return r;
+            float left = Math.Min(amount, 1e6f);
+            if (Plating > 0f)
+            {
+                float take = Math.Min(left, Plating);
+                Plating -= take;
+                left -= take;
+                r.toPlating = take;
+                if (Plating <= 0f)
+                {
+                    Plating = 0f;
+                    r.platingBroke = true;
+                    PlatingBreaks++;
+                }
+            }
+            if (left > 0f)
+            {
+                float take = Math.Min(left, Chassis);
+                Chassis -= take;
+                r.toChassis = take;
+                if (Chassis <= 0f)
+                {
+                    Chassis = 0f;
+                    Wrecked = true;
+                    r.wrecked = true;
+                }
+            }
+            return r;
+        }
+
+        /// <summary>Strips a fresh wreck: plating back by its scrap (times <paramref name="scale"/>, the difficulty's), up to
+        /// the max. Returns what was gained; a wreck is used up only when it gave something.</summary>
+        public float Strip(Wreck w, float now, float scale = 1f)
+        {
+            if (Wrecked || w == null || w.def == null || !w.Fresh(now)) return 0f;
+            float gain = Math.Min(Math.Max(0f, w.def.scrapPlating * (scale > 0f ? scale : 0f)), PlatingMax - Plating);
+            if (!(gain > 0f)) return 0f; // also catches NaN
+            Plating += gain;
+            w.stripped = true;
+            return gain;
+        }
+    }
+}
