@@ -205,5 +205,37 @@ namespace JamKit.Tests.Skyline
                 Assert.That(cues.FindAll(c => c.kind == BotCueKind.Attack).Count, Is.LessThanOrEqualTo(1), "hitch at frame " + hitchAt);
             }
         }
+
+        /// <summary>Seconds from the step it sees the player again to its telegraph, after seeing it for 1 s and then not for
+        /// <paramref name="unseen"/> seconds (long enough to have gone idle).</summary>
+        static float ReSightToTelegraph(EnemyDef d, float unseen, ulong seed)
+        {
+            var b = new BotBrain(d, seed);
+            for (int i = 0; i < 60; i++) b.Tick(H, true, null);
+            for (int i = 0; i < (int)Math.Round(unseen / H); i++) b.Tick(H, false, null);
+            Assert.That(b.State, Is.EqualTo(BotState.Idle), "it went back to idle out of sight");
+            float t = 0f;
+            for (int i = 0; i < 600 && b.State != BotState.Telegraph; i++) { b.Tick(H, true, null); t += H; }
+            return t;
+        }
+
+        [Test]
+        public void AReSightWithinTheMemorySkipsTheAlertAndOneAfterItDoesNot()
+        {
+            var d = Clock();
+            d.rememberSeconds = 8f;
+            for (ulong s = 1; s <= 20; s++)
+            {
+                float within = ReSightToTelegraph(d, 5f, s), after = ReSightToTelegraph(d, 9f, s);
+                Assert.That(within, Is.LessThanOrEqualTo(BotBrain.RememberJitterSeconds + 2f * H), $"seed {s}: within 8 s it skips the {d.alertSeconds} s alert");
+                Assert.That(after, Is.GreaterThanOrEqualTo(d.alertSeconds), $"seed {s}: after 8 s it alerts again");
+            }
+            // the jitter is real: a group re-sighting together doesn't telegraph in lockstep
+            var times = new HashSet<float>();
+            for (ulong s = 1; s <= 20; s++) times.Add((float)Math.Round(ReSightToTelegraph(d, 5f, s) / H));
+            Assert.That(times.Count, Is.GreaterThan(3));
+            // and without a memory nothing changes
+            Assert.That(ReSightToTelegraph(Clock(), 5f, 1), Is.GreaterThanOrEqualTo(Clock().alertSeconds));
+        }
     }
 }

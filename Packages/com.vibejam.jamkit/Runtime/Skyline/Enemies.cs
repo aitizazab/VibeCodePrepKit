@@ -84,7 +84,7 @@ namespace JamKit.Skyline
         {
             id = DroneId, displayName = "Mall-cop drone", aim = AimModel.LeadsYou, layer = ThreatLayer.Air,
             chassisHp = 70f, plates = new[] { new PlateDef("shell", 30f), new PlateDef("lens-guard", 20f) }, bodyRadius = 0.45f,
-            alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 1.2f, loseSightSeconds = 3f, rememberSeconds = 8f, searchSpeed = 2f,
+            alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 0.8f, loseSightSeconds = 3f, rememberSeconds = 8f, searchSpeed = 2f,
             projectileSpeed = 30f, projectileRadius = 0.15f, aimSpreadDeg = 4f, attackDamage = 26f, range = 45f, scrapPlating = 20f,
         };
 

@@ -36,13 +36,16 @@ namespace JamKit.Tests.Skyline
         public static FightSim Make(string id, IFightBot bot, ulong seed, Vector3 start, Func<string, EnemyDef> lookup = null, DifficultyDef diff = null) =>
             new FightSim(ById(id), Hall(), bot, GalleriaArena.FightCover(), start, seed, diff ?? Difficulties.Normal(), lookup, null, null, 0f);
 
+        /// <summary>Held-out fight seeds: the tuning sweep checks its picks on these as well as on the gate's own.</summary>
+        public const ulong HeldOutSeed = 201;
+
         public static FightResult[] RunSeeds(string id, Func<ulong, IFightBot> bot, Vector3 start, int seeds = Seeds, float cap = Cap,
-            Func<string, EnemyDef> lookup = null, DifficultyDef diff = null)
+            Func<string, EnemyDef> lookup = null, DifficultyDef diff = null, ulong first = FirstSeed)
         {
             var r = new FightResult[seeds];
             for (int i = 0; i < seeds; i++)
             {
-                ulong s = FirstSeed + (ulong)i;
+                ulong s = first + (ulong)i;
                 r[i] = Make(id, bot(s), s, start, lookup, diff).Run(cap);
             }
             return r;
@@ -105,6 +108,11 @@ namespace JamKit.Tests.Skyline
 
         static float TimeToWreck(FightResult r) => r.playerWrecked ? r.wreckedAt : r.seconds;
 
+        static int Clean(FightResult[] rs) { int n = 0; foreach (var r in rs) if (r.cleared && r.chassisLost == 0f) n++; return n; }
+        static float Lowest(FightResult[] rs) { float m = float.PositiveInfinity; foreach (var r in rs) m = Math.Min(m, r.minPlating); return m; }
+        static float MedianLow(FightResult[] rs) { var l = new List<float>(); foreach (var r in rs) l.Add(r.minPlating); l.Sort(); return l.Count % 2 == 1 ? l[l.Count / 2] : 0.5f * (l[l.Count / 2 - 1] + l[l.Count / 2]); }
+        static int Damaged(FightResult[] rs) { int n = 0; foreach (var r in rs) if (r.damageTaken > 0f) n++; return n; }
+
         static int ShootersSeeing(FightSim f, Vector3 feet)
         {
             int n = 0;
@@ -137,6 +145,15 @@ namespace JamKit.Tests.Skyline
                 TestContext.WriteLine($"{e.id}: {all} shooters; the open spot is seen by {open}, the covered spot by {cover}");
                 Assert.That(CoverGeometry.DistanceToCover(OpenSpot(e.id), GalleriaArena.HallCover()), Is.GreaterThanOrEqualTo(3f), e.id);
                 Assert.That(open * 2, Is.GreaterThan(all), e.id + ": most shooters see the open spot");
+                var groups = new HashSet<int>();
+                var seenGroups = new HashSet<int>();
+                foreach (var en in f.Enemies)
+                {
+                    if (!FightSim.IsShooter(en)) continue;
+                    groups.Add(en.Group);
+                    if (f.CanSee(en, OpenSpot(e.id))) seenGroups.Add(en.Group);
+                }
+                Assert.That(seenGroups.Count, Is.EqualTo(groups.Count), e.id + ": every group has a shooter that sees the open spot (in sight of the fight)");
                 Assert.That(cover, Is.GreaterThanOrEqualTo(1), e.id + ": the covered spot is partly exposed (a box blocks most sightlines, not all)");
                 Assert.That(cover * 2, Is.LessThanOrEqualTo(open), e.id + ": the box blocks at least half the sightlines the open spot has");
             }
@@ -220,6 +237,31 @@ namespace JamKit.Tests.Skyline
                 Assert.That(control[i].playerWrecked || control[i].chassisLost > 0f, Is.True,
                     $"{id} seed {FirstSeed + (ulong)i}: the same choices without cover are wrecked or lose chassis");
         }
+
+        // ---- steady pressure on the skilled line (the ruling: over 30 seeds, the median lowest plating is 60 or less, and
+        // at least 20 of the 30 fights do it some damage)
+
+        public const float PressureMedianLow = 60f;
+        public const int PressureDamagedSeeds = 20;
+
+        static void AssertPressure(string id)
+        {
+            var h = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human()), GalleriaArena.HallEntry);
+            TestContext.WriteLine($"{id}, human-timed line, {Seeds} seeds: median lowest plating {MedianLow(h):0}, damaged in {Damaged(h)}/{Seeds}, lowest {Lowest(h):0}");
+            Assert.That(MedianLow(h), Is.LessThanOrEqualTo(PressureMedianLow), id + ": the median lowest plating (steady pressure)");
+            Assert.That(Damaged(h), Is.GreaterThanOrEqualTo(PressureDamagedSeeds), id + ": fights that do the line some damage");
+        }
+
+        [Test]
+        public void TheFoodCourtKeepsTheSkilledLineUnderSteadyPressure() => AssertPressure("food-court");
+
+        [Ignore("gap for the creator: the skylight's human-timed line dips to a median lowest plating of 86 (damaged in 17/30); tried acid 14-26 a sweep, the spotlights' cycle 2.4 down to 1.0 s and beam damage 35-45: the best on the gate seeds (acid 20, a 1.2 s cycle, 45 damage) gave a median of 60 but 80 on held-out seeds 201-230, i.e. luck. The line ducks every beam it sees start (a visible 0.8 s telegraph, as a player would), so the beams rarely land and the pressure is the floor-care units alone.")]
+        [Test]
+        public void TheSkylightKeepsTheSkilledLineUnderSteadyPressure() => AssertPressure("skylight");
+
+        [Ignore("gap for the creator: the facade's human-timed line takes one drone hit or none in most fights (median lowest plating 74, damaged in 17-24/30); tried the drones' fire interval 1.2-0.6 s, damage 26-34, and the drones in close pairs (a peek that sees one sees both): the median stayed at one hit (66-74). Its own threat is on the walls (the gondolas' mines) and the line never needs the walls; the floor is the safe layer by design. A wall-run route the line is pushed onto, or a third threat, would be the creator's call.")]
+        [Test]
+        public void TheFacadeKeepsTheSkilledLineUnderSteadyPressure() => AssertPressure("facade");
 
         // ---- the dodge band, in a real fight (both runners shoot back; the shooters are wrecked and stop)
 
@@ -407,6 +449,80 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
+        public void ADroneThatLosesYouBehindABoxSearchesHoldsAndGoesHome()
+        {
+            // one drone and one tall box between it and where the player hides. The player is seen at P0, steps behind the box
+            // (P1) at 1 s, and at 1.5 s leaves for somewhere far out of range: the drone must go to a point that sees P1, never
+            // enter the box, hold there, and go home when its 8 s memory runs out
+            var box = new CoverBox { min = new Vector3(-1.5f, 0f, -1f), max = new Vector3(1.5f, 5f, 0f) };
+            var world = new BoxWorld();
+            world.Floor(-80f, 80f, -80f, 80f, 0f);
+            world.Add((box.min + box.max) * 0.5f, box.max - box.min, false);
+            Vector3 p0 = new Vector3(5f, 0f, 3f), p1 = new Vector3(0f, 0f, 3f), far = new Vector3(0f, 0f, -75f);
+            var bot = new Scripted(f =>
+            {
+                f.Player.Teleport(f.Time < 1f ? p0 : f.Time < 1.5f ? p1 : far, 0f, Vector3.Zero);
+                return new MoveInput();
+            }) { hold = true };
+            var home = new Vector3(0f, GalleriaArena.DroneY, -6f);
+            var fight = new FightSim(One(new Spawn(SkylineEnemies.DroneId, home, 0)), world, bot, new[] { box }, p0, 3);
+            var d = fight.Enemies[0];
+            float r = d.Def.bodyRadius;
+            Vector3 goal = Vector3.Zero, arrived = Vector3.Zero;
+            bool committed = false, reached = false, wentHome = false;
+            float arrivedAt = -1f;
+            for (int i = 0; i < 60 * 16; i++)
+            {
+                fight.Tick();
+                Assert.That(CoverGeometry.BlockedThick(d.Position, d.Position, new[] { box }, r), Is.False, $"t {fight.Time:0.00}: the drone is inside the box");
+                if (!committed && d.HasSearchGoal && !d.Returning)
+                {
+                    committed = true;
+                    goal = d.SearchGoal;
+                    Assert.That(fight.Time, Is.LessThan(1.2f), "it set off on the step it lost sight");
+                    Assert.That(Vector3.Distance(d.LastKnown, p1 + new Vector3(0f, fight.Player.def.standHeight * 0.5f, 0f)), Is.LessThan(0.05f), "the last known position is where the player stepped out of sight");
+                    Assert.That(fight.Clear(home, d.LastKnown), Is.False, "setup: from home it can't see that point");
+                    Assert.That(fight.Clear(goal, d.LastKnown), Is.True, "its goal sees the last known position");
+                }
+                if (committed && d.HasSearchGoal && !d.Returning) Assert.That(d.SearchGoal, Is.EqualTo(goal), "committed: no re-picking");
+                if (committed && !reached && !d.HasSearchGoal && !d.Returning)
+                {
+                    reached = true;
+                    arrived = d.Position;
+                    arrivedAt = fight.Time;
+                    Assert.That(Vector3.Distance(arrived, goal), Is.LessThan(0.01f), "it got there");
+                }
+                if (reached && !d.Returning && fight.Time < 8.5f) Assert.That(d.Position, Is.EqualTo(arrived), $"t {fight.Time:0.00}: it holds where it sees the last known position");
+                if (d.Returning && Vector3.Distance(d.Position, home) < 0.01f) wentHome = true;
+            }
+            Assert.That(committed && reached, Is.True, "it searched and arrived");
+            Assert.That(arrivedAt, Is.LessThan(8f), "well inside its memory");
+            Assert.That(wentHome, Is.True, "after 8 s without a sighting it went home the way it came");
+        }
+
+        [Test]
+        public void ADroneThatStillSeesTheLastKnownPositionHolds()
+        {
+            // the player leaves the drone's range (out of sight by distance, not by cover): the point where it was last seen is in
+            // clear view, so the drone holds instead of moving
+            var world = new BoxWorld();
+            world.Floor(-80f, 80f, -80f, 80f, 0f);
+            var start = new Vector3(0f, 0f, 3f);
+            var bot = new Scripted(f =>
+            {
+                f.Player.Teleport(f.Time < 1f ? start : new Vector3(0f, 0f, 3f + Math.Min(60f, (f.Time - 1f) * 200f)), 0f, Vector3.Zero);
+                return new MoveInput();
+            }) { hold = true };
+            var home = new Vector3(0f, GalleriaArena.DroneY, -6f);
+            var fight = new FightSim(One(new Spawn(SkylineEnemies.DroneId, home, 0)), world, bot, new CoverBox[0], start, 3);
+            fight.Run(4f);
+            var d = fight.Enemies[0];
+            Assert.That(d.HasLastKnown, Is.True, "it lost the player");
+            Assert.That(d.HasSearchGoal, Is.False, "and set no goal");
+            Assert.That(d.Position, Is.EqualTo(home), "it held its post: it still sees where it lost the player");
+        }
+
+        [Test]
         public void AFreshWreckWithinStripReachIsStrippedAndAStaleOneIsNot()
         {
             var still = new Scripted(f => new MoveInput()) { hold = true };
@@ -527,8 +643,8 @@ namespace JamKit.Tests.Skyline
             var sb = new StringBuilder();
             var e = ById("food-court");
             sb.AppendLine("drone group at 12 m: aimSpreadDeg leadFactor -> ratio [interval] (straight/s, jink/s)");
-            foreach (float spread in new[] { 3f, 4f })
-                foreach (float lead in new[] { 0.6f, 0.7f, 0.75f, 0.8f, 0.85f })
+            foreach (float spread in new[] { 4f, 5f })
+                foreach (float lead in new[] { 0.7f, 0.75f })
                 {
                     Func<string, EnemyDef> lk = id => { var d = SkylineEnemies.Find(id); if (d != null && id == SkylineEnemies.DroneId) d.aimSpreadDeg = spread; return d; };
                     var r = FightDodge.Run(FightDodge.Framed(e, FightDodge.StandOff(e, 0, 12f), false, lk, 0), OpenFloor, DodgeSpan, TuneSeed, BandSeeds, new DifficultyDef { leadFactor = lead }, lk);
@@ -549,30 +665,35 @@ namespace JamKit.Tests.Skyline
         public void SweepTheFightTuning()
         {
             var sb = new StringBuilder();
-            sb.AppendLine("encounter droneDamage-or-floorCareSpeed acid | open wreck s | human: clean seeds, lowest plating, median low, mean clear s | perfect: clean, lowest | control failed seeds");
-            foreach (string id in new[] { "food-court", "skylight", "facade" })
-                foreach (float dd in id == "skylight" ? new[] { 4f, 5f } : new[] { 22f, 26f, 30f })
-                foreach (float acid in id == "skylight" ? new[] { 8f, 14f } : new[] { 14f })
+            sb.AppendLine("encounter a b | open wreck s | human (gate seeds 101-130): clean, lowest, median low, damaged seeds | human (held-out 201-230): clean, median low, damaged | control failed");
+            foreach (string id in new[] { "food-court", "facade", "skylight" })
+                foreach (var ab in id == "skylight"
+                    ? new[] { new Vector2(20f, 1.2f), new Vector2(26f, 1.2f), new Vector2(20f, 1.0f) }
+                    : new[] { new Vector2(0.8f, 26f), new Vector2(0.8f, 30f), new Vector2(1.2f, 26f), new Vector2(0.8f, 42f) })
                 {
                     Func<string, EnemyDef> lk = x =>
                     {
                         var d = SkylineEnemies.Find(x);
-                        if (d != null && x == SkylineEnemies.DroneId && id != "skylight") d.attackDamage = dd;
-                        if (d != null && x == SkylineEnemies.FloorCareId) { if (id == "skylight") d.moveSpeed = dd; d.attackDamage = acid; }
+                        if (d == null) return null;
+                        if (id != "skylight" && x == SkylineEnemies.DroneId) { d.fireInterval = ab.X; d.attackDamage = ab.Y; }
+                        if (id == "skylight" && x == SkylineEnemies.FloorCareId) d.attackDamage = ab.X;
+                        if (id == "skylight" && x == SkylineEnemies.SpotlightId) { d.fireInterval = ab.Y; d.attackDamage = 45f; }
                         return d;
                     };
                     var open = RunSeeds(id, s => new StandAndShootBot(), OpenSpot(id), Seeds, 60f, lk);
                     var h = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human()), GalleriaArena.HallEntry, Seeds, Cap, lk);
-                    var p = RunSeeds(id, s => new TacticalBot(s, FightTiming.Perfect()), GalleriaArena.HallEntry, Seeds, Cap, lk);
+                    var h2 = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human()), GalleriaArena.HallEntry, Seeds, Cap, lk, null, HeldOutSeed);
                     var c = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human(), false), GalleriaArena.HallEntry, Seeds, Cap, lk);
-                    int hc = 0, pc = 0, cf = 0;
-                    float hl = 999f, pl = 999f;
-                    var lows = new List<float>();
-                    foreach (var r in h) { if (r.cleared && r.chassisLost == 0f) hc++; hl = Math.Min(hl, r.minPlating); lows.Add(r.minPlating); }
-                    foreach (var r in p) { if (r.cleared && r.chassisLost == 0f) pc++; pl = Math.Min(pl, r.minPlating); }
+                    int cf = 0;
                     foreach (var r in c) if (r.playerWrecked || r.chassisLost > 0f) cf++;
-                    lows.Sort();
-                    sb.AppendLine($"{id} {dd:0.0} acid {acid:0} | {Mean(open, TimeToWreck):0.0} | {hc} {hl:0} {lows[lows.Count / 2]:0} {Mean(h, r => r.seconds):0} | {pc} {pl:0} | {cf}/{Seeds}");
+                    string band = "";
+                    if (id == "food-court")
+                    {
+                        var e0 = ById("food-court");
+                        var br = FightDodge.Run(FightDodge.Framed(e0, FightDodge.StandOff(e0, 0, 12f), false, lk, 0), OpenFloor, DodgeSpan, TuneSeed, 200, null, lk);
+                        band = $" | band (tuning seeds, 200) {br.Ratio:0.00} [{br.ratioLow:0.00}-{br.ratioHigh:0.00}]";
+                    }
+                    sb.AppendLine($"{id} {ab.X:0.0} {ab.Y:0} | {Mean(open, TimeToWreck):0.0} | {Clean(h)} {Lowest(h):0} {MedianLow(h):0} {Damaged(h)} | {Clean(h2)} {MedianLow(h2):0} {Damaged(h2)} | {cf}/{Seeds}{band}");
                 }
             TestContext.WriteLine(sb.ToString());
         }

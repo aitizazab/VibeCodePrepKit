@@ -76,12 +76,20 @@ namespace JamKit.Skyline
         public float SweepYaw { get; internal set; }
         internal bool sweepHit;
         internal int detourBox = -1, detourCorner;
-        /// <summary>Where it last saw the player (the chest or eye it aimed at), if it has.</summary>
+        /// <summary>Where the player was on the step it lost sight of it (the search's target), if it has lost sight of it.</summary>
         public Vector3 LastKnown { get; internal set; }
         public bool HasLastKnown { get; internal set; }
         internal Vector3 searchGoal;
-        internal bool hasSearchGoal;
-        internal float searchClock;
+        internal bool hasSearchGoal, sawLastStep;
+        internal float lastSeenAt = float.NegativeInfinity;
+        internal readonly List<Vector3> trail = new List<Vector3>();
+        /// <summary>Its search goal while it has one (see FightSim's search rule).</summary>
+        public bool HasSearchGoal => hasSearchGoal;
+        public Vector3 SearchGoal => searchGoal;
+        /// <summary>Its memory ran out: it is going home the way it came.</summary>
+        public bool Returning { get; internal set; }
+        /// <summary>Where it spawned.</summary>
+        public Vector3 Home { get; internal set; }
         // the spotlight's beam
         public TelegraphedShot Beam { get; internal set; }
         // the gondola
@@ -261,7 +269,7 @@ namespace JamKit.Skyline
                 var e = new FightEnemy
                 {
                     Index = i, Def = def, Group = s.group, Body = new EnemyBody(def),
-                    Brain = new BotBrain(def, seed * 7919UL + (ulong)i * 104729UL + 1UL), Position = s.position,
+                    Brain = new BotBrain(def, seed * 7919UL + (ulong)i * 104729UL + 1UL), Position = s.position, Home = s.position,
                 };
                 if (def.aim == AimModel.FiresAtWhereYouAre && def.projectileSpeed <= 0f)
                     e.Beam = new TelegraphedShot
@@ -502,11 +510,12 @@ namespace JamKit.Skyline
             if (e.Awake && sees) ShooterSecondsInSight += h;
             if (sees)
             {
-                e.LastKnown = aimAt;
-                e.HasLastKnown = true;
+                e.lastSeenAt = Time;
                 e.hasSearchGoal = false;
+                e.Returning = false;
             }
-            else if (e.Awake && e.HasLastKnown && e.Def.searchSpeed > 0f) Search(e, h);
+            else if (e.Awake && e.Def.searchSpeed > 0f && e.lastSeenAt > float.NegativeInfinity) Search(e, h, e.sawLastStep);
+            e.sawLastStep = sees;
             foreach (var c in _cues)
             {
                 if (e.Beam != null)
@@ -720,23 +729,55 @@ namespace JamKit.Skyline
         /// <summary>Lowest and highest z a flying bot may search to: inside the hall, and south of the mezzanine deck's edge.</summary>
         const float SearchMaxZ = 11f;
 
-        /// <summary>An awake flying bot that lost sight drifts sideways (at its own height, <see cref="EnemyDef.searchSpeed"/>) to
-        /// the nearest point within 10 m that sees where it last saw the player and that it can reach in a straight line
-        /// without touching cover; it picks again every half second and when its way is blocked.</summary>
-        void Search(FightEnemy e, float h)
+        /// <summary>
+        /// The drone search (the reference rule; the Unity drone does exactly this). Only awake bots with a
+        /// <see cref="EnemyDef.searchSpeed"/> search; they move at their own height, at that speed, and never through cover.
+        /// <list type="number">
+        /// <item>On the step it loses sight of the player, it records where the player is then as <see cref="FightEnemy.LastKnown"/>
+        /// (the chest; the player has just stepped out of its sight).</item>
+        /// <item>If it has a clear line to that point from where it is (it lost the player to distance, not to cover), it holds
+        /// and watches it.</item>
+        /// <item>Otherwise it scans ring points around itself at 1.5, 3, 4.5, 6, 8 and 10 m (16 directions each) and takes, from the
+        /// first ring that has any, the point that sees the last known position, can be reached in a straight line without
+        /// touching cover, lies inside the hall and south of the mezzanine deck's edge, and is nearest the last known position.
+        /// It commits to that point: no re-picking until it gets there (then it holds), sees the player again, or its memory
+        /// runs out. No such point within 10 m: it holds.</item>
+        /// <item>When <see cref="EnemyDef.rememberSeconds"/> have passed since it last saw the player, it goes home the way it came
+        /// (back through each point it set out from, to its spawn), then holds there.</item>
+        /// <item>Seeing the player again ends the search at once (the trail home is kept).</item>
+        /// </list>
+        /// </summary>
+        void Search(FightEnemy e, float h, bool justLost)
         {
-            e.searchClock -= h;
-            if (e.searchClock <= 0f)
+            if (justLost)
             {
-                e.searchClock = 0.5f;
-                e.hasSearchGoal = FindVantage(e, out e.searchGoal);
+                e.LastKnown = Chest;
+                e.HasLastKnown = true;
+                e.hasSearchGoal = false;
+                e.Returning = false;
+                if (!Clear(e.Position, e.LastKnown) && FindVantage(e, out e.searchGoal))
+                {
+                    e.hasSearchGoal = true;
+                    e.trail.Add(e.Position);   // the way back
+                }
+            }
+            if (!e.Returning && Time - e.lastSeenAt > e.Def.rememberSeconds)
+            {
+                e.Returning = true;
+                e.hasSearchGoal = false;
+            }
+            if (e.Returning && !e.hasSearchGoal && e.trail.Count > 0)
+            {
+                e.searchGoal = e.trail[e.trail.Count - 1];
+                e.trail.RemoveAt(e.trail.Count - 1);
+                e.hasSearchGoal = true;
             }
             if (!e.hasSearchGoal) return;
             Vector3 to = e.searchGoal - e.Position;
             float len = to.Length();
-            if (len < 0.05f) return;
+            if (len < 1e-3f) { e.hasSearchGoal = false; return; }   // there: hold (or, returning, take the next leg home)
             Vector3 next = e.Position + to / len * Math.Min(len, e.Def.searchSpeed * h);
-            if (CoverGeometry.BlockedThick(e.Position, next, _cover, e.Def.bodyRadius)) { e.hasSearchGoal = false; e.searchClock = 0f; return; }
+            if (CoverGeometry.BlockedThick(e.Position, next, _cover, e.Def.bodyRadius)) { e.hasSearchGoal = false; return; }
             e.Position = next;
         }
 
@@ -744,20 +785,28 @@ namespace JamKit.Skyline
         {
             goal = e.Position;
             float r = e.Def.bodyRadius;
-            foreach (float dist in new[] { 1.5f, 3f, 4.5f, 6f, 8f, 10f })
+            foreach (float dist in SearchRings)
+            {
+                float best = float.PositiveInfinity;
                 for (int k = 0; k < 16; k++)
                 {
                     float a = k * (MathF.PI / 8f);
                     var p = e.Position + new Vector3(MathF.Sin(a) * dist, 0f, MathF.Cos(a) * dist);
                     if (p.X < GalleriaArena.HallMinX + 1f || p.X > GalleriaArena.HallMaxX - 1f || p.Z < GalleriaArena.HallMinZ + 1f || p.Z > SearchMaxZ) continue;
                     if (CoverGeometry.BlockedThick(p, p, _cover, r)) continue;   // inside a piece
-                    if (!Clear(p, e.LastKnown) || Vector3.Distance(p, e.LastKnown) > e.Def.range) continue;
+                    float toLast = Vector3.Distance(p, e.LastKnown);
+                    if (toLast >= best || toLast > e.Def.range || !Clear(p, e.LastKnown)) continue;
                     if (CoverGeometry.BlockedThick(e.Position, p, _cover, r)) continue;   // no straight way there
+                    best = toLast;
                     goal = p;
-                    return true;
                 }
+                if (!float.IsPositiveInfinity(best)) return true;
+            }
             return false;
         }
+
+        /// <summary>The search's ring radii (m).</summary>
+        public static readonly float[] SearchRings = { 1.5f, 3f, 4.5f, 6f, 8f, 10f };
 
         void HitPlayer(float damage)
         {

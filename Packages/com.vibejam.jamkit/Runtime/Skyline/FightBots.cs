@@ -38,6 +38,10 @@ namespace JamKit.Skyline
     /// last saw it, so a hide that becomes seen is left for another. It strips fresh wrecks near it while the plating has
     /// room and the wreck is in sight of at most one shooter; it ducks when a beam starts on it and sidesteps when one
     /// locks; it jumps the acid. With no shooter left it walks toward whatever still stands.
+    /// <para>What it knows that a player doesn't quite: it plans with the sim's exact sight lines (which floor points each shooter
+    /// sees), and it reads each shooter's exact "sees the player" flag for its exposure timing and duck triggers, including
+    /// shooters behind it, and each floor-care unit's telegraph without a visibility check. Its timing is human; its
+    /// knowledge of the map is not.</para>
     /// <para>With <c>useCover = false</c> it is the negative control: it never hides or ducks, and it presses the fight
     /// across open floor (3 m or more from any piece), closing on the nearest shooter (it still jumps the acid).</para>
     /// </summary>
@@ -554,11 +558,15 @@ namespace JamKit.Skyline
     /// <summary>
     /// The dodge band in the fight sim. The straight-line and jinking runners each fight the same awake shooters on open floor,
     /// firing the Writ, until the shooters are wrecked or the span ends. The runners take no damage while measuring (hits are
-    /// counted, not applied), so neither stops early. Both runs with one seed draw the enemies' aim errors from the same stream
-    /// in the same order (the player's hit rolls have their own stream).
+    /// counted, not applied), so neither stops early. Three separate random sequences per seed: the enemies' aim error (both
+    /// runs draw it in the same order), the player's hit rolls, and the jinker's reversals (<see cref="JinkStream"/>).
     /// </summary>
     public static class FightDodge
     {
+        /// <summary>Mixed into the seed for the jinking runner's reversals, so they don't share a sequence with the enemies' aim error
+        /// (which is the sim's own stream of that seed).</summary>
+        public const ulong JinkStream = 0x9E3779B97F4A7C15UL;
+
         /// <summary>The point <paramref name="distance"/> m (on the floor plan) from the centre of <paramref name="group"/>,
         /// toward the hall's middle: the middle of the runners' lane for that group.</summary>
         public static Vector3 StandOff(EncounterDef e, int group, float distance)
@@ -603,7 +611,7 @@ namespace JamKit.Skyline
             {
                 ulong s = seed + (ulong)i;
                 var a = new FightSim(framed, makeWorld(), new LaneRunnerBot(new StraightLineBot()), null, Vector3.Zero, s, difficulty, lookup) { Invulnerable = true };
-                var b = new FightSim(framed, makeWorld(), new LaneRunnerBot(new JinkingBot(s)), null, Vector3.Zero, s, difficulty, lookup) { Invulnerable = true };
+                var b = new FightSim(framed, makeWorld(), new LaneRunnerBot(new JinkingBot(s ^ JinkStream)), null, Vector3.Zero, s, difficulty, lookup) { Invulnerable = true };
                 sh[i] = a.Run(span).hitsTaken; se[i] = a.ShooterSecondsInSight;
                 jh[i] = b.Run(span).hitsTaken; je[i] = b.ShooterSecondsInSight;
                 if (sh[i] == 0f) r.straightZeroSeeds++;

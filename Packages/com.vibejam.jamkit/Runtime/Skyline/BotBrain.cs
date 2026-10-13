@@ -35,6 +35,8 @@ namespace JamKit.Skyline
         /// <summary>The most time a state change carries into the next state (s): enough that ordinary frame rates (20 fps and up)
         /// lose nothing, small enough that a hitch cannot burn a telegraph away or fire a burst of attacks.</summary>
         public const float MaxCarrySeconds = 0.05f;
+        /// <summary>The most a remembering bot waits (s, seeded) between re-sighting the player and its telegraph.</summary>
+        public const float RememberJitterSeconds = 0.15f;
 
         readonly EnemyDef _def;
         readonly Rng _rng;
@@ -69,8 +71,10 @@ namespace JamKit.Skyline
                 case BotState.Idle:
                     if (seesPlayer && remembers)
                     {
-                        // it saw the player moments ago (rememberSeconds): no alert, straight to the telegraph
-                        Go(BotState.Telegraph, 0f, cues);
+                        // it saw the player moments ago (rememberSeconds): no alert, only a seeded beat of up to RememberJitterSeconds
+                        // before the telegraph, so a group regaining sight together doesn't fire in lockstep
+                        _alertFor = _rng.Range(0f, RememberJitterSeconds);
+                        Go(BotState.Alert, 0f, cues);
                         Bark("spotted", cues);
                     }
                     else if (seesPlayer) Alert(cues, "spotted");
