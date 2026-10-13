@@ -29,7 +29,7 @@ namespace JamKit.SkylineRepo.EditorTools
             camGo.transform.SetParent(kick, false);
             var cam = camGo.AddComponent<Camera>();
             cam.nearClipPlane = NearClip;
-            cam.farClipPlane = FarClip;          // the viewmodel's anchor (4 km down) is always outside it
+            cam.farClipPlane = FarClip;          // the viewmodel's anchor (1 km down) is always outside it
             cam.fieldOfView = BaseFov;
             camGo.AddComponent<AudioListener>();
 

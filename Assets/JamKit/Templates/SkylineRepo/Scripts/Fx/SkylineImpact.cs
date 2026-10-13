@@ -38,7 +38,7 @@ namespace JamKit.SkylineRepo
             {
                 var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 go.name = "Impact";
-                Object.Destroy(go.GetComponent<Collider>());
+                Object.DestroyImmediate(go.GetComponent<Collider>());   // now: a pooled cube's collider must never catch this frame's pellets
                 var r = go.GetComponent<Renderer>();
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 var imp = go.AddComponent<SkylineImpact>();

@@ -5,11 +5,13 @@ using NVec3 = System.Numerics.Vector3;
 namespace JamKit.SkylineRepo
 {
     /// <summary>A firing-range plate: box colliders with SkylineHitZones (the board, and a bullseye that counts as a weak point,
-    /// so the Writ leaves and consumes spots here too), tipping over backwards when hit and standing back up a moment later.
-    /// It is also an aim-assist candidate while standing. It never breaks and has no health (no numbers on screen).</summary>
+    /// so the Writ leaves and consumes spots here too). A hit knocks it back into a short wobble that settles within about
+    /// 0.25 s, so it is always standing for the next shot (the showcase fires 0.34-1.0 s apart) and the Writ's spot marker
+    /// shows. Always an aim-assist candidate. It never breaks and has no health (no numbers on screen).</summary>
     public sealed class SkylineTargetPlate : MonoBehaviour, ISkylineHittable, ISkylineAimable
     {
-        const float TipAngle = 80f, TipSpeed = 900f, RiseSpeed = 240f, DownSeconds = 0.8f;
+        /// <summary>How far a hit knocks the board back (degrees) and how long the wobble takes to settle (s).</summary>
+        const float WobbleAngle = 18f, WobbleSeconds = 0.25f, WobbleCycles = 1.5f;
 
         [Tooltip("The part that tips (rotates about this object's X axis, at its base).")]
         public Transform hinge;
@@ -20,13 +22,12 @@ namespace JamKit.SkylineRepo
 
         readonly WeakSpots _spots = new WeakSpots();
         readonly WritTuning _writ = new WritTuning();
-        float _angle, _downFor;
-        bool _tipping;
+        float _wobbleLeft;
 
         public string Id => id;
         public Vector3 Center => transform.TransformPoint(centerOffset);
         public float Radius => radius;
-        public bool Alive => !_tipping && _angle < 1f;
+        public bool Alive => true;
 
         void OnEnable() { if (!SkylineTargets.Aimables.Contains(this)) SkylineTargets.Aimables.Add(this); }
         void OnDisable() => SkylineTargets.Aimables.Remove(this);
@@ -38,26 +39,17 @@ namespace JamKit.SkylineRepo
             r.writ = Writ.Resolve(_spots, hit.zone, new NVec3(local.x, local.y, local.z), Time.time, hit.fromWrit,
                 hit.gun != null ? hit.gun.weakPointMultiplier : 1f, _writ);
             r.damage = new BotDamage { toChassis = hit.damage * r.writ.multiplier, plateShed = -1 };
-            _tipping = true;
-            _downFor = DownSeconds;
+            _wobbleLeft = WobbleSeconds;
             return r;
         }
 
         void Update()
         {
-            if (hinge == null) return;
-            float dt = Time.deltaTime;
-            if (_tipping)
-            {
-                _angle = Mathf.MoveTowards(_angle, TipAngle, TipSpeed * dt);
-                if (_angle >= TipAngle)
-                {
-                    _downFor -= dt;
-                    if (_downFor <= 0f) _tipping = false;
-                }
-            }
-            else if (_angle > 0f) _angle = Mathf.MoveTowards(_angle, 0f, RiseSpeed * dt);
-            hinge.localRotation = Quaternion.Euler(_angle, 0f, 0f);
+            if (hinge == null || _wobbleLeft <= 0f) return;
+            _wobbleLeft = Mathf.Max(0f, _wobbleLeft - Time.deltaTime);
+            float k = _wobbleLeft / WobbleSeconds;                    // 1 at the hit, 0 settled
+            float angle = WobbleAngle * k * Mathf.Cos((1f - k) * WobbleCycles * Mathf.PI * 2f);
+            hinge.localRotation = Quaternion.Euler(angle, 0f, 0f);
         }
     }
 }

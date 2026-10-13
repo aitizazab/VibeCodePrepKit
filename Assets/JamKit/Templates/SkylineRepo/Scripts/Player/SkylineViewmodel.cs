@@ -13,7 +13,7 @@ namespace JamKit.SkylineRepo
     ///
     /// Layer-free: the rig lives at a far-away anchor with its own 60-degree overlay camera (stacked on the main camera; URP overlays clear depth,
     /// with a 5 m far plane), which copies the main camera's rotation each frame. The main camera never sees the
-    /// rig (it is kilometres away) and the overlay camera sees nothing else, so the guns never clip into walls and no project
+    /// rig (1 km down, beyond its 600 m far plane) and the overlay camera sees nothing else, so the guns never clip into walls and no project
     /// layer is needed. Models: Resources/SkylineModels/&lt;gun&gt;/&lt;gun&gt; (children Mag and Muzzle) and
     /// Resources/SkylineModels/arms/arms (children HandR, HandL) when present; primitives otherwise.
     /// </summary>
@@ -21,7 +21,7 @@ namespace JamKit.SkylineRepo
     public sealed class SkylineViewmodel : MonoBehaviour
     {
         // Presentation constants.
-        public static readonly Vector3 Anchor = new Vector3(0f, -4000f, 0f);
+        public static readonly Vector3 Anchor = new Vector3(0f, -1000f, 0f);   // beyond the main camera's 600 m far plane; near enough for fine float precision
         const float Fov = 60f, Near = 0.01f, Far = 5f;
         static readonly Vector3 WritRest = new Vector3(0.16f, -0.15f, 0.36f);
         static readonly Vector3 BreacherRest = new Vector3(0.17f, -0.18f, 0.40f);
@@ -55,7 +55,7 @@ namespace JamKit.SkylineRepo
             if (_main != null && _cam != null)
             {
                 var data = _main.GetUniversalAdditionalCameraData();
-                if (data != null) data.cameraStack.Remove(_cam);
+                if (data != null && data.cameraStack != null) data.cameraStack.Remove(_cam);
             }
             if (_rigRoot != null) Destroy(_rigRoot);
         }
@@ -77,7 +77,9 @@ namespace JamKit.SkylineRepo
             if (_main != null)
             {
                 var mainData = _main.GetUniversalAdditionalCameraData();
-                if (!mainData.cameraStack.Contains(_cam)) mainData.cameraStack.Add(_cam);
+                var stack = mainData != null ? mainData.cameraStack : null;
+                if (stack == null) Debug.LogWarning("SkylineViewmodel: the main camera has no camera stack (not a Base camera, or its renderer can't stack); the guns won't show");
+                else if (!stack.Contains(_cam)) stack.Add(_cam);
             }
 
             _guns[0] = MakeGun(camGo.transform, SkylineGuns.WritId, WritRest);

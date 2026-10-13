@@ -22,7 +22,11 @@ namespace JamKit.SkylineRepo
         public const float TriggerThreshold = 0.5f;
         const float StickDeadzone = 0.12f;
 
+        /// <summary>Wheel notches closer together than this (unscaled s) are one gesture: one swap.</summary>
+        public const float ScrollGestureGap = 0.2f;
+
         static bool _lookFromPad, _triggerLast;
+        static float _lastScroll = -1f;
         static float _turnHeld;
 
         public static SkylineInputFrame Read(float dt)
@@ -49,11 +53,18 @@ namespace JamKit.SkylineRepo
                 f.swapPressed = kb.qKey.wasPressedThisFrame;
                 f.inspectPressed = kb.fKey.wasPressedThisFrame;
             }
-            if (mouse != null)
+            // The mouse counts only while the cursor is locked (or in batch mode): with it free, a click or a move toward the
+            // Inspector must not fire or turn the view.
+            if (mouse != null && (Application.isBatchMode || Cursor.lockState == CursorLockMode.Locked))
             {
                 f.fireHeld = mouse.leftButton.isPressed;
                 f.firePressed = mouse.leftButton.wasPressedThisFrame;
-                if (Mathf.Abs(mouse.scroll.ReadValue().y) > 0.01f) f.swapPressed = true;
+                if (Mathf.Abs(mouse.scroll.ReadValue().y) > 0.01f)
+                {
+                    float now = Time.unscaledTime;
+                    if (_lastScroll < 0f || now - _lastScroll > ScrollGestureGap) f.swapPressed = true;
+                    _lastScroll = now;
+                }
                 Vector2 d = mouse.delta.ReadValue();
                 if (d.sqrMagnitude > 0f)
                 {

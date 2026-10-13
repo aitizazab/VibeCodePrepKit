@@ -80,7 +80,7 @@ namespace JamKit.SkylineRepo
         readonly List<ISkylineAimable> _aimables = new List<ISkylineAimable>();
         Rng _rng;
         SkylineInputFrame _frame;
-        bool _awaitingTakeoff, _hitStopWasActive;
+        bool _awaitingTakeoff, _hitStopWasActive, _hitStopRequested;
         string _assistLogged = "";
         float _assistScaleLogged = 1f;
         Vector3 _spawnFeet;
@@ -122,11 +122,18 @@ namespace JamKit.SkylineRepo
             if (sim != null && !sim.OutsidePushEnabled) sim.OutsidePushEnabled = true;
         }
 
-        /// <summary>Takes the active gun out again (its equip clip from the first frame).</summary>
+        /// <summary>Takes the active gun out again (its equip clip from the first frame). Not a swap: its Equip cue is marked
+        /// <see cref="GunCue.initial"/>, so no Swap decision is logged.</summary>
         public void ReEquip()
         {
+            int from = _cues.Count;
             Loadout.Active.Holster();
             Loadout.Active.Equip(_cues);
+            for (int i = from; i < _cues.Count; i++)
+            {
+                var c = _cues[i];
+                if (c.kind == GunCueKind.ClipStarted && c.clip == HandlingClipKind.Equip) { c.initial = true; _cues[i] = c; }
+            }
         }
 
         /// <summary>Points the view (degrees; positive pitch looks down) without any assist.</summary>
@@ -154,10 +161,10 @@ namespace JamKit.SkylineRepo
             float dt = Time.deltaTime;
             float udt = Time.unscaledDeltaTime;
             EnsureOutsidePush();
-            UpdateCursor();
-
-            // 1. One frame of input.
+            // 1. One frame of input. Read before the cursor update, so the click that locks the cursor doesn't also fire
+            //    (the device reader ignores the mouse while the cursor is free).
             _frame = ScriptedInput != null ? ScriptedInput() : SkylineDeviceInput.Read(udt);
+            UpdateCursor();
 
             // 2. Look.
             Look(dt);
@@ -190,7 +197,9 @@ namespace JamKit.SkylineRepo
             // 6. Kick, shake, hit stop; the pivot under the head.
             Kick.Tick(dt);
             Shake.Tick(dt);
-            HitStop.Tick(udt);
+            // A stop requested this frame keeps its first frame whole: it starts ticking next frame.
+            if (!_hitStopRequested) HitStop.Tick(udt);
+            _hitStopRequested = false;
             // Time.timeScale is touched only while a hit stop runs (and once after), so nothing else's scale is overridden.
             bool stopping = HitStop.IsStopped || HitStop.IsRecovering;
             if (stopping || _hitStopWasActive) Time.timeScale = HitStopEnabled ? HitStop.CurrentTimeScale : 1f;
@@ -287,7 +296,7 @@ namespace JamKit.SkylineRepo
             Shake.AddTrauma(def.shakePerShot);
             if (o.hit)
             {
-                if (HitStopEnabled) HitStop.Request(o.killed ? def.killHitStopSeconds : def.hitStopSeconds);
+                if (HitStopEnabled && HitStop.Request(o.killed ? def.killHitStopSeconds : def.hitStopSeconds)) _hitStopRequested = true;
                 var hud = SkylineHud.Instance;
                 if (hud != null) hud.Marker(o.marker, o.weakPoint);
             }
@@ -335,7 +344,9 @@ namespace JamKit.SkylineRepo
             }
         }
 
-        /// <summary>Back at <paramref name="feet"/> with fresh armour, a full loadout and a clean ledger for the run.</summary>
+        /// <summary>Back at <paramref name="feet"/> facing <paramref name="yaw"/>, with fresh armour, a fresh boost charge, a new
+        /// loadout (both guns full, the Writ equipped), and the kick, shake and hit stop cleared. The ledger, the decision log
+        /// and the Writ tuning are kept: resetting the run's records is the arena's restart.</summary>
         public void Restart(Vector3 feet, float yaw)
         {
             Armor = new PlayerArmor();
