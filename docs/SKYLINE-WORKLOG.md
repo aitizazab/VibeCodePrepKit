@@ -86,3 +86,17 @@ Newest first. Every agent result and every Unity pass gets an entry (what was do
     - M0 and M1 have exit criteria.
   - 7 questions for the creator are listed in section 14, with defaults used until they answer.
 - **Next:** the implementation plan for M0 and M1; then stop until after the hackathon.
+
+## 2026-10-13 (afternoon): M1 headless tasks
+
+- **Done and reviewed:** Tasks 7-12, 9b (the window-washer gondola), CC (the creator's calls: recovered scrap, Writ
+  spots 3/3/5, Breacher limited only by fire rate) and 11b (big Normal fights with a headless FightSim where the player
+  shoots back). The SDD ledger (`.superpowers/sdd/SKYLINE-PLAN-M1/progress.md`) has every commit and ruling.
+- **11b's balance, 30 seeds per fight, a bot with human timing:** clean (no chassis lost) 28/30 food court, 30/30
+  skylight, 30/30 facade; standing in the open wrecks in 2.4-4.2 s; the no-cover control always fails. Dodge band on
+  400 held-out seeds: drones at 12 m 2.43, spotlights 1.90 (target 1.6-2.5).
+- **Parked for the creator's play (Task 24):** the skylight and facade are gentle for a skilled player (plating pressure
+  tests ignored as gaps); the drone band's interval tops 2.55; floor-care is fast (5 m/s, sweeps every 1.2 s).
+- **The creator's calls today** are in the spec's section 14, including per-floor music (comical to serious; floor 1 a
+  Subway Surfers reimagining, rights question pending).
+- **Next:** Task 13 (scenes and the pass) is with an implementer; Tasks 14-17 are Unity, run by the main session.
