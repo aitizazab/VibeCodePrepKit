@@ -44,6 +44,7 @@ namespace JamKit.Skyline
     {
         public static bool CanShareEncounter(params AimModel[] models)
         {
+            if (models == null) return true;
             bool leads = false, now = false;
             foreach (var m in models)
             {
@@ -54,24 +55,28 @@ namespace JamKit.Skyline
         }
     }
 
-    /// <summary>The spotlight's shot (2.5): a telegraph that follows the target with a lag, locks
-    /// <see cref="lockBefore"/> seconds before the shot, then a hitscan at the locked point. Changing direction in the
-    /// last <see cref="lockBefore"/> seconds, or breaking line of sight, dodges it.</summary>
+    /// <summary>The spotlight's shot (2.5): a telegraph of <see cref="telegraph"/> seconds whose beam follows the target with a
+    /// lag, locks <see cref="lockBefore"/> seconds before the shot, then a hitscan where the beam is. The beam is a
+    /// critically damped follow with the target's velocity fed forward, so it settles onto a steady run; at the lock it
+    /// keeps sweeping at the velocity it had. Running straight stays in the beam; changing direction in the last
+    /// <see cref="lockBefore"/> seconds leaves it. Line of sight is the caller's: a shot that fires behind cover misses.</summary>
     public sealed class TelegraphedShot
     {
         public float telegraph = 0.8f;
         public float lockBefore = 0.25f;
-        /// <summary>How fast the laser catches up with the target (1/s, exponential).</summary>
-        public float followRate = 6f;
-        /// <summary>How far from the locked point still counts as a hit (m).</summary>
-        public float hitRadius = 0.5f;
+        /// <summary>How tightly the beam tracks (1/s): it settles onto a steady run within about 4 / followRate seconds.</summary>
+        public float followRate = 10f;
+        /// <summary>How far from the beam's point still counts as a hit (m).</summary>
+        public float hitRadius = 0.6f;
 
         float _t;
-        Vector3 _aim;
+        Vector3 _aim, _aimVel, _lastTarget;
 
         public bool Active { get; private set; }
         public bool Locked { get; private set; }
         public Vector3 AimPoint => _aim;
+        /// <summary>How fast the beam's point is sweeping (m/s).</summary>
+        public Vector3 AimVelocity => _aimVel;
 
         public void Start(Vector3 targetNow)
         {
@@ -79,20 +84,37 @@ namespace JamKit.Skyline
             Locked = false;
             _t = 0f;
             _aim = targetNow;
+            _aimVel = Vector3.Zero;
+            _lastTarget = targetNow;
         }
 
-        /// <summary>Advances the telegraph. Returns true on the step the shot fires; <paramref name="hit"/> says whether it landed.</summary>
+        /// <summary>Advances the telegraph. Returns true on the step the shot fires; <paramref name="hit"/> says whether it
+        /// landed. A step that isn't a positive number changes nothing.</summary>
         public bool Step(float dt, Vector3 target, out bool hit)
         {
             hit = false;
-            if (!Active) return false;
+            if (!Active || !(dt > 0f) || float.IsInfinity(dt)) return false;
             _t += dt;
             if (!Locked)
             {
-                float k = 1f - MathF.Exp(-followRate * dt);
-                _aim += (target - _aim) * k;
+                Vector3 targetVel = (target - _lastTarget) / dt;
+                float w = followRate;
+                int n = Math.Min(64, Math.Max(1, (int)MathF.Ceiling(w * dt / 0.1f)));   // sub-steps keep it stable at any frame rate
+                float h = dt / n;
+                for (int i = 0; i < n; i++)
+                {
+                    Vector3 p = Vector3.Lerp(_lastTarget, target, (i + 1f) / n);
+                    Vector3 acc = w * w * (p - _aim) + 2f * w * (targetVel - _aimVel);
+                    _aimVel += acc * h;
+                    _aim += _aimVel * h;
+                }
                 if (_t >= telegraph - lockBefore) Locked = true;
             }
+            else
+            {
+                _aim += _aimVel * dt;
+            }
+            _lastTarget = target;
             if (_t >= telegraph)
             {
                 Active = false;
