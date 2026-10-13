@@ -1,0 +1,7 @@
+{
+  "duration": 0.7,
+  "events": [
+    {"at": 0.15, "recipe": "recipes/equip_rack.json"},
+    {"at": 0.75, "recipe": "recipes/equip_lock.json"}
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "duration": 0.55,
+  "events": [
+    {"at": 0, "recipe": "recipes/equip_unfold.json"},
+    {"at": 0.7, "recipe": "recipes/equip_lock.json"}
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "duration": 2.6,
+  "events": [
+    {"at": 0.1, "recipe": "recipes/inspect_turn.json"},
+    {"at": 0.5, "recipe": "recipes/inspect_knock.json"},
+    {"at": 0.85, "recipe": "recipes/inspect_settle.json"}
+  ]
+}

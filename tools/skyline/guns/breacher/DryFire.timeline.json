@@ -1,0 +1,6 @@
+{
+  "duration": 0.3,
+  "events": [
+    {"at": 0, "recipe": "recipes/dry_clunk.json"}
+  ]
+}

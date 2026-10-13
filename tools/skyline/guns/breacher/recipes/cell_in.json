@@ -1,0 +1,35 @@
+{
+  "sample_rate": 48000,
+  "length": 0.171,
+  "seed": 1,
+  "layers": [
+    {
+      "type": "noise",
+      "highpass": 1800,
+      "start": 0.0,
+      "attack": 0.0005,
+      "decay": 0.06,
+      "gain_db": -7
+    },
+    {
+      "type": "sine",
+      "freq": 160,
+      "freq_end": 80,
+      "start": 0.0,
+      "attack": 0.001,
+      "decay": 0.12,
+      "gain_db": -8
+    },
+    {
+      "type": "noise",
+      "lowpass": 900,
+      "start": 0.0,
+      "attack": 0.001,
+      "decay": 0.072,
+      "gain_db": -14
+    }
+  ],
+  "master": {
+    "limit_db": -1.0
+  }
+}

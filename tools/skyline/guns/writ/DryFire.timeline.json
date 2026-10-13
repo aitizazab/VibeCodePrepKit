@@ -1,0 +1,6 @@
+{
+  "duration": 0.25,
+  "events": [
+    {"at": 0, "recipe": "recipes/dry_click.json"}
+  ]
+}

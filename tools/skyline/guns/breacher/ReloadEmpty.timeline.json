@@ -1,0 +1,9 @@
+{
+  "duration": 2.1,
+  "events": [
+    {"at": 0.12, "recipe": "recipes/cell_out.json"},
+    {"at": 0.42, "recipe": "recipes/cell_in.json"},
+    {"at": 0.56, "recipe": "recipes/seat.json"},
+    {"at": 0.82, "recipe": "recipes/pump.json"}
+  ]
+}

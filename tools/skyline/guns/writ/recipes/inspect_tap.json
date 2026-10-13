@@ -1,0 +1,18 @@
+{
+  "sample_rate": 48000,
+  "length": 0.071,
+  "seed": 1,
+  "layers": [
+    {
+      "type": "noise",
+      "highpass": 5000,
+      "start": 0.0,
+      "attack": 0.0005,
+      "decay": 0.02,
+      "gain_db": -12
+    }
+  ],
+  "master": {
+    "limit_db": -1.0
+  }
+}

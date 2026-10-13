@@ -1,0 +1,7 @@
+{
+  "duration": 0.6,
+  "events": [
+    {"at": 0, "recipe": "recipes/blast.json"},
+    {"at": 0.4, "recipe": "recipes/vent_hiss.json"}
+  ]
+}
