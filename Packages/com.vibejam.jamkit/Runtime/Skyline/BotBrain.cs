@@ -31,6 +31,9 @@ namespace JamKit.Skyline
     public sealed class BotBrain
     {
         public const float HurtSeconds = 0.25f;
+        /// <summary>The most time a state change carries into the next state (s): enough that ordinary frame rates (20 fps and up)
+        /// lose nothing, small enough that a hitch cannot burn a telegraph away or fire a burst of attacks.</summary>
+        public const float MaxCarrySeconds = 0.05f;
 
         readonly EnemyDef _def;
         readonly Rng _rng;
@@ -116,7 +119,7 @@ namespace JamKit.Skyline
         void Go(BotState s, float carry, List<BotCue> cues)
         {
             State = s;
-            _t = Math.Max(0f, carry);
+            _t = carry > 0f ? Math.Min(MaxCarrySeconds, carry) : 0f;
             cues?.Add(new BotCue { kind = BotCueKind.State, state = s });
         }
 

@@ -58,5 +58,49 @@ namespace JamKit.Tests.Skyline
             Assert.That(s.Locked, Is.False);
             Assert.That(float.IsNaN(s.AimPoint.X), Is.False);
         }
+
+        [Test]
+        public void AHugeStepKeepsTheBeamFinite()
+        {
+            foreach (float dt in new[] { 10f, 1000f, 1e30f })
+            {
+                var s = new TelegraphedShot();
+                s.Start(Vector3.Zero);
+                s.Step(dt, new Vector3(3f, 0f, 3f), out _);
+                Assert.That(float.IsNaN(s.AimPoint.X) || float.IsInfinity(s.AimPoint.X), Is.False, "dt " + dt);
+                Assert.That(float.IsNaN(s.AimPoint.Z) || float.IsInfinity(s.AimPoint.Z), Is.False, "dt " + dt);
+            }
+        }
+
+        [Test]
+        public void ANonFiniteTargetIsIgnoredAndTheShotStillResolves()
+        {
+            var s = new TelegraphedShot();
+            s.Start(Run(0f));
+            float t = 0f;
+            bool fired = false, hit = true;
+            for (int i = 0; i < 240 && !fired; i++)
+            {
+                t += 1f / 60f;
+                Vector3 target = i == 20 ? new Vector3(float.NaN, 0f, float.PositiveInfinity) : Run(7f * t);
+                fired = s.Step(1f / 60f, target, out hit);
+                Assert.That(float.IsNaN(s.AimPoint.X + s.AimPoint.Y + s.AimPoint.Z), Is.False);
+                Assert.That(float.IsInfinity(s.AimPoint.X + s.AimPoint.Y + s.AimPoint.Z), Is.False);
+            }
+            Assert.That(fired, Is.True);
+            Assert.That(hit, Is.True, "one bad frame doesn't spoil a steady run's catch");
+        }
+
+        [Test]
+        public void ATeleportDoesNotThrowTheBeamPastItsSpeedLimit()
+        {
+            var s = new TelegraphedShot();
+            s.Start(Run(0f));
+            s.Step(1f / 60f, Run(0.1f), out _);
+            s.Step(1f / 60f, Run(50f), out _);
+            Assert.That(s.AimVelocity.Length(), Is.LessThanOrEqualTo(TelegraphedShot.MaxBeamSpeed + 1e-3f));
+            s.Step(1f / 60f, Run(50f), out _);
+            Assert.That(s.AimVelocity.Length(), Is.LessThanOrEqualTo(TelegraphedShot.MaxBeamSpeed + 1e-3f));
+        }
     }
 }

@@ -88,40 +88,63 @@ namespace JamKit.Skyline
             _lastTarget = targetNow;
         }
 
+        /// <summary>The fastest the beam's point may sweep, and the fastest target velocity it will believe (m/s); well above the
+        /// player's top speed, so a teleport or a bad frame can't throw the beam.</summary>
+        public const float MaxBeamSpeed = 40f;
+        /// <summary>The longest stretch of one step the beam integrates (s); a longer hitch still advances the telegraph's clock.</summary>
+        public const float MaxIntegrateSeconds = 0.5f;
+
         /// <summary>Advances the telegraph. Returns true on the step the shot fires; <paramref name="hit"/> says whether it
-        /// landed. A step that isn't a positive number changes nothing.</summary>
+        /// landed. A step that isn't a positive number changes nothing; a target that isn't a finite point is ignored for that
+        /// step (the beam coasts, the clock still runs, and a shot fired then misses).</summary>
         public bool Step(float dt, Vector3 target, out bool hit)
         {
             hit = false;
             if (!Active || !(dt > 0f) || float.IsInfinity(dt)) return false;
             _t += dt;
+            bool good = IsFinite(target);
+            float idt = Math.Min(dt, MaxIntegrateSeconds);
             if (!Locked)
             {
-                Vector3 targetVel = (target - _lastTarget) / dt;
-                float w = followRate;
-                int n = Math.Min(64, Math.Max(1, (int)MathF.Ceiling(w * dt / 0.1f)));   // sub-steps keep it stable at any frame rate
-                float h = dt / n;
-                for (int i = 0; i < n; i++)
+                if (good)
                 {
-                    Vector3 p = Vector3.Lerp(_lastTarget, target, (i + 1f) / n);
-                    Vector3 acc = w * w * (p - _aim) + 2f * w * (targetVel - _aimVel);
-                    _aimVel += acc * h;
-                    _aim += _aimVel * h;
+                    Vector3 targetVel = ClampSpeed((target - _lastTarget) / dt);
+                    float w = followRate;
+                    int n = Math.Min(256, Math.Max(1, (int)MathF.Ceiling(w * idt / 0.1f)));   // sub-steps keep it stable at any frame rate
+                    float h = idt / n;
+                    for (int i = 0; i < n; i++)
+                    {
+                        Vector3 p = Vector3.Lerp(_lastTarget, target, (i + 1f) / n);
+                        Vector3 acc = w * w * (p - _aim) + 2f * w * (targetVel - _aimVel);
+                        _aimVel = ClampSpeed(_aimVel + acc * h);
+                        _aim += _aimVel * h;
+                    }
                 }
+                else _aim += _aimVel * idt;
                 if (_t >= telegraph - lockBefore) Locked = true;
             }
             else
             {
-                _aim += _aimVel * dt;
+                _aim += _aimVel * idt;
             }
-            _lastTarget = target;
+            if (good) _lastTarget = target;
             if (_t >= telegraph)
             {
                 Active = false;
-                hit = Vector3.Distance(target, _aim) <= hitRadius;
+                hit = good && Vector3.Distance(target, _aim) <= hitRadius;
                 return true;
             }
             return false;
+        }
+
+        static bool IsFinite(Vector3 v) =>
+            !(float.IsNaN(v.X) || float.IsInfinity(v.X) || float.IsNaN(v.Y) || float.IsInfinity(v.Y) || float.IsNaN(v.Z) || float.IsInfinity(v.Z));
+
+        static Vector3 ClampSpeed(Vector3 v)
+        {
+            float len = v.Length();
+            if (float.IsNaN(len)) return Vector3.Zero;
+            return len > MaxBeamSpeed ? v * (MaxBeamSpeed / len) : v;
         }
     }
 }

@@ -165,5 +165,45 @@ namespace JamKit.Tests.Skyline
             var right = AtBearing(90f - 60f, 3f);
             Assert.That(AcidSweep.Touches(Vector3.Zero, 90f, 0f, right, 0f, Floor), Is.True);
         }
+
+        [Test]
+        public void ALongHitchDoesNotFireABurstOrShrinkTheWarning()
+        {
+            var d = Clock();
+            var b = new BotBrain(d, 1);
+            var cues = new List<BotCue>();
+            b.Tick(H, true, cues);   // wakes
+            b.Tick(10f, true, cues); // a ten-second load hitch
+            Assert.That(cues.FindAll(c => c.kind == BotCueKind.Attack).Count, Is.LessThanOrEqualTo(1));
+            Assert.That(b.State, Is.EqualTo(BotState.Telegraph));
+            float telegraphFor = 0f;
+            int attacks = 0;
+            for (int i = 0; i < 30; i++)
+            {
+                int before = cues.Count;
+                if (b.State == BotState.Telegraph) telegraphFor += H;
+                b.Tick(H, true, cues);
+                for (int k = before; k < cues.Count; k++) if (cues[k].kind == BotCueKind.Attack) attacks++;
+            }
+            Assert.That(attacks, Is.EqualTo(1), "one attack for the one telegraph");
+            Assert.That(telegraphFor + BotBrain.MaxCarrySeconds, Is.GreaterThanOrEqualTo(d.telegraphSeconds - H), "the warning still shows nearly its full length");
+            Assert.That(telegraphFor, Is.GreaterThan(d.telegraphSeconds - BotBrain.MaxCarrySeconds - 2 * H));
+        }
+
+        [Test]
+        public void HitchesAtEveryPointOfTheCycleNeverBurst()
+        {
+            var d = Clock();
+            for (int hitchAt = 0; hitchAt < 150; hitchAt += 7)
+            {
+                var b = new BotBrain(d, 2);
+                var cues = new List<BotCue>();
+                for (int i = 0; i < hitchAt; i++) b.Tick(H, true, cues);
+                cues.Clear();
+                b.Tick(10f, true, cues);
+                for (int i = 0; i < 60; i++) b.Tick(H, true, cues);   // one second
+                Assert.That(cues.FindAll(c => c.kind == BotCueKind.Attack).Count, Is.LessThanOrEqualTo(1), "hitch at frame " + hitchAt);
+            }
+        }
     }
 }
