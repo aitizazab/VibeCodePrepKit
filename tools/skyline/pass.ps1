@@ -492,12 +492,22 @@ try {
             # C: Windows build of Skyline's scenes (batch mode: through the memory cap). -buildTarget Win64 sets the target when
             # the editor opens (Unity's own switch-then-import path) instead of leaving BuildPipeline to switch it mid-method.
             # A project whose active target was WebGL may be left on Win64 afterwards: tell the Visiting Hours session.
+            # The build's shader compilers need more than the default 30% cap: at 0.30 URP/Lit's variants failed "out of
+            # memory" (2026-10-14: 289 errors, magenta materials in the build), and Unity CACHES failed compiles, so a
+            # retry stays broken until Library/ShaderCache and Library/ShaderCache.db are deleted. 0.6 compiled clean.
             if (Test-RunStage 'C') {
             $log = Join-Path $Out 'stage-c-build.log'
+            $shareBefore = $CapShare
+            $script:CapShare = [math]::Max($CapShare, 0.6)
             $c = Invoke-Stage -Name 'C build' -Exe $unity -Locked -Capped -CheckProject -TimeoutSec 1800 -Log $log -StageArgs @(
                 '-batchmode', '-quit', '-buildTarget', 'Win64', '-projectPath', $proj, '-logFile', "`"$log`"",
                 '-executeMethod', 'JamKit.SkylineRepo.EditorTools.SkylineBuild.BuildFromCommandLine', '-skylineOut', "`"$Out`"")
+            $script:CapShare = $shareBefore
             Update-BuildStage -Stage $c -JsonPath (Join-Path $Out 'build.json')
+            if ((Test-Path $log) -and (Select-String -LiteralPath $log -Pattern 'out of memory (while parsing|during compilation)' -Quiet)) {
+                $c.ok = $false
+                $c.note = "shader compiles ran out of memory (magenta in the build): delete Library/ShaderCache* and rebuild. $($c.note)"
+            }
             $stages += $c
             }
 
