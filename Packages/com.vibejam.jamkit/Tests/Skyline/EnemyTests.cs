@@ -158,5 +158,69 @@ namespace JamKit.Tests.Skyline
             Assert.That(a.Damage(5f).toChassis, Is.EqualTo(0f));
             Assert.That(a.Damage(float.NaN).toPlating, Is.EqualTo(0f));
         }
+
+        [Test]
+        public void BadDamageToALiveUnitChangesNothingAndNeverMakesNaN()
+        {
+            var a = new PlayerArmor(100f, 100f);
+            foreach (float bad in new[] { float.NaN, -5f, 0f })
+            {
+                var r = a.Damage(bad);
+                Assert.That(r.toPlating, Is.EqualTo(0f), "damage " + bad);
+                Assert.That(r.toChassis, Is.EqualTo(0f), "damage " + bad);
+                Assert.That(r.platingBroke, Is.False);
+                Assert.That(r.wrecked, Is.False);
+                Assert.That(a.Plating, Is.EqualTo(100f));
+                Assert.That(a.Chassis, Is.EqualTo(100f));
+                Assert.That(a.PlatingBreaks, Is.EqualTo(0));
+            }
+            var inf = a.Damage(float.PositiveInfinity);
+            Assert.That(inf.wrecked, Is.True, "a capped hit still wrecks");
+            Assert.That(inf.toPlating, Is.EqualTo(100f));
+            Assert.That(inf.toChassis, Is.EqualTo(100f));
+            Assert.That(float.IsNaN(a.Plating), Is.False);
+            Assert.That(float.IsNaN(a.Chassis), Is.False);
+            Assert.That(a.Wrecked, Is.True);
+        }
+
+        [Test]
+        public void BadBodyNumbersInTheConstructorsTakeSafeValues()
+        {
+            var nan = new EnemyBody(new EnemyDef
+            {
+                chassisHp = float.NaN,
+                plates = new[] { new PlateDef("a", float.NaN), new PlateDef("b", -3f), null, new PlateDef("c", 20f) },
+            });
+            Assert.That(nan.Chassis, Is.EqualTo(1f), "a NaN chassis is 1 hp");
+            Assert.That(nan.PlateOn(0), Is.False, "a NaN plate is already shed");
+            Assert.That(nan.PlateOn(1), Is.False);
+            Assert.That(nan.PlateOn(2), Is.False, "a null plate is already shed");
+            Assert.That(nan.PlateHp(3), Is.EqualTo(20f));
+            Assert.That(new EnemyBody(new EnemyDef { chassisHp = -4f }).Chassis, Is.EqualTo(1f));
+
+            var huge = new EnemyBody(new EnemyDef
+            {
+                chassisHp = float.PositiveInfinity,
+                plates = new[] { new PlateDef("a", float.PositiveInfinity) },
+            });
+            Assert.That(huge.Chassis, Is.EqualTo(1e6f), "+infinity is the 1e6 ceiling");
+            Assert.That(huge.PlateHp(0), Is.EqualTo(1e6f));
+            Assert.That(huge.Damage(float.PositiveInfinity, -1).wrecked, Is.True, "one capped hit can wreck it");
+
+            var p = new PlayerArmor(float.NaN, float.NaN);
+            Assert.That(p.PlatingMax, Is.EqualTo(0f));
+            Assert.That(p.Plating, Is.EqualTo(0f));
+            Assert.That(p.ChassisMax, Is.EqualTo(1f));
+            Assert.That(p.Chassis, Is.EqualTo(1f));
+            var neg = new PlayerArmor(-5f, -5f);
+            Assert.That(neg.PlatingMax, Is.EqualTo(0f));
+            Assert.That(neg.ChassisMax, Is.EqualTo(1f));
+
+            var big = new PlayerArmor(float.PositiveInfinity, float.PositiveInfinity);
+            Assert.That(big.PlatingMax, Is.EqualTo(1e6f));
+            Assert.That(big.ChassisMax, Is.EqualTo(1e6f));
+            var noPlating = new PlayerArmor(0f, float.PositiveInfinity);
+            Assert.That(noPlating.Damage(float.PositiveInfinity).wrecked, Is.True, "one capped hit can wreck the Unit");
+        }
     }
 }

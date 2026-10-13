@@ -117,12 +117,13 @@ namespace JamKit.Skyline
             Def = def ?? throw new ArgumentNullException(nameof(def));
             int n = def.plates != null ? def.plates.Length : 0;
             _plates = new float[n];
-            for (int i = 0; i < n; i++) _plates[i] = def.plates[i] != null ? NonNegative(def.plates[i].hp) : 0f;
-            Chassis = Math.Max(1f, def.chassisHp > 0f ? def.chassisHp : 1f); // NaN or negative: a 1 hp chassis
+            for (int i = 0; i < n; i++) _plates[i] = def.plates[i] != null ? Clamp(def.plates[i].hp, 0f) : 0f;
+            Chassis = Clamp(def.chassisHp, 1f); // NaN or below 1: a 1 hp chassis; +infinity: the 1e6 ceiling
         }
 
-        // NaN and negatives are 0 (Math.Max would pass a NaN through).
-        static float NonNegative(float v) => v > 0f ? v : 0f;
+        // The ceiling is the cap Damage puts on one hit, so no body is out of reach of a wrecking blow. NaN takes the floor.
+        const float HpCeiling = 1e6f;
+        static float Clamp(float v, float floor) => v > floor ? (v < HpCeiling ? v : HpCeiling) : floor;
 
         public float PlateHp(int i) => i >= 0 && i < _plates.Length ? _plates[i] : 0f;
         public bool PlateOn(int i) => PlateHp(i) > 0f;
@@ -200,11 +201,14 @@ namespace JamKit.Skyline
         /// <summary>How many times the plating has broken this run.</summary>
         public int PlatingBreaks { get; private set; }
 
+        // Matches the 1e6 cap Damage puts on one hit, so a hit can always wreck the Unit.
+        const float HpCeiling = 1e6f;
+
         public PlayerArmor(float platingMax = 100f, float chassisMax = 100f)
         {
-            PlatingMax = platingMax > 0f ? platingMax : 0f; // NaN or negative: no plating
+            PlatingMax = platingMax > 0f ? (platingMax < HpCeiling ? platingMax : HpCeiling) : 0f; // NaN or negative: none; +infinity: the 1e6 ceiling
             Plating = PlatingMax;
-            ChassisMax = chassisMax > 1f ? chassisMax : 1f;
+            ChassisMax = chassisMax > 1f ? (chassisMax < HpCeiling ? chassisMax : HpCeiling) : 1f;
             Chassis = ChassisMax;
         }
 
