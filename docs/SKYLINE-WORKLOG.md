@@ -110,3 +110,15 @@ Newest first. Every agent result and every Unity pass gets an entry (what was do
 - **The ears** judge is done (CLAP + Gemini, measurements overrule claims); the secrets guard is the rewritten .mjs, live.
 - **Budget:** the creator raised the stop to 15% weekly. Stopped at 6% for a PC restart.
 - **Next:** Task 17, the main session's Unity pass (metas, stage A, recordings, the checklists in task-13..16-report.md).
+
+## 2026-10-14 (just after midnight): Task 17 done, the first floor is playable in grey-box
+
+- **Pass 1** (20261013-1850) failed perf and the sync check. Two fixes by ownership: the range director timed on
+  `unscaledTime` while the recording follows `Time.time` (dropped Breacher presses, sync looking 1.3 s late); the arena
+  demo never cleared the food court, and the perf window counted the warm-up hitch. Plus a missing-sound cache.
+- **Pass 2** (20261014-0003, after waiting ~2 h for free memory) is green on every stage: 286 tests, all three fights
+  cleared in the demo, 1% low 8.85 ms at 1080p (target 16.7), 14/14 reload sounds within 35 ms of their frames.
+- **Still missing** (content, Tasks 18-21): bot models (primitives), faces, bot and hit sounds, the Writ's spot sounds.
+- **Build to play:** `out/skyline-play/2026-10-14-greybox/SkylineRepo.exe` (opens on the arena).
+- **The Writ** takes the courtroom diorama direction (round 4 refines it); the clockwork heart is kept for another gun
+  (`docs/SKYLINE-CONCEPTS.md`). The PopularMMOs intro is Spag Heddy's "Pink Koeks".
