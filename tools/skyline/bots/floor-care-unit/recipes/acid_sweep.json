@@ -1,19 +1,19 @@
 {
   "sample_rate": 48000,
-  "length": 0.95,
+  "length": 1.0,
   "seed": 1,
   "layers": [
     {
       "type": "sample",
       "path": "../sources/fc_acid_hiss.wav",
-      "start": 0.0,
+      "start": 0.05,
       "attack": 0,
       "decay": 0,
-      "gain_db": 3.0
+      "gain_db": -1.0
     }
   ],
   "master": {
     "limit_db": -1.0
   },
-  "note": "sample layers +3 dB: a centred layer is panned at -3 dB per side"
+  "note": "sample layers +3 dB for the centre pan, then -4 dB (review Minor 3): it plays on the same frame as attack; it starts 50 ms in, after the pump thump, so the two peaks never stack"
 }

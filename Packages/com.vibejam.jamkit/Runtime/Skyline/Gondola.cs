@@ -29,6 +29,24 @@ namespace JamKit.Skyline
         /// <summary>Total distance moved (m); never decreases, so mine spacing is measured on it, not on the position.</summary>
         public float Travelled => (float)_travelled;
 
+        /// <summary>The rail's length (m; 0 for a rail that stays put).</summary>
+        public float Length => _length;
+
+        /// <summary>Where along the rail its ride started (m): 0, or what <see cref="StartAt"/> set.</summary>
+        public float StartedAt { get; private set; }
+
+        /// <summary>Sets it riding from <paramref name="along"/> m along the rail, on toward its end (the gondola's idle washing,
+        /// <see cref="GondolaIdle"/>, hands over here when it wakes). Call it before the first <see cref="Tick"/>: the distance
+        /// travelled starts at <paramref name="along"/> and only grows from there.</summary>
+        public void StartAt(float along)
+        {
+            if (!(along > 0f) || float.IsInfinity(along) || !(_length > 0f)) return;
+            if (_travelled > 0.0) return;   // already riding: the hand-over is once, at the start
+            _travelled = Math.Min(along, _length);
+            StartedAt = Travelled;
+            Position = PositionAt(Travelled);
+        }
+
         public void Tick(float dt)
         {
             if (!(dt > 0f) || float.IsInfinity(dt)) return;
@@ -109,7 +127,9 @@ namespace JamKit.Skyline
     }
 
     /// <summary>The gondola's mine-laying: a mine every <c>mineSpacing</c> m of rail travel while it is laying, never more
-    /// than <c>mineMax</c> alive. When the gondola is wrecked the caller stops laying; the mines on the wall live on.</summary>
+    /// than <c>mineMax</c> alive. When the gondola is wrecked the caller stops laying; the mines on the wall live on. A rail
+    /// that started partway along (<see cref="GondolaRail.StartAt"/>: the gondola woke during its idle washing) counts its
+    /// first spacing from its spawn, so it lays on the same rail points as a gondola woken at its spawn.</summary>
     public sealed class MineLayer
     {
         readonly EnemyDef _def;
@@ -145,7 +165,10 @@ namespace JamKit.Skyline
             if (!_wasLaying)
             {
                 _wasLaying = true;
-                _nextAt = rail.Travelled + spacing; // no back-laying for the distance already ridden
+                // no back-laying for the distance already ridden; a rail that started partway along (StartAt) counts from its
+                // spawn, so the mines go on the same rail points as a ride from the spawn
+                _nextAt = rail.Travelled + spacing - rail.StartedAt;
+                if (_nextAt <= rail.Travelled) _nextAt = rail.Travelled + spacing;
             }
             // Mines go at exact multiples of the spacing even when one tick covers several; only the last mineMax matter.
             int guard = 0;

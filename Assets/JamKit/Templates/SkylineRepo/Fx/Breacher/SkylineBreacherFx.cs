@@ -8,19 +8,22 @@ namespace JamKit.SkylineRepo
     /// <summary>
     /// The Breacher's look (docs/SKYLINE-GUN-BREACHER.md; Task 19), driven only by <see cref="SkylinePlayer.CueRaised"/> and
     /// <see cref="SkylinePlayer.HitLanded"/>, so the player's code doesn't know it exists. It adds itself to every
-    /// SkylinePlayer when a scene loads (no builder or scene edit needed). Its knockback is felt three ways:
+    /// SkylinePlayer when a Skyline scene loads (no builder or scene edit needed). Its knockback is felt three ways:
     /// <list type="bullet">
     /// <item>the shot: a muzzle blast on the viewmodel (a white-hot core and spikes for three frames, then smoke), a flash of
     /// light on the world, a shockwave ring thrown out along the aim, a dust kick where the centre of the spread lands
     /// within 4 m, and the cell's window dimming as its charge is spent;</item>
-    /// <item>bots: sparks at every pellet that lands, one heavy <c>breacher/impact</c> per shot, and plates the Breacher
-    /// sheds kicked away along the shot (the bots' own code already slides them);</item>
+    /// <item>bots: dark chips and flakes of their white-and-gold casing and a dull grey dust puff at every pellet that
+    /// lands, one heavy <c>breacher/impact</c> per shot, and plates the Breacher sheds kicked away along the shot (the bots'
+    /// own code already slides them). No glow and no sparks on a live bot: there they mean a Writ spot (the spec's
+    /// damage-feedback rule, docs/SKYLINE-DESIGN.md 14), and the spot's spark pool is never touched;</item>
     /// <item>a boost (an accepted self-push in the air, read from the decision log): <c>breacher/boost</c>, and a blast under
     /// your feet: a dust ring racing out over the floor the spread hit, or, with no floor within 6 m, a pressure puff of
     /// white rings and vapour under you.</item>
     /// </list>
     /// After each shot the cell vents (the "vent" event): a jet of vapour from its port. A seated cell flashes hot.
-    /// Everything is pooled and made up front; materials are SkylineBotLook's shared lit and glowing ones.
+    /// Everything is pooled and made up front (a plate kick uses a non-allocating physics overlap); materials are
+    /// SkylineBotLook's shared lit and glowing ones, except the cell's window, whose copies are freed with the component.
     /// </summary>
     [DefaultExecutionOrder(150)]
     public sealed class SkylineBreacherFx : MonoBehaviour
@@ -29,16 +32,19 @@ namespace JamKit.SkylineRepo
 
         // ---- tuning (presentation only; the gun's numbers live in SkylineGuns.Breacher and BreacherBoostDef)
         const float FlashLife = 0.045f, SpikeLength = 0.13f, LightLife = 0.07f, LightRange = 7f, LightIntensity = 4f;
-        const float RingLife = 0.14f, RingDistance = 1.1f, RingFrom = 0.12f, RingTo = 1.15f;
+        // the ring: 2.6 m out, at most 0.6 m wide (about 26 degrees of view), a thin hollow annulus centred on the aim,
+        // so the target at the crosshair is never behind it
+        const float RingLife = 0.14f, RingDistance = 2.6f, RingFrom = 0.1f, RingTo = 0.6f;
         const float DustRange = 4f, BoostFloorRange = 6f, DustRingTo = 2.6f, DustRingLife = 0.28f;
         const float PlateFling = 7f, PlateLift = 2f, PlateSearch = 1.3f;
         const float CellDip = 0.4f, CellHot = 0.35f;
-        const int Chunks = 40, Puffs = 28, Rings = 6, Spikes = 6, Smokes = 6, Vents = 8;
+        const int Chunks = 40, Puffs = 28, Rings = 6, Spikes = 6, Smokes = 6, Vents = 8, Chips = 40, Dusts = 16;
 
         static readonly Color Hot = new Color(6f, 3.6f, 1.4f);
         static readonly Color RingHot = new Color(2.6f, 2.1f, 1.5f);
         static readonly Color BoostRing = new Color(2.2f, 2.4f, 2.6f);
         static readonly Color Dust = new Color(0.6f, 0.56f, 0.5f);
+        static readonly Color DullDust = new Color(0.4f, 0.4f, 0.42f);
         static readonly Color Smoke = new Color(0.52f, 0.52f, 0.55f);
         static readonly Color Vapour = new Color(0.86f, 0.88f, 0.92f);
         static readonly Color CellFull = new Color(1f, 0.6f, 0.12f), CellSpent = new Color(0.22f, 0.08f, 0.02f), CellSeat = new Color(1f, 0.95f, 0.7f);
@@ -48,19 +54,23 @@ namespace JamKit.SkylineRepo
         sealed class Bit
         {
             public Transform t;
+            public Renderer r;
             public Vector3 vel;
             public float age, life, size, to, drag, gravity;
-            public int kind;          // 0 chunk (shrinks), 1 puff (grows, then shrinks), 2 ring (eases out), 3 spike, 4 core
+            public int kind;          // 0 chunk (shrinks), 1 puff (grows, then shrinks), 2 ring (eases out), 3 spike, 4 core,
+                                      // 5 flake (a flat chip that shrinks)
             public bool local;        // moves in its parent's space (the viewmodel)
             public Vector3 baseScale; // spikes: (w, w, length)
         }
 
         readonly List<Bit> _chunks = new List<Bit>(), _puffs = new List<Bit>(), _rings = new List<Bit>();
         readonly List<Bit> _spikes = new List<Bit>(), _smokes = new List<Bit>(), _vents = new List<Bit>();
+        readonly List<Bit> _chips = new List<Bit>(), _dusts = new List<Bit>();
         readonly List<Bit> _live = new List<Bit>();
+        static readonly Collider[] _overlap = new Collider[48];
         readonly List<(Vector3 point, Vector3 dir)> _plateKicks = new List<(Vector3, Vector3)>();
         readonly HashSet<int> _kicked = new HashSet<int>();
-        int _nChunk, _nPuff, _nRing, _nSmoke, _nVent;
+        int _nChunk, _nPuff, _nRing, _nSmoke, _nVent, _nChip, _nDust;
         Bit _core;
         Transform _worldRoot, _vmRoot, _flashRoot;
         Light _light;
@@ -72,6 +82,7 @@ namespace JamKit.SkylineRepo
         // the viewmodel's Breacher (found once the viewmodel has built its rig)
         Transform _vmCam, _gunRoot, _muzzle, _mag, _ventPort;
         Material _cellMat;
+        Material[] _cellMats;   // the cell renderer's own material copies (destroyed in OnDestroy)
         bool _cellEmission;
         Color _cellShown = new Color(-1f, 0f, 0f);
         float _dipLeft, _hotLeft;
@@ -97,11 +108,22 @@ namespace JamKit.SkylineRepo
         {
             if (!_installed)
             {
-                SceneManager.sceneLoaded += (s, m) => AttachAll();
+                SceneManager.sceneLoaded -= OnSceneLoaded;   // never twice, even with domain reload off
+                SceneManager.sceneLoaded += OnSceneLoaded;
                 _installed = true;
             }
-            AttachAll();
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+                if (IsSkylineScene(SceneManager.GetSceneAt(i))) { AttachAll(); break; }
         }
+
+        static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (IsSkylineScene(scene)) AttachAll();
+        }
+
+        /// <summary>Skyline Repo's scenes (SkylineArena, SkylineFiringRange, SkylineGallery); every other template's scenes
+        /// (Visiting Hours included) are left alone.</summary>
+        static bool IsSkylineScene(Scene scene) => scene.IsValid() && scene.name.StartsWith("Skyline", System.StringComparison.Ordinal);
 
         /// <summary>Gives every SkylinePlayer in the loaded scenes its Breacher effects (once each).</summary>
         public static void AttachAll()
@@ -139,6 +161,9 @@ namespace JamKit.SkylineRepo
             for (int i = 0; i < Chunks; i++) _chunks.Add(MakeBit(PrimitiveType.Cube, _worldRoot, lit, 0));
             for (int i = 0; i < Puffs; i++) _puffs.Add(MakeBit(PrimitiveType.Sphere, _worldRoot, SkylineBotLook.Lit(Vapour), 1));
             for (int i = 0; i < Rings; i++) _rings.Add(MakeRing(_worldRoot, SkylineBotLook.Glow(RingHot)));
+            for (int i = 0; i < Chips; i++) _chips.Add(MakeBit(PrimitiveType.Cube, _worldRoot, SkylineBotLook.Lit(SkylineBotLook.White), 5));
+            for (int i = 0; i < Dusts; i++) _dusts.Add(MakeBit(PrimitiveType.Sphere, _worldRoot, SkylineBotLook.Lit(DullDust), 1));
+            SkylineBotLook.Lit(SkylineBotLook.Gold);
             SkylineBotLook.Glow(BoostRing);
             SkylineBotLook.Lit(Smoke);
             var lightGo = new GameObject("Breacher flash light");
@@ -157,13 +182,17 @@ namespace JamKit.SkylineRepo
         {
             if (_worldRoot != null) Destroy(_worldRoot.gameObject);
             if (_vmRoot != null) Destroy(_vmRoot.gameObject);
+            if (_cellMats != null)
+                for (int i = 0; i < _cellMats.Length; i++) if (_cellMats[i] != null) Destroy(_cellMats[i]);
+            _cellMats = null;
+            _cellMat = null;
         }
 
         Bit MakeBit(PrimitiveType type, Transform parent, Material m, int kind)
         {
             var go = SkylineBotLook.Visual(type, "fx", parent, m, false);
             go.SetActive(false);
-            return new Bit { t = go.transform, kind = kind };
+            return new Bit { t = go.transform, r = go.GetComponent<Renderer>(), kind = kind };
         }
 
         Bit MakeRing(Transform parent, Material m)
@@ -176,7 +205,7 @@ namespace JamKit.SkylineRepo
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;
             go.SetActive(false);
-            return new Bit { t = go.transform, kind = 2 };
+            return new Bit { t = go.transform, r = r, kind = 2 };
         }
 
         /// <summary>A flat ring (inner radius 0.86, outer 1) in the XY plane, facing both ways.</summary>
@@ -215,9 +244,9 @@ namespace JamKit.SkylineRepo
             _vmCam = vm.OverlayCamera.transform;
             _gunRoot = _vmCam.Find("Gun " + SkylineGuns.BreacherId);
             if (_gunRoot == null) return false;
-            _muzzle = FindDeep(_gunRoot, "Muzzle");
-            _mag = FindDeep(_gunRoot, "Mag");
-            _ventPort = FindDeep(_gunRoot, "CellVent");
+            _muzzle = SkylineBotBodies.Find(_gunRoot, "Muzzle");
+            _mag = SkylineBotBodies.Find(_gunRoot, "Mag");
+            _ventPort = SkylineBotBodies.Find(_gunRoot, "CellVent");
             FixModelFacing();
 
             _vmRoot = new GameObject("Breacher FX (viewmodel)").transform;
@@ -249,17 +278,6 @@ namespace JamKit.SkylineRepo
             return true;
         }
 
-        static Transform FindDeep(Transform t, string name)
-        {
-            if (t.name == name) return t;
-            for (int i = 0; i < t.childCount; i++)
-            {
-                var f = FindDeep(t.GetChild(i), name);
-                if (f != null) return f;
-            }
-            return null;
-        }
-
         /// <summary>The model's muzzle must point down the gun's +Z. If an import turned the model (an axis convention gone
         /// wrong), turn it back so the barrel faces forward, and say so once.</summary>
         void FixModelFacing()
@@ -282,7 +300,8 @@ namespace JamKit.SkylineRepo
             var r = _mag.GetComponent<Renderer>();
             if (r == null) r = _mag.GetComponentInChildren<Renderer>();
             if (r == null) return;
-            var mats = r.materials;   // this renderer's own copies, made once
+            var mats = r.materials;   // this renderer's own copies, made once and destroyed in OnDestroy
+            _cellMats = mats;
             int pick = 0;
             for (int i = 0; i < mats.Length; i++)
                 if (mats[i] != null && mats[i].name.IndexOf("Glow", System.StringComparison.OrdinalIgnoreCase) >= 0) { pick = i; break; }
@@ -324,7 +343,7 @@ namespace JamKit.SkylineRepo
         void OnHit(SkylineHitInfo info, SkylineHitResult r)
         {
             if (info.gun == null || info.gun.id != SkylineGuns.BreacherId) return;
-            SkylineSpark.Burst(info.point, info.normal, 3, 5.5f);
+            CasingChips(info.point, info.normal, info.direction);
             if (_impactFrame != Time.frameCount)
             {
                 _impactFrame = Time.frameCount;   // one heavy slam per shot, not nine
@@ -377,16 +396,16 @@ namespace JamKit.SkylineRepo
 
             // the shockwave thrown out along the aim
             var ring = Next(_rings, ref _nRing);
-            ring.t.GetComponent<Renderer>().sharedMaterial = SkylineBotLook.Glow(RingHot);
+            ring.r.sharedMaterial = SkylineBotLook.Glow(RingHot);
             Spawn(ring, eye + aim * RingDistance, Vector3.zero, RingLife, RingFrom, RingTo, 0f, 0f);
             ring.t.rotation = Quaternion.LookRotation(aim);
 
             // a dust kick where the centre of the spread lands, when it lands close
-            if (Physics.Raycast(eye, aim, out var hit, DustRange, SkylineShooting.Mask, QueryTriggerInteraction.Ignore))
-            {
+            // (the world only: a bot's own hits are its casing chips, from HitLanded; no sparks anywhere, since the effects
+            // can't tell world metal from tile and sparks on a bot would read as a Writ spot)
+            if (Physics.Raycast(eye, aim, out var hit, DustRange, SkylineShooting.Mask, QueryTriggerInteraction.Ignore)
+                && hit.collider.GetComponentInParent<SkylineHitZone>() == null)
                 DustBurst(hit.point, hit.normal, 6, 3.5f);
-                SkylineSpark.Burst(hit.point, hit.normal, 4, 4f);
-            }
         }
 
         void Vent()
@@ -417,7 +436,7 @@ namespace JamKit.SkylineRepo
             {
                 // the blast hit the floor: a dust ring races out over it, with a pressure ring and a flash
                 var ring = Next(_rings, ref _nRing);
-                ring.t.GetComponent<Renderer>().sharedMaterial = SkylineBotLook.Glow(RingHot);
+                ring.r.sharedMaterial = SkylineBotLook.Glow(RingHot);
                 Spawn(ring, hit.point + hit.normal * 0.04f, Vector3.zero, DustRingLife, 0.3f, DustRingTo, 0f, 0f);
                 ring.t.rotation = Quaternion.LookRotation(hit.normal);
                 Vector3 tangent = Vector3.Cross(hit.normal, Vector3.right);
@@ -436,7 +455,7 @@ namespace JamKit.SkylineRepo
                     var p = Next(_puffs, ref _nPuff);
                     Vector3 d = Quaternion.AngleAxis(i * 45f + Random.Range(-10f, 10f), hit.normal) * tangent;
                     Spawn(p, hit.point + d * 0.3f + hit.normal * 0.1f, d * Random.Range(1.5f, 2.5f) + hit.normal * 0.6f, 0.65f, 0.12f, 0.45f, 2.5f, -0.3f);
-                    p.t.GetComponent<Renderer>().sharedMaterial = SkylineBotLook.Lit(Dust);
+                    p.r.sharedMaterial = SkylineBotLook.Lit(Dust);
                 }
                 _light.transform.position = hit.point + hit.normal * 0.5f;
                 _light.enabled = true;
@@ -450,7 +469,7 @@ namespace JamKit.SkylineRepo
                 for (int k = 0; k < 2; k++)
                 {
                     var ring = Next(_rings, ref _nRing);
-                    ring.t.GetComponent<Renderer>().sharedMaterial = SkylineBotLook.Glow(BoostRing);
+                    ring.r.sharedMaterial = SkylineBotLook.Glow(BoostRing);
                     Spawn(ring, at - n * (0.25f * k), Vector3.zero, DustRingLife * (1f + 0.4f * k), 0.2f, 1.6f + 0.6f * k, 0f, 0f);
                     ring.t.rotation = Quaternion.LookRotation(n);
                 }
@@ -462,7 +481,7 @@ namespace JamKit.SkylineRepo
                     var p = Next(_puffs, ref _nPuff);
                     Vector3 d = Quaternion.AngleAxis(i * 36f + Random.Range(-10f, 10f), n) * tangent;
                     Spawn(p, at + d * 0.15f, d * Random.Range(2f, 3.2f) - n * Random.Range(0.5f, 1.5f), 0.55f, 0.1f, 0.35f, 3f, 0f);
-                    p.t.GetComponent<Renderer>().sharedMaterial = SkylineBotLook.Lit(Vapour);
+                    p.r.sharedMaterial = SkylineBotLook.Lit(Vapour);
                 }
             }
         }
@@ -478,7 +497,25 @@ namespace JamKit.SkylineRepo
             }
             var p = Next(_puffs, ref _nPuff);
             Spawn(p, point + normal * 0.12f, normal * 0.8f, 0.5f, 0.08f, 0.32f, 3f, -0.2f);
-            p.t.GetComponent<Renderer>().sharedMaterial = SkylineBotLook.Lit(Dust);
+            p.r.sharedMaterial = SkylineBotLook.Lit(Dust);
+        }
+
+        /// <summary>A pellet on a live bot: three dark chips and flakes of its white-and-gold casing knocked off along the
+        /// shot and the surface, and a dull grey dust puff. Lit, never glowing.</summary>
+        void CasingChips(Vector3 point, Vector3 normal, Vector3 dir)
+        {
+            Vector3 n = normal.sqrMagnitude > 1e-6f ? normal.normalized : -dir.normalized;
+            Vector3 d = dir.sqrMagnitude > 1e-6f ? dir.normalized : -n;
+            for (int i = 0; i < 3; i++)
+            {
+                var c = Next(_chips, ref _nChip);
+                c.r.sharedMaterial = SkylineBotLook.Lit(i == 2 ? SkylineBotLook.Gold : SkylineBotLook.White);
+                Vector3 v = (n * 0.8f + d * 0.6f + Random.insideUnitSphere * 0.7f).normalized * Random.Range(2.5f, 5f);
+                Spawn(c, point + n * 0.03f, v, Random.Range(0.4f, 0.6f), Random.Range(0.025f, 0.045f), 0f, 2.5f, 9.8f);
+                c.t.rotation = Random.rotation;
+            }
+            var p = Next(_dusts, ref _nDust);
+            Spawn(p, point + n * 0.06f, n * 0.5f + d * 0.4f, 0.45f, 0.05f, 0.22f, 3f, -0.1f);
         }
 
         // ---------------------------------------------------------------- particles
@@ -527,6 +564,7 @@ namespace JamKit.SkylineRepo
                 }
                 case 3: b.t.localScale = new Vector3(b.baseScale.x * (1f - u * 0.5f), b.baseScale.y * (1f - u * 0.5f), b.baseScale.z * (1f - u)); break;
                 case 4: b.t.localScale = Vector3.one * (b.size * (1f - u * 0.6f)); break;
+                case 5: b.t.localScale = new Vector3(b.size, b.size * 0.25f, b.size * 0.7f) * (1f - u); break;
             }
         }
 
@@ -587,22 +625,20 @@ namespace JamKit.SkylineRepo
         void KickPlates()
         {
             if (_plateKicks.Count == 0) return;
-            var debris = Object.FindObjectsByType<SkylineDebris>(FindObjectsSortMode.None);
             if (_kicked.Count > 512) _kicked.Clear();
-            for (int i = 0; i < debris.Length; i++)
+            Physics.SyncTransforms();   // the plates were thrown this frame: make sure the overlap sees them
+            for (int k = 0; k < _plateKicks.Count; k++)
             {
-                var d = debris[i];
-                if (d == null) continue;
-                var rb = d.GetComponent<Rigidbody>();
-                if (rb == null || !_kicked.Add(rb.GetInstanceID())) continue;
-                for (int k = 0; k < _plateKicks.Count; k++)
+                var (point, dir) = _plateKicks[k];
+                Vector3 flat = dir.sqrMagnitude > 1e-6f ? dir.normalized : Vector3.forward;
+                int n = Physics.OverlapSphereNonAlloc(point, PlateSearch, _overlap, ~0, QueryTriggerInteraction.Ignore);
+                for (int i = 0; i < n; i++)
                 {
-                    var (point, dir) = _plateKicks[k];
-                    if ((rb.position - point).sqrMagnitude > PlateSearch * PlateSearch) continue;
-                    Vector3 flat = dir.sqrMagnitude > 1e-6f ? dir.normalized : Vector3.forward;
+                    var rb = _overlap[i] != null ? _overlap[i].attachedRigidbody : null;
+                    if (rb == null || rb.isKinematic || rb.GetComponent<SkylineDebris>() == null) continue;   // shed parts only
+                    if (!_kicked.Add(rb.GetInstanceID())) continue;   // once each (a plate has several colliders)
                     rb.AddForce((flat * PlateFling + Vector3.up * PlateLift) * rb.mass, ForceMode.Impulse);
                     rb.AddTorque(Random.insideUnitSphere * 6f, ForceMode.Impulse);
-                    break;
                 }
             }
             _plateKicks.Clear();

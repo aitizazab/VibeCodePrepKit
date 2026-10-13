@@ -52,6 +52,15 @@ namespace JamKit.Skyline
         /// <summary>m/s an awake flying bot that has lost sight drifts sideways toward a point that sees where it last saw the
         /// player (it can't pass through cover). 0 for bots that hold their post.</summary>
         public float searchSpeed;
+        /// <summary>The flying bot's hover patrol (<see cref="HoverPatrol"/>): m/s of its sideways strafes round its post while
+        /// awake, how far from the post it may stray (m), how high it bobs (m), and its dash when hit (m/s). 0 speed or leash:
+        /// it holds its post.</summary>
+        public float patrolSpeed, patrolLeash, patrolBob, patrolDashSpeed;
+        /// <summary>Idle work before it wakes (IdleWork.cs, fix round "idle life"): m/s of the floor-care unit's slow cleaning
+        /// round its post, or of the gondola's slow ride along a short stretch of its rail; and how far it may go (m: the
+        /// floor-care unit's leash from its post, the gondola's stretch from its spawn along the rail). 0 speed or leash: it
+        /// stands still until woken.</summary>
+        public float idleSpeed, idleLeash;
         // The spotlight's beam (TelegraphedShot); its telegraph is telegraphSeconds.
         public float beamFollowRate = 10f, beamHitRadius = 0.6f, beamLockBefore = 0.25f;
         // The floor-care unit's acid sweep (AcidSweep).
@@ -85,6 +94,7 @@ namespace JamKit.Skyline
             id = DroneId, displayName = "Mall-cop drone", aim = AimModel.LeadsYou, layer = ThreatLayer.Air,
             chassisHp = 70f, plates = new[] { new PlateDef("shell", 30f), new PlateDef("lens-guard", 20f) }, bodyRadius = 0.45f,
             alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 0.8f, loseSightSeconds = 3f, rememberSeconds = 8f, searchSpeed = 2f,
+            patrolSpeed = 2.5f, patrolLeash = 2.5f, patrolBob = 0.25f, patrolDashSpeed = 4.5f,
             projectileSpeed = 30f, projectileRadius = 0.15f, aimSpreadDeg = 4f, attackDamage = 26f, range = 45f, scrapPlating = 20f,
         };
 
@@ -97,6 +107,7 @@ namespace JamKit.Skyline
             alertSeconds = 0.8f, telegraphSeconds = 0.6f, fireInterval = 1.2f, loseSightSeconds = 3f,
             projectileSpeed = 0f, attackDamage = 14f, range = 10f, moveSpeed = 5f,
             sweepSeconds = 0.8f, sweepRadius = 4.5f, sweepArcDeg = 120f, sweepWidthDeg = 24f, ankleHeight = 0.4f, scrapPlating = 30f,
+            idleSpeed = 0.55f, idleLeash = 1.5f,
         };
 
         /// <summary>A searchlight with a rifle: a 0.8 s laser telegraph that follows you with a lag and locks 0.25 s before a
@@ -119,6 +130,7 @@ namespace JamKit.Skyline
             attackDamage = 25f, range = 30f, scrapPlating = 25f,
             railSpeed = 3f, mineSpacing = 4f, mineMax = 6, mineArmSeconds = 0.6f, mineFuseSeconds = 0.35f,
             mineTriggerRadius = 1.5f, mineBlastRadius = 2.5f, mineLifetime = 12f,
+            idleSpeed = 0.6f, idleLeash = 2f,
         };
 
         public static EnemyDef[] All() => new[] { MallCopDrone(), FloorCareUnit(), Spotlight(), Gondola() };

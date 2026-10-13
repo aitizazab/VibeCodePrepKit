@@ -214,7 +214,7 @@ namespace JamKit.Skyline
                 var fresh = NearestFresh(f, me, 12f);
                 if (fresh != null && f.Armor.Plating < f.Armor.PlatingMax - 5f) { goal = Flat(fresh.Position); break; }
                 _huntClock -= h;
-                if (_huntClock <= 0f) { _huntClock = 0.5f; _hasHunt = PickHunt(f, me, out _huntSpot); }
+                if (_huntClock <= 0f) { _huntClock = 0.5f; _hasHunt = PickHunt(f, me, out _huntSpot, true); }
                 if (f.Target == null && _hasHunt) goal = _huntSpot;
                 break;
             }
@@ -388,7 +388,7 @@ namespace JamKit.Skyline
         }
 
         /// <summary>A step toward the nearest live bot: the reachable grid point within 9 m closest to it.</summary>
-        bool PickHunt(FightSim f, Vector2 me, out Vector2 spot)
+        bool PickHunt(FightSim f, Vector2 me, out Vector2 spot, bool mopUp = false)
         {
             spot = me;
             FightEnemy near = null;
@@ -401,6 +401,9 @@ namespace JamKit.Skyline
             }
             if (near == null) return false;
             Vector2 target = Flat(near.Position);
+            // the mop-up (no shooter left, only floor-care units and gondolas): a unit it can neither walk to nor shoot from
+            // here is gone round by the grid's way, not chased into the piece between them
+            if (mopUp && !Reachable(f, me, target) && !f.CanShoot(Feet(me), near) && Detour(f, me, target, near, out spot)) return true;
             float best = Vector2.Distance(me, target) - 0.5f;
             bool found = false;
             foreach (var c in _grid)
@@ -409,7 +412,42 @@ namespace JamKit.Skyline
                 float d = Vector2.Distance(c, target);
                 if (d < best) { best = d; spot = c; found = true; }
             }
-            return found;
+            if (found) return true;
+            // a local minimum: the bot is just behind a piece (a floor-care unit pressed to the far side of the booth's wall,
+            // the line inside the booth's U). Go round: a breadth-first walk over the grid to the nearest cell from which the
+            // bot can be walked to or shot, and the furthest cell along that way it can walk to straight.
+            return Detour(f, me, target, near, out spot);
+        }
+
+        bool Detour(FightSim f, Vector2 me, Vector2 target, FightEnemy near, out Vector2 spot)
+        {
+            spot = me;
+            int n = _grid.Count;
+            var from = new int[n];
+            for (int i = 0; i < n; i++) from[i] = -2;   // -2 unvisited, -1 a start cell
+            var queue = new Queue<int>();
+            for (int i = 0; i < n; i++)
+                if (Vector2.Distance(me, _grid[i]) <= Grid * 1.5f && Reachable(f, me, _grid[i])) { from[i] = -1; queue.Enqueue(i); }
+            int goal = -1;
+            while (queue.Count > 0 && goal < 0)
+            {
+                int i = queue.Dequeue();
+                var c = _grid[i];
+                if (Reachable(f, c, target) || f.CanShoot(Feet(c), near)) { goal = i; break; }
+                for (int j = 0; j < n; j++)
+                {
+                    if (from[j] != -2) continue;
+                    var d = _grid[j] - c;
+                    if (Math.Abs(d.X) > Grid * 1.01f || Math.Abs(d.Y) > Grid * 1.01f || !Reachable(f, c, _grid[j])) continue;
+                    from[j] = i;
+                    queue.Enqueue(j);
+                }
+            }
+            if (goal < 0) return false;
+            // the furthest cell on the way back from the goal that is straight-reachable from here
+            for (int k = goal; k >= 0; k = from[k])
+                if (Reachable(f, me, _grid[k]) && Vector2.Distance(me, _grid[k]) >= Arrive) { spot = _grid[k]; return true; }
+            return false;
         }
 
         static bool Reachable(FightSim f, Vector2 a, Vector2 b)
@@ -420,7 +458,14 @@ namespace JamKit.Skyline
             {
                 if (box.min.Y > 0.5f) continue;   // the deck is overhead
                 var g = new CoverBox { min = new Vector3(box.min.X - r, -1f, box.min.Z - r), max = new Vector3(box.max.X + r, 1f, box.max.Z + r) };
-                if (a.X > g.min.X && a.X < g.max.X && a.Y > g.min.Z && a.Y < g.max.Z) continue;   // already touching it: sliding along it is fine
+                if (a.X > g.min.X && a.X < g.max.X && a.Y > g.min.Z && a.Y < g.max.Z)
+                {
+                    // already touching it: sliding along it is fine, but not a line through the piece itself (from a wall's
+                    // inner face, the far side of the wall isn't reachable)
+                    var solid = new CoverBox { min = new Vector3(box.min.X + 0.02f, -1f, box.min.Z + 0.02f), max = new Vector3(box.max.X - 0.02f, 1f, box.max.Z - 0.02f) };
+                    if (CoverGeometry.SegmentHitsBox(new Vector3(a.X, 0f, a.Y), new Vector3(b.X, 0f, b.Y), solid)) return false;
+                    continue;
+                }
                 if (CoverGeometry.SegmentHitsBox(new Vector3(a.X, 0f, a.Y), new Vector3(b.X, 0f, b.Y), g)) return false;
             }
             return true;

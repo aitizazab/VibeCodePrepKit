@@ -1,35 +1,19 @@
 {
   "sample_rate": 48000,
-  "length": 0.131,
+  "length": 0.4,
   "seed": 1,
   "layers": [
     {
-      "type": "sine",
-      "freq": 260,
-      "freq_end": 140,
+      "type": "sample",
+      "path": "../samples/mag_out.wav",
       "start": 0.0,
-      "attack": 0.001,
-      "decay": 0.08,
-      "gain_db": -10
-    },
-    {
-      "type": "noise",
-      "lowpass": 900,
-      "start": 0.0,
-      "attack": 0.001,
-      "decay": 0.048,
-      "gain_db": -16
-    },
-    {
-      "type": "noise",
-      "highpass": 2500,
-      "start": 0.0,
-      "attack": 0.0005,
-      "decay": 0.03,
-      "gain_db": -14
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -5.0,
+      "pan": 0.0
     }
   ],
   "master": {
-    "limit_db": -1.0
+    "limit_db": -1.6
   }
 }

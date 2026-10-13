@@ -1,26 +1,19 @@
 {
   "sample_rate": 48000,
-  "length": 0.48,
+  "length": 0.5,
   "seed": 1,
   "layers": [
     {
-      "type": "sine",
-      "freq": 200,
-      "freq_end": 350,
-      "attack": 0.03,
-      "decay": 0.4,
-      "gain_db": -18
-    },
-    {
-      "type": "noise",
-      "color": "pink",
-      "highpass": 1500,
-      "attack": 0.03,
-      "decay": 0.4,
-      "gain_db": -22
+      "type": "sample",
+      "path": "../samples/inspect_turn.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -10.0,
+      "pan": 0.0
     }
   ],
   "master": {
-    "limit_db": -1.0
+    "limit_db": -1.6
   }
 }

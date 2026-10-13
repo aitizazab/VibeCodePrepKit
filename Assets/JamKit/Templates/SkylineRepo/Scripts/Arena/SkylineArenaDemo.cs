@@ -8,37 +8,43 @@ using NVec3 = System.Numerics.Vector3;
 namespace JamKit.SkylineRepo
 {
     /// <summary>
-    /// The arena's scripted run (docs/SKYLINE-PLAN-M1.md Task 16, made to win in Task 17), only under
-    /// <see cref="SkylineRunArgs.Demo"/>: it drives <see cref="SkylinePlayer.ScriptedInput"/> like a player's hands, with perfect
-    /// aim (<see cref="AimAssist.Angles"/> from the eye), so the recording and the frame-time probe see the arena busy and
-    /// cleared. Hit stop is off, so the time scale stays 1; every wait and timer runs on <c>Time.time</c>, which under the
-    /// Recorder's capture step is the recording's own clock (the guns' too: a press timed on the wall clock can land before
-    /// the gun is ready and be dropped). In the editor capture it starts once the Recorder's step is set
-    /// (<see cref="SkylineRecorderWait"/>). Each step logs <c>SKYLINE_DEMO &lt;step&gt;</c>.
+    /// The arena's scripted run (docs/SKYLINE-PLAN-M1.md Task 16, made to win in Task 17, made to play like a person in the
+    /// fix round of 2026-10-14), only under <see cref="SkylineRunArgs.Demo"/>: it drives <see cref="SkylinePlayer.ScriptedInput"/>
+    /// like a player's hands, so the recording and the frame-time probe see the arena busy and cleared. Hit stop is off, so the
+    /// time scale stays 1; every wait and timer runs on <c>Time.time</c>, which under the Recorder's capture step is the
+    /// recording's own clock (the guns' too). In the editor capture it starts once the Recorder's step is set
+    /// (<see cref="SkylineRecorderWait"/>). Each step logs <c>SKYLINE_DEMO &lt;step&gt;</c>. Seeded: a recording repeats.
     /// <list type="number">
+    /// <item><b>The hands.</b> The view turns like a wrist on a mouse (<see cref="HumanAim"/>: a short reaction beat on a new
+    /// target, a fast turn that overshoots a little and settles, a capped turn rate, a small lag behind anything moving); it
+    /// never snaps onto a target. The fire button is pressed only while the crosshair's own ray lands on the bot it is shooting
+    /// at, so a turn still under way, or a drone that strafed out of the lag, costs it the shot, as it would a player.</item>
     /// <item>The warm-up: walk to 10 m from the practice bot; three Writ shots at its weak point (a spot opens), one at the
-    /// spot; swap to the Breacher; walk to 0.8 m short of the kiosk's south face, facing it; jump, double jump at the jump's
-    /// apex, at the double jump's apex pitch the view down as far as it goes (85 degrees) and fire (the boost), holding
-    /// forward throughout (the mantle); take the cache on top; swap back to the Writ; drop off the north side.</item>
+    /// spot, each once the aim has settled; swap to the Breacher; walk to 0.8 m short of the kiosk's south face and turn to
+    /// face it; jump, double jump at the jump's apex, at the double jump's apex the view is down at 85 degrees (it starts
+    /// pitching down at the first apex) and it fires (the boost), holding forward throughout (the mantle); take the cache on
+    /// top; swap back to the Writ; drop off the north side.</item>
     /// <item>Through the doorway into the hall, then each encounter in order (food-court, skylight, facade): walk into its
     /// zone (the food court's to the information booth's U, every later one's in the entry lane, where the fight was
     /// balanced), shooting anything in its line of fire on the way, then fight until it is cleared, then salvage (strip the
     /// fresh wrecks it can reach in time while the plating has room) and top up the magazine.</item>
-    /// <item>The fight. <b>Target:</b> the bot whose shot line is really open: a ray from the eye with the gun's own mask
-    /// must land on that bot first (a shed part, cover or another bot in the way rules the point out); spotlights first,
-    /// then a floor-care unit within 7 m, then the nearest. <b>Aim:</b> its newest Writ spot, else its weak point (the
-    /// Writ's two-shot kill: the weak-point hit opens a spot, the spot hit takes x2.5), else its centre, else any body part,
-    /// a plate last. <b>Fire:</b> pressed every frame while a line is open and the gun isn't reloading (a press the gun
-    /// isn't ready for is simply pressed again next frame). <b>Reload:</b> when dry, or when nothing has been in sight for
-    /// 0.8 s with half the magazine gone; never on a one-frame loss of sight (a 0.4 s grace keeps the last target).
-    /// <b>Move:</b> first into the hide (the zone starts the fight before it is reached; up to 6 s); strafe while shooting (reversing every 0.4-0.7 s), held round the hide when at it; under 30 plating with
-    /// something in sight, fall back to the hide (the information booth's U, which also blocks the spotlights and the side
-    /// walls); strip a fresh wreck within 8 m (16 m with nothing in sight) when the plating has 10 of room and it can get
-    /// there before the wreck goes stale; with nothing in sight for 2.5 s (5 s when hurt), advance to the nearest firing
-    /// spot that has a clear line to the nearest live bot (sticky until something is in sight); jump (and double jump) a
-    /// floor-care unit's sweep when one telegraphs within reach. Walking goes round the hall's cover boxes (FightSim's
-    /// detour to the best corner). A per-fight watchdog (<c>SKYLINE_DEMO watchdog &lt;id&gt; fight-time|no-damage</c>): a
-    /// fight not cleared in 90 s, or no enemy damaged for 20 s, sends it to a firing spot until it damages something.</item>
+    /// <item><b>The fight</b> is a cover cycle, as a player plays a shooter. It picks a <b>cover point</b> (a spot beside a
+    /// piece of cover that no live drone or spotlight sees, even after a couple of metres of their patrol, with a peek spot
+    /// next to it that has a line of fire; near it, and toward the bots), runs there (sprinting, now and then sliding or
+    /// hopping on the way), <b>ducks</b> (reloads there if half the magazine is gone), then <b>peeks</b>: steps out to the
+    /// peek spot and shoots, strafing side to side (direction changes every 0.5-1.2 s, a hop now and then), for 1.8-3.2 s or
+    /// until the magazine is dry or it loses 15 plating, then ducks back. After two or three peeks, or when a drone's patrol
+    /// finds the cover point, it moves to another. <b>Target:</b> the bot whose shot line is really open (a ray from the eye
+    /// with the gun's own mask must land on that bot first); spotlights first, then a floor-care unit within 7 m, then the
+    /// nearest. <b>Aim point:</b> its newest Writ spot, else its weak point, else its centre, else any body part, a plate
+    /// last. <b>Reload:</b> when dry, in cover with half the magazine gone, or when nothing has been in sight for 0.8 s with
+    /// half gone. With no cover point to be had it plays the open game: strafe while shooting, advance to a firing spot when
+    /// nothing is in sight, fall back to the booth when hurt. It strips a fresh wreck within 8 m (16 m with nothing in sight)
+    /// when the plating has 10 of room; it jumps (and double jumps) a floor-care unit's sweep when one telegraphs within
+    /// reach. Walking goes round the hall's cover boxes (FightSim's detour to the best corner). A per-fight watchdog
+    /// (<c>SKYLINE_DEMO watchdog &lt;id&gt; fight-time|no-damage</c>): a fight not cleared in 90 s, or no enemy damaged for
+    /// 20 s, sends it to a firing spot until it damages something. Mode lines: <c>SKYLINE_DEMO &lt;id&gt;
+    /// to-hide|move-cover|duck|engage|strip|fall-back|advance|hold|watchdog-move</c> (engage is a peek).</item>
     /// <item>If the Unit is wrecked the director restarts the arena at the warm-up; the run starts again from the start,
     /// skipping the lessons it has done (logs <c>SKYLINE_DEMO restart</c>). No invulnerability: the enemy data, the
     /// layout and the Unit's armour are the game's.</item>
@@ -54,6 +60,15 @@ namespace JamKit.SkylineRepo
         /// <summary>The per-fight watchdog: a fight not cleared in this long, or no enemy damaged for this long, sends the
         /// run to a firing position with a clear line to the nearest live enemy.</summary>
         const float FightLimit = 90f, NoDamageLimit = 20f, WatchRepick = 3f, WatchRearm = 30f;
+        /// <summary>The cover cycle: how far from the piece a cover point stands (m), how far it looks for one (m), the slack a
+        /// drone's patrol gets when a cover point is judged unseen (m), the peek's length (s), the duck's (s), and the plating
+        /// lost in one peek that sends it back into cover.</summary>
+        const float CoverOffset = 1.0f, CoverSearch = 16f, PatrolSlack = 1.5f, PeekMin = 1.8f, PeekMax = 3.2f, DuckMin = 0.35f, DuckMax = 0.8f, PeekHurt = 15f;
+        /// <summary>A strafe holds its direction this long (s) before it changes.</summary>
+        const float StrafeMin = 0.5f, StrafeMax = 1.2f;
+        /// <summary>The settle a shot at the practice bot waits for: the view within this many degrees of the point, turning
+        /// slower than this (degrees a second).</summary>
+        const float SettledDegrees = 0.6f, SettledRate = 25f;
 
         public SkylinePlayer player;
         public SkylineArenaDirector director;
@@ -62,19 +77,36 @@ namespace JamKit.SkylineRepo
         // held input
         Vector2 _move;
         bool _sprint;
+        float _crouchUntil = -1f;
         // one-frame presses
-        bool _jump, _fire, _swap, _reload;
-        // aim
-        bool _aimFixed;
-        float _aimYaw, _aimPitch;
+        bool _jump, _fire, _swap, _reload, _crouchPress;
+        /// <summary>The bot the fight wants shot this frame: fire is pressed only while the crosshair's ray lands on it.</summary>
+        SkylineBot _fireAt;
+        // aim: what the hands want to look at, and the hands
+        bool _aimFixed, _snapAim;
+        float _aimYaw, _aimPitch, _wantYaw, _wantPitch;
         Vector3? _aimPoint;
+        readonly HumanAim _hand = new HumanAim();
+        bool _handReady;
 
         int _life;
         bool _lessonsDone, _fighting, _djArmed, _djTakeoff;
         float _acidJumpAt = -1f, _stuckSince = -1f, _sideStepUntil = -1f, _sideSign = 1f;
         Vector3 _stuckFrom;
+        /// <summary>Every choice the run makes by chance (strafe timing, peek lengths, slides, hops, reaction beats) draws from
+        /// this one seeded stream, so a recording repeats.</summary>
         System.Random _rng = new System.Random(1616);
         static readonly List<Rect> _cover = new List<Rect>();
+
+        // the cover cycle
+        enum Tactic { None, Move, Duck, Peek }
+        Tactic _tac;
+        Vector3 _duck, _peek, _lastDuck;
+        bool _hasLastDuck, _slideTried;
+        float _tacUntil, _tacRetryAt, _moveGiveUp, _nextDuckCheck, _platingAtPeek, _peekNoSight, _nextHop;
+        int _peeksLeft;
+        readonly List<Vector3> _candidates = new List<Vector3>();
+        readonly List<float> _scores = new List<float>();
 
         static readonly Vector3 BoothHide = new Vector3(0f, 0f, -12.2f);
         /// <summary>The middle of the entry lane, where every fight after the food court starts (GalleriaArena.EntryZone*).</summary>
@@ -114,30 +146,63 @@ namespace JamKit.SkylineRepo
             _cover.Add(Rect.MinMaxRect(k.X - h, k.Z - h, k.X + h, k.Z + h));
         }
 
+        float Range(float a, float b) => a + (float)_rng.NextDouble() * (b - a);
+
         // ------------------------------------------------------------------ input
 
         SkylineInputFrame NextFrame()
         {
+            float now = Time.time;
             var f = new SkylineInputFrame
             {
                 move = _move,
                 sprintHeld = _sprint,
                 jumpPressed = _jump,
                 jumpHeld = _jump,
-                firePressed = _fire,
-                fireHeld = _fire,
+                crouchPressed = _crouchPress,
+                crouchHeld = _crouchPress || now < _crouchUntil,
                 swapPressed = _swap,
                 reloadPressed = _reload,
             };
-            _jump = _fire = _swap = _reload = false;
-            if (_aimFixed) player.SetAim(_aimYaw, _aimPitch);
+
+            // the hands: turn toward what is wanted like a wrist, never a snap (bar the one scripted settle at the boost)
+            if (!_handReady)
+            {
+                _hand.Snap(player.Yaw, player.Pitch);
+                _handReady = true;
+            }
+            if (_aimFixed) { _wantYaw = _aimYaw; _wantPitch = _aimPitch; }
             else if (_aimPoint.HasValue)
             {
                 AimAssist.Angles(N(player.EyePosition), N(_aimPoint.Value), out float yaw, out float pitch);
-                player.SetAim(yaw, pitch);
+                _wantYaw = yaw;
+                _wantPitch = pitch;
             }
+            else { _wantYaw = _hand.Yaw; _wantPitch = _hand.Pitch; }
+            _wantPitch = Mathf.Clamp(_wantPitch, -SkylinePlayer.MaxPitch, SkylinePlayer.MaxPitch);
+            if (_snapAim) _hand.Snap(_wantYaw, _wantPitch);
+            else _hand.Step(Time.deltaTime, _wantYaw, _wantPitch);
+            player.SetAim(_hand.Yaw, _hand.Pitch);
+
+            // the trigger: a scripted press, or the fight's target under the crosshair (the shot goes along this very aim)
+            bool fire = _fire || (_fireAt != null && _fireAt.Alive && OnTarget(_fireAt));
+            f.firePressed = fire;
+            f.fireHeld = fire;
+
+            _jump = _fire = _swap = _reload = _crouchPress = _snapAim = false;
+            _fireAt = null;
             return f;
         }
+
+        /// <summary>The crosshair's own ray (the eye along the aim, the guns' mask) lands on one of <paramref name="b"/>'s hit zones first.</summary>
+        bool OnTarget(SkylineBot b)
+        {
+            if (!Physics.Raycast(player.EyePosition, player.AimDirection, out var hit, MaxSight + 5f, SkylineShooting.Mask, QueryTriggerInteraction.Ignore)) return false;
+            return hit.collider.TryGetComponent<SkylineHitZone>(out var z) && z.owner == b;
+        }
+
+        /// <summary>The view is on what it wants and has stopped turning (a careful shot).</summary>
+        bool Settled => _hand.ErrorTo(_wantYaw, _wantPitch) <= SettledDegrees && _hand.Rate <= SettledRate && _hand.Holding <= 0f;
 
         static NVec3 N(Vector3 v) => new NVec3(v.x, v.y, v.z);
 
@@ -187,12 +252,17 @@ namespace JamKit.SkylineRepo
             StopAllCoroutines();
             _move = Vector2.zero;
             _sprint = false;
-            _jump = _fire = _swap = _reload = false;
+            _jump = _fire = _swap = _reload = _crouchPress = false;
+            _crouchUntil = -1f;
+            _fireAt = null;
             _aimFixed = false;
             _aimPoint = null;
+            _handReady = false;   // the restart puts the view somewhere new: the hands start from there
             _fighting = false;
             _djArmed = false;
             _acidJumpAt = -1f;
+            _tac = Tactic.None;
+            _hasLastDuck = false;
             _life++;
             StartCoroutine(Run());
         }
@@ -244,6 +314,25 @@ namespace JamKit.SkylineRepo
             _sprint = false;
         }
 
+        /// <summary>Aims at <paramref name="point"/> (on <paramref name="bot"/>) and fires once the view has settled on it (a
+        /// careful shot), or after <paramref name="maxWait"/> s whatever the aim; logs <paramref name="log"/> at the shot.</summary>
+        IEnumerator CarefulShot(SkylineBot bot, System.Func<Vector3> point, string log, float maxWait)
+        {
+            _aimFixed = false;
+            float until = Time.time + maxWait;
+            _aimPoint = point();
+            yield return null;
+            while (Time.time < until && !(Settled && OnTarget(bot)))
+            {
+                _aimPoint = point();
+                yield return null;
+            }
+            _aimPoint = point();
+            Log(log);
+            _fire = true;
+            yield return null;
+        }
+
         IEnumerator Lessons()
         {
             var bot = director.PracticeBot;
@@ -261,10 +350,7 @@ namespace JamKit.SkylineRepo
                 yield return Wait(0.4f);
                 for (int s = 0; s < 3; s++)
                 {
-                    _aimPoint = WeakPoint(bot);
-                    yield return null;
-                    Log("writ-shot " + (s + 1));
-                    _fire = true;
+                    yield return CarefulShot(bot, () => WeakPoint(bot), "writ-shot " + (s + 1), 1.2f);
                     yield return Wait(ShotGap);
                 }
                 float giveUp = Time.time + SpotWait;
@@ -272,11 +358,7 @@ namespace JamKit.SkylineRepo
                 if (bot.Spots.Count > 0)
                 {
                     var sp = bot.Spots.All[bot.Spots.Count - 1];
-                    _aimPoint = bot.SpotWorld(sp);
-                    yield return null;
-                    _aimPoint = bot.SpotWorld(sp);
-                    Log("writ-spot-shot");
-                    _fire = true;
+                    yield return CarefulShot(bot, () => bot.SpotWorld(sp), "writ-spot-shot", 1.2f);
                     yield return Wait(ShotGap);
                 }
                 else Log("writ-no-spot");
@@ -298,23 +380,26 @@ namespace JamKit.SkylineRepo
             _aimFixed = true;
             _aimYaw = 0f;
             _aimPitch = 0f;
-            float settle = Time.time + 1f;
-            while (Time.time < settle && Sim != null && new Vector2(Sim.Velocity.X, Sim.Velocity.Z).magnitude > 0.05f) yield return null;
+            // stop, and turn to face the kiosk (the hands turn; the jump waits until they have)
+            float settle = Time.time + 1.2f;
+            while (Time.time < settle && ((Sim != null && new Vector2(Sim.Velocity.X, Sim.Velocity.Z).magnitude > 0.05f) || !Settled)) yield return null;
             yield return Wait(0.2f);
 
-            // jump, double jump at the apex, the boost at the double jump's apex; forward held throughout (the mantle)
+            // jump, double jump at the apex, the boost at the double jump's apex; forward held throughout (the mantle). The
+            // view starts down toward the feet at the first apex, so it is there (85 degrees) by the shot.
             _move = new Vector2(0f, 1f);
             _sprint = true;
             Log("jump");
             _jump = true;
             yield return UntilAirborne(0.5f);
             yield return UntilApex(2f);
+            _aimPitch = SkylinePlayer.MaxPitch;
             Log("double-jump");
             _jump = true;
             yield return UntilRising(0.4f);
             yield return UntilApex(2f);
-            _aimPitch = SkylinePlayer.MaxPitch;
-            yield return null;                                     // the pitch is set on the frame before the shot
+            _snapAim = true;                                       // the last few degrees of the look down, on the frame before the shot
+            yield return null;
             Log("boost-fire");
             _fire = true;
             yield return null;
@@ -387,6 +472,10 @@ namespace JamKit.SkylineRepo
             bool advancing = false, watchdog = false, reachedHide = false;
             Vector3 watchPos = Feet(), advancePos = Feet(), lastAim = Vector3.zero;
             SkylineBot lastTarget = null;
+            _tac = Tactic.None;
+            _tacRetryAt = 0f;
+            _hasLastDuck = false;
+            _nextHop = start + Range(3f, 6f);
             while (director.PhaseOf(i) == SkylineArenaDirector.Phase.Fighting)
             {
                 float now = Time.time;
@@ -401,12 +490,14 @@ namespace JamKit.SkylineRepo
                     watchdog = true;
                     watchStart = now;
                     watchRepick = 0f;
+                    _tac = Tactic.None;
                     Log("watchdog " + id + (now - limitFrom > FightLimit ? " fight-time" : " no-damage"));
                 }
                 if (watchdog && lastDamage > watchStart)
                 {
                     watchdog = false;
                     limitFrom = now - FightLimit + WatchRearm;   // the fight-time check comes back in 30 s
+                    _tacRetryAt = now + 4f;                       // shoot from where the watchdog put it a little first
                     Log(id + " watchdog-cleared");
                 }
                 if (watchdog && now >= watchRepick)
@@ -416,7 +507,11 @@ namespace JamKit.SkylineRepo
                 }
 
                 var target = PickTarget(i, out Vector3 aim);
-                if (target != null) { lastSeen = now; advancing = false; lastTarget = target; lastAim = aim; }
+                if (target != null)
+                {
+                    if (target != lastTarget) _hand.React(Range(0.05f, 0.12f));   // a new target: a beat before the wrist moves
+                    lastSeen = now; advancing = false; lastTarget = target; lastAim = aim;
+                }
                 // a one-frame loss of the line (a strafe past a cover edge, a shed plate flying through it) isn't a lost target
                 bool grace = target == null && lastTarget != null && lastTarget.Alive && now - lastSeen < SightGrace;
                 bool inSight = target != null || grace;
@@ -424,85 +519,373 @@ namespace JamKit.SkylineRepo
                 bool hurt = armor.Plating < LowPlating;
                 bool atHide = Flat(feet, hide) <= HideRadius;
                 if (atHide) reachedHide = true;
+                var gun = player.Loadout.Active;
+                bool reloading = gun.State.IsReloading;
+                int mag = gun.Def.weapon.magazineSize;
                 var wreck = !watchdog && armor.Plating < armor.PlatingMax - StripRoom ? NearestFreshWreck(feet, inSight ? StripRange : FarStripRange) : null;
                 string want;
                 Vector3 goal = feet;
+                bool sprintTo = false, strafeHere = false, tacticMove = false;
                 if (watchdog) { want = "watchdog-move"; goal = watchPos; }
                 // every fight opens by getting into cover (the zone starts the fight before the hide is reached)
                 else if (!reachedHide && now - start < ToHideLimit) { want = "to-hide"; goal = hide; }
-                else if (wreck != null) { want = "strip"; goal = wreck.transform.position; }
-                // fall back only while something is in sight: at the hide it engages from cover
-                else if (inSight && hurt && !atHide) { want = "fall-back"; goal = hide; }
-                else if (inSight) { want = "engage"; }
-                else if (advancing || now - lastSeen > (hurt && atHide ? HurtAdvanceAfter : AdvanceAfter))
+                else if (wreck != null) { want = "strip"; goal = wreck.transform.position; if (_tac == Tactic.Peek || _tac == Tactic.Duck) _tac = Tactic.None; }
+                else
                 {
-                    want = "advance";
-                    if (!advancing || now >= advanceRepick)
+                    if (_tac == Tactic.None && now >= _tacRetryAt) StartCover(i, feet, now);
+                    if (_tac != Tactic.None)
                     {
-                        advancePos = FiringSpot(i, feet);
-                        advanceRepick = now + AdvanceRepick;
+                        want = CoverStep(i, feet, now, inSight, hurt, gun, reloading, mag, armor.Plating, out goal, out sprintTo, out strafeHere);
+                        tacticMove = true;
+                        advancing = false;
                     }
-                    advancing = true;
-                    goal = advancePos;
+                    // the open game, when no cover point is to be had
+                    else if (inSight && hurt && !atHide) { want = "fall-back"; goal = hide; }
+                    else if (inSight) { want = "engage"; strafeHere = true; }
+                    else if (advancing || now - lastSeen > (hurt && atHide ? HurtAdvanceAfter : AdvanceAfter))
+                    {
+                        want = "advance";
+                        if (!advancing || now >= advanceRepick)
+                        {
+                            advancePos = FiringSpot(i, feet);
+                            advanceRepick = now + AdvanceRepick;
+                        }
+                        advancing = true;
+                        goal = advancePos;
+                    }
+                    else { want = "hold"; }
                 }
-                else { want = "hold"; }
                 if (want != mode)
                 {
                     mode = want;
                     Log(id + " " + mode);
                 }
 
-                // aim, fire and reload: the fire button is pressed every frame the line is open (a press the gun isn't ready
-                // for is dropped and simply pressed again next frame)
-                var gun = player.Loadout.Active;
+                // aim, fire and reload: the trigger is pulled while the crosshair is on the target (NextFrame checks the ray)
                 if (player.Loadout.ActiveIndex != 0) _swap = true;
-                bool reloading = gun.State.IsReloading;
+                _aimFixed = false;
                 if (target != null)
                 {
-                    _aimFixed = false;
                     _aimPoint = aim;
                     if (gun.Ammo <= 0) { if (!reloading) _reload = true; }
-                    else if (!reloading) _fire = true;
+                    else if (!reloading) _fireAt = target;
                 }
                 else
                 {
-                    _aimFixed = false;
-                    _aimPoint = grace ? lastAim : (Vector3?)null;
-                    if (!reloading && (gun.Ammo <= 0 || (!grace && now - lastSeen > IdleReloadAfter && gun.Ammo <= gun.Def.weapon.magazineSize / 2)))
+                    _aimPoint = grace ? lastAim : LookWhileNoTarget(i, feet, goal);
+                    bool inCover = _tac == Tactic.Duck;
+                    if (!reloading && (gun.Ammo <= 0 || (inCover && gun.Ammo <= mag / 2) ||
+                        (!grace && now - lastSeen > IdleReloadAfter && gun.Ammo <= mag / 2)))
                         _reload = true;
                 }
 
-                // move: toward the goal, strafing while something is in sight (not while stripping or on the watchdog's walk)
+                // move: toward the goal; strafing while something is in sight (peeking, or the open game)
                 Vector3 dir = Vector3.zero;
-                if (Flat(feet, goal) > CoarseArrive) dir = PathDirection(feet, goal);
-                if (inSight && mode != "strip" && mode != "to-hide" && !(watchdog && dir.sqrMagnitude > 0f))
+                if (Flat(feet, goal) > (tacticMove ? 0.35f : CoarseArrive)) dir = PathDirection(feet, goal);
+                if (now >= nextFlip)
                 {
-                    if (now >= nextFlip)
-                    {
-                        strafe = -strafe;
-                        nextFlip = now + 0.4f + (float)_rng.NextDouble() * 0.3f;
-                    }
+                    strafe = -strafe;
+                    nextFlip = now + Range(StrafeMin, StrafeMax);
+                }
+                if (strafeHere && inSight)
+                {
                     Vector3 toT = lastAim - feet;
                     toT.y = 0f;
                     Vector3 side = toT.sqrMagnitude > 1e-4f ? Vector3.Cross(Vector3.up, toT.normalized) : Vector3.right;
-                    if (atHide && mode == "engage")
+                    if (_tac == Tactic.Peek)
                     {
-                        // strafe inside the U, pulled back toward its middle
-                        Vector3 back = hide - feet;
+                        // strafe across the peek spot, held within a metre of it
+                        Vector3 back = _peek - feet;
                         back.y = 0f;
-                        dir = (side * strafe * 0.8f + back * 0.6f);
+                        dir = side * strafe * 0.85f + back * 0.7f;
                         if (dir.sqrMagnitude > 1f) dir.Normalize();
                     }
                     else dir = (dir * 0.8f + side * strafe).normalized;
+                    // a hop now and then while shooting
+                    if (now >= _nextHop && Grounded && !_djArmed && _acidJumpAt < 0f)
+                    {
+                        _jump = true;
+                        _nextHop = now + Range(4f, 7f);
+                    }
                 }
-                ApplyMove(dir, mode == "advance" || mode == "fall-back" || mode == "watchdog-move" || mode == "strip" || mode == "to-hide");
+                bool sprint = sprintTo || mode == "advance" || mode == "fall-back" || mode == "watchdog-move" || mode == "strip" || mode == "to-hide";
+                ApplyMove(dir, sprint);
                 yield return null;
             }
             _fighting = false;
+            _tac = Tactic.None;
             _move = Vector2.zero;
             _aimPoint = null;
             Log(id + " over (" + director.PhaseOf(i) + ")");
             if (director.PhaseOf(i) == SkylineArenaDirector.Phase.Cleared) yield return Salvage();
+        }
+
+        // ------------------------------------------------------------------ the cover cycle
+
+        /// <summary>Picks a cover point and sets off for it (or ducks at once if it is already there); with none to be had, the
+        /// open game runs for 2 s before it looks again.</summary>
+        void StartCover(int i, Vector3 feet, float now)
+        {
+            if (!FindCover(i, feet, out _duck))
+            {
+                _tac = Tactic.None;
+                _tacRetryAt = now + 2f;
+                return;
+            }
+            _peeksLeft = 2 + (_rng.NextDouble() < 0.5 ? 1 : 0);
+            _slideTried = false;
+            float d = Flat(feet, _duck);
+            if (d > 0.8f)
+            {
+                _tac = Tactic.Move;
+                _moveGiveUp = now + d / 4f + 3f;
+            }
+            else
+            {
+                _tac = Tactic.Duck;
+                _tacUntil = now + Range(DuckMin, DuckMax);
+            }
+            _nextDuckCheck = now + 0.5f;
+        }
+
+        /// <summary>One frame of the cover cycle: where to go, and the mode's name for the log.</summary>
+        string CoverStep(int i, Vector3 feet, float now, bool inSight, bool hurt, SkylineGun gun, bool reloading, int mag, float plating,
+            out Vector3 goal, out bool sprint, out bool strafeHere)
+        {
+            goal = feet;
+            sprint = false;
+            strafeHere = false;
+            switch (_tac)
+            {
+                case Tactic.Move:
+                {
+                    goal = _duck;
+                    float d = Flat(feet, _duck);
+                    sprint = d > 2.5f;
+                    var sim = Sim;
+                    // now and then a slide into cover (from a sprint) or a hop on the way
+                    if (!_slideTried && d > 5f && sim != null && sim.Grounded && sim.HorizontalSpeed >= 6.6f && !_djArmed && _acidJumpAt < 0f)
+                    {
+                        _slideTried = true;
+                        double roll = _rng.NextDouble();
+                        if (roll < 0.55) { _crouchPress = true; _crouchUntil = now + 0.5f; }
+                        else if (roll < 0.85) _jump = true;
+                    }
+                    if (d <= 0.7f)
+                    {
+                        _tac = Tactic.Duck;
+                        _tacUntil = now + Range(DuckMin, DuckMax);
+                    }
+                    else if (now > _moveGiveUp) { _tac = Tactic.None; _tacRetryAt = now + 1f; }
+                    return "move-cover";
+                }
+                case Tactic.Duck:
+                {
+                    goal = _duck;
+                    if (now >= _nextDuckCheck)
+                    {
+                        _nextDuckCheck = now + 0.5f;
+                        // a drone's patrol (or a search) found the cover point: go elsewhere
+                        if (!Covered(i, _duck, 0f)) { Leave(now); return "duck"; }
+                    }
+                    if (now >= _tacUntil && !reloading && gun.Ammo > mag / 2)
+                    {
+                        if (_peeksLeft <= 0 || !FindPeek(i, _duck, out _peek)) { Leave(now); return "duck"; }
+                        _tac = Tactic.Peek;
+                        float len = Range(PeekMin, PeekMax) * (hurt ? 0.6f : 1f);
+                        _tacUntil = now + len;
+                        _platingAtPeek = plating;
+                        _peekNoSight = 0f;
+                        _peeksLeft--;
+                    }
+                    return "duck";
+                }
+                default:   // Peek
+                {
+                    goal = _peek;
+                    strafeHere = true;
+                    bool there = Flat(feet, _peek) < 1.2f;
+                    if (there && !inSight) _peekNoSight += Time.deltaTime;
+                    else if (inSight) _peekNoSight = 0f;
+                    if (now >= _tacUntil || gun.Ammo <= 0 || _platingAtPeek - plating >= PeekHurt || _peekNoSight > 1f)
+                    {
+                        _tac = Tactic.Duck;
+                        _tacUntil = now + Range(DuckMin, DuckMax) + (hurt ? 0.6f : 0f);
+                        _nextDuckCheck = now + 0.3f;
+                    }
+                    return "engage";
+                }
+            }
+        }
+
+        /// <summary>Done with this cover point: the next one is looked for at once, elsewhere.</summary>
+        void Leave(float now)
+        {
+            _lastDuck = _duck;
+            _hasLastDuck = true;
+            _tac = Tactic.None;
+            _tacRetryAt = now;
+        }
+
+        /// <summary>Is a drone or a spotlight of fight <paramref name="i"/> able to see a player standing at <paramref name="p"/>
+        /// (its eye), from where it is or from <paramref name="slack"/> m either way of it (a drone's patrol)?</summary>
+        bool Covered(int i, Vector3 p, float slack)
+        {
+            Vector3 eye = new Vector3(p.x, Feet().y + 1.6f, p.z);
+            var bots = director.BotsOf(i);
+            for (int k = 0; k < bots.Count; k++)
+            {
+                var b = bots[k];
+                if (b == null || !b.Alive || b.Def == null || !Shooter(b.Def)) continue;
+                Vector3 c = b.Center;
+                if (Sees(b, c, eye)) return false;
+                if (!(slack > 0f) || b.Def.patrolLeash <= 0f) continue;
+                if (Sees(b, c + new Vector3(slack, 0f, 0f), eye) || Sees(b, c - new Vector3(slack, 0f, 0f), eye) ||
+                    Sees(b, c + new Vector3(0f, 0f, slack), eye) || Sees(b, c - new Vector3(0f, 0f, slack), eye)) return false;
+            }
+            return true;
+        }
+
+        static bool Shooter(EnemyDef d) => d.aim == AimModel.LeadsYou || d.aim == AimModel.FiresAtWhereYouAre;
+
+        static bool Sees(SkylineBot b, Vector3 from, Vector3 eye)
+        {
+            Vector3 d = eye - from;
+            float len = d.magnitude;
+            if (len > b.Def.range || len < 1e-3f) return len < 1e-3f;
+            return !SkylineBot.CastClear(from, d / len, len, b.transform, out _);
+        }
+
+        /// <summary>The cover point to use: a spot 1 m off a piece of cover (or the booth's U), inside the hall and within 16 m,
+        /// that no drone or spotlight sees (with 1.5 m of patrol slack) and that has a peek spot with a line of fire; nearest
+        /// first, leaning toward the bots, and not the one it just left.</summary>
+        bool FindCover(int i, Vector3 feet, out Vector3 best)
+        {
+            best = feet;
+            Vector3 nearest = feet;
+            float nd = float.PositiveInfinity;
+            var bots = director.BotsOf(i);
+            for (int k = 0; k < bots.Count; k++)
+            {
+                var b = bots[k];
+                if (b == null || !b.Alive) continue;
+                float d = Flat(feet, b.transform.position);
+                if (d < nd) { nd = d; nearest = b.transform.position; }
+            }
+            if (float.IsPositiveInfinity(nd)) return false;
+            _candidates.Clear();
+            _scores.Clear();
+            AddCandidate(BoothHide, feet, nearest);
+            for (int c = 0; c < _cover.Count; c++)
+            {
+                var r = _cover[c];
+                float x0 = r.xMin - CoverOffset, x1 = r.xMax + CoverOffset, z0 = r.yMin - CoverOffset, z1 = r.yMax + CoverOffset;
+                float w = x1 - x0, l = z1 - z0;
+                int nx = Mathf.Max(1, Mathf.RoundToInt(w / 1.5f)), nz = Mathf.Max(1, Mathf.RoundToInt(l / 1.5f));
+                for (int s = 0; s <= nx; s++)
+                {
+                    float x = x0 + w * s / nx;
+                    AddCandidate(new Vector3(x, 0f, z0), feet, nearest);
+                    AddCandidate(new Vector3(x, 0f, z1), feet, nearest);
+                }
+                for (int s = 1; s < nz; s++)
+                {
+                    float z = z0 + l * s / nz;
+                    AddCandidate(new Vector3(x0, 0f, z), feet, nearest);
+                    AddCandidate(new Vector3(x1, 0f, z), feet, nearest);
+                }
+            }
+            // nearest-scored first; only the first few that pass the cheap tests get the ray tests
+            int tested = 0;
+            while (_candidates.Count > 0 && tested < 12)
+            {
+                int bi = 0;
+                for (int k = 1; k < _scores.Count; k++) if (_scores[k] < _scores[bi]) bi = k;
+                Vector3 p = _candidates[bi];
+                _candidates.RemoveAt(bi);
+                _scores.RemoveAt(bi);
+                tested++;
+                if (!Covered(i, p, PatrolSlack) || !FindPeek(i, p, out _)) continue;
+                best = p;
+                return true;
+            }
+            return false;
+        }
+
+        void AddCandidate(Vector3 p, Vector3 feet, Vector3 nearestBot)
+        {
+            if (p.x < GalleriaArena.HallMinX + 1.2f || p.x > GalleriaArena.HallMaxX - 1.2f || p.z < GalleriaArena.HallMinZ + 1.2f || p.z > 11f) return;
+            if (InCover(p)) return;
+            float d = Flat(feet, p);
+            if (d > CoverSearch) return;
+            if (_hasLastDuck && Flat(p, _lastDuck) < 2.5f) return;
+            _candidates.Add(p);
+            _scores.Add(d + 0.5f * Flat(p, nearestBot));
+        }
+
+        /// <summary>A spot 1.4-2.4 m from cover point <paramref name="duck"/>, walkable straight from it, from which a live bot of
+        /// fight <paramref name="i"/> has a line of fire; the one the fewest drones and spotlights see.</summary>
+        bool FindPeek(int i, Vector3 duck, out Vector3 peek)
+        {
+            peek = duck;
+            int bestSeen = int.MaxValue;
+            float bestD = float.PositiveInfinity;
+            var bots = director.BotsOf(i);
+            float eyeY = Feet().y + 1.6f;
+            for (int a = 0; a < 8; a++)
+            {
+                float ang = a * Mathf.PI / 4f;
+                Vector3 dir = new Vector3(Mathf.Sin(ang), 0f, Mathf.Cos(ang));
+                for (int s = 0; s < 2; s++)
+                {
+                    float dist = s == 0 ? 1.4f : 2.4f;
+                    Vector3 q = duck + dir * dist;
+                    if (q.x < GalleriaArena.HallMinX + 1f || q.x > GalleriaArena.HallMaxX - 1f || q.z < GalleriaArena.HallMinZ + 1f || q.z > GalleriaArena.HallMaxZ - 1f) continue;
+                    if (InCover(q) || FirstBlocking(new Vector2(duck.x, duck.z), new Vector2(q.x, q.z), -1) >= 0) continue;
+                    Vector3 eye = new Vector3(q.x, eyeY, q.z);
+                    bool shot = false;
+                    int seen = 0;
+                    for (int k = 0; k < bots.Count; k++)
+                    {
+                        var b = bots[k];
+                        if (b == null || !b.Alive || b.Def == null) continue;
+                        if (Vector3.Distance(eye, b.Center) > MaxSight) continue;
+                        if (!shot && Reaches(eye, b.Center, b, out _)) shot = true;   // one ray: the bot's centre is in the line of fire
+                        if (Shooter(b.Def) && Sees(b, b.Center, eye)) seen++;
+                    }
+                    if (!shot) continue;
+                    if (seen < bestSeen || (seen == bestSeen && dist < bestD))
+                    {
+                        bestSeen = seen;
+                        bestD = dist;
+                        peek = q;
+                    }
+                }
+            }
+            return bestSeen < int.MaxValue;
+        }
+
+        /// <summary>Where the eyes go with nothing to shoot: along the way while running, else toward the nearest live bot (a
+        /// player pre-aims where the enemy will show).</summary>
+        Vector3? LookWhileNoTarget(int i, Vector3 feet, Vector3 goal)
+        {
+            Vector3 eye = player.EyePosition;
+            if (Flat(feet, goal) > 2f && (_tac == Tactic.Move || _tac == Tactic.None))
+            {
+                Vector3 d = PathDirection(feet, goal);
+                if (d.sqrMagnitude > 1e-4f) return eye + d * 10f;
+            }
+            SkylineBot nearest = null;
+            float nd = float.PositiveInfinity;
+            var bots = director.BotsOf(i);
+            for (int k = 0; k < bots.Count; k++)
+            {
+                var b = bots[k];
+                if (b == null || !b.Alive) continue;
+                float d = Vector3.Distance(eye, b.Center);
+                if (d < nd) { nd = d; nearest = b; }
+            }
+            return nearest != null ? nearest.Center : (Vector3?)null;
         }
 
         /// <summary>After a fight: strip the fresh wrecks it can reach before they go stale while the plating has room, then
@@ -520,7 +903,9 @@ namespace JamKit.SkylineRepo
                 if (w == null) break;
                 if (!logged) { Log("salvage"); logged = true; }
                 _aimPoint = null;
-                ApplyMove(PathDirection(feet, w.transform.position), true);
+                Vector3 dir = PathDirection(feet, w.transform.position);
+                if (dir.sqrMagnitude > 1e-4f) _aimPoint = player.EyePosition + dir * 10f;
+                ApplyMove(dir, true);
                 yield return null;
             }
             _move = Vector2.zero;
@@ -740,22 +1125,24 @@ namespace JamKit.SkylineRepo
             _sprint = false;
         }
 
-        /// <summary>One frame of walking toward <paramref name="goal"/> (the approach to fight <paramref name="i"/>).</summary>
+        /// <summary>One frame of walking toward <paramref name="goal"/> (the approach to fight <paramref name="i"/>), shooting
+        /// anything in the line of fire on the way.</summary>
         void Steer(int i, Vector3 goal, bool sprint)
         {
             Vector3 feet = Feet();
             var target = PickTarget(i, out Vector3 aim);
             var gun = player.Loadout.Active;
             if (player.Loadout.ActiveIndex != 0) _swap = true;
+            Vector3 dir = Flat(feet, goal) > CoarseArrive ? PathDirection(feet, goal) : Vector3.zero;
+            _aimFixed = false;
             if (target != null)
             {
-                _aimFixed = false;
                 _aimPoint = aim;
                 if (gun.Ammo <= 0) { if (!gun.State.IsReloading) _reload = true; }
-                else if (!gun.State.IsReloading) _fire = true;
+                else if (!gun.State.IsReloading) _fireAt = target;
             }
-            else _aimPoint = null;
-            ApplyMove(Flat(feet, goal) > CoarseArrive ? PathDirection(feet, goal) : Vector3.zero, sprint);
+            else _aimPoint = dir.sqrMagnitude > 1e-4f ? player.EyePosition + dir * 10f : (Vector3?)null;
+            ApplyMove(dir, sprint);
         }
 
         /// <summary>World direction (flat, length up to 1) into the player's move axes, with a side-step when stuck.</summary>

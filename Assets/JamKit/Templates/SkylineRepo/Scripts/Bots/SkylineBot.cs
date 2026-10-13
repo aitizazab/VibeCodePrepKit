@@ -22,8 +22,10 @@ namespace JamKit.SkylineRepo
     /// <item><b>Memory and jitter</b> live in BotBrain (the def's <c>rememberSeconds</c>: a re-sight inside it skips the alert
     /// after a seeded 0-0.15 s beat; a fresh alert waits the def's alert time plus a seeded 0-0.4 s), so a group never fires in
     /// lockstep, exactly as in FightSim.</item>
-    /// <item><b>Drone.</b> Holds its spawn point at the spawn height (the encounter's), drifting in a gentle 1.5 m
-    /// figure-eight only while idle or holding. Awake and out of sight, it searches by FightSim's documented rule
+    /// <item><b>Drone.</b> Keeps its post (the spawn point at the spawn height, the encounter's) and flies FightSim's bounded
+    /// hover patrol round it (<see cref="HoverPatrol"/>, the same code: a gentle bob; awake, sideways strafes across the line to
+    /// the target at the def's <c>patrolSpeed</c> within <c>patrolLeash</c> of the post, a new leg after each volley, a dash
+    /// when hit; asleep, or as Dot's practice bot, a slow short drift), banking into each strafe. Awake and out of sight, its post searches by FightSim's documented rule
     /// (<see cref="Search"/>: last-known point; hold if it has a clear line to it; else the nearest vantage on the rings within
     /// 10 m, committed to; home the way it came when its memory runs out, a leg struck off only on arrival; Home fixed) at the
     /// def's <c>searchSpeed</c>. Fires a <see cref="SkylineBolt"/> at <see cref="Aim.LeadPoint"/> with Normal's lead factor,
@@ -31,11 +33,15 @@ namespace JamKit.SkylineRepo
     /// <item><b>Floor-care unit.</b> Drives at the def's <c>moveSpeed</c> toward the target round the cover (FightSim's
     /// detour-to-the-best-corner of a blocking collider's bounds, and a slide along a face it still runs into), stops half its
     /// sweep radius short, never moves while telegraphing or sweeping; sweeps (<see cref="SkylineAcid"/>) when the target's
-    /// feet are within the sweep radius with a clear jet, damaging once per sweep; feet above <c>ankleHeight</c> are safe.</item>
+    /// feet are within the sweep radius with a clear jet, damaging once per sweep; feet above <c>ankleHeight</c> are safe.
+    /// Until it wakes it cleans round its post (<see cref="FloorCareIdle"/>, FightSim's same code: short runs, gentle turns, a
+    /// bump-and-turn at cover, within the def's <c>idleLeash</c>), its brush turning, happy; awake, it drives from there.</item>
     /// <item><b>Spotlight.</b> Turns only. Starts its beam on entering Telegraph (if it sees), steps it on the brain's clock (the
     /// first step is the state time the brain carried in, so the lock and the shot line up with the brain's states); the
     /// shot lands with the beam's hit and a clear sight now.</item>
-    /// <item><b>Gondola.</b> Rides its rail (<see cref="GondolaRail"/>, start to <c>railEnd</c>) while awake and lays wall
+    /// <item><b>Gondola.</b> Until it wakes it washes the panes (<see cref="GondolaIdle"/>, FightSim's same code: a slow ride
+    /// back and forth along the first metres of its rail, a stop at each end, its squeegee swiping the glass). Rides its rail
+    /// (<see cref="GondolaRail"/>, start to <c>railEnd</c>, from where the washing left it) while awake and lays wall
     /// mines (<see cref="MineLayer"/>, <see cref="WallMine"/>) by the pure rules; the mines live on after a wreck. Its brain
     /// still telegraphs and "attacks" (a squeegee slap, no damage: FightSim's gondola ignores its attack cues).</item>
     /// </list>
@@ -210,6 +216,15 @@ namespace JamKit.SkylineRepo
         float _lastSeenAt = float.NegativeInfinity;
         readonly List<Vector3> _trail = new List<Vector3>();
         float _eightPhase, _eightWeight = 1f;
+        // the drone's hover patrol (HoverPatrol): an offset round _pos, its post
+        HoverPatrol _patrol;
+        Func<NVec3, NVec3, float, bool> _patrolBlocked;
+        // the idle work before waking (IdleWork.cs, FightSim's same code): the floor-care unit cleans, the gondola washes
+        FloorCareIdle _cleaning;
+        Func<NVec3, NVec3, float, bool> _cleaningBlocked;
+        GondolaIdle _washing;
+        bool _railStarted;
+        float _bumpTilt, _swipeWeight, _swipePhase;
         // the floor-care unit
         SkylineAcid _acid;
         Collider _detour;
@@ -293,6 +308,20 @@ namespace JamKit.SkylineRepo
                 Mines = new MineLayer(def);
                 BuildRailBar(position, railEnd);
             }
+            // the idle work, seeded as FightSim seeds it (its own stream)
+            if (FloorCareIdle.Works(def))
+            {
+                _cleaning = new FloorCareIdle(def, FightSim.PatrolSeed(seed, 0));
+                _cleaningBlocked = (a, b, r) => CastStep(U(a), U(b) - U(a), out _);
+                _yaw = _cleaning.Yaw;
+            }
+            if (Rail != null && GondolaIdle.Works(def)) _washing = new GondolaIdle(def, Rail.Length, FightSim.PatrolSeed(seed, 0));
+            if (Beam == null && Rail == null && !(def.moveSpeed > 0f) && HoverPatrol.Moves(def))
+            {
+                _patrol = new HoverPatrol(def, FightSim.PatrolSeed(seed, 0));
+                _patrolBlocked = (a, b, r) => HoverPatrol.LeavesArea(a, b, SearchArea.xMin, SearchArea.xMax, SearchArea.yMin, SearchArea.yMax)
+                    || BlockedThick(U(a), U(b), r);
+            }
 
             _initialized = true;
             Live.Add(this);
@@ -354,8 +383,16 @@ namespace JamKit.SkylineRepo
                 Brain.Tick(dt, IsAwake && sees, _cues);
                 if (IsAwake)
                 {
+                    // woken: on along the rail at full speed from where the washing left it
+                    if (!_railStarted && _washing != null) Rail.StartAt(_washing.Along);
+                    _railStarted = true;
                     Rail.Tick(dt);
                     _pos = U(Rail.Position);
+                }
+                else if (_washing != null && !practice)
+                {
+                    _washing.Tick(dt);
+                    _pos = U(Rail.PositionAt(_washing.Along));
                 }
                 HandleCues(_cues, sees, aimAt, false);
                 TickMines(dt, IsAwake);
@@ -377,6 +414,12 @@ namespace JamKit.SkylineRepo
                 _sawLastStep = sees;
                 HandleCues(_cues, sees, aimAt, false);
                 StepBeam(dt, live);
+                // the drone's hover patrol round its post (FightSim's, the same code): strafes across the line to the target
+                if (_patrol != null)
+                {
+                    Vector3 to = live ? target.Chest - (_pos + U(_patrol.Offset)) : Vector3.zero;
+                    _patrol.Tick(dt, N(_pos), IsAwake && !practice, Brain.State == BotState.Telegraph, N(to), _patrolBlocked);
+                }
             }
 
             Knockback(dt);
@@ -512,6 +555,7 @@ namespace JamKit.SkylineRepo
             if (!(len > 1e-4f)) return;
             Vector3 dir = Spread(aim / len, d.aimSpreadDeg);
             SkylineBolt.Fire(from, dir * d.projectileSpeed, d.projectileRadius, d.attackDamage, d.id, target, transform);
+            _patrol?.OnVolley();
             Sound("attack");
             Attacked?.Invoke(this);
         }
@@ -592,7 +636,20 @@ namespace JamKit.SkylineRepo
                 _yaw = Mathf.MoveTowardsAngle(_yaw, _acid.JetBearing, 720f * dt);
                 return;
             }
-            if (!IsAwake || !live) return;
+            if (!IsAwake)
+            {
+                // asleep: it cleans round its post (FightSim's FloorCareIdle); a bump tips it back a little
+                if (_cleaning != null && !practice)
+                {
+                    int bumps = _cleaning.Bumps;
+                    _cleaning.Tick(dt, N(_home), _cleaningBlocked);
+                    _pos = _home + U(_cleaning.Offset);
+                    _yaw = _cleaning.Yaw;
+                    if (_cleaning.Bumps != bumps) _bumpTilt = 7f;
+                }
+                return;
+            }
+            if (!live) return;
             if (flat > 1e-3f) _yaw = Mathf.MoveTowardsAngle(_yaw, Mathf.Atan2(dx, dz) * Mathf.Rad2Deg, 360f * dt);
             if (Brain.State == BotState.Telegraph) return;
             if (flat < d.sweepRadius * 0.5f) return;   // close enough: it wants the target inside its arc, not under it
@@ -902,6 +959,7 @@ namespace JamKit.SkylineRepo
             Wake(group, this);
             _hitCues.Clear();
             Brain.OnDamaged(_hitCues);
+            if (_patrol != null && !practice) _patrol.OnHit();   // a short dash to a new spot (HoverPatrol)
             HandleCues(_hitCues, SeesTarget, TargetLive(target) ? target.Chest : Center, false);
 
             if (Time.time - _lastHurtSound >= HurtSoundGap || _lastHurtSound < 0f)
@@ -1216,7 +1274,15 @@ namespace JamKit.SkylineRepo
                 transform.position = _pos;
                 rig.rotation = Quaternion.Euler(0f, _spawnYaw, _sway);
                 _squeegee = Mathf.MoveTowards(_squeegee, _squeegeeTarget, 400f * dt);
-                if (Parts.squeegee != null) Parts.squeegee.localRotation = Quaternion.Euler(_squeegee, 0f, 0f);
+                // asleep it washes: the blade held to the glass (wound back toward the wall) and swiped side to side in a
+                // figure-eight, slower while it rides; woken, the swipe hands back to the telegraph and the slap
+                _swipeWeight = Mathf.MoveTowards(_swipeWeight, !IsAwake && _washing != null && !practice ? 1f : 0f, 2.5f * dt);
+                _swipePhase += dt * (Mathf.PI * 2f / (_washing != null && _washing.Speed != 0f ? 1.6f : 1.1f));
+                if (_swipePhase > Mathf.PI * 4f) _swipePhase -= Mathf.PI * 4f;
+                float swipe = _swipePhase;
+                float pitch = Mathf.Lerp(_squeegee, -62f + 7f * Mathf.Sin(swipe * 2f), _swipeWeight);
+                float roll = 30f * Mathf.Sin(swipe) * _swipeWeight;
+                if (Parts.squeegee != null) Parts.squeegee.localRotation = Quaternion.Euler(pitch, 0f, roll);
                 if (Mathf.Abs(_squeegee - 35f) < 0.5f && _squeegeeTarget > 0f) _squeegeeTarget = 0f;
             }
             else if (Beam != null)
@@ -1227,21 +1293,35 @@ namespace JamKit.SkylineRepo
             else if (Def.moveSpeed > 0f)
             {
                 transform.position = _pos;
-                rig.rotation = Quaternion.Euler(0f, _yaw, 0f);
+                // a bump while cleaning tips it back a little and it settles
+                _bumpTilt = Mathf.MoveTowards(_bumpTilt, 0f, 30f * dt);
+                rig.rotation = Quaternion.Euler(-_bumpTilt, _yaw, 0f);
                 bool fast = Brain.State == BotState.Telegraph || (_acid != null && _acid.Running);
-                _spin += (fast ? 1440f : 120f) * dt;
+                bool cleaning = !IsAwake && _cleaning != null && !practice;
+                _spin += (fast ? 1440f : cleaning ? 300f : 120f) * dt;
                 if (Parts.spinner != null) Parts.spinner.localRotation = Quaternion.Euler(0f, _spin, 0f);
             }
             else
             {
-                // the drone: the figure-eight only while idle or holding (not on its way to a search point)
-                float want = _hasGoal ? 0f : 1f;
-                _eightWeight = Mathf.MoveTowards(_eightWeight, want, 2f * dt);
-                _eightPhase += dt * (Mathf.PI * 2f / 7f);
-                Vector3 eight = new Vector3(Mathf.Sin(_eightPhase) * 0.75f, Mathf.Sin(_eightPhase * 2f) * 0.08f, Mathf.Sin(_eightPhase * 2f) * 0.375f);
-                transform.position = _pos + Quaternion.Euler(0f, _spawnYaw, 0f) * eight * _eightWeight;
                 Vector3 lean = _kick * 6f;
-                rig.rotation = Quaternion.Euler(Mathf.Clamp(lean.z, -25f, 25f), _yaw, Mathf.Clamp(-lean.x, -25f, 25f));
+                if (_patrol != null)
+                {
+                    // the drone: its hover patrol round the post (a bob, strafes, a dash when hit), banking into the strafe
+                    transform.position = _pos + U(_patrol.Offset);
+                    lean += U(_patrol.Velocity) * 5f;
+                }
+                else
+                {
+                    // the figure-eight only while idle or holding (not on its way to a search point)
+                    float want = _hasGoal ? 0f : 1f;
+                    _eightWeight = Mathf.MoveTowards(_eightWeight, want, 2f * dt);
+                    _eightPhase += dt * (Mathf.PI * 2f / 7f);
+                    Vector3 eight = new Vector3(Mathf.Sin(_eightPhase) * 0.75f, Mathf.Sin(_eightPhase * 2f) * 0.08f, Mathf.Sin(_eightPhase * 2f) * 0.375f);
+                    transform.position = _pos + Quaternion.Euler(0f, _spawnYaw, 0f) * eight * _eightWeight;
+                }
+                // the lean in the drone's own frame: forward motion pitches it, sideways motion rolls it
+                Vector3 leanLocal = Quaternion.Euler(0f, -_yaw, 0f) * lean;
+                rig.rotation = Quaternion.Euler(Mathf.Clamp(leanLocal.z, -25f, 25f), _yaw, Mathf.Clamp(-leanLocal.x, -25f, 25f));
                 _spin += 1800f * dt;
                 if (Parts.spinner != null)
                     for (int i = 0; i < Parts.spinner.childCount; i++) Parts.spinner.GetChild(i).localRotation = Quaternion.Euler(0f, _spin * (i % 2 == 0 ? 1f : -1f), 0f);

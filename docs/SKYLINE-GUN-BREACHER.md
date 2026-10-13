@@ -124,13 +124,17 @@ The generic impacts (Task 19's ruling; every gun's pellets play them through `Sk
   (everything else). Same size as the old grey-box gun, so the rest pose and the arms still fit.
 - **Arms:** the primitive robot arms (graphite forearms with a pale wrist band). The shared robot arms are Task 18's
   and Task 18 is not running, so the Breacher uses the viewmodel's primitive arms for now.
-- **VFX** (`Fx/Breacher/SkylineBreacherFx.cs`, added to every SkylinePlayer when a scene loads):
+- **VFX** (`Fx/Breacher/SkylineBreacherFx.cs`, added to every SkylinePlayer when a Skyline scene loads):
   - *Muzzle blast* (viewmodel): a white-hot core and six spikes, one long one down the barrel, for 0.045 s (three
     frames at 60 fps), then three puffs of smoke rolling off the muzzle for half a second.
   - *Flash*: a warm point light at the muzzle for 0.07 s, so the blast lights the room.
-  - *Shockwave ring*: a thin glowing ring thrown out along the aim, from 0.12 m to 1.15 m wide in 0.14 s.
-  - *Pellet sparks*: three hot sparks at every pellet that lands on a bot, plus four where the centre of the spread
-    lands within 4 m, with a dust kick (six chunks and a puff).
+  - *Shockwave ring*: a thin, hollow glowing ring 2.6 m out along the aim, growing from 0.1 m to 0.6 m (about 26° of
+    view) in 0.14 s; the crosshair's target stays visible through its middle.
+  - *Pellet hits on a bot*: three dark chips and flakes of its white-and-gold casing and a dull grey dust puff at every
+    pellet that lands. No glow and no sparks: on a live bot, sparks and glow mean a Writ spot (the spec's damage-feedback
+    rule; the controller's ruling, 2026-10-14, over the brief's "pellet sparks"). Where the centre of the spread lands
+    on the world within 4 m: a dust kick (six chunks and a puff). No sparks on the world either, since the effect can't
+    tell metal from tile.
   - *Plates fly*: a plate the Breacher sheds is kicked along the shot (7 m/s plus 2 m/s up, with spin) on top of the
     bots' own throw.
   - *Boost*: a blast under your feet. If the spread hits a floor within 6 m: a glowing ring racing out over the floor to

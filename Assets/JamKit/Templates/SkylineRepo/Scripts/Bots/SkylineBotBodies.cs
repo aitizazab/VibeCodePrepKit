@@ -212,6 +212,10 @@ namespace JamKit.SkylineRepo
             p.spinner = Find(p.rig, "Rotors");
             if (p.spinner == null) p.spinner = Find(p.rig, "Brush");
             p.squeegee = Find(p.rig, "SqueegeeArm");
+            // a missing moving part would fail silently (the floor-care unit would lose half its telegraph): logged once per bot
+            if (def.id == SkylineEnemies.DroneId && (p.spinner == null || p.spinner.name != "Rotors")) LogOnce("SKYLINE_BOT model " + def.id + " lacks Rotors");
+            if (def.id == SkylineEnemies.FloorCareId && (p.spinner == null || p.spinner.name != "Brush")) LogOnce("SKYLINE_BOT model " + def.id + " lacks Brush");
+            if (def.id == SkylineEnemies.GondolaId && p.squeegee == null) LogOnce("SKYLINE_BOT model " + def.id + " lacks SqueegeeArm");
             if ((def.id == SkylineEnemies.DroneId || def.id == SkylineEnemies.SpotlightId) && p.muzzle == null) p.muzzle = Need(def, p.rig, "Muzzle");
             if (def.id == SkylineEnemies.FloorCareId && p.nozzle == null) p.nozzle = Need(def, p.rig, "Nozzle");
             if (def.id == SkylineEnemies.SpotlightId && p.lamp == null) p.lamp = Need(def, p.rig, "Lamp");

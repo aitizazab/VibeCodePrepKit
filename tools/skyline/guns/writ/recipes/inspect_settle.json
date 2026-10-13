@@ -1,27 +1,19 @@
 {
   "sample_rate": 48000,
-  "length": 0.151,
+  "length": 0.4,
   "seed": 1,
   "layers": [
     {
-      "type": "sine",
-      "freq": 220,
-      "freq_end": 120,
+      "type": "sample",
+      "path": "../samples/inspect_settle.wav",
       "start": 0.0,
-      "attack": 0.001,
-      "decay": 0.1,
-      "gain_db": -14
-    },
-    {
-      "type": "noise",
-      "lowpass": 900,
-      "start": 0.0,
-      "attack": 0.001,
-      "decay": 0.06,
-      "gain_db": -20
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -8.0,
+      "pan": 0.0
     }
   ],
   "master": {
-    "limit_db": -1.0
+    "limit_db": -1.6
   }
 }

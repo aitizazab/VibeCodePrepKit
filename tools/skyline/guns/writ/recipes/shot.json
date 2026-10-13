@@ -1,33 +1,55 @@
 {
   "sample_rate": 48000,
-  "length": 0.755,
+  "length": 2.3,
   "seed": 1,
   "layers": [
     {
-      "type": "noise",
-      "highpass": 1800,
-      "attack": 0.0005,
-      "decay": 0.07,
-      "gain_db": -1
+      "type": "sample",
+      "path": "../samples/shot_gavel.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -4.0,
+      "pan": 0.0
     },
     {
-      "type": "sine",
-      "freq": 160,
-      "freq_end": 50,
-      "attack": 0.001,
-      "decay": 0.28,
-      "gain_db": -3
+      "type": "sample",
+      "path": "../samples/shot_body.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -2.0,
+      "pan": 0.0
     },
     {
-      "type": "noise",
-      "color": "pink",
-      "lowpass": 2500,
-      "attack": 0.005,
-      "decay": 0.7,
-      "gain_db": -15
+      "type": "sample",
+      "path": "../samples/shot_hydraulic.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -13.0,
+      "pan": 0.1
+    },
+    {
+      "type": "sample",
+      "path": "../samples/shot_hall_l.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -3.0,
+      "pan": -0.85
+    },
+    {
+      "type": "sample",
+      "path": "../samples/shot_hall_r.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -3.0,
+      "pan": 0.85
     }
   ],
   "master": {
-    "limit_db": -1.0
+    "limit_db": -1.6
   }
 }

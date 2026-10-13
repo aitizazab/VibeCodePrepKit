@@ -24,6 +24,13 @@ namespace JamKit.Skyline
 
         public static GunDef Find(string id) => id == WritId ? Writ() : id == BreacherId ? Breacher() : null;
 
+        /// <summary>The Writ's inspect sight check (Task 18; docs/SKYLINE-GUN-WRIT.md): the pose offset (camera space) that puts
+        /// the rear sight's window 13 cm straight ahead of the eye, on the sight line. It also undoes the home pose
+        /// SkylineWritFx layers on top of every Writ pose (a yaw of -9 degrees toward the crosshair, 1.5 cm up): the viewmodel
+        /// rest is (0.16, -0.15, 0.36) and the window is at (0, 0.088, -0.079) in the gun's frame.</summary>
+        public static readonly Vector3 WritSightCheck = new Vector3(-0.16f, 0.047f, -0.151f);
+        public static readonly Vector3 WritSightCheckEuler = new Vector3(0f, 9f, 0f);
+
         /// <summary>The Writ: a precise sidearm. Every weak-point hit leaves a weak spot that takes more than a headshot (2.2).
         /// 250 RPM, 8 rounds; a magazine-and-cell reload with a bolt from empty.</summary>
         public static GunDef Writ()
@@ -46,8 +53,10 @@ namespace JamKit.Skyline
                 enemyKnockback = 0.5f,
                 hitStopSeconds = 0.03f,
                 killHitStopSeconds = 0.08f,
-                shakePerShot = 0.06f,
-                kick = new CameraKickDef { pitchDeg = 2.2f, yawDeg = 0.5f, recoverRate = 9f },
+                // Task 18 (docs/SKYLINE-GUN-WRIT.md): a heavy precise shot, the gavel coming down. 2.8 degrees up, recovered to
+                // 7% (0.2 degrees) by the next shot 0.24 s later at rate 11, so the sights are back on target every time.
+                shakePerShot = 0.07f,
+                kick = new CameraKickDef { pitchDeg = 2.8f, yawDeg = 0.6f, recoverRate = 11f },
                 aimAssist = new AimAssistDef { slowdownConeDeg = 5f, slowdownScale = 0.5f, magnetConeDeg = 3f, magnetDegPerSec = 8f, range = 50f },
                 clips = new[]
                 {
@@ -56,7 +65,7 @@ namespace JamKit.Skyline
                         new[] { P(0f, V(0.05f, -0.3f, -0.15f), V(40f, 0f, 25f)), P(0.7f, V(0f, 0.01f, 0f), V(-3f, 0f, 0f)), P(1f, O, O) }),
                     C(HandlingClipKind.Fire, 0.22f,
                         new[] { E(0f, "shot", "writ/shot"), E(0.45f, "mech", "writ/shot_mech") },
-                        new[] { P(0f, O, O), P(0.15f, V(0f, 0.015f, -0.06f), V(-7f, 0f, 0f)), P(1f, O, O) }),
+                        new[] { P(0f, O, O), P(0.12f, V(0f, 0.02f, -0.07f), V(-9f, 0f, 1.5f)), P(0.45f, V(0f, 0.004f, -0.012f), V(-2f, 0f, 0.3f)), P(1f, O, O) }),
                     C(HandlingClipKind.DryFire, 0.25f,
                         new[] { E(0f, "click", "writ/dry_click") },
                         new[] { P(0f, O, O), P(0.3f, V(0f, 0f, -0.01f), V(-1f, 0f, 0f)), P(1f, O, O) }),
@@ -76,12 +85,16 @@ namespace JamKit.Skyline
                             P(0.36f, tilt, tiltEuler, V(0f, -0.12f, 0f)), P(0.42f, tilt, tiltEuler, V(0f, -0.02f, 0f)),
                             P(0.55f, V(-0.04f, -0.03f, 0f), V(4f, -6f, -15f)), P(0.8f, V(0.02f, -0.02f, 0f), V(0f, 8f, 12f)), P(1f, O, O),
                         }),
+                    // The inspect turns the courtroom to show its side (the colonnade, the lamps, the brass plate), taps the
+                    // plate, then raises the gun to the eye for a sight check: the gun centred so the eye looks along the sight
+                    // line through the chair's round window, its brass bar crossing the obelisk on the crosshair.
                     C(HandlingClipKind.Inspect, 2.4f,
                         new[] { E(0.1f, "turn", "writ/inspect_turn"), E(0.55f, "tap", "writ/inspect_tap"), E(0.85f, "settle", "writ/inspect_settle") },
                         new[]
                         {
-                            P(0f, O, O), P(0.2f, V(-0.08f, 0.04f, 0.05f), V(-10f, -55f, -20f)), P(0.55f, V(-0.08f, 0.05f, 0.05f), V(-12f, -60f, -25f)),
-                            P(0.6f, V(-0.08f, 0.045f, 0.05f), V(-11f, -58f, -24f)), P(0.85f, O, O), P(1f, O, O),
+                            P(0f, O, O), P(0.18f, V(-0.08f, 0.04f, 0.05f), V(-10f, -55f, -20f)), P(0.5f, V(-0.08f, 0.05f, 0.05f), V(-12f, -60f, -25f)),
+                            P(0.55f, V(-0.08f, 0.045f, 0.05f), V(-11f, -58f, -24f)), P(0.68f, WritSightCheck, WritSightCheckEuler),
+                            P(0.8f, WritSightCheck, WritSightCheckEuler), P(0.92f, O, O), P(1f, O, O),
                         }),
                 },
             };

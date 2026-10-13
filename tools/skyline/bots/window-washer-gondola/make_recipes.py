@@ -4,7 +4,8 @@
 
 The gondola is winch-and-cable: a geared winch motor, rope creak, cable twangs, a rubber squeegee swipe, mine beeps
 and a sharp blast. The recipes are plain sound-forge JSON; this script only saves writing the many small layers
-(creak pulses, ratchet teeth, beeps) by hand. Render each recipe with the forge into
+(creak pulses, ratchet teeth, beeps) by hand. Then render them (its sources.py stem first) with
+`uv run --project tools/skyline/soundforge python tools/skyline/guns/render_all.py --bot window-washer-gondola`, 16-bit PCM, into
 Assets/JamKit/Templates/SkylineRepo/Resources/SkylineAudio/window-washer-gondola/<name>.wav.
 
 Timing contract (Unity, SkylineBot.cs): `telegraph` plays twice over. (1) When the brain enters its telegraph, and the
@@ -202,9 +203,13 @@ def mine_arm():
     save("mine_arm", 0.25, layers, seed=59)
 
 
-def mine_blast():
-    # A shaped charge on glass: a sharp crack, a short punchy body (not a boom: it's a small mine), glass and debris
-    # pinging out, a short tail.
+BLAST_SECONDS = 0.75
+
+
+def blast_layers():
+    """The mine blast's design, rendered into the stem sources/gw_mine_blast.wav by sources.py (which drives it into a
+    soft clip so it sits as loud as the other bots' attacks): a shaped charge on glass, a sharp crack, a short punchy
+    body (not a boom: it's a small mine), glass and debris pinging out, a short tail."""
     rnd = random.Random(61)
     layers = [
         noise(attack=0.0003, decay=0.08, gain=0, hp=1500, lp=8000),
@@ -218,7 +223,13 @@ def mine_blast():
         at = 0.03 + rnd.uniform(0, 0.3)
         layers.append(sine(rnd.uniform(2500, 6000), start=at, attack=0.0004, decay=rnd.uniform(0.03, 0.06),
                            gain=-21 - rnd.uniform(0, 8), pan=round(rnd.uniform(-0.5, 0.5), 2)))
-    save("mine_blast", 0.75, layers, seed=61)
+    return layers
+
+
+def mine_blast():
+    # The driven stem (sources.py), +3 dB for the centre pan; the limit keeps the true peak under -1 dBTP.
+    layer = {"type": "sample", "path": "../sources/gw_mine_blast.wav", "start": 0.0, "attack": 0.0, "decay": 0.0, "gain_db": 3.0}
+    save("mine_blast", BLAST_SECONDS, [layer], seed=61, limit=-1.8)
 
 
 def main():

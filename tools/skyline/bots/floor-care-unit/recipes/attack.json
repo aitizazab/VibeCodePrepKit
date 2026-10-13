@@ -9,7 +9,7 @@
       "start": 0.0,
       "attack": 0,
       "decay": 0,
-      "gain_db": 2.5
+      "gain_db": 1.0
     },
     {
       "type": "noise",
@@ -23,5 +23,5 @@
   "master": {
     "limit_db": -1.0
   },
-  "note": "sample layers +3 dB: a centred layer is panned at -3 dB per side"
+  "note": "sample layers +3 dB for the centre pan; the spit itself 1.5 dB lower (review Minor 3) to leave headroom for acid_sweep, which plays with it"
 }

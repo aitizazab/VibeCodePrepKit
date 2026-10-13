@@ -20,14 +20,14 @@ namespace JamKit.SkylineRepo.EditorTools
     /// director); the kiosk (3 x 3 m up to <see cref="GalleriaArena.BoostLedgeTop"/>, not runnable, a glass counter band
     /// round it) with the <see cref="SkylineScrapCache"/> on top; a 6 x 5 m doorway into the main hall at z -20.</item>
     /// <item><b>The main hall</b> (x -25..25, z -20..20, walls 14 m, a glass skylight roof at 14 m): runnable walls all
-    /// round with glass shop fronts (no colliders; the walls behind them are the runnable surfaces), so the side walls by the
-    /// gondolas' rails are a wall-run route; the mezzanine deck exactly as <see cref="GalleriaArena.MezzanineDeck"/> (solid,
+    /// round (the side walls by the gondolas' rails are a wall-run route; Task 21's dressing draws their shopfronts and
+    /// curtain wall inside their volumes); the mezzanine deck exactly as <see cref="GalleriaArena.MezzanineDeck"/> (solid,
     /// so it blocks sight above and below except past its open edge at z 12) with a glass balustrade and two plinths under
     /// the spotlights' bases (both dressing, no colliders); the cover exactly as <see cref="GalleriaArena.HallCover"/> (14 boxes, solid, not
     /// runnable), a pillar's top split where it meets the deck so no two solids overlap; the three encounter zones and
     /// their spawn markers; the entry lane's floor marker (shown while the next fight waits).</item>
-    /// <item>The HUD, a 2D voice source, the <see cref="SkylineArenaDirector"/>, the <see cref="SkylineArenaDemo"/>, the sun
-    /// at 50 degrees with a procedural sky, and eight <see cref="SkylineStillCamera"/>s.</item>
+    /// <item>The HUD, a 2D voice source, the <see cref="SkylineArenaDirector"/>, the <see cref="SkylineArenaDemo"/> and eight
+    /// <see cref="SkylineStillCamera"/>s. The sun at 50 degrees with a procedural sky is only the fallback now.</item>
     /// <item><b>Task 21</b> replaces the sun and sky with the afternoon look (<see cref="SkylineLook.ApplyAfternoon"/>; the plain sun
     /// stays as the fallback if the look fails) and dresses the grey box (<see cref="Dress"/>, SkylineArenaDress.cs): the
     /// gameplay pieces keep their positions and colliders; the dressing re-skins them and adds visual-only geometry.</item>
@@ -206,7 +206,7 @@ namespace JamKit.SkylineRepo.EditorTools
             Stills();
 
             // ---------------------------------------------------------- the look's dressing (Task 21)
-            try { Dress(scene, arena, warm, hall, entryMarker); }
+            try { Dress(arena, warm, hall, entryMarker); }
             catch (System.Exception e) { Debug.LogError("SKYLINE_LOOK dressing failed: " + e); }
             SkylineLook.SetupCameras(scene);
             if (look) SkylineLook.BakeReflections(scene, path, arena);

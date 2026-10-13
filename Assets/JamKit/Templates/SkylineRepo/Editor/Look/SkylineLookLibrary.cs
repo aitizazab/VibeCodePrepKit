@@ -203,7 +203,6 @@ namespace JamKit.SkylineRepo.EditorTools
         public static Material Signs() => Emissive("Signs", SignsPath, new Color(1.45f, 1.45f, 1.45f));
         public static Material Posters() => Emissive("Posters", PostersPath, new Color(1.25f, 1.25f, 1.25f));
         public static Material LightPanel() => Emissive("LightPanel", null, new Color(2.1f, 2.05f, 1.9f));
-        public static Material GoldGlow() => Emissive("GoldGlow", null, new Color(1.9f, 1.45f, 0.75f));
 
         /// <summary>
         /// Glass (named SK_Glass_&lt;name&gt;): URP Lit, transparent, very smooth, specular preserved so it reflects the
@@ -385,7 +384,9 @@ namespace JamKit.SkylineRepo.EditorTools
             var shader = Shader.Find("JamKit/Look/Sky");
             if (shader == null) throw new InvalidOperationException("JamKit/Look/Sky shader not found");
             var m = Asset(LookRoot + "SK_Sky_Kloofendal38d.mat", shader, "SK_Sky_Kloofendal38d");
-            m.SetTexture("_SkyTex", Load(SkyHdrPath));
+            var sky = Load(SkyHdrPath);
+            if (sky == null) throw new InvalidOperationException("the afternoon sky isn't imported: " + SkyHdrPath);
+            m.SetTexture("_SkyTex", sky);
             float exposure = SkyExposure(s);
             m.SetFloat("_Exposure", exposure);
             m.SetColor("_HorizonColor", s.Horizon * exposure);

@@ -1,6 +1,6 @@
 """Builds the window-washer gondola's model in Blender (background) and exports it for Unity.
 
-    blender -b --factory-startup -P tools/skyline/bots/window-washer-gondola/build_model.py -- [--preview out.png]
+    blender -b --factory-startup -P tools/skyline/bots/window-washer-gondola/build_model.py -- [--preview-dir <dir>]
 
 (run it through the GPU wrapper / capped-run, as the machine's rules say). Writes
 Assets/JamKit/Templates/SkylineRepo/Resources/SkylineModels/bots/window-washer-gondola.fbx.
@@ -14,8 +14,10 @@ is tossed from) and SqueegeeArm (the arm's pivot on the top rail; SkylineBot swi
 slap).
 
 Every number below is in Unity's frame (metres; +Y up, +Z the bot's front, +X its right): the helpers convert to Blender
-(the front faces -Y) so the FBX lands in Unity with identity rotations (Apply Transform). Colours are CONCIERGE white and
-gold (SkylineBotLook's values, written as linear colour so Unity's importer gets them back), a hi-vis beacon on top.
+(the front faces -Y) and every node keeps an identity rotation; the FBX is written by blender_kit.export, the
+convention all four bots share. Colours are CONCIERGE white and
+gold (SkylineBotLook's values, written as linear colour so Unity's importer gets them back); no orange anywhere
+(the firm's colour, spec 1.3).
 """
 from __future__ import annotations
 
@@ -26,6 +28,9 @@ from pathlib import Path
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import blender_kit as bk  # noqa: E402  (the shared bot toolchain: merge, export, preview dump)
 
 ROOT = Path(__file__).resolve().parents[4]
 OUT = ROOT / "Assets" / "JamKit" / "Templates" / "SkylineRepo" / "Resources" / "SkylineModels" / "bots"
@@ -199,70 +204,24 @@ def new_collection(name):
     return c
 
 
-def export(coll_name, path: Path):
-    bpy.ops.object.select_all(action="DESELECT")
-    for o in COLL[coll_name].all_objects:
-        o.select_set(True)
-    bpy.ops.export_scene.fbx(filepath=str(path), use_selection=True, object_types={"EMPTY", "MESH"},
-                             apply_unit_scale=True, apply_scale_options="FBX_SCALE_ALL", bake_space_transform=True,
-                             axis_forward="-Z", axis_up="Y", mesh_smooth_type="FACE", use_mesh_modifiers=True,
-                             add_leaf_bones=False, bake_anim=False, path_mode="AUTO", use_custom_props=False)
-    print("exported", path, len(COLL[coll_name].all_objects), "objects")
+def fold(target, others):
+    """Joins the named meshes into `target` (blender_kit.merge, the shared toolchain), so the bot spawns with a few
+    renderers and colliders instead of dozens (review Minor 10). Only compact groups are folded: a fold's box collider
+    must not swallow a plate or the weak point."""
+    objs = [bpy.data.objects[target]] + [bpy.data.objects[n] for n in others]
+    bk.merge(objs, target)
 
 
-def reimport_check(path: Path, want):
-    """Re-imports an FBX into a scratch scene and checks the contract's names and that no object came in rotated."""
-    before = set(bpy.data.objects)
-    bpy.ops.import_scene.fbx(filepath=str(path), axis_forward="-Z", axis_up="Y", bake_space_transform=True)
-    got = [o for o in bpy.data.objects if o not in before]
-    names = {o.name.split(".")[0] for o in got}
-    missing = [n for n in want if n not in names]
-    print("reimport", path.name, len(got), "objects; missing:", missing or "none")
-    for o in got:
-        if o.name.split(".")[0] in want:
-            print(f"  {o.name:22s} parent={o.parent.name if o.parent else '-':18s} loc={tuple(round(v, 3) for v in o.matrix_world.translation)}")
-    for o in got:
-        rot = o.matrix_world.to_euler()
-        if o.parent is None and max(abs(rot.x), abs(rot.y), abs(rot.z)) > 1e-3 and o.type == "MESH" and not o.name.startswith("Strut"):
-            print("  ROTATED:", o.name, tuple(round(math.degrees(v), 1) for v in rot))
-    for o in got:
-        bpy.data.objects.remove(o)
-    return not missing
-
-
-def preview(png: Path, target_u, dist=4.2, height=0.6, side=0.55, lens=50):
-    """A small Cycles CPU still (no GPU): a camera to the front-right, a key light, a soft world."""
-    scene = bpy.context.scene
-    scene.render.engine = "CYCLES"
-    scene.cycles.device = "CPU"
-    scene.cycles.samples = 24
-    scene.render.resolution_x, scene.render.resolution_y = 800, 520
-    scene.render.filepath = str(png)
-    world = bpy.data.worlds.new("w")
-    world.use_nodes = True
-    world.node_tree.nodes["Background"].inputs[0].default_value = (0.32, 0.33, 0.36, 1)
-    world.node_tree.nodes["Background"].inputs[1].default_value = 0.8
-    scene.world = world
-    t = B(target_u)
-    cam_u = (target_u[0] + side * dist, target_u[1] + height, target_u[2] + dist)
-    cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
-    cam.data.lens = lens
-    scene.collection.objects.link(cam)
-    cam.location = B(cam_u)
-    cam.rotation_mode = "QUATERNION"
-    cam.rotation_quaternion = (t - cam.location).to_track_quat("-Z", "Y")
-    scene.camera = cam
-    sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
-    sun.data.energy = 3.0
-    sun.rotation_euler = (math.radians(50), math.radians(-20), math.radians(-30))
-    scene.collection.objects.link(sun)
-    bpy.ops.render.render(write_still=True)
-    print("preview", png)
+def fresh():
+    bk.reset()
+    _mats.clear()
+    _world.clear()
+    COLL.clear()
 
 
 # ------------------------------------------------------------------------------------------------ the gondola
 
-HIVIS = ("HiVis_Orange", (1.0, 0.52, 0.08), 0.5)
+BEACON = ("Beacon_Gold", (0.95, 0.80, 0.40), 0.3)   # a gold lamp, not hi-vis orange: orange is the firm's (spec 1.3)
 SUDS = ("Suds", (0.86, 0.93, 0.98), 0.7)
 MINE_RED = ("Mine_LED", (0.95, 0.12, 0.08), 0.4)
 
@@ -315,15 +274,15 @@ def build(c="gondola"):
         rod(f"Handle2_{pid}", (s * 0.8, 0.1, 0.12), (s * 0.8 + 0.17, -0.08, 0.12), 0.008, DARK, c, parent=b, segs=6)
         if s < 0:
             rod("SpareSqueegee", (-0.86, -0.1, 0.1), (-0.95, 0.28, 0.0), 0.015, DARK, c, parent=b, segs=8)
-    # the control box: the face's display in a gold frame, a hi-vis beacon on top
+    # the control box: the face's display in a gold frame, a gold beacon on top
     box("ControlBox", (0.5, 0.42, 0.18), (0, -0.16, 0.36), WHITE, c, bevel=0.03)
     box("ScreenFrame", (0.5, 0.32, 0.012), (0, -0.12, 0.452), GOLD, c, bevel=0.004)
     box("Screen", (0.46, 0.28, 0.02), (0, -0.12, 0.456), SCREEN, c, bevel=0.004)
     face_plane("Face", 0.44, 0.26, (0, -0.12, 0.468), c)
     cyl("BeaconBase", 0.055, 0.055, 0.03, "y", (0.16, 0.065, 0.36), DARK, c, segs=16)
-    cyl("Beacon", 0.045, 0.04, 0.08, "y", (0.16, 0.12, 0.36), HIVIS, c, segs=16)
+    cyl("Beacon", 0.045, 0.04, 0.08, "y", (0.16, 0.12, 0.36), BEACON, c, segs=16)
     for k in range(3):   # control buttons
-        cyl(f"Button{k}", 0.018, 0.018, 0.015, "z", (-0.15 + k * 0.05, -0.33, 0.456), GOLD if k else HIVIS, c, segs=10)
+        cyl(f"Button{k}", 0.018, 0.018, 0.015, "z", (-0.15 + k * 0.05, -0.33, 0.456), GOLD if k else WHITE, c, segs=10)
     # the mine crate, three disc mines on top; mines are tossed from its wall side
     box("MineCrate", (0.3, 0.2, 0.26), (-0.38, -0.28, 0.02), DARK, c, bevel=0.015)
     for k in range(3):
@@ -340,17 +299,28 @@ def build(c="gondola"):
 
 
 def main():
+    """One export through blender_kit.export (one FBX convention for all four bots), with a preview JSON for
+    tools/skyline/bots/preview.py (no GPU) in the folder passed as --preview-dir."""
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    png = Path(args[args.index("--preview") + 1]) if "--preview" in args else None
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+    pdir = Path(args[args.index("--preview-dir") + 1]) if "--preview-dir" in args else None
     OUT.mkdir(parents=True, exist_ok=True)
+    fresh()
     build()
-    path = OUT / "window-washer-gondola.fbx"
-    export("gondola", path)
-    ok = reimport_check(path, ["Plate_bucket-left", "Plate_bucket-right", "WeakPoint", "Face", "Rail", "MineDrop", "SqueegeeArm"])
-    if png:
-        preview(png, (0, 0.3, 0), dist=5.0, height=0.4, side=0.45)
-    print("BUILD OK" if ok else "BUILD CHECK FAILED")
+    # compact folds only: the railing, the winch's hangers and flanges and the stirrups stay separate, or their joined
+    # box colliders would cover the buckets (plates) and the copper coil (the weak point)
+    fold("Deck", ["DeckFrame", "KickPlate", "ToeBoardL", "ToeBoardR"])
+    fold("Rail", ["CheekL", "CheekR", "WheelL", "WheelR"])
+    fold("ControlBox", ["ScreenFrame", "Screen", "BeaconBase", "Beacon", "Button0", "Button1", "Button2"])
+    fold("MineCrate", ["Mine0", "Mine1", "Mine2", "MineRim0", "MineRim1", "MineRim2", "MineLed"])
+    fold("SqueegeePole", ["SqueegeeHolder", "SqueegeeBlade"])
+    bpy.data.objects["SqueegeePole"].name = "Squeegee"
+    for s, n in ((-1, "L"), (1, "R")):
+        fold("Cable" + n, ["StirrupEye" + n])
+    for pid in ("bucket-left", "bucket-right"):
+        extra = ["SpareSqueegee"] if pid == "bucket-left" else []
+        fold(f"Plate_{pid}", [f"Rim_{pid}", f"Suds_{pid}", f"Handle_{pid}", f"Handle2_{pid}"] + extra)
+    bk.export(str(OUT / "window-washer-gondola.fbx"), str(pdir / "window-washer-gondola.json") if pdir else None)
+    print("BUILD OK")
 
 
 main()

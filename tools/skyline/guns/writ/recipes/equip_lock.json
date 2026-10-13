@@ -1,35 +1,19 @@
 {
   "sample_rate": 48000,
-  "length": 0.111,
+  "length": 0.7,
   "seed": 1,
   "layers": [
     {
-      "type": "noise",
-      "highpass": 3000,
+      "type": "sample",
+      "path": "../samples/equip_lock.wav",
       "start": 0.0,
-      "attack": 0.0005,
-      "decay": 0.05,
-      "gain_db": -6
-    },
-    {
-      "type": "sine",
-      "freq": 400,
-      "freq_end": 200,
-      "start": 0.0,
-      "attack": 0.001,
-      "decay": 0.06,
-      "gain_db": -10
-    },
-    {
-      "type": "noise",
-      "lowpass": 900,
-      "start": 0.0,
-      "attack": 0.001,
-      "decay": 0.036,
-      "gain_db": -16
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -5.0,
+      "pan": 0.0
     }
   ],
   "master": {
-    "limit_db": -1.0
+    "limit_db": -1.6
   }
 }

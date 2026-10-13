@@ -4,135 +4,15 @@
  "seed": 61,
  "layers": [
   {
-   "type": "noise",
+   "type": "sample",
+   "path": "../sources/gw_mine_blast.wav",
    "start": 0.0,
-   "attack": 0.0003,
-   "decay": 0.08,
-   "gain_db": 0,
-   "highpass": 1500,
-   "lowpass": 8000
-  },
-  {
-   "type": "noise",
-   "start": 0.0,
-   "attack": 0.0005,
-   "decay": 0.45,
-   "gain_db": 4,
-   "color": "pink",
-   "highpass": 300,
-   "lowpass": 3000
-  },
-  {
-   "type": "noise",
-   "start": 0.0,
-   "attack": 0.001,
-   "decay": 0.3,
-   "gain_db": -2,
-   "color": "pink",
-   "lowpass": 600
-  },
-  {
-   "type": "sine",
-   "freq": 75,
-   "start": 0.0,
-   "attack": 0.001,
-   "decay": 0.3,
-   "gain_db": -3,
-   "freq_end": 34
-  },
-  {
-   "type": "sine",
-   "freq": 160,
-   "start": 0.0,
-   "attack": 0.0008,
-   "decay": 0.15,
-   "gain_db": -3,
-   "freq_end": 60
-  },
-  {
-   "type": "noise",
-   "start": 0.01,
-   "attack": 0.004,
-   "decay": 0.6,
-   "gain_db": -8,
-   "color": "pink",
-   "highpass": 200,
-   "lowpass": 1800
-  },
-  {
-   "type": "sine",
-   "freq": 4448.421,
-   "start": 0.1783,
-   "attack": 0.0004,
-   "decay": 0.054292282664858305,
-   "gain_db": -23.56,
-   "pan": -0.18
-  },
-  {
-   "type": "sine",
-   "freq": 4201.585,
-   "start": 0.238,
-   "attack": 0.0004,
-   "decay": 0.04078034611011844,
-   "gain_db": -24.24,
-   "pan": -0.17
-  },
-  {
-   "type": "sine",
-   "freq": 4711.29,
-   "start": 0.0803,
-   "attack": 0.0004,
-   "decay": 0.05681338090513699,
-   "gain_db": -26.51,
-   "pan": 0.13
-  },
-  {
-   "type": "sine",
-   "freq": 4017.316,
-   "start": 0.1313,
-   "attack": 0.0004,
-   "decay": 0.034325040607428324,
-   "gain_db": -26.83,
-   "pan": -0.2
-  },
-  {
-   "type": "sine",
-   "freq": 5932.636,
-   "start": 0.1175,
-   "attack": 0.0004,
-   "decay": 0.0402101610840823,
-   "gain_db": -28.83,
-   "pan": 0.12
-  },
-  {
-   "type": "sine",
-   "freq": 4697.941,
-   "start": 0.2583,
-   "attack": 0.0004,
-   "decay": 0.03536055090618692,
-   "gain_db": -26.7,
-   "pan": -0.24
-  },
-  {
-   "type": "sine",
-   "freq": 2956.631,
-   "start": 0.1523,
-   "attack": 0.0004,
-   "decay": 0.03175293077702182,
-   "gain_db": -23.94,
-   "pan": -0.49
-  },
-  {
-   "type": "sine",
-   "freq": 5475.492,
-   "start": 0.1456,
-   "attack": 0.0004,
-   "decay": 0.059954601602352095,
-   "gain_db": -24.38,
-   "pan": -0.39
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": 3.0
   }
  ],
  "master": {
-  "limit_db": -1.0
+  "limit_db": -1.8
  }
 }

@@ -95,9 +95,18 @@ namespace JamKit.Skyline
         // the gondola
         public GondolaRail Rail { get; internal set; }
         public MineLayer Mines { get; internal set; }
+        /// <summary>The drone's hover patrol round <see cref="Position"/> (its post), or null for bots that hold still.</summary>
+        public HoverPatrol Patrol { get; internal set; }
+        /// <summary>The floor-care unit's idle cleaning round <see cref="Home"/> until it wakes (<see cref="FloorCareIdle"/>), or null.</summary>
+        public FloorCareIdle Cleaning { get; internal set; }
+        /// <summary>The gondola's idle washing along the start of its rail until it wakes (<see cref="GondolaIdle"/>), or null.</summary>
+        public GondolaIdle Washing { get; internal set; }
+        internal bool railStarted;
 
-        /// <summary>Where it is shot at and sees from: a floor-care unit's body sits 0.4 m above the floor.</summary>
-        public Vector3 Center => Def.moveSpeed > 0f ? Position + new Vector3(0f, FightSim.FloorUnitCenter, 0f) : Position;
+        /// <summary>Where it is shot at and sees from: a floor-care unit's body sits 0.4 m above the floor; a patrolling drone
+        /// is at its post plus the patrol's offset.</summary>
+        public Vector3 Center => Def.moveSpeed > 0f ? Position + new Vector3(0f, FightSim.FloorUnitCenter, 0f)
+            : Patrol != null ? Position + Patrol.Offset : Position;
     }
 
     /// <summary>A wreck lying in the fight, strippable while fresh.</summary>
@@ -144,7 +153,10 @@ namespace JamKit.Skyline
     /// <item>Sight is a segment test against the cover boxes (and the mezzanine deck) from the bot's centre to the player's
     /// chest or eye; the player sees from its eye. Bolts are spheres of the projectile's radius flying straight; a bolt is
     /// stopped by a box its edge touches (the box grown by the radius) and hits the player's capsule.</item>
-    /// <item>Spotlights hold still. Drones hold their post until they lose sight of the player; then (awake, with a last-known
+    /// <item>Spotlights hold still. Drones fly a bounded hover patrol round their post (<see cref="HoverPatrol"/>: a bob, and
+    /// while awake sideways strafes of up to <see cref="EnemyDef.patrolLeash"/> across the line to the player, a new leg after
+    /// each volley, a dash when hit), and they see and shoot from where the patrol has them. The post itself holds until
+    /// they lose sight of the player; then (awake, with a last-known
     /// position) they drift sideways at their own height, at <see cref="EnemyDef.searchSpeed"/>, to the nearest point within
     /// 10 m that sees where they last saw the player and that they can reach in a straight line without touching cover
     /// (they pick again every half second; they never pass through cover or under the mezzanine deck). A drone that re-sights
@@ -153,6 +165,9 @@ namespace JamKit.Skyline
     /// corner of it that gives the shortest way round, and slide along a face they still run into (no path finding over the
     /// whole hall: a unit can stall in a concave corner between two boxes, and units pass through each other). Gondolas ride
     /// their rails.</item>
+    /// <item>Before they wake, floor-care units clean round their post (<see cref="FloorCareIdle"/>: short runs, gentle turns, a
+    /// bump-and-turn at cover, within 1.5 m) and gondolas wash a short stretch of their rail from the spawn
+    /// (<see cref="GondolaIdle"/>); they see from where the idle work has them, and once awake they go on from there.</item>
     /// <item>The Writ's hit chance drops by <see cref="FightPlayerDef.movingFastPenalty"/> while the player moves faster than
     /// <see cref="FightPlayerDef.movingFastSpeed"/>, and swinging onto a new target costs time that grows with the turn.</item>
     /// <item>Two random streams: the enemies' aim error, and the player's hit rolls, so runs with one seed draw the same enemy
@@ -281,10 +296,25 @@ namespace JamKit.Skyline
                     e.Rail = new GondolaRail(s.position, s.railEnd, def.railSpeed);
                     e.Mines = new MineLayer(def);
                 }
+                // its own stream, so the patrol never shifts the enemies' aim errors
+                if (e.Beam == null && e.Rail == null && !(def.moveSpeed > 0f) && HoverPatrol.Moves(def))
+                    e.Patrol = new HoverPatrol(def, PatrolSeed(seed, i));
+                // the idle work before waking (its own stream too)
+                if (FloorCareIdle.Works(def)) e.Cleaning = new FloorCareIdle(def, PatrolSeed(seed, i));
+                if (e.Rail != null && GondolaIdle.Works(def)) e.Washing = new GondolaIdle(def, e.Rail.Length, PatrolSeed(seed, i));
                 _enemies.Add(e);
             }
             _r = new FightResult { clearSeconds = -1f, wreckedAt = -1f, minPlating = Armor.Plating, enemies = _enemies.Count };
+            _cleaningBlocked = (a, b, r) => FloorCareIdle.FloorBlocked(a, b, r, _floorCover);
+            _patrolBlocked = (a, b, r) => HoverPatrol.LeavesArea(a, b, GalleriaArena.HallMinX + 1f, GalleriaArena.HallMaxX - 1f, GalleriaArena.HallMinZ + 1f, SearchMaxZ)
+                || CoverGeometry.BlockedThick(a, b, _cover, r);
         }
+
+        /// <summary>The seed of spawn <paramref name="index"/>'s hover patrol in a fight seeded <paramref name="seed"/> (the Unity
+        /// arena seeds its own the same way from its spawn seed).</summary>
+        public static ulong PatrolSeed(ulong seed, int index) => seed * 0x2545F4914F6CDD1DUL + (ulong)index * 0x9E3779B97F4A7C15UL + 0x5A17UL;
+
+        readonly Func<Vector3, Vector3, float, bool> _patrolBlocked, _cleaningBlocked;
 
         // ---- geometry the bots may use too
 
@@ -451,13 +481,15 @@ namespace JamKit.Skyline
             var d = e.Body.Damage(amount, plate);
             Wake(e.Group);
             e.Brain.OnDamaged(null);
+            e.Patrol?.OnHit();
             if (d.wrecked)
             {
                 e.Brain.OnWrecked(null);
                 e.Sweeping = false;
+                Vector3 at = e.Center;
                 _wrecks.Add(new FightWreck
                 {
-                    Wreck = new Wreck(e.Def, Time), Position = new Vector3(e.Position.X, 0f, e.Position.Z), EnemyIndex = e.Index, Group = e.Group,
+                    Wreck = new Wreck(e.Def, Time), Position = new Vector3(at.X, 0f, at.Z), EnemyIndex = e.Index, Group = e.Group,
                 });
             }
         }
@@ -495,8 +527,16 @@ namespace JamKit.Skyline
                 e.Brain.Tick(h, e.Awake && sees, _cues);
                 if (e.Awake)
                 {
+                    // woken: on along the rail at full speed from where the washing left it
+                    if (!e.railStarted && e.Washing != null) e.Rail.StartAt(e.Washing.Along);
+                    e.railStarted = true;
                     e.Rail.Tick(h);
                     e.Position = e.Rail.Position;
+                }
+                else if (e.Washing != null)
+                {
+                    e.Washing.Tick(h);
+                    e.Position = e.Rail.PositionAt(e.Washing.Along);
                 }
                 TickMines(e, h, e.Awake);
                 return;
@@ -524,6 +564,8 @@ namespace JamKit.Skyline
                 }
                 else if (c.kind == BotCueKind.Attack && sees) FireBolt(e, aimAt);
             }
+            // the hover patrol, round the post the logic above left it at (it strafes across the line to the player)
+            if (e.Patrol != null) e.Patrol.Tick(h, e.Position, e.Awake, e.Brain.State == BotState.Telegraph, Chest - e.Center, _patrolBlocked);
             if (e.Beam != null && e.Beam.Active && e.Beam.Step(h, Chest, out bool hit))
             {
                 CountShot(e);
@@ -548,6 +590,7 @@ namespace JamKit.Skyline
             if (!(len > 1e-4f)) return;
             CountShot(e);
             _bolts.Add(new Bolt { pos = from, vel = Spread(aim / len, d.aimSpreadDeg) * d.projectileSpeed, radius = d.projectileRadius, damage = d.attackDamage });
+            e.Patrol?.OnVolley();
         }
 
         void FloorUnit(FightEnemy e, float h)
@@ -579,7 +622,17 @@ namespace JamKit.Skyline
                 if (e.SweepTime > d.sweepSeconds) e.Sweeping = false;
                 return;
             }
-            if (!e.Awake || e.Brain.State == BotState.Telegraph) return;
+            if (!e.Awake)
+            {
+                // asleep: it cleans round its post
+                if (e.Cleaning != null)
+                {
+                    e.Cleaning.Tick(h, e.Home, _cleaningBlocked);
+                    e.Position = e.Home + e.Cleaning.Offset;
+                }
+                return;
+            }
+            if (e.Brain.State == BotState.Telegraph) return;
             if (flat < d.sweepRadius * 0.5f) return;   // close enough: it wants the player inside its arc, not under it
             Drive(e, new Vector2(feet.X, feet.Z), d.moveSpeed * h);
         }

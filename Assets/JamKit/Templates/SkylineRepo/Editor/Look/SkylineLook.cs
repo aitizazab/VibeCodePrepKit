@@ -13,7 +13,8 @@ namespace JamKit.SkylineRepo.EditorTools
 {
     /// <summary>
     /// Skyline Repo's afternoon look (Task 21; spec section 10 items 1-3; docs/SKYLINE-LOOK.md): a bright, sunny near-future
-    /// afternoon over a glass mall atrium. Built on Visiting Hours' Look library by calling its API:
+    /// afternoon over a glass mall atrium. Built on Visiting Hours' Look library: its rig's pattern copied, its side-effect-free
+    /// calls used:
     /// <list type="bullet">
     /// <item><c>VhLook.ApplyGoldenHour</c>'s rig, copied with afternoon values (one Mixed sun with soft shadows, a shadowless
     /// bounce fill, Visiting Hours' runtime <see cref="VhLookRig"/> aiming them and the sky, a global post volume, the render
@@ -49,19 +50,58 @@ namespace JamKit.SkylineRepo.EditorTools
         /// </summary>
         public static VhLookRig ApplyAfternoon(Scene scene)
         {
+            // All or nothing: everything that can fail (imports, the sky's file and shader, the profile) is resolved before the
+            // scene is touched, and a failure while building the rig removes the rig again, so the builder's fallback sun is
+            // then the only sun.
             SkylineLookLibrary.ConfigureImporters();
             var info = SkylineLookLibrary.ReadSkyInfo();
+            var skyMaterial = SkylineLookLibrary.SkyMaterial(info);
+            var profile = Afternoon();
             if (!scene.IsValid()) scene = SceneManager.GetActiveScene();
             foreach (var go in scene.GetRootGameObjects())
                 if (go.name == RootName || go.name.StartsWith(VhLook.RootPrefix, StringComparison.Ordinal)) UnityEngine.Object.DestroyImmediate(go);
-            foreach (var go in scene.GetRootGameObjects())
-                foreach (var l in go.GetComponentsInChildren<Light>(true))
-                    if (l.type == LightType.Directional && l.enabled) l.enabled = false;   // one sun
 
             var root = new GameObject(RootName);
             SceneManager.MoveGameObjectToScene(root, scene);
+            VhLookRig rig;
+            Light sun;
+            try
+            {
+                rig = BuildRig(root, info, profile, out sun);
+            }
+            catch
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+                throw;
+            }
+            foreach (var go in scene.GetRootGameObjects())
+            {
+                if (go == root) continue;
+                foreach (var l in go.GetComponentsInChildren<Light>(true))
+                    if (l.type == LightType.Directional && l.enabled) l.enabled = false;   // one sun
+            }
 
-            var sun = new GameObject("Sun").AddComponent<Light>();
+            RenderSettings.skybox = skyMaterial;
+            RenderSettings.sun = sun;
+            RenderSettings.ambientMode = AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = 1f;
+            RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
+            RenderSettings.defaultReflectionResolution = 256;
+            RenderSettings.reflectionIntensity = 1f;
+            RenderSettings.reflectionBounces = 1;
+            RenderSettings.fog = false;
+            rig.Apply();
+            DynamicGI.UpdateEnvironment();
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log("SKYLINE_LOOK afternoon applied (sun " + SunElevation + " deg up at bearing " + SunAzimuth + ", sky " +
+                      SkylineLookLibrary.SkyName + ", HDRI sun " + info.sun_elevation.ToString("0.0") + "/" + info.sun_azimuth.ToString("0.0") + ")");
+            return rig;
+        }
+
+        /// <summary>The rig's parts under <paramref name="root"/>: the sun, the bounce fill, <see cref="VhLookRig"/>, the post volume.</summary>
+        static VhLookRig BuildRig(GameObject root, SkylineLookLibrary.SkyInfo info, VolumeProfile profile, out Light sun)
+        {
+            sun = new GameObject("Sun").AddComponent<Light>();
             sun.transform.SetParent(root.transform, false);
             sun.type = LightType.Directional;
             sun.color = SunColor;
@@ -108,22 +148,7 @@ namespace JamKit.SkylineRepo.EditorTools
             var volume = volumeGo.AddComponent<Volume>();
             volume.isGlobal = true;
             volume.priority = 10f;
-            volume.sharedProfile = Afternoon();
-
-            RenderSettings.skybox = SkylineLookLibrary.SkyMaterial(info);
-            RenderSettings.sun = sun;
-            RenderSettings.ambientMode = AmbientMode.Skybox;
-            RenderSettings.ambientIntensity = 1f;
-            RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
-            RenderSettings.defaultReflectionResolution = 256;
-            RenderSettings.reflectionIntensity = 1f;
-            RenderSettings.reflectionBounces = 1;
-            RenderSettings.fog = false;
-            rig.Apply();
-            DynamicGI.UpdateEnvironment();
-            EditorSceneManager.MarkSceneDirty(scene);
-            Debug.Log("SKYLINE_LOOK afternoon applied (sun " + SunElevation + " deg up at bearing " + SunAzimuth + ", sky " +
-                      SkylineLookLibrary.SkyName + ", HDRI sun " + info.sun_elevation.ToString("0.0") + "/" + info.sun_azimuth.ToString("0.0") + ")");
+            volume.sharedProfile = profile;
             return rig;
         }
 

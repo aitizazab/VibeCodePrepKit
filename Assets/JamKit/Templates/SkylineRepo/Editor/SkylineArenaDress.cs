@@ -4,7 +4,6 @@ using JamKit.Skyline;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.SceneManagement;
 
 namespace JamKit.SkylineRepo.EditorTools
 {
@@ -59,7 +58,7 @@ namespace JamKit.SkylineRepo.EditorTools
         sealed class Mats
         {
             public Material terrazzo, marble, plaster, pine, cherry, parquet, shutter, ceiling, concrete, soil, steel, gold, dark, hazard;
-            public Material products, signs, posters, panel, goldGlow, entry;
+            public Material products, signs, posters, panel, entry;
             public Material glassShop, glassCurtain, glassSky, glassCounter, glassRail, glassVitrine;
             public Material[] shopWalls;
             public Material[] shopFloors;
@@ -77,7 +76,7 @@ namespace JamKit.SkylineRepo.EditorTools
                 steel = SkylineLookLibrary.Get("Steel_Brushed"), gold = SkylineLookLibrary.Get("Gold_Brushed"),
                 dark = SkylineLookLibrary.Get("Steel_Dark"), hazard = SkylineLookLibrary.Get("Hazard_Orange"),
                 products = SkylineLookLibrary.Products(), signs = SkylineLookLibrary.Signs(), posters = SkylineLookLibrary.Posters(),
-                panel = SkylineLookLibrary.LightPanel(), goldGlow = SkylineLookLibrary.GoldGlow(), entry = SkylineLookLibrary.EntryMarker(),
+                panel = SkylineLookLibrary.LightPanel(), entry = SkylineLookLibrary.EntryMarker(),
                 glassShop = SkylineLookLibrary.Glass("Shopfront", new Color(0.62f, 0.72f, 0.76f, 0.16f)),
                 glassCurtain = SkylineLookLibrary.Glass("Curtain", new Color(0.42f, 0.56f, 0.66f, 0.26f)),
                 glassSky = SkylineLookLibrary.Glass("Skylight", new Color(0.8f, 0.9f, 0.98f, 0.08f)),
@@ -111,7 +110,8 @@ namespace JamKit.SkylineRepo.EditorTools
             public Vector3 Out => alongZ ? new Vector3(outSign, 0f, 0f) : new Vector3(0f, 0f, outSign);
             public Vector3 In => -Out;
             public Vector3 U => alongZ ? Vector3.forward : Vector3.right;
-            public void Box(SkylineKit k, Material m, float u0, float u1, float y0, float y1, float d0, float d1) => k.Box(m, P(u0, y0, d0), P(u1, y1, d1));
+            public void Box(SkylineKit k, Material m, float u0, float u1, float y0, float y1, float d0, float d1, float bevel = 0f) =>
+                k.Box(m, P(u0, y0, d0), P(u1, y1, d1), bevel);
             /// <summary>A quad on the wall's inner side facing into the room, <paramref name="d"/> from the face (negative = proud).</summary>
             public void Panel(SkylineKit k, Material m, float uc, float yc, float w, float h, Rect uv, float d = -Proud) =>
                 PanelAt(k, m, P(uc, yc, d), In, w, h, uv);
@@ -158,7 +158,7 @@ namespace JamKit.SkylineRepo.EditorTools
         // ================================================================================================ the entry point
 
         /// <summary>Dresses the built arena (called once the gameplay pieces exist). Returns the dressing's root.</summary>
-        static Transform Dress(Scene scene, Transform arena, Transform warm, Transform hall, GameObject entryMarker)
+        static Transform Dress(Transform arena, Transform warm, Transform hall, GameObject entryMarker)
         {
             var m = LoadMats();
             var root = Group(arena, "Dressing");
@@ -195,7 +195,6 @@ namespace JamKit.SkylineRepo.EditorTools
             Skin(warm, "Roof (glass)", m.glassSky, false);
             var rig = warm.Find("Practice Rig");
             if (rig != null) foreach (Transform t in rig) SkinGo(t.gameObject, m.hazard, true);
-            Skin(warm, "Boost Kiosk", m.marble);
             var kiosk = warm.Find("Boost Kiosk");
             if (kiosk != null)
                 foreach (Transform t in kiosk)
@@ -204,8 +203,6 @@ namespace JamKit.SkylineRepo.EditorTools
             Skin(hall, "Floor", m.terrazzo);
             Skin(hall, "Skylight Roof (glass)", m.glassSky, false);
             Skin(hall, "Mezzanine Balustrade (glass)", m.glassRail, false);
-            foreach (Transform t in hall)
-                if (t.name.StartsWith("Spotlight Plinth")) SkinGo(t.gameObject, m.dark, true);
             foreach (var n in new[] { "Wall West", "Wall East", "Wall North", "Wall South West", "Wall South East", "Doorway Lintel", "Mezzanine Deck" })
                 StripRenderer(hall.Find(n));
             var sign = hall.Find("Doorway Sign");
@@ -340,22 +337,23 @@ namespace JamKit.SkylineRepo.EditorTools
         /// 2.5 m and transoms, a steel sill, then the white cornice with its gold line.</summary>
         static void Glazing(SkylineKit k, Mats m, Wall w, float u0, float u1, float y0)
         {
-            w.Box(k, m.glassCurtain, u0, u1, y0, CorniceY, 0.17f, 0.2f);
-            w.Box(k, m.steel, u0, u1, y0 - 0.08f, y0, -0.06f, WallThick);
+            // The pane at the runnable face (a wall-run above 6 m runs on the glass), the mullions just behind it.
+            w.Box(k, m.glassCurtain, u0, u1, y0, CorniceY, 0.005f, 0.035f);
+            w.Box(k, m.steel, u0, u1, y0 - 0.08f, y0, -0.06f, WallThick, 0.012f);
             int n = Mathf.Max(1, Mathf.RoundToInt((u1 - u0) / 2.5f));
             float step = (u1 - u0) / n;
             for (int i = 0; i <= n; i++)
             {
                 float u = u0 + i * step;
-                w.Box(k, m.steel, Mathf.Max(u0, u - 0.05f), Mathf.Min(u1, u + 0.05f), y0, CorniceY, 0.04f, 0.33f);
+                w.Box(k, m.steel, Mathf.Max(u0, u - 0.05f), Mathf.Min(u1, u + 0.05f), y0, CorniceY, 0.04f, 0.33f, 0.012f);
             }
             int rows = Mathf.Max(1, Mathf.RoundToInt((CorniceY - y0) / 2.4f));
             for (int r = 1; r < rows; r++)
             {
                 float y = y0 + (CorniceY - y0) * r / rows;
-                w.Box(k, m.steel, u0, u1, y - 0.05f, y + 0.05f, 0.04f, 0.33f);
+                w.Box(k, m.steel, u0, u1, y - 0.05f, y + 0.05f, 0.04f, 0.33f, 0.012f);
             }
-            w.Box(k, m.plaster, u0, u1, CorniceY, HallHeight, 0f, WallThick);
+            w.Box(k, m.plaster, u0, u1, CorniceY, HallHeight, 0f, WallThick, 0.04f);
             w.Box(k, m.gold, u0, u1, CorniceY, CorniceY + 0.06f, -Proud, 0.02f);
         }
 
@@ -469,9 +467,9 @@ namespace JamKit.SkylineRepo.EditorTools
         {
             float z = GalleriaArena.HallMinZ, t = WallThick, p = 0.05f, pw = PortalWidth;
             float zLo = z - t - p, zHi = z + p;
-            k.Box(m.steel, new Vector3(-DoorHalfWidth - pw, 0f, zLo), new Vector3(-DoorHalfWidth, DoorHeight, zHi));
-            k.Box(m.steel, new Vector3(DoorHalfWidth, 0f, zLo), new Vector3(DoorHalfWidth + pw, DoorHeight, zHi));
-            k.Box(m.steel, new Vector3(-DoorHalfWidth - pw, DoorHeight, zLo), new Vector3(DoorHalfWidth + pw, DoorHeight + pw, zHi));
+            k.Box(m.steel, new Vector3(-DoorHalfWidth - pw, 0f, zLo), new Vector3(-DoorHalfWidth, DoorHeight, zHi), 0.025f);
+            k.Box(m.steel, new Vector3(DoorHalfWidth, 0f, zLo), new Vector3(DoorHalfWidth + pw, DoorHeight, zHi), 0.025f);
+            k.Box(m.steel, new Vector3(-DoorHalfWidth - pw, DoorHeight, zLo), new Vector3(DoorHalfWidth + pw, DoorHeight + pw, zHi), 0.025f);
             foreach (float face in new[] { zLo - 0.01f, zHi })
             {
                 k.Box(m.gold, new Vector3(-DoorHalfWidth - 0.45f, 0f, face), new Vector3(-DoorHalfWidth - 0.35f, DoorHeight + 0.45f, face + 0.01f));
@@ -488,7 +486,7 @@ namespace JamKit.SkylineRepo.EditorTools
             // The skylight's structure: white beams every 5 m across the hall, steel mullions every 2.5 m along it.
             for (float z = z0 + 5f; z < z1 - 0.1f; z += 5f)
             {
-                k.Box(m.plaster, new Vector3(x0, HallHeight - 0.7f, z - 0.18f), new Vector3(x1, HallHeight, z + 0.18f));
+                k.Box(m.plaster, new Vector3(x0, HallHeight - 0.7f, z - 0.18f), new Vector3(x1, HallHeight, z + 0.18f), 0.03f);
                 k.Box(m.gold, new Vector3(x0, HallHeight - 0.72f, z - 0.06f), new Vector3(x1, HallHeight - 0.7f, z + 0.06f));
             }
             for (float x = x0 + 2.5f; x < x1 - 0.1f; x += 2.5f)
@@ -498,21 +496,22 @@ namespace JamKit.SkylineRepo.EditorTools
             // with downlights, gold and graphite lines on its front edge, a steel handrail and posts behind the glass.
             var d = GalleriaArena.MezzanineDeck;
             float dz0 = d.min.Z, dz1 = d.max.Z, y0 = d.min.Y, y1 = d.max.Y;
-            k.Box(m.terrazzo, new Vector3(x0, y1 - 0.07f, dz0), new Vector3(x1, y1, dz1));
-            k.Box(m.plaster, new Vector3(x0, y0 + 0.02f, dz0), new Vector3(x1, y1 - 0.07f, dz1));
+            k.Box(m.terrazzo, new Vector3(x0, y1 - 0.07f, dz0), new Vector3(x1, y1, dz1), 0.015f);
+            k.Box(m.plaster, new Vector3(x0, y0 + 0.02f, dz0), new Vector3(x1, y1 - 0.07f, dz1), 0.02f);
             k.Box(m.ceiling, new Vector3(x0, y0, dz0), new Vector3(x1, y0 + 0.02f, dz1));
             k.Box(m.gold, new Vector3(x0, y0 + 0.12f, dz0 - Proud), new Vector3(x1, y0 + 0.17f, dz0));
             k.Box(m.dark, new Vector3(x0, y0, dz0 - Proud), new Vector3(x1, y0 + 0.06f, dz0));
             for (float x = x0 + 2f; x < x1; x += 4f)
                 for (float z = dz0 + 1.6f; z < dz1; z += 3f)
                     k.Disc(m.panel, new Vector3(x, y0 - 0.004f, z), Vector3.down, 0.17f);
-            k.Box(m.steel, new Vector3(x0, y1 + 1.02f, dz0 - 0.02f), new Vector3(x1, y1 + 1.09f, dz0 + 0.08f));
+            k.Box(m.steel, new Vector3(x0, y1 + 1.02f, dz0 - 0.02f), new Vector3(x1, y1 + 1.09f, dz0 + 0.08f), 0.015f);
             for (float x = x0 + 1.25f; x < x1; x += 2.5f)
                 k.Box(m.steel, new Vector3(x - 0.025f, y1, dz0 + 0.055f), new Vector3(x + 0.025f, y1 + 1.02f, dz0 + 0.1f));
             foreach (Transform t in hall)
             {
                 if (!t.name.StartsWith("Spotlight Plinth")) continue;
                 var b = t.GetComponent<Renderer>().bounds;
+                Bevelled(k, t, m.dark, 0.02f);
                 k.Box(m.gold, new Vector3(b.min.x - Proud, b.max.y - 0.08f, b.min.z - Proud), new Vector3(b.max.x + Proud, b.max.y - 0.03f, b.max.z + Proud));
             }
             k.Flush(root, "Skylight and Mezzanine");
@@ -535,16 +534,16 @@ namespace JamKit.SkylineRepo.EditorTools
                 string n = t.name;
                 if (n.StartsWith("Pillar"))
                 {
-                    SkinGo(t.gameObject, m.plaster, true);
-                    if (n.EndsWith("Cap")) continue;
-                    Ring(k, m.dark, b, 0f, 0.15f, 0.015f);
-                    Ring(k, m.gold, b, 1.1f, 1.16f, Proud);
-                    Ring(k, m.gold, b, b.max.y - 0.3f, b.max.y, 0.02f);
+                    if (n.EndsWith("Cap")) { SkinGo(t.gameObject, m.plaster, true); continue; }   // flush with the deck: no bevel
+                    Bevelled(k, t, m.plaster, 0.03f);
+                    Collar(k, m.dark, b, 0f, 0.15f, 0.015f, 0.008f);
+                    Collar(k, m.gold, b, 1.1f, 1.16f, Proud, 0.006f);
+                    Collar(k, m.gold, b, b.max.y - 0.3f, b.max.y, 0.02f, 0.012f);
                 }
                 else if (n.StartsWith("Food Stall"))
                 {
-                    SkinGo(t.gameObject, m.pine, true);
-                    Ring(k, m.dark, b, 0f, 0.15f, 0.015f);
+                    Bevelled(k, t, m.pine, 0.02f);
+                    Collar(k, m.dark, b, 0f, 0.15f, 0.015f, 0.008f);
                     Ring(k, m.steel, b, b.max.y - 0.04f, b.max.y + 0.02f, Proud);
                     // A menu board on each long face (x faces), and a steel ledge under it.
                     for (int side = -1; side <= 1; side += 2)
@@ -560,8 +559,8 @@ namespace JamKit.SkylineRepo.EditorTools
                 }
                 else if (n.StartsWith("Info Booth"))
                 {
-                    SkinGo(t.gameObject, m.plaster, true);
-                    Ring(k, m.marble, b, 0f, 0.45f, Proud);
+                    Bevelled(k, t, m.plaster, 0.02f);
+                    Collar(k, m.marble, b, 0f, 0.45f, Proud, 0.008f);
                     Ring(k, m.gold, b, b.max.y - 0.06f, b.max.y, 0.015f);
                     bool back = n.EndsWith("Back");
                     if (back)
@@ -581,8 +580,8 @@ namespace JamKit.SkylineRepo.EditorTools
                 }
                 else if (n.StartsWith("Kiosk"))
                 {
-                    SkinGo(t.gameObject, m.marble, true);
-                    Ring(k, m.dark, b, 0f, 0.15f, 0.015f);
+                    Bevelled(k, t, m.marble, 0.03f);
+                    Collar(k, m.dark, b, 0f, 0.15f, 0.015f, 0.008f);
                     Ring(k, m.gold, b, b.max.y - 0.08f, b.max.y, 0.015f);
                     // Lightbox adverts: two on each long face, one on each end.
                     for (int side = -1; side <= 1; side += 2)
@@ -599,11 +598,11 @@ namespace JamKit.SkylineRepo.EditorTools
                 {
                     // Hollow marble planter (the solid stays the data's box): rim walls, soil, then plants (visual only).
                     StripRenderer(t);
-                    float rim = 0.08f;
-                    k.Box(m.marble, new Vector3(b.min.x, 0f, b.min.z), new Vector3(b.max.x, b.max.y, b.min.z + rim));
-                    k.Box(m.marble, new Vector3(b.min.x, 0f, b.max.z - rim), new Vector3(b.max.x, b.max.y, b.max.z));
-                    k.Box(m.marble, new Vector3(b.min.x, 0f, b.min.z + rim), new Vector3(b.min.x + rim, b.max.y, b.max.z - rim));
-                    k.Box(m.marble, new Vector3(b.max.x - rim, 0f, b.min.z + rim), new Vector3(b.max.x, b.max.y, b.max.z - rim));
+                    float rim = 0.08f, rb = 0.012f;
+                    k.Box(m.marble, new Vector3(b.min.x, 0f, b.min.z), new Vector3(b.max.x, b.max.y, b.min.z + rim), rb);
+                    k.Box(m.marble, new Vector3(b.min.x, 0f, b.max.z - rim), new Vector3(b.max.x, b.max.y, b.max.z), rb);
+                    k.Box(m.marble, new Vector3(b.min.x, 0f, b.min.z + rim), new Vector3(b.min.x + rim, b.max.y, b.max.z - rim), rb);
+                    k.Box(m.marble, new Vector3(b.max.x - rim, 0f, b.min.z + rim), new Vector3(b.max.x, b.max.y, b.max.z - rim), rb);
                     k.Box(m.soil, new Vector3(b.min.x + rim, 0f, b.min.z + rim), new Vector3(b.max.x - rim, b.max.y - 0.08f, b.max.z - rim));
                     Ring(k, m.gold, b, b.max.y - 0.04f, b.max.y, 0.01f);
                     float top = b.max.y - 0.08f;
@@ -618,10 +617,31 @@ namespace JamKit.SkylineRepo.EditorTools
         /// <summary>A band round a box's four sides from <paramref name="y0"/> to <paramref name="y1"/>, <paramref name="out"/> proud.</summary>
         static void Ring(SkylineKit k, Material mat, Bounds b, float y0, float y1, float @out)
         {
-            k.Box(mat, new Vector3(b.min.x - @out, y0, b.min.z - @out), new Vector3(b.max.x + @out, y1, b.min.z));
-            k.Box(mat, new Vector3(b.min.x - @out, y0, b.max.z), new Vector3(b.max.x + @out, y1, b.max.z + @out));
-            k.Box(mat, new Vector3(b.min.x - @out, y0, b.min.z), new Vector3(b.min.x, y1, b.max.z));
-            k.Box(mat, new Vector3(b.max.x, y0, b.min.z), new Vector3(b.max.x + @out, y1, b.max.z));
+            // Four strips (not one box: a ring at a box's top must leave its top face alone), each lightly bevelled.
+            float bv = Mathf.Min(0.006f, @out * 0.4f);
+            k.Box(mat, new Vector3(b.min.x - @out, y0, b.min.z - @out), new Vector3(b.max.x + @out, y1, b.min.z), bv);
+            k.Box(mat, new Vector3(b.min.x - @out, y0, b.max.z), new Vector3(b.max.x + @out, y1, b.max.z + @out), bv);
+            k.Box(mat, new Vector3(b.min.x - @out, y0, b.min.z), new Vector3(b.min.x, y1, b.max.z), bv);
+            k.Box(mat, new Vector3(b.max.x, y0, b.min.z), new Vector3(b.max.x + @out, y1, b.max.z), bv);
+        }
+
+        /// <summary>A bevelled collar round a box (a base, a band, a capital): one box <paramref name="out"/> larger on every
+        /// side, its inside hidden in the box.</summary>
+        static void Collar(SkylineKit k, Material mat, Bounds b, float y0, float y1, float @out, float bevel)
+        {
+            k.Box(mat, new Vector3(b.min.x - @out, y0, b.min.z - @out), new Vector3(b.max.x + @out, y1, b.max.z + @out), bevel);
+        }
+
+        /// <summary>A gameplay box drawn bevelled: its renderer goes (its collider and transform stay exactly as they are) and a
+        /// chamfered box of the same bounds is drawn in the kit, so its edges catch the sun. The chamfer only cuts inside the
+        /// solid: nothing is drawn outside the collider.</summary>
+        static void Bevelled(SkylineKit k, Transform t, Material mat, float bevel)
+        {
+            var r = t.GetComponent<MeshRenderer>();
+            if (r == null) return;
+            var b = r.bounds;
+            StripRenderer(t);
+            k.Box(mat, b.min, b.max, bevel);
         }
 
         /// <summary>An advertising screen on a face: a graphite frame 8 mm proud, the glowing sign cell 14 mm proud.</summary>
@@ -649,7 +669,7 @@ namespace JamKit.SkylineRepo.EditorTools
         /// medallion between the kiosks) and marble under the mezzanine. None crosses a cover piece.</summary>
         static void Floors(SkylineKit k, Mats m, Transform root)
         {
-            const float h = 0.004f, w = 0.07f;
+            const float h = 0.006f, w = 0.07f;   // 6 mm: no depth fighting with the floor at the hall's far end
             float bx = 23.8f, bz0 = -18.8f, bz1 = 11.2f;
             k.Box(m.gold, new Vector3(-bx, 0f, bz0 - w * 0.5f), new Vector3(bx, h, bz0 + w * 0.5f));
             k.Box(m.gold, new Vector3(-bx, 0f, bz1 - w * 0.5f), new Vector3(bx, h, bz1 + w * 0.5f));
@@ -672,7 +692,7 @@ namespace JamKit.SkylineRepo.EditorTools
                 k.BoxYaw(m.gold, c + Vector3.up * (h * 0.5f), new Vector3(2f, h, w), -i * 45f);
             }
             var d = GalleriaArena.MezzanineDeck;
-            k.Box(m.marble, new Vector3(GalleriaArena.HallMinX + 0.05f, 0f, d.min.Z + 0.6f), new Vector3(GalleriaArena.HallMaxX - 0.05f, 0.003f, d.max.Z - 0.05f));
+            k.Box(m.marble, new Vector3(GalleriaArena.HallMinX + 0.05f, 0f, d.min.Z + 0.6f), new Vector3(GalleriaArena.HallMaxX - 0.05f, 0.005f, d.max.Z - 0.05f));
             k.Flush(root, "Floor Inlay", ShadowCastingMode.Off);
         }
 
@@ -730,7 +750,7 @@ namespace JamKit.SkylineRepo.EditorTools
 
             // The roof's structure under its glass (above any reach: the kiosk's top is 4.6 m).
             for (float z = wz0 + 4f; z < wz1 - 0.1f; z += 4f)
-                k.Box(m.plaster, new Vector3(wx0, WarmupHeight - 0.5f, z - 0.15f), new Vector3(wx1, WarmupHeight, z + 0.15f));
+                k.Box(m.plaster, new Vector3(wx0, WarmupHeight - 0.5f, z - 0.15f), new Vector3(wx1, WarmupHeight, z + 0.15f), 0.025f);
             for (float x = wx0 + 2.5f; x < wx1 - 0.1f; x += 2.5f)
                 k.Box(m.steel, new Vector3(x - 0.035f, WarmupHeight - 0.1f, wz0), new Vector3(x + 0.035f, WarmupHeight, wz1));
 
@@ -740,7 +760,8 @@ namespace JamKit.SkylineRepo.EditorTools
             if (kiosk != null)
             {
                 var b = kiosk.GetComponent<Renderer>().bounds;
-                Ring(k, m.dark, b, 0f, 0.15f, 0.015f);
+                Bevelled(k, kiosk, m.marble, 0.03f);
+                Collar(k, m.dark, b, 0f, 0.15f, 0.015f, 0.008f);
                 Ring(k, m.gold, b, b.max.y - 0.16f, b.max.y, 0.02f);
                 Ring(k, m.gold, b, 2.48f, 2.54f, 0.012f);
                 foreach (var normal in new[] { Vector3.forward, Vector3.back, Vector3.left, Vector3.right })
@@ -759,13 +780,13 @@ namespace JamKit.SkylineRepo.EditorTools
         {
             Fill(k, m.dark, w, u0, u1, 0f, 0.12f, -0.015f, 0f, holes);
             Fill(k, m.marble, w, u0, u1, 0.12f, 1.1f, -Proud, 0f, holes);
-            w.Box(k, m.plaster, u0, u1, WarmupHeight - 0.6f, WarmupHeight - 0.1f, -0.05f, 0f);
+            w.Box(k, m.plaster, u0, u1, WarmupHeight - 0.6f, WarmupHeight - 0.1f, -0.05f, 0f, 0.015f);
             w.Box(k, m.gold, u0, u1, WarmupHeight - 0.66f, WarmupHeight - 0.6f, -0.052f, 0f);
         }
 
         static void Pilaster(SkylineKit k, Mats m, Wall w, float u)
         {
-            w.Box(k, m.plaster, u - 0.35f, u + 0.35f, 1.1f, WarmupHeight - 0.66f, -0.04f, 0f);
+            w.Box(k, m.plaster, u - 0.35f, u + 0.35f, 1.1f, WarmupHeight - 0.66f, -0.04f, 0f, 0.012f);
             w.Box(k, m.gold, u - 0.36f, u + 0.36f, 1.1f, 1.16f, -0.045f, 0f);
         }
 

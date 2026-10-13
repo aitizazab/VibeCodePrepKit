@@ -17,6 +17,8 @@ seen in Unity: the next pass (Task 22) builds it, lints it, records it and measu
 | The dressing | `Editor/SkylineArenaDress.cs` (the builder's `Dress(...)`) | See below. Visual-only geometry merged per material by `Editor/Look/SkylineKit.cs` (a few draw calls for hundreds of pieces), every piece under a `SkylineNoCollider` root. |
 | Haze | `SkylineLookLibrary.Facade` | Aerial perspective baked into the towers' materials: surface x (1 - h) + the sky's horizon colour x h as emission, in four distance bands (h 0.34, 0.49, 0.64, 0.77). No renderer feature needed (Visiting Hours' atmosphere pass is not installed on this project's renderer). |
 
+**Bevels (fix round 1):** the visible edges are chamfered through `VhLookUv.BevelBox` (the kit's bevel path): the cover pieces, the boost kiosk and the spotlight plinths are drawn as bevelled boxes of their exact bounds (their renderers go; colliders untouched), and so are the cornices, the skylight and roof beams, the mezzanine's edge and handrail, the portal, the pilasters, the planters' rims, mullions, sills and the bases, bands and capitals (collars). Long flush wall cladding stays square (its joints are covered by the reveals, wainscots and skirtings).
+
 Gameplay is untouched: every collider, its position and size, is `GalleriaArena`'s. The dressing re-skins the gameplay
 boxes (library materials, metre UVs) and adds renderers only inside their volumes, at most 5 cm proud of a wall, or
 out of reach overhead. No new solids anywhere.
@@ -62,7 +64,7 @@ repo) and Bahnschrift (Windows): the images are ours; no font file is shipped. N
   wainscot and steel skirting between the shops; 24 glass shopfronts flush with the runnable face (a wall-run runs on the
   glass; the gondolas' mines sit on it), each with its sign on a graphite fascia and a lit room 4.2 m deep behind (floor,
   painted walls in one of six colours, ceiling with light panels, shelves of goods, a lightbox poster, a display table or
-  plants, one warm point light without shadows); a gold reveal; a glass curtain wall with steel mullions from 6 m (10 m on
+  plants, one warm point light without shadows); a gold reveal; a glass curtain wall (its pane at the runnable face, so a wall-run above 6 m runs on the glass) with steel mullions behind it from 6 m (10 m on
   the north wall, which has a second row of shops above the mezzanine; 8.2 m on the south wall, above the warm-up roof);
   a white cornice. South wall: four lit vitrines, THE GALLERIA over the doorway, the doorway's steel-and-gold portal.
 - **Skylight**: white beams every 5 m with a gold underline, steel mullions every 2.5 m.

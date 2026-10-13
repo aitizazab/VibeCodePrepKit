@@ -1,35 +1,19 @@
 {
   "sample_rate": 48000,
-  "length": 0.131,
+  "length": 0.45,
   "seed": 1,
   "layers": [
     {
-      "type": "noise",
-      "highpass": 3000,
+      "type": "sample",
+      "path": "../samples/bolt.wav",
       "start": 0.0,
-      "attack": 0.0005,
-      "decay": 0.04,
-      "gain_db": -5
-    },
-    {
-      "type": "sine",
-      "freq": 300,
-      "freq_end": 150,
-      "start": 0.0,
-      "attack": 0.001,
-      "decay": 0.08,
-      "gain_db": -8
-    },
-    {
-      "type": "noise",
-      "lowpass": 900,
-      "start": 0.0,
-      "attack": 0.001,
-      "decay": 0.048,
-      "gain_db": -14
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -3.0,
+      "pan": 0.0
     }
   ],
   "master": {
-    "limit_db": -1.0
+    "limit_db": -1.6
   }
 }

@@ -28,9 +28,6 @@ namespace JamKit.SkylineRepo.EditorTools
         readonly Dictionary<Material, Buf> _bufs = new Dictionary<Material, Buf>();
         readonly List<Material> _order = new List<Material>();
 
-        /// <summary>Pieces added since the last flush (for the build log).</summary>
-        public int Pieces { get; private set; }
-
         Buf Get(Material m)
         {
             if (!_bufs.TryGetValue(m, out var b))
@@ -72,7 +69,6 @@ namespace JamKit.SkylineRepo.EditorTools
             var hi = Vector3.Max(min, max);
             var size = hi - lo;
             if (size.x <= 1e-4f || size.y <= 1e-4f || size.z <= 1e-4f) return;
-            Pieces++;
             if (bevel > 0f)
             {
                 var mesh = VhLookUv.BevelBox(size, bevel);
@@ -108,7 +104,6 @@ namespace JamKit.SkylineRepo.EditorTools
         public void BoxYaw(Material m, Vector3 center, Vector3 size, float yawDeg)
         {
             if (m == null) return;
-            Pieces++;
             var b = Get(m);
             var rot = Quaternion.Euler(0f, yawDeg, 0f);
             var h = size * 0.5f;
@@ -138,7 +133,6 @@ namespace JamKit.SkylineRepo.EditorTools
         public void Quad(Material m, Vector3 center, Vector3 right, Vector3 up, float width, float height, Rect uv)
         {
             if (m == null) return;
-            Pieces++;
             right = right.normalized;
             up = up.normalized;
             var n = Vector3.Cross(up, right).normalized;
@@ -152,7 +146,6 @@ namespace JamKit.SkylineRepo.EditorTools
         public void Disc(Material m, Vector3 center, Vector3 normal, float radius, int segments = 12)
         {
             if (m == null) return;
-            Pieces++;
             var b = Get(m);
             normal = normal.normalized;
             var t1 = Vector3.Cross(normal, Mathf.Abs(normal.y) > 0.9f ? Vector3.right : Vector3.up).normalized;
@@ -225,7 +218,6 @@ namespace JamKit.SkylineRepo.EditorTools
             }
             _bufs.Clear();
             _order.Clear();
-            Pieces = 0;
             return root;
         }
     }

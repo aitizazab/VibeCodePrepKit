@@ -4,7 +4,8 @@
 
 The spotlight is heavy-electric: a mains hum and a lamp ballast's buzz, relay clunks, a rising lock tone, a hard rifle
 crack. The recipes are plain sound-forge JSON (sines, noise, envelopes, filters); this script only saves writing the
-many small layers (harmonics, sputters, glass pings) by hand. Render each recipe with the forge into
+many small layers (harmonics, sputters, glass pings) by hand. Then render them (its sources.py stem first) with
+`uv run --project tools/skyline/soundforge python tools/skyline/guns/render_all.py --bot spotlight`, 16-bit PCM, into
 Assets/JamKit/Templates/SkylineRepo/Resources/SkylineAudio/spotlight/<name>.wav.
 
 Timing contract (Unity, SkylineBot.cs): `telegraph` plays when the bot enters its telegraph and the shot (`attack`) lands
@@ -130,10 +131,14 @@ def lock_beep():
     save("lock_beep", 0.2, layers, seed=7)
 
 
-def attack():
-    # The rifle: a hard supersonic crack, the report's body, a low thump, the electric discharge's falling zap.
-    # The crack's slapback off the atrium's glass (bright, falling) and the discharge's crackle carry the brightness
-    # through the clip, so the rifle reads as a hard crack, not a thump.
+RIFLE_SECONDS = 0.55
+
+
+def rifle_layers():
+    """The rifle shot's design, rendered into the stem sources/sl_rifle.wav by sources.py (which drives it into a soft
+    clip so it sits as loud as the other bots' attacks): a hard supersonic crack, the report's body, a low thump, the
+    electric discharge's falling zap. The crack's slapback off the atrium's glass and the discharge's crackle carry the
+    brightness through the clip, so the rifle reads as a hard crack, not a thump."""
     rnd = random.Random(11)
     layers = [
         noise(attack=0.0003, decay=0.1, gain=0, hp=1800, lp=6000),
@@ -148,7 +153,13 @@ def attack():
     for i in range(14):   # discharge crackle
         at = 0.02 + rnd.uniform(0, 0.32)
         layers.append(noise(start=at, attack=0.0003, decay=0.01, gain=-14 - rnd.uniform(0, 8), hp=2500, lp=8000))
-    save("attack", 0.55, layers, seed=11)
+    return layers
+
+
+def attack():
+    # The rifle: the driven stem (sources.py), +3 dB for the centre pan; limit -1.8 dB keeps the true peak under -1 dBTP.
+    layer = {"type": "sample", "path": "../sources/sl_rifle.wav", "start": 0.0, "attack": 0.0, "decay": 0.0, "gain_db": 3.0}
+    save("attack", RIFLE_SECONDS, [layer], seed=11, limit=-1.8)
 
 
 def hurt():

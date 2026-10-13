@@ -22,7 +22,7 @@ front-right corner.
 
 | State | Looks | Sounds |
 |---|---|---|
-| Idle | happy face (mint "^ ^" eyes, rosy cheeks, a big grin, a sparkle); the brush turning slowly | a soft motor hum, the brushes swishing round, a slosh in the tank, now and then a small wheel squeak (a 3 s loop) |
+| Idle | happy face (mint "^ ^" eyes, rosy cheeks, a big grin, a sparkle); it cleans round its post until woken: short straight runs, gentle turns, a little bump-and-turn at cover, within 1.5 m (FloorCareIdle), the brush turning | a soft motor hum, the brushes swishing round, a slosh in the tank, now and then a small wheel squeak (a 3 s loop) |
 | Alert | wide round eyes looking down at the "stain", eyebrows up, an "O" mouth, a yellow "!" | a bright rising appliance chime (bi-BEEP), the wheels skidding to a stop, the tank sloshing |
 | Telegraph (0.6 s) | angry face; it turns to face you and the brush spins up fast | a relay click and a wheel squeak as it squares up, then the brushes whirring up while the pump primes with two wet glugs and the motor whines upward; it cuts out just before the spit |
 | Attack | a low green jet sweeps a 120-degree arc at ankle height (0.8 s), leaving fading puddles | the pump's wet "glorp" and spit, and with it the acid hissing and fizzing across the floor |
@@ -131,18 +131,20 @@ of sight.
 **The habit it punishes.** Lingering exposed up high: standing on a perch, hanging on a hook anchor or floating in a long
 jump in its view.
 
-**Faces** (`Resources/SkylineModels/bots/spotlight_face_<Face>.png`, 512 x 320, a 32 x 20 LED matrix; its colour is
+**Faces** (`Resources/SkylineModels/bots/spotlight_face_<Face>.png`, 512 x 256, a 32 x 16 LED matrix drawn by the shared
+`pixel_faces.py`; its colour is
 the warm white of its lamp): happy (a content crescent eye, three status lamps), alert (the eye wide with a pinprick
 pupil, brows raised high), angry (a red crosshair under a V brow), hurt (amber chevrons squeezed shut, static), wrecked
 (a grey X, dead pixels). Made by `tools/skyline/bots/spotlight/make_faces.py`.
 
 **Sounds** (`Resources/SkylineAudio/spotlight/`; recipes in `tools/skyline/bots/spotlight/recipes/`, written by its
 `make_recipes.py`; heavy-electric: a mains hum, relay clunks, a rising lock tone, a hard crack): `idle_loop`, `alert`,
-`telegraph`, `lock_beep`, `attack` (centroid 4.1 kHz, 77% of its energy in the 2-8 kHz presence band), `hurt`,
-`plate_shed`, `wreck`.
+`telegraph`, `lock_beep`, `attack` (centroid 4.1 kHz, 77% of its energy in the 2-8 kHz presence band, -15.0 LUFS: its
+`sources.py` drives the shot into a soft clip so it sits with the other bots' attacks), `hurt`, `plate_shed`, `wreck`.
 
 **Model** (`Resources/SkylineModels/bots/spotlight.fbx`, the turning head, and `spotlight_mount.fbx`, the stand that
-never turns; built by `tools/skyline/bots/spotlight/build_model.py` in Blender).
+never turns; built by `tools/skyline/bots/spotlight/build_model.py` in Blender with the shared `blender_kit.py`; seven
+parts in the head, one in the stand).
 
 **Babble voice** (`SkylineBabble`, kept from Task 15): a sawtooth at 240 Hz with a 1-semitone spread, slow blips: a flat,
 buzzing announcer's monotone.
@@ -152,7 +154,7 @@ the dark."; wrecked "Lights... out...".
 
 ## Window-washer gondola (`window-washer-gondola`)
 
-**Personality.** A cheery old window-washer with a big handlebar moustache, in hi-vis orange. It rides its rail along
+**Personality.** A cheery old window-washer with a big handlebar moustache, in CONCIERGE gold. It rides its rail along
 the façade, whistling at its work, and takes your wall-run as a personal insult to its clean glass: it slaps at you with
 its squeegee and sticks mines on the panes behind it. Aim tag: area. Layer: walls.
 
@@ -160,20 +162,20 @@ its squeegee and sticks mines on the panes behind it. Aim tag: area. Layer: wall
 plate and toe boards, white railing posts under a gold top rail, an A-frame stirrup at each end. Two cables run up from
 the stirrups to the winch under the trolley; the winch's exposed copper coil, between gold flanges, is the weak point.
 Two gold buckets of suds with wire handles (plates "bucket-left" and "bucket-right") stand at the ends, a spare squeegee
-in the left one. In the middle front, a white control box holds the face display in a gold frame, an orange hi-vis
-beacon on top. On the left, a dark crate with three disc mines (gold rims, a red LED on the top one): mines are tossed
+in the left one. In the middle front, a white control box holds the face display in a gold frame, a gold beacon
+on top. On the left, a dark crate with three disc mines (gold rims, a red LED on the top one): mines are tossed
 from its wall side. On the right, the squeegee on a pole, hinged on the top rail.
 
 **States.**
 
 | State | Looks | Sounds |
 |---|---|---|
-| Idle | hi-vis orange "^ ^" eyes over the moustache, a grin under it; it rides its rail | the winch's gear motor droning (120 Hz with a gear whine beating three times a second) and the rope creaking twice (a 2 s loop) |
-| Alert | yellow "O O" eyes, brows shot up, an "o" under the moustache | the brake letting go (three ratchet clicks), a cable twang as the platform jolts, and a workman's two-note whistle |
+| Idle | gold "^ ^" eyes over the moustache, a grin under it; it washes the panes until woken: a slow ride back and forth along the first 2 m of its rail with a stop at each end (GondolaIdle), the squeegee swiping the glass | the winch's gear motor droning (120 Hz with a gear whine beating three times a second) and the rope creaking twice (a 2 s loop) |
+| Alert | white "O O" eyes, brows shot up, an "o" under the moustache | the brake letting go (three ratchet clicks), a cable twang as the platform jolts, and a workman's two-note whistle |
 | Telegraph (0.4 s) | angry face (red brows down, the moustache bristling, a set mouth); the squeegee winds back toward the wall | the platform's warning beeper: five pips at 1.25 kHz, speeding up and rising, over by 0.33 s |
 | Attack | the squeegee swings out and slaps (no damage: the gondola's harm is its mines) | a whoosh, the rubber blade squealing across glass and chattering, a slap at the end |
 | Mines | a disc mine is tossed from the crate onto the wall (`mine_lay`), arms (`mine_arm`), and when you come near its trigger ring shows and it beeps (`telegraph`) for 0.35 s, then blasts (`mine_blast`) | a magnetic clamp's thunk and latch; a rising two-note chirp; the warning beeper; a sharp crack with a punchy body and glass and shrapnel pinging out |
-| Hurt | amber "> <" eyes, a limp moustache, a wince, a blue sweat drop | a tin bucket's hollow bonk and a cable twanging under the jolt |
+| Hurt | pale soapy-blue "> <" eyes, a limp moustache, a wince, a blue sweat drop | a tin bucket's hollow bonk and a cable twanging under the jolt |
 | Plate shed | a gold bucket flies off where it was hit | a tin-pail clank, its handle rattling, a second smaller clank as it tumbles |
 | Wreck | grey "X X" eyes, the moustache drooping | a cable snaps (a crack and a whip falling in pitch), the winch runs down, the platform drops and clangs, the rope creaks under the dead weight |
 
@@ -184,19 +186,21 @@ attack): a mine you come within 1.5 m of beeps the same beeper and shows its rin
 **The habit it punishes.** Long wall-runs. It lays a mine every 4 m of rail (six live at most, each lasting 12 s), so
 the wall behind it fills with them; wall-running there is as risky as the floor.
 
-**Faces** (`Resources/SkylineModels/bots/window-washer-gondola_face_<Face>.png`, 512 x 320, a 32 x 20 LED matrix; its
-colour is hi-vis orange): happy (^ ^ eyes, the handlebar moustache, a grin), alert (yellow O O eyes, brows up, an "o"),
-angry (red, hard brows, small eyes, a bristling moustache, a set mouth), hurt (amber > <, a limp moustache, a blue sweat
-drop), wrecked (grey X X, the moustache drooping). Made by `tools/skyline/bots/window-washer-gondola/make_faces.py`.
+**Faces** (`Resources/SkylineModels/bots/window-washer-gondola_face_<Face>.png`, 512 x 256, a 32 x 16 LED matrix drawn by
+the shared `pixel_faces.py`; its colour is CONCIERGE gold, never the firm's orange): happy (gold ^ ^ eyes, the handlebar
+moustache, a grin), alert (white O O eyes, brows up, an "o"), angry (red, hard brows, small eyes, a bristling moustache,
+a set mouth), hurt (pale soapy blue > <, a limp moustache, a blue sweat drop: blue rather than amber, so it can't be
+mistaken for its gold calm), wrecked (grey X X, the moustache drooping). Made by `tools/skyline/bots/window-washer-gondola/make_faces.py`.
 
 **Sounds** (`Resources/SkylineAudio/window-washer-gondola/`; recipes in `tools/skyline/bots/window-washer-gondola/recipes/`,
 written by its `make_recipes.py`; winch-and-cable: a gear motor, rope creak, cable twangs, a rubber squeegee, mine beeps
 and a sharp blast): `idle_loop`, `alert`, `telegraph`, `attack` (the squeegee: centroid 1.2 kHz, 77% mid), `mine_lay`,
-`mine_arm`, `mine_blast` (centroid 1.8 kHz, its energy spread low 33%, mid 27%, presence 37%), `hurt`, `plate_shed`,
-`wreck`.
+`mine_arm`, `mine_blast` (centroid 1.9 kHz, its energy spread low 34%, mid 27%, presence 39%; -14.6 LUFS, driven into
+a soft clip by its `sources.py`), `hurt`, `plate_shed`, `wreck`.
 
 **Model** (`Resources/SkylineModels/bots/window-washer-gondola.fbx`; built by
-`tools/skyline/bots/window-washer-gondola/build_model.py` in Blender).
+`tools/skyline/bots/window-washer-gondola/build_model.py` in Blender with the shared `blender_kit.py`; 32 parts, the
+railing, stirrups and winch kept separate so no joined collider covers a bucket or the coil).
 
 **Babble voice** (`SkylineBabble`, kept from Task 15): a thin square wave (25% duty) at 380 Hz with a 5-semitone spread:
 a chatty, sing-song workman.

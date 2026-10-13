@@ -38,7 +38,20 @@ namespace JamKit.SkylineRepo
             foreach (var def in SkylineEnemies.All())
                 foreach (BotFace face in Enum.GetValues(typeof(BotFace)))
                     SkylineBotFace.Texture(def.id, face);
+            // the bots' models (Task 20 review, Minor 10): loaded now, not on an encounter's first spawn; held so an unload
+            // of unused assets can't drop them. ShowOnce draws each once.
+            var models = new System.Collections.Generic.List<GameObject>();
+            foreach (var def in SkylineEnemies.All())
+                foreach (var name in new[] { def.id, def.id + "_mount" })
+                {
+                    var m = Resources.Load<GameObject>(BotModelFolder + name);
+                    if (m != null) models.Add(m);
+                }
+            _models = models.ToArray();
         }
+
+        const string BotModelFolder = "SkylineModels/bots/";
+        static GameObject[] _models = new GameObject[0];
 
         /// <summary>Shows one tiny copy of each runtime drawing 0.6 m in front of <paramref name="cam"/> for two frames, then
         /// removes it.</summary>
@@ -57,6 +70,11 @@ namespace JamKit.SkylineRepo
             face.GetComponent<Renderer>().sharedMaterial = faceMat;
             var bubble = SkylineBarkBubble.Create(root, Vector3.down * 0.01f, "Halt!");
             bubble.transform.localScale = Vector3.one * 0.01f;
+            // one tiny copy of each bot model (no colliders yet: those are added by FromModel at spawn), so its meshes are
+            // uploaded and its imported materials' pipeline states built now
+            for (int i = 0; i < _models.Length; i++)
+                if (_models[i] != null)
+                    Object.Instantiate(_models[i], root, false).transform.localPosition = new Vector3(2f + i, 0f, 0f);
             yield return null;
             yield return null;
             if (bubble != null) Object.Destroy(bubble.gameObject);

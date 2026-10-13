@@ -1,0 +1,798 @@
+using System.Collections.Generic;
+using JamKit.Skyline;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+namespace JamKit.SkylineRepo
+{
+    /// <summary>
+    /// The Writ's look and sound beyond its handling events (docs/SKYLINE-GUN-WRIT.md; Task 18), driven only by
+    /// <see cref="SkylinePlayer.CueRaised"/> and <see cref="SkylinePlayer.HitLanded"/>, so the player's code doesn't know it
+    /// exists. It adds itself (and <see cref="SkylineRobotArms"/>) to every SkylinePlayer when a Skyline scene loads.
+    /// <list type="bullet">
+    /// <item>The courtroom model (Resources/SkylineModels/writ/writ): its materials get their textures, tints and glow here
+    /// (one copy per material, freed with the component); the gaslamps flicker, the gavel hovers over the bench, the drum's
+    /// amber band shows the magazine's charge, and the lamps and the doorway light up as the gun is drawn.</item>
+    /// <item>The shot: the gavel strikes the bench (the shot's visible beat), the doorway's doors burst open on a flash (at
+    /// most three frames), the bench and chair (the "slide") kick back, an amber light flashes on the world, and a thin
+    /// amber ribbon follows the shot. On the world: brass sparks and a scorched decal with a brass ring.</item>
+    /// <item>Bots: an ordinary Writ hit stays dark (dark flakes, <c>writ/impact</c>); a weak-point hit plays
+    /// <c>writ/impact_weak</c>; a spot forming is stamped on like a seal (a gold ring pressed onto the casing, short rays);
+    /// a spot hit pops (two gold rings, a flash, <c>writ/spot_pop</c> for the shooter); a kill adds a white-gold ring. Glow
+    /// and sparks on a live bot only ever mark a Writ spot (spec 14, the damage-feedback rule); the spot's own crack, sparks
+    /// and sounds are SkylineSpotMarker's.</item>
+    /// <item>At rest: a hushed-court air (<c>writ/hush</c>) loops quietly while the Writ is out.</item>
+    /// <item>The home pose: a yaw of <see cref="HomeYaw"/> toward the crosshair and a small lift, layered on the viewmodel's
+    /// pose each frame, so the colonnade's side shows at the hip. The inspect's sight check undoes it in its pose data
+    /// (SkylineGuns.WritSightCheck).</item>
+    /// </list>
+    /// Everything is pooled and made in Start; no per-shot searches or allocations.
+    /// </summary>
+    [DefaultExecutionOrder(150)]
+    public sealed class SkylineWritFx : MonoBehaviour
+    {
+        public const string ImpactSound = "writ/impact", ImpactWeakSound = "writ/impact_weak", SpotPopSound = "writ/spot_pop",
+            HushSound = "writ/hush";
+        public const float HomeYaw = -9f;
+        public static readonly Vector3 HomeOffset = new Vector3(0f, 0.015f, 0f);
+
+        // ---- presentation tuning (the gun's numbers live in SkylineGuns.Writ)
+        const int FlashFrames = 3;
+        const float LightLife = 0.05f, LightRange = 5f, LightIntensity = 2.6f;
+        const float GavelDown = 0.0077f, GavelStrike = 0.025f, GavelReturn = 0.16f, GavelTilt = 10f;
+        const float DoorsOpen = 68f, DoorsClose = 0.2f, BenchKick = 0.005f, BenchRack = 0.018f;
+        const float RibbonLife = 0.09f, RibbonWidth = 0.006f;
+        const float DecalLife = 5f, DecalFade = 0.6f, DecalSize = 0.07f;
+        const float HushVolume = 0.1f;
+        const int Sparks = 40, Flakes = 24, Rings = 10, Rays = 24, Decals = 16, Ribbons = 6, Spikes = 5;
+
+        static readonly Color Hot = new Color(6f, 3.9f, 1.6f);
+        static readonly Color Amber = new Color(3.2f, 1.7f, 0.45f);
+        static readonly Color Brass = new Color(0.83f, 0.62f, 0.28f);
+        static readonly Color SealGold = new Color(4.2f, 2.9f, 0.8f);
+        static readonly Color KillWhite = new Color(4.5f, 4.0f, 3.0f);
+        static readonly Color DarkFlake = new Color(0.16f, 0.15f, 0.15f);
+        static readonly Color Scorch = new Color(0.07f, 0.06f, 0.055f);
+
+        public SkylinePlayer player;
+
+        // ---------------------------------------------------------------- the model's materials
+
+        struct Look
+        {
+            public string name, texture;
+            public Color tint, emission;
+            public float metallic, smoothness;
+        }
+
+        // longest names first, so "Writ_StoneDark" isn't taken for "Writ_Stone"
+        static readonly Look[] Looks =
+        {
+            new Look { name = "Writ_StoneLight", texture = "writ_stone", tint = new Color(0.9f, 0.87f, 0.82f), smoothness = 0.22f },
+            new Look { name = "Writ_StoneDark", texture = "writ_stone", tint = new Color(0.55f, 0.53f, 0.52f), smoothness = 0.15f },
+            new Look { name = "Writ_Stone", texture = "writ_stone", tint = new Color(0.82f, 0.8f, 0.78f), smoothness = 0.18f },
+            new Look { name = "Writ_Wood", texture = "writ_wood", tint = Color.white, smoothness = 0.52f },
+            new Look { name = "Writ_Parchment", texture = "writ_parchment", tint = Color.white, smoothness = 0.2f },
+            new Look { name = "Writ_Maroon", tint = new Color(0.36f, 0.06f, 0.07f), smoothness = 0.38f },
+            new Look { name = "Writ_Brass", tint = Brass, metallic = 0.95f, smoothness = 0.68f },
+            new Look { name = "Writ_Iron", tint = new Color(0.09f, 0.085f, 0.08f), metallic = 0.7f, smoothness = 0.45f },
+            new Look { name = "Writ_LampGlow", tint = new Color(1f, 0.72f, 0.36f), emission = new Color(2.2f, 1.2f, 0.4f), smoothness = 0.7f },
+            new Look { name = "Writ_DoorGlow", tint = new Color(1f, 0.6f, 0.25f), emission = new Color(2.6f, 1.3f, 0.36f), smoothness = 0.6f },
+            new Look { name = "Writ_Bead", tint = new Color(1f, 0.62f, 0.12f), emission = new Color(3.4f, 1.9f, 0.3f), smoothness = 0.8f },
+            new Look { name = "Writ_CellGlow", tint = new Color(1f, 0.6f, 0.18f), emission = new Color(2.6f, 1.3f, 0.3f), smoothness = 0.7f },
+        };
+
+        readonly Dictionary<string, Material> _mats = new Dictionary<string, Material>();
+        Material _lamp, _door, _cell, _bead;
+        Color _lampBase, _doorBase, _cellBase;
+
+        // ---------------------------------------------------------------- the viewmodel's Writ
+
+        Transform _vmCam, _gunRoot, _muzzle, _bench, _gavel, _doorL, _doorR;
+        Vector3 _benchRest, _gavelRest, _doorLRest, _doorRRest;
+        Quaternion _gavelRot, _doorLRot, _doorRRot;
+        bool _resolved;
+        int _slot = -1;
+
+        // ---------------------------------------------------------------- effects
+
+        sealed class Bit
+        {
+            public Transform t;
+            public Vector3 vel, normal, baseScale;
+            public float age, life, size, to;
+            public int kind;   // 0 spark (falls, shrinks), 1 flake (falls, tumbles), 2 ring (grows, thins), 3 ray (grows out),
+                               // 4 decal (holds, then shrinks), 5 ribbon (thins), 6 seal (stamps in, holds, shrinks)
+        }
+
+        readonly List<Bit> _sparks = new List<Bit>(), _flakes = new List<Bit>(), _rings = new List<Bit>(), _rays = new List<Bit>();
+        readonly List<Bit> _decals = new List<Bit>(), _ribbons = new List<Bit>(), _seals = new List<Bit>();
+        readonly List<Bit> _live = new List<Bit>();
+        int _nSpark, _nFlake, _nRing, _nRay, _nDecal, _nRibbon, _nSeal;
+        Transform _worldRoot, _flashRoot;
+        readonly List<Transform> _spikes = new List<Transform>();
+        Light _light;
+        float _lightLeft;
+        int _lightPrewarm = 3, _flashLeft;
+        static Mesh _ringMesh;
+        AudioSource _hush;
+
+        // the shot's beats
+        float _shotAge = 99f, _rackAge = 99f, _equipAge = 99f, _equipSeconds = 0.55f, _seatFlash, _strikeScale = 1f;
+        bool _pendingShot;
+        Vector3 _shotEye, _shotAim;
+        float _shotRange;
+
+        // ---------------------------------------------------------------- installing itself
+
+        static bool _installed;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            _installed = false;
+            _ringMesh = null;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void Install()
+        {
+            if (!_installed)
+            {
+                SceneManager.sceneLoaded -= OnSceneLoaded;   // never twice, even with domain reload off
+                SceneManager.sceneLoaded += OnSceneLoaded;
+                _installed = true;
+            }
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+                if (IsSkylineScene(SceneManager.GetSceneAt(i))) { AttachAll(); break; }
+        }
+
+        static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (IsSkylineScene(scene)) AttachAll();
+        }
+
+        /// <summary>Skyline Repo's scenes only (SkylineArena, SkylineFiringRange, SkylineGallery).</summary>
+        static bool IsSkylineScene(Scene scene) => scene.IsValid() && scene.name.StartsWith("Skyline", System.StringComparison.Ordinal);
+
+        /// <summary>Gives every SkylinePlayer in the loaded scenes the Writ's effects and the robot arms' poses (once each).
+        /// Runs once per scene load, not per shot.</summary>
+        public static void AttachAll()
+        {
+            foreach (var p in Object.FindObjectsByType<SkylinePlayer>(FindObjectsSortMode.None))
+            {
+                if (p == null) continue;
+                if (p.GetComponent<SkylineWritFx>() == null) p.gameObject.AddComponent<SkylineWritFx>().player = p;
+                if (p.GetComponent<SkylineRobotArms>() == null) p.gameObject.AddComponent<SkylineRobotArms>().player = p;
+            }
+        }
+
+        // ---------------------------------------------------------------- life cycle
+
+        void Awake()
+        {
+            if (player == null) player = GetComponent<SkylinePlayer>();
+        }
+
+        void OnEnable()
+        {
+            if (player == null) player = GetComponent<SkylinePlayer>();
+            if (player == null) return;
+            player.CueRaised += OnCue;
+            player.HitLanded += OnHit;
+        }
+
+        void OnDisable()
+        {
+            if (player == null) return;
+            player.CueRaised -= OnCue;
+            player.HitLanded -= OnHit;
+        }
+
+        void Start()
+        {
+            _worldRoot = new GameObject("Writ FX").transform;
+            var spark = SkylineBotLook.Glow(Amber);
+            var flake = SkylineBotLook.Lit(DarkFlake);
+            var seal = SkylineBotLook.Glow(SealGold);
+            for (int i = 0; i < Sparks; i++) _sparks.Add(MakeBit(PrimitiveType.Cube, _worldRoot, spark, 0));
+            for (int i = 0; i < Flakes; i++) _flakes.Add(MakeBit(PrimitiveType.Cube, _worldRoot, flake, 1));
+            for (int i = 0; i < Rings; i++) _rings.Add(MakeRing(_worldRoot, seal, 2));
+            for (int i = 0; i < Rays; i++) _rays.Add(MakeBit(PrimitiveType.Cube, _worldRoot, seal, 3));
+            for (int i = 0; i < Decals; i++) _decals.Add(MakeDecal());
+            for (int i = 0; i < Ribbons; i++) _ribbons.Add(MakeBit(PrimitiveType.Cube, _worldRoot, SkylineBotLook.Glow(Amber), 5));
+            for (int i = 0; i < 6; i++) _seals.Add(MakeRing(_worldRoot, seal, 6));
+            SkylineBotLook.Glow(KillWhite);
+            var lightGo = new GameObject("Writ flash light");
+            lightGo.transform.SetParent(_worldRoot, false);
+            _light = lightGo.AddComponent<Light>();
+            _light.type = LightType.Point;
+            _light.color = new Color(1f, 0.7f, 0.35f);
+            _light.range = LightRange;
+            _light.intensity = 0.001f;
+            _light.shadows = LightShadows.None;
+            if (player != null) _light.transform.position = player.EyePosition;
+
+            var clip = SkylineSounds.Get(HushSound);
+            if (clip != null)
+            {
+                _hush = gameObject.AddComponent<AudioSource>();
+                _hush.clip = clip;
+                _hush.loop = true;
+                _hush.playOnAwake = false;
+                _hush.spatialBlend = 0f;
+                _hush.volume = 0f;
+                _hush.Play();
+            }
+        }
+
+        void OnDestroy()
+        {
+            if (_worldRoot != null) Destroy(_worldRoot.gameObject);
+            if (_flashRoot != null) Destroy(_flashRoot.gameObject);
+            foreach (var m in _mats.Values) if (m != null) Destroy(m);
+            _mats.Clear();
+        }
+
+        Bit MakeBit(PrimitiveType type, Transform parent, Material m, int kind)
+        {
+            var go = SkylineBotLook.Visual(type, "writ fx", parent, m, false);
+            go.SetActive(false);
+            return new Bit { t = go.transform, kind = kind };
+        }
+
+        Bit MakeRing(Transform parent, Material m, int kind)
+        {
+            var go = new GameObject("writ fx ring");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = RingMesh();
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            go.SetActive(false);
+            return new Bit { t = go.transform, kind = kind };
+        }
+
+        /// <summary>A scorch mark: a dark flat disc with a thin brass ring (lit, not glowing) lying on it.</summary>
+        Bit MakeDecal()
+        {
+            var go = new GameObject("writ decal");
+            go.transform.SetParent(_worldRoot, false);
+            var disc = SkylineBotLook.Visual(PrimitiveType.Cylinder, "scorch", go.transform, SkylineBotLook.Lit(Scorch), false);
+            disc.transform.localScale = new Vector3(1f, 0.02f, 1f);
+            var ring = MakeRing(go.transform, SkylineBotLook.Lit(Brass), 4).t;
+            ring.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            ring.localPosition = new Vector3(0f, 0.012f, 0f);
+            ring.localScale = Vector3.one * 0.42f;
+            ring.gameObject.SetActive(true);
+            go.SetActive(false);
+            return new Bit { t = go.transform, kind = 4 };
+        }
+
+        /// <summary>A flat ring (inner radius 0.88, outer 1) in the XY plane, facing both ways.</summary>
+        static Mesh RingMesh()
+        {
+            if (_ringMesh != null) return _ringMesh;
+            const int seg = 40;
+            var v = new Vector3[seg * 2];
+            var tri = new int[seg * 12];
+            for (int i = 0; i < seg; i++)
+            {
+                float a = Mathf.PI * 2f * i / seg;
+                var d = new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0f);
+                v[i * 2] = d * 0.88f;
+                v[i * 2 + 1] = d;
+                int j = (i + 1) % seg, k = i * 12;
+                int a0 = i * 2, a1 = i * 2 + 1, b0 = j * 2, b1 = j * 2 + 1;
+                tri[k] = a0; tri[k + 1] = b0; tri[k + 2] = a1;
+                tri[k + 3] = a1; tri[k + 4] = b0; tri[k + 5] = b1;
+                tri[k + 6] = a0; tri[k + 7] = a1; tri[k + 8] = b0;
+                tri[k + 9] = a1; tri[k + 10] = b1; tri[k + 11] = b0;
+            }
+            _ringMesh = new Mesh { name = "Writ ring", vertices = v, triangles = tri };
+            _ringMesh.RecalculateNormals();
+            _ringMesh.RecalculateBounds();
+            return _ringMesh;
+        }
+
+        // ---------------------------------------------------------------- finding the viewmodel's Writ
+
+        /// <summary>Finds the viewmodel's Writ once its rig exists, gives its model its look, and builds the muzzle flash.</summary>
+        bool Resolve()
+        {
+            if (_resolved) return _gunRoot != null;
+            var vm = player != null ? player.viewmodel : null;
+            if (vm == null || vm.OverlayCamera == null) return false;
+            _vmCam = vm.OverlayCamera.transform;
+            _gunRoot = _vmCam.Find("Gun " + SkylineGuns.WritId);
+            if (_gunRoot == null) return false;
+            _resolved = true;
+            _muzzle = SkylineBotBodies.Find(_gunRoot, "Muzzle");
+            _bench = SkylineBotBodies.Find(_gunRoot, "Bench");
+            _gavel = SkylineBotBodies.Find(_gunRoot, "Gavel");
+            _doorL = SkylineBotBodies.Find(_gunRoot, "DoorL");
+            _doorR = SkylineBotBodies.Find(_gunRoot, "DoorR");
+            if (_bench != null) _benchRest = _bench.localPosition;
+            if (_gavel != null) { _gavelRest = _gavel.localPosition; _gavelRot = _gavel.localRotation; }
+            if (_doorL != null) { _doorLRest = _doorL.localPosition; _doorLRot = _doorL.localRotation; }
+            if (_doorR != null) { _doorRRest = _doorR.localPosition; _doorRRot = _doorR.localRotation; }
+            if (_bench == null && _gavel == null)
+                Debug.Log("SKYLINE_WRIT_FX no courtroom model under the Writ (primitives in use): the model's beats are off");
+            CheckFacing();
+            ApplyLooks();
+            BuildFlash();
+            return true;
+        }
+
+        /// <summary>The model is exported so the doorway (the Muzzle) is down the gun's +Z; if an import ever turns it, this
+        /// says so once (the fix is in tools/skyline/guns/writ/model/writkit.py's export settings).</summary>
+        void CheckFacing()
+        {
+            if (_muzzle == null) return;
+            Vector3 m = _gunRoot.InverseTransformPoint(_muzzle.position);
+            if (m.magnitude < 0.1f) return;
+            if (Vector3.Angle(m, Vector3.forward) > 30f)
+                Debug.Log("SKYLINE_WRIT_FX the model's muzzle points " + m + " in the gun's frame (expected about 0, 0.012, 0.214)");
+        }
+
+        /// <summary>One copy per imported Writ_* material, with its texture, tint and glow; every renderer of the model
+        /// switched to the copies once (the arms' materials, Arms_*, are left alone).</summary>
+        void ApplyLooks()
+        {
+            foreach (var r in _gunRoot.GetComponentsInChildren<Renderer>(true))
+            {
+                var shared = r.sharedMaterials;
+                bool changed = false;
+                for (int i = 0; i < shared.Length; i++)
+                {
+                    var m = shared[i];
+                    if (m == null || !m.name.StartsWith("Writ_", System.StringComparison.Ordinal)) continue;
+                    var copy = Copy(m);
+                    if (copy != null) { shared[i] = copy; changed = true; }
+                }
+                if (changed) r.sharedMaterials = shared;
+            }
+            _lamp = Mat("Writ_LampGlow");
+            _door = Mat("Writ_DoorGlow");
+            _cell = Mat("Writ_CellGlow");
+            _bead = Mat("Writ_Bead");
+            _lampBase = LookOf("Writ_LampGlow").emission;
+            _doorBase = LookOf("Writ_DoorGlow").emission;
+            _cellBase = LookOf("Writ_CellGlow").emission;
+        }
+
+        Material Mat(string name) => _mats.TryGetValue(name, out var m) ? m : null;
+
+        static Look LookOf(string name)
+        {
+            for (int i = 0; i < Looks.Length; i++) if (Looks[i].name == name) return Looks[i];
+            return default(Look);
+        }
+
+        Material Copy(Material original)
+        {
+            int look = -1;
+            for (int i = 0; i < Looks.Length; i++)
+                if (original.name.StartsWith(Looks[i].name, System.StringComparison.Ordinal)) { look = i; break; }
+            if (look < 0) return null;
+            var L = Looks[look];
+            if (_mats.TryGetValue(L.name, out var have) && have != null) return have;
+            var m = new Material(original) { name = L.name + " (Writ)" };
+            if (!string.IsNullOrEmpty(L.texture))
+            {
+                var tex = Resources.Load<Texture2D>("SkylineModels/writ/" + L.texture);
+                if (tex != null)
+                {
+                    if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
+                    m.mainTexture = tex;
+                }
+            }
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", L.tint);
+            m.color = L.tint;
+            if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", L.metallic);
+            if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", L.smoothness);
+            if (L.emission.maxColorComponent > 0f && m.HasProperty("_EmissionColor"))
+            {
+                m.EnableKeyword("_EMISSION");
+                m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                m.SetColor("_EmissionColor", L.emission);
+            }
+            else if (m.HasProperty("_EmissionColor"))
+            {
+                m.DisableKeyword("_EMISSION");
+                m.SetColor("_EmissionColor", Color.black);
+            }
+            _mats[L.name] = m;
+            return m;
+        }
+
+        /// <summary>The muzzle flash in the doorway: a hot core and short spikes, shown for at most three frames.</summary>
+        void BuildFlash()
+        {
+            _flashRoot = new GameObject("Writ muzzle flash").transform;
+            // under the gun's root in its frame (an FBX empty may carry the import's axis conversion), at the doorway
+            _flashRoot.SetParent(_gunRoot, false);
+            _flashRoot.localPosition = _muzzle != null ? _gunRoot.InverseTransformPoint(_muzzle.position) : new Vector3(0f, 0.012f, 0.214f);
+            var hot = SkylineBotLook.Glow(Hot);
+            var core = SkylineBotLook.Visual(PrimitiveType.Sphere, "core", _flashRoot, hot, false).transform;
+            core.localScale = new Vector3(0.03f, 0.05f, 0.02f);
+            for (int i = 0; i < Spikes; i++)
+            {
+                var s = SkylineBotLook.Visual(PrimitiveType.Cube, "spike", _flashRoot, hot, false).transform;
+                _spikes.Add(s);
+            }
+            _flashRoot.gameObject.SetActive(false);
+        }
+
+        // ---------------------------------------------------------------- the hooks
+
+        int WritSlot()
+        {
+            var l = player != null ? player.Loadout : null;
+            if (l == null) return -1;
+            for (int i = 0; i < 2; i++) if (l[i] != null && l[i].Def.id == SkylineGuns.WritId) return i;
+            return -1;
+        }
+
+        void OnCue(GunCue cue, int slot)
+        {
+            if (slot != WritSlot()) return;
+            _slot = slot;
+            switch (cue.kind)
+            {
+                case GunCueKind.Shot:
+                    _shotAge = 0f;
+                    _strikeScale = 1f;
+                    _flashLeft = FlashFrames;
+                    _lightLeft = LightLife;
+                    _pendingShot = true;
+                    _shotEye = player.EyePosition;
+                    _shotAim = player.AimDirection;
+                    _shotRange = player.Loadout[slot].Def.range;
+                    break;
+                case GunCueKind.ClipStarted:
+                    if (cue.clip == HandlingClipKind.Equip) { _equipAge = 0f; _equipSeconds = Mathf.Max(0.1f, cue.seconds); }
+                    if (cue.clip == HandlingClipKind.DryFire) { _shotAge = 0f; _strikeScale = 0.4f; }
+                    break;
+                case GunCueKind.Event:
+                    if (cue.ev.id == "seat") _seatFlash = 1f;
+                    if (cue.ev.id == "bolt") _rackAge = 0f;
+                    break;
+            }
+        }
+
+        void OnHit(SkylineHitInfo info, SkylineHitResult r)
+        {
+            if (!info.fromWrit || !r.hit) return;
+            Vector3 n = info.normal.sqrMagnitude > 1e-6f ? info.normal.normalized : -info.direction;
+            if (r.writ.spotHit)
+            {
+                SkylineSounds.PlayViewmodel(SpotPopSound, 0.9f);
+                Ring(info.point + n * 0.02f, n, 0.05f, 0.42f, 0.2f);
+                Ring(info.point + n * 0.02f, n, 0.02f, 0.26f, 0.13f);
+                Flash(info.point + n * 0.3f, new Color(1f, 0.8f, 0.35f), 0.06f, 3f);
+            }
+            else if (info.zone == HitZone.WeakPoint) SkylineSounds.PlayAt(ImpactWeakSound, info.point, 0.9f);
+            else SkylineSounds.PlayAt(ImpactSound, info.point, 0.8f);
+            if (r.writ.spotCreated) Seal(info.point + n * 0.012f, n);
+            if (!r.writ.spotHit && !r.writ.spotCreated)
+                for (int i = 0; i < 3; i++) Flake(info.point + n * 0.02f, n);     // ordinary damage is dark
+            if (r.killed)
+            {
+                Vector3 toEye = player != null ? (player.EyePosition - info.point).normalized : n;
+                Ring(info.point, toEye, 0.1f, 0.95f, 0.26f, true);
+                for (int i = 0; i < 10; i++) Spark(info.point, n, 3.5f);         // a dead bot may spark
+            }
+        }
+
+        // ---------------------------------------------------------------- per frame
+
+        void LateUpdate()
+        {
+            float dt = Time.deltaTime;
+            if (!Resolve()) { TickBits(dt); return; }
+            var l = player.Loadout;
+            int slot = WritSlot();
+            var gun = slot >= 0 && l != null ? l[slot] : null;
+            bool out_ = gun != null && gun.Equipped && l.ActiveIndex == slot && _gunRoot.gameObject.activeInHierarchy;
+
+            if (out_)
+            {
+                // the home pose, on top of what the viewmodel set this frame
+                _gunRoot.localRotation = Quaternion.Euler(0f, HomeYaw, 0f) * _gunRoot.localRotation;
+                _gunRoot.localPosition += HomeOffset;
+            }
+
+            _shotAge += dt;
+            _rackAge += dt;
+            _equipAge += dt;
+            AnimateModel(out_ ? gun : null);
+            if (_pendingShot) { _pendingShot = false; WorldShot(); }
+            MuzzleFlash();
+            if (_lightPrewarm > 0)
+            {
+                _lightPrewarm--;
+                _light.enabled = true;
+                _light.intensity = 0.001f;
+                if (player != null) _light.transform.position = player.EyePosition;
+            }
+            else if (_lightLeft > 0f)
+            {
+                _lightLeft -= dt;
+                _light.enabled = true;
+                _light.intensity = LightIntensity * Mathf.Clamp01(_lightLeft / LightLife);
+            }
+            else if (_light.enabled) _light.enabled = false;
+            if (_hush != null) _hush.volume = Mathf.MoveTowards(_hush.volume, out_ ? HushVolume : 0f, dt * HushVolume * 2f);
+            TickBits(dt);
+        }
+
+        void AnimateModel(SkylineGun gun)
+        {
+            float t = Time.time;
+            // the gavel: a slow hover, and on a shot a strike down onto the bench, then back
+            if (_gavel != null)
+            {
+                float hover = Mathf.Sin(t * 5.1f) * 0.0012f;
+                float strike = 0f;
+                if (_shotAge < GavelStrike) strike = _shotAge / GavelStrike;
+                else if (_shotAge < GavelStrike + GavelReturn) { float u = (_shotAge - GavelStrike) / GavelReturn; strike = 1f - u * u * (3f - 2f * u); }
+                strike *= _strikeScale;
+                _gavel.localPosition = _gavelRest + ParentVector(_gavel, new Vector3(0f, hover * (1f - strike) - GavelDown * strike, 0f));
+                _gavel.localRotation = ParentRotation(_gavel, Quaternion.Euler(GavelTilt * strike + Mathf.Sin(t * 2.3f) * 2f, 0f, 0f)) * _gavelRot;
+            }
+            // the doors: thrown open (outward, toward the target) by the flash, swinging shut
+            float open = _shotAge < 0.03f ? 1f : Mathf.Clamp01(1f - (_shotAge - 0.03f) / DoorsClose);
+            open = open * open * (_strikeScale >= 1f ? 1f : 0f);
+            if (_doorL != null) _doorL.localRotation = ParentRotation(_doorL, Quaternion.Euler(0f, -DoorsOpen * open, 0f)) * _doorLRot;
+            if (_doorR != null) _doorR.localRotation = ParentRotation(_doorR, Quaternion.Euler(0f, DoorsOpen * open, 0f)) * _doorRRot;
+            // the bench and chair (the slide): a small kick on each shot, a full rack on the bolt
+            if (_bench != null)
+            {
+                float kick = _shotAge < 0.02f ? _shotAge / 0.02f : Mathf.Clamp01(1f - (_shotAge - 0.02f) / 0.1f);
+                float rack = _rackAge < 0.06f ? _rackAge / 0.06f : Mathf.Clamp01(1f - (_rackAge - 0.06f) / 0.07f);
+                float back = BenchKick * kick * _strikeScale + BenchRack * rack;
+                _bench.localPosition = _benchRest + ParentVector(_bench, new Vector3(0f, 0f, -back));
+            }
+            // the glows: lamps flicker and light up on the draw; the doorway flares with the shot; the cell shows the charge
+            float drawn = Mathf.Clamp01(_equipAge / (_equipSeconds * 0.7f));
+            float flicker = 0.92f + 0.08f * Mathf.PerlinNoise(t * 6f, 0.3f);
+            SetGlow(_lamp, _lampBase * (drawn * flicker * (1f + 1.5f * ShotGlow())));
+            SetGlow(_door, _doorBase * (Mathf.Lerp(0.2f, 1f, drawn) * (1f + 4f * ShotGlow())));
+            if (gun != null)
+            {
+                float charge = gun.Def.weapon.magazineSize > 0 ? (float)gun.Ammo / gun.Def.weapon.magazineSize : 1f;
+                _seatFlash = Mathf.MoveTowards(_seatFlash, 0f, Time.deltaTime * 2.5f);
+                SetGlow(_cell, _cellBase * (0.15f + 0.85f * charge) + Color.white * (2.5f * _seatFlash));
+            }
+        }
+
+        float ShotGlow() => _strikeScale >= 1f ? Mathf.Clamp01(1f - _shotAge / 0.25f) : 0f;
+
+        /// <summary>A vector in the gun's frame, in <paramref name="t"/>'s parent's frame (the model's root may carry the
+        /// FBX import's axis conversion).</summary>
+        Vector3 ParentVector(Transform t, Vector3 gunVector)
+        {
+            var p = t.parent;
+            return p == null ? gunVector : p.InverseTransformVector(_gunRoot.TransformVector(gunVector));
+        }
+
+        /// <summary>A rotation about the gun's own axes, in <paramref name="t"/>'s parent's frame.</summary>
+        Quaternion ParentRotation(Transform t, Quaternion gunRotation)
+        {
+            var p = t.parent;
+            if (p == null) return gunRotation;
+            Quaternion toGun = Quaternion.Inverse(_gunRoot.rotation) * p.rotation;   // parent frame -> gun frame
+            return Quaternion.Inverse(toGun) * gunRotation * toGun;
+        }
+
+        readonly Dictionary<Material, Color> _shown = new Dictionary<Material, Color>();
+
+        void SetGlow(Material m, Color c)
+        {
+            if (m == null || !m.HasProperty("_EmissionColor")) return;
+            if (_shown.TryGetValue(m, out var had) && Mathf.Abs(had.r - c.r) + Mathf.Abs(had.g - c.g) + Mathf.Abs(had.b - c.b) < 0.01f) return;
+            _shown[m] = c;
+            m.SetColor("_EmissionColor", c);
+        }
+
+        void MuzzleFlash()
+        {
+            if (_flashRoot == null) return;
+            if (_flashLeft > 0)
+            {
+                if (_flashLeft == FlashFrames)
+                {
+                    _flashRoot.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
+                    for (int i = 0; i < _spikes.Count; i++)
+                    {
+                        float a = 360f * i / _spikes.Count + Random.Range(-12f, 12f);
+                        float len = Random.Range(0.03f, 0.055f);
+                        var s = _spikes[i];
+                        s.localRotation = Quaternion.Euler(0f, 0f, a);
+                        s.localPosition = s.localRotation * new Vector3(len * 0.5f, 0f, 0.004f);
+                        s.localScale = new Vector3(len, 0.0045f, 0.0045f);
+                    }
+                }
+                float k = (float)_flashLeft / FlashFrames;
+                _flashRoot.localScale = Vector3.one * (0.7f + 0.5f * k);
+                _flashRoot.gameObject.SetActive(true);
+                _flashLeft--;
+            }
+            else if (_flashRoot.gameObject.activeSelf) _flashRoot.gameObject.SetActive(false);
+        }
+
+        /// <summary>The shot's world side: the flash light, the amber ribbon to where it landed, and on the world (not a bot)
+        /// brass sparks and a scorched decal. One raycast per shot (the shooting code has already resolved the hit).</summary>
+        void WorldShot()
+        {
+            if (player == null) return;
+            Vector3 aim = _shotAim.sqrMagnitude > 1e-6f ? _shotAim.normalized : player.AimDirection;
+            _light.transform.position = _shotEye + aim * 0.8f;
+            Vector3 end = _shotEye + aim * _shotRange;
+            if (Physics.Raycast(_shotEye, aim, out var hit, _shotRange, SkylineShooting.Mask, QueryTriggerInteraction.Ignore))
+            {
+                end = hit.point;
+                if (hit.collider.GetComponent<SkylineHitZone>() == null)
+                {
+                    for (int i = 0; i < 6; i++) Spark(hit.point + hit.normal * 0.01f, hit.normal, 2.6f);
+                    Decal(hit.point, hit.normal);
+                }
+            }
+            Vector3 from = player.viewmodel != null ? player.viewmodel.MuzzleWorld() : _shotEye + aim * 0.5f;
+            Ribbon(from, end);
+        }
+
+        // ---------------------------------------------------------------- spawning
+
+        Bit Take(List<Bit> pool, ref int next)
+        {
+            next = (next + 1) % pool.Count;
+            var b = pool[next];
+            if (!b.t.gameObject.activeSelf) _live.Add(b);
+            b.age = 0f;
+            b.t.gameObject.SetActive(true);
+            return b;
+        }
+
+        void Spark(Vector3 at, Vector3 n, float speed)
+        {
+            var b = Take(_sparks, ref _nSpark);
+            b.vel = (n + Random.insideUnitSphere * 0.7f).normalized * speed * Random.Range(0.5f, 1f);
+            b.life = Random.Range(0.18f, 0.3f);
+            b.size = Random.Range(0.012f, 0.02f);
+            b.t.position = at;
+            b.t.localScale = Vector3.one * b.size;
+        }
+
+        void Flake(Vector3 at, Vector3 n)
+        {
+            var b = Take(_flakes, ref _nFlake);
+            b.vel = (n + Random.insideUnitSphere * 0.6f).normalized * Random.Range(1.2f, 2.4f);
+            b.life = Random.Range(0.35f, 0.55f);
+            b.size = Random.Range(0.025f, 0.04f);
+            b.t.SetPositionAndRotation(at, Random.rotation);
+            b.t.localScale = new Vector3(b.size, b.size * 0.25f, b.size * 0.8f);
+            b.baseScale = b.t.localScale;
+        }
+
+        void Ring(Vector3 at, Vector3 n, float from, float to, float life, bool white = false)
+        {
+            var b = Take(_rings, ref _nRing);
+            b.t.GetComponent<MeshRenderer>().sharedMaterial = SkylineBotLook.Glow(white ? KillWhite : SealGold);
+            b.t.SetPositionAndRotation(at, Quaternion.LookRotation(n));
+            b.size = from;
+            b.to = to;
+            b.life = life;
+            b.t.localScale = Vector3.one * from;
+        }
+
+        /// <summary>A spot forming: a gold ring pressed onto the casing like a seal (it lands big and stamps down to size),
+        /// and six short rays.</summary>
+        void Seal(Vector3 at, Vector3 n)
+        {
+            var b = Take(_seals, ref _nSeal);
+            b.t.SetPositionAndRotation(at, Quaternion.LookRotation(n));
+            b.size = 0.075f;
+            b.life = 0.45f;
+            b.t.localScale = Vector3.one * b.size * 2.4f;
+            Quaternion face = Quaternion.LookRotation(n);
+            for (int i = 0; i < 6; i++)
+            {
+                var r = Take(_rays, ref _nRay);
+                Vector3 dir = face * (Quaternion.Euler(0f, 0f, 60f * i + 30f) * Vector3.right);
+                r.normal = dir;
+                r.vel = at;
+                r.life = 0.14f;
+                r.t.SetPositionAndRotation(at, Quaternion.LookRotation(dir, n));
+                r.t.localScale = new Vector3(0.006f, 0.006f, 0.01f);
+            }
+        }
+
+        void Decal(Vector3 at, Vector3 n)
+        {
+            var b = Take(_decals, ref _nDecal);
+            b.t.SetPositionAndRotation(at + n * 0.003f, Quaternion.FromToRotation(Vector3.up, n) * Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
+            b.size = DecalSize * Random.Range(0.85f, 1.15f);
+            b.life = DecalLife;
+            b.t.localScale = Vector3.one * b.size;
+        }
+
+        void Ribbon(Vector3 from, Vector3 to)
+        {
+            Vector3 d = to - from;
+            float len = d.magnitude;
+            if (!(len > 0.1f)) return;
+            var b = Take(_ribbons, ref _nRibbon);
+            b.t.SetPositionAndRotation(from + d * 0.5f, Quaternion.LookRotation(d / len));
+            b.size = len;
+            b.life = RibbonLife;
+            b.t.localScale = new Vector3(RibbonWidth, RibbonWidth, len);
+        }
+
+        void Flash(Vector3 at, Color c, float life, float intensity)
+        {
+            _light.transform.position = at;
+            _light.color = c;
+            _lightLeft = life;
+            _light.intensity = intensity;
+        }
+
+        void TickBits(float dt)
+        {
+            for (int i = _live.Count - 1; i >= 0; i--)
+            {
+                var b = _live[i];
+                b.age += dt;
+                float u = b.life > 0f ? b.age / b.life : 1f;
+                if (u >= 1f)
+                {
+                    b.t.gameObject.SetActive(false);
+                    _live.RemoveAt(i);
+                    continue;
+                }
+                switch (b.kind)
+                {
+                    case 0:
+                        b.vel += Physics.gravity * dt;
+                        b.t.position += b.vel * dt;
+                        b.t.localScale = Vector3.one * (b.size * (1f - u));
+                        break;
+                    case 1:
+                        b.vel += Physics.gravity * dt;
+                        b.t.position += b.vel * dt;
+                        b.t.Rotate(400f * dt, 230f * dt, 0f, Space.Self);
+                        b.t.localScale = b.baseScale * (1f - u * u);
+                        break;
+                    case 2:
+                    {
+                        float e = 1f - (1f - u) * (1f - u);
+                        b.t.localScale = new Vector3(1f, 1f, 1f) * Mathf.Lerp(b.size, b.to, e) * (1f - 0.35f * u);
+                        break;
+                    }
+                    case 3:
+                        b.t.position = b.vel + b.normal * (0.05f + 0.07f * u);
+                        b.t.localScale = new Vector3(0.006f * (1f - u), 0.006f * (1f - u), 0.03f + 0.04f * u);
+                        break;
+                    case 4:
+                    {
+                        float left = b.life - b.age;
+                        float k = left < DecalFade ? left / DecalFade : 1f;
+                        b.t.localScale = Vector3.one * (b.size * k);
+                        break;
+                    }
+                    case 5:
+                        b.t.localScale = new Vector3(RibbonWidth * (1f - u), RibbonWidth * (1f - u), b.size);
+                        break;
+                    case 6:
+                    {
+                        float s = u < 0.15f ? Mathf.Lerp(2.4f, 1f, u / 0.15f) : u < 0.5f ? 1f : Mathf.Lerp(1f, 0f, (u - 0.5f) / 0.5f);
+                        b.t.localScale = Vector3.one * (b.size * s);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
