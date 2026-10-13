@@ -74,7 +74,8 @@ hour** (the in-world reason the rooms are generated).
 ### 1.6 Story structure: a subplot per floor
 - **The most important part of the story** (the creator): small subplots on each floor, told within the floor, that
   get referenced again later or change the story, alongside the main dilemma's foreshadowing.
-- The generator places **one authored story room per floor** among the generated ones. It carries that floor's subplot
+- The generator places **authored story rooms** among the generated ones (how many per district, and whether a
+  subplot unfolds over several runs, is pending the creator: section 14, item 2). It carries that floor's subplot
   (environmental storytelling, the PA, hire banter).
 - Subplots usually belong to a recruitable hire (section 3), so story, party and foreshadowing share one piece of
   content.
@@ -103,7 +104,10 @@ Two guns plus one gadget. Swapping between the two guns is a designed moment (an
     many spot hits the last magazine landed. Capstone: any damage source can hit the spots, area damage included.
   - **Breacher**, a door-breach shotgun. Identity: knockback, **including on yourself**. The self-knockback is
     momentum you can carry into an air-strafe (like TF2's Soldier rocket-jumping, or Destiny 2's Micro-Missile frame
-    grenade launchers), so it's a movement tool as well as a gun.
+    grenade launchers), so it's a movement tool as well as a gun. **Limits (proposed, pending the creator; tunable
+    data):** one boost per airtime, refreshed by landing or touching a wall; no self-damage; it doesn't refresh the
+    double jump; its height is about the jump upgrade's, so tools and height stories keep their value. The clean-line
+    checks model one boost per airtime.
   - **Nailer**, an SMG that pins light bots to walls.
   - **Tow Line**, a cable rifle that yanks small bots to you.
 - **Galleria prototypes** (found in runs; each changes a verb):
@@ -135,21 +139,24 @@ Two guns plus one gadget. Swapping between the two guns is a designed moment (an
 - **Final review of every gun: the creator plays it.**
 
 ### 2.4 Health
-- **Plating** is regained by stripping scrap from fresh wrecks, so aggression heals (DOOM Eternal's lesson: kiting
-  stops paying).
-- **Chassis** is health that doesn't regenerate within a floor.
+- **Plating** is a layer over the chassis and absorbs damage first. It's regained by stripping scrap from fresh wrecks,
+  so aggression heals (DOOM Eternal's lesson: kiting stops paying).
+- **Chassis** is health underneath. It doesn't regenerate; it carries over between floors and is restored only by
+  repair rewards and vending machines.
+- **Controller aim assist:** slowdown near targets and mild magnetism, tuned per gun (the creator plays on a pad).
 
 ### 2.5 Enemies: each has an identity
-Every enemy has a face or display, idle, alert and attack states, its own sounds and barks, and **an aim tag** (2.6).
+Every enemy has a face or display, idle, alert and attack states, its own sounds and barks, **an aim tag** (2.6) and
+**a layer tag**: the layer of the player's space it threatens (floor, walls or air).
 
-| Bot | Identity | What it does | Habit it punishes | Aim tag |
-|---|---|---|---|---|
-| Floor-care unit | a roomba with a happy face display; angry when it spots a "stain" (you) and tries to clean you out, with acid | ankle-height acid sweep | staying on the floor | area |
-| Greeter | relentlessly welcoming | charges from the flanks | standing still | melee |
-| Mall-cop drone | officious | shots that **lead your movement** | straight lines | leads you |
-| Window-washer gondola | rides the façade | lays mines along walls | long wall-runs | area |
-| Spotlight | a searchlight with a rifle | hitscan after a 0.8 s laser telegraph; guards hook anchors | lingering exposed up high | fires at where you are now (telegraphed) |
-| Foam turret | a gift-wrap station | sticky slowing patches on the floor | standing still | area |
+| Bot | Identity | What it does | Habit it punishes | Aim tag | Layer |
+|---|---|---|---|---|---|
+| Floor-care unit | a roomba with a happy face display; angry when it spots a "stain" (you) and tries to clean you out, with acid | ankle-height acid sweep | staying on the floor | area | floor |
+| Greeter | relentlessly welcoming | charges from the flanks | standing still | melee | floor |
+| Mall-cop drone | officious | shots that **lead your movement** | straight lines | leads you | air |
+| Window-washer gondola | rides the façade | lays mines along walls | long wall-runs | area | walls |
+| Spotlight | a searchlight with a rifle | a 0.8 s laser telegraph that follows you with a lag, **locks 0.25 s before the shot**, then hitscan; guards hook anchors. Dodged by changing direction in that last 0.25 s or breaking line of sight | lingering exposed up high | fires at where you are now (telegraphed) | air |
+| Foam turret | a gift-wrap station | sticky slowing patches on the floor | standing still | area | floor |
 
 Identities are written in full by each enemy's agent (section 9).
 
@@ -240,7 +247,13 @@ isn't a combat habit, and counting it would punish exploring):
 - **What hurts you:** damage taken by enemy type and attack.
 - **Decision events** (needed for Baja, recorded from the first milestone): every ability, movement option and gun
   reports each decision in one shared format: what you did, the situation (airborne or not, being shot at or not, the
-  threat's direction relative to you, the room features nearby, your ammo and cooldowns), and what came next.
+  threat's direction relative to you, the room features nearby, your ammo and cooldowns), and what came next. **They're
+  built in the Skyline layer**, which knows threats, ammo and rooms, from the movement engine's existing per-frame
+  events (`MoveEvents` / `FrameEvents`); the engine itself is not changed for this.
+
+**Definitions:**
+- **Combat** runs from the first enemy alerted in an encounter to the last enemy of that encounter wrecked.
+- **A wall is "in reach"** when a tagged wall-runnable surface is within 3 m of the player while airborne or sprinting.
 
 ### 4.2 Turning records into habits
 - Each habit is a share of combat time or of damage, **measured by opportunity**: wall-running is the share of the wall
@@ -249,7 +262,8 @@ isn't a combat habit, and counting it would punish exploring):
 - **Habit score = 60% you versus the room** (your own mix and the opportunities the room gave) **+ 40% you versus
   players at your difficulty** (the creator's 3:2).
 - **The comparison group is the same difficulty** (Hard players behave differently; mixing them blurs the signal).
-- **With no data yet**, each difficulty starts from a hand-set estimate (bots tuned to play like an Easy, Normal or Hard
+- **The 40% compares you with a per-difficulty table, never with your own history** (that would be the 60% again).
+  **With no data yet**, each difficulty's table is a hand-set estimate (bots tuned to play like an Easy, Normal or Hard
   player, adjusted by the team's playtests). Real data moves the estimate in proportion to how much there is
   (shrinkage). If the game ever goes online: opt-in, anonymous, aggregated telemetry only.
 - Scores use a recency-weighted average, so a change of style is noticed within a floor or two.
@@ -259,8 +273,10 @@ isn't a combat habit, and counting it would punish exploring):
   encounter can host fairly. **The fairness checks run after the counter is added.** It's **announced on the PA** as
   you enter ("We've noticed you enjoy our walls. We've had them waxed.").
 - One counter per floor on Easy (a weaker version) and Normal, two on Hard; never the same counter on consecutive
-  floors. Counters never close the
-  last clean line.
+  floors. Counters never close the last clean line.
+- **A counter must fit the encounter's rules:** it threatens a layer the encounter already covers (so "at most two of
+  three layers" still holds) and shares the encounter's aim tag. If no counter for the top habit fits, CONCIERGE falls
+  back to the next habit.
 - **Movement counters:** wall mines for wall-runners, anti-air flak for long airtime, a spotlight on the anchor you
   always use.
 - **Weapon counters raise the skill your favourite gun demands, never deny it.** The player stays free to use the gun
@@ -291,8 +307,9 @@ An area modifier: hires can't deploy until the Jammer is decrypted (a hold objec
   the boss): a way to go against the current.
 
 ### 4.7 Build
-A pure C# `Ledger` (deterministic, so tests and the autopilot can drive it), stored in the repo's save system, with its
-own tests in `core-tests/`.
+A pure C# `Ledger` (deterministic, so tests and the autopilot can drive it), stored in the repo's save system under
+**Skyline's own save slots** (the save file lives in the Unity project's shared `persistentDataPath`, which Visiting
+Hours also uses, so every Skyline slot name starts with `skyline-`), with its own tests in `core-tests/`.
 
 ---
 
@@ -379,8 +396,11 @@ a hidden file that survives resets. Baja uses **only data the game already holds
 ## 6. Traversal, rooms and the run
 
 ### 6.1 Structure
-- **A floor** is one generated area: a traversal stretch, an encounter, an objective, a reward.
-- **A district** is 6-8 floors, then a **climbing set-piece**, then a **boss**.
+- **The words:** a **room** (the 16 normal and 8 special in 6.3-6.4) is a hand-made **chunk**. **A floor** is one
+  generated area: 1-3 room chunks joined by connector chunks, holding a traversal stretch, an encounter, an objective,
+  and two exits with rewards. Some floors also hold a story room (1.6).
+- **A district** is 6-8 floors, then a **climbing set-piece**, then a **boss** (so the climb comes every 6-8 floors,
+  inside the creator's 5-10).
 - **Sky-bridges** between towers are rest beats with a vista of the next tower.
 - **The slice:** the Galleria's floors, the atrium climb, LOSS PREVENTION, and the sky-bridge to the offices tower as
   the closing shot.
@@ -443,6 +463,9 @@ art, its own rule, and **a unique permanent reward**:
 7. **The Storm Roof:** a lightning-rod puzzle in the rain.
 8. **The Vault:** a heist with lasers and alarms; stealth optional (the repo's Stealth core).
 
+Rooms 3-8 above have no permanent reward named yet; the rule is that each gets a unique one (designed with the room by
+its agent). **M2's special room is the Showroom** (low gravity is the cheapest rule to build); the Aquarium follows.
+
 Whether the Galleria's setting gives enough variety, or runs need rooms that escape it, is judged once the game exists.
 
 ### 6.5 Verticality as an obstacle
@@ -473,6 +496,25 @@ Four tiers of balconies around a glass dome, fought upward.
 - **Puzzles are short environment reads (under a minute) that work during combat:** shoot fuse boxes to re-route
   escalators and lifts (which also changes the arena); find the listed asset from the store directory's clues; a
   route-finding climb to a high exit.
+
+### 6.8 Teaching map
+Every mechanic is taught, by someone it makes sense for (the creator's rule; Undertale's model, where the characters who
+introduce a mechanic are the ones it belongs to). Meaning and stakes may be withheld, never mechanics. At most one
+deliberate rule-break: Baja.
+
+| Mechanic | Teacher | Where | Milestone |
+|---|---|---|---|
+| Movement basics (wall-run, slide, double jump, mantle) | Nan | the first floor's traversal stretch | M2 (M1's arena has a short warm-up) |
+| Writ's weak spots | Dot | the arena warm-up: a practice bot that visibly grows spots | M1 |
+| Breacher's knockback and the boost | Dot | the warm-up: an optional ledge reachable only with a boost, with a small reward | M1 |
+| Plating from wrecks | Dot | the first time your plating breaks ("Strip it! Scrap's armour!") | M1 |
+| Each enemy | CONCIERGE's safety notice | the first time that bot appears | M1 (three bots), then each new bot |
+| Counters | CONCIERGE | the first counter gets a longer announcement | M3 |
+| Objectives | Nan | at the start of the first floor with each objective | M2 |
+| Exits and rewards | Nan | the first floor's end | M2 |
+| Tools | Dot | when a tool is first found | M2 |
+| Hires | Dot | on recruiting; the first deployment | M2 |
+| Commission, the van, the dossier | Nan, then CONCIERGE (the dossier) | the first return to the van | M4 |
 
 ---
 
@@ -508,22 +550,36 @@ normal floors give commons and rares, bosses a guaranteed choice of epics, trial
 
 ## 8. Movement engine changes (shared with Visiting Hours)
 
-All new behaviour is **opt-in, default off**, so Visiting Hours' nights are unchanged and its tests stay green:
-- **An outside-push hook:** a velocity from outside the engine (the Breacher's self-knockback) that the air-strafe keeps
-  and builds on.
-- **New states:** the anchor hook (pull to a marked point), the jump upgrade (third jump or charged jump); later, the
-  glider, the true grapple, Icarus's dash.
+All new behaviour is **opt-in, default off**, so Visiting Hours' nights are unchanged and its tests stay green. This
+**does edit shared files** (it can't be done with new files alone), so every change is listed and gated:
+- **Shared files touched:** `Runtime/Core/Movement/MoveSim.cs`, `MoveTypes.cs` (the movement-mode list), `MoveDef.cs`,
+  the shared tuning asset, and `Runtime/Unity/Movement/MovementController.cs`. `SharedTuningTests` requires the shared
+  asset to equal `MoveDef`'s defaults, so new fields go into both.
+- **An outside-push hook** (the Breacher's self-knockback), with written rules: applied at the start of a step; an
+  upward part forces leaving the ground and ends a wall-run; ignored during a mantle; respects the maximum speed
+  (`CapFlat`, 22 m/s); doesn't refresh the double jump. (On the ground, `StepGround` zeroes vertical speed and decays
+  anything above sprint speed, which is why the upward part must force a takeoff.)
+- **New states:** the anchor hook (pull to a marked point) and the jump upgrade (third jump or charged jump) are built
+  as **sub-states of the Air mode**, so no new movement mode exists. (An unknown mode falls through to `StepGround` in
+  `MoveSim`, and BodyFeel, the movement camera, audio and body, the stealth noise rules and `CourseAutopilot` all switch
+  on the mode.) If a later tool truly needs a new mode, it's added at the end of the list and every one of those
+  switches is audited. Later: the glider, the true grapple, Icarus's dash.
 - **A Skyline movement profile** (the engine already has profiles, `docs/MOVEMENT.md` "Profiles") if measurements show
   combat needs it.
-- **Decision events** (4.1) are emitted by the movement states.
+- **The gate for every engine change:** the full Movement test suite, plus the Dream Escape and Deep Block route-time
+  pins, unchanged.
+- Decision events are built outside the engine (4.1).
 
 ---
 
 ## 9. How it's built
 
 ### 9.1 Where things live
-- Pure C# systems: a new `Skyline` folder in `Packages/com.vibejam.jamkit/Runtime/Core/` (new files only), tested by
-  `dotnet test` in `core-tests/`.
+- Pure C# systems: a new `Packages/com.vibejam.jamkit/Runtime/Skyline/` folder with **its own assembly definition**
+  (`JamKit.Skyline`, referencing `JamKit.Core`, no engine references), so a Skyline compile error can never break
+  Visiting Hours' build. Tested by `dotnet test` in `core-tests/`. The only shared files edited are the engine's (8).
+- The floor generator is **new code**: the existing `RunGeneration` only plans a sequence of room types (like Slay the
+  Spire's map: which kind of room comes next, not what's in it). Its risk-room types are reused.
 - Unity side: `Assets/JamKit/Templates/SkylineRepo/` only. Visiting Hours' files are never edited; its Look library
   (`docs/redesign/look.md`) and capture, perf and lint tools are reused by copying patterns or calling their APIs.
 - Docs: `docs/SKYLINE-*.md`.
@@ -538,19 +594,26 @@ states are pure C#, iterated with `dotnet test` (no Unity lock). Unity-side C# i
 - **Room agents** in batches (a chunk, its variants, its affordances, its dressing).
 - Subagents can't run Unity (the repo's hook); they hand work back.
 
-### 9.4 One Unity pass per batch, one lock
-A single batch-mode run, **`SkylinePass`**, takes the lock in `docs/UNITY-LOCK.md` once and does everything:
-1. compile and EditMode tests;
-2. build the scenes;
-3. stills of every room chunk variant from fixed cameras;
-4. **the firing range:** every gun's handling set recorded with audio;
-5. **the enemy gallery:** each bot idle, alert and attacking, with audio;
-6. **an autopilot run** through generated floors, recorded;
-7. **QA lints:** missing colliders, meshes passing through each other, untagged wall-runnable surfaces, stuck spots;
-8. **the frame-time probe** at 1080p.
+### 9.4 One pass per batch: three short lock holds, run back to back
+**`SkylinePass`** is one runner script that queues three Unity jobs. Each takes and releases the lock in
+`docs/UNITY-LOCK.md` on its own (rule 3: one job per hold), and the runner retakes it straight away for the next, so the
+Visiting Hours session can slip in between but nobody waits on a person:
+1. **Editor batch job:** compile, EditMode tests, build the scenes, stills of every room chunk variant from fixed
+   cameras, the QA lints (missing colliders, meshes passing through each other, untagged wall-runnable surfaces, stuck
+   spots).
+2. **Windows build** (about 2 minutes).
+3. **The built player, run windowed (not batch mode, because the repo mutes all audio in batch mode):** the firing range
+   (every gun's handling set, recorded with audio), the enemy gallery (each bot idle, alert and attacking, with audio),
+   a recorded autopilot run through generated floors, and the frame-time probe at 1080p (frame time must be measured in
+   a build).
 A failed stage doesn't stop the others. Everything lands in `out/skyline/<date>/` with a manifest.
 
+**Sound is also rendered without Unity:** the sound forge renders each gun's handling set straight from its event
+timeline, so the ears can judge and compare it in seconds between passes. The in-game recordings confirm the sync.
+
 ### 9.5 The ears (a separate small project, a global skill, before M1's sound work)
+**Before the jam (M0):** layers 1 and 2 plus reference comparison only. The classifiers and Gemini judge follow once
+the creator has made the API key (pending the creator; see 14).
 - Layer 1: measurements (loudness, true peak, attack, tail, band energy, stereo width, clipping).
 - Layer 2: pictures Claude reads (spectrogram, waveform, envelope; A/B sheets).
 - **Layers 3 and 4 combined into one judge:** local classifiers (CLAP, Audiobox Aesthetics) and Gemini over the API. It
@@ -590,11 +653,14 @@ A failed stage doesn't stop the others. Everything lands in `out/skyline/<date>/
 9. **Encounter fairness:** a clean line exists, aim models don't mix, counters are announced, per difficulty.
 10. **Consequence:** every fail state and choice changes something visible.
 11. **Presentation:** camera, animation and audio sell each beat; no text pops, no clipped text.
-12. **Performance:** 1080p at 60 fps or better on this RTX 3050 laptop at the default quality (frame time reported).
+12. **Performance** (the creator's rule from `docs/REDESIGN.md` section 3, raised 2026-10-12): "consistent 120 fps at
+    1080p, or a bare minimum of 60 fps, when the game is the only thing running", on this RTX 3050 laptop. Target
+    8.3 ms a frame; floor 16.7 ms on the 1% lows, measured in a build with the perf probe. Far things cost far less than
+    near things.
 
 **Blockers** (any one fails the batch): phasing through a wall, an untextured placeholder in view, clipped text, a fail
-state with no cost, a soft-lock, a frame time over 25 ms, an encounter without a clean line on Normal, mixed aim models
-outside the exceptions.
+state with no cost, a soft-lock, **1% lows over 16.7 ms in a build**, **a scene that needs more than the 30% memory cap
+(4.6 GB) to open in the editor**, an encounter without a clean line on Normal, mixed aim models outside the exceptions.
 
 ---
 
@@ -609,7 +675,30 @@ outside the exceptions.
 | **M4: the loop** | commission, the van, salvage, difficulty presets, CONCIERGE's PA lines, the dossier, the Greeters; the closing sky-bridge |
 | **Later** | the remaining rooms (to 16 + 8), the glider and true grapple, Contract Clauses, Baja, more districts |
 
-Each milestone: build → one `SkylinePass` → judges → fixes → the creator plays.
+Each milestone: build → one `SkylinePass` → judges → fixes → the creator plays. **Plan: stop after M1 until the
+hackathon is over**, keeping Claude usage in reserve for the event days.
+
+### 11.1 M0 is done when
+- `JamKit.Skyline` (its own assembly) and its `core-tests` project build, with Visiting Hours' tests unchanged.
+- The decision-event log and the Ledger's recording side exist, with tests.
+- **A headless combat sim** exists (pure C#: projectiles, leading and fire-at-you aim, hits, the straight-line and
+  jinking bots). It's new work, because `CourseAutopilot` only follows lab courses.
+- `SkylinePass` runs its three jobs end to end and writes a manifest (with empty-but-working firing range and gallery
+  scenes).
+- The sound forge renders a recipe to audio, and the ears (layers 1-2 plus reference comparison) report on it.
+
+### 11.2 M1 is done when
+- **Writ and Breacher:** base identity complete; the full handling set (equip, fire, dry fire, partial and from-empty
+  reload, inspect) with sound and code animation in sync; aim assist on pad; the first upgrade of each built and the
+  whole path written.
+- **Three bots** (mall-cop drone, floor-care unit, spotlight) with identity, faces, states, sounds, aim and layer tags,
+  and plates shed where hit.
+- **One arena** dressed to the bar, with the teaching beats for both guns and all three bots (6.8).
+- **The outside-push hook**, with the engine gate green (8).
+- **The dodging measurement** in the headless sim: on Normal the straight-line bot takes about twice the hits of the
+  jinking bot, and neither goes unhit.
+- 1% lows at or under 16.7 ms in a build.
+- Judges score every category 8/10 or more with no blockers; then the creator plays.
 
 ---
 
@@ -627,4 +716,39 @@ go to `out/` and are pruned after judging.
   creator, batched into the milestone report unless it blocks work.
 
 ## 14. Changes since approval
-(none yet)
+
+### 2026-10-13: an independent review (a fresh agent checked the spec against the brief, the rules and the code)
+Fixed (technical and clarity):
+- Skyline code gets its own assembly; the shared engine files to be edited are listed, with a test gate (8, 9.1).
+- The outside push has written rules; the hook and jump upgrade are sub-states of Air, not new movement modes (8).
+- Decision events are built in the Skyline layer from the engine's existing events (4.1).
+- `SkylinePass` is three lock holds (one job each), and audio is captured from a windowed built player, because batch
+  mode mutes audio; sound is also rendered offline by the sound forge (9.4).
+- The performance bar and blockers now match the creator's raised rule: 120 fps target, 1% lows at or under 16.7 ms in
+  a build, the 30% memory cap (10).
+- Enemies have a layer tag; counters must fit the encounter's layers and aim tag (2.5, 4.3).
+- The spotlight's aim locks 0.25 s before the shot (2.5).
+- Room, chunk, floor and district are defined; the set-piece comes every 6-8 floors; M2's special room is the Showroom
+  (6.1, 6.4).
+- Health layers, chassis carry-over and pad aim assist are defined (2.4); M0 and M1 have exit criteria (11.1, 11.2).
+- "Combat", "wall in reach" and the Ledger's 40% comparison are defined; Skyline uses its own save slots (4.1, 4.2,
+  4.7).
+- A teaching map (6.8).
+- The generator is new code; `RunGeneration` only plans room-type sequences (9.1).
+
+### Pending the creator (the defaults below are used until they answer)
+1. **The ears before the jam:** measurements, pictures and reference comparison only; the classifier + Gemini judge
+   after the API key exists. *Default: yes.* No minimal generator before the jam (it doesn't fit next to M1).
+2. **Story rooms:** a district has 6-8 floors but the Galleria has 3 recruits. *Proposal:* a pool of story rooms per
+   district, each advancing one beat per run (a subplot unfolds over several runs), not one new subplot per floor.
+3. **The Breacher's limits** (2.2): one boost per airtime, refreshed by landing or a wall, no self-damage, about the
+   jump upgrade's height. *Default: built this way as tunable data; the creator tunes it by playing M1.*
+4. **Costs for failed objectives** (a destroyed uplink, an escaped chase bot, a missed escalator timer, a failed
+   recruit subplot): *Proposal:* a failed objective lowers both exit rewards; a recruit can be retried on a later run.
+   Is helping Manny (hide or tow) a real choice? If so it needs a visible consequence.
+5. **The gadget slot** is designed nowhere yet. *Proposal:* design the Galleria's gadgets with M3.
+6. **The starting loadout:** *Proposal:* run 1 starts with the Writ and the Breacher; the Nailer and Tow Line are
+   unlocked with commission. Rule for prototypes: they're lost on a wreck (recycled); salvage gives one weakened part
+   for 1-2 runs; Lost Property is the one way to keep a past prototype permanently.
+7. **Two things from the handoff, to confirm:** the deadline ("before the lockdown becomes permanent") is kept as
+   flavour in Nan's briefing, not a timer; the handoff's "naive grappling hook" is the anchor hook.

@@ -23,4 +23,14 @@ Newest first. Every agent result and every Unity pass gets an entry (what was do
     - Comparing against references is the main tool.
     - Budget is $5-10 a month on a Gemini API key; the key still has to be created by them.
     - The ears get built as a global skill.
-- **Open:** the creator reviews the spec; then the implementation plan.
+- **The spec was reviewed independently instead of by the creator** (they were busy, and it's about 7,200 words).
+  - A fresh agent checked it against the brief, the creator's rules and the code, and found 11 technical or clarity
+    problems. All are fixed and logged in the spec's section 14.
+  - The ones that mattered most:
+    - Batch mode mutes audio, so audio captures now come from a windowed built player.
+    - The spec carried a stale 60 fps bar; it's now the creator's 120 fps / 16.7 ms 1%-lows rule.
+    - The engine edits are listed, with a test gate.
+    - Skyline gets its own assembly.
+    - M0 and M1 have exit criteria.
+  - 7 questions for the creator are listed in section 14, with defaults used until they answer.
+- **Next:** the implementation plan for M0 and M1; then stop until after the hackathon.
