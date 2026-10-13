@@ -46,6 +46,12 @@ namespace JamKit.Skyline
         public float range = 40f;
         /// <summary>m/s the bot drives toward the player once awake (Task 11b's fight); 0 for bots that don't walk.</summary>
         public float moveSpeed;
+        /// <summary>Seconds a bot remembers the player after losing sight: re-sighting within it skips the alert and goes straight
+        /// to the telegraph (Task 11b fix round). 0 for none.</summary>
+        public float rememberSeconds;
+        /// <summary>m/s an awake flying bot that has lost sight drifts sideways toward a point that sees where it last saw the
+        /// player (it can't pass through cover). 0 for bots that hold their post.</summary>
+        public float searchSpeed;
         // The spotlight's beam (TelegraphedShot); its telegraph is telegraphSeconds.
         public float beamFollowRate = 10f, beamHitRadius = 0.6f, beamLockBefore = 0.25f;
         // The floor-care unit's acid sweep (AcidSweep).
@@ -77,9 +83,9 @@ namespace JamKit.Skyline
         public static EnemyDef MallCopDrone() => new EnemyDef
         {
             id = DroneId, displayName = "Mall-cop drone", aim = AimModel.LeadsYou, layer = ThreatLayer.Air,
-            chassisHp = 50f, plates = new[] { new PlateDef("shell", 30f), new PlateDef("lens-guard", 20f) }, bodyRadius = 0.45f,
-            alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 1.2f, loseSightSeconds = 3f,
-            projectileSpeed = 30f, projectileRadius = 0.15f, aimSpreadDeg = 3f, attackDamage = 18f, range = 45f, scrapPlating = 20f,
+            chassisHp = 70f, plates = new[] { new PlateDef("shell", 30f), new PlateDef("lens-guard", 20f) }, bodyRadius = 0.45f,
+            alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 1.2f, loseSightSeconds = 3f, rememberSeconds = 8f, searchSpeed = 2f,
+            projectileSpeed = 30f, projectileRadius = 0.15f, aimSpreadDeg = 4f, attackDamage = 26f, range = 45f, scrapPlating = 20f,
         };
 
         /// <summary>A roomba with a happy face, angry at "stains"; an ankle-height acid sweep (punishes staying on the floor).
@@ -88,8 +94,8 @@ namespace JamKit.Skyline
         {
             id = FloorCareId, displayName = "Floor-care unit", aim = AimModel.Area, layer = ThreatLayer.Floor,
             chassisHp = 80f, plates = new[] { new PlateDef("lid", 40f), new PlateDef("bumper", 30f) }, bodyRadius = 0.5f,
-            alertSeconds = 0.8f, telegraphSeconds = 0.6f, fireInterval = 3f, loseSightSeconds = 3f,
-            projectileSpeed = 0f, attackDamage = 8f, range = 10f, moveSpeed = 3f,
+            alertSeconds = 0.8f, telegraphSeconds = 0.6f, fireInterval = 1.2f, loseSightSeconds = 3f,
+            projectileSpeed = 0f, attackDamage = 14f, range = 10f, moveSpeed = 5f,
             sweepSeconds = 0.8f, sweepRadius = 4.5f, sweepArcDeg = 120f, sweepWidthDeg = 24f, ankleHeight = 0.4f, scrapPlating = 30f,
         };
 

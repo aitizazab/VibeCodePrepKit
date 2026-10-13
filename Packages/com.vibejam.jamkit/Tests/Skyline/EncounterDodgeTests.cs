@@ -83,14 +83,16 @@ namespace JamKit.Tests.Skyline
 
         [TestCase("food-court")]
         [TestCase("skylight")]
-        public void OnNormalTheStraightLineBotTakesAboutTwiceTheJinkingBotsHits(string id)
+        public void InTheHarnessLeadingShotsHitTheStraightRunnerMoreThanTheJinker(string id)
         {
+            // mechanics only since Task 11b's fix round: the band (1.6-2.5) is measured in FightSim with the player shooting back
+            // (FightTests); this immortal-shooter harness only shows that leading shots punish straight lines and hit both runners
             var r = EncounterDodge.Run(ById(id), Hall, Difficulties.Normal());
-            TestContext.WriteLine($"Dodge on Normal, {id}: straight-line {r.straightHitsMean:0.0} hits, jinking {r.jinkHitsMean:0.0} " +
-                $"(means of {r.seeds} seeds), {r.shots} shots in {r.seconds:0} s, ratio {r.Ratio:0.00} (target 1.6-2.5, neither 0)");
+            TestContext.WriteLine($"Old harness (mechanics only), {id}: straight-line {r.straightHitsMean:0.0} hits, jinking {r.jinkHitsMean:0.0} " +
+                $"(means of {r.seeds} seeds), {r.shots} shots in {r.seconds:0} s, ratio {r.Ratio:0.00}");
             Assert.That(r.straightHitsMean, Is.GreaterThan(0f), "the straight-line bot is hit");
-            Assert.That(r.jinkHitsMean, Is.GreaterThan(0f), "and so is the jinking bot: nobody goes unhit");
-            Assert.That(r.Ratio, Is.InRange(1.6f, 2.5f), "about twice (2.6)");
+            Assert.That(r.jinkHitsMean, Is.GreaterThan(0f), "and so is the jinking bot");
+            Assert.That(r.straightHitsMean, Is.GreaterThan(r.jinkHitsMean), "changing direction beats a straight line");
         }
 
         // ---- The clean line (plan amendment 6): a scripted route a skilled player could take, with no hits on Normal.
@@ -132,16 +134,21 @@ namespace JamKit.Tests.Skyline
             }
         }
 
-        [Ignore("gap for the creator: Task 11's zero-hit sprint lane (this immortal-shooter harness: no cover, nobody shoots back) can't survive Normal's 12 drones (97-114 hits per 60 s) or the two spotlights (25 per 60 s); the clean line is now the skilled line through the real fight (FightTests: cleared with no chassis damage in 30/30 seeds per encounter). Tried: the Task 11 routes on the new data only; no balance conclusion may rest on this harness (the creator, 2026-10-13).")]
+        // Task 11's zero-hit sprint lane was a balance claim in this immortal-shooter harness; since Task 11b's fix round the
+        // clean line is the human-timed skilled line in FightTests, so this only checks the route harness's mechanics.
         [TestCase("food-court")]
         [TestCase("skylight")]
-        public void TheCleanLineTakesNoHitsOnNormal(string id)
+        public void TheCleanLineHarnessRunsItsFiveSeedsAndRepeats(string id)
         {
             var e = ById(id);
-            int[] hits = EncounterDodge.CleanLineHits(e, RealHall(e), SkylineEnemies.Find, Difficulties.Normal());
-            TestContext.WriteLine($"Clean line, {id}, Normal: hits per seed {string.Join(", ", hits)}");
-            Assert.That(hits.Length, Is.EqualTo(5), "the harness's five seeds");
-            foreach (int h in hits) Assert.That(h, Is.EqualTo(0), $"{id}: the clean line is hit (hits per seed {string.Join(", ", hits)})");
+            int[] a = EncounterDodge.CleanLineHits(e, RealHall(e), SkylineEnemies.Find, Difficulties.Normal(), 20f);
+            int[] b = EncounterDodge.CleanLineHits(e, RealHall(e), SkylineEnemies.Find, Difficulties.Normal(), 20f);
+            TestContext.WriteLine($"Clean-line route harness (mechanics only), {id}: hits per seed {string.Join(", ", a)}");
+            Assert.That(a.Length, Is.EqualTo(5), "the harness's five seeds");
+            Assert.That(b, Is.EqualTo(a), "seeded: the same hits again");
+            int total = 0;
+            foreach (int h in a) total += h;
+            Assert.That(total, Is.GreaterThan(0), "the shooters fire at the route (the harness is live)");
         }
 
         [Test, Explicit("the Normal tuning sweep: prints a table of ratios; asserts nothing")]

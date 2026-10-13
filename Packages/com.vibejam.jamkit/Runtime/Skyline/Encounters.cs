@@ -170,27 +170,31 @@ namespace JamKit.Skyline
 
         const string D = SkylineEnemies.DroneId, F = SkylineEnemies.FloorCareId, S = SkylineEnemies.SpotlightId, G = SkylineEnemies.GondolaId;
 
-        /// <summary>The food court (Normal: the creator's "at least 12"): twelve drones (air, leading) in three groups of four,
-        /// one over each of the hall's three rooms (west, centre-north, east), and two floor-care units (floor) that wake
-        /// with the west and east groups. Walls open. The counter runs split the hall so most floor sees one group at a time.</summary>
+        /// <summary>Drones hover at this height (m): below the tall pieces' tops (4.5-5 m), so a tall piece shadows the floor
+        /// behind it even from a player jumping (the eye at +2 m), and above the kiosks (2.5 m).</summary>
+        public const float DroneY = 3.8f;
+
+        /// <summary>The food court (Normal: the creator's "at least 12"): twelve drones (air, leading) in three groups of four
+        /// (west, east, and north by the mezzanine), and two floor-care units (floor) that wake with the west and east groups.
+        /// Walls open. No piece seals a group away: which groups see the player depends on where the player stands.</summary>
         public static EncounterDef FoodCourt() => new EncounterDef
         {
             id = "food-court",
             anchor = HallEntry,
             spawns = new[]
             {
-                new Spawn(D, new Vector3(-20f, 5f, -6f), 0), new Spawn(D, new Vector3(-18f, 5f, -3f), 0),
-                new Spawn(D, new Vector3(-21f, 5f, 0f), 0), new Spawn(D, new Vector3(-18f, 5f, 3f), 0),
-                new Spawn(D, new Vector3(20f, 5f, -6f), 1), new Spawn(D, new Vector3(18f, 5f, -3f), 1),
-                new Spawn(D, new Vector3(21f, 5f, 0f), 1), new Spawn(D, new Vector3(18f, 5f, 3f), 1),
-                new Spawn(D, new Vector3(-5f, 5.5f, 7f), 2), new Spawn(D, new Vector3(-2f, 5.5f, 8.5f), 2),
-                new Spawn(D, new Vector3(2f, 5.5f, 7f), 2), new Spawn(D, new Vector3(5f, 5.5f, 8.5f), 2),
-                new Spawn(F, new Vector3(-20f, 0f, 8f), 0), new Spawn(F, new Vector3(20f, 0f, 8f), 1),
+                new Spawn(D, new Vector3(-21f, DroneY, -8f), 0), new Spawn(D, new Vector3(-19f, DroneY, -4f), 0),
+                new Spawn(D, new Vector3(-21f, DroneY, 0f), 0), new Spawn(D, new Vector3(-18f, DroneY, 2f), 0),
+                new Spawn(D, new Vector3(21f, DroneY, -8f), 1), new Spawn(D, new Vector3(19f, DroneY, -4f), 1),
+                new Spawn(D, new Vector3(21f, DroneY, 0f), 1), new Spawn(D, new Vector3(18f, DroneY, 2f), 1),
+                new Spawn(D, new Vector3(-7f, 4.2f, 9f), 2), new Spawn(D, new Vector3(-4f, 4.2f, 9.5f), 2),
+                new Spawn(D, new Vector3(4f, 4.2f, 9.5f), 2), new Spawn(D, new Vector3(7f, 4.2f, 9f), 2),
+                new Spawn(F, new Vector3(-21f, 0f, 9f), 0), new Spawn(F, new Vector3(21f, 0f, 9f), 1),
             },
         };
 
         /// <summary>The skylight: two spotlights on the mezzanine's railing (air, where you are now), each with three floor-care
-        /// units (floor) that wake with it. Walls open. Break their sight (the counter runs, the mezzanine's underside) and
+        /// units (floor) that wake with it. Walls open. Break their sight (the tall pieces, the mezzanine's underside) and
         /// change direction against the beams while jumping the acid.</summary>
         public static EncounterDef Skylight() => new EncounterDef
         {
@@ -199,25 +203,29 @@ namespace JamKit.Skyline
             spawns = new[]
             {
                 new Spawn(S, new Vector3(-12.5f, 6.5f, 12.3f), 0), new Spawn(S, new Vector3(12.5f, 6.5f, 12.3f), 1),
-                new Spawn(F, new Vector3(-20f, 0f, -6f), 0), new Spawn(F, new Vector3(-15f, 0f, 6f), 0), new Spawn(F, new Vector3(-5f, 0f, 8f), 0),
-                new Spawn(F, new Vector3(20f, 0f, -6f), 1), new Spawn(F, new Vector3(15f, 0f, 6f), 1), new Spawn(F, new Vector3(5f, 0f, 8f), 1),
+                new Spawn(F, new Vector3(-21f, 0f, -8f), 0), new Spawn(F, new Vector3(-17f, 0f, 7f), 0), new Spawn(F, new Vector3(-4f, 0f, 9f), 0),
+                new Spawn(F, new Vector3(21f, 0f, -8f), 1), new Spawn(F, new Vector3(17f, 0f, 7f), 1), new Spawn(F, new Vector3(4f, 0f, 9f), 1),
             },
         };
 
-        /// <summary>The facade: two window-washer gondolas on rails along the side walls, 3.5 m up (walls), and eight drones in
-        /// two groups of four over the west and east rooms (air). The floor is the safe layer.</summary>
+        /// <summary>The gondolas' rails: along the side walls at wall-run height, so their mines guard the wall-run route.</summary>
+        public const float RailY = 2.4f;
+
+        /// <summary>The facade: two window-washer gondolas on rails along the side walls at wall-run height (walls), and eight
+        /// drones in two groups of four over the west and east halves (air) that also cover the centre floor. The floor is the
+        /// safe layer; the side walls are the fast line between cover (a wall-run past the rails), and the mines guard it.</summary>
         public static EncounterDef Facade() => new EncounterDef
         {
             id = "facade",
             anchor = HallEntry,
             spawns = new[]
             {
-                new Spawn(G, new Vector3(-24.2f, 3.5f, -12f), 0, new Vector3(-24.2f, 3.5f, 10f)),
-                new Spawn(G, new Vector3(24.2f, 3.5f, -12f), 1, new Vector3(24.2f, 3.5f, 10f)),
-                new Spawn(D, new Vector3(-19f, 5f, -5f), 0), new Spawn(D, new Vector3(-17f, 5f, -1f), 0),
-                new Spawn(D, new Vector3(-20f, 5f, 2f), 0), new Spawn(D, new Vector3(-16f, 5f, 6f), 0),
-                new Spawn(D, new Vector3(19f, 5f, -5f), 1), new Spawn(D, new Vector3(17f, 5f, -1f), 1),
-                new Spawn(D, new Vector3(20f, 5f, 2f), 1), new Spawn(D, new Vector3(16f, 5f, 6f), 1),
+                new Spawn(G, new Vector3(-24.2f, RailY, -14f), 0, new Vector3(-24.2f, RailY, 10f)),
+                new Spawn(G, new Vector3(24.2f, RailY, -14f), 1, new Vector3(24.2f, RailY, 10f)),
+                new Spawn(D, new Vector3(-18f, DroneY, -9f), 0), new Spawn(D, new Vector3(-17f, DroneY, -1f), 0),
+                new Spawn(D, new Vector3(-11f, DroneY, -2f), 0), new Spawn(D, new Vector3(-17f, DroneY, 8f), 0),
+                new Spawn(D, new Vector3(18f, DroneY, -9f), 1), new Spawn(D, new Vector3(17f, DroneY, -1f), 1),
+                new Spawn(D, new Vector3(11f, DroneY, -2f), 1), new Spawn(D, new Vector3(17f, DroneY, 8f), 1),
             },
         };
 
@@ -231,21 +239,25 @@ namespace JamKit.Skyline
             min = new Vector3(HallMinX, MezzanineY - 0.4f, 12f), max = new Vector3(HallMaxX, MezzanineY, HallMaxZ),
         };
 
-        /// <summary>The main hall's cover (world metres), built exactly as listed by the Unity builder:
+        /// <summary>The main hall's cover (world metres), built exactly as listed by the Unity builder (14 pieces). No piece
+        /// seals a part of the hall: tall pieces stand with real gaps between them, so what sees the player depends on where
+        /// the player stands, and splitting a fight is the player's job.
         /// <list type="bullet">
-        /// <item>four pillars that hold up the north mezzanine (1 x 1 m, floor to the 5 m mezzanine);</item>
-        /// <item>two food-court counter runs, west and east (1.5 x 14 m, with a 4.6 m menu wall): full-height cover that splits the
-        /// hall into three rooms, so a drone over one room can't see into the next;</item>
-        /// <item>two kiosks in the centre room (4 x 3 m and 4 x 2 m, 2.5 m tall): the centre's peek points;</item>
-        /// <item>two planters on the approach (2 x 0.8 m, 1 m tall: half cover).</item>
+        /// <item>three pillars that hold up the north mezzanine (1 x 1 m, floor to the 5 m mezzanine);</item>
+        /// <item>four food-stall backs with their menu boards, two each side with a 6 m gap between (0.6 x 4 m, 4.8 m tall);</item>
+        /// <item>an information booth on the approach: three advertising screens in a U open to the entry (two 0.4 x 4 m, one
+        /// 5.4 x 0.4 m; 4.5 m tall), the first cover a player reaches;</item>
+        /// <item>two kiosks, staggered either side of the middle (4 x 3 m, 2.5 m tall);</item>
+        /// <item>two planters beside the booth (2 x 0.8 m, 1 m tall: half cover).</item>
         /// </list>
         /// The entry lane (4 m around <see cref="HallEntry"/>) is clear, and every piece stands at least 3 m from every spawn.</summary>
         public static CoverBox[] HallCover() => new[]
         {
-            Pillar(-17f, 12f), Pillar(-8f, 12f), Pillar(8f, 12f), Pillar(17f, 12f),
-            Block(-11f, -3f, 1.5f, 14f, 4.6f), Block(11f, -3f, 1.5f, 14f, 4.6f),
-            Block(0f, -7f, 4f, 3f, 2.5f), Block(0f, 2.5f, 4f, 2f, 2.5f),
-            Block(-5f, -13f, 2f, 0.8f, 1f), Block(5f, -13f, 2f, 0.8f, 1f),
+            Pillar(-16f, 12f), Pillar(0f, 12f), Pillar(16f, 12f),
+            Block(-13f, -7f, 0.6f, 4f, 4.8f), Block(-13f, 3f, 0.6f, 4f, 4.8f), Block(13f, -7f, 0.6f, 4f, 4.8f), Block(13f, 3f, 0.6f, 4f, 4.8f),
+            Block(-2.5f, -12f, 0.4f, 4f, 4.5f), Block(2.5f, -12f, 0.4f, 4f, 4.5f), Block(0f, -9.8f, 5.4f, 0.4f, 4.5f),
+            Block(-6f, -3f, 4f, 3f, 2.5f), Block(6f, 3f, 4f, 3f, 2.5f),
+            Block(-6f, -12f, 2f, 0.8f, 1f), Block(6f, -12f, 2f, 0.8f, 1f),
         };
 
         /// <summary>Everything that blocks sight and shots in a main-hall fight: <see cref="HallCover"/> and the mezzanine's deck.</summary>

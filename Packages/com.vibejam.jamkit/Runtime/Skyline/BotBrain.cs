@@ -26,7 +26,8 @@ namespace JamKit.Skyline
     /// lockstep) it cycles: a telegraph of <see cref="EnemyDef.telegraphSeconds"/>, the attack (a cue), then recovery, one
     /// cycle every <see cref="EnemyDef.fireInterval"/>. A started telegraph always finishes; out of sight for
     /// <see cref="EnemyDef.loseSightSeconds"/> it goes back to idle. Frame-rate independent: time past a deadline carries
-    /// into the next state.
+    /// into the next state. A bot with <see cref="EnemyDef.rememberSeconds"/> (the drone) that sees the player again within
+    /// that long of last seeing it skips the alert and goes straight to the telegraph.
     /// </summary>
     public sealed class BotBrain
     {
@@ -37,7 +38,7 @@ namespace JamKit.Skyline
 
         readonly EnemyDef _def;
         readonly Rng _rng;
-        float _t, _unseen, _hurt, _alertFor;
+        float _t, _unseen, _hurt, _alertFor, _sinceSeen = float.PositiveInfinity;
 
         public BotState State { get; private set; } = BotState.Idle;
         public float StateTime => _t;
@@ -58,13 +59,21 @@ namespace JamKit.Skyline
             if (State == BotState.Wrecked || !(dt > 0f) || float.IsInfinity(dt)) return;
             _t += dt;
             _hurt = Math.Max(0f, _hurt - dt);
+            bool remembers = _def.rememberSeconds > 0f && _sinceSeen <= _def.rememberSeconds;
+            _sinceSeen = seesPlayer ? 0f : _sinceSeen + dt;
             _unseen = seesPlayer ? 0f : _unseen + dt;
             bool lost = _unseen >= _def.loseSightSeconds;
             float recover = Math.Max(0f, _def.fireInterval - _def.telegraphSeconds);
             switch (State)
             {
                 case BotState.Idle:
-                    if (seesPlayer) Alert(cues, "spotted");
+                    if (seesPlayer && remembers)
+                    {
+                        // it saw the player moments ago (rememberSeconds): no alert, straight to the telegraph
+                        Go(BotState.Telegraph, 0f, cues);
+                        Bark("spotted", cues);
+                    }
+                    else if (seesPlayer) Alert(cues, "spotted");
                     break;
                 case BotState.Alert:
                     if (lost) GiveUp(cues);

@@ -73,10 +73,12 @@ namespace JamKit.Tests.Skyline
         // ---- the hall's cover as data
 
         [Test]
-        public void TheHallHasSixToTenPiecesAllInsideTheHallAndNoTallerThanTheMezzanine()
+        public void TheHallHasTenToFourteenPiecesAllInsideTheHallAndNoTallerThanTheMezzanine()
         {
             var cover = GalleriaArena.HallCover();
-            Assert.That(cover.Length, Is.InRange(6, 10));
+            // 10-14 since Task 11b's fix round (the controller's ruling: no sealed rooms; splitting comes from more, shorter
+            // tall pieces with real gaps, which 6-10 pieces can't give next to the pillars, kiosks and planters)
+            Assert.That(cover.Length, Is.InRange(10, 14));
             foreach (var b in cover)
             {
                 Assert.That(b.min.X, Is.GreaterThanOrEqualTo(GalleriaArena.HallMinX));
@@ -340,13 +342,13 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void TheFightsCoverIsSolidForThePlayer()
         {
-            // the main hall world of the fight tests: a bot walking into the west counter run is stopped by it
+            // the main hall world of the fight tests: a bot walking into the west stall back (x -13.3..-12.7) is stopped by it
             var world = FightTests.Hall();
             var sim = new MoveSim(world, new MoveDef());
-            sim.Teleport(new Vector3(-6f, 0f, -3f), -90f, Vector3.Zero);
+            sim.Teleport(new Vector3(-9f, 0f, -7f), -90f, Vector3.Zero);
             float h = 1f / 60f;
             for (int i = 0; i < 180; i++) sim.Step(new MoveInput { move = new Vector2(0f, 1f), yaw = -90f, sprintHeld = true }, h);
-            Assert.That(sim.Position.X, Is.GreaterThan(-10.25f), "it stops at the counter's east face (x = -10.25), not through it");
+            Assert.That(sim.Position.X, Is.GreaterThan(-12.7f), "it stops at the stall back's east face (x = -12.7), not through it");
             // and the fight refuses a world where the cover isn't solid
             var bare = new BoxWorld();
             bare.Floor(-30f, 30f, -30f, 30f, 0f);
@@ -357,7 +359,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void AFightWithTheHallsCoverThroughTheHarness()
         {
-            // the dodge harness with the hall's cover: a runner behind the south kiosk is hit far less than one in the open
+            // the dodge harness with the hall's cover: a stander behind the approach screen is hit far less than one in the open
             var e = GalleriaArena.FoodCourt();
             Func<List<Shooter>> shooters = () => EncounterDodge.Shooters(e, SkylineEnemies.Find, Difficulties.Normal());
             Func<IMoveWorld> world = () =>
@@ -367,12 +369,12 @@ namespace JamKit.Tests.Skyline
                 foreach (var b in EncounterDodge.Cover(e)) w.Add((b.min + b.max) * 0.5f, b.max - b.min, false);
                 return w;
             };
-            var behind = DodgeReport.Fights(world, shooters, s => new StandStillBot(), 20f, 3, 5, EncounterDodge.Cover(e), new Vector3(0f, 0f, 7.4f));
-            var open = DodgeReport.Fights(world, shooters, s => new StandStillBot(), 20f, 3, 5, null, new Vector3(0f, 0f, 7.4f));
+            var behind = DodgeReport.Fights(world, shooters, s => new StandStillBot(), 20f, 3, 5, EncounterDodge.Cover(e), new Vector3(0f, 0f, 6f));
+            var open = DodgeReport.Fights(world, shooters, s => new StandStillBot(), 20f, 3, 5, null, new Vector3(0f, 0f, 6f));
             int hb = 0, ho = 0;
             foreach (var r in behind) hb += r.hits;
             foreach (var r in open) ho += r.hits;
-            TestContext.WriteLine($"Harness with cover: behind the kiosk {hb} hits, the same spot with no cover {ho} (5 seeds, 20 s)");
+            TestContext.WriteLine($"Harness with cover: behind the screen {hb} hits, the same spot with no cover {ho} (5 seeds, 20 s)");
             Assert.That(ho, Is.GreaterThan(0));
             Assert.That(hb, Is.LessThan(ho / 2), "the hall's cover blocks most of the fire at that spot");
         }

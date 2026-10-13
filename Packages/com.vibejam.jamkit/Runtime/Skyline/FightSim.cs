@@ -14,8 +14,12 @@ namespace JamKit.Skyline
         /// <see cref="nearDistance"/> m, falling linearly to <see cref="hitChanceFar"/> at <see cref="farDistance"/> m and beyond.
         /// Weak spots are ignored here (every hit is a body hit).</summary>
         public float hitChanceNear = 0.85f, nearDistance = 15f, hitChanceFar = 0.5f, farDistance = 40f;
-        /// <summary>Seconds to swing onto a new target before the first shot at it.</summary>
-        public float retargetSeconds = 0.2f;
+        /// <summary>Seconds to swing onto a new target before the first shot at it: <see cref="retargetBaseSeconds"/> plus
+        /// <see cref="retargetSecondsPer90"/> for every 90 degrees the aim has to turn.</summary>
+        public float retargetBaseSeconds = 0.08f, retargetSecondsPer90 = 0.15f;
+        /// <summary>Moving faster than <see cref="movingFastSpeed"/> m/s (a sprint or a fast strafe) takes
+        /// <see cref="movingFastPenalty"/> off the hit chance.</summary>
+        public float movingFastSpeed = 6f, movingFastPenalty = 0.15f;
         /// <summary>A fresh wreck is stripped by passing within this many metres of it (on the floor plan).</summary>
         public float stripRadius = 1.5f;
 
@@ -26,6 +30,14 @@ namespace JamKit.Skyline
             float t = (distance - nearDistance) / (farDistance - nearDistance);
             return hitChanceNear + (hitChanceFar - hitChanceNear) * t;
         }
+
+        /// <summary>The hit chance at <paramref name="distance"/> for a shooter moving at <paramref name="speed"/> m/s.</summary>
+        public float HitChance(float distance, float speed) =>
+            Math.Max(0f, HitChance(distance) - (speed > movingFastSpeed ? movingFastPenalty : 0f));
+
+        /// <summary>Seconds to swing the aim through <paramref name="degrees"/>.</summary>
+        public float RetargetSeconds(float degrees) =>
+            retargetBaseSeconds + retargetSecondsPer90 * Math.Max(0f, Math.Min(180f, degrees)) / 90f;
     }
 
     /// <summary>What the player bot does this step: move, and optionally hold its fire or reload. Aiming is the sim's: it
@@ -64,6 +76,12 @@ namespace JamKit.Skyline
         public float SweepYaw { get; internal set; }
         internal bool sweepHit;
         internal int detourBox = -1, detourCorner;
+        /// <summary>Where it last saw the player (the chest or eye it aimed at), if it has.</summary>
+        public Vector3 LastKnown { get; internal set; }
+        public bool HasLastKnown { get; internal set; }
+        internal Vector3 searchGoal;
+        internal bool hasSearchGoal;
+        internal float searchClock;
         // the spotlight's beam
         public TelegraphedShot Beam { get; internal set; }
         // the gondola
@@ -118,9 +136,19 @@ namespace JamKit.Skyline
     /// <item>Sight is a segment test against the cover boxes (and the mezzanine deck) from the bot's centre to the player's
     /// chest or eye; the player sees from its eye. Bolts are spheres of the projectile's radius flying straight; a bolt is
     /// stopped by a box its edge touches (the box grown by the radius) and hits the player's capsule.</item>
-    /// <item>Drones and spotlights hold still; floor-care units drive straight at the player at their move speed and slide along
-    /// a box face they run into (no path finding: a unit can stall in a concave corner between two boxes, and units pass
-    /// through each other); gondolas ride their rails.</item>
+    /// <item>Spotlights hold still. Drones hold their post until they lose sight of the player; then (awake, with a last-known
+    /// position) they drift sideways at their own height, at <see cref="EnemyDef.searchSpeed"/>, to the nearest point within
+    /// 10 m that sees where they last saw the player and that they can reach in a straight line without touching cover
+    /// (they pick again every half second; they never pass through cover or under the mezzanine deck). A drone that re-sights
+    /// the player within <see cref="EnemyDef.rememberSeconds"/> skips its alert (BotBrain).</item>
+    /// <item>Floor-care units head for the player round the cover: when a box stands on the straight line they make for the
+    /// corner of it that gives the shortest way round, and slide along a face they still run into (no path finding over the
+    /// whole hall: a unit can stall in a concave corner between two boxes, and units pass through each other). Gondolas ride
+    /// their rails.</item>
+    /// <item>The Writ's hit chance drops by <see cref="FightPlayerDef.movingFastPenalty"/> while the player moves faster than
+    /// <see cref="FightPlayerDef.movingFastSpeed"/>, and swinging onto a new target costs time that grows with the turn.</item>
+    /// <item>Two random streams: the enemies' aim error, and the player's hit rolls, so runs with one seed draw the same enemy
+    /// aim errors in the same order. <see cref="Invulnerable"/> (the dodge band) counts hits without applying them.</item>
     /// <item>A floor-care sweep turns to face the player when it starts, damages once per sweep, and is stopped by a box
     /// between the nozzle and the player's ankles; feet above the def's ankle height clear it.</item>
     /// <item>Wrecks lie on the floor under the bot; passing within <see cref="FightPlayerDef.stripRadius"/> strips a fresh one.</item>
@@ -152,14 +180,26 @@ namespace JamKit.Skyline
         readonly DifficultyDef _difficulty;
         readonly FightPlayerDef _pd;
         readonly SkylineGun _gun;
-        readonly Rng _rng;
+        /// <summary>Two streams: the enemies' aim error, and the player's hit rolls, so two runs with one seed draw the same
+        /// enemy aim errors in the same order however differently the player shoots.</summary>
+        readonly Rng _rng, _playerRng;
         readonly List<BotCue> _cues = new List<BotCue>();
         readonly List<GunCue> _gunCues = new List<GunCue>();
         readonly List<float> _blasts = new List<float>();
+        readonly Dictionary<int, int> _shotsByGroup = new Dictionary<int, int>();
         FightEnemy _target;
+        Vector3 _aimDir = new Vector3(0f, 0f, 1f);
         float _readyAt;
         FightResult _r;
         bool _over;
+
+        /// <summary>The band measurement's mode: hits are counted but do no damage, so a runner can't be wrecked mid-measure.</summary>
+        public bool Invulnerable { get; set; }
+        /// <summary>Seconds of live aimed shooters (drones, spotlights) with the player in sight, summed over the shooters: the
+        /// dodge band's exposure.</summary>
+        public float ShooterSecondsInSight { get; private set; }
+        /// <summary>Shots at the player (bolts, beams, sweeps) by the bots of <paramref name="group"/>.</summary>
+        public int ShotsAtPlayerByGroup(int group) => _shotsByGroup.TryGetValue(group, out int n) ? n : 0;
 
         public MoveSim Player => _player;
         public PlayerArmor Armor { get; }
@@ -193,12 +233,20 @@ namespace JamKit.Skyline
             _floorCover = floor.ToArray();
             for (int i = 0; i < _cover.Length; i++)
             {
+                // probe the centre and four corners (just inside), low and high: every probe must be solid
                 var b = _cover[i];
-                var feet = new Vector3((b.min.X + b.max.X) * 0.5f, b.min.Y + 0.01f, (b.min.Z + b.max.Z) * 0.5f);
-                if (world.CapsuleFits(feet, 0.3f, 1f))
-                    throw new ArgumentException($"cover box {i} ({b.min} to {b.max}) is not solid in the move world: the player would run through it");
+                float ix = Math.Min(0.1f, (b.max.X - b.min.X) * 0.25f), iz = Math.Min(0.1f, (b.max.Z - b.min.Z) * 0.25f);
+                float probeH = Math.Min(0.5f, (b.max.Y - b.min.Y) * 0.5f);
+                float cx = (b.min.X + b.max.X) * 0.5f, cz = (b.min.Z + b.max.Z) * 0.5f;
+                var xs = new[] { cx, b.min.X + ix, b.max.X - ix, b.min.X + ix, b.max.X - ix };
+                var zs = new[] { cz, b.min.Z + iz, b.min.Z + iz, b.max.Z - iz, b.max.Z - iz };
+                foreach (float y in new[] { b.min.Y + 0.01f, Math.Max(b.min.Y + 0.01f, b.max.Y - probeH - 0.01f) })
+                    for (int k = 0; k < xs.Length; k++)
+                        if (world.CapsuleFits(new Vector3(xs[k], y, zs[k]), 0.05f, probeH))
+                            throw new ArgumentException($"cover box {i} ({b.min} to {b.max}) is not solid in the move world at ({xs[k]}, {y}, {zs[k]}): the player would run through it");
             }
             _rng = new Rng(seed);
+            _playerRng = new Rng(seed, 0x5DEECE66DUL);
             _player = new MoveSim(world, new MoveDef());
             _player.Teleport(start, startYaw, Vector3.Zero);
             Armor = new PlayerArmor(_pd.platingMax, _pd.chassisMax);
@@ -240,12 +288,33 @@ namespace JamKit.Skyline
 
         /// <summary>Whether <paramref name="e"/> would see a player standing with its feet at <paramref name="feet"/> (its chest or
         /// eye, within its range, nothing between).</summary>
-        public bool CanSee(FightEnemy e, Vector3 feet)
+        public bool CanSee(FightEnemy e, Vector3 feet) => CanSee(e, feet, 0f);
+
+        /// <summary>As <see cref="CanSee(FightEnemy, Vector3)"/>, and also the eye raised by <paramref name="eyeLift"/> m (a jump:
+        /// a double jump lifts it about 2 m).</summary>
+        public bool CanSee(FightEnemy e, Vector3 feet, float eyeLift)
         {
             Vector3 c = e.Center;
-            Vector3 chest = feet + new Vector3(0f, _player.def.standHeight * 0.5f, 0f), eye = EyeAt(feet);
-            return (Vector3.Distance(c, chest) <= e.Def.range && Clear(c, chest)) || (Vector3.Distance(c, eye) <= e.Def.range && Clear(c, eye));
+            Vector3 chest = feet + new Vector3(0f, _player.def.standHeight * 0.5f, 0f), eye = feet + new Vector3(0f, _player.def.eyeHeight, 0f);
+            if ((Vector3.Distance(c, chest) <= e.Def.range && Clear(c, chest)) || (Vector3.Distance(c, eye) <= e.Def.range && Clear(c, eye))) return true;
+            if (!(eyeLift > 0f)) return false;
+            Vector3 up = eye + new Vector3(0f, eyeLift, 0f);
+            return Vector3.Distance(c, up) <= e.Def.range && Clear(c, up);
         }
+
+        /// <summary>Whether a bot of <paramref name="e"/>'s range, standing at <paramref name="from"/>, would see a player standing at
+        /// <paramref name="feet"/> (chest, eye, or the eye raised by <paramref name="eyeLift"/>).</summary>
+        public bool CanSeeFrom(FightEnemy e, Vector3 from, Vector3 feet, float eyeLift)
+        {
+            Vector3 chest = feet + new Vector3(0f, _player.def.standHeight * 0.5f, 0f), eye = feet + new Vector3(0f, _player.def.eyeHeight, 0f);
+            if ((Vector3.Distance(from, chest) <= e.Def.range && Clear(from, chest)) || (Vector3.Distance(from, eye) <= e.Def.range && Clear(from, eye))) return true;
+            if (!(eyeLift > 0f)) return false;
+            Vector3 up = eye + new Vector3(0f, eyeLift, 0f);
+            return Vector3.Distance(from, up) <= e.Def.range && Clear(from, up);
+        }
+
+        /// <summary>A live drone or spotlight: the bots that shoot at the player (not the floor-care units or the gondolas).</summary>
+        public static bool IsShooter(FightEnemy e) => !e.Wrecked && (e.Def.aim == AimModel.LeadsYou || e.Def.aim == AimModel.FiresAtWhereYouAre);
 
         /// <summary>Whether a player standing at <paramref name="feet"/> could shoot <paramref name="e"/> (eye to centre, within the gun's range).</summary>
         public bool CanShoot(Vector3 feet, FightEnemy e)
@@ -332,7 +401,21 @@ namespace JamKit.Skyline
             if (best != _target)
             {
                 _target = best;
-                _readyAt = Time + _pd.retargetSeconds;
+                if (best != null)
+                {
+                    // the swing onto it costs more the further the aim has to turn
+                    Vector3 to = best.Center - eye;
+                    float len = to.Length();
+                    Vector3 dir = len > 1e-4f ? to / len : _aimDir;
+                    float deg = MathF.Acos(Math.Max(-1f, Math.Min(1f, Vector3.Dot(dir, _aimDir)))) * (180f / MathF.PI);
+                    _readyAt = Time + _pd.RetargetSeconds(deg);
+                    _aimDir = dir;
+                }
+            }
+            else if (_target != null)
+            {
+                Vector3 to = _target.Center - eye;
+                if (to.LengthSquared() > 1e-8f) _aimDir = Vector3.Normalize(to);
             }
             _gunCues.Clear();
             bool reloading = _gun.State.IsReloading;
@@ -345,18 +428,20 @@ namespace JamKit.Skyline
                 _r.shotsFired++;
                 if (_target == null || _target.Wrecked) continue;
                 float dist = Vector3.Distance(eye, _target.Center);
-                if (!(_rng.NextFloat() < _pd.HitChance(dist))) continue;
-                Hurt(_target, _gun.Def.damage * _gun.Def.FalloffScale(dist));
+                if (!(_playerRng.NextFloat() < _pd.HitChance(dist, _player.HorizontalSpeed))) continue;
+                Damage(_target, _gun.Def.damage * _gun.Def.FalloffScale(dist));
             }
         }
 
-        void Hurt(FightEnemy e, float amount)
+        /// <summary>Damages <paramref name="e"/> (the Writ's hits come through here): the first plate still on, then the chassis;
+        /// its group wakes; a wrecking blow leaves a wreck on the floor under it.</summary>
+        public void Damage(FightEnemy e, float amount)
         {
             int plate = -1;
             for (int i = 0; i < e.Body.PlateCount; i++)
                 if (e.Body.PlateOn(i)) { plate = i; break; }
             var d = e.Body.Damage(amount, plate);
-            WakeGroup(e.Group);
+            Wake(e.Group);
             e.Brain.OnDamaged(null);
             if (d.wrecked)
             {
@@ -369,7 +454,16 @@ namespace JamKit.Skyline
             }
         }
 
-        void WakeGroup(int group)
+        /// <summary>Wakes every live bot of <paramref name="group"/>.</summary>
+        /// <summary>Puts a wreck of <paramref name="def"/> on the floor at <paramref name="at"/>, wrecked at <paramref name="wreckedAt"/> (s).</summary>
+        public FightWreck AddWreck(EnemyDef def, Vector3 at, float wreckedAt)
+        {
+            var w = new FightWreck { Wreck = new Wreck(def, wreckedAt), Position = new Vector3(at.X, 0f, at.Z), EnemyIndex = -1, Group = -1 };
+            _wrecks.Add(w);
+            return w;
+        }
+
+        public void Wake(int group)
         {
             foreach (var o in _enemies)
                 if (o.Group == group && !o.Wrecked) o.Awake = true;
@@ -386,7 +480,7 @@ namespace JamKit.Skyline
             }
             bool sees = SeesNow(e, out Vector3 aimAt);
             e.SeesPlayer = sees;
-            if (!e.Awake && sees) WakeGroup(e.Group);
+            if (!e.Awake && sees) Wake(e.Group);
             _cues.Clear();
             if (e.Def.layer == ThreatLayer.Walls)
             {
@@ -405,6 +499,14 @@ namespace JamKit.Skyline
                 return;
             }
             e.Brain.Tick(h, e.Awake && sees, _cues);
+            if (e.Awake && sees) ShooterSecondsInSight += h;
+            if (sees)
+            {
+                e.LastKnown = aimAt;
+                e.HasLastKnown = true;
+                e.hasSearchGoal = false;
+            }
+            else if (e.Awake && e.HasLastKnown && e.Def.searchSpeed > 0f) Search(e, h);
             foreach (var c in _cues)
             {
                 if (e.Beam != null)
@@ -415,7 +517,7 @@ namespace JamKit.Skyline
             }
             if (e.Beam != null && e.Beam.Active && e.Beam.Step(h, Chest, out bool hit))
             {
-                _r.shotsAtPlayer++;
+                CountShot(e);
                 if (hit && SeesNow(e, out _)) HitPlayer(e.Def.attackDamage);
             }
         }
@@ -435,7 +537,7 @@ namespace JamKit.Skyline
             Vector3 aim = Aim.LeadPoint(from, target, _player.Velocity, d.projectileSpeed, lead) - from;
             float len = aim.Length();
             if (!(len > 1e-4f)) return;
-            _r.shotsAtPlayer++;
+            CountShot(e);
             _bolts.Add(new Bolt { pos = from, vel = Spread(aim / len, d.aimSpreadDeg) * d.projectileSpeed, radius = d.projectileRadius, damage = d.attackDamage });
         }
 
@@ -455,7 +557,7 @@ namespace JamKit.Skyline
                     e.SweepTime = 0f;
                     e.SweepYaw = MathF.Atan2(dx, dz) * (180f / MathF.PI);
                     e.sweepHit = false;
-                    _r.shotsAtPlayer++;
+                    CountShot(e);
                 }
             if (e.Sweeping)
             {
@@ -609,9 +711,62 @@ namespace JamKit.Skyline
             }
         }
 
+        void CountShot(FightEnemy e)
+        {
+            _r.shotsAtPlayer++;
+            _shotsByGroup[e.Group] = ShotsAtPlayerByGroup(e.Group) + 1;
+        }
+
+        /// <summary>Lowest and highest z a flying bot may search to: inside the hall, and south of the mezzanine deck's edge.</summary>
+        const float SearchMaxZ = 11f;
+
+        /// <summary>An awake flying bot that lost sight drifts sideways (at its own height, <see cref="EnemyDef.searchSpeed"/>) to
+        /// the nearest point within 10 m that sees where it last saw the player and that it can reach in a straight line
+        /// without touching cover; it picks again every half second and when its way is blocked.</summary>
+        void Search(FightEnemy e, float h)
+        {
+            e.searchClock -= h;
+            if (e.searchClock <= 0f)
+            {
+                e.searchClock = 0.5f;
+                e.hasSearchGoal = FindVantage(e, out e.searchGoal);
+            }
+            if (!e.hasSearchGoal) return;
+            Vector3 to = e.searchGoal - e.Position;
+            float len = to.Length();
+            if (len < 0.05f) return;
+            Vector3 next = e.Position + to / len * Math.Min(len, e.Def.searchSpeed * h);
+            if (CoverGeometry.BlockedThick(e.Position, next, _cover, e.Def.bodyRadius)) { e.hasSearchGoal = false; e.searchClock = 0f; return; }
+            e.Position = next;
+        }
+
+        bool FindVantage(FightEnemy e, out Vector3 goal)
+        {
+            goal = e.Position;
+            float r = e.Def.bodyRadius;
+            foreach (float dist in new[] { 1.5f, 3f, 4.5f, 6f, 8f, 10f })
+                for (int k = 0; k < 16; k++)
+                {
+                    float a = k * (MathF.PI / 8f);
+                    var p = e.Position + new Vector3(MathF.Sin(a) * dist, 0f, MathF.Cos(a) * dist);
+                    if (p.X < GalleriaArena.HallMinX + 1f || p.X > GalleriaArena.HallMaxX - 1f || p.Z < GalleriaArena.HallMinZ + 1f || p.Z > SearchMaxZ) continue;
+                    if (CoverGeometry.BlockedThick(p, p, _cover, r)) continue;   // inside a piece
+                    if (!Clear(p, e.LastKnown) || Vector3.Distance(p, e.LastKnown) > e.Def.range) continue;
+                    if (CoverGeometry.BlockedThick(e.Position, p, _cover, r)) continue;   // no straight way there
+                    goal = p;
+                    return true;
+                }
+            return false;
+        }
+
         void HitPlayer(float damage)
         {
             if (Armor.Wrecked || !(damage > 0f)) return;
+            if (Invulnerable)
+            {
+                _r.hitsTaken++;
+                return;
+            }
             var hit = Armor.Damage(damage);
             _r.hitsTaken++;
             _r.damageTaken += hit.toPlating + hit.toChassis;
@@ -678,480 +833,5 @@ namespace JamKit.Skyline
         }
 
         static float Clamp01(float v) => v < 0f ? 0f : v > 1f ? 1f : v;
-    }
-
-    /// <summary>Stands where it is and shoots back (the sim aims for it): the "standing still" check.</summary>
-    public sealed class StandAndShootBot : IFightBot
-    {
-        public FightInput Next(FightSim fight, float h) => new FightInput { move = new MoveInput { yaw = fight.Player.Yaw } };
-    }
-
-    /// <summary>One stop of a skilled line: walk the approach, then hide and peek until the named groups are wrecked, then
-    /// strip their fresh wrecks. Points are (x, z) in world metres.</summary>
-    public sealed class FightStation
-    {
-        public string name = "";
-        public Vector2[] approach = new Vector2[0];
-        /// <summary>Where it stands out of the groups' sight between peeks.</summary>
-        public Vector2 hide;
-        /// <summary>Where it steps to shoot; the first one that has a shot at a living member of the groups is used. On a
-        /// strafe station, the two ends of the lane it runs.</summary>
-        public Vector2[] peeks = new Vector2[0];
-        public int[] groups = new int[0];
-        /// <summary>A strafe station (against beams): no hiding; it runs back and forth between the first two peek points,
-        /// shooting, and turns round whenever a beam locks on it, and grabs a fresh wreck that falls near its lane.</summary>
-        public bool strafe;
-    }
-
-    /// <summary>A skilled line through one encounter (Task 11b): the stations in order, and how long it peeks and hides.</summary>
-    public sealed class FightPlan
-    {
-        public string encounter = "";
-        public FightStation[] stations = new FightStation[0];
-        /// <summary>Seconds in an enemy's sight per peek before ducking back (a drone's alert plus its telegraph is about 1 s).</summary>
-        public float peekSeconds = 1f;
-        /// <summary>Seconds behind cover between peeks: long enough for the drones to lose track (their 3 s) and to reload.</summary>
-        public float hideSeconds = 3.2f;
-        /// <summary>Plating lost in one peek that sends it back to cover early.</summary>
-        public float duckDamage = 10f;
-    }
-
-    /// <summary>
-    /// The skilled line (Task 11b, the creator's description): one group at a time from behind cover. At each station it
-    /// waits behind cover, steps out to a peek point, shoots while the drones are still waking (alert plus telegraph), ducks
-    /// back before they settle, reloads in cover, and repeats; when the station's groups are wrecked it strips their fresh
-    /// wrecks and moves on. On a strafe station (the spotlights) it runs a lane instead and turns whenever a beam locks.
-    /// Anywhere, a beam locking on it makes it change direction for a moment, and it jumps every acid sweep it sees coming
-    /// (it reads the floor-care unit's telegraph and the jet's angle, as a player does). After the last station it walks
-    /// toward anything still standing.
-    /// <para>With <c>useCover = false</c> it is the negative control: the same route and peek points, but it never hides,
-    /// never strafes and never dodges a beam (it still jumps the acid).</para>
-    /// </summary>
-    public sealed class CoverFighterBot : IFightBot
-    {
-        public enum Phase { Approach, Hide, Peek, Strip, Hunt }
-
-        /// <summary>Seconds it changes direction for when a beam locks on it.</summary>
-        public const float DodgeSeconds = 0.3f;
-
-        readonly FightPlan _plan;
-        readonly bool _useCover;
-        int _station, _wp, _peek, _lane;
-        float _timer, _exposed, _platingAtPeek, _idle, _dodgeUntil = -1f;
-        Vector2 _dodgeDir;
-        bool _started;
-        bool[] _locked = new bool[0];
-
-        public Phase Current { get; private set; }
-        public int Station => _station;
-
-        public CoverFighterBot(FightPlan plan, bool useCover = true)
-        {
-            _plan = plan ?? throw new ArgumentNullException(nameof(plan));
-            _useCover = useCover;
-        }
-
-        FightStation St => _station < _plan.stations.Length ? _plan.stations[_station] : null;
-
-        bool InGroups(int group)
-        {
-            var s = St;
-            if (s?.groups == null) return false;
-            foreach (int g in s.groups) if (g == group) return true;
-            return false;
-        }
-
-        bool StationClear(FightSim f)
-        {
-            foreach (var e in f.Enemies) if (!e.Wrecked && InGroups(e.Group)) return false;
-            return true;
-        }
-
-        void Begin(int station)
-        {
-            _station = station;
-            _wp = 0;
-            Current = St != null ? Phase.Approach : Phase.Hunt;
-        }
-
-        /// <summary>True on the step a beam that sees the player locks.</summary>
-        bool BeamLocked(FightSim f)
-        {
-            if (_locked.Length != f.Enemies.Count) _locked = new bool[f.Enemies.Count];
-            bool any = false;
-            for (int i = 0; i < f.Enemies.Count; i++)
-            {
-                var e = f.Enemies[i];
-                bool now = e.Beam != null && !e.Wrecked && e.Beam.Active && e.Beam.Locked;
-                if (now && !_locked[i] && e.SeesPlayer) any = true;
-                _locked[i] = now;
-            }
-            return any;
-        }
-
-        public FightInput Next(FightSim f, float h)
-        {
-            if (!_started)
-            {
-                _started = true;
-                Begin(0);
-            }
-            var input = new FightInput();
-            var p = f.Player.Position;
-            var me = new Vector2(p.X, p.Z);
-            Vector2 goal = me;
-            int mag = f.Gun.Def.weapon.magazineSize;
-            bool locked = BeamLocked(f) && _useCover;
-            bool strafing = false;
-            for (int guard = 0; guard < 4; guard++)
-            {
-                var st = St;
-                if (Current == Phase.Approach)
-                {
-                    if (st == null) { Current = Phase.Hunt; continue; }
-                    if (_wp < st.approach.Length)
-                    {
-                        goal = st.approach[_wp];
-                        if (Vector2.Distance(me, goal) < 0.8f) { _wp++; continue; }
-                        break;
-                    }
-                    goal = st.hide;
-                    if (Vector2.Distance(me, goal) < 0.5f || !_useCover || st.strafe)
-                    {
-                        Current = Phase.Hide;
-                        _timer = _plan.hideSeconds;   // arriving unseen: it may peek at once
-                        continue;
-                    }
-                    break;
-                }
-                if (Current == Phase.Hide)
-                {
-                    if (StationClear(f)) { Current = Phase.Strip; continue; }
-                    goal = st.hide;
-                    _timer += h;
-                    input.reload = f.Gun.Ammo < mag && f.Target == null;
-                    bool ready = !_useCover || st.strafe
-                        || (_timer >= _plan.hideSeconds && Vector2.Distance(me, goal) < 0.6f && f.Gun.Ammo == mag && !f.Gun.State.IsReloading);
-                    if (ready)
-                    {
-                        int pick = st.strafe ? 0 : PickPeek(f, st, -1);
-                        if (pick >= 0)
-                        {
-                            _peek = pick;
-                            _lane = 0;
-                            Current = Phase.Peek;
-                            _exposed = 0f;
-                            _idle = 0f;
-                            _platingAtPeek = f.Armor.Plating;
-                            continue;
-                        }
-                    }
-                    break;
-                }
-                if (Current == Phase.Peek)
-                {
-                    if (StationClear(f)) { Current = Phase.Strip; continue; }
-                    if (st.strafe && _useCover && st.peeks.Length >= 2)
-                    {
-                        strafing = true;
-                        goal = st.peeks[_lane];
-                        if (Vector2.Distance(me, goal) < 0.6f || locked) _lane = 1 - _lane;
-                        goal = st.peeks[_lane];
-                        // a fresh wreck near the lane is worth a detour while the plating has room
-                        var w = NearestFresh(f, me, false);
-                        if (w != null && f.Armor.Plating < f.Armor.PlatingMax - 5f && Vector2.Distance(me, Flat(w.Position)) < 6f) goal = Flat(w.Position);
-                        break;
-                    }
-                    goal = st.peeks[_peek];
-                    bool seen = false;
-                    foreach (var e in f.Enemies) if (!e.Wrecked && e.SeesPlayer && e.Def.moveSpeed <= 0f) { seen = true; break; }
-                    if (seen) _exposed += h;
-                    bool there = Vector2.Distance(me, goal) < 0.6f;
-                    _idle = there && f.Target == null ? _idle + h : 0f;
-                    if (_useCover && (_exposed >= _plan.peekSeconds || f.Gun.Ammo == 0 || _platingAtPeek - f.Armor.Plating >= _plan.duckDamage))
-                    {
-                        Current = Phase.Hide;
-                        _timer = 0f;
-                        continue;
-                    }
-                    if (_idle >= 0.4f)
-                    {
-                        // nothing to shoot from here: the next peek point that has a shot, else back to cover
-                        int pick = PickPeek(f, st, _peek);
-                        _idle = 0f;
-                        if (pick >= 0) _peek = pick;
-                        else if (_useCover)
-                        {
-                            Current = Phase.Hide;
-                            _timer = _plan.hideSeconds - 0.5f;
-                            continue;
-                        }
-                    }
-                    break;
-                }
-                if (Current == Phase.Strip)
-                {
-                    var best = NearestFresh(f, me, true);
-                    if (best != null) { goal = Flat(best.Position); break; }
-                    Begin(_station + 1);
-                    continue;
-                }
-                // Hunt: walk toward the nearest bot still standing until there's something to shoot
-                FightEnemy near = null;
-                float nd = float.PositiveInfinity;
-                foreach (var e in f.Enemies)
-                {
-                    if (e.Wrecked) continue;
-                    float d = Vector2.Distance(me, Flat(e.Position));
-                    if (d < nd) { nd = d; near = e; }
-                }
-                if (near != null && f.Target == null) goal = Flat(near.Position);
-                break;
-            }
-            if (locked && !strafing)
-            {
-                // a beam has locked: change direction for a moment (reverse the run; from a standstill, step sideways)
-                var v = new Vector2(f.Player.Velocity.X, f.Player.Velocity.Z);
-                _dodgeDir = v.Length() > 1f ? -Vector2.Normalize(v) : new Vector2(1f, 0f);
-                _dodgeUntil = f.Time + DodgeSeconds;
-            }
-            input.move = f.Time < _dodgeUntil && !strafing ? MoveTo(f, me, me + _dodgeDir * 5f) : MoveTo(f, me, goal);
-            JumpTheAcid(f, ref input.move);
-            return input;
-        }
-
-        static Vector2 Flat(Vector3 v) => new Vector2(v.X, v.Z);
-
-        FightWreck NearestFresh(FightSim f, Vector2 me, bool stationOnly)
-        {
-            FightWreck best = null;
-            float bestD = float.PositiveInfinity;
-            foreach (var w in f.Wrecks)
-            {
-                if (!w.Wreck.Fresh(f.Time) || (stationOnly && !InGroups(w.Group))) continue;
-                float d = Vector2.Distance(me, Flat(w.Position));
-                if (d < bestD) { bestD = d; best = w; }
-            }
-            return best;
-        }
-
-        /// <summary>The first peek point after <paramref name="after"/> (wrapping) with a shot at a living member of the station's groups.</summary>
-        int PickPeek(FightSim f, FightStation st, int after)
-        {
-            int n = st.peeks.Length;
-            for (int k = 1; k <= n; k++)
-            {
-                int i = ((after < 0 ? -1 : after) + k + n) % n;
-                if (after >= 0 && i == after) continue;
-                var feet = new Vector3(st.peeks[i].X, 0f, st.peeks[i].Y);
-                foreach (var e in f.Enemies)
-                    if (!e.Wrecked && InGroups(e.Group) && f.CanShoot(feet, e)) return i;
-            }
-            return -1;
-        }
-
-        static MoveInput MoveTo(FightSim f, Vector2 me, Vector2 goal)
-        {
-            Vector2 d = goal - me;
-            float dist = d.Length();
-            if (dist < 0.15f) return new MoveInput { yaw = f.Player.Yaw };
-            float yaw = MathF.Atan2(d.X, d.Y) * (180f / MathF.PI);
-            return new MoveInput { move = new Vector2(0f, Math.Min(1f, dist / 1.2f)), yaw = yaw, sprintHeld = dist > 2.5f };
-        }
-
-        /// <summary>Jumps so its feet are above the jet as it passes: from each sweeping or telegraphing floor-care unit in reach,
-        /// when the jet will cross its bearing; a double jump bridges two sweeps in a row.</summary>
-        static void JumpTheAcid(FightSim f, ref MoveInput m)
-        {
-            var p = f.Player.Position;
-            float now = f.Time, soonest = float.PositiveInfinity, latest = float.NegativeInfinity;
-            foreach (var e in f.Enemies)
-            {
-                var d = e.Def;
-                if (e.Wrecked || d.moveSpeed <= 0f) continue;
-                float dx = p.X - e.Position.X, dz = p.Z - e.Position.Z;
-                float flat = MathF.Sqrt(dx * dx + dz * dz);
-                if (flat > d.sweepRadius + 1.5f) continue;
-                float bearing = MathF.Atan2(dx, dz) * (180f / MathF.PI);
-                float start, yaw;
-                if (e.Sweeping) { start = now - e.SweepTime; yaw = e.SweepYaw; }
-                else if (e.Brain.State == BotState.Telegraph) { start = now + Math.Max(0f, d.telegraphSeconds - e.Brain.StateTime); yaw = bearing; }
-                else continue;
-                float ws, we;
-                if (flat < 0.8f) { ws = start; we = start + d.sweepSeconds; }
-                else
-                {
-                    float rel = (bearing - (yaw - d.sweepArcDeg * 0.5f)) % 360f;
-                    if (rel < 0f) rel += 360f;
-                    float half = d.sweepWidthDeg * 0.5f + 10f;
-                    if (rel > d.sweepArcDeg + half && rel < 360f - half) continue;   // the jet never passes this bearing
-                    if (rel > 180f) rel -= 360f;
-                    float tc = start + rel / d.sweepArcDeg * d.sweepSeconds, w = half / d.sweepArcDeg * d.sweepSeconds;
-                    ws = tc - w;
-                    we = tc + w;
-                }
-                if (we < now) continue;
-                soonest = Math.Min(soonest, ws);
-                latest = Math.Max(latest, we);
-            }
-            if (float.IsPositiveInfinity(soonest)) return;
-            if (f.Player.Grounded)
-            {
-                if (soonest - now <= 0.1f) { m.jumpPressed = true; m.jumpHeld = true; }
-            }
-            else if (f.Player.DoubleJumpAvailable && f.Player.Velocity.Y < 0f && p.Y < 0.75f && latest > now + 0.05f)
-            {
-                m.jumpPressed = true;
-                m.jumpHeld = true;
-            }
-        }
-    }
-
-    /// <summary>The skilled lines through M1's three main-hall fights (world metres; see <see cref="CoverFighterBot"/>).</summary>
-    public static class FightPlans
-    {
-        static Vector2 P(float x, float z) => new Vector2(x, z);
-
-        public static FightPlan For(string encounterId)
-        {
-            switch (encounterId)
-            {
-                case "food-court": return FoodCourt();
-                case "skylight": return Skylight();
-                case "facade": return Facade();
-                default: return null;
-            }
-        }
-
-        /// <summary>Centre group first from behind the south kiosk; then the west and east rooms, each peeked from the centre
-        /// room around a counter run's north end (the centre group is wrecked by then, and the other room's drones can't see
-        /// past the far counter).</summary>
-        public static FightPlan FoodCourt() => new FightPlan
-        {
-            encounter = "food-court",
-            stations = new[]
-            {
-                new FightStation { name = "centre group, from behind the south kiosk", hide = P(0f, -10.6f),
-                    peeks = new[] { P(3f, -10.6f), P(-3f, -10.6f), P(3.2f, -12f), P(-3.2f, -12f) }, groups = new[] { 2 } },
-                new FightStation { name = "west group, round the west counter's north end", approach = new[] { P(-6f, -3f) }, hide = P(-9.4f, 1.5f),
-                    peeks = new[] { P(-9.6f, 5.4f), P(-11f, 5.6f) }, groups = new[] { 0 } },
-                new FightStation { name = "east group, round the east counter's north end", approach = new[] { P(-12.5f, -11.5f), P(0f, -11.5f), P(6f, -3f) }, hide = P(9.4f, 1.5f),
-                    peeks = new[] { P(9.6f, 5.4f), P(11f, 5.6f) }, groups = new[] { 1 } },
-            },
-        };
-
-        /// <summary>Each spotlight from the room under it, running a lane and turning whenever its beam locks; the floor-care
-        /// units come to the lane and are shot and jumped there.</summary>
-        public static FightPlan Skylight() => new FightPlan
-        {
-            encounter = "skylight",
-            stations = new[]
-            {
-                new FightStation { name = "west room lane", approach = new[] { P(-7f, -14f), P(-15f, -11f) }, strafe = true,
-                    peeks = new[] { P(-18f, -9f), P(-18f, -2f) }, groups = new[] { 0 } },
-                new FightStation { name = "east room lane", approach = new[] { P(-7f, -14f), P(7f, -14f), P(15f, -11f) }, strafe = true,
-                    peeks = new[] { P(18f, -9f), P(18f, -2f) }, groups = new[] { 1 } },
-            },
-        };
-
-        /// <summary>From the centre room (out of both groups' sight), each room's drones are peeked round its counter run's south
-        /// end; then the gondolas are shot from the floor (it never touches a wall).</summary>
-        public static FightPlan Facade() => new FightPlan
-        {
-            encounter = "facade",
-            stations = new[]
-            {
-                new FightStation { name = "west group, round the west counter's south end", approach = new[] { P(-4f, -11f) }, hide = P(-9.4f, -8.5f),
-                    peeks = new[] { P(-10.2f, -11.6f), P(-11.6f, -11.8f) }, groups = new[] { 0 } },
-                new FightStation { name = "east group, round the east counter's south end", approach = new[] { P(0f, -11f) }, hide = P(9.4f, -8.5f),
-                    peeks = new[] { P(10.2f, -11.6f), P(11.6f, -11.8f) }, groups = new[] { 1 } },
-            },
-        };
-    }
-
-    /// <summary>Drives a <see cref="FightSim"/> with one of the dodge harness's lane runners (<see cref="StraightLineBot"/>,
-    /// <see cref="JinkingBot"/>); the sim shoots back for it as for any bot.</summary>
-    public sealed class LaneRunnerBot : IFightBot
-    {
-        readonly IPlayerBot _runner;
-
-        public LaneRunnerBot(IPlayerBot runner) { _runner = runner ?? throw new ArgumentNullException(nameof(runner)); }
-
-        public FightInput Next(FightSim fight, float h) => new FightInput { move = _runner.Next(fight.Player, fight.Time, h) };
-    }
-
-    /// <summary>The dodge band measured in a real fight (the creator, 2026-10-13: every balance check simulates the player
-    /// shooting back): the straight-line and jinking runners each fight the same awake shooters in the open, firing the Writ,
-    /// until the shooters are wrecked, the Unit is, or the span ends.</summary>
-    public struct FightDodgeResult
-    {
-        /// <summary>Hits taken per second of exposure (the fight's length: while any shooter stands), pooled over the seeds.</summary>
-        public float straightRate, jinkRate;
-        public float straightHitsMean, jinkHitsMean, straightSecondsMean, jinkSecondsMean;
-        public int straightZeroSeeds, jinkZeroSeeds, seeds;
-        public float Ratio => jinkRate > 0f ? straightRate / jinkRate : float.PositiveInfinity;
-    }
-
-    public static class FightDodge
-    {
-        /// <summary>The distance (m, on the floor plan) from one group's centre to the middle of the runners' lane.</summary>
-        public const float GroupStandOff = 12f;
-
-        /// <summary>The encounter's aimed shooters (drones and spotlights; optionally only one group's) moved into the fight's
-        /// frame, where the lane runners run (their lanes go 15 m either way along z about the origin). For the whole encounter the
-        /// origin is its anchor (the hall's entry); for one group it is a point <see cref="GroupStandOff"/> m from the group's centre
-        /// toward the hall's middle, so the group is in the runners' face (from the entry a side group is 20-38 m away and lands
-        /// one or two hits a fight: too few to measure).</summary>
-        public static EncounterDef Aimed(EncounterDef e, Func<string, EnemyDef> lookup = null, int group = -1)
-        {
-            lookup = lookup ?? SkylineEnemies.Find;
-            Vector3 origin = e.anchor;
-            if (group >= 0)
-            {
-                Vector3 sum = Vector3.Zero;
-                int n = 0;
-                foreach (var s in e.spawns) if (s.group == group) { sum += s.position; n++; }
-                if (n > 0)
-                {
-                    var c = new Vector2(sum.X / n, sum.Z / n);
-                    var toMiddle = c.Length() > 1e-3f ? -Vector2.Normalize(c) : new Vector2(0f, -1f);
-                    var o = c + toMiddle * GroupStandOff;
-                    origin = new Vector3(o.X, 0f, o.Y);
-                }
-            }
-            var list = new List<Spawn>();
-            foreach (var s in e.spawns)
-            {
-                var d = lookup(s.enemy);
-                if (d == null || (d.aim != AimModel.LeadsYou && d.aim != AimModel.FiresAtWhereYouAre)) continue;
-                if (group >= 0 && s.group != group) continue;
-                list.Add(new Spawn(s.enemy, s.position - origin, 0));   // one group: awake together from the start
-            }
-            return new EncounterDef { id = e.id + (group >= 0 ? "/group " + group : "/aimed"), anchor = Vector3.Zero, spawns = list.ToArray() };
-        }
-
-        /// <summary>Both runners against <paramref name="aimed"/> (in the fight's frame) over seeds <paramref name="seed"/>..+<paramref name="seeds"/>-1,
-        /// in an open <paramref name="makeWorld"/> with no cover. The seed drives the jinker's reversals, the shooters' aim error
-        /// and the Writ's hit rolls.</summary>
-        public static FightDodgeResult Run(EncounterDef aimed, Func<IMoveWorld> makeWorld, float span, ulong seed, int seeds,
-            DifficultyDef difficulty = null, Func<string, EnemyDef> lookup = null)
-        {
-            if (seeds < 1) seeds = 1;
-            var r = new FightDodgeResult { seeds = seeds };
-            float sHits = 0f, jHits = 0f, sSec = 0f, jSec = 0f;
-            for (int i = 0; i < seeds; i++)
-            {
-                ulong s = seed + (ulong)i;
-                var a = new FightSim(aimed, makeWorld(), new LaneRunnerBot(new StraightLineBot()), null, Vector3.Zero, s, difficulty, lookup).Run(span);
-                var b = new FightSim(aimed, makeWorld(), new LaneRunnerBot(new JinkingBot(s)), null, Vector3.Zero, s, difficulty, lookup).Run(span);
-                sHits += a.hitsTaken; sSec += a.seconds; if (a.hitsTaken == 0) r.straightZeroSeeds++;
-                jHits += b.hitsTaken; jSec += b.seconds; if (b.hitsTaken == 0) r.jinkZeroSeeds++;
-            }
-            r.straightHitsMean = sHits / seeds; r.jinkHitsMean = jHits / seeds;
-            r.straightSecondsMean = sSec / seeds; r.jinkSecondsMean = jSec / seeds;
-            r.straightRate = sSec > 0f ? sHits / sSec : 0f;
-            r.jinkRate = jSec > 0f ? jHits / jSec : 0f;
-            return r;
-        }
     }
 }

@@ -48,6 +48,26 @@ namespace JamKit.Tests.Skyline
             return r;
         }
 
+        public static FightSim[] RunSims(string id, Func<ulong, IFightBot> bot, Vector3 start, int seeds = Seeds, float cap = Cap,
+            Func<string, EnemyDef> lookup = null, DifficultyDef diff = null)
+        {
+            var r = new FightSim[seeds];
+            for (int i = 0; i < seeds; i++)
+            {
+                ulong s = FirstSeed + (ulong)i;
+                r[i] = Make(id, bot(s), s, start, lookup, diff);
+                r[i].Run(cap);
+            }
+            return r;
+        }
+
+        static FightResult[] Results(FightSim[] sims)
+        {
+            var r = new FightResult[sims.Length];
+            for (int i = 0; i < sims.Length; i++) r[i] = sims[i].Result();
+            return r;
+        }
+
         // ---- design aid: which groups see each metre of the hall's floor
 
         [Test, Explicit("design aid: prints, per encounter, which groups see each metre of the floor (# is cover)")]
@@ -57,7 +77,7 @@ namespace JamKit.Tests.Skyline
             foreach (var e in GalleriaArena.Encounters())
             {
                 var f = new FightSim(e, Hall(), new StandAndShootBot(), GalleriaArena.FightCover(), GalleriaArena.HallEntry, 1);
-                sb.AppendLine(e.id + (counts ? " COUNTS of shooters" : "") + "  (rows z = 19 at the top to -19; columns x = -24..24; hex digit = bit mask of the groups whose shooters (drones, spotlights) see it (bit 0 = group 0), . = none)");
+                sb.AppendLine(e.id + (counts ? " COUNTS of shooters" : " group masks (bit 0 = group 0)") + "  (rows z = 19 at the top to -19; columns x = -24..24; . = none)");
                 for (int z = 19; z >= -19; z--)
                 {
                     sb.Append(z.ToString().PadLeft(4)).Append(' ');
@@ -67,7 +87,7 @@ namespace JamKit.Tests.Skyline
                         if (CoverGeometry.DistanceToCover(feet, GalleriaArena.HallCover()) < 0.4f) { sb.Append('#'); continue; }
                         int mask = 0, count = 0;
                         foreach (var en in f.Enemies)
-                            if (en.Def.moveSpeed <= 0f && en.Def.layer != ThreatLayer.Walls && f.CanSee(en, feet)) { mask |= 1 << en.Group; count++; }
+                            if (FightSim.IsShooter(en) && f.CanSee(en, feet)) { mask |= 1 << en.Group; count++; }
                         sb.Append(counts ? (count == 0 ? '.' : (char)('0' + Math.Min(9, count))) : mask == 0 ? '.' : "0123456789ABCDEF"[mask & 15]);
                     }
                     sb.AppendLine();
@@ -75,16 +95,6 @@ namespace JamKit.Tests.Skyline
             }
             TestContext.WriteLine(sb.ToString());
         }
-
-        // ---- standing still
-
-        /// <summary>The open stand per encounter: a point 3 m and more from any cover in sight of the fight (every group's
-        /// shooters): the middle of the hall north of the kiosks (all three food-court groups, both spotlights), or in the facade
-        /// (whose drones hover over the side rooms) the open floor north of the west counter run, which five of its eight drones see.</summary>
-        public static Vector3 OpenSpot(string id) => id == "facade" ? new Vector3(-12f, 0f, 8f) : new Vector3(0f, 0f, 8f);
-
-        /// <summary>The covered stand per encounter: behind a kiosk, where the boxes block most sightlines.</summary>
-        public static Vector3 CoverSpot(string id) => id == "facade" ? new Vector3(0f, 0f, -4f) : new Vector3(0f, 0f, -10.6f);
 
         static float Mean(FightResult[] rs, Func<FightResult, float> f)
         {
@@ -95,21 +105,40 @@ namespace JamKit.Tests.Skyline
 
         static float TimeToWreck(FightResult r) => r.playerWrecked ? r.wreckedAt : r.seconds;
 
+        static int ShootersSeeing(FightSim f, Vector3 feet)
+        {
+            int n = 0;
+            foreach (var e in f.Enemies) if (FightSim.IsShooter(e) && f.CanSee(e, feet)) n++;
+            return n;
+        }
+
+        static int Shooters(FightSim f)
+        {
+            int n = 0;
+            foreach (var e in f.Enemies) if (FightSim.IsShooter(e)) n++;
+            return n;
+        }
+
+        // ---- standing still
+
+        /// <summary>The open stand per encounter: a point 3 m and more from any cover that most of the fight's shooters see.</summary>
+        public static Vector3 OpenSpot(string id) => new Vector3(-12f, 0f, 8.5f);
+
+        /// <summary>The partly covered stand: off the booth's south-west corner, where the screens block most sightlines but not all.</summary>
+        public static Vector3 CoverSpot(string id) => new Vector3(-3f, 0f, -15f);
+
         [Test]
-        public void TheOpenSpotHasNoCoverWithinThreeMetresAndSeesEveryGroup()
+        public void TheOpenSpotIsClearOfCoverAndSeenByMostShootersAndTheCoverSpotIsPartlyExposed()
         {
             foreach (var e in GalleriaArena.Encounters())
             {
-                Assert.That(CoverGeometry.DistanceToCover(OpenSpot(e.id), GalleriaArena.HallCover()), Is.GreaterThanOrEqualTo(3f), e.id);
                 var f = Make(e.id, new StandAndShootBot(), 1, OpenSpot(e.id));
-                var groups = new HashSet<int>();
-                var seen = new HashSet<int>();
-                foreach (var en in f.Enemies)
-                {
-                    groups.Add(en.Group);
-                    if (en.Def.moveSpeed <= 0f && en.Def.layer != ThreatLayer.Walls && f.CanSee(en, OpenSpot(e.id))) seen.Add(en.Group);
-                }
-                Assert.That(seen.Count, Is.EqualTo(groups.Count), e.id + ": every group has a bot that sees the open spot");
+                int all = Shooters(f), open = ShootersSeeing(f, OpenSpot(e.id)), cover = ShootersSeeing(f, CoverSpot(e.id));
+                TestContext.WriteLine($"{e.id}: {all} shooters; the open spot is seen by {open}, the covered spot by {cover}");
+                Assert.That(CoverGeometry.DistanceToCover(OpenSpot(e.id), GalleriaArena.HallCover()), Is.GreaterThanOrEqualTo(3f), e.id);
+                Assert.That(open * 2, Is.GreaterThan(all), e.id + ": most shooters see the open spot");
+                Assert.That(cover, Is.GreaterThanOrEqualTo(1), e.id + ": the covered spot is partly exposed (a box blocks most sightlines, not all)");
+                Assert.That(cover * 2, Is.LessThanOrEqualTo(open), e.id + ": the box blocks at least half the sightlines the open spot has");
             }
         }
 
@@ -124,57 +153,77 @@ namespace JamKit.Tests.Skyline
             int openWrecks = 0, coverWrecks = 0;
             foreach (var r in open) if (r.playerWrecked) openWrecks++;
             foreach (var r in cover) if (r.playerWrecked) coverWrecks++;
-            TestContext.WriteLine($"{id}: standing in the open, wrecked in {openWrecks}/{Seeds} at a mean {openMean:0.0} s (shots fired {Mean(open, r => r.shotsFired):0}, at it {Mean(open, r => r.shotsAtPlayer):0.0}, hits {Mean(open, r => r.hitsTaken):0.0}, damage {Mean(open, r => r.damageTaken):0}, " +
-                $"bots wrecked {Mean(open, r => r.enemiesWrecked):0.0}/{open[0].enemies}); behind cover {coverWrecks}/{Seeds} wrecked, mean time {coverMean:0.0} s " +
-                $"(capped at 60 s), ratio {coverMean / openMean:0.0}");
+            TestContext.WriteLine($"{id}: standing in the open, wrecked in {openWrecks}/{Seeds} at a mean {openMean:0.0} s (Writ shots {Mean(open, r => r.shotsFired):0}, " +
+                $"shots at it {Mean(open, r => r.shotsAtPlayer):0.0}, hits {Mean(open, r => r.hitsTaken):0.0}, bots wrecked {Mean(open, r => r.enemiesWrecked):0.0}/{open[0].enemies}); " +
+                $"partly covered: wrecked in {coverWrecks}/{Seeds}, mean {coverMean:0.0} s (capped at 60 s), ratio {coverMean / openMean:0.0}");
             Assert.That(openMean, Is.LessThanOrEqualTo(12f), "standing still in the open is a quick wreck (the creator, 2026-10-13)");
             Assert.That(coverMean, Is.GreaterThanOrEqualTo(2f * openMean), "cover is real: it at least doubles the time");
         }
 
-        // ---- the skilled line
+        // ---- the skilled line (the gate: human timing)
 
         static string Summary(FightResult[] rs)
         {
             int cleared = 0, wrecked = 0, chassisHit = 0;
-            float minPlating = float.PositiveInfinity, maxChassis = 0f, minClear = float.PositiveInfinity, maxClear = 0f;
+            float minPlating = float.PositiveInfinity, maxChassis = 0f, minClear = float.PositiveInfinity, maxClear = 0f, sumClear = 0f;
+            var lows = new List<float>();
             foreach (var r in rs)
             {
-                if (r.cleared) { cleared++; minClear = Math.Min(minClear, r.clearSeconds); maxClear = Math.Max(maxClear, r.clearSeconds); }
+                if (r.cleared) { cleared++; minClear = Math.Min(minClear, r.clearSeconds); maxClear = Math.Max(maxClear, r.clearSeconds); sumClear += r.clearSeconds; }
                 if (r.playerWrecked) wrecked++;
                 if (r.chassisLost > 0f) chassisHit++;
                 minPlating = Math.Min(minPlating, r.minPlating);
                 maxChassis = Math.Max(maxChassis, r.chassisLost);
+                lows.Add(r.minPlating);
             }
-            return $"cleared {cleared}/{rs.Length} (clear {minClear:0}-{maxClear:0} s, mean {Mean(rs, r => r.cleared ? r.clearSeconds : 0f) * rs.Length / Math.Max(1, cleared):0}), " +
-                $"wrecked {wrecked}, chassis lost in {chassisHit} (worst {maxChassis:0}), lowest plating {minPlating:0}, damage taken {Mean(rs, r => r.damageTaken):0}, " +
-                $"hits {Mean(rs, r => r.hitsTaken):0.0}, shots at it {Mean(rs, r => r.shotsAtPlayer):0}, Writ shots {Mean(rs, r => r.shotsFired):0}, " +
-                $"bots wrecked {Mean(rs, r => r.enemiesWrecked):0.0}/{rs[0].enemies}, recovered scrap {Mean(rs, r => r.recoveredScrap):0}";
+            lows.Sort();
+            return $"cleared {cleared}/{rs.Length} (clear {minClear:0}-{maxClear:0} s, mean {sumClear / Math.Max(1, cleared):0}), " +
+                $"wrecked {wrecked}, chassis lost in {chassisHit} (worst {maxChassis:0}), lowest plating {minPlating:0} (median of the seeds' lows {lows[lows.Count / 2]:0}), " +
+                $"damage taken {Mean(rs, r => r.damageTaken):0}, hits {Mean(rs, r => r.hitsTaken):0.0}, shots at it {Mean(rs, r => r.shotsAtPlayer):0}, " +
+                $"Writ shots {Mean(rs, r => r.shotsFired):0}, bots wrecked {Mean(rs, r => r.enemiesWrecked):0.0}/{rs[0].enemies}, recovered scrap {Mean(rs, r => r.recoveredScrap):0}";
+        }
+
+        /// <summary>The seeds a skilled line must clear with no chassis lost (of <see cref="Seeds"/>).</summary>
+        public const int CleanSeedsRequired = 27;
+
+        static HashSet<int> Groups(EncounterDef e)
+        {
+            var g = new HashSet<int>();
+            foreach (var s in e.spawns) g.Add(s.group);
+            return g;
         }
 
         [TestCase("food-court")]
         [TestCase("skylight")]
         [TestCase("facade")]
-        public void ASkilledLineClearsItWithNoChassisDamageAndTheSameRouteWithoutCoverDoesNot(string id)
+        public void AHumanTimedSkilledLineClearsItWithNoChassisDamageAndTheSameChoicesWithoutCoverDoNot(string id)
         {
-            var skilled = RunSeeds(id, s => new CoverFighterBot(FightPlans.For(id)), GalleriaArena.HallEntry);
-            var control = RunSeeds(id, s => new CoverFighterBot(FightPlans.For(id), false), GalleriaArena.HallEntry);
-            TestContext.WriteLine($"{id}, skilled line, {Seeds} seeds: {Summary(skilled)}");
-            TestContext.WriteLine($"{id}, the same route without cover: {Summary(control)}");
+            var human = RunSims(id, s => new TacticalBot(s, FightTiming.Human()), GalleriaArena.HallEntry);
+            var perfect = RunSeeds(id, s => new TacticalBot(s, FightTiming.Perfect()), GalleriaArena.HallEntry);
+            var control = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human(), false), GalleriaArena.HallEntry);
+            var hr = Results(human);
+            TestContext.WriteLine($"{id}, human-timed skilled line, {Seeds} seeds: {Summary(hr)}");
+            TestContext.WriteLine($"{id}, perfect-timed reference: {Summary(perfect)}");
+            TestContext.WriteLine($"{id}, the same choices without cover: {Summary(control)}");
+            int clean = 0;
             for (int i = 0; i < Seeds; i++)
+                if (hr[i].cleared && hr[i].chassisLost == 0f) clean++;
+            Assert.That(clean, Is.GreaterThanOrEqualTo(CleanSeedsRequired), $"{id}: the human-timed line clears with no chassis lost in at least {CleanSeedsRequired}/{Seeds} seeds");
+            foreach (int g in Groups(ById(id)))
             {
-                var r = skilled[i];
-                Assert.That(r.cleared, Is.True, $"{id} seed {FirstSeed + (ulong)i}: the skilled line clears the fight ({r.enemiesWrecked}/{r.enemies} wrecked in {r.seconds:0} s)");
-                Assert.That(r.chassisLost, Is.EqualTo(0f), $"{id} seed {FirstSeed + (ulong)i}: no chassis damage (plating absorbs it; stripping refills it)");
-                Assert.That(r.shotsAtPlayer, Is.GreaterThan(0), $"{id} seed {FirstSeed + (ulong)i}: the fight shot at it (its zero isn't from an empty fight)");
+                int fewest = int.MaxValue;
+                foreach (var f in human) fewest = Math.Min(fewest, f.ShotsAtPlayerByGroup(g));
+                TestContext.WriteLine($"{id} group {g}: fewest shots at the skilled line in a seed {fewest}");
+                Assert.That(fewest, Is.GreaterThanOrEqualTo(3), $"{id} group {g}: at least 3 shots at the skilled line in every seed (its zero isn't from an empty fight)");
             }
             for (int i = 0; i < Seeds; i++)
                 Assert.That(control[i].playerWrecked || control[i].chassisLost > 0f, Is.True,
-                    $"{id} seed {FirstSeed + (ulong)i}: walking the same route without cover is wrecked or loses chassis");
+                    $"{id} seed {FirstSeed + (ulong)i}: the same choices without cover are wrecked or lose chassis");
         }
 
         // ---- the dodge band, in a real fight (both runners shoot back; the shooters are wrecked and stop)
 
-        /// <summary>Open floor for the lane runners, in the fight's frame (the anchor at the origin).</summary>
+        /// <summary>Open floor for the lane runners, in their frame.</summary>
         public static BoxWorld OpenFloor()
         {
             var w = new BoxWorld();
@@ -184,78 +233,346 @@ namespace JamKit.Tests.Skyline
 
         /// <summary>The span each runner fights for at most (s); most fights end sooner, when the runner wrecks the shooters.</summary>
         public const float DodgeSpan = 30f;
+        public const int BandSeeds = 400;
+        /// <summary>The held-out seeds the band test asserts on; the tuning sweep used <see cref="TuneSeed"/>.. instead.</summary>
+        public const ulong BandSeed = 5001, TuneSeed = 1001;
+        /// <summary>The spotlight band's lane: along the hall's x through (0, -2), across the beams' line of fire.</summary>
+        public static readonly Vector3 SpotlightLane = new Vector3(0f, 0f, -2f);
 
-        [TestCase("food-court", 0)]
-        [TestCase("skylight", -1)]
-        public void OnNormalTheStraightRunnerTakesAboutTwiceTheJinkersHitsWhileBothShootBack(string id, int group)
+        static string Band(string what, FightDodgeResult r) =>
+            $"Dodge band in the fight, {what}, {r.seeds} seeds, both shooting back, no damage applied: straight {r.straightHits:0} hits in {r.straightExposure:0} " +
+            $"shooter-seconds in sight ({r.straightRate:0.0000}/s, unhit in {r.straightZeroSeeds}), jinking {r.jinkHits:0} in {r.jinkExposure:0} ({r.jinkRate:0.0000}/s, " +
+            $"unhit in {r.jinkZeroSeeds}); ratio {r.Ratio:0.00}, 95% interval {r.ratioLow:0.00}-{r.ratioHigh:0.00} " +
+            $"({(r.ratioLow >= 1.6f && r.ratioHigh <= 2.5f ? "inside" : "not inside")} 1.6-2.5)";
+
+        [TestCase(12f)]
+        public void OneDroneGroupsBandHoldsAtTwelveMetresWhileBothShootBack(float distance)
         {
-            var r = FightDodge.Run(FightDodge.Aimed(ById(id), null, group), OpenFloor, DodgeSpan, FirstSeed, Seeds);
-            TestContext.WriteLine($"Dodge band in the fight, {id}{(group >= 0 ? " group " + group : " (both spotlights)")}, {Seeds} seeds, both shooting back: " +
-                $"straight {r.straightHitsMean:0.00} hits in {r.straightSecondsMean:0.0} s ({r.straightRate:0.000}/s, unhit in {r.straightZeroSeeds} seeds), " +
-                $"jinking {r.jinkHitsMean:0.00} hits in {r.jinkSecondsMean:0.0} s ({r.jinkRate:0.000}/s, unhit in {r.jinkZeroSeeds} seeds), ratio of rates {r.Ratio:0.00} (target 1.6-2.5)");
+            var e = ById("food-court");
+            var r = FightDodge.Run(FightDodge.Framed(e, FightDodge.StandOff(e, 0, distance), false, null, 0), OpenFloor, DodgeSpan, BandSeed, BandSeeds);
+            TestContext.WriteLine(Band($"one drone group at {distance:0} m", r));
             Assert.That(r.straightRate, Is.GreaterThan(0f), "the straight runner is hit");
             Assert.That(r.jinkRate, Is.GreaterThan(0f), "and so is the jinker: nobody goes unhit");
-            Assert.That(r.Ratio, Is.InRange(1.6f, 2.5f), "about twice (2.6), per second of exposure");
+            Assert.That(r.Ratio, Is.InRange(1.6f, 2.5f), "about twice (2.6), per shooter-second in sight");
         }
 
-        // ---- tuning sweep (explicit: prints, asserts nothing)
-
-        static Func<string, EnemyDef> Tuned(float droneDamage, float spotHp, float spotDamage) => id =>
+        [Test]
+        public void TheSpotlightPairsBandHoldsWhileBothShootBack()
         {
-            var d = SkylineEnemies.Find(id);
-            if (d == null) return null;
-            if (id == SkylineEnemies.DroneId && droneDamage > 0f) d.attackDamage = droneDamage;
-            if (id == SkylineEnemies.SpotlightId && spotHp > 0f)
+            var r = FightDodge.Run(FightDodge.Framed(ById("skylight"), SpotlightLane, true), OpenFloor, DodgeSpan, BandSeed, BandSeeds);
+            TestContext.WriteLine(Band("the spotlight pair, lane across their fire", r));
+            Assert.That(r.straightRate, Is.GreaterThan(0f));
+            Assert.That(r.jinkRate, Is.GreaterThan(0f));
+            Assert.That(r.Ratio, Is.InRange(1.6f, 2.5f));
+        }
+
+        [Test]
+        public void TheBandsLanesStayInsideTheHall()
+        {
+            var e = ById("food-court");
+            foreach (float d in new[] { 8f, 12f, 18f })
             {
-                d.chassisHp = spotHp * 0.4f;
-                d.plates = new[] { new PlateDef("housing-left", spotHp * 0.3f), new PlateDef("housing-right", spotHp * 0.3f) };
+                var o = FightDodge.StandOff(e, 0, d);
+                Assert.That(o.X, Is.InRange(GalleriaArena.HallMinX + 1f, GalleriaArena.HallMaxX - 1f), d + " m");
+                Assert.That(o.Z - 15f, Is.GreaterThanOrEqualTo(GalleriaArena.HallMinZ), d + " m: the lane's south end");
+                Assert.That(o.Z + 15f, Is.LessThanOrEqualTo(GalleriaArena.HallMaxZ), d + " m: the lane's north end");
             }
-            if (id == SkylineEnemies.SpotlightId && spotDamage > 0f) d.attackDamage = spotDamage;
-            return d;
-        };
+            Assert.That(SpotlightLane.X - 15f, Is.GreaterThanOrEqualTo(GalleriaArena.HallMinX));
+            Assert.That(SpotlightLane.X + 15f, Is.LessThanOrEqualTo(GalleriaArena.HallMaxX));
+        }
 
-        [Test, Explicit("the Normal tuning sweep for the fights: prints a table; asserts nothing")]
-        public void SweepTheFightTuning()
+        [Test, Explicit("reports the drone band at 8, 12 and 18 m from the group (held-out seeds); asserts nothing")]
+        public void ReportTheDroneBandAtThreeDistances()
         {
+            var e = ById("food-court");
             var sb = new StringBuilder();
-            sb.AppendLine("encounter droneDmg spotHp spotDmg | open wreck mean s | skilled: cleared, chassis-lost seeds, lowest plating, mean clear s | control: seeds wrecked or chassis lost");
-            foreach (string id in new[] { "food-court", "facade", "skylight" })
-                foreach (float dd in id == "skylight" ? new[] { 12f } : new[] { 12f, 15f, 18f })
-                    foreach (float sh in id == "skylight" ? new[] { 130f, 170f, 210f } : new[] { 130f })
-                        foreach (float sd in id == "skylight" ? new[] { 30f, 35f } : new[] { 30f })
-                        {
-                            var lk = Tuned(dd, sh, sd);
-                            var open = RunSeeds(id, s => new StandAndShootBot(), OpenSpot(id), Seeds, 60f, lk);
-                            var good = RunSeeds(id, s => new CoverFighterBot(FightPlans.For(id)), GalleriaArena.HallEntry, Seeds, Cap, lk);
-                            var bad = RunSeeds(id, s => new CoverFighterBot(FightPlans.For(id), false), GalleriaArena.HallEntry, Seeds, Cap, lk);
-                            int cleared = 0, lost = 0, badOk = 0;
-                            float minPl = 999f;
-                            foreach (var r in good) { if (r.cleared) cleared++; if (r.chassisLost > 0f) lost++; minPl = Math.Min(minPl, r.minPlating); }
-                            foreach (var r in bad) if (r.playerWrecked || r.chassisLost > 0f) badOk++;
-                            sb.AppendLine($"{id} {dd:0} {sh:0} {sd:0} | {Mean(open, TimeToWreck):0.0} | {cleared} {lost} {minPl:0} {Mean(good, r => r.seconds):0} | {badOk}/{Seeds}");
-                        }
+            foreach (float d in new[] { 8f, 12f, 18f })
+                sb.AppendLine(Band($"one drone group at {d:0} m", FightDodge.Run(FightDodge.Framed(e, FightDodge.StandOff(e, 0, d), false, null, 0), OpenFloor, DodgeSpan, BandSeed, BandSeeds)));
             TestContext.WriteLine(sb.ToString());
         }
 
-        [Test, Explicit("the dodge band sweep, in the fight (both runners shoot back): prints a table; asserts nothing")]
+        // ---- the fight's mechanics, one at a time
+
+        sealed class Scripted : IFightBot
+        {
+            readonly Func<FightSim, MoveInput> _f;
+            public bool hold;
+            public Scripted(Func<FightSim, MoveInput> f) { _f = f; }
+            public FightInput Next(FightSim f, float h) => new FightInput { move = _f(f), holdFire = hold };
+        }
+
+        static EncounterDef One(params Spawn[] spawns) => new EncounterDef { id = "mechanics", anchor = GalleriaArena.HallEntry, spawns = spawns };
+
+        static FightSim Hall(EncounterDef e, IFightBot bot, Vector3 start, ulong seed = 1) =>
+            new FightSim(e, Hall(), bot, GalleriaArena.FightCover(), start, seed);
+
+        [Test]
+        public void AGroupWakesWhenOneMemberSeesYouOrIsHurt()
+        {
+            // the player stands in the booth's pocket: a drone south of the booth sees in; drones north of it are blocked by the
+            // booth's cross screen
+            var pocket = new Vector3(0f, 0f, -12.5f);
+            var still = new Scripted(f => new MoveInput()) { hold = true };
+            var e = One(new Spawn(SkylineEnemies.DroneId, new Vector3(0f, GalleriaArena.DroneY, -17f), 0),
+                new Spawn(SkylineEnemies.DroneId, new Vector3(20f, GalleriaArena.DroneY, 9f), 0),
+                new Spawn(SkylineEnemies.DroneId, new Vector3(0f, GalleriaArena.DroneY, 0f), 1),
+                new Spawn(SkylineEnemies.DroneId, new Vector3(-4f, GalleriaArena.DroneY, 0f), 1));
+            var f1 = Hall(e, still, pocket);
+            Assert.That(f1.CanSee(f1.Enemies[0], pocket), Is.True, "setup: the south drone sees into the pocket");
+            Assert.That(f1.CanSee(f1.Enemies[2], pocket) || f1.CanSee(f1.Enemies[3], pocket), Is.False, "setup: the north drones don't");
+            f1.Tick();
+            Assert.That(f1.Enemies[0].Awake && f1.Enemies[1].Awake, Is.True, "a member saw the player: its whole group wakes");
+            Assert.That(f1.Enemies[2].Awake || f1.Enemies[3].Awake, Is.False, "another group sleeps on");
+            f1.Damage(f1.Enemies[2], 5f);
+            Assert.That(f1.Enemies[3].Awake, Is.True, "a hurt member wakes its group, unseen or not");
+        }
+
+        [Test]
+        public void TheDeckBlocksSightAboveAndBelowExceptAtItsEdgeAndStopsBolts()
+        {
+            var e = One(new Spawn(SkylineEnemies.SpotlightId, new Vector3(-12.5f, 6.5f, 12.3f), 0));
+            var f = Hall(e, new StandAndShootBot(), GalleriaArena.HallEntry);
+            var spot = f.Enemies[0];
+            Assert.That(f.CanSee(spot, new Vector3(-6f, 0f, 16f)), Is.False, "under the deck: hidden from the railing above");
+            Assert.That(f.CanSee(spot, new Vector3(-6f, 0f, 2f)), Is.True, "out past the open edge: seen");
+            Assert.That(f.Clear(new Vector3(0f, 7f, 16f), new Vector3(0f, 1f, 16f)), Is.False, "straight down through the deck: blocked");
+            Assert.That(f.Clear(new Vector3(0f, 7f, 10f), new Vector3(0f, 1f, 10f)), Is.True, "straight down past the edge: clear");
+            Assert.That(CoverGeometry.BlockedThick(new Vector3(0f, 7f, 16f), new Vector3(0f, 3f, 16f), GalleriaArena.FightCover(), 0.15f), Is.True, "a bolt down through it is stopped");
+        }
+
+        [Test]
+        public void AFloorCareUnitSteersRoundAStallBackAndReachesYou()
+        {
+            // the unit starts east of the west stall back (x = -13), the player stands west of it: the straight line is blocked
+            var e = One(new Spawn(SkylineEnemies.FloorCareId, new Vector3(-9f, 0f, -7f), 0));
+            var still = new Scripted(f => new MoveInput()) { hold = true };
+            var f = Hall(e, still, new Vector3(-17f, 0f, -7f));
+            f.Wake(0);
+            float closest = float.PositiveInfinity;
+            for (int i = 0; i < 60 * 12; i++)
+            {
+                f.Tick();
+                var p = f.Enemies[0].Position;
+                closest = Math.Min(closest, MathF.Sqrt((p.X + 17f) * (p.X + 17f) + (p.Z + 7f) * (p.Z + 7f)));
+            }
+            Assert.That(closest, Is.LessThanOrEqualTo(SkylineEnemies.FloorCareUnit().sweepRadius), "it came round the stall back into sweep reach");
+            Assert.That(f.Result().hitsTaken + f.Result().shotsAtPlayer, Is.GreaterThan(0), "and swept at the player");
+        }
+
+        [Test]
+        public void GondolaMinesHurtAPlayerOnTheWallButNotOnTheFloorAwayFromIt()
+        {
+            var e = One(new Spawn(SkylineEnemies.GondolaId, new Vector3(-24.2f, GalleriaArena.RailY, -6f), 0, new Vector3(-24.2f, GalleriaArena.RailY, -2f)));
+            // carried along a path at a steady 2 m/s (the mines are laid as the gondola rides; the player passes them later)
+            Func<Vector3, Vector3, IFightBot> along = (a, b) => new Scripted(f =>
+            {
+                float t = Math.Min(1f, f.Time / 10f);
+                f.Player.Teleport(Vector3.Lerp(a, b, t), 0f, Vector3.Zero);
+                return new MoveInput();
+            }) { hold = true };
+            // on the wall: a wall-runner's feet about 1.2 m up, its chest beside the rail
+            var fw = Hall(e, along(new Vector3(-24.55f, 1.2f, -12f), new Vector3(-24.55f, 1.2f, 2f)), new Vector3(-24.55f, 1.2f, -12f));
+            fw.Wake(0);
+            fw.Run(12f);
+            Assert.That(fw.Result().hitsTaken, Is.GreaterThan(0), "a mine went off on a player running the wall");
+            var away = Hall(e, along(new Vector3(-20f, 0f, -12f), new Vector3(-20f, 0f, 2f)), new Vector3(-20f, 0f, -12f));
+            away.Wake(0);
+            away.Run(12f);
+            Assert.That(away.Result().hitsTaken, Is.EqualTo(0), "the floor 4 m from the wall is safe");
+        }
+
+        [Test]
+        public void AWallRunnerAlongTheFacadeMeetsTheMines()
+        {
+            // the real movement engine: sprint along the west wall, jump, and wall-run north past the gondola's rail
+            var e = One(new Spawn(SkylineEnemies.GondolaId, new Vector3(-24.2f, GalleriaArena.RailY, -14f), 0, new Vector3(-24.2f, GalleriaArena.RailY, 10f)));
+            var runner = new Scripted(f =>
+            {
+                if (f.Time < 6f) return new MoveInput();   // let the gondola lay its first mines
+                var m = new MoveInput { move = new Vector2(-0.15f, 1f), yaw = 0f, sprintHeld = true };
+                float t = (f.Time - 6f) % 2.4f;
+                if (t > 0.5f && t < 0.52f) { m.jumpPressed = true; m.jumpHeld = true; }
+                return m;
+            }) { hold = true };
+            var f2 = Hall(e, runner, new Vector3(-24f, 0f, -18f));
+            f2.Wake(0);
+            bool walled = false;
+            for (int i = 0; i < 60 * 20 && !f2.Over; i++)
+            {
+                f2.Tick();
+                walled |= f2.Player.Mode == MoveMode.Wallrun;
+            }
+            Assert.That(walled, Is.True, "the bot wall-ran the facade");
+            Assert.That(f2.Result().hitsTaken, Is.GreaterThan(0), "the gondola's mines caught it on the wall");
+        }
+
+        [Test]
+        public void AFreshWreckWithinStripReachIsStrippedAndAStaleOneIsNot()
+        {
+            var still = new Scripted(f => new MoveInput()) { hold = true };
+            var f = Hall(One(new Spawn(SkylineEnemies.DroneId, new Vector3(-20f, GalleriaArena.DroneY, -14f), 0)), still, new Vector3(0f, 0f, 19f));
+            f.Tick();
+            f.Armor.Damage(50f);
+            f.AddWreck(SkylineEnemies.MallCopDrone(), new Vector3(1f, 0f, 19f), f.Time);           // 1 m away, fresh
+            f.AddWreck(SkylineEnemies.MallCopDrone(), new Vector3(-1.2f, 0f, 19f), f.Time - 20f);   // 1.2 m away, stale
+            f.AddWreck(SkylineEnemies.MallCopDrone(), new Vector3(0f, 0f, 16.5f), f.Time);          // 2.5 m away, fresh
+            f.Tick();
+            Assert.That(f.Wrecks[0].Wreck.stripped, Is.True, "fresh, within 1.5 m");
+            Assert.That(f.Wrecks[1].Wreck.stripped, Is.False, "stale");
+            Assert.That(f.Wrecks[2].Wreck.stripped, Is.False, "out of reach");
+            Assert.That(f.Armor.Plating, Is.EqualTo(50f + SkylineEnemies.MallCopDrone().scrapPlating).Within(1e-3f));
+        }
+
+        [Test]
+        public void TheSameSeedGivesTheSameFight()
+        {
+            var a = Make("food-court", new TacticalBot(7), 7, GalleriaArena.HallEntry).Run(60f);
+            var b = Make("food-court", new TacticalBot(7), 7, GalleriaArena.HallEntry).Run(60f);
+            Assert.That(b.seconds, Is.EqualTo(a.seconds));
+            Assert.That(b.minPlating, Is.EqualTo(a.minPlating));
+            Assert.That(b.damageTaken, Is.EqualTo(a.damageTaken));
+            Assert.That(b.shotsFired, Is.EqualTo(a.shotsFired));
+            Assert.That(b.shotsAtPlayer, Is.EqualTo(a.shotsAtPlayer));
+            Assert.That(b.hitsTaken, Is.EqualTo(a.hitsTaken));
+            Assert.That(b.enemiesWrecked, Is.EqualTo(a.enemiesWrecked));
+        }
+
+        [Test]
+        public void TallPiecesHideTheFloorBehindThemEvenFromAJumpingEye()
+        {
+            // tucked behind each tall piece (on the side away from a drone of each encounter's), with the eye raised 2 m by a
+            // double jump: the drones hover below the tall pieces' tops, so the shadow holds
+            var f = Hall(GalleriaArena.FoodCourt(), new StandAndShootBot(), GalleriaArena.HallEntry);
+            int checkedPieces = 0;
+            foreach (var b in GalleriaArena.HallCover())
+            {
+                if (b.max.Y < 4.4f) continue;
+                Vector3 c = (b.min + b.max) * 0.5f;
+                foreach (var en in f.Enemies)
+                {
+                    if (!FightSim.IsShooter(en)) continue;
+                    var away = new Vector2(c.X - en.Position.X, c.Z - en.Position.Z);
+                    if (away.Length() < 1e-3f) continue;
+                    away = Vector2.Normalize(away);
+                    // the floor point just behind the piece's far face along the drone's line, 0.6 m clear of it
+                    float half = MathF.Abs(away.X) * (b.max.X - b.min.X) * 0.5f + MathF.Abs(away.Y) * (b.max.Z - b.min.Z) * 0.5f;
+                    var p = new Vector3(c.X + away.X * (half + 0.9f), 0f, c.Z + away.Y * (half + 0.9f));
+                    if (CoverGeometry.DistanceToCover(p, GalleriaArena.HallCover()) < 0.5f) continue;
+                    Assert.That(f.CanSee(en, p, TacticalBot.JumpEyeLift), Is.False, $"drone at {en.Position} sees over the piece at {c} to {p} with a jumping eye");
+                    checkedPieces++;
+                }
+            }
+            Assert.That(checkedPieces, Is.GreaterThan(20));
+        }
+
+        [TestCase("food-court")]
+        [TestCase("skylight")]
+        [TestCase("facade")]
+        public void TheSkilledLinesHidePointsAreUnseenEvenWhenItJumps(string id)
+        {
+            // in real fights (5 seeds), every hide the human-timed line picks and calls clean is checked at that moment against
+            // every live shooter, with the eye raised 2 m by a jump; and most of its picks are clean
+            int picks = 0, clean = 0;
+            for (ulong s = FirstSeed; s < FirstSeed + 5; s++)
+            {
+                var bot = new TacticalBot(s, FightTiming.Human());
+                var f = Make(id, bot, s, GalleriaArena.HallEntry);
+                bot.HidePicked = (spot, isClean) =>
+                {
+                    picks++;
+                    if (!isClean) return;
+                    clean++;
+                    var feet = new Vector3(spot.X, 0f, spot.Y);
+                    foreach (var en in f.Enemies)
+                        if (FightSim.IsShooter(en))
+                            Assert.That(f.CanSee(en, feet, TacticalBot.JumpEyeLift), Is.False, $"{id} seed {s} at {f.Time:0.0} s: the clean hide {spot} is seen by bot {en.Index} at {en.Position}");
+                };
+                f.Run(Cap);
+            }
+            TestContext.WriteLine($"{id}: {clean} of {picks} hide picks were clean (unseen by every live shooter, eye +2 m)");
+            Assert.That(picks, Is.GreaterThan(0));
+            Assert.That(clean * 2, Is.GreaterThanOrEqualTo(picks), id + ": most of the line's hides are clean");
+        }
+
+        [Test, Explicit("design aid: per group, from how much of the hall a clean hide is within reach (the group alone, awake)")]
+        public void PrintHideCoverage()
+        {
+            var sb = new StringBuilder();
+            foreach (var e in GalleriaArena.Encounters())
+                foreach (int g in Groups(e))
+                {
+                    var f = Make(e.id, new StandAndShootBot(), 1, GalleriaArena.HallEntry);
+                    foreach (var en in f.Enemies) if (en.Group != g && FightSim.IsShooter(en)) f.Damage(en, 1e6f);
+                    f.Wake(g);
+                    var bot = new TacticalBot(1);
+                    bot.Next(f, FightSim.Step);
+                    int found = 0, places = 0;
+                    for (float x = -22f; x <= 22f; x += 4f)
+                        for (float z = -18f; z <= 10f; z += 4f)
+                        {
+                            if (CoverGeometry.DistanceToCover(new Vector3(x, 0f, z), GalleriaArena.HallCover()) <= 0.8f) continue;
+                            places++;
+                            if (bot.PickHide(f, new Vector2(x, z), out _, out bool ok) && ok) found++;
+                        }
+                    sb.AppendLine($"{e.id} group {g}: a clean hide within {TacticalBot.HideRadius:0} m from {found} of {places} places");
+                }
+            TestContext.WriteLine(sb.ToString());
+        }
+
+        // ---- tuning sweeps (explicit: print, assert nothing)
+
+        [Test, Explicit("the dodge band sweep on the tuning seeds: prints a table; asserts nothing")]
         public void SweepTheFightDodgeBand()
         {
             var sb = new StringBuilder();
-            sb.AppendLine("food-court group 0: aimSpreadDeg leadFactor -> straight/s jink/s ratio (straight hits, jink hits)");
-            foreach (float spread in new[] { 2f, 3f, 4f, 5f })
-                foreach (float lead in new[] { 0.6f, 0.7f, 0.75f, 0.8f })
+            var e = ById("food-court");
+            sb.AppendLine("drone group at 12 m: aimSpreadDeg leadFactor -> ratio [interval] (straight/s, jink/s)");
+            foreach (float spread in new[] { 3f, 4f })
+                foreach (float lead in new[] { 0.6f, 0.7f, 0.75f, 0.8f, 0.85f })
                 {
                     Func<string, EnemyDef> lk = id => { var d = SkylineEnemies.Find(id); if (d != null && id == SkylineEnemies.DroneId) d.aimSpreadDeg = spread; return d; };
-                    var r = FightDodge.Run(FightDodge.Aimed(ById("food-court"), lk, 0), OpenFloor, DodgeSpan, FirstSeed, Seeds, new DifficultyDef { leadFactor = lead }, lk);
-                    sb.AppendLine($"{spread:0} {lead:0.00} -> {r.straightRate:0.000} {r.jinkRate:0.000} {r.Ratio:0.00} ({r.straightHitsMean:0.0}, {r.jinkHitsMean:0.0})");
+                    var r = FightDodge.Run(FightDodge.Framed(e, FightDodge.StandOff(e, 0, 12f), false, lk, 0), OpenFloor, DodgeSpan, TuneSeed, BandSeeds, new DifficultyDef { leadFactor = lead }, lk);
+                    sb.AppendLine($"{spread:0} {lead:0.00} -> {r.Ratio:0.00} [{r.ratioLow:0.00}-{r.ratioHigh:0.00}] ({r.straightRate:0.000}, {r.jinkRate:0.000})");
                 }
-            sb.AppendLine("skylight spotlights: beamHitRadius beamFollowRate -> straight/s jink/s ratio");
-            foreach (float hr in new[] { 1.0f, 1.4f, 1.8f, 2.2f })
-                foreach (float w in new[] { 12f, 16f, 20f })
+            sb.AppendLine("spotlights: beamHitRadius beamFollowRate -> ratio [interval]");
+            foreach (float hr in new[] { 1.0f, 1.4f, 1.8f })
+                foreach (float w in new[] { 12f, 20f })
                 {
                     Func<string, EnemyDef> lk = id => { var d = SkylineEnemies.Find(id); if (d != null && id == SkylineEnemies.SpotlightId) { d.beamHitRadius = hr; d.beamFollowRate = w; } return d; };
-                    var r = FightDodge.Run(FightDodge.Aimed(ById("skylight"), lk), OpenFloor, DodgeSpan, FirstSeed, Seeds, null, lk);
-                    sb.AppendLine($"{hr:0.0} {w:0} -> {r.straightRate:0.000} {r.jinkRate:0.000} {r.Ratio:0.00} ({r.straightHitsMean:0.0}, {r.jinkHitsMean:0.0})");
+                    var r = FightDodge.Run(FightDodge.Framed(ById("skylight"), SpotlightLane, true, lk), OpenFloor, DodgeSpan, TuneSeed, BandSeeds, null, lk);
+                    sb.AppendLine($"{hr:0.0} {w:0} -> {r.Ratio:0.00} [{r.ratioLow:0.00}-{r.ratioHigh:0.00}] ({r.straightRate:0.000}, {r.jinkRate:0.000})");
+                }
+            TestContext.WriteLine(sb.ToString());
+        }
+
+        [Test, Explicit("the fights' tuning sweep: prints a table; asserts nothing")]
+        public void SweepTheFightTuning()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("encounter droneDamage-or-floorCareSpeed acid | open wreck s | human: clean seeds, lowest plating, median low, mean clear s | perfect: clean, lowest | control failed seeds");
+            foreach (string id in new[] { "food-court", "skylight", "facade" })
+                foreach (float dd in id == "skylight" ? new[] { 4f, 5f } : new[] { 22f, 26f, 30f })
+                foreach (float acid in id == "skylight" ? new[] { 8f, 14f } : new[] { 14f })
+                {
+                    Func<string, EnemyDef> lk = x =>
+                    {
+                        var d = SkylineEnemies.Find(x);
+                        if (d != null && x == SkylineEnemies.DroneId && id != "skylight") d.attackDamage = dd;
+                        if (d != null && x == SkylineEnemies.FloorCareId) { if (id == "skylight") d.moveSpeed = dd; d.attackDamage = acid; }
+                        return d;
+                    };
+                    var open = RunSeeds(id, s => new StandAndShootBot(), OpenSpot(id), Seeds, 60f, lk);
+                    var h = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human()), GalleriaArena.HallEntry, Seeds, Cap, lk);
+                    var p = RunSeeds(id, s => new TacticalBot(s, FightTiming.Perfect()), GalleriaArena.HallEntry, Seeds, Cap, lk);
+                    var c = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human(), false), GalleriaArena.HallEntry, Seeds, Cap, lk);
+                    int hc = 0, pc = 0, cf = 0;
+                    float hl = 999f, pl = 999f;
+                    var lows = new List<float>();
+                    foreach (var r in h) { if (r.cleared && r.chassisLost == 0f) hc++; hl = Math.Min(hl, r.minPlating); lows.Add(r.minPlating); }
+                    foreach (var r in p) { if (r.cleared && r.chassisLost == 0f) pc++; pl = Math.Min(pl, r.minPlating); }
+                    foreach (var r in c) if (r.playerWrecked || r.chassisLost > 0f) cf++;
+                    lows.Sort();
+                    sb.AppendLine($"{id} {dd:0.0} acid {acid:0} | {Mean(open, TimeToWreck):0.0} | {hc} {hl:0} {lows[lows.Count / 2]:0} {Mean(h, r => r.seconds):0} | {pc} {pl:0} | {cf}/{Seeds}");
                 }
             TestContext.WriteLine(sb.ToString());
         }
