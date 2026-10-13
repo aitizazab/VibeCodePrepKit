@@ -14,12 +14,13 @@ namespace JamKit.SkylineRepo
     /// idle 2 s; the dummy is revealed (alert, then two attack cycles; for the gondola: it rides its rail laying mines, and once
     /// a mine on the dummy's line is armed and the gondola is clear of it, the dummy wall-runs past the mine, which triggers,
     /// fuses and blasts); then an invisible shooter by the camera lands Writ hits: plate 0 and plate 1 until each sheds, the
-    /// weak point (a spot cracks open), the spot (a break-through), then the chassis until it wrecks. Last, the wrecks are
-    /// cleared and four fresh idle bots are put back for the stills (the stills render after the recording).
+    /// weak point (a spot cracks open and is held on camera 1.8 s), the spot (a break-through), then the chassis until it
+    /// wrecks. The stills are taken by the capture 2 s into the recording (SkylineCapture), during the wide lead-in, when all
+    /// four bots are idle with happy faces, so nothing is staged for them at the end.
     /// <para>Logs: <c>SKYLINE_GALLERY &lt;bot&gt; state &lt;State&gt;</c>, <c>plate-shed &lt;plateId&gt;</c>,
     /// <c>spot created</c>, <c>spot hit</c>, <c>wrecked</c>, <c>gondola mine laid|armed|triggered|blast|expired</c>; also
     /// <c>SKYLINE_GALLERY &lt;bot&gt; telegraph t=&lt;s&gt;</c> and <c>attack t=&lt;s&gt;</c> (Time.time, for the telegraph-leads-attack
-    /// check), <c>segment</c>, <c>bark</c>, and <c>SKYLINE_GALLERY stills-ready</c> / <c>done</c>. &lt;bot&gt; is the slot's
+    /// check), <c>segment</c>, <c>bark</c>, and <c>SKYLINE_GALLERY start</c> / <c>done</c>. &lt;bot&gt; is the slot's
     /// label: drone, floor-care, spotlight, gondola.</para>
     /// </summary>
     public sealed class SkylineGalleryDirector : MonoBehaviour
@@ -40,7 +41,9 @@ namespace JamKit.SkylineRepo
             public Transform runFrom, runTo;
         }
 
-        const float LeadIn = 1f, IdleSeconds = 2f, AttackWait = 7f, ShotGap = 0.4f, AfterWreck = 1.2f, StillsHold = 3f;
+        const float LeadIn = 1f, IdleSeconds = 2f, AttackWait = 7f, ShotGap = 0.4f, AfterWreck = 1.2f;
+        /// <summary>How long the cracked spot stays on camera before it is shot (so the crack reads in the video).</summary>
+        const float SpotHold = 1.8f;
         const float RecorderWait = 8f, RunSpeed = 5f, MineWait = 9f;
 
         public Slot[] slots = new Slot[0];
@@ -52,10 +55,14 @@ namespace JamKit.SkylineRepo
         SkylineBot[] _bots = new SkylineBot[0];
         GunDef _gun;
         int _spawns;
+        Rect _searchAreaBefore;
+        bool _searchAreaSet;
 
         void Start()
         {
             _gun = SkylineGuns.Writ();
+            _searchAreaBefore = SkylineBot.SearchArea;
+            _searchAreaSet = true;
             SkylineBot.SearchArea = new Rect(-60f, -60f, 120f, 120f);
             SkylineBot.StateEntered += OnState;
             SkylineBot.PlateShed += OnPlateShed;
@@ -70,8 +77,19 @@ namespace JamKit.SkylineRepo
             StartCoroutine(Run());
         }
 
+        /// <summary>Puts back the search area the gallery widened (at the end, or if the director is disabled or destroyed).</summary>
+        void RestoreSearchArea()
+        {
+            if (!_searchAreaSet) return;
+            SkylineBot.SearchArea = _searchAreaBefore;
+            _searchAreaSet = false;
+        }
+
+        void OnDisable() => RestoreSearchArea();
+
         void OnDestroy()
         {
+            RestoreSearchArea();
             SkylineBot.StateEntered -= OnState;
             SkylineBot.PlateShed -= OnPlateShed;
             SkylineBot.SpotCreated -= OnSpotCreated;
@@ -162,22 +180,8 @@ namespace JamKit.SkylineRepo
             for (int i = 0; i < slots.Length; i++)
                 if (slots[i] != null && i < _bots.Length && _bots[i] != null) yield return Segment(i);
 
-            // fresh, idle bots for the stills
-            foreach (var b in _bots)
-            {
-                if (b == null) continue;
-                if (b.WreckObject != null) Destroy(b.WreckObject.gameObject);
-                _labels.Remove(b);
-                _attacks.Remove(b);
-                Destroy(b.gameObject);
-            }
-            foreach (var s in slots) if (s != null && s.dummy != null) s.dummy.gameObject.SetActive(false);
-            yield return null;
-            SpawnAll();
-            Cut(widePose);
-            Log("stills-ready");
-            yield return Wait(StillsHold);
             Log("done");
+            RestoreSearchArea();
         }
 
         IEnumerator Segment(int i)
@@ -266,7 +270,7 @@ namespace JamKit.SkylineRepo
             if (!bot.Body.Wrecked)
             {
                 Fire(bot, bot.WeakPointCollider, null);
-                yield return Wait(ShotGap + 0.2f);
+                yield return Wait(SpotHold);
             }
             if (!bot.Body.Wrecked && bot.Spots.Count > 0)
             {

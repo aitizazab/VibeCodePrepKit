@@ -73,8 +73,8 @@ namespace JamKit.SkylineRepo
         static Rect DefaultSearchArea => Rect.MinMaxRect(GalleriaArena.HallMinX + 1f, GalleriaArena.HallMinZ + 1f, GalleriaArena.HallMaxX - 1f, 11f);
 
         static readonly Dictionary<string, int> _numbers = new Dictionary<string, int>();
-        static readonly RaycastHit[] _hits = new RaycastHit[32];
-        static readonly Collider[] _overlaps = new Collider[32];
+        static readonly RaycastHit[] _hits = new RaycastHit[64];
+        static readonly Collider[] _overlaps = new Collider[64];
         /// <summary>The eye above the chest (m): the player's eye is 1.6 m up, its chest 1.25 m.</summary>
         const float EyeAboveChest = 0.35f;
         const float RegrowSeconds = 3f, FlashSeconds = 0.07f, HurtSoundGap = 0.15f;
@@ -149,7 +149,7 @@ namespace JamKit.SkylineRepo
         public static bool IgnoredBySight(Collider c, Transform self)
         {
             if (c == null || c.isTrigger) return true;
-            if (c.GetComponent<SkylineHitZone>() != null || c.GetComponent<SkylineDebris>() != null) return true;
+            if (c.TryGetComponent<SkylineHitZone>(out _) || c.TryGetComponent<SkylineDebris>(out _)) return true;
             return self != null && c.transform.IsChildOf(self);
         }
 
@@ -790,7 +790,7 @@ namespace JamKit.SkylineRepo
             bool live = TargetLive(target) && target.Root != null && target.Root.gameObject.activeInHierarchy;
             NVec3 chest = live ? N(target.Chest) : new NVec3(float.PositiveInfinity);
             _blasts.Clear();
-            Mines.Tick(dt, Rail, laying && !Body.Wrecked, chest, _blasts);
+            Mines.Tick(dt, Rail, laying && !Body.Wrecked && !practice, chest, _blasts);   // a practice bot never attacks
             var mines = Mines.Mines;
             for (int i = 0; i < mines.Count; i++)
             {
@@ -841,7 +841,7 @@ namespace JamKit.SkylineRepo
                 if (!v.Tick(dt, m.State)) _mineDone.Add(m);
             }
             for (int i = 0; i < _mineDone.Count; i++) _mineViews.Remove(_mineDone[i]);
-            if (_blasts.Count > 0 && live)
+            if (_blasts.Count > 0 && live && !practice)
             {
                 Vector3 c = target.Chest;
                 for (int i = 0; i < _blasts.Count; i++)
@@ -1019,29 +1019,33 @@ namespace JamKit.SkylineRepo
         /// player's controller, shrinking away over its last second and gone after 6 s.</summary>
         GameObject Fling(GameObject part, Vector3 normal, float strength)
         {
-            var clone = Instantiate(part, part.transform.position, part.transform.rotation);
+            Vector3 n = normal.sqrMagnitude > 1e-6f ? normal.normalized : (part.transform.position - Center).normalized;
+            // a few cm out along the normal, so it doesn't start inside the chassis and get a depenetration kick
+            var clone = Instantiate(part, part.transform.position + n * 0.04f, part.transform.rotation);
             clone.name = part.name + " (shed)";
             clone.transform.localScale = part.transform.lossyScale;
+            // active before the collision settings and forces: Unity drops IgnoreCollision and AddForce on inactive objects
+            clone.SetActive(true);
             foreach (var z in clone.GetComponentsInChildren<SkylineHitZone>(true)) Destroy(z);
             foreach (var m in clone.GetComponentsInChildren<SkylineSpotMarker>(true)) Destroy(m.gameObject);
             var cc = PlayerController();
+            var own = Parts != null && Parts.rig != null ? Parts.rig.GetComponentsInChildren<Collider>(false) : new Collider[0];
             foreach (var col in clone.GetComponentsInChildren<Collider>(true))
             {
                 var mc = col as MeshCollider;
                 if (mc != null) mc.convex = true;
-                if (col.GetComponent<SkylineDebris>() == null) col.gameObject.AddComponent<SkylineDebris>().life = 6f;
+                if (!col.TryGetComponent<SkylineDebris>(out _)) col.gameObject.AddComponent<SkylineDebris>().life = 6f;
                 if (cc != null) Physics.IgnoreCollision(col, cc, true);
+                for (int i = 0; i < own.Length; i++) if (own[i] != null && own[i].gameObject != part) Physics.IgnoreCollision(col, own[i], true);
             }
             var debris = clone.GetComponent<SkylineDebris>();
             if (debris == null) debris = clone.AddComponent<SkylineDebris>();
             debris.life = 6f;
             var rb = clone.AddComponent<Rigidbody>();
             rb.mass = 2f;
-            Vector3 n = normal.sqrMagnitude > 1e-6f ? normal.normalized : (clone.transform.position - Center).normalized;
             Vector3 jitter = new Vector3(_rng.Range(-1f, 1f), _rng.Range(0f, 0.5f), _rng.Range(-1f, 1f)) * 0.8f;
             rb.AddForce((n * 2.5f + Vector3.up * 3f + jitter) * strength * rb.mass, ForceMode.Impulse);
             rb.AddTorque(new Vector3(_rng.Range(-4f, 4f), _rng.Range(-4f, 4f), _rng.Range(-4f, 4f)), ForceMode.Impulse);
-            clone.SetActive(true);
             return clone;
         }
 

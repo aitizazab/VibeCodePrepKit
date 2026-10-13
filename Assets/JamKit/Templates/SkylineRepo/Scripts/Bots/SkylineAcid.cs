@@ -83,34 +83,42 @@ namespace JamKit.SkylineRepo
             if (T > _def.sweepSeconds) Stop();
         }
 
+        /// <summary>A puddle from this unit's pool (reused once faded: the pool settles at the puddles alive at once, about 70
+        /// over back-to-back sweeps, and nothing is created or destroyed after that).</summary>
         void Puddle(Vector3 at)
         {
-            var p = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            p.name = "Acid Puddle";
-            Object.DestroyImmediate(p.GetComponent<Collider>());
-            var r = p.GetComponent<Renderer>();
-            r.sharedMaterial = SkylineBotLook.Lit(new Color(0.42f, 0.7f, 0.12f));
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            p.transform.position = at;
-            p.transform.localScale = new Vector3(PuddleSize, 0.005f, PuddleSize);
-            _puddles.Add(p.transform);
-            _puddleAge.Add(0f);
+            Transform p = null;
+            int slot = -1;
+            for (int i = 0; i < _puddles.Count; i++)
+                if (_puddles[i] != null && !_puddles[i].gameObject.activeSelf) { p = _puddles[i]; slot = i; break; }
+            if (p == null)
+            {
+                var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                go.name = "Acid Puddle";
+                Object.DestroyImmediate(go.GetComponent<Collider>());
+                var r = go.GetComponent<Renderer>();
+                r.sharedMaterial = SkylineBotLook.Lit(new Color(0.42f, 0.7f, 0.12f));
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                p = go.transform;
+                _puddles.Add(p);
+                _puddleAge.Add(0f);
+                slot = _puddles.Count - 1;
+            }
+            p.position = at;
+            p.localScale = new Vector3(PuddleSize, 0.005f, PuddleSize);
+            p.gameObject.SetActive(true);
+            _puddleAge[slot] = 0f;
         }
 
         void Update()
         {
             float dt = Time.deltaTime;
-            for (int i = _puddles.Count - 1; i >= 0; i--)
+            for (int i = 0; i < _puddles.Count; i++)
             {
                 var p = _puddles[i];
+                if (p == null || !p.gameObject.activeSelf) continue;
                 _puddleAge[i] += dt;
-                if (p == null || _puddleAge[i] >= PuddleLife)
-                {
-                    if (p != null) Destroy(p.gameObject);
-                    _puddles.RemoveAt(i);
-                    _puddleAge.RemoveAt(i);
-                    continue;
-                }
+                if (_puddleAge[i] >= PuddleLife) { p.gameObject.SetActive(false); continue; }
                 float k = 1f - _puddleAge[i] / PuddleLife;
                 p.localScale = new Vector3(PuddleSize * k, 0.005f, PuddleSize * k);
             }

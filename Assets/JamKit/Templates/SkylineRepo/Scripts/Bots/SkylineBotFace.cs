@@ -21,6 +21,11 @@ namespace JamKit.SkylineRepo
 
         public BotFace Shown => _shown;
 
+        void OnDestroy()
+        {
+            if (_material != null) Destroy(_material);     // the per-bot instance made in Init
+        }
+
         public void Init(string botId, Renderer target)
         {
             _botId = botId;
