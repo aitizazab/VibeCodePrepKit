@@ -65,20 +65,51 @@ def _load_sample(path: Path, sr: int, semitones: float) -> np.ndarray:
 
 
 def _pan_gains(pan: float) -> tuple[float, float]:
-    """Hard left/right at the ends, full level on both sides at the centre, a constant-power curve between."""
+    """A true constant-power pan law, no special cases: left² + right² = 1 everywhere. Centre is 0.707 on each side
+    (-3 dB), hard left is 1.0 / 0.0, hard right 0.0 / 1.0."""
     pan = float(np.clip(pan, -1.0, 1.0))
-    if pan == 0.0:
-        return 1.0, 1.0
-    if pan <= -1.0:
-        return 1.0, 0.0
-    if pan >= 1.0:
-        return 0.0, 1.0
     angle = (pan + 1.0) * np.pi / 4.0
-    return float(np.cos(angle) * np.sqrt(2)), float(np.sin(angle) * np.sqrt(2))
+    return float(np.cos(angle)), float(np.sin(angle))
+
+
+def _number(layer: dict, index: int, key: str, default=None) -> float | None:
+    value = layer.get(key, default)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise RecipeError(f"layer {index}: '{key}' must be a number, got {value!r}")
+    return float(value)
+
+
+def _validate_layer(layer: dict, index: int, sr: int, base_dir: Path) -> None:
+    """Every check happens here, before any audio is made, so a bad layer fails even if it starts past the end."""
+    if not isinstance(layer, dict):
+        raise RecipeError(f"layer {index}: expected an object, got {layer!r}")
+    kind = layer.get("type")
+    if kind not in ("sine", "noise", "sample"):
+        raise RecipeError(f"layer {index}: unknown type {kind!r} (use 'sine', 'noise' or 'sample')")
+    start = _number(layer, index, "start", 0.0)
+    if start < 0:
+        raise RecipeError(f"layer {index}: 'start' must be >= 0, got {start}")
+    for key in ("freq", "freq_end"):
+        value = _number(layer, index, key)
+        if value is not None and value <= 0:
+            raise RecipeError(f"layer {index}: '{key}' must be > 0, got {value}")
+    for key in ("highpass", "lowpass"):
+        value = _number(layer, index, key)
+        if value is not None and not 0 < value < sr / 2:
+            raise RecipeError(f"layer {index}: '{key}' must be between 0 and Nyquist ({sr / 2:g} Hz), got {value}")
+    for key in ("attack", "decay", "gain_db", "pan", "pitch_semitones"):
+        _number(layer, index, key)
+    if kind == "sample":
+        path = base_dir / str(layer.get("path", ""))
+        if not path.is_file():
+            raise RecipeError(f"layer {index} (sample): file not found: {path}")
 
 
 def _layer(layer: dict, index: int, n: int, sr: int, base_dir: Path, rng: np.random.Generator) -> np.ndarray:
-    kind = layer.get("type")
+    _validate_layer(layer, index, sr, base_dir)
+    kind = layer["type"]
     start = int(round(float(layer.get("start", 0.0)) * sr))
     if start >= n:
         return np.zeros((n, 2))
@@ -96,13 +127,14 @@ def _layer(layer: dict, index: int, n: int, sr: int, base_dir: Path, rng: np.ran
     elif kind == "noise":
         x = _pink(m, rng) if layer.get("color") == "pink" else rng.uniform(-1.0, 1.0, m)
     elif kind == "sample":
-        path = base_dir / str(layer.get("path", ""))
-        if not path.is_file():
-            raise RecipeError(f"layer {index} (sample): file not found: {path}")
-        x = _load_sample(path, sr, float(layer.get("pitch_semitones", 0.0)))[:m]
+        path = base_dir / str(layer["path"])
+        try:
+            x = _load_sample(path, sr, float(layer.get("pitch_semitones", 0.0)))[:m]
+        except (soundfile.LibsndfileError, RuntimeError) as e:
+            raise RecipeError(f"layer {index} (sample): can't read {path}: {e}") from e
+        if len(x) == 0:
+            raise RecipeError(f"layer {index} (sample): {path} is empty")
         x = np.pad(x, (0, m - len(x)))
-    else:
-        raise RecipeError(f"layer {index}: unknown type {kind!r} (use 'sine', 'noise' or 'sample')")
     x = _filter(x, sr, layer)
     x = x * _shape(m, sr, float(layer.get("attack", 0.002)), float(layer.get("decay", 0.25)))
     x = x * 10 ** (float(layer.get("gain_db", 0.0)) / 20.0)
@@ -122,8 +154,13 @@ def _master(audio: np.ndarray, master: dict) -> np.ndarray:
 
 
 def render_recipe(recipe: dict, base_dir: Path, sr: int | None = None) -> np.ndarray:
+    if not isinstance(recipe, dict):
+        raise RecipeError("a recipe must be a JSON object")
     sr = int(sr or recipe.get("sample_rate", DEFAULT_SR))
-    n = int(round(float(recipe.get("length", 1.0)) * sr))
+    length = recipe.get("length", 1.0)
+    if isinstance(length, bool) or not isinstance(length, (int, float)) or length <= 0:
+        raise RecipeError(f"'length' must be a number > 0, got {length!r}")
+    n = int(round(float(length) * sr))
     rng = np.random.default_rng(int(recipe.get("seed", 1)))
     out = np.zeros((n, 2))
     for i, layer in enumerate(recipe.get("layers", [])):
@@ -131,17 +168,44 @@ def render_recipe(recipe: dict, base_dir: Path, sr: int | None = None) -> np.nda
     return _master(out, recipe.get("master", {})).astype(np.float32)
 
 
+def _event_part(ev, i: int, base_dir: Path, sr: int, dur: float) -> tuple[int, np.ndarray]:
+    if not isinstance(ev, dict):
+        raise RecipeError(f"event {i}: expected an object, got {ev!r}")
+    for key in ("at", "recipe"):
+        if key not in ev:
+            raise RecipeError(f"event {i}: missing '{key}'")
+    name = ev["recipe"]
+    label = f"event {i} ({name})"
+    at, gain_db = ev["at"], ev.get("gain_db", 0.0)
+    for key, value in (("at", at), ("gain_db", gain_db)):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise RecipeError(f"{label}: '{key}' must be a number, got {value!r}")
+    if not 0.0 <= at <= 1.0:
+        raise RecipeError(f"{label}: 'at' is a fraction of the duration and must be within [0, 1], got {at}")
+    path = base_dir / str(name)
+    if not path.is_file():
+        raise RecipeError(f"{label}: recipe not found: {path}")
+    try:
+        recipe = json.loads(path.read_text())
+        part = render_recipe(recipe, path.parent, sr)
+    except RecipeError as e:
+        raise RecipeError(f"{label}: {e}") from e
+    except ValueError as e:  # malformed JSON
+        raise RecipeError(f"{label}: can't read recipe {path}: {e}") from e
+    return int(round(float(at) * dur * sr)), part * 10 ** (float(gain_db) / 20.0)
+
+
 def render_timeline(timeline: dict, base_dir: Path, duration: float | None = None) -> np.ndarray:
     base_dir = Path(base_dir)
     sr = int(timeline.get("sample_rate", DEFAULT_SR))
-    dur = float(duration if duration is not None else timeline["duration"])
-    parts = []
-    for i, ev in enumerate(timeline.get("events", [])):
-        path = base_dir / ev["recipe"]
-        if not path.is_file():
-            raise RecipeError(f"event {i}: recipe not found: {path}")
-        part = render_recipe(json.loads(path.read_text()), path.parent, sr) * 10 ** (float(ev.get("gain_db", 0.0)) / 20.0)
-        parts.append((int(round(float(ev["at"]) * dur * sr)), part))
+    if duration is None:
+        duration = timeline.get("duration")
+    if duration is None:
+        raise RecipeError("timeline has no duration (put \"duration\" in the file or pass --duration)")
+    dur = float(duration)
+    if dur <= 0:
+        raise RecipeError(f"timeline duration must be > 0, got {dur}")
+    parts = [_event_part(ev, i, base_dir, sr, dur) for i, ev in enumerate(timeline.get("events", []))]
     n = max([int(round(dur * sr))] + [s + len(p) for s, p in parts])
     out = np.zeros((n, 2), dtype=np.float64)
     for s, p in parts:
@@ -161,8 +225,13 @@ def main(argv=None) -> int:
     t.add_argument("-o", "--out", required=True)
     a = ap.parse_args(argv)
     path = Path(a.recipe if a.cmd == "render" else a.timeline)
-    spec = json.loads(path.read_text())
     try:
+        try:
+            spec = json.loads(path.read_text())
+        except (OSError, ValueError) as e:
+            raise RecipeError(f"can't read {path}: {e}") from e
+        if not isinstance(spec, dict):
+            raise RecipeError(f"{path}: expected a JSON object at the top level")
         audio = render_recipe(spec, path.parent) if a.cmd == "render" else render_timeline(spec, path.parent, a.duration)
     except RecipeError as e:
         print(f"soundforge: {e}", file=sys.stderr)
