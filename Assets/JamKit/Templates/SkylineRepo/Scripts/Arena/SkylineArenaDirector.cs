@@ -46,7 +46,7 @@ namespace JamKit.SkylineRepo
     public sealed class SkylineArenaDirector : MonoBehaviour
     {
         public const float BeatGap = 0.5f, WarmupDelay = 1f, PracticeSeenRange = 25f, NearLedgeRange = 6f;
-        const float RecorderWait = 8f, ChestHeight = 1.25f;
+        const float ChestHeight = 1.25f;
 
         public enum Phase { Waiting, Armed, Fighting, Cleared }
 
@@ -71,6 +71,8 @@ namespace JamKit.SkylineRepo
         public Transform botsRoot;
         [Tooltip("The floor marker at the entry lane, shown while a later fight is armed and waiting for the player.")]
         public GameObject entryMarker;
+        [Tooltip("A glowing (URP Unlit) material saved in the scene: the Writ's cracks and the sparks copy it (SkylineBotLook.GlowTemplate).")]
+        public Material glowTemplate;
 
         public SkylineBot PracticeBot { get; private set; }
         public int EncounterCount => _encounters.Count;
@@ -104,6 +106,12 @@ namespace JamKit.SkylineRepo
                 return;
             }
             _beats = TeachingBeats.M1();
+            // what a fight would otherwise make on first use, made now (Task 17): pools, materials, faces, and two frames of
+            // each runtime drawing in front of the camera; the lines and the next fight's barks are synthesized one per frame
+            if (glowTemplate != null) SkylineBotLook.GlowTemplate = glowTemplate;
+            SkylinePrewarm.Pools();
+            StartCoroutine(SkylinePrewarm.ShowOnce(player.Camera));
+            StartCoroutine(PrepareLines());
             var defs = GalleriaArena.Encounters();
             for (int i = 0; i < defs.Length; i++)
             {
@@ -112,7 +120,7 @@ namespace JamKit.SkylineRepo
                 if (e.zone == null) Debug.LogWarning("SKYLINE_ARENA no zone for encounter " + defs[i].id);
                 _encounters.Add(e);
             }
-            if (_encounters.Count > 0) _encounters[0].phase = Phase.Armed;
+            if (_encounters.Count > 0) Arm(0);
             ShowEntryMarker(false);
 
             SkylineBot.StateEntered += OnState;
@@ -137,14 +145,12 @@ namespace JamKit.SkylineRepo
 
         IEnumerator StartClock()
         {
-            // In the editor capture the Recorder starts about a second into Play mode; count the warm-up line from there, so
-            // Nan's line is in the recording.
+            // In the editor capture the Recorder starts some time into Play mode; count the warm-up line from there, so
+            // Nan's line is in the recording. Every scripted time here is Time.time: under the capture step it is the
+            // recording's own clock (SkylineRecorderWait).
             if (SkylineRunArgs.Has("-skylineOut"))
-            {
-                float giveUp = Time.unscaledTime + RecorderWait;
-                while (!(Time.captureDeltaTime > 0f) && Time.unscaledTime < giveUp) yield return null;
-            }
-            _warmupAt = Time.unscaledTime + WarmupDelay;
+                yield return SkylineRecorderWait.Wait("SKYLINE_ARENA");
+            _warmupAt = Time.time + WarmupDelay;
         }
 
         void SpawnPracticeBot()
@@ -164,7 +170,7 @@ namespace JamKit.SkylineRepo
         void Update()
         {
             if (!_started || player == null) return;
-            float now = Time.unscaledTime;
+            float now = Time.time;
 
             if (_warmupAt >= 0f && now >= _warmupAt)
             {
@@ -256,6 +262,35 @@ namespace JamKit.SkylineRepo
             if (e.bots.Count == 0) Clear(i);
         }
 
+        /// <summary>Arms encounter <paramref name="i"/> and synthesizes its bots' barks ahead, one per frame (each bot barks in
+        /// its own seeded voice: the seed is the one <see cref="StartEncounter"/> gives it).</summary>
+        void Arm(int i)
+        {
+            _encounters[i].phase = Phase.Armed;
+            StartCoroutine(PrepareBarks(i));
+        }
+
+        IEnumerator PrepareBarks(int i)
+        {
+            var spawns = _encounters[i].def.spawns;
+            for (int k = 0; k < spawns.Length; k++)
+            {
+                int seed = (int)((ulong)((i + 1) * 1000 + k + 1) & 0x7FFFFFFFUL);
+                foreach (var bark in SkylineBarks.Ids)
+                    if (SkylineBarks.Prepare(spawns[k].enemy, bark, seed)) yield return null;
+            }
+        }
+
+        IEnumerator PrepareLines()
+        {
+            yield return null;
+            foreach (var b in _beats)
+            {
+                SkylineBabble.Prepare(b.speaker, b.text);
+                yield return null;
+            }
+        }
+
         void OnState(SkylineBot bot, BotState state)
         {
             if (bot == null || state != BotState.Alert || bot.practice) return;
@@ -291,7 +326,7 @@ namespace JamKit.SkylineRepo
             Debug.Log("SKYLINE_ARENA encounter " + e.def.id + " cleared");
             if (i + 1 < _encounters.Count && _encounters[i + 1].phase == Phase.Waiting)
             {
-                _encounters[i + 1].phase = Phase.Armed;
+                Arm(i + 1);
                 ShowEntryMarker(true);
                 Trigger(BeatTrigger.NextFightArmed, null);
             }
@@ -321,7 +356,7 @@ namespace JamKit.SkylineRepo
                 e.phase = i == 0 ? Phase.Armed : Phase.Waiting;
             }
             _botEncounter.Clear();
-            foreach (var bolt in FindObjectsByType<SkylineBolt>(FindObjectsSortMode.None)) if (bolt != null) Destroy(bolt.gameObject);
+            SkylineBolt.ClearAll();
             ShowEntryMarker(false);
             player.Ledger.Reset();
             player.Restart(U(GalleriaArena.PlayerStart), 0f);
@@ -345,9 +380,9 @@ namespace JamKit.SkylineRepo
                 if (t == BeatTrigger.FirstSeen && b.enemy != enemy) continue;
                 if (b.repeats)
                 {
-                    if (!_lines.Contains(b.id)) _lines.Enqueue(b, Time.unscaledTime);
+                    if (!_lines.Contains(b.id)) _lines.Enqueue(b, Time.time);
                 }
-                else if (_beatUsed.Add(b.id)) _lines.Enqueue(b, Time.unscaledTime);
+                else if (_beatUsed.Add(b.id)) _lines.Enqueue(b, Time.time);
             }
         }
 

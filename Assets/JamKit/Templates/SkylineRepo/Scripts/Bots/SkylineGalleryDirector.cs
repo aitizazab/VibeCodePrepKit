@@ -44,7 +44,7 @@ namespace JamKit.SkylineRepo
         const float LeadIn = 1f, IdleSeconds = 2f, AttackWait = 7f, ShotGap = 0.4f, AfterWreck = 1.2f;
         /// <summary>How long the cracked spot stays on camera before it is shot (so the crack reads in the video).</summary>
         const float SpotHold = 1.8f;
-        const float RecorderWait = 8f, RunSpeed = 5f, MineWait = 9f;
+        const float RunSpeed = 5f, MineWait = 9f;
 
         public Slot[] slots = new Slot[0];
         public Camera mainCamera;
@@ -61,6 +61,7 @@ namespace JamKit.SkylineRepo
         void Start()
         {
             _gun = SkylineGuns.Writ();
+            SkylinePrewarm.Pools();
             _searchAreaBefore = SkylineBot.SearchArea;
             _searchAreaSet = true;
             SkylineBot.SearchArea = new Rect(-60f, -60f, 120f, 120f);
@@ -157,8 +158,8 @@ namespace JamKit.SkylineRepo
 
         static IEnumerator Wait(float seconds)
         {
-            float until = Time.unscaledTime + seconds;
-            while (Time.unscaledTime < until) yield return null;
+            float until = Time.time + seconds;
+            while (Time.time < until) yield return null;
         }
 
         void Cut(Transform pose)
@@ -170,10 +171,7 @@ namespace JamKit.SkylineRepo
         {
             // In the editor capture the Recorder starts about a second into Play mode; start from there so it all records.
             if (SkylineRunArgs.Has("-skylineOut"))
-            {
-                float giveUp = Time.unscaledTime + RecorderWait;
-                while (!(Time.captureDeltaTime > 0f) && Time.unscaledTime < giveUp) yield return null;
-            }
+                yield return SkylineRecorderWait.Wait("SKYLINE_GALLERY");
             Log("start t=" + T());
             Cut(widePose);
             yield return Wait(LeadIn);
@@ -188,7 +186,7 @@ namespace JamKit.SkylineRepo
         {
             var s = slots[i];
             var bot = _bots[i];
-            float end = Time.unscaledTime + s.seconds;
+            float end = Time.time + s.seconds;
             Cut(s.cameraPose);
             Log(s.label + " segment");
             yield return Wait(IdleSeconds);
@@ -202,15 +200,15 @@ namespace JamKit.SkylineRepo
             if (bot.Def.layer == ThreatLayer.Walls) yield return WallRun(s, bot);
             else
             {
-                float giveUp = Time.unscaledTime + AttackWait;
-                while (_attacks[bot] < 2 && Time.unscaledTime < giveUp) yield return null;
+                float giveUp = Time.time + AttackWait;
+                while (_attacks[bot] < 2 && Time.time < giveUp) yield return null;
                 if (_attacks[bot] < 2) Log(s.label + " only " + _attacks[bot] + " attacks before the shooter");
             }
             yield return Wait(0.3f);
             yield return Shoot(bot);
             yield return Wait(AfterWreck);
             if (s.dummy != null) s.dummy.gameObject.SetActive(false);
-            while (Time.unscaledTime < end) yield return null;
+            while (Time.time < end) yield return null;
         }
 
         /// <summary>Waits until a mine on the dummy's line is armed and the gondola is clear of the line's far end, then runs the
@@ -220,8 +218,8 @@ namespace JamKit.SkylineRepo
             if (s.runFrom == null || s.runTo == null || s.dummy == null) { yield return Wait(4f); yield break; }
             Vector3 a = s.runFrom.position + Vector3.up * 1.25f, b = s.runTo.position + Vector3.up * 1.25f;
             Vector3 ab = b - a;
-            float giveUp = Time.unscaledTime + MineWait;
-            while (Time.unscaledTime < giveUp)
+            float giveUp = Time.time + MineWait;
+            while (Time.time < giveUp)
             {
                 bool armed = false;
                 if (bot.Mines != null)

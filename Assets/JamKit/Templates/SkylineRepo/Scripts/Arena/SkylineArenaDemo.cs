@@ -8,37 +8,49 @@ using NVec3 = System.Numerics.Vector3;
 namespace JamKit.SkylineRepo
 {
     /// <summary>
-    /// The arena's scripted run (docs/SKYLINE-PLAN-M1.md Task 16), only under <see cref="SkylineRunArgs.Demo"/>: it drives
-    /// <see cref="SkylinePlayer.ScriptedInput"/> like a player's hands, with perfect aim (<see cref="AimAssist.Angles"/> from
-    /// the eye), so the recording and the frame-time probe see the arena busy. Hit stop is off (its schedule runs on
-    /// unscaled time). Each step logs <c>SKYLINE_DEMO &lt;step&gt;</c>.
+    /// The arena's scripted run (docs/SKYLINE-PLAN-M1.md Task 16, made to win in Task 17), only under
+    /// <see cref="SkylineRunArgs.Demo"/>: it drives <see cref="SkylinePlayer.ScriptedInput"/> like a player's hands, with perfect
+    /// aim (<see cref="AimAssist.Angles"/> from the eye), so the recording and the frame-time probe see the arena busy and
+    /// cleared. Hit stop is off, so the time scale stays 1; every wait and timer runs on <c>Time.time</c>, which under the
+    /// Recorder's capture step is the recording's own clock (the guns' too: a press timed on the wall clock can land before
+    /// the gun is ready and be dropped). In the editor capture it starts once the Recorder's step is set
+    /// (<see cref="SkylineRecorderWait"/>). Each step logs <c>SKYLINE_DEMO &lt;step&gt;</c>.
     /// <list type="number">
     /// <item>The warm-up: walk to 10 m from the practice bot; three Writ shots at its weak point (a spot opens), one at the
     /// spot; swap to the Breacher; walk to 0.8 m short of the kiosk's south face, facing it; jump, double jump at the jump's
     /// apex, at the double jump's apex pitch the view down as far as it goes (85 degrees) and fire (the boost), holding
     /// forward throughout (the mantle); take the cache on top; swap back to the Writ; drop off the north side.</item>
     /// <item>Through the doorway into the hall, then each encounter in order (food-court, skylight, facade): walk into its
-    /// zone (the food court's from the doorway; every later one's in the entry lane, back where the fight was balanced),
-    /// then fight until it is cleared. The fight: shoot the nearest bot in sight (its spot, else its weak point,
-    /// else its body) at the Writ's fire rate, reloading when dry or when nothing is in sight; while something is in sight,
-    /// strafe and reverse every 0.4-0.7 s; with nothing in sight for 2.5 s, advance toward the nearest live bot; under 30
-    /// plating with something in sight, fall back to the encounter's hide (inside the information booth's U for the food court and the facade,
-    /// under the mezzanine deck for the skylight); strip a fresh wreck within 8 m when the plating has room; jump (and double
-    /// jump) a floor-care unit's sweep when one telegraphs within reach. Walking goes round the hall's cover boxes
-    /// (FightSim's detour to the best corner). Advancing is sticky until something is in sight (no thrash at the hide). A
-    /// per-fight watchdog (<c>SKYLINE_DEMO watchdog &lt;id&gt; fight-time|no-damage</c>): a fight not cleared in 90 s, or no
-    /// enemy damaged for 20 s, sends it to the nearest floor point with a clear line to the nearest live enemy (spotlights and
-    /// gondolas included) until it damages something.</item>
+    /// zone (the food court's to the information booth's U, every later one's in the entry lane, where the fight was
+    /// balanced), shooting anything in its line of fire on the way, then fight until it is cleared, then salvage (strip the
+    /// fresh wrecks it can reach in time while the plating has room) and top up the magazine.</item>
+    /// <item>The fight. <b>Target:</b> the bot whose shot line is really open: a ray from the eye with the gun's own mask
+    /// must land on that bot first (a shed part, cover or another bot in the way rules the point out); spotlights first,
+    /// then a floor-care unit within 7 m, then the nearest. <b>Aim:</b> its newest Writ spot, else its weak point (the
+    /// Writ's two-shot kill: the weak-point hit opens a spot, the spot hit takes x2.5), else its centre, else any body part,
+    /// a plate last. <b>Fire:</b> pressed every frame while a line is open and the gun isn't reloading (a press the gun
+    /// isn't ready for is simply pressed again next frame). <b>Reload:</b> when dry, or when nothing has been in sight for
+    /// 0.8 s with half the magazine gone; never on a one-frame loss of sight (a 0.4 s grace keeps the last target).
+    /// <b>Move:</b> first into the hide (the zone starts the fight before it is reached; up to 6 s); strafe while shooting (reversing every 0.4-0.7 s), held round the hide when at it; under 30 plating with
+    /// something in sight, fall back to the hide (the information booth's U, which also blocks the spotlights and the side
+    /// walls); strip a fresh wreck within 8 m (16 m with nothing in sight) when the plating has 10 of room and it can get
+    /// there before the wreck goes stale; with nothing in sight for 2.5 s (5 s when hurt), advance to the nearest firing
+    /// spot that has a clear line to the nearest live bot (sticky until something is in sight); jump (and double jump) a
+    /// floor-care unit's sweep when one telegraphs within reach. Walking goes round the hall's cover boxes (FightSim's
+    /// detour to the best corner). A per-fight watchdog (<c>SKYLINE_DEMO watchdog &lt;id&gt; fight-time|no-damage</c>): a
+    /// fight not cleared in 90 s, or no enemy damaged for 20 s, sends it to a firing spot until it damages something.</item>
     /// <item>If the Unit is wrecked the director restarts the arena at the warm-up; the run starts again from the start,
-    /// skipping the lessons it has done (logs <c>SKYLINE_DEMO restart</c>).</item>
+    /// skipping the lessons it has done (logs <c>SKYLINE_DEMO restart</c>). No invulnerability: the enemy data, the
+    /// layout and the Unit's armour are the game's.</item>
     /// </list>
-    /// It doesn't need to win; whether it reaches the skylight or the facade inside the recording depends on the fight.
     /// </summary>
     public sealed class SkylineArenaDemo : MonoBehaviour
     {
-        const float RecorderWait = 8f, PracticeDistance = 10f, KioskStandOff = 0.8f, ShotGap = 0.5f, SpotWait = 1.8f;
+        const float PracticeDistance = 10f, KioskStandOff = 0.8f, ShotGap = 0.5f, SpotWait = 1.8f;
         const float ArriveRadius = 0.12f, CoarseArrive = 0.6f, CoverMargin = 0.75f, CornerMargin = 0.9f;
-        const float LowPlating = 30f, AdvanceAfter = 2.5f, StripRange = 8f, MaxSight = 45f, StuckSeconds = 1f;
+        const float LowPlating = 30f, AdvanceAfter = 2.5f, HurtAdvanceAfter = 5f, StripRange = 8f, FarStripRange = 16f, MaxSight = 45f, StuckSeconds = 1f;
+        const float SightGrace = 0.4f, IdleReloadAfter = 0.8f, StripRoom = 10f, RunSpeed = 6.5f, SalvageLimit = 6f, AdvanceRepick = 1.5f;
+        const float HideRadius = 2.5f, ToHideLimit = 6f;
         /// <summary>The per-fight watchdog: a fight not cleared in this long, or no enemy damaged for this long, sends the
         /// run to a firing position with a clear line to the nearest live enemy.</summary>
         const float FightLimit = 90f, NoDamageLimit = 20f, WatchRepick = 3f, WatchRearm = 30f;
@@ -62,12 +74,9 @@ namespace JamKit.SkylineRepo
         float _acidJumpAt = -1f, _stuckSince = -1f, _sideStepUntil = -1f, _sideSign = 1f;
         Vector3 _stuckFrom;
         System.Random _rng = new System.Random(1616);
-        SkylineWreck[] _wrecks = new SkylineWreck[0];
-        float _wrecksAt;
         static readonly List<Rect> _cover = new List<Rect>();
 
         static readonly Vector3 BoothHide = new Vector3(0f, 0f, -12.2f);
-        static readonly Vector3 DeckHide = new Vector3(0f, 0f, 15.5f);
         /// <summary>The middle of the entry lane, where every fight after the food court starts (GalleriaArena.EntryZone*).</summary>
         static readonly Vector3 EntryPoint = new Vector3(
             (GalleriaArena.EntryZoneMinX + GalleriaArena.EntryZoneMaxX) * 0.5f, 0f, (GalleriaArena.EntryZoneMinZ + GalleriaArena.EntryZoneMaxZ) * 0.5f);
@@ -192,19 +201,15 @@ namespace JamKit.SkylineRepo
 
         static IEnumerator Wait(float seconds)
         {
-            float until = Time.unscaledTime + seconds;
-            while (Time.unscaledTime < until) yield return null;
+            float until = Time.time + seconds;
+            while (Time.time < until) yield return null;
         }
 
         IEnumerator Run()
         {
             if (_life == 0)
             {
-                if (SkylineRunArgs.Has("-skylineOut"))
-                {
-                    float giveUp = Time.unscaledTime + RecorderWait;
-                    while (!(Time.captureDeltaTime > 0f) && Time.unscaledTime < giveUp) yield return null;
-                }
+                if (SkylineRunArgs.Has("-skylineOut")) yield return SkylineRecorderWait.Wait("SKYLINE_DEMO");
                 Log("start");
             }
             else
@@ -262,8 +267,8 @@ namespace JamKit.SkylineRepo
                     _fire = true;
                     yield return Wait(ShotGap);
                 }
-                float giveUp = Time.unscaledTime + SpotWait;
-                while (bot.Spots.Count == 0 && Time.unscaledTime < giveUp) yield return null;
+                float giveUp = Time.time + SpotWait;
+                while (bot.Spots.Count == 0 && Time.time < giveUp) yield return null;
                 if (bot.Spots.Count > 0)
                 {
                     var sp = bot.Spots.All[bot.Spots.Count - 1];
@@ -293,8 +298,8 @@ namespace JamKit.SkylineRepo
             _aimFixed = true;
             _aimYaw = 0f;
             _aimPitch = 0f;
-            float settle = Time.unscaledTime + 1f;
-            while (Time.unscaledTime < settle && Sim != null && new Vector2(Sim.Velocity.X, Sim.Velocity.Z).magnitude > 0.05f) yield return null;
+            float settle = Time.time + 1f;
+            while (Time.time < settle && Sim != null && new Vector2(Sim.Velocity.X, Sim.Velocity.Z).magnitude > 0.05f) yield return null;
             yield return Wait(0.2f);
 
             // jump, double jump at the apex, the boost at the double jump's apex; forward held throughout (the mantle)
@@ -315,8 +320,8 @@ namespace JamKit.SkylineRepo
             yield return null;
             Log("mantle");
             float top = k.y;
-            float until = Time.unscaledTime + 3f;
-            while (Time.unscaledTime < until && !(Grounded && Feet().y > top - 0.2f)) yield return null;
+            float until = Time.time + 3f;
+            while (Time.time < until && !(Grounded && Feet().y > top - 0.2f)) yield return null;
             _aimPitch = 0f;
             if (Feet().y > top - 0.2f)
             {
@@ -340,20 +345,20 @@ namespace JamKit.SkylineRepo
 
         IEnumerator UntilAirborne(float max)
         {
-            float until = Time.unscaledTime + max;
-            while (Grounded && Time.unscaledTime < until) yield return null;
+            float until = Time.time + max;
+            while (Grounded && Time.time < until) yield return null;
         }
 
         IEnumerator UntilRising(float max)
         {
-            float until = Time.unscaledTime + max;
-            while (VelY <= 0f && Time.unscaledTime < until) yield return null;
+            float until = Time.time + max;
+            while (VelY <= 0f && Time.time < until) yield return null;
         }
 
         IEnumerator UntilApex(float max)
         {
-            float until = Time.unscaledTime + max;
-            while (!Grounded && VelY > 0f && Time.unscaledTime < until) yield return null;
+            float until = Time.time + max;
+            while (!Grounded && VelY > 0f && Time.time < until) yield return null;
         }
 
         // ------------------------------------------------------------------ the fights
@@ -362,26 +367,29 @@ namespace JamKit.SkylineRepo
         {
             string id = director.IdOf(i);
             Log("fight " + id);
-            // the food court starts on coming through the doorway; every later fight in the entry lane, where it was balanced
+            // the food court starts on coming through the doorway; every later fight in the entry lane, where it was balanced.
+            // The hide is the information booth's U for all three: its screens and back wall block the side groups, the
+            // gondolas' walls and the spotlights on the mezzanine, and it is 5 m from the entry lane.
             Vector3 entry = i == 0 ? BoothHide : EntryPoint;
-            Vector3 hide = i == 1 ? DeckHide : BoothHide;
+            Vector3 hide = BoothHide;
             while (director.PhaseOf(i) == SkylineArenaDirector.Phase.Waiting) yield return null;
             _fighting = true;
             if (director.PhaseOf(i) == SkylineArenaDirector.Phase.Armed) Log("walk-to-entry " + id);
-            // into the zone, however long it takes (a stuck walk side-steps); anything in sight on the way is shot
+            // into the zone, however long it takes (a stuck walk side-steps); anything in the line of fire on the way is shot
             while (director.PhaseOf(i) == SkylineArenaDirector.Phase.Armed)
             {
                 Steer(i, entry, true);
                 yield return null;
             }
             string mode = "";
-            float start = Time.unscaledTime, lastSeen = start, lastDamage = start, nextShot = 0f, nextFlip = 0f, strafe = 1f;
+            float start = Time.time, lastSeen = start, lastDamage = start, nextFlip = 0f, strafe = 1f, advanceRepick = 0f;
             float health = Health(i), watchStart = 0f, watchRepick = 0f, limitFrom = start;
-            bool advancing = false, watchdog = false;
-            Vector3 watchPos = Feet();
+            bool advancing = false, watchdog = false, reachedHide = false;
+            Vector3 watchPos = Feet(), advancePos = Feet(), lastAim = Vector3.zero;
+            SkylineBot lastTarget = null;
             while (director.PhaseOf(i) == SkylineArenaDirector.Phase.Fighting)
             {
-                float now = Time.unscaledTime;
+                float now = Time.time;
                 Vector3 feet = Feet();
                 float h = Health(i);
                 if (h < health - 0.01f) lastDamage = now;
@@ -408,18 +416,35 @@ namespace JamKit.SkylineRepo
                 }
 
                 var target = PickTarget(i, out Vector3 aim);
+                if (target != null) { lastSeen = now; advancing = false; lastTarget = target; lastAim = aim; }
+                // a one-frame loss of the line (a strafe past a cover edge, a shed plate flying through it) isn't a lost target
+                bool grace = target == null && lastTarget != null && lastTarget.Alive && now - lastSeen < SightGrace;
+                bool inSight = target != null || grace;
                 var armor = player.Armor;
-                var wreck = !watchdog && armor.Plating < armor.PlatingMax - 10f ? NearestFreshWreck(feet) : null;
+                bool hurt = armor.Plating < LowPlating;
+                bool atHide = Flat(feet, hide) <= HideRadius;
+                if (atHide) reachedHide = true;
+                var wreck = !watchdog && armor.Plating < armor.PlatingMax - StripRoom ? NearestFreshWreck(feet, inSight ? StripRange : FarStripRange) : null;
                 string want;
                 Vector3 goal = feet;
-                if (target != null) { lastSeen = now; advancing = false; }
                 if (watchdog) { want = "watchdog-move"; goal = watchPos; }
+                // every fight opens by getting into cover (the zone starts the fight before the hide is reached)
+                else if (!reachedHide && now - start < ToHideLimit) { want = "to-hide"; goal = hide; }
                 else if (wreck != null) { want = "strip"; goal = wreck.transform.position; }
-                // fall back only while something is shooting at it: at the hide with nothing in sight it advances, and
-                // stays advancing (hysteresis) until something is in sight again
-                else if (target != null && armor.Plating < LowPlating && Flat(feet, hide) > 1f) { want = "fall-back"; goal = hide; }
-                else if (target != null) { want = "engage"; }
-                else if (advancing || now - lastSeen > AdvanceAfter) { want = "advance"; advancing = true; goal = NearestLiveBot(i, feet); }
+                // fall back only while something is in sight: at the hide it engages from cover
+                else if (inSight && hurt && !atHide) { want = "fall-back"; goal = hide; }
+                else if (inSight) { want = "engage"; }
+                else if (advancing || now - lastSeen > (hurt && atHide ? HurtAdvanceAfter : AdvanceAfter))
+                {
+                    want = "advance";
+                    if (!advancing || now >= advanceRepick)
+                    {
+                        advancePos = FiringSpot(i, feet);
+                        advanceRepick = now + AdvanceRepick;
+                    }
+                    advancing = true;
+                    goal = advancePos;
+                }
                 else { want = "hold"; }
                 if (want != mode)
                 {
@@ -427,47 +452,85 @@ namespace JamKit.SkylineRepo
                     Log(id + " " + mode);
                 }
 
-                // aim, fire and reload
+                // aim, fire and reload: the fire button is pressed every frame the line is open (a press the gun isn't ready
+                // for is dropped and simply pressed again next frame)
                 var gun = player.Loadout.Active;
                 if (player.Loadout.ActiveIndex != 0) _swap = true;
+                bool reloading = gun.State.IsReloading;
                 if (target != null)
                 {
                     _aimFixed = false;
                     _aimPoint = aim;
-                    if (now >= nextShot && !gun.State.IsReloading)
-                    {
-                        _fire = true;                              // dry: the press starts the from-empty reload
-                        nextShot = now + gun.Def.weapon.fireInterval + 0.06f;
-                    }
+                    if (gun.Ammo <= 0) { if (!reloading) _reload = true; }
+                    else if (!reloading) _fire = true;
                 }
                 else
                 {
-                    _aimPoint = null;
-                    if (gun.Ammo < gun.Def.weapon.magazineSize && !gun.State.IsReloading) _reload = true;
+                    _aimFixed = false;
+                    _aimPoint = grace ? lastAim : (Vector3?)null;
+                    if (!reloading && (gun.Ammo <= 0 || (!grace && now - lastSeen > IdleReloadAfter && gun.Ammo <= gun.Def.weapon.magazineSize / 2)))
+                        _reload = true;
                 }
 
                 // move: toward the goal, strafing while something is in sight (not while stripping or on the watchdog's walk)
                 Vector3 dir = Vector3.zero;
                 if (Flat(feet, goal) > CoarseArrive) dir = PathDirection(feet, goal);
-                if (target != null && mode != "strip" && !(watchdog && dir.sqrMagnitude > 0f))
+                if (inSight && mode != "strip" && mode != "to-hide" && !(watchdog && dir.sqrMagnitude > 0f))
                 {
                     if (now >= nextFlip)
                     {
                         strafe = -strafe;
                         nextFlip = now + 0.4f + (float)_rng.NextDouble() * 0.3f;
                     }
-                    Vector3 toT = aim - feet;
+                    Vector3 toT = lastAim - feet;
                     toT.y = 0f;
                     Vector3 side = toT.sqrMagnitude > 1e-4f ? Vector3.Cross(Vector3.up, toT.normalized) : Vector3.right;
-                    dir = (dir * 0.8f + side * strafe).normalized;
+                    if (atHide && mode == "engage")
+                    {
+                        // strafe inside the U, pulled back toward its middle
+                        Vector3 back = hide - feet;
+                        back.y = 0f;
+                        dir = (side * strafe * 0.8f + back * 0.6f);
+                        if (dir.sqrMagnitude > 1f) dir.Normalize();
+                    }
+                    else dir = (dir * 0.8f + side * strafe).normalized;
                 }
-                ApplyMove(dir, mode == "advance" || mode == "fall-back" || mode == "watchdog-move");
+                ApplyMove(dir, mode == "advance" || mode == "fall-back" || mode == "watchdog-move" || mode == "strip" || mode == "to-hide");
                 yield return null;
             }
             _fighting = false;
             _move = Vector2.zero;
             _aimPoint = null;
             Log(id + " over (" + director.PhaseOf(i) + ")");
+            if (director.PhaseOf(i) == SkylineArenaDirector.Phase.Cleared) yield return Salvage();
+        }
+
+        /// <summary>After a fight: strip the fresh wrecks it can reach before they go stale while the plating has room, then
+        /// top up the magazine.</summary>
+        IEnumerator Salvage()
+        {
+            float until = Time.time + SalvageLimit;
+            bool logged = false;
+            while (Time.time < until)
+            {
+                var armor = player.Armor;
+                if (armor.Plating >= armor.PlatingMax - StripRoom) break;
+                Vector3 feet = Feet();
+                var w = NearestFreshWreck(feet, 30f);
+                if (w == null) break;
+                if (!logged) { Log("salvage"); logged = true; }
+                _aimPoint = null;
+                ApplyMove(PathDirection(feet, w.transform.position), true);
+                yield return null;
+            }
+            _move = Vector2.zero;
+            _sprint = false;
+            var gun = player.Loadout.Active;
+            if (gun.Ammo < gun.Def.weapon.magazineSize && !gun.State.IsReloading)
+            {
+                _reload = true;
+                yield return null;
+            }
         }
 
         /// <summary>What is left of encounter <paramref name="i"/>'s live bots (chassis and plates): it drops when any is damaged
@@ -530,36 +593,87 @@ namespace JamKit.SkylineRepo
             return false;
         }
 
-        /// <summary>The nearest live bot of encounter <paramref name="i"/> in sight, and where to shoot it: its newest spot,
-        /// else its weak point, else its centre.</summary>
+        /// <summary>The live bot of encounter <paramref name="i"/> to shoot, and where: only a bot a shot would really reach
+        /// (<see cref="LineOfFire"/>); spotlights first, then a floor-care unit within 7 m, then the nearest.</summary>
         SkylineBot PickTarget(int i, out Vector3 aim)
         {
             aim = Vector3.zero;
-            Vector3 eye = player.EyePosition;
+            Vector3 eye = player.EyePosition, feet = Feet();
             SkylineBot best = null;
-            float bestD = float.PositiveInfinity;
+            float bestScore = float.PositiveInfinity;
             var bots = director.BotsOf(i);
             for (int k = 0; k < bots.Count; k++)
             {
                 var b = bots[k];
-                if (b == null || !b.Alive) continue;
-                Vector3 p = AimPoint(b);
-                Vector3 d = p - eye;
-                float dist = d.magnitude;
-                if (dist > MaxSight || dist >= bestD || dist < 1e-3f) continue;
-                if (SkylineBot.CastClear(eye, d / dist, dist - 0.05f, b.transform, out _))
-                {
-                    // the aim point is hidden; the centre may not be
-                    p = b.Center;
-                    d = p - eye;
-                    dist = d.magnitude;
-                    if (dist < 1e-3f || SkylineBot.CastClear(eye, d / dist, dist - 0.05f, b.transform, out _)) continue;
-                }
+                if (b == null || !b.Alive || b.Def == null) continue;
+                float dist = Vector3.Distance(eye, b.Center);
+                if (dist > MaxSight) continue;
+                float score = dist;
+                if (b.Def.id == SkylineEnemies.SpotlightId) score -= 100f;
+                else if (b.Def.moveSpeed > 0f && Flat(feet, b.transform.position) < 7f) score -= 60f;
+                if (score >= bestScore) continue;
+                if (!LineOfFire(b, eye, out Vector3 p)) continue;
                 best = b;
-                bestD = dist;
+                bestScore = score;
                 aim = p;
             }
             return best;
+        }
+
+        /// <summary>Where a shot from <paramref name="eye"/> lands on <paramref name="b"/> first: its newest spot or its weak
+        /// point (the weak-point zone itself), else its centre, else any part of its body, a plate last.</summary>
+        static bool LineOfFire(SkylineBot b, Vector3 eye, out Vector3 aim)
+        {
+            aim = Vector3.zero;
+            Vector3 plate = Vector3.zero;
+            bool hasPlate = false;
+            HitZone zone;
+            if (b.Spots != null && b.Spots.Count > 0)
+            {
+                Vector3 s = b.SpotWorld(b.Spots.All[b.Spots.Count - 1]);
+                if (Reaches(eye, s, b, out zone) && zone == HitZone.WeakPoint) { aim = s; return true; }
+            }
+            var wc = b.Parts != null && b.Parts.weakPoint != null ? b.WeakPointCollider : null;
+            if (wc != null && wc.enabled && wc.gameObject.activeInHierarchy)
+            {
+                Vector3 w = wc.bounds.center;
+                if (Reaches(eye, w, b, out zone) && zone == HitZone.WeakPoint) { aim = w; return true; }
+            }
+            Vector3 c = b.Center;
+            if (Reaches(eye, c, b, out zone))
+            {
+                if (zone != HitZone.Plate) { aim = c; return true; }
+                plate = c;
+                hasPlate = true;
+            }
+            var parts = b.Parts != null ? b.Parts.bodyRenderers : null;
+            if (parts != null)
+                for (int k = 0; k < parts.Count && k < 8; k++)
+                {
+                    var r = parts[k];
+                    if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) continue;
+                    Vector3 p = r.bounds.center;
+                    if (!Reaches(eye, p, b, out zone)) continue;
+                    if (zone != HitZone.Plate) { aim = p; return true; }
+                    if (!hasPlate) { plate = p; hasPlate = true; }
+                }
+            if (hasPlate) { aim = plate; return true; }
+            return false;
+        }
+
+        /// <summary>A ray from <paramref name="eye"/> at <paramref name="point"/> with the guns' own mask lands on one of
+        /// <paramref name="b"/>'s hit zones first (cover, shed parts and other bots block it); <paramref name="zone"/> is the
+        /// zone it lands on.</summary>
+        static bool Reaches(Vector3 eye, Vector3 point, SkylineBot b, out HitZone zone)
+        {
+            zone = HitZone.Body;
+            Vector3 d = point - eye;
+            float len = d.magnitude;
+            if (!(len > 1e-3f)) return false;
+            if (!Physics.Raycast(eye, d / len, out var hit, len + 0.75f, SkylineShooting.Mask, QueryTriggerInteraction.Ignore)) return false;
+            if (!hit.collider.TryGetComponent<SkylineHitZone>(out var z) || z.owner != b) return false;
+            zone = z.zone;
+            return true;
         }
 
         static Vector3 AimPoint(SkylineBot b)
@@ -574,38 +688,25 @@ namespace JamKit.SkylineRepo
             return c != null && c.enabled && c.gameObject.activeInHierarchy ? c.bounds.center : b.Center;
         }
 
-        Vector3 NearestLiveBot(int i, Vector3 feet)
+        /// <summary>The nearest fresh, unstripped wreck within <paramref name="range"/> m (flat, within 2 m of the feet's height)
+        /// that a run reaches before it goes stale.</summary>
+        SkylineWreck NearestFreshWreck(Vector3 feet, float range)
         {
-            var bots = director.BotsOf(i);
-            Vector3 best = feet;
-            float bestD = float.PositiveInfinity;
-            for (int k = 0; k < bots.Count; k++)
-            {
-                var b = bots[k];
-                if (b == null || !b.Alive) continue;
-                Vector3 p = b.transform.position;
-                float d = Flat(feet, p);
-                if (d < bestD) { bestD = d; best = p; }
-            }
-            // stop short: close enough to see it round most cover
-            if (bestD < float.PositiveInfinity && bestD > 6f) return Vector3.MoveTowards(new Vector3(feet.x, 0f, feet.z), new Vector3(best.x, 0f, best.z), bestD - 6f);
-            return feet;
-        }
-
-        SkylineWreck NearestFreshWreck(Vector3 feet)
-        {
-            if (Time.unscaledTime >= _wrecksAt)
-            {
-                _wrecksAt = Time.unscaledTime + 0.25f;   // the wrecks change slowly; don't search the scene every frame
-                _wrecks = FindObjectsByType<SkylineWreck>(FindObjectsSortMode.None);
-            }
+            float now = Time.time;
             SkylineWreck best = null;
-            float bestD = StripRange;
-            foreach (var w in _wrecks)
+            float bestD = range;
+            var all = SkylineWreck.All;
+            for (int k = 0; k < all.Count; k++)
             {
-                if (w == null || w.Data == null || w.Data.stripped || !w.Fresh) continue;
-                float d = Flat(feet, w.transform.position);
-                if (d < bestD && Mathf.Abs(w.transform.position.y - feet.y) < 2f) { bestD = d; best = w; }
+                var w = all[k];
+                if (w == null || w.Data == null || w.Data.stripped || !w.Data.Fresh(now)) continue;
+                Vector3 p = w.transform.position;
+                float d = Flat(feet, p);
+                if (d >= bestD || Mathf.Abs(p.y - feet.y) >= 2f) continue;
+                float left = w.Data.wreckedAt + w.Data.freshSeconds - now;
+                if (Mathf.Max(0f, d - SkylineWreck.StripRadius) / RunSpeed > left) continue;   // stale before it gets there
+                bestD = d;
+                best = w;
             }
             return best;
         }
@@ -618,8 +719,8 @@ namespace JamKit.SkylineRepo
         /// the way; stops within <paramref name="arrive"/> m or after <paramref name="max"/> s.</summary>
         IEnumerator MoveTo(Vector3 goal, bool sprint, float arrive, float max, System.Func<Vector3> aimAt = null)
         {
-            float until = Time.unscaledTime + max;
-            while (Time.unscaledTime < until)
+            float until = Time.time + max;
+            while (Time.time < until)
             {
                 Vector3 feet = Feet();
                 float d = Flat(feet, goal);
@@ -644,7 +745,15 @@ namespace JamKit.SkylineRepo
         {
             Vector3 feet = Feet();
             var target = PickTarget(i, out Vector3 aim);
-            if (target != null) { _aimFixed = false; _aimPoint = aim; _fire = true; }
+            var gun = player.Loadout.Active;
+            if (player.Loadout.ActiveIndex != 0) _swap = true;
+            if (target != null)
+            {
+                _aimFixed = false;
+                _aimPoint = aim;
+                if (gun.Ammo <= 0) { if (!gun.State.IsReloading) _reload = true; }
+                else if (!gun.State.IsReloading) _fire = true;
+            }
             else _aimPoint = null;
             ApplyMove(Flat(feet, goal) > CoarseArrive ? PathDirection(feet, goal) : Vector3.zero, sprint);
         }
@@ -652,7 +761,7 @@ namespace JamKit.SkylineRepo
         /// <summary>World direction (flat, length up to 1) into the player's move axes, with a side-step when stuck.</summary>
         void ApplyMove(Vector3 world, bool sprint)
         {
-            float now = Time.unscaledTime;
+            float now = Time.time;
             Vector3 feet = Feet();
             bool wants = world.sqrMagnitude > 0.01f;
             if (wants)

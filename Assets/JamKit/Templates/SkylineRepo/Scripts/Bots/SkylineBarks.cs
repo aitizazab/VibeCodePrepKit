@@ -38,6 +38,20 @@ namespace JamKit.SkylineRepo
             }
         }
 
+        /// <summary>The bark ids (BotBrain's).</summary>
+        public static readonly string[] Ids = { "spotted", "hurt", "lost", "wrecked" };
+
+        /// <summary>Synthesizes (and caches) the babble of one bark of the bot <paramref name="botId"/> seeded
+        /// <paramref name="seed"/> (the bot's own seed, as <see cref="SkylineBot"/> barks with), so the bark itself costs
+        /// nothing mid-fight. Returns false when there is no such line.</summary>
+        public static bool Prepare(string botId, string bark, int seed)
+        {
+            string line = Line(botId, bark);
+            if (string.IsNullOrEmpty(line)) return false;
+            SkylineBabble.Make(botId, line, seed);
+            return true;
+        }
+
         /// <summary>Shows <paramref name="text"/> in a small world-space bubble above <paramref name="anchor"/> for
         /// <see cref="BubbleSeconds"/> and speaks it in <paramref name="voice"/>'s babble from <paramref name="source"/>.</summary>
         public static SkylineBarkBubble Say(Transform anchor, Vector3 offset, string text, string voice, int seed, AudioSource source, SkylineBarkBubble previous)

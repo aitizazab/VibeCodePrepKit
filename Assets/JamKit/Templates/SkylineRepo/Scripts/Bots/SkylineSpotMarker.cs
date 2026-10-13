@@ -74,18 +74,20 @@ namespace JamKit.SkylineRepo
 
         void Bar(string name, Vector3 local, Quaternion rot, float length, float width, Material mat, List<Renderer> into)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = name;
-            Object.DestroyImmediate(go.GetComponent<Collider>());
-            go.transform.SetParent(transform, false);
+            var go = SkylineBotLook.Visual(PrimitiveType.Cube, name, transform, mat, false);
             go.transform.localPosition = local;
             go.transform.localRotation = rot;
             go.transform.localScale = new Vector3(length, width, 0.004f);
-            var r = go.GetComponent<Renderer>();
-            r.sharedMaterial = mat;
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            r.receiveShadows = false;
-            if (into != null) into.Add(r);
+            if (into != null) into.Add(go.GetComponent<Renderer>());
+        }
+
+        /// <summary>Makes the crack's materials now (at scene start), so the first spot made mid-fight creates none.</summary>
+        public static void PrewarmLooks()
+        {
+            SkylineBotLook.Lit(Gap);
+            SkylineBotLook.Lit(Wire);
+            SkylineBotLook.Glow(HotGold);
+            SkylineBotLook.Glow(WhiteHot);
         }
 
         /// <summary>The spot was shot: a break-through (spark burst, crunchy break) and gone.</summary>
@@ -121,7 +123,8 @@ namespace JamKit.SkylineRepo
     }
 
     /// <summary>A spark: a tiny white-hot fleck thrown out, falling and shrinking for a third of a second. Used only by the
-    /// Writ's cracked casing and by fresh wrecks (the only things allowed to spark).</summary>
+    /// Writ's cracked casing and by fresh wrecks (the only things allowed to spark). Pooled renderer-only cubes, filled up
+    /// front by <see cref="Prewarm"/>.</summary>
     public sealed class SkylineSpark : MonoBehaviour
     {
         const float Life = 0.35f, Size = 0.025f;
@@ -148,22 +151,30 @@ namespace JamKit.SkylineRepo
             }
         }
 
-        static SkylineSpark Take()
+        /// <summary>Fills the pool now (at scene start), so no spark is ever created mid-fight.</summary>
+        public static void Prewarm()
+        {
+            Purge();
+            while (_pool.Count < PoolSize) Make().gameObject.SetActive(false);
+        }
+
+        static void Purge()
         {
             for (int k = _pool.Count - 1; k >= 0; k--) if (_pool[k] == null) _pool.RemoveAt(k);
-            if (_pool.Count < PoolSize)
-            {
-                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                go.name = "Spark";
-                Object.DestroyImmediate(go.GetComponent<Collider>());
-                var r = go.GetComponent<Renderer>();
-                r.sharedMaterial = SkylineBotLook.Glow(Hot);
-                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                r.receiveShadows = false;
-                var s = go.AddComponent<SkylineSpark>();
-                _pool.Add(s);
-                return s;
-            }
+        }
+
+        static SkylineSpark Make()
+        {
+            var go = SkylineBotLook.Visual(PrimitiveType.Cube, "Spark", null, SkylineBotLook.Glow(Hot), false);
+            var s = go.AddComponent<SkylineSpark>();
+            _pool.Add(s);
+            return s;
+        }
+
+        static SkylineSpark Take()
+        {
+            Purge();
+            if (_pool.Count < PoolSize) return Make();
             _next = (_next + 1) % _pool.Count;
             return _pool[_next];
         }

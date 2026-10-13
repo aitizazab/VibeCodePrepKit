@@ -183,6 +183,9 @@ namespace JamKit.SkylineRepo.EditorTools
             director.voice = voice;
             director.botsRoot = new GameObject("Bots").transform;
             director.entryMarker = entryMarker;
+            // the cracks' and sparks' glow copies this scene material (its URP Unlit variant is in the build), not a shader
+            // looked up by name at run time
+            director.glowTemplate = mSign;
 
             var demo = new GameObject("Arena Demo").AddComponent<SkylineArenaDemo>();
             demo.player = player;

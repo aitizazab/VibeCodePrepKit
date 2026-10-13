@@ -91,6 +91,14 @@ namespace JamKit.SkylineRepo
             source.PlayOneShot(Cap(clip, LineSeconds(text)), 1f);
         }
 
+        /// <summary>Makes (and caches) the clip <see cref="Speak"/> would play for this line, so speaking it later costs
+        /// nothing: lines are synthesized ahead, one per frame, by the arena's director.</summary>
+        public static void Prepare(Speaker speaker, string text)
+        {
+            var clip = Make(VoiceOf(speaker), text, (int)speaker + 11);
+            if (clip != null) Cap(clip, LineSeconds(text));
+        }
+
         static AudioClip Cap(AudioClip clip, float seconds)
         {
             if (clip.length <= seconds + 0.01f) return clip;

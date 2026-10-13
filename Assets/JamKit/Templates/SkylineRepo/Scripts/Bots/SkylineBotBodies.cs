@@ -20,7 +20,13 @@ namespace JamKit.SkylineRepo
 
         static readonly Dictionary<Color, Material> _lit = new Dictionary<Color, Material>();
         static readonly Dictionary<Color, Material> _glow = new Dictionary<Color, Material>();
+        static readonly Dictionary<PrimitiveType, Mesh> _meshes = new Dictionary<PrimitiveType, Mesh>();
         static Material _template;
+
+        /// <summary>The scene's own glowing material (URP Unlit, set by the arena's or the gallery's director from a material
+        /// the scene builder saved in the scene), so <see cref="Glow"/> copies a shader variant the build is known to carry
+        /// instead of looking the shader up by name at run time. Null: the name lookup, as before.</summary>
+        public static Material GlowTemplate;
 
         /// <summary>The primitives' default (lit) material, read once from a throwaway cube.</summary>
         static Material Template()
@@ -30,6 +36,34 @@ namespace JamKit.SkylineRepo
             _template = go.GetComponent<Renderer>().sharedMaterial;
             Object.DestroyImmediate(go);
             return _template;
+        }
+
+        /// <summary>A primitive's mesh, read once per type from a throwaway primitive.</summary>
+        public static Mesh PrimitiveMesh(PrimitiveType type)
+        {
+            if (_meshes.TryGetValue(type, out var m) && m != null) return m;
+            var go = GameObject.CreatePrimitive(type);
+            m = go.GetComponent<MeshFilter>().sharedMesh;
+            Object.DestroyImmediate(go);
+            _meshes[type] = m;
+            return m;
+        }
+
+        /// <summary>A primitive drawn but never collided with: a mesh filter and renderer only (no collider made and then
+        /// destroyed, which costs a physics-scene change each time). For effects, dressing and every part without a collider.</summary>
+        public static GameObject Visual(PrimitiveType type, string name, Transform parent, Material material, bool castShadows = true)
+        {
+            var go = new GameObject(name);
+            if (parent != null) go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = PrimitiveMesh(type);
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = material;
+            if (!castShadows)
+            {
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+            }
+            return go;
         }
 
         /// <summary>A shared lit material of <paramref name="c"/>.</summary>
@@ -46,9 +80,13 @@ namespace JamKit.SkylineRepo
         public static Material Glow(Color hdr)
         {
             if (_glow.TryGetValue(hdr, out var m) && m != null) return m;
-            var sh = Shader.Find("Universal Render Pipeline/Unlit");
-            if (sh == null) sh = Shader.Find("Sprites/Default");
-            m = sh != null ? new Material(sh) : new Material(Template());
+            if (GlowTemplate != null) m = new Material(GlowTemplate);
+            else
+            {
+                var sh = Shader.Find("Universal Render Pipeline/Unlit");
+                if (sh == null) sh = Shader.Find("Sprites/Default");
+                m = sh != null ? new Material(sh) : new Material(Template());
+            }
             m.color = hdr;
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", hdr);
             _glow[hdr] = m;
@@ -59,16 +97,18 @@ namespace JamKit.SkylineRepo
         public static GameObject Part(PrimitiveType type, string name, Transform parent, Vector3 localPos, Vector3 scale, Color color,
             bool collider = true, Vector3 euler = default(Vector3))
         {
-            var go = GameObject.CreatePrimitive(type);
-            go.name = name;
-            go.transform.SetParent(parent, false);
+            GameObject go;
+            if (collider)
+            {
+                go = GameObject.CreatePrimitive(type);
+                go.name = name;
+                go.transform.SetParent(parent, false);
+                go.GetComponent<Renderer>().sharedMaterial = Lit(color);
+            }
+            else go = Visual(type, name, parent, Lit(color));
             go.transform.localPosition = localPos;
             go.transform.localRotation = Quaternion.Euler(euler);
             go.transform.localScale = scale;
-            var c = go.GetComponent<Collider>();
-            if (!collider && c != null) Object.DestroyImmediate(c);
-            var r = go.GetComponent<Renderer>();
-            r.sharedMaterial = Lit(color);
             return go;
         }
 

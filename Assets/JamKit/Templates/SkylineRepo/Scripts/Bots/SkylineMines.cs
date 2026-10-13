@@ -116,12 +116,7 @@ namespace JamKit.SkylineRepo
 
         public static void Create(Vector3 at, float radius)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            go.name = "Mine Blast";
-            Object.DestroyImmediate(go.GetComponent<Collider>());
-            var r = go.GetComponent<Renderer>();
-            r.sharedMaterial = SkylineBotLook.Lit(new Color(1f, 0.55f, 0.15f));
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            var go = SkylineBotLook.Visual(PrimitiveType.Sphere, "Mine Blast", null, SkylineBotLook.Lit(new Color(1f, 0.55f, 0.15f)), false);
             go.transform.position = at;
             go.transform.localScale = Vector3.zero;
             go.AddComponent<SkylineMineBlast>()._radius = radius;

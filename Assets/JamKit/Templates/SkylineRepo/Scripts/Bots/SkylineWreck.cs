@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using JamKit.Skyline;
 using UnityEngine;
 
@@ -14,6 +15,16 @@ namespace JamKit.SkylineRepo
     {
         public const float StripRadius = 1.8f;
         const float MaxStripHeight = 2.5f;
+
+        /// <summary>Every husk in the scene (enabled ones), so nothing has to search the scene for them.</summary>
+        public static readonly List<SkylineWreck> All = new List<SkylineWreck>();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => All.Clear();
+
+        void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+
+        void OnDisable() => All.Remove(this);
 
         public Wreck Data;
         public string botName = "";

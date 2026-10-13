@@ -19,15 +19,10 @@ namespace JamKit.SkylineRepo
             var go = new GameObject("Beam");
             go.transform.SetParent(parent, false);
             var b = go.AddComponent<SkylineBeam>();
-            var bar = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            bar.name = "Bar";
-            Object.DestroyImmediate(bar.GetComponent<Collider>());
-            bar.transform.SetParent(go.transform, false);
+            var bar = SkylineBotLook.Visual(PrimitiveType.Cube, "Bar", go.transform, SkylineBotLook.Lit(Red), false);
             b._bar = bar.transform;
             b._renderer = bar.GetComponent<Renderer>();
-            b._renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            b._renderer.receiveShadows = false;
-            b._renderer.sharedMaterial = SkylineBotLook.Lit(Red);
+            SkylineBotLook.Lit(White);
             bar.SetActive(false);
             return b;
         }

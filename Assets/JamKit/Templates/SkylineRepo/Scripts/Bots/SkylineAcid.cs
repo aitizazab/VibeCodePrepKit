@@ -8,16 +8,14 @@ namespace JamKit.SkylineRepo
     /// target and steps it on its own clock (<see cref="SkylineBot"/> checks <see cref="AcidSweep.Touches"/> at <see cref="T"/>
     /// before each <see cref="Advance"/>, as FightSim does, and damages once per sweep). The jet is a low green bar from the
     /// nozzle sweeping <see cref="EnemyDef.sweepArcDeg"/> left to right out to <see cref="EnemyDef.sweepRadius"/>; its tip
-    /// leaves a puddle line that fades over a few seconds.</summary>
+    /// leaves a puddle line that fades over a few seconds (<see cref="SkylinePuddle"/>, one pool shared by every unit).</summary>
     public sealed class SkylineAcid : MonoBehaviour
     {
-        const float JetHeight = 0.12f, JetThickness = 0.07f, PuddleEvery = 0.05f, PuddleLife = 2.5f, PuddleSize = 0.45f;
+        const float JetHeight = 0.12f, JetThickness = 0.07f, PuddleEvery = 0.05f;
 
         EnemyDef _def;
         Transform _jet;
         float _sincePuddle;
-        readonly List<Transform> _puddles = new List<Transform>();
-        readonly List<float> _puddleAge = new List<float>();
 
         public bool Running { get; private set; }
         /// <summary>Seconds into the sweep.</summary>
@@ -33,11 +31,7 @@ namespace JamKit.SkylineRepo
             go.transform.SetParent(parent, false);
             var a = go.AddComponent<SkylineAcid>();
             a._def = def;
-            var jet = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            jet.name = "Jet";
-            Object.DestroyImmediate(jet.GetComponent<Collider>());
-            jet.GetComponent<Renderer>().sharedMaterial = SkylineBotLook.Lit(SkylineBotLook.Acid);
-            jet.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            var jet = SkylineBotLook.Visual(PrimitiveType.Cube, "Jet", null, SkylineBotLook.Lit(SkylineBotLook.Acid), false);
             jet.SetActive(false);
             a._jet = jet.transform;
             return a;
@@ -83,51 +77,73 @@ namespace JamKit.SkylineRepo
             if (T > _def.sweepSeconds) Stop();
         }
 
-        /// <summary>A puddle from this unit's pool (reused once faded: the pool settles at the puddles alive at once, about 70
-        /// over back-to-back sweeps, and nothing is created or destroyed after that).</summary>
-        void Puddle(Vector3 at)
+        void Puddle(Vector3 at) => SkylinePuddle.Drop(at);
+
+        void OnDestroy()
         {
-            Transform p = null;
-            int slot = -1;
-            for (int i = 0; i < _puddles.Count; i++)
-                if (_puddles[i] != null && !_puddles[i].gameObject.activeSelf) { p = _puddles[i]; slot = i; break; }
-            if (p == null)
-            {
-                var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                go.name = "Acid Puddle";
-                Object.DestroyImmediate(go.GetComponent<Collider>());
-                var r = go.GetComponent<Renderer>();
-                r.sharedMaterial = SkylineBotLook.Lit(new Color(0.42f, 0.7f, 0.12f));
-                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                p = go.transform;
-                _puddles.Add(p);
-                _puddleAge.Add(0f);
-                slot = _puddles.Count - 1;
-            }
-            p.position = at;
-            p.localScale = new Vector3(PuddleSize, 0.005f, PuddleSize);
+            if (_jet != null) Destroy(_jet.gameObject);
+        }
+    }
+
+    /// <summary>One acid puddle: a flat green disc that shrinks away over <see cref="Life"/> s. One pool for every floor-care
+    /// unit, filled up front by <see cref="Prewarm"/> (back-to-back sweeps keep about 70 alive at once), so a sweep creates
+    /// nothing and a wrecked unit's puddles just fade out.</summary>
+    public sealed class SkylinePuddle : MonoBehaviour
+    {
+        const float Life = 2.5f, Size = 0.45f;
+        const int PrewarmCount = 96;
+        static readonly Color PuddleColor = new Color(0.42f, 0.7f, 0.12f);
+        static readonly List<SkylinePuddle> _pool = new List<SkylinePuddle>();
+        static int _scan;
+
+        float _age;
+
+        public static void Drop(Vector3 at)
+        {
+            var p = Take();
+            p.transform.position = at;
+            p.transform.localScale = new Vector3(Size, 0.005f, Size);
+            p._age = 0f;
             p.gameObject.SetActive(true);
-            _puddleAge[slot] = 0f;
+        }
+
+        public static void Prewarm()
+        {
+            Purge();
+            while (_pool.Count < PrewarmCount) Make();
+        }
+
+        static void Purge()
+        {
+            for (int i = _pool.Count - 1; i >= 0; i--) if (_pool[i] == null) _pool.RemoveAt(i);
+        }
+
+        static SkylinePuddle Make()
+        {
+            var go = SkylineBotLook.Visual(PrimitiveType.Cylinder, "Acid Puddle", null, SkylineBotLook.Lit(PuddleColor), false);
+            go.SetActive(false);
+            var p = go.AddComponent<SkylinePuddle>();
+            _pool.Add(p);
+            return p;
+        }
+
+        static SkylinePuddle Take()
+        {
+            Purge();
+            for (int k = 0; k < _pool.Count; k++)
+            {
+                _scan = (_scan + 1) % _pool.Count;
+                if (!_pool[_scan].gameObject.activeSelf) return _pool[_scan];
+            }
+            return Make();
         }
 
         void Update()
         {
-            float dt = Time.deltaTime;
-            for (int i = 0; i < _puddles.Count; i++)
-            {
-                var p = _puddles[i];
-                if (p == null || !p.gameObject.activeSelf) continue;
-                _puddleAge[i] += dt;
-                if (_puddleAge[i] >= PuddleLife) { p.gameObject.SetActive(false); continue; }
-                float k = 1f - _puddleAge[i] / PuddleLife;
-                p.localScale = new Vector3(PuddleSize * k, 0.005f, PuddleSize * k);
-            }
-        }
-
-        void OnDestroy()
-        {
-            foreach (var p in _puddles) if (p != null) Destroy(p.gameObject);
-            if (_jet != null) Destroy(_jet.gameObject);
+            _age += Time.deltaTime;
+            if (_age >= Life) { gameObject.SetActive(false); return; }
+            float k = 1f - _age / Life;
+            transform.localScale = new Vector3(Size * k, 0.005f, Size * k);
         }
     }
 }

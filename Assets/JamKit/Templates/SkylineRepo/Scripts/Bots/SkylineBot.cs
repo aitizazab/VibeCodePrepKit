@@ -1015,9 +1015,12 @@ namespace JamKit.SkylineRepo
             Sound("plate_shed");
         }
 
+        static readonly Collider[] NoColliders = new Collider[0];
+
         /// <summary>A copy of <paramref name="part"/> thrown off along <paramref name="normal"/> and up: a Rigidbody that ignores the
-        /// player's controller, shrinking away over its last second and gone after 6 s.</summary>
-        GameObject Fling(GameObject part, Vector3 normal, float strength)
+        /// player's controller (and the bot's own colliders, <paramref name="own"/>; null: this bot's live ones), shrinking away
+        /// over its last second and gone after 6 s.</summary>
+        GameObject Fling(GameObject part, Vector3 normal, float strength, Collider[] own = null)
         {
             Vector3 n = normal.sqrMagnitude > 1e-6f ? normal.normalized : (part.transform.position - Center).normalized;
             // a few cm out along the normal, so it doesn't start inside the chassis and get a depenetration kick
@@ -1028,25 +1031,33 @@ namespace JamKit.SkylineRepo
             clone.SetActive(true);
             foreach (var z in clone.GetComponentsInChildren<SkylineHitZone>(true)) Destroy(z);
             foreach (var m in clone.GetComponentsInChildren<SkylineSpotMarker>(true)) Destroy(m.gameObject);
+            if (own == null) own = Parts != null && Parts.rig != null ? Parts.rig.GetComponentsInChildren<Collider>(false) : NoColliders;
+            Throw(clone, n, strength, own, part);
+            return clone;
+        }
+
+        /// <summary>Makes <paramref name="go"/> (active, in the world) a thrown piece of debris: a Rigidbody pushed along
+        /// <paramref name="n"/> and up, ignoring the player's controller and <paramref name="own"/> (except
+        /// <paramref name="except"/>), gone after 6 s.</summary>
+        void Throw(GameObject go, Vector3 n, float strength, Collider[] own, GameObject except)
+        {
             var cc = PlayerController();
-            var own = Parts != null && Parts.rig != null ? Parts.rig.GetComponentsInChildren<Collider>(false) : new Collider[0];
-            foreach (var col in clone.GetComponentsInChildren<Collider>(true))
+            foreach (var col in go.GetComponentsInChildren<Collider>(true))
             {
                 var mc = col as MeshCollider;
                 if (mc != null) mc.convex = true;
                 if (!col.TryGetComponent<SkylineDebris>(out _)) col.gameObject.AddComponent<SkylineDebris>().life = 6f;
                 if (cc != null) Physics.IgnoreCollision(col, cc, true);
-                for (int i = 0; i < own.Length; i++) if (own[i] != null && own[i].gameObject != part) Physics.IgnoreCollision(col, own[i], true);
+                for (int i = 0; i < own.Length; i++) if (own[i] != null && own[i].gameObject != except) Physics.IgnoreCollision(col, own[i], true);
             }
-            var debris = clone.GetComponent<SkylineDebris>();
-            if (debris == null) debris = clone.AddComponent<SkylineDebris>();
+            var debris = go.GetComponent<SkylineDebris>();
+            if (debris == null) debris = go.AddComponent<SkylineDebris>();
             debris.life = 6f;
-            var rb = clone.AddComponent<Rigidbody>();
+            var rb = go.AddComponent<Rigidbody>();
             rb.mass = 2f;
             Vector3 jitter = new Vector3(_rng.Range(-1f, 1f), _rng.Range(0f, 0.5f), _rng.Range(-1f, 1f)) * 0.8f;
             rb.AddForce((n * 2.5f + Vector3.up * 3f + jitter) * strength * rb.mass, ForceMode.Impulse);
             rb.AddTorque(new Vector3(_rng.Range(-4f, 4f), _rng.Range(-4f, 4f), _rng.Range(-4f, 4f)), ForceMode.Impulse);
-            return clone;
         }
 
         Collider PlayerController()
@@ -1113,24 +1124,22 @@ namespace JamKit.SkylineRepo
             _charging = false;
             ClearFlash();
             Vector3 c = Center;
-            // the burst: the plates still on, and 4-6 parts of the body
+            // the burst: the plates still on, and 4-6 parts of the body (the rig goes dark this frame, so nothing needs to
+            // ignore its colliders; each part is made once, in place, not made and then copied)
             for (int i = 0; i < Parts.plates.Length; i++)
             {
                 var t = Parts.plates[i];
                 if (t == null || !t.gameObject.activeSelf) continue;
-                Fling(t.gameObject, (t.position - c).sqrMagnitude > 1e-4f ? (t.position - c).normalized : Vector3.up, 1.3f);
+                Fling(t.gameObject, (t.position - c).sqrMagnitude > 1e-4f ? (t.position - c).normalized : Vector3.up, 1.3f, NoColliders);
                 t.gameObject.SetActive(false);
             }
             int parts = 4 + _rng.Range(0, 3);
             for (int i = 0; i < parts; i++)
             {
-                var bit = SkylineBotLook.Part(PrimitiveType.Cube, "Part", null, Vector3.zero, Vector3.one * _rng.Range(0.1f, 0.22f), i % 2 == 0 ? SkylineBotLook.White : SkylineBotLook.Grey);
+                var bit = SkylineBotLook.Part(PrimitiveType.Cube, "Wreck part", null, Vector3.zero, Vector3.one * _rng.Range(0.1f, 0.22f), i % 2 == 0 ? SkylineBotLook.White : SkylineBotLook.Grey);
                 bit.transform.position = c + new Vector3(_rng.Range(-0.2f, 0.2f), _rng.Range(0f, 0.2f), _rng.Range(-0.2f, 0.2f));
-                bit.SetActive(false);
                 var dir = new Vector3(_rng.Range(-1f, 1f), _rng.Range(0.2f, 1f), _rng.Range(-1f, 1f)).normalized;
-                var flung = Fling(bit, dir, 1.4f);
-                Destroy(bit);
-                flung.name = "Wreck part";
+                Throw(bit, dir, 1.4f, NoColliders, null);
             }
             foreach (var m in _markers.Values) if (m != null) m.Close();
             _markers.Clear();
