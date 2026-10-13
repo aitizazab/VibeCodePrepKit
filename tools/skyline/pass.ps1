@@ -10,7 +10,9 @@
 # If stage A shows the project doesn't compile (no editor-batch.json, an error in the job, or "error CS" in its log), B, C and
 # D are skipped with a note. Exit code: 0 whenever manifest.json was written (its "ok" field carries pass or fail), non-zero
 # only when the runner itself crashed before writing one.
-param([string]$Out = '', [switch]$SelfTest)
+# -NoWindows runs only the batch stages (A, C, E): B and D open normal windows that take focus, so they wait until the
+# creator is away from the PC (the creator's rule, 2026-10-12).
+param([string]$Out = '', [switch]$SelfTest, [switch]$NoWindows)
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\..\unity-env.ps1"
 . "$PSScriptRoot\unity-lock.ps1"
@@ -454,11 +456,15 @@ try {
             # B: graphics editor recording (audio plays only outside batch mode; a normal window so it keeps presenting).
             # Uncapped (the D3D11 device needs the memory a Job Object cap refuses); -silent-crashes: a crash exits, no dialog.
             $log = Join-Path $Out 'stage-b-capture.log'
+            if ($NoWindows) {
+                $stages += [pscustomobject]@{ name = 'B recording'; ok = $false; seconds = 0; log = ''; note = 'skipped: -NoWindows (needs a normal window)' }
+            } else {
             $b = Invoke-Stage -Name 'B recording' -Exe $unity -Locked -CheckProject -MinFreeGB 3 -TimeoutSec 900 -Log $log -WindowStyle Normal -StageArgs @(
                 '-projectPath', $proj, '-logFile', "`"$log`"", '-silent-crashes',
                 '-executeMethod', 'JamKit.SkylineRepo.EditorTools.Recording.SkylineCapture.RunFromCommandLine', '-skylineOut', "`"$Out`"")
             Update-CaptureStage -Stage $b -JsonPath (Join-Path $Out 'capture.json')
             $stages += $b
+            }
 
             # C: Windows build of Skyline's scenes (batch mode: through the memory cap). -buildTarget Win64 sets the target when
             # the editor opens (Unity's own switch-then-import path) instead of leaving BuildPipeline to switch it mid-method.
@@ -472,7 +478,9 @@ try {
 
             # D: the built player's frame-time probe (windowed 1080p, normal window, not batch mode; uncapped like B)
             $exe = Join-Path $Out 'build\SkylineRepo.exe'
-            if (Test-Path $exe) {
+            if ($NoWindows) {
+                $stages += [pscustomobject]@{ name = 'D perf'; ok = $false; seconds = 0; log = ''; note = 'skipped: -NoWindows (needs a normal window)' }
+            } elseif (Test-Path $exe) {
                 $log = Join-Path $Out 'stage-d-perf.log'
                 $d = Invoke-Stage -Name 'D perf' -Exe $exe -Locked -MinFreeGB 3 -TimeoutSec 180 -Log $log -WindowStyle Normal -StageArgs @(
                     '-screen-fullscreen', '0', '-screen-width', '1920', '-screen-height', '1080', '-logFile', "`"$log`"", '-silent-crashes',
