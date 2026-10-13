@@ -9,7 +9,9 @@ using NUnit.Framework;
 
 namespace JamKit.Tests.Skyline
 {
-    /// <summary>The dodging measurement on Normal with the arena's real encounters (docs/SKYLINE-DESIGN.md 2.6, 11.2).</summary>
+    /// <summary>The dodging measurement on Normal with the arena's real encounters (docs/SKYLINE-DESIGN.md 2.6, 11.2). Since Task 11b this
+    /// immortal-shooter harness covers the mechanics only: the balance checks (the dodge band included) run in FightSim with
+    /// the player shooting back (FightTests; the creator, 2026-10-13).</summary>
     public class EncounterDodgeTests
     {
         /// <summary>Flat ground around the player for the two lane bots (the fight is relative to the encounter's anchor, so
@@ -36,12 +38,12 @@ namespace JamKit.Tests.Skyline
         public void OnlyAimedShotsAreMeasured()
         {
             var food = EncounterDodge.Shooters(ById("food-court"), SkylineEnemies.Find, Difficulties.Normal());
-            Assert.That(food.Count, Is.EqualTo(2), "the two drones; the floor-care units' sweeps are dodged by jumping");
+            Assert.That(food.Count, Is.EqualTo(12), "the twelve drones; the floor-care units' sweeps are dodged by jumping");
             Assert.That(food[0].leadFactor, Is.EqualTo(Difficulties.Normal().leadFactor));
             Assert.That(food[0].aimSpreadDeg, Is.EqualTo(SkylineEnemies.MallCopDrone().aimSpreadDeg));
             Assert.That(food[1].firstShotAt, Is.GreaterThan(food[0].firstShotAt), "staggered, not in lockstep");
             var sky = EncounterDodge.Shooters(ById("skylight"), SkylineEnemies.Find, Difficulties.Normal());
-            Assert.That(sky.Count, Is.EqualTo(1));
+            Assert.That(sky.Count, Is.EqualTo(2), "the two spotlights");
             Assert.That(sky[0].projectileSpeed, Is.EqualTo(0f));
             Assert.That(sky[0].leadFactor, Is.EqualTo(0f));
             Assert.That(sky[0].beamTelegraph, Is.EqualTo(SkylineEnemies.Spotlight().telegraphSeconds));
@@ -130,6 +132,7 @@ namespace JamKit.Tests.Skyline
             }
         }
 
+        [Ignore("gap for the creator: Task 11's zero-hit sprint lane (this immortal-shooter harness: no cover, nobody shoots back) can't survive Normal's 12 drones (97-114 hits per 60 s) or the two spotlights (25 per 60 s); the clean line is now the skilled line through the real fight (FightTests: cleared with no chassis damage in 30/30 seeds per encounter). Tried: the Task 11 routes on the new data only; no balance conclusion may rest on this harness (the creator, 2026-10-13).")]
         [TestCase("food-court")]
         [TestCase("skylight")]
         public void TheCleanLineTakesNoHitsOnNormal(string id)

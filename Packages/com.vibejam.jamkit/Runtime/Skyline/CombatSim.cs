@@ -34,6 +34,7 @@ namespace JamKit.Skyline
         public float damage = 10f;
 
         internal float nextFire = -1f;
+        internal bool blind;
         internal TelegraphedShot telegraphShot;
     }
 
@@ -41,9 +42,11 @@ namespace JamKit.Skyline
     public static class CoverGeometry
     {
         /// <summary>True when the segment <paramref name="a"/>-<paramref name="b"/> passes through the box (the slab test; a
-        /// segment that only starts or ends inside counts, and so does one that grazes a face).</summary>
+        /// segment that only starts or ends inside counts, and so does one that grazes a face). A segment with a NaN or infinite end counts as
+        /// blocked: an undefined line is never a clear line of sight, and a bolt with one is stopped.</summary>
         public static bool SegmentHitsBox(Vector3 a, Vector3 b, CoverBox box)
         {
+            if (!Finite(a) || !Finite(b)) return true;
             Vector3 d = b - a;
             float t0 = 0f, t1 = 1f;
             for (int axis = 0; axis < 3; axis++)
@@ -86,10 +89,25 @@ namespace JamKit.Skyline
             return best;
         }
 
+        /// <summary>True when any box in <paramref name="cover"/>, grown by <paramref name="radius"/> on every side, blocks the
+        /// segment: a projectile of that radius is stopped by a box its edge touches, not only by one its centre line crosses.</summary>
+        public static bool BlockedThick(Vector3 a, Vector3 b, IReadOnlyList<CoverBox> cover, float radius)
+        {
+            if (cover == null) return false;
+            if (!(radius > 0f)) return Blocked(a, b, cover);
+            var grow = new Vector3(radius);
+            for (int i = 0; i < cover.Count; i++)
+                if (SegmentHitsBox(a, b, new CoverBox { min = cover[i].min - grow, max = cover[i].max + grow })) return true;
+            return false;
+        }
+
         /// <summary>The box moved by <paramref name="offset"/>.</summary>
         public static CoverBox Translated(CoverBox box, Vector3 offset) => new CoverBox { min = box.min + offset, max = box.max + offset };
 
         static float Component(Vector3 v, int axis) => axis == 0 ? v.X : axis == 1 ? v.Y : v.Z;
+
+        static bool Finite(Vector3 v) =>
+            !(float.IsNaN(v.X) || float.IsInfinity(v.X) || float.IsNaN(v.Y) || float.IsInfinity(v.Y) || float.IsNaN(v.Z) || float.IsInfinity(v.Z));
     }
 
     /// <summary>
@@ -109,6 +127,8 @@ namespace JamKit.Skyline
         }
 
         const float MaxProjectileAge = 4f;
+        /// <summary>The most a shooter waits (s, seeded) after it regains sight of the player before it fires (re-staggers a group).</summary>
+        public const float ReacquireJitter = 0.4f;
 
         readonly MoveSim _player;
         readonly IPlayerBot _bot;
@@ -135,6 +155,7 @@ namespace JamKit.Skyline
             {
                 s.nextFire = s.firstShotAt;
                 s.telegraphShot = null;   // a shooter reused across fights starts with no beam in flight
+                s.blind = false;
             }
         }
 
@@ -175,7 +196,18 @@ namespace JamKit.Skyline
                     continue;
                 }
                 if (Time < s.nextFire) continue;
-                if (!Sees(s)) continue;   // it holds its shot until it has the player in range and in sight
+                if (!Sees(s))
+                {
+                    s.blind = true;   // it holds its shot until it has the player in range and in sight
+                    continue;
+                }
+                if (s.blind)
+                {
+                    // regaining sight: a seeded reaction delay, so a group that sees the player again doesn't fire in lockstep
+                    s.blind = false;
+                    s.nextFire = Time + _rng.Range(0f, ReacquireJitter);
+                    continue;
+                }
                 s.nextFire = Time + s.fireInterval;
                 ShotsFired++;
                 if (s.projectileSpeed <= 0f)
@@ -206,7 +238,7 @@ namespace JamKit.Skyline
                 Vector3 from = p.pos;
                 p.pos += p.vel * h;
                 p.age += h;
-                if (CoverGeometry.Blocked(from, p.pos, _cover)) { _shots.RemoveAt(i); continue; }   // the cover takes it
+                if (CoverGeometry.BlockedThick(from, p.pos, _cover, p.radius)) { _shots.RemoveAt(i); continue; }   // the cover takes it (its edge counts)
                 if (HitsPlayer(p.pos, p.radius)) { Hit(p.damage); _shots.RemoveAt(i); continue; }
                 if (p.age > MaxProjectileAge) { _shots.RemoveAt(i); continue; }
                 _shots[i] = p;
@@ -251,7 +283,7 @@ namespace JamKit.Skyline
     }
 
     /// <summary>One fight's outcome for the bot that ran it.</summary>
-    public struct FightResult
+    public struct DodgeFightResult
     {
         /// <summary>Hits taken, and shots the shooters actually fired (in range and in sight).</summary>
         public int hits, shots;
@@ -312,16 +344,16 @@ namespace JamKit.Skyline
         /// <summary>One bot's fight in each of the seeds <paramref name="seed"/>..<paramref name="seed"/>+<paramref name="seeds"/>-1
         /// (<paramref name="makeBot"/> gets the seed), starting at <paramref name="start"/> in the fight's frame: hits, shots
         /// fired and when the armour was wrecked. The clean-line and stand-still checks use this.</summary>
-        public static FightResult[] Fights(Func<IMoveWorld> makeWorld, Func<List<Shooter>> makeShooters, Func<ulong, IPlayerBot> makeBot,
+        public static DodgeFightResult[] Fights(Func<IMoveWorld> makeWorld, Func<List<Shooter>> makeShooters, Func<ulong, IPlayerBot> makeBot,
             float seconds, ulong seed, int seeds, IReadOnlyList<CoverBox> cover, Vector3 start)
         {
             if (seeds < 1) seeds = 1;
-            var results = new FightResult[seeds];
+            var results = new DodgeFightResult[seeds];
             for (int i = 0; i < seeds; i++)
             {
                 ulong s = seed + (ulong)i;
                 var c = Fight(makeWorld(), makeBot(s), makeShooters(), seconds, s, cover, start);
-                results[i] = new FightResult { hits = c.Hits, shots = c.ShotsFired, wreckedAt = c.WreckedAt };
+                results[i] = new DodgeFightResult { hits = c.Hits, shots = c.ShotsFired, wreckedAt = c.WreckedAt };
             }
             return results;
         }

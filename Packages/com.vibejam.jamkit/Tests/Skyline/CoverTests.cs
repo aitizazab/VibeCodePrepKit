@@ -279,5 +279,102 @@ namespace JamKit.Tests.Skyline
             Assert.That(c.Armor.Wrecked, Is.True);
             Assert.That(c.WreckedAt, Is.InRange(3f, 6f), "four 50 hp hits kill plating 100 over chassis 100");
         }
+
+        // ---- Task 11b: edge cases, thick bolts, solid cover, a fight with cover through the harness
+
+        [Test]
+        public void ANonFiniteSegmentCountsAsBlocked()
+        {
+            var b = Box(-1f, 0f, 4f, 1f, 2f, 6f);
+            Assert.That(CoverGeometry.SegmentHitsBox(new Vector3(float.NaN, 1f, 0f), new Vector3(0f, 1f, 10f), b), Is.True, "NaN start");
+            Assert.That(CoverGeometry.SegmentHitsBox(new Vector3(30f, 1f, 0f), new Vector3(30f, float.NaN, 10f), b), Is.True, "NaN end, far from the box");
+            Assert.That(CoverGeometry.SegmentHitsBox(new Vector3(0f, 1f, float.NegativeInfinity), new Vector3(0f, 1f, 10f), b), Is.True, "infinite end");
+            Assert.That(CoverGeometry.Blocked(new Vector3(float.NaN), Vector3.Zero, new[] { b }), Is.True, "no clear sight along an undefined line");
+        }
+
+        [Test]
+        public void ExactFaceAndEdgeTouchesCount()
+        {
+            var b = Box(-1f, 0f, 4f, 1f, 2f, 6f);
+            Assert.That(CoverGeometry.SegmentHitsBox(new Vector3(0f, 1f, 0f), new Vector3(0f, 1f, 4f), b), Is.True, "ends exactly on the near face");
+            Assert.That(CoverGeometry.SegmentHitsBox(new Vector3(1f, 1f, 0f), new Vector3(1f, 1f, 10f), b), Is.True, "slides along a side face (grazing counts)");
+            Assert.That(CoverGeometry.SegmentHitsBox(new Vector3(0f, 2f, 0f), new Vector3(0f, 2f, 10f), b), Is.True, "skims the top face");
+            Assert.That(CoverGeometry.SegmentHitsBox(new Vector3(-3f, 1f, 2f), new Vector3(1f, 1f, 6f), b), Is.True, "passes exactly through a vertical edge");
+            Assert.That(CoverGeometry.SegmentHitsBox(new Vector3(1.0001f, 1f, 0f), new Vector3(1.0001f, 1f, 10f), b), Is.False, "a hair outside the side face");
+            Assert.That(CoverGeometry.SegmentHitsBox(new Vector3(0f, 1f, 0f), new Vector3(0f, 1f, 3.9999f), b), Is.False, "a hair short of the face");
+        }
+
+        [Test]
+        public void ABoltsEdgeIsStoppedWhereItsCentreLineWouldPass()
+        {
+            var cover = new[] { Box(-1f, 0f, 4f, 1f, 2f, 6f) };
+            Vector3 a = new Vector3(1.1f, 1f, 0f), b = new Vector3(1.1f, 1f, 10f);   // the centre line passes 0.1 m beside the box
+            Assert.That(CoverGeometry.Blocked(a, b, cover), Is.False, "a sight line there is clear");
+            Assert.That(CoverGeometry.BlockedThick(a, b, cover, 0.15f), Is.True, "a 0.15 m bolt clips the box");
+            Assert.That(CoverGeometry.BlockedThick(a, b, cover, 0.05f), Is.False, "a 0.05 m bolt slips past");
+            Assert.That(CoverGeometry.BlockedThick(a, b, cover, 0f), Is.False, "radius 0 is the centre line");
+        }
+
+        [Test]
+        public void ARegainedSightIsReStaggeredNotFiredInLockstep()
+        {
+            // four shooters behind one wall; the player steps out at 3 s: their first shots after that are spread, not one volley
+            var shooters = new List<Shooter>();
+            for (int i = 0; i < 4; i++)
+                shooters.Add(new Shooter { position = new Vector3(-1.5f + i, 1.5f, 20f), aim = AimModel.FiresAtWhereYouAre, projectileSpeed = 30f,
+                    fireInterval = 1f, firstShotAt = 0.5f });
+            var bot = new ScriptBot(t => t < 3f ? new MoveInput() : new MoveInput { move = new Vector2(1f, 0f), yaw = 0f, sprintHeld = true });
+            var c = Fight(bot, shooters, new[] { Box(-6f, 0f, 8f, 6f, 3f, 10f) }, 9);
+            var firstShot = new List<int>();
+            int last = 0;
+            for (int step = 0; step < 6 * 120; step++)
+            {
+                c.Run(1f / 120f);
+                if (c.ShotsFired > last) { for (int k = last; k < c.ShotsFired; k++) firstShot.Add(step); last = c.ShotsFired; }
+                if (firstShot.Count >= 4) break;
+            }
+            Assert.That(firstShot.Count, Is.EqualTo(4), "all four fire once the player is in sight");
+            Assert.That(firstShot[3] - firstShot[0], Is.GreaterThan(2), "their first shots come on different steps (re-staggered)");
+        }
+
+        [Test]
+        public void TheFightsCoverIsSolidForThePlayer()
+        {
+            // the main hall world of the fight tests: a bot walking into the west counter run is stopped by it
+            var world = FightTests.Hall();
+            var sim = new MoveSim(world, new MoveDef());
+            sim.Teleport(new Vector3(-6f, 0f, -3f), -90f, Vector3.Zero);
+            float h = 1f / 60f;
+            for (int i = 0; i < 180; i++) sim.Step(new MoveInput { move = new Vector2(0f, 1f), yaw = -90f, sprintHeld = true }, h);
+            Assert.That(sim.Position.X, Is.GreaterThan(-10.25f), "it stops at the counter's east face (x = -10.25), not through it");
+            // and the fight refuses a world where the cover isn't solid
+            var bare = new BoxWorld();
+            bare.Floor(-30f, 30f, -30f, 30f, 0f);
+            Assert.Throws<ArgumentException>(() => new FightSim(GalleriaArena.FoodCourt(), bare, new StandAndShootBot(), GalleriaArena.FightCover(),
+                GalleriaArena.HallEntry, 1));
+        }
+
+        [Test]
+        public void AFightWithTheHallsCoverThroughTheHarness()
+        {
+            // the dodge harness with the hall's cover: a runner behind the south kiosk is hit far less than one in the open
+            var e = GalleriaArena.FoodCourt();
+            Func<List<Shooter>> shooters = () => EncounterDodge.Shooters(e, SkylineEnemies.Find, Difficulties.Normal());
+            Func<IMoveWorld> world = () =>
+            {
+                var w = new BoxWorld();
+                w.Floor(-40f, 40f, -40f, 40f, 0f);
+                foreach (var b in EncounterDodge.Cover(e)) w.Add((b.min + b.max) * 0.5f, b.max - b.min, false);
+                return w;
+            };
+            var behind = DodgeReport.Fights(world, shooters, s => new StandStillBot(), 20f, 3, 5, EncounterDodge.Cover(e), new Vector3(0f, 0f, 7.4f));
+            var open = DodgeReport.Fights(world, shooters, s => new StandStillBot(), 20f, 3, 5, null, new Vector3(0f, 0f, 7.4f));
+            int hb = 0, ho = 0;
+            foreach (var r in behind) hb += r.hits;
+            foreach (var r in open) ho += r.hits;
+            TestContext.WriteLine($"Harness with cover: behind the kiosk {hb} hits, the same spot with no cover {ho} (5 seeds, 20 s)");
+            Assert.That(ho, Is.GreaterThan(0));
+            Assert.That(hb, Is.LessThan(ho / 2), "the hall's cover blocks most of the fire at that spot");
+        }
     }
 }
