@@ -23,6 +23,7 @@ namespace JamKit.SkylineRepo
         {
             if (string.IsNullOrEmpty(sound)) return null;
             if (_clips.TryGetValue(sound, out var c) && c != null) return c;
+            if (_missing.Contains(sound)) return null;   // a known miss: no Resources.Load per request
             c = Resources.Load<AudioClip>(Folder + sound);
             if (c == null)
             {
