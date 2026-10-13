@@ -7,6 +7,9 @@
 # Stages A and C (batch editor jobs, no GPU) go through ~/.local/bin/capped-run.py (session skyline-repo, waits for 3 GB free).
 # Stages B and D (the graphics editor, the built player) run directly, one at a time, once 3 GB of physical memory is free
 # (waits up to 10 minutes, else the stage fails). The runner keeps the PC awake while it runs (this PC has only Modern Standby).
+# If stage A shows the project doesn't compile (no editor-batch.json, an error in the job, or "error CS" in its log), B, C and
+# D are skipped with a note. Exit code: 0 whenever manifest.json was written (its "ok" field carries pass or fail), non-zero
+# only when the runner itself crashed before writing one.
 param([string]$Out = '', [switch]$SelfTest)
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\..\unity-env.ps1"
@@ -49,11 +52,15 @@ function Get-StageLaunch {
 # (the uncapped GPU stages). The timeout and kill act on the whole process tree, so a killed capped-run takes Unity with it.
 function Invoke-Stage {
     param([string]$Name, [string]$Exe, [string[]]$StageArgs, [int]$TimeoutSec, [string]$Log, [switch]$Locked,
-          [string]$WindowStyle = 'Minimized', [switch]$Capped, [double]$MinFreeGB = 0, [int]$MemWaitSec = 600, [int]$MemPollSec = 30)
+          [string]$WindowStyle = 'Minimized', [switch]$Capped, [double]$MinFreeGB = 0, [int]$MemWaitSec = 600, [int]$MemPollSec = 30,
+          [switch]$CheckProject)
     $started = Get-Date
     $ok = $false; $note = ''
     try {
         if ($Locked) { Enter-UnityLock -Who "skyline-repo:$Name" }
+        # -CheckProject (the editor stages): another editor may have opened the project while this stage waited for the lock;
+        # that is this stage's failure, not a runner crash
+        if ($CheckProject) { Assert-ProjectUnlocked }
         if ($MinFreeGB -gt 0 -and -not (Wait-FreePhysicalMemory -MinGB $MinFreeGB -MaxWaitSec $MemWaitSec -PollSec $MemPollSec)) {
             throw ("not started: free physical memory stayed under {0:N1} GB for {1} s ({2:N1} GB free)" -f $MinFreeGB, $MemWaitSec, (Get-FreePhysicalGB))
         }
@@ -91,6 +98,104 @@ function Set-KeepAwake {
 }
 
 function Test-IsNumber { param($Value) return ($Value -is [double]) -or ($Value -is [int]) -or ($Value -is [long]) -or ($Value -is [decimal]) }
+
+function Add-StageNote {
+    param($Stage, [string]$Text)
+    if ($Text) { if ($Stage.note) { $Stage.note = "$($Stage.note); $Text" } else { $Stage.note = $Text } }
+}
+
+function Limit-Text {
+    param([string]$Text, [int]$Max = 240)
+    $t = ($Text -replace '\s+', ' ').Trim()
+    if ($t.Length -gt $Max) { return $t.Substring(0, $Max) + '...' }
+    return $t
+}
+
+# A stage's JSON result file: @{ Data = <parsed or $null>; Problem = <'' or why there is no data> }. Never throws.
+function Read-StageJson {
+    param([string]$Path)
+    $leaf = Split-Path -Leaf $Path
+    if (-not (Test-Path -LiteralPath $Path)) { return @{ Data = $null; Problem = "no $leaf written" } }
+    try { return @{ Data = (Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json); Problem = '' } }
+    catch { return @{ Data = $null; Problem = "$leaf unreadable: $(Limit-Text $_.Exception.Message 120)" } }
+}
+
+# The 'error CS' lines of a Unity log: @{ Count = n; Files = up to 4 distinct file names }. The tree is shared with other
+# sessions, so the files may not be Skyline's. Never throws.
+function Get-CompileErrors {
+    param([string]$Log)
+    $count = 0; $files = @()
+    try {
+        if ($Log -and (Test-Path -LiteralPath $Log)) {
+            foreach ($line in (Select-String -LiteralPath $Log -Pattern 'error CS\d+' -ErrorAction Stop)) {
+                $count++
+                $m = [regex]::Match($line.Line, '([^\s(]+\.cs)\(\d+,\d+\)')
+                $f = if ($m.Success) { $m.Groups[1].Value } else { '(file unknown)' }
+                if ($files -notcontains $f -and $files.Count -lt 4) { $files += $f }
+            }
+        }
+    } catch { }
+    return @{ Count = $count; Files = $files }
+}
+
+# Folds stage A's editor-batch.json and its log into the stage's entry (mutates $Stage): the test counts and failures, the
+# job's own error, any compile errors. Returns @{ SkipReason = '' | why B, C and D must not run }: the graphics editor on a
+# broken compile shows a blocking safe-mode dialog. Test failures alone don't skip (the project compiles; B-D still tell
+# something); a missing editor-batch.json, an error thrown in the job, or 'error CS' in the log do.
+function Update-BatchStage {
+    param($Stage, [string]$JsonPath, [string]$Log)
+    $j = Read-StageJson $JsonPath
+    $jsonOk = $false; $jobError = $false
+    if ($j.Data) {
+        $t = $j.Data.tests
+        if ($t) {
+            Add-StageNote $Stage "tests: $($t.passed) passed, $($t.failed) failed, $($t.skipped) skipped"
+            $fails = @($t.failures | Where-Object { $_ })
+            if ($fails.Count -gt 0) { Add-StageNote $Stage ("failures: " + ((@($fails | Select-Object -First 3) | ForEach-Object { Limit-Text $_ 160 }) -join ' | ')) }
+        }
+        if ($j.Data.error) { $jobError = $true; Add-StageNote $Stage ("editor job error: " + (Limit-Text ([string]$j.Data.error))) }
+        $jsonOk = [bool]($j.Data.ok -eq $true)
+        if (-not $jsonOk -and -not $jobError -and -not ($t -and $t.failed -gt 0)) { Add-StageNote $Stage 'editor-batch.json says ok:false' }
+    } else {
+        Add-StageNote $Stage $j.Problem
+    }
+    $cs = Get-CompileErrors -Log $Log
+    if ($cs.Count -gt 0) { Add-StageNote $Stage ("$($cs.Count) 'error CS' line(s) in the log, in: " + ($cs.Files -join ', ')) }
+    $Stage.ok = [bool]($Stage.ok -and $jsonOk -and $cs.Count -eq 0)
+    $skip = ''
+    if ($cs.Count -gt 0) { $skip = "skipped: the project doesn't compile (" + ($cs.Files -join ', ') + ')' }
+    elseif (-not $j.Data) { $skip = "skipped: the project doesn't compile or stage A never finished its job ($($j.Problem))" }
+    elseif ($jobError) { $skip = "skipped: stage A's editor job failed ($(Limit-Text ([string]$j.Data.error) 120))" }
+    return @{ SkipReason = $skip }
+}
+
+# Stage B: capture.json's recorded scenes and error.
+function Update-CaptureStage {
+    param($Stage, [string]$JsonPath)
+    $j = Read-StageJson $JsonPath
+    if ($j.Data) {
+        if ($j.Data.recorded) { Add-StageNote $Stage "recorded: $($j.Data.recorded)" }
+        if ($j.Data.error) { Add-StageNote $Stage ("capture error: " + (Limit-Text ([string]$j.Data.error))) }
+        $Stage.ok = [bool]($Stage.ok -and ($j.Data.ok -eq $true))
+    } else {
+        Add-StageNote $Stage $j.Problem
+        $Stage.ok = $false
+    }
+}
+
+# Stage C: build.json's error and error count.
+function Update-BuildStage {
+    param($Stage, [string]$JsonPath)
+    $j = Read-StageJson $JsonPath
+    if ($j.Data) {
+        if ($j.Data.errors) { Add-StageNote $Stage "build errors: $($j.Data.errors)" }
+        if ($j.Data.error) { Add-StageNote $Stage ("build error: " + (Limit-Text ([string]$j.Data.error))) }
+        $Stage.ok = [bool]($Stage.ok -and ($j.Data.ok -eq $true))
+    } else {
+        Add-StageNote $Stage $j.Problem
+        $Stage.ok = $false
+    }
+}
 
 # Folds the probe's perf.json into stage D's entry (mutates $Stage). Never throws: a missing, truncated or incomplete file
 # fails the stage with a note, and the stage's own failure note ("timed out...", "exit code N") is kept in front of it.
@@ -140,6 +245,74 @@ if ($SelfTest) {
     if ($joined -notlike 'run python "*capped-run.py" --session skyline-repo --need 3 --retries 1 --no-keep-awake -- "C:\Program Files\Unity\Unity.exe" -batchmode -projectPath "C:\a b\proj"') { throw "self-test: capped launch is wrong: $joined" }
     $l2 = Get-StageLaunch -Exe 'C:\x.exe' -StageArgs @('-a')
     if ($l2.File -ne 'C:\x.exe' -or ($l2.Args -join ' ') -ne '-a') { throw 'self-test: an uncapped launch must start the program itself' }
+
+    # an editor opened on the project while the stage waited for the lock: that stage fails, the runner doesn't crash, the lock is released
+    $origAssert = ${function:Assert-ProjectUnlocked}
+    try {
+        ${function:Assert-ProjectUnlocked} = { throw 'simulated: the Unity editor has this project open' }
+        $r5 = Invoke-Stage -Name 'open' -Exe 'powershell' -StageArgs @('-NoProfile', '-Command', 'exit 0') -TimeoutSec 30 -Log '' -Locked -CheckProject
+    } finally { ${function:Assert-ProjectUnlocked} = $origAssert }
+    if ($r5.ok -or $r5.note -notlike 'simulated: the Unity editor*') { throw "self-test: an open editor was not reported as the stage's failure ($($r5 | ConvertTo-Json -Compress))" }
+    if (Test-Path $script:LockDir) { throw 'self-test: lock left behind after an open-editor failure' }
+
+    # stages A, B, C: the result files folded into the manifest notes, and A's compile-failure skip
+    $dirJ = Join-Path ([IO.Path]::GetTempPath()) "skyline-pass-json-selftest-$PID"
+    New-Item -ItemType Directory -Force $dirJ | Out-Null
+    try {
+        function New-TestStage {
+            param($ok = $true, $note = '')
+            [pscustomobject]@{ name = 'X'; ok = $ok; seconds = 1; log = ''; note = $note }
+        }
+        $logOk = Join-Path $dirJ 'a-ok.log'; Set-Content -LiteralPath $logOk -Value 'Refresh completed' -Encoding utf8
+        $logCs = Join-Path $dirJ 'a-cs.log'
+        Set-Content -LiteralPath $logCs -Encoding utf8 -Value @('Assets/Other/Thing.cs(5,14): error CS0234: namespace missing', 'Assets/Other/Thing.cs(9,1): error CS1002: ; expected', 'Packages/x/Y.cs(2,2): error CS0103: nope')
+        $jf = Join-Path $dirJ 'editor-batch.json'
+        $okJson = '{"ok":true,"tests":{"passed":40,"failed":0,"skipped":0,"failures":[]},"scenes":["a","b"],"error":null}'
+        $failJson = '{"ok":false,"tests":{"passed":38,"failed":2,"skipped":0,"failures":["T.One: expected 1","T.Two: expected 2"]},"scenes":["a","b"],"error":null}'
+        $errJson = '{"ok":false,"tests":{"passed":0,"failed":0,"skipped":0,"failures":[]},"scenes":[],"error":"System.Exception: scene build blew up"}'
+
+        Set-Content -LiteralPath $jf -Value $okJson -Encoding utf8
+        $s = New-TestStage; $i = Update-BatchStage -Stage $s -JsonPath $jf -Log $logOk
+        if (-not $s.ok -or $i.SkipReason -or $s.note -ne 'tests: 40 passed, 0 failed, 0 skipped') { throw "self-test: batch good case: ok=$($s.ok) skip='$($i.SkipReason)' note='$($s.note)'" }
+        Set-Content -LiteralPath $jf -Value $failJson -Encoding utf8
+        $s = New-TestStage; $i = Update-BatchStage -Stage $s -JsonPath $jf -Log $logOk
+        if ($s.ok -or $i.SkipReason -or $s.note -notlike '*2 failed*failures: T.One: expected 1 | T.Two: expected 2*') { throw "self-test: batch test-failure case: ok=$($s.ok) skip='$($i.SkipReason)' note='$($s.note)'" }
+        Set-Content -LiteralPath $jf -Value $errJson -Encoding utf8
+        $s = New-TestStage; $i = Update-BatchStage -Stage $s -JsonPath $jf -Log $logOk
+        if ($s.ok -or $i.SkipReason -notlike 'skipped: stage A''s editor job failed*' -or $s.note -notlike '*editor job error: System.Exception: scene build blew up*') { throw "self-test: batch job-error case: ok=$($s.ok) skip='$($i.SkipReason)' note='$($s.note)'" }
+        Remove-Item -LiteralPath $jf
+        $s = New-TestStage $false 'exit code 1'; $i = Update-BatchStage -Stage $s -JsonPath $jf -Log $logCs     # a compile error: no json, error CS in the log
+        if ($s.ok -or $i.SkipReason -ne "skipped: the project doesn't compile (Assets/Other/Thing.cs, Packages/x/Y.cs)" -or $s.note -notlike 'exit code 1; no editor-batch.json written; 3 ''error CS'' line(s)*Assets/Other/Thing.cs, Packages/x/Y.cs') { throw "self-test: batch compile-error case: ok=$($s.ok) skip='$($i.SkipReason)' note='$($s.note)'" }
+        $s = New-TestStage; $i = Update-BatchStage -Stage $s -JsonPath $jf -Log $logOk                    # no json and no compile error: still not run on
+        if ($s.ok -or $i.SkipReason -notlike 'skipped: the project doesn''t compile or stage A never finished*') { throw "self-test: batch no-json case: ok=$($s.ok) skip='$($i.SkipReason)'" }
+        Set-Content -LiteralPath $jf -Value '{"ok":tru' -Encoding utf8                                  # a truncated file
+        $s = New-TestStage; $i = Update-BatchStage -Stage $s -JsonPath $jf -Log $logOk
+        if ($s.ok -or -not $i.SkipReason -or $s.note -notlike '*editor-batch.json unreadable*') { throw "self-test: batch truncated case: ok=$($s.ok) note='$($s.note)'" }
+
+        $cf = Join-Path $dirJ 'capture.json'
+        Set-Content -LiteralPath $cf -Value '{"ok":false,"recorded":"SkylineFiringRange;","error":"the Recorder did not start for SkylineGallery: boom"}' -Encoding utf8
+        $s = New-TestStage $true 'x'; Update-CaptureStage -Stage $s -JsonPath $cf
+        if ($s.ok -or $s.note -ne 'x; recorded: SkylineFiringRange;; capture error: the Recorder did not start for SkylineGallery: boom') { throw "self-test: capture failure case: ok=$($s.ok) note='$($s.note)'" }
+        Set-Content -LiteralPath $cf -Value '{"ok":true,"recorded":"SkylineFiringRange;SkylineGallery;","error":null}' -Encoding utf8
+        $s = New-TestStage; Update-CaptureStage -Stage $s -JsonPath $cf
+        if (-not $s.ok -or $s.note -ne 'recorded: SkylineFiringRange;SkylineGallery;') { throw "self-test: capture good case: ok=$($s.ok) note='$($s.note)'" }
+        Remove-Item -LiteralPath $cf
+        $s = New-TestStage; Update-CaptureStage -Stage $s -JsonPath $cf
+        if ($s.ok -or $s.note -ne 'no capture.json written') { throw "self-test: capture missing case: ok=$($s.ok) note='$($s.note)'" }
+
+        $bf = Join-Path $dirJ 'build.json'
+        Set-Content -LiteralPath $bf -Value '{"ok":false,"exe":"x","seconds":5,"errors":3,"error":"System.Exception: nope"}' -Encoding utf8
+        $s = New-TestStage; Update-BuildStage -Stage $s -JsonPath $bf
+        if ($s.ok -or $s.note -ne 'build errors: 3; build error: System.Exception: nope') { throw "self-test: build failure case: ok=$($s.ok) note='$($s.note)'" }
+        Set-Content -LiteralPath $bf -Value '{"ok":true,"exe":"x","seconds":5,"errors":0,"error":null}' -Encoding utf8
+        $s = New-TestStage; Update-BuildStage -Stage $s -JsonPath $bf
+        if (-not $s.ok -or $s.note) { throw "self-test: build good case: ok=$($s.ok) note='$($s.note)'" }
+        Remove-Item -LiteralPath $bf
+        $s = New-TestStage; Update-BuildStage -Stage $s -JsonPath $bf
+        if ($s.ok -or $s.note -ne 'no build.json written') { throw "self-test: build missing case: ok=$($s.ok) note='$($s.note)'" }
+    } finally {
+        Remove-Item -LiteralPath $dirJ -Recurse -Force -ErrorAction SilentlyContinue
+    }
 
     # stage D's perf.json handling: every bad file fails the stage with a note and none of them throws
     $dir = Join-Path ([IO.Path]::GetTempPath()) "skyline-pass-perf-selftest-$PID"
@@ -198,37 +371,57 @@ try {
     $proj = "`"$RepoRoot`""
 
     if ($preflightOk) {
+        # Results of an earlier pass in a reused -Out folder must never stand in for this one.
+        foreach ($stale in 'editor-batch.json', 'capture.json', 'build.json', 'perf.json', 'rec-SkylineFiringRange.mp4', 'rec-SkylineGallery.mp4',
+                           'still-SkylineFiringRange.png', 'still-SkylineGallery.png', 'build\SkylineRepo.exe') {
+            Remove-Item -LiteralPath (Join-Path $Out $stale) -Force -ErrorAction SilentlyContinue
+        }
         # A: editor batch job (tests, scenes)
         $log = Join-Path $Out 'stage-a-editor-batch.log'
         # (batch mode, no GPU: through the memory cap)
-        $stages += Invoke-Stage -Name 'A editor batch' -Exe $unity -Locked -Capped -TimeoutSec 1800 -Log $log -StageArgs @(
+        $a = Invoke-Stage -Name 'A editor batch' -Exe $unity -Locked -Capped -CheckProject -TimeoutSec 1800 -Log $log -StageArgs @(
             '-batchmode', '-projectPath', $proj, '-logFile', "`"$log`"",
             '-executeMethod', 'JamKit.SkylineRepo.EditorTools.SkylinePassBatch.RunFromCommandLine', '-skylineOut', "`"$Out`"")
+        $aInfo = Update-BatchStage -Stage $a -JsonPath (Join-Path $Out 'editor-batch.json') -Log $log
+        $stages += $a
 
-        # B: graphics editor recording (audio plays only outside batch mode; a normal window so it keeps presenting).
-        # Uncapped (the D3D11 device needs the memory a Job Object cap refuses); -silent-crashes: a crash exits, no dialog.
-        $log = Join-Path $Out 'stage-b-capture.log'
-        $stages += Invoke-Stage -Name 'B recording' -Exe $unity -Locked -MinFreeGB 3 -TimeoutSec 900 -Log $log -WindowStyle Normal -StageArgs @(
-            '-projectPath', $proj, '-logFile', "`"$log`"", '-silent-crashes',
-            '-executeMethod', 'JamKit.SkylineRepo.EditorTools.Recording.SkylineCapture.RunFromCommandLine', '-skylineOut', "`"$Out`"")
-
-        # C: Windows build of Skyline's scenes (batch mode: through the memory cap)
-        $log = Join-Path $Out 'stage-c-build.log'
-        $stages += Invoke-Stage -Name 'C build' -Exe $unity -Locked -Capped -TimeoutSec 1800 -Log $log -StageArgs @(
-            '-batchmode', '-quit', '-projectPath', $proj, '-logFile', "`"$log`"",
-            '-executeMethod', 'JamKit.SkylineRepo.EditorTools.SkylineBuild.BuildFromCommandLine', '-skylineOut', "`"$Out`"")
-
-        # D: the built player's frame-time probe (windowed 1080p, normal window, not batch mode; uncapped like B)
-        $exe = Join-Path $Out 'build\SkylineRepo.exe'
-        if (Test-Path $exe) {
-            $log = Join-Path $Out 'stage-d-perf.log'
-            $d = Invoke-Stage -Name 'D perf' -Exe $exe -Locked -MinFreeGB 3 -TimeoutSec 180 -Log $log -WindowStyle Normal -StageArgs @(
-                '-screen-fullscreen', '0', '-screen-width', '1920', '-screen-height', '1080', '-logFile', "`"$log`"", '-silent-crashes',
-                '-skyline-perf', "`"$Out`"")
-            Update-PerfStage -Stage $d -PerfPath (Join-Path $Out 'perf.json')
-            $stages += $d
+        if ($aInfo.SkipReason) {
+            # A graphics editor on a project that doesn't compile shows a blocking safe-mode dialog: don't start B, C or D.
+            foreach ($n in 'B recording', 'C build', 'D perf') {
+                $stages += [pscustomobject]@{ name = $n; ok = $false; seconds = 0; log = ''; note = $aInfo.SkipReason }
+            }
         } else {
-            $stages += [pscustomobject]@{ name = 'D perf'; ok = $false; seconds = 0; log = ''; note = 'skipped: no build' }
+            # B: graphics editor recording (audio plays only outside batch mode; a normal window so it keeps presenting).
+            # Uncapped (the D3D11 device needs the memory a Job Object cap refuses); -silent-crashes: a crash exits, no dialog.
+            $log = Join-Path $Out 'stage-b-capture.log'
+            $b = Invoke-Stage -Name 'B recording' -Exe $unity -Locked -CheckProject -MinFreeGB 3 -TimeoutSec 900 -Log $log -WindowStyle Normal -StageArgs @(
+                '-projectPath', $proj, '-logFile', "`"$log`"", '-silent-crashes',
+                '-executeMethod', 'JamKit.SkylineRepo.EditorTools.Recording.SkylineCapture.RunFromCommandLine', '-skylineOut', "`"$Out`"")
+            Update-CaptureStage -Stage $b -JsonPath (Join-Path $Out 'capture.json')
+            $stages += $b
+
+            # C: Windows build of Skyline's scenes (batch mode: through the memory cap). -buildTarget Win64 sets the target when
+            # the editor opens (Unity's own switch-then-import path) instead of leaving BuildPipeline to switch it mid-method.
+            # A project whose active target was WebGL may be left on Win64 afterwards: tell the Visiting Hours session.
+            $log = Join-Path $Out 'stage-c-build.log'
+            $c = Invoke-Stage -Name 'C build' -Exe $unity -Locked -Capped -CheckProject -TimeoutSec 1800 -Log $log -StageArgs @(
+                '-batchmode', '-quit', '-buildTarget', 'Win64', '-projectPath', $proj, '-logFile', "`"$log`"",
+                '-executeMethod', 'JamKit.SkylineRepo.EditorTools.SkylineBuild.BuildFromCommandLine', '-skylineOut', "`"$Out`"")
+            Update-BuildStage -Stage $c -JsonPath (Join-Path $Out 'build.json')
+            $stages += $c
+
+            # D: the built player's frame-time probe (windowed 1080p, normal window, not batch mode; uncapped like B)
+            $exe = Join-Path $Out 'build\SkylineRepo.exe'
+            if (Test-Path $exe) {
+                $log = Join-Path $Out 'stage-d-perf.log'
+                $d = Invoke-Stage -Name 'D perf' -Exe $exe -Locked -MinFreeGB 3 -TimeoutSec 180 -Log $log -WindowStyle Normal -StageArgs @(
+                    '-screen-fullscreen', '0', '-screen-width', '1920', '-screen-height', '1080', '-logFile', "`"$log`"", '-silent-crashes',
+                    '-skyline-perf', "`"$Out`"")
+                Update-PerfStage -Stage $d -PerfPath (Join-Path $Out 'perf.json')
+                $stages += $d
+            } else {
+                $stages += [pscustomobject]@{ name = 'D perf'; ok = $false; seconds = 0; log = ''; note = 'skipped: no build' }
+            }
         }
     }
 
@@ -259,9 +452,11 @@ try {
 } finally {
     Set-KeepAwake $false
     $allOk = (@($stages).Count -gt 0) -and -not (@($stages) | Where-Object { -not $_.ok })
+    $manifestWritten = $false
     try {
         New-Item -ItemType Directory -Force $Out | Out-Null
         [pscustomobject]@{ ok = $allOk; out = $Out; stages = @($stages) } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $Out 'manifest.json') -Encoding utf8
+        $manifestWritten = $true
     } catch {
         $allOk = $false
         Write-Host "SkylinePass: could not write manifest.json in '$Out': $($_.Exception.Message)"
@@ -269,4 +464,6 @@ try {
     @($stages) | Format-Table name, ok, seconds, note -AutoSize | Out-String -Width 220 | Write-Host
     Write-Host "SkylinePass $(if ($allOk) { 'OK' } else { 'FAILED' }): $Out"
 }
-if ($allOk) { exit 0 } else { exit 1 }
+# The exit code says whether the RUNNER worked: 0 whenever manifest.json was written (its "ok" field carries pass or fail, so a
+# failed stage is not a failed runner); non-zero only when no manifest could be written.
+if ($manifestWritten) { exit 0 } else { exit 1 }

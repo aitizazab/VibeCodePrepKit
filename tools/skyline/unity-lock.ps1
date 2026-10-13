@@ -94,7 +94,7 @@ function Enter-UnityLock {
 
 function Exit-UnityLock {
     if ($script:HeldLock -and (Test-Path -LiteralPath $script:HeldLock)) {
-        if ((Get-UnityLockOwner -Dir $script:HeldLock).Pid -eq $PID) { Remove-Item -LiteralPath $script:HeldLock -Recurse -Force }
+        if ((Get-UnityLockOwner -Dir $script:HeldLock).Pid -eq $PID) { Remove-Item -LiteralPath $script:HeldLock -Recurse -Force -ErrorAction SilentlyContinue }
     }
     $script:HeldLock = $null
 }
