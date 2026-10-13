@@ -23,6 +23,7 @@ namespace JamKit.SkylineRepo
             var args = Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++) if (args[i] == "-skyline-perf") dir = args[i + 1];
             if (dir == null) return;
+            try { File.Delete(Path.Combine(dir, "perf.json")); } catch (Exception) { /* a stale file must not pass for this run */ }
             var go = new GameObject("SkylinePerfProbe");
             DontDestroyOnLoad(go);
             var probe = go.AddComponent<SkylinePerfProbe>();
@@ -41,12 +42,21 @@ namespace JamKit.SkylineRepo
             _frames.Add(Time.unscaledDeltaTime);
             if (t < Warmup + Measure) return;
             var s = FrameStats.Summarize(_frames);
-            Directory.CreateDirectory(_outDir);
-            File.WriteAllText(Path.Combine(_outDir, "perf.json"),
-                "{\"frames\":" + s.frames + ",\"avgMs\":" + F(s.avgMs) + ",\"onePercentLowMs\":" + F(s.onePercentLowMs) +
-                ",\"worstMs\":" + F(s.worstMs) + ",\"resolution\":\"" + Screen.width + "x" + Screen.height + "\"}");
+            int exitCode = 0;
+            try
+            {
+                Directory.CreateDirectory(_outDir);
+                File.WriteAllText(Path.Combine(_outDir, "perf.json"),
+                    "{\"frames\":" + s.frames + ",\"avgMs\":" + F(s.avgMs) + ",\"onePercentLowMs\":" + F(s.onePercentLowMs) +
+                    ",\"worstMs\":" + F(s.worstMs) + ",\"resolution\":\"" + Screen.width + "x" + Screen.height + "\"}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("SKYLINE_PERF could not write perf.json: " + e.Message);
+                exitCode = 1;
+            }
             enabled = false;
-            Application.Quit(0);
+            Application.Quit(exitCode);
         }
     }
 }
