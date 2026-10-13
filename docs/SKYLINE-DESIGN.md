@@ -800,6 +800,9 @@ Fixed (technical and clarity):
 - **Encounter density:** Normal fights are big: the food court has at least 12 drones, and the intended way through is
   splitting them into small groups with cover and clearing them a few at a time, not thinning them out. The headless
   checks model the player shooting back and the cover.
+- **Music changes per floor, on a gradient:** comical and goofy at the bottom, more serious towards the top (the full
+  progression isn't mapped yet). The first floor's idea: a remix or reimagining of the Subway Surfers theme (see
+  pending item 8 on rights). Floor music is composed with the creator, layer by layer, like the Premonition remix.
 
 ### Pending the creator (the defaults below are used until they answer)
 1. **The ears before the jam:** measurements, pictures and reference comparison only; the classifier + Gemini judge
@@ -817,3 +820,7 @@ Fixed (technical and clarity):
    for 1-2 runs; Lost Property is the one way to keep a past prototype permanently.
 7. **Two things from the handoff, to confirm:** the deadline ("before the lockdown becomes permanent") is kept as
    flavour in Nan's briefing, not a timer; the handoff's "naive grappling hook" is the anchor hook.
+8. **The Subway Surfers theme's rights:** the theme belongs to SYBO, and a jam game is published. A remix that keeps
+   its melody needs permission or a jam rule that allows it. A reimagining that borrows its sound (bright plucks, a
+   whistled hook, a bouncy hip-hop beat) with a new melody is ours. *Default: the reimagining, unless the jam's rules
+   allow the remix.* Still to map: the floors in between, and how serious the top gets.
