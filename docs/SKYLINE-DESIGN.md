@@ -104,10 +104,10 @@ Two guns plus one gadget. Swapping between the two guns is a designed moment (an
     many spot hits the last magazine landed. Capstone: any damage source can hit the spots, area damage included.
   - **Breacher**, a door-breach shotgun. Identity: knockback, **including on yourself**. The self-knockback is
     momentum you can carry into an air-strafe (like TF2's Soldier rocket-jumping, or Destiny 2's Micro-Missile frame
-    grenade launchers), so it's a movement tool as well as a gun. **Limits (proposed, pending the creator; tunable
-    data):** one boost per airtime, refreshed by landing or touching a wall; no self-damage; it doesn't refresh the
-    double jump; its height is about the jump upgrade's, so tools and height stories keep their value. The clean-line
-    checks model one boost per airtime.
+    grenade launchers), so it's a movement tool as well as a gun. **Limits (the creator, 2026-10-13; tunable data):**
+    the boost is limited only by the gun's fire rate (and its magazine and reload); each shot sets the rise speed
+    rather than adding to it, so chained shots climb in steps; no self-damage; it doesn't refresh the double jump; one
+    shot's lift is about the jump upgrade's height. (The old one-boost-per-airtime rule remains a data switch, off.)
   - **Nailer**, an SMG that pins light bots to walls.
   - **Tow Line**, a cable rifle that yanks small bots to you.
 - **Galleria prototypes** (found in runs; each changes a verb):
@@ -801,8 +801,8 @@ Fixed (technical and clarity):
    after the API key exists. *Default: yes.* No minimal generator before the jam (it doesn't fit next to M1).
 2. **Story rooms:** a district has 6-8 floors but the Galleria has 3 recruits. *Proposal:* a pool of story rooms per
    district, each advancing one beat per run (a subplot unfolds over several runs), not one new subplot per floor.
-3. **The Breacher's limits** (2.2): one boost per airtime, refreshed by landing or a wall, no self-damage, about the
-   jump upgrade's height. *Default: built this way as tunable data; the creator tunes it by playing M1.*
+3. **The Breacher's limits** (2.2): *answered 2026-10-13: limited only by its fire rate (see the creator's calls
+   above).*
 4. **Costs for failed objectives** (a destroyed uplink, an escaped chase bot, a missed escalator timer, a failed
    recruit subplot): *Proposal:* a failed objective lowers both exit rewards; a recruit can be retried on a later run.
    Is helping Manny (hide or tow) a real choice? If so it needs a visible consequence.
