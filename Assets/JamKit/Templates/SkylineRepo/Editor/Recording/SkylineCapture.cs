@@ -22,7 +22,8 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
     public static class SkylineCapture
     {
         const string KeyIndex = "SkylineCapture.Index", KeyOut = "SkylineCapture.Out", KeyActive = "SkylineCapture.Active",
-                     KeyResults = "SkylineCapture.Results", KeyStarted = "SkylineCapture.Started", KeyPhase = "SkylineCapture.Phase";
+                     KeyResults = "SkylineCapture.Results", KeyStarted = "SkylineCapture.Started", KeyPhase = "SkylineCapture.Phase",
+                     KeyRunInBackground = "SkylineCapture.RunInBackground";
         const int PhaseStarting = 0, PhaseRecording = 1, PhaseExiting = 2, PhaseFinalizing = 3;
         const int RecordFrames = 8 * 60, StillFrame = 2 * 60;      // 8 s of video at a constant 60 fps; the still at 2 s
         const float Settle = 1f, Deadline = 300f, FileWait = 10f;
@@ -60,6 +61,7 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
             SessionState.SetInt(KeyPhase, PhaseStarting);
             SessionState.SetFloat(KeyStarted, (float)EditorApplication.timeSinceStartup);
             SessionState.SetBool(KeyActive, true);
+            SessionState.SetBool(KeyRunInBackground, PlayerSettings.runInBackground);   // restored by Finish
             if (Application.isBatchMode)
             {
                 Finish(false, "batch mode mutes audio and cannot record: launch the editor without -batchmode and -nographics");
@@ -111,6 +113,9 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
         static void TickStarting(double now)
         {
             if (!EditorApplication.isPlaying || EditorApplication.isPaused) return;
+            // Play mode only: keep presenting if the window loses focus (the recording must not stall). Finish puts the shared
+            // PlayerSettings value back in case the editor mirrors this into the project asset.
+            Application.runInBackground = true;
             if (_settleStart < 0) _settleStart = now;            // first tick in Play mode (statics reset by the reload)
             if (now - _settleStart < Settle) return;
             StartRecording();
@@ -230,6 +235,12 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
             }
             string dir = SessionState.GetString(KeyOut, "");
             SessionState.SetBool(KeyActive, false);
+            try
+            {
+                bool original = SessionState.GetBool(KeyRunInBackground, PlayerSettings.runInBackground);
+                if (PlayerSettings.runInBackground != original) PlayerSettings.runInBackground = original;
+            }
+            catch (Exception) { /* the pass is ending anyway */ }
             try
             {
                 if (!string.IsNullOrEmpty(dir))

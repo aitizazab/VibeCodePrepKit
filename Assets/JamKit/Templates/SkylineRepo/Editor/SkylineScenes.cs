@@ -7,7 +7,7 @@ namespace JamKit.SkylineRepo.EditorTools
 {
     /// <summary>Builds the pipeline's scenes from code each pass (they're generated, not committed): the firing range
     /// and the enemy gallery. In M0 both are empty-but-working: a floor, a light, a camera with an audio listener, and
-    /// the test tone in the firing range.</summary>
+    /// the test tone in the firing range; both carry the SkylineSceneGuard that keeps the shared GameRoot out.</summary>
     public static class SkylineScenes
     {
         public const string Folder = "Assets/JamKit/Templates/SkylineRepo/Generated";
@@ -26,6 +26,10 @@ namespace JamKit.SkylineRepo.EditorTools
         static void Build(string path, bool withTone)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            // Visiting Hours' shared shell (GameRoot) would start a run and save to the shared save.json in any scene; the guard
+            // removes it in its Awake, before any other script of the scene (see SkylineSceneGuard).
+            new GameObject("SkylineSceneGuard").AddComponent<JamKit.SkylineRepo.SkylineSceneGuard>();
 
             var sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional;

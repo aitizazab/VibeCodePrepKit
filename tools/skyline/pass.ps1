@@ -211,7 +211,7 @@ function Update-PerfStage {
             if (-not (Test-IsNumber $p.onePercentLowMs) -or $p.onePercentLowMs -le 0) { $problems += 'onePercentLowMs missing or not above 0' }
             elseif ($p.onePercentLowMs -gt 16.7) { $problems += '1% low over 16.7 ms' }
             if ($p.resolution -ne '1920x1080') { $problems += "resolution is '$($p.resolution)', not 1920x1080" }
-            $perfNote = "avg $($p.avgMs) ms, 1% low $($p.onePercentLowMs) ms (blocker over 16.7), $($p.resolution)"
+            $perfNote = "avg $($p.avgMs) ms, 1% low $($p.onePercentLowMs) ms (blocker over 16.7), $($p.resolution)$(if ($p.gpu) { ", gpu $($p.gpu)" })"
             if ($problems.Count -gt 0) { $perfNote += '; ' + ($problems -join '; ') } else { $perfOk = $true }
         } catch {
             $perfNote = "perf.json unreadable: $($_.Exception.Message)"
@@ -321,6 +321,7 @@ if ($SelfTest) {
         $good = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"worstMs":15.0,"resolution":"1920x1080"}'
         $cases = @(
             @{ n = 'good'; json = $good; ok = $true; like = '*1% low 11.2*' },
+            @{ n = 'with gpu'; json = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"worstMs":15.0,"resolution":"1920x1080","gpu":"NVIDIA GeForce RTX 3050"}'; ok = $true; like = '*1920x1080, gpu NVIDIA GeForce RTX 3050' },
             @{ n = 'truncated'; json = '{"frames":1200,"avgMs":8.1,"onePerc'; ok = $false; like = '*unreadable*' },
             @{ n = 'garbage'; json = 'not json at all'; ok = $false; like = '*unreadable*' },
             @{ n = 'missing low'; json = '{"frames":1200,"avgMs":8.1,"resolution":"1920x1080"}'; ok = $false; like = '*onePercentLowMs missing*' },

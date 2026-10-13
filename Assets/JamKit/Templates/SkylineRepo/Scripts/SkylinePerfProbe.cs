@@ -31,9 +31,11 @@ namespace JamKit.SkylineRepo
             probe._start = Time.realtimeSinceStartup;
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = -1;
+            Application.runInBackground = true;      // this run only (the player's own setting, never the shared PlayerSettings asset): a window that loses focus must keep presenting
         }
 
         static string F(float v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+        static string Esc(string s) => (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"");
 
         void Update()
         {
@@ -48,7 +50,7 @@ namespace JamKit.SkylineRepo
                 Directory.CreateDirectory(_outDir);
                 File.WriteAllText(Path.Combine(_outDir, "perf.json"),
                     "{\"frames\":" + s.frames + ",\"avgMs\":" + F(s.avgMs) + ",\"onePercentLowMs\":" + F(s.onePercentLowMs) +
-                    ",\"worstMs\":" + F(s.worstMs) + ",\"resolution\":\"" + Screen.width + "x" + Screen.height + "\"}");
+                    ",\"worstMs\":" + F(s.worstMs) + ",\"resolution\":\"" + Screen.width + "x" + Screen.height + "\",\"gpu\":\"" + Esc(SystemInfo.graphicsDeviceName) + "\"}");
             }
             catch (Exception e)
             {
