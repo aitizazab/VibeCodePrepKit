@@ -2,6 +2,36 @@
 
 Newest first. Every agent result and every Unity pass gets an entry (what was done, numbers, paths, decisions needed).
 
+## 2026-10-13 early morning: M0 done (first green SkylinePass at 07:07)
+
+- **Final whole-branch review (Opus): ready with fixes.** Two critical findings:
+  - Skyline broke Visiting Hours' core-tests compile gate (their globs picked up SkylineRepo).
+  - The recording editor crashed natively under the memory cap.
+
+  One fix wave addressed everything (commits 11c3ebe, bf1ed0f, 4ae6f96, b3b1d29, a1693a5), and a re-review found
+  nothing new broken. The Visiting Hours session agreed to the two `Compile Remove` lines and wasn't blocked: its
+  overnight runs skip that step.
+- **First Unity runs:**
+  - **Pass 1** found a compile break in Visiting Hours' DreamHouseBuilder.cs (a missing render-pipeline reference).
+    That session fixed it at our report (9daceca).
+  - **Pass 2:** stage A was green, then the graphics editor crashed under the cap.
+  - **Pass 3 (out/skyline/20261013-0707): all green.**
+    - A: 28/28 tests in Unity.
+    - B: both scenes recorded, with audio.
+    - C: the build succeeded.
+    - D: average 1.33 ms, 1% low 3.27 ms at 1920x1080, RTX 3050.
+    - E: the 440 Hz tone was found in the recording.
+- **Forge-to-ears round trip:** `test_tone.json` measured a 440 Hz centroid, a 450 ms tail, -9.0 dBFS and no clipping.
+- **M0 exit criteria (spec 11.1): all met.**
+  1. The assembly and tests build; Visiting Hours' tests are unchanged and their gate is fixed.
+  2. The decision log and the Ledger's recording side exist, with tests.
+  3. The headless combat sim exists.
+  4. SkylinePass runs end to end with a manifest.
+  5. The forge renders and the ears report.
+- **The creator's XXL voice run:** paused at 06:31 at their request, so Skyline's pass could use the GPU and memory.
+  Restarted at 07:33 once the pass was done.
+- How to run everything: docs/SKYLINE-PIPELINE.md. Technical decisions are logged in the spec's section 14.
+
 ## 2026-10-13 (later): M0 being built (plan docs/SKYLINE-PLAN-M0.md, one agent per task, reviewed task by task)
 
 - **Done and reviewed:**

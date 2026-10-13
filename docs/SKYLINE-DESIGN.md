@@ -736,6 +736,23 @@ Fixed (technical and clarity):
 - A teaching map (6.8).
 - The generator is new code; `RunGeneration` only plans room-type sequences (9.1).
 
+### 2026-10-13: while building M0 (technical, decided and logged)
+- **The pass is four one-job lock holds** (A batch: tests and scenes; B graphics editor: recordings; C build; D the
+  built player's frame time), plus an audio check without Unity. The recordings come from a graphics editor session,
+  not the built player, because Unity's Recorder only works in the editor. 9.4 above describes three holds; the
+  how-to is docs/SKYLINE-PIPELINE.md.
+- **Stages B and D run outside the memory cap.** Under capped-run's Job Object, the graphics editor crashed natively,
+  as the machine's rules warn for GPU programs. A and C stay capped.
+- **The dodge measurement's jinking bot reverses across the line of fire,** averaged over 5 seeds. The planned version
+  strafed towards and away from the shooter, which measured nothing. First numbers against one leading drone:
+  straight-line 12 hits a minute, jinking 2.0, ratio 6.0. M1 tunes towards ~2 with real encounters (2+ bearings).
+  Also for M1: the spotlight's lag lets straight running dodge it too.
+- **The sound forge's pan law is constant-power** (centre -3 dB). The planned version jumped 3 dB at hard pan.
+- **Skyline scenes remove the shared GameRoot** (SkylineSceneGuard). It belongs to Visiting Hours and would start a
+  run, apply the creator's settings and write their save.json.
+- **Skyline has its own Unity-side compile check** and is excluded from Visiting Hours' core-tests compile gate (one
+  line in each of two shared files, agreed with that session).
+
 ### Pending the creator (the defaults below are used until they answer)
 1. **The ears before the jam:** measurements, pictures and reference comparison only; the classifier + Gemini judge
    after the API key exists. *Default: yes.* No minimal generator before the jam (it doesn't fit next to M1).
