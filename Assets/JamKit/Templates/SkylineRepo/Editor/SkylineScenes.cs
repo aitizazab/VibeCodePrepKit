@@ -18,8 +18,8 @@ namespace JamKit.SkylineRepo.EditorTools
         public const string Gallery = Folder + "/SkylineGallery.unity";
         public static readonly string[] All = { Arena, FiringRange, Gallery };
 
-        /// <summary>Seconds stage B records each scene (its director's script fits inside).</summary>
-        public static int RecordSeconds(string scene) => scene == Arena ? 60 : scene == FiringRange ? 45 : 36;
+        /// <summary>Seconds stage B records each scene (its director's script fits inside; the gallery: four segments of 12, 12, 12 and 14 s, a 1 s lead-in, the recorder's start and a 3 s stills hold, about 55 s).</summary>
+        public static int RecordSeconds(string scene) => scene == Arena ? 60 : scene == FiringRange ? 45 : 58;
 
         public static string[] BuildAll()
         {
