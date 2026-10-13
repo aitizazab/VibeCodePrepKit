@@ -22,10 +22,10 @@ namespace JamKit.SkylineRepo.EditorTools
     /// <item><b>The main hall</b> (x -25..25, z -20..20, walls 14 m, a glass skylight roof at 14 m): runnable walls all
     /// round with glass shop fronts (no colliders; the walls behind them are the runnable surfaces), so the side walls by the
     /// gondolas' rails are a wall-run route; the mezzanine deck exactly as <see cref="GalleriaArena.MezzanineDeck"/> (solid,
-    /// so it blocks sight above and below except past its open edge at z 12) with a glass balustrade (no collider) and two
-    /// plinths under the spotlights' bases; the cover exactly as <see cref="GalleriaArena.HallCover"/> (14 boxes, solid, not
+    /// so it blocks sight above and below except past its open edge at z 12) with a glass balustrade and two plinths under
+    /// the spotlights' bases (both dressing, no colliders); the cover exactly as <see cref="GalleriaArena.HallCover"/> (14 boxes, solid, not
     /// runnable), a pillar's top split where it meets the deck so no two solids overlap; the three encounter zones and
-    /// their spawn markers.</item>
+    /// their spawn markers; the entry lane's floor marker (shown while the next fight waits).</item>
     /// <item>The HUD, a 2D voice source, the <see cref="SkylineArenaDirector"/>, the <see cref="SkylineArenaDemo"/>, the sun
     /// at 50 degrees with a procedural sky, and eight <see cref="SkylineStillCamera"/>s.</item>
     /// </list>
@@ -131,11 +131,18 @@ namespace JamKit.SkylineRepo.EditorTools
                 if (s.enemy != SkylineEnemies.SpotlightId) continue;
                 float baseY = s.position.Y - SpotlightBaseBelow;
                 if (baseY <= deck.max.Y + 0.01f) continue;
+                // dressing only: no collider, so FightSim's sightlines (HallCover + the deck) are exactly the arena's
                 Box(hall, "Spotlight Plinth " + (s.position.X < 0f ? "West" : "East"), V(s.position.X - 0.5f, deck.max.Y, deck.min.Z),
-                    V(s.position.X + 0.5f, baseY, s.position.Z + 0.4f), mDeck, true, false);
+                    V(s.position.X + 0.5f, baseY, s.position.Z + 0.4f), mDeck, false, null, true);
             }
 
             ShopFronts(hall, mGlass, mSign);
+
+            // the entry lane where every fight after the food court starts: a plain lit floor marker, shown by the director
+            // while the next fight is armed
+            var entryMarker = Box(hall, "Entry Marker", V(GalleriaArena.EntryZoneMinX, 0f, GalleriaArena.EntryZoneMinZ),
+                V(GalleriaArena.EntryZoneMaxX, 0.01f, GalleriaArena.EntryZoneMaxZ), Lit("SK_EntryMarker", new Color(0.95f, 0.72f, 0.2f)), false, null, true);
+            NoShadow(entryMarker);
 
             // the cover: exactly HallCover()'s boxes; where a box reaches into the deck's slab, the part inside is left out
             // (the deck is solid there anyway), so the union is the data's and no two solids overlap
@@ -175,6 +182,7 @@ namespace JamKit.SkylineRepo.EditorTools
             director.cache = cache;
             director.voice = voice;
             director.botsRoot = new GameObject("Bots").transform;
+            director.entryMarker = entryMarker;
 
             var demo = new GameObject("Arena Demo").AddComponent<SkylineArenaDemo>();
             demo.player = player;
@@ -252,16 +260,17 @@ namespace JamKit.SkylineRepo.EditorTools
         }
 
         /// <summary>The three encounter zones (no colliders: the director tests the player's feet), each with its spawn markers.
-        /// The food court: the hall south of z 5, so it starts as the player comes through the doorway. The skylight: the
-        /// north half (z 0..20), armed once the food court is cleared. The facade: the south band (z -20..-8), armed once the
-        /// skylight is cleared, so it starts when the player comes back toward the entry, where its bearings are measured
-        /// from and where its rails begin (z -14).</summary>
+        /// The food court: the hall south of z 5, so it starts as the player comes through the doorway. The skylight and the
+        /// facade: the entry lane round the anchor (x -6..6, z -20..-14), each armed once the fight before is cleared, so
+        /// every fight starts from <see cref="GalleriaArena.HallEntry"/>, where its balance (dodge ratio, clean line,
+        /// bearings) was measured.</summary>
         static SkylineEncounterZone[] Zones()
         {
             var root = new GameObject("Encounter Zones").transform;
             float x0 = GalleriaArena.HallMinX, x1 = GalleriaArena.HallMaxX, z0 = GalleriaArena.HallMinZ, z1 = GalleriaArena.HallMaxZ;
             var defs = GalleriaArena.Encounters();
-            var bounds = new[] { Bounds(x0, x1, z0, 5f), Bounds(x0, x1, 0f, z1), Bounds(x0, x1, z0, -8f) };
+            var entry = Bounds(GalleriaArena.EntryZoneMinX, GalleriaArena.EntryZoneMaxX, GalleriaArena.EntryZoneMinZ, GalleriaArena.EntryZoneMaxZ);
+            var bounds = new[] { Bounds(x0, x1, z0, 5f), entry, entry };
             var zones = new SkylineEncounterZone[defs.Length];
             for (int i = 0; i < defs.Length; i++)
             {

@@ -13,6 +13,10 @@ namespace JamKit.SkylineRepo
     /// <list type="bullet">
     /// <item><b>Encounters</b>, from <see cref="GalleriaArena.Encounters"/> in order (food-court, skylight, facade): each has
     /// its <see cref="SkylineEncounterZone"/>; the first is armed at the start, each next one once the one before is cleared.
+    /// The food court's zone is the hall south of z 5; every later fight's zone is the entry lane round the anchor
+    /// (<see cref="GalleriaArena.EntryZoneMinX"/>..), so each fight starts from where its balance was measured. While a later
+    /// fight is armed and not started, the <see cref="entryMarker"/> on the floor there is shown and CONCIERGE says the
+    /// next-fight notice (a repeating beat).
     /// An armed zone that holds the player's feet starts its encounter: every spawn through <see cref="SkylineBot.Spawn"/>
     /// (seeded by encounter and spawn index; target the player; the player's <see cref="WritTuning"/>; group
     /// encounter index x 100 + the data's group, so no two encounters share a group; a gondola on its rail facing away from
@@ -22,9 +26,11 @@ namespace JamKit.SkylineRepo
     /// <item><b>The ledger</b>: <see cref="LedgerRun.BeginCombat"/> at an encounter's first alert,
     /// <see cref="LedgerRun.EndCombat"/> when it is cleared, and <see cref="LedgerRun.Tick"/> every frame (the player leaves
     /// it to the arena), with <see cref="WallReach"/> against the player's movement world.</item>
-    /// <item><b>Teaching beats</b> (<see cref="TeachingBeats.M1"/>): each fires once; beats whose trigger comes at the same
-    /// time queue in the data's order, and a line starts only 0.5 s after the one before has finished (its babble's
-    /// length; lines never overlap and are never dropped). Each line goes to <see cref="SkylineHud.Say"/>, is spoken with
+    /// <item><b>Teaching beats</b> (<see cref="TeachingBeats.M1"/>): each fires once (the next-fight notice every time it
+    /// comes); they go through a <see cref="TeachingQueue"/>: each line lasts its reading time (1.5-4 s; the babble is cut to
+    /// it and the subtitle stays up for it), 0.5 s between lines, combat notices ahead of pending warm-up hints, shared
+    /// triggers in the data's order, and a warm-up hint that has waited over 20 s once the player is in the main hall is
+    /// dropped (<c>SKYLINE_LINE &lt;id&gt; dropped-stale</c>). Each line goes to <see cref="SkylineHud.Say"/>, is spoken with
     /// <see cref="SkylineBabble.Speak"/> from the 2D <see cref="voice"/>, and logs <c>SKYLINE_LINE &lt;id&gt;</c>. Triggers:
     /// WarmupStart 1 s after the start (in the editor capture: after the Recorder takes over the clock); PracticeBotSeen with
     /// the practice bot within 25 m, on screen and in sight (checked only once WarmupStart has fired, so Nan opens); FirstSpotCreated on <see cref="SkylineBot.SpotCreated"/>;
@@ -32,7 +38,7 @@ namespace JamKit.SkylineRepo
     /// FirstPlatingBreak once <see cref="PlayerArmor.PlatingBreaks"/> reaches 1; FirstSeen per enemy id the first time an
     /// encounter bot of that id goes Alert (the practice bot never counts), CONCIERGE's gondola notice included.</item>
     /// <item><b>Wrecked</b>: the Unit's wreck restarts the arena at the warm-up (Task 14's <see cref="SkylinePlayer.Wrecked"/>
-    /// and <see cref="SkylinePlayer.Restart"/>): every encounter's bots, wrecks and rails are removed, the food court is armed
+    /// and <see cref="SkylinePlayer.Restart"/>): every encounter's bots, wrecks and rails are removed (and bolts in flight), the food court is armed
     /// again, the ledger is reset, the scrap cache is put back and the player stands at <see cref="GalleriaArena.PlayerStart"/>
     /// facing +Z. Beats that have played stay played. Logs <c>SKYLINE_ARENA wrecked restart life=&lt;n&gt;</c>.</item>
     /// </list>
@@ -40,7 +46,7 @@ namespace JamKit.SkylineRepo
     public sealed class SkylineArenaDirector : MonoBehaviour
     {
         public const float BeatGap = 0.5f, WarmupDelay = 1f, PracticeSeenRange = 25f, NearLedgeRange = 6f;
-        const float RecorderWait = 8f, ChestHeight = 1.25f, FallbackLineSeconds = 3f;
+        const float RecorderWait = 8f, ChestHeight = 1.25f;
 
         public enum Phase { Waiting, Armed, Fighting, Cleared }
 
@@ -63,6 +69,8 @@ namespace JamKit.SkylineRepo
         public AudioSource voice;
         [Tooltip("Where the encounters' bots are spawned (one child per encounter).")]
         public Transform botsRoot;
+        [Tooltip("The floor marker at the entry lane, shown while a later fight is armed and waiting for the player.")]
+        public GameObject entryMarker;
 
         public SkylineBot PracticeBot { get; private set; }
         public int EncounterCount => _encounters.Count;
@@ -74,9 +82,10 @@ namespace JamKit.SkylineRepo
         readonly List<Encounter> _encounters = new List<Encounter>();
         readonly Dictionary<SkylineBot, int> _botEncounter = new Dictionary<SkylineBot, int>();
         readonly HashSet<string> _beatUsed = new HashSet<string>();
-        readonly Queue<TeachingBeat> _lines = new Queue<TeachingBeat>();
+        readonly TeachingQueue _lines = new TeachingQueue();
+        readonly List<TeachingBeat> _dropped = new List<TeachingBeat>();
         TeachingBeat[] _beats = new TeachingBeat[0];
-        float _warmupAt = -1f, _nextLineAt;
+        float _warmupAt = -1f;
         bool _started, _warmupTriggered;
 
         public Phase PhaseOf(int i) => i >= 0 && i < _encounters.Count ? _encounters[i].phase : Phase.Waiting;
@@ -104,6 +113,7 @@ namespace JamKit.SkylineRepo
                 _encounters.Add(e);
             }
             if (_encounters.Count > 0) _encounters[0].phase = Phase.Armed;
+            ShowEntryMarker(false);
 
             SkylineBot.StateEntered += OnState;
             SkylineBot.SpotCreated += OnSpot;
@@ -222,6 +232,7 @@ namespace JamKit.SkylineRepo
             var e = _encounters[i];
             e.phase = Phase.Fighting;
             e.inCombat = false;
+            ShowEntryMarker(false);
             e.bots.Clear();
             e.root = new GameObject("Encounter " + e.def.id).transform;
             if (botsRoot != null) e.root.SetParent(botsRoot, false);
@@ -278,9 +289,19 @@ namespace JamKit.SkylineRepo
             if (e.inCombat) player.Ledger.EndCombat();
             e.inCombat = false;
             Debug.Log("SKYLINE_ARENA encounter " + e.def.id + " cleared");
-            if (i + 1 < _encounters.Count && _encounters[i + 1].phase == Phase.Waiting) _encounters[i + 1].phase = Phase.Armed;
+            if (i + 1 < _encounters.Count && _encounters[i + 1].phase == Phase.Waiting)
+            {
+                _encounters[i + 1].phase = Phase.Armed;
+                ShowEntryMarker(true);
+                Trigger(BeatTrigger.NextFightArmed, null);
+            }
             EncounterCleared?.Invoke(i);
             if (i + 1 >= _encounters.Count) Debug.Log("SKYLINE_ARENA all cleared");
+        }
+
+        void ShowEntryMarker(bool on)
+        {
+            if (entryMarker != null && entryMarker.activeSelf != on) entryMarker.SetActive(on);
         }
 
         void OnCacheTaken() => Trigger(BeatTrigger.BoostLedgeReached, null);
@@ -300,6 +321,8 @@ namespace JamKit.SkylineRepo
                 e.phase = i == 0 ? Phase.Armed : Phase.Waiting;
             }
             _botEncounter.Clear();
+            foreach (var bolt in FindObjectsByType<SkylineBolt>(FindObjectsSortMode.None)) if (bolt != null) Destroy(bolt.gameObject);
+            ShowEntryMarker(false);
             player.Ledger.Reset();
             player.Restart(U(GalleriaArena.PlayerStart), 0f);
             if (cache != null) cache.ReArm();
@@ -310,7 +333,7 @@ namespace JamKit.SkylineRepo
 
         bool Fired(BeatTrigger t)
         {
-            foreach (var b in _beats) if (b.trigger == t && !_beatUsed.Contains(b.id)) return false;
+            foreach (var b in _beats) if (b.trigger == t && !b.repeats && !_beatUsed.Contains(b.id)) return false;
             return true;
         }
 
@@ -320,21 +343,28 @@ namespace JamKit.SkylineRepo
             {
                 if (b.trigger != t) continue;
                 if (t == BeatTrigger.FirstSeen && b.enemy != enemy) continue;
-                if (_beatUsed.Add(b.id)) _lines.Enqueue(b);
+                if (b.repeats)
+                {
+                    if (!_lines.Contains(b.id)) _lines.Enqueue(b, Time.unscaledTime);
+                }
+                else if (_beatUsed.Add(b.id)) _lines.Enqueue(b, Time.unscaledTime);
             }
         }
 
         void PumpLines(float now)
         {
-            if (_lines.Count == 0 || now < _nextLineAt) return;
-            var b = _lines.Dequeue();
+            _dropped.Clear();
+            var b = _lines.Next(now, MomentPassed, _dropped);
+            foreach (var d in _dropped) Debug.Log("SKYLINE_LINE " + d.id + " dropped-stale");
+            if (b == null) return;
+            float seconds = SkylineBabble.LineSeconds(b.text);
             var hud = SkylineHud.Instance;
-            if (hud != null) hud.Say(b.speaker, b.text);
+            if (hud != null) hud.Say(b.speaker, b.text, seconds);
             SkylineBabble.Speak(b.speaker, b.text, voice);
             Debug.Log("SKYLINE_LINE " + b.id);
-            // SkylineBabble.Speak's own clip (cached): its length is the line's length.
-            var clip = SkylineBabble.Make(SkylineBabble.VoiceOf(b.speaker), b.text, (int)b.speaker + 11);
-            _nextLineAt = now + (clip != null ? clip.length : FallbackLineSeconds) + BeatGap;
         }
+
+        /// <summary>A warm-up hint's moment is over once the player is in the main hall.</summary>
+        bool MomentPassed(TeachingBeat b) => player != null && player.transform.position.z > GalleriaArena.WarmupMaxZ;
     }
 }

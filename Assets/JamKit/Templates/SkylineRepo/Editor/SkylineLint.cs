@@ -10,14 +10,15 @@ namespace JamKit.SkylineRepo.EditorTools
     /// The scene lint (docs/SKYLINE-PLAN-M1.md Task 16), run by stage A on the arena. Opens the scene and returns its
     /// problems, one line each naming the object (its hierarchy path):
     /// <list type="number">
-    /// <item><c>no collider: &lt;object&gt;</c>: a MeshRenderer with no Collider on it or a parent, unless it or a parent is
+    /// <item><c>no collider: &lt;object&gt;</c>: a MeshRenderer with no enabled Collider on it or a parent, unless it or a parent is
     /// named "... (fx)" or "... (backdrop)" or carries <see cref="SkylineNoCollider"/>.</item>
     /// <item><c>static overlap: &lt;a&gt; x &lt;b&gt; (&lt;depth&gt; m)</c>: two static colliders (no rigidbody, not triggers,
     /// not the player's CharacterController, neither the other's parent or child) whose
     /// <see cref="Physics.ComputePenetration"/> depth exceeds 0.02 m. Boxes that only touch (a cover box standing on the floor,
     /// walls meeting edge to edge) have no depth and pass.</item>
     /// <item><c>unmarked wall: runnable or not? &lt;object&gt;</c>: a collider whose world bounds are at least 2 m tall and
-    /// 3 m long (a vertical face) with no <see cref="MovementSurface"/>. The marker must be on the collider's own object,
+    /// 3 m long with no <see cref="MovementSurface"/> (a box collider only when one of its axes is within about 10 degrees
+    /// of vertical, so its sides are nearly vertical faces). The marker must be on the collider's own object,
     /// which is where MovementController reads it; one only on a parent is reported as
     /// <c>wall marked on a parent only (the engine reads the collider's own): &lt;object&gt;</c>.</item>
     /// <item><c>untextured: &lt;object&gt; (&lt;material&gt;)</c>: a renderer whose material has no _BaseMap texture, unless the
@@ -47,7 +48,7 @@ namespace JamKit.SkylineRepo.EditorTools
             foreach (var r in renderers)
             {
                 if (!(r is MeshRenderer)) continue;
-                if (r.GetComponentInParent<Collider>() != null) continue;
+                if (HasEnabledCollider(r.transform)) continue;
                 if (Exempt(r.transform)) continue;
                 problems.Add("no collider: " + PathOf(r.transform));
             }
@@ -93,6 +94,7 @@ namespace JamKit.SkylineRepo.EditorTools
                 if (c == null || !c.enabled || c.isTrigger || c is CharacterController) continue;
                 var s = c.bounds.size;
                 if (s.y < WallMinHeight || Mathf.Max(s.x, s.z) < WallMinLength) continue;
+                if (c is BoxCollider && !Upright(c.transform)) continue;   // a tilted box (a ramp, a slab) has no vertical face
                 if (c.GetComponent<MovementSurface>() != null) continue;
                 if (c.GetComponentInParent<MovementSurface>() != null)
                     problems.Add("wall marked on a parent only (the engine reads the collider's own): " + PathOf(c.transform));
@@ -118,6 +120,21 @@ namespace JamKit.SkylineRepo.EditorTools
                 }
             }
             return problems;
+        }
+
+        /// <summary>An enabled collider on <paramref name="t"/> or a parent (a disabled one doesn't count).</summary>
+        static bool HasEnabledCollider(Transform t)
+        {
+            foreach (var c in t.GetComponentsInParent<Collider>(false)) if (c.enabled) return true;
+            return false;
+        }
+
+        /// <summary>One of the box's own axes is within about 10 degrees of world up, so its side faces are nearly vertical.</summary>
+        static bool Upright(Transform t)
+        {
+            const float Cos10 = 0.985f;
+            return Mathf.Abs(Vector3.Dot(t.up, Vector3.up)) > Cos10 || Mathf.Abs(Vector3.Dot(t.right, Vector3.up)) > Cos10
+                || Mathf.Abs(Vector3.Dot(t.forward, Vector3.up)) > Cos10;
         }
 
         static bool Exempt(Transform t)

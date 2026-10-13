@@ -74,12 +74,41 @@ namespace JamKit.SkylineRepo
             return clip;
         }
 
-        /// <summary>Speaks <paramref name="text"/> in <paramref name="speaker"/>'s voice from <paramref name="source"/>.</summary>
+        static readonly Dictionary<AudioClip, AudioClip> _capped = new Dictionary<AudioClip, AudioClip>();
+        const float CapFade = 0.08f;
+
+        /// <summary>Seconds a teaching line lasts: its reading time (<see cref="TeachingQueue.LineSeconds"/>, 1.5 to 4 s). The
+        /// spoken babble is cut to it and the subtitle stays up for it.</summary>
+        public static float LineSeconds(string text) => TeachingQueue.LineSeconds(text);
+
+        /// <summary>Speaks <paramref name="text"/> in <paramref name="speaker"/>'s voice from <paramref name="source"/>, cut to the
+        /// line's reading time (<see cref="LineSeconds"/>) with a short fade.</summary>
         public static void Speak(Speaker speaker, string text, AudioSource source)
         {
             if (source == null) return;
             var clip = Make(VoiceOf(speaker), text, (int)speaker + 11);
-            if (clip != null) source.PlayOneShot(clip, 1f);
+            if (clip == null) return;
+            source.PlayOneShot(Cap(clip, LineSeconds(text)), 1f);
+        }
+
+        static AudioClip Cap(AudioClip clip, float seconds)
+        {
+            if (clip.length <= seconds + 0.01f) return clip;
+            if (_capped.TryGetValue(clip, out var c) && c != null) return c;
+            int n = Mathf.Max(1, Mathf.Min(clip.samples, Mathf.RoundToInt(seconds * clip.frequency)));
+            var data = new float[n * clip.channels];
+            clip.GetData(data, 0);
+            int fade = Mathf.Min(n, Mathf.RoundToInt(CapFade * clip.frequency));
+            for (int i = 0; i < fade; i++)
+            {
+                float g = (float)i / fade;
+                int f = n - 1 - i;
+                for (int ch = 0; ch < clip.channels; ch++) data[f * clip.channels + ch] *= g;
+            }
+            c = AudioClip.Create(clip.name + "-cut", n, clip.channels, clip.frequency, false);
+            c.SetData(data, 0);
+            _capped[clip] = c;
+            return c;
         }
 
         static ToneSynth.Note Rest(float seconds) => new ToneSynth.Note(Waveform.Sine, 1f, 1f, seconds, 0f, 0f);

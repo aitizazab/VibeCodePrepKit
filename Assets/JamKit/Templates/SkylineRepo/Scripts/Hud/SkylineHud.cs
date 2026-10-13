@@ -174,14 +174,17 @@ namespace JamKit.SkylineRepo
         }
 
         /// <summary>Shows a subtitle line under the speaker's name for a few seconds.</summary>
-        public void Say(Speaker speaker, string text)
+        public void Say(Speaker speaker, string text) => Say(speaker, text, SayTime);
+
+        /// <summary>As <see cref="Say(Speaker, string)"/>, shown for <paramref name="seconds"/> (a teaching line's reading time).</summary>
+        public void Say(Speaker speaker, string text, float seconds)
         {
             if (_line == null) return;
             _speaker.text = speaker == Speaker.Concierge ? "CONCIERGE" : speaker.ToString();
             _line.text = text ?? "";
             _speaker.style.display = DisplayStyle.Flex;
             _line.style.display = DisplayStyle.Flex;
-            _sayLeft = SayTime;
+            _sayLeft = seconds > 0f ? seconds : SayTime;
         }
 
         /// <summary>The hit marker for a shot's strongest result: white a hit, yellow a weak point, gold a Writ spot, red a kill.</summary>

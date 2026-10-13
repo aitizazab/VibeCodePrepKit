@@ -18,13 +18,17 @@ namespace JamKit.SkylineRepo
     /// apex, at the double jump's apex pitch the view down as far as it goes (85 degrees) and fire (the boost), holding
     /// forward throughout (the mantle); take the cache on top; swap back to the Writ; drop off the north side.</item>
     /// <item>Through the doorway into the hall, then each encounter in order (food-court, skylight, facade): walk into its
-    /// zone, then fight until it is cleared. The fight: shoot the nearest bot in sight (its spot, else its weak point,
+    /// zone (the food court's from the doorway; every later one's in the entry lane, back where the fight was balanced),
+    /// then fight until it is cleared. The fight: shoot the nearest bot in sight (its spot, else its weak point,
     /// else its body) at the Writ's fire rate, reloading when dry or when nothing is in sight; while something is in sight,
     /// strafe and reverse every 0.4-0.7 s; with nothing in sight for 2.5 s, advance toward the nearest live bot; under 30
-    /// plating, fall back to the encounter's hide (inside the information booth's U for the food court and the facade,
+    /// plating with something in sight, fall back to the encounter's hide (inside the information booth's U for the food court and the facade,
     /// under the mezzanine deck for the skylight); strip a fresh wreck within 8 m when the plating has room; jump (and double
     /// jump) a floor-care unit's sweep when one telegraphs within reach. Walking goes round the hall's cover boxes
-    /// (FightSim's detour to the best corner).</item>
+    /// (FightSim's detour to the best corner). Advancing is sticky until something is in sight (no thrash at the hide). A
+    /// per-fight watchdog (<c>SKYLINE_DEMO watchdog &lt;id&gt; fight-time|no-damage</c>): a fight not cleared in 90 s, or no
+    /// enemy damaged for 20 s, sends it to the nearest floor point with a clear line to the nearest live enemy (spotlights and
+    /// gondolas included) until it damages something.</item>
     /// <item>If the Unit is wrecked the director restarts the arena at the warm-up; the run starts again from the start,
     /// skipping the lessons it has done (logs <c>SKYLINE_DEMO restart</c>).</item>
     /// </list>
@@ -35,6 +39,9 @@ namespace JamKit.SkylineRepo
         const float RecorderWait = 8f, PracticeDistance = 10f, KioskStandOff = 0.8f, ShotGap = 0.5f, SpotWait = 1.8f;
         const float ArriveRadius = 0.12f, CoarseArrive = 0.6f, CoverMargin = 0.75f, CornerMargin = 0.9f;
         const float LowPlating = 30f, AdvanceAfter = 2.5f, StripRange = 8f, MaxSight = 45f, StuckSeconds = 1f;
+        /// <summary>The per-fight watchdog: a fight not cleared in this long, or no enemy damaged for this long, sends the
+        /// run to a firing position with a clear line to the nearest live enemy.</summary>
+        const float FightLimit = 90f, NoDamageLimit = 20f, WatchRepick = 3f, WatchRearm = 30f;
 
         public SkylinePlayer player;
         public SkylineArenaDirector director;
@@ -61,7 +68,9 @@ namespace JamKit.SkylineRepo
 
         static readonly Vector3 BoothHide = new Vector3(0f, 0f, -12.2f);
         static readonly Vector3 DeckHide = new Vector3(0f, 0f, 15.5f);
-        static readonly Vector3 SkylineEntry = new Vector3(0f, 0f, 3f);
+        /// <summary>The middle of the entry lane, where every fight after the food court starts (GalleriaArena.EntryZone*).</summary>
+        static readonly Vector3 EntryPoint = new Vector3(
+            (GalleriaArena.EntryZoneMinX + GalleriaArena.EntryZoneMaxX) * 0.5f, 0f, (GalleriaArena.EntryZoneMinZ + GalleriaArena.EntryZoneMaxZ) * 0.5f);
 
         void Start()
         {
@@ -353,39 +362,70 @@ namespace JamKit.SkylineRepo
         {
             string id = director.IdOf(i);
             Log("fight " + id);
-            Vector3 entry = i == 1 ? SkylineEntry : BoothHide;
+            // the food court starts on coming through the doorway; every later fight in the entry lane, where it was balanced
+            Vector3 entry = i == 0 ? BoothHide : EntryPoint;
             Vector3 hide = i == 1 ? DeckHide : BoothHide;
-            float giveUp = Time.unscaledTime + 20f;
-            while (director.PhaseOf(i) == SkylineArenaDirector.Phase.Waiting && Time.unscaledTime < giveUp) yield return null;
+            while (director.PhaseOf(i) == SkylineArenaDirector.Phase.Waiting) yield return null;
             _fighting = true;
-            // into the zone (any bot already in sight gets shot on the way)
-            while (director.PhaseOf(i) == SkylineArenaDirector.Phase.Armed && Time.unscaledTime < giveUp)
+            if (director.PhaseOf(i) == SkylineArenaDirector.Phase.Armed) Log("walk-to-entry " + id);
+            // into the zone, however long it takes (a stuck walk side-steps); anything in sight on the way is shot
+            while (director.PhaseOf(i) == SkylineArenaDirector.Phase.Armed)
             {
-                Steer(entry, true);
+                Steer(i, entry, true);
                 yield return null;
             }
             string mode = "";
-            float lastSeen = Time.unscaledTime, nextShot = 0f, nextFlip = 0f, strafe = 1f;
+            float start = Time.unscaledTime, lastSeen = start, lastDamage = start, nextShot = 0f, nextFlip = 0f, strafe = 1f;
+            float health = Health(i), watchStart = 0f, watchRepick = 0f, limitFrom = start;
+            bool advancing = false, watchdog = false;
+            Vector3 watchPos = Feet();
             while (director.PhaseOf(i) == SkylineArenaDirector.Phase.Fighting)
             {
                 float now = Time.unscaledTime;
                 Vector3 feet = Feet();
+                float h = Health(i);
+                if (h < health - 0.01f) lastDamage = now;
+                health = h;
+
+                // the watchdog: too long, or nothing damaged for a while
+                if (!watchdog && (now - limitFrom > FightLimit || now - lastDamage > NoDamageLimit))
+                {
+                    watchdog = true;
+                    watchStart = now;
+                    watchRepick = 0f;
+                    Log("watchdog " + id + (now - limitFrom > FightLimit ? " fight-time" : " no-damage"));
+                }
+                if (watchdog && lastDamage > watchStart)
+                {
+                    watchdog = false;
+                    limitFrom = now - FightLimit + WatchRearm;   // the fight-time check comes back in 30 s
+                    Log(id + " watchdog-cleared");
+                }
+                if (watchdog && now >= watchRepick)
+                {
+                    watchRepick = now + WatchRepick;
+                    watchPos = FiringSpot(i, feet);
+                }
+
                 var target = PickTarget(i, out Vector3 aim);
                 var armor = player.Armor;
-                var wreck = armor.Plating < armor.PlatingMax - 10f ? NearestFreshWreck(feet) : null;
+                var wreck = !watchdog && armor.Plating < armor.PlatingMax - 10f ? NearestFreshWreck(feet) : null;
                 string want;
                 Vector3 goal = feet;
-                if (wreck != null) { want = "strip"; goal = wreck.transform.position; }
-                else if (armor.Plating < LowPlating && Flat(feet, hide) > 1f) { want = "fall-back"; goal = hide; }
+                if (target != null) { lastSeen = now; advancing = false; }
+                if (watchdog) { want = "watchdog-move"; goal = watchPos; }
+                else if (wreck != null) { want = "strip"; goal = wreck.transform.position; }
+                // fall back only while something is shooting at it: at the hide with nothing in sight it advances, and
+                // stays advancing (hysteresis) until something is in sight again
+                else if (target != null && armor.Plating < LowPlating && Flat(feet, hide) > 1f) { want = "fall-back"; goal = hide; }
                 else if (target != null) { want = "engage"; }
-                else if (now - lastSeen > AdvanceAfter) { want = "advance"; goal = NearestLiveBot(i, feet); }
+                else if (advancing || now - lastSeen > AdvanceAfter) { want = "advance"; advancing = true; goal = NearestLiveBot(i, feet); }
                 else { want = "hold"; }
                 if (want != mode)
                 {
                     mode = want;
                     Log(id + " " + mode);
                 }
-                if (target != null) lastSeen = now;
 
                 // aim, fire and reload
                 var gun = player.Loadout.Active;
@@ -406,10 +446,10 @@ namespace JamKit.SkylineRepo
                     if (gun.Ammo < gun.Def.weapon.magazineSize && !gun.State.IsReloading) _reload = true;
                 }
 
-                // move: toward the goal, strafing while something is in sight
+                // move: toward the goal, strafing while something is in sight (not while stripping or on the watchdog's walk)
                 Vector3 dir = Vector3.zero;
                 if (Flat(feet, goal) > CoarseArrive) dir = PathDirection(feet, goal);
-                if (target != null && mode != "strip")
+                if (target != null && mode != "strip" && !(watchdog && dir.sqrMagnitude > 0f))
                 {
                     if (now >= nextFlip)
                     {
@@ -421,13 +461,73 @@ namespace JamKit.SkylineRepo
                     Vector3 side = toT.sqrMagnitude > 1e-4f ? Vector3.Cross(Vector3.up, toT.normalized) : Vector3.right;
                     dir = (dir * 0.8f + side * strafe).normalized;
                 }
-                ApplyMove(dir, mode == "advance" || mode == "fall-back");
+                ApplyMove(dir, mode == "advance" || mode == "fall-back" || mode == "watchdog-move");
                 yield return null;
             }
             _fighting = false;
             _move = Vector2.zero;
             _aimPoint = null;
             Log(id + " over (" + director.PhaseOf(i) + ")");
+        }
+
+        /// <summary>What is left of encounter <paramref name="i"/>'s live bots (chassis and plates): it drops when any is damaged
+        /// or wrecked.</summary>
+        float Health(int i)
+        {
+            float sum = 0f;
+            var bots = director.BotsOf(i);
+            for (int k = 0; k < bots.Count; k++)
+            {
+                var b = bots[k];
+                if (b == null || !b.Alive) continue;
+                sum += b.Body.Chassis;
+                for (int p = 0; p < b.Body.PlateCount; p++) sum += b.Body.PlateHp(p);
+            }
+            return sum;
+        }
+
+        /// <summary>The floor point nearest <paramref name="feet"/> (on rings 4-18 m round the nearest live enemy of encounter
+        /// <paramref name="i"/>, spotlights and gondolas included; in the hall, clear of cover) whose eye has a clear line to
+        /// the enemy; the enemy's own spot if none does.</summary>
+        Vector3 FiringSpot(int i, Vector3 feet)
+        {
+            SkylineBot nearest = null;
+            float nd = float.PositiveInfinity;
+            var bots = director.BotsOf(i);
+            for (int k = 0; k < bots.Count; k++)
+            {
+                var b = bots[k];
+                if (b == null || !b.Alive) continue;
+                float d = Flat(feet, b.transform.position);
+                if (d < nd) { nd = d; nearest = b; }
+            }
+            if (nearest == null) return feet;
+            Vector3 c = nearest.Center, aim = AimPoint(nearest);
+            Vector3 best = new Vector3(c.x, 0f, c.z);
+            float bestD = float.PositiveInfinity;
+            for (float r = 4f; r <= 18f; r += 2f)
+                for (int a = 0; a < 24; a++)
+                {
+                    float ang = a * Mathf.PI * 2f / 24f;
+                    var p = new Vector3(c.x + Mathf.Sin(ang) * r, 0f, c.z + Mathf.Cos(ang) * r);
+                    if (p.x < GalleriaArena.HallMinX + 1f || p.x > GalleriaArena.HallMaxX - 1f || p.z < GalleriaArena.HallMinZ + 1f || p.z > GalleriaArena.HallMaxZ - 1f) continue;
+                    float d = Flat(feet, p);
+                    if (d >= bestD || InCover(p)) continue;
+                    Vector3 eye = p + Vector3.up * 1.6f;
+                    Vector3 to = aim - eye;
+                    float len = to.magnitude;
+                    if (len < 1e-3f || SkylineBot.CastClear(eye, to / len, len - 0.05f, nearest.transform, out _)) continue;
+                    bestD = d;
+                    best = p;
+                }
+            return best;
+        }
+
+        static bool InCover(Vector3 p)
+        {
+            foreach (var r in _cover)
+                if (p.x > r.xMin - 0.6f && p.x < r.xMax + 0.6f && p.z > r.yMin - 0.6f && p.z < r.yMax + 0.6f) return true;
+            return false;
         }
 
         /// <summary>The nearest live bot of encounter <paramref name="i"/> in sight, and where to shoot it: its newest spot,
@@ -539,21 +639,14 @@ namespace JamKit.SkylineRepo
             _sprint = false;
         }
 
-        /// <summary>One frame of walking toward <paramref name="goal"/> (used by the fights' approach).</summary>
-        void Steer(Vector3 goal, bool sprint)
+        /// <summary>One frame of walking toward <paramref name="goal"/> (the approach to fight <paramref name="i"/>).</summary>
+        void Steer(int i, Vector3 goal, bool sprint)
         {
             Vector3 feet = Feet();
-            var target = PickTarget(Mathf.Max(0, CurrentFight()), out Vector3 aim);
+            var target = PickTarget(i, out Vector3 aim);
             if (target != null) { _aimFixed = false; _aimPoint = aim; _fire = true; }
             else _aimPoint = null;
             ApplyMove(Flat(feet, goal) > CoarseArrive ? PathDirection(feet, goal) : Vector3.zero, sprint);
-        }
-
-        int CurrentFight()
-        {
-            for (int i = 0; i < director.EncounterCount; i++)
-                if (director.PhaseOf(i) == SkylineArenaDirector.Phase.Fighting) return i;
-            return -1;
         }
 
         /// <summary>World direction (flat, length up to 1) into the player's move axes, with a side-step when stuck.</summary>

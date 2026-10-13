@@ -37,8 +37,11 @@ namespace JamKit.Tests.Skyline
         }
 
         /// <summary>Runs the demo's sequence; returns the feet's height once it has mantled and stands (or NaN), and whether
-        /// the shot boosted.</summary>
-        static float RunSequence(bool onePerAirtime, out bool boosted, out bool mantled)
+        /// the shot boosted.
+        /// <paramref name="lateSteps"/>: engine steps (1/120 s) the double jump and the shot come after each apex (the demo sees
+        /// the apex a frame late and fires a frame after setting the pitch: about 2 and 4 steps at 60 fps).
+        /// <paramref name="shoot"/> false is the control: the same jumps without the shot.</summary>
+        static float RunSequence(bool onePerAirtime, int lateSteps, bool shoot, out bool boosted, out bool mantled)
         {
             var top = GalleriaArena.BoostLedgeTop;
             float s = GalleriaArena.BoostLedgeSize;
@@ -71,19 +74,34 @@ namespace JamKit.Tests.Skyline
 
             Observe();
             sim.Step(Forward().With(jump: true), H);
+            void Late()
+            {
+                for (int i = 0; i < lateSteps; i++)
+                {
+                    Observe();
+                    sim.Step(Forward(), H);
+                }
+            }
+
             StepUntilApex();
+            Late();
             Observe();
             sim.Step(Forward().With(jump: true), H);   // the double jump at the jump's apex
             Assert.That(sim.Events.doubleJumped, Is.True, "double jumped");
             StepUntilApex();
+            Late();
 
             // the shot, at the double jump's apex
             Observe();
-            Vector3 push = BreacherKnockback.RequestSelfPush(AimAt(0f, DemoPitch), sim.Velocity, sim.Grounded, sim.def.gravity, charge, def, out bool spends);
-            bool ok = sim.AddPush(push);
-            charge.Commit(spends, ok);
-            if (spends && ok && sim.Grounded && push.Y > 0f) awaitingTakeoff = true;
-            boosted = spends && ok && push.Y > 0f;
+            boosted = false;
+            if (shoot)
+            {
+                Vector3 push = BreacherKnockback.RequestSelfPush(AimAt(0f, DemoPitch), sim.Velocity, sim.Grounded, sim.def.gravity, charge, def, out bool spends);
+                bool ok = sim.AddPush(push);
+                charge.Commit(spends, ok);
+                if (spends && ok && sim.Grounded && push.Y > 0f) awaitingTakeoff = true;
+                boosted = spends && ok && push.Y > 0f;
+            }
 
             mantled = false;
             for (float t = 0f; t < 3f; t += H)
@@ -96,14 +114,25 @@ namespace JamKit.Tests.Skyline
             return mantled && sim.Grounded ? sim.Position.Y : float.NaN;
         }
 
-        [TestCase(true)]
-        [TestCase(false)]
-        public void TheDemosJumpDoubleJumpAndPitchedDownShotLandItOnTheKiosk(bool onePerAirtime)
+        [TestCase(true, 0)]
+        [TestCase(false, 0)]
+        [TestCase(true, 4)]
+        [TestCase(false, 4)]
+        [TestCase(false, 6)]
+        public void TheDemosJumpDoubleJumpAndPitchedDownShotLandItOnTheKiosk(bool onePerAirtime, int lateSteps)
         {
-            float y = RunSequence(onePerAirtime, out bool boosted, out bool mantled);
+            float y = RunSequence(onePerAirtime, lateSteps, true, out bool boosted, out bool mantled);
             Assert.That(boosted, Is.True, "the 85-degree shot lifts (its reverse points up by sin 85 > minLift)");
             Assert.That(mantled, Is.True, "it mantles onto the top");
             Assert.That(y, Is.EqualTo(GalleriaArena.BoostLedgeTop.Y).Within(0.1f), "standing on the kiosk's top");
+        }
+
+        [TestCase(0)]
+        [TestCase(4)]
+        public void WithoutTheShotTheSameJumpsDontReachTheTop(int lateSteps)
+        {
+            float y = RunSequence(false, lateSteps, false, out _, out _);
+            Assert.That(float.IsNaN(y) || y < GalleriaArena.BoostLedgeTop.Y - 0.5f, Is.True, "jump + double jump + mantle fall short");
         }
     }
 }

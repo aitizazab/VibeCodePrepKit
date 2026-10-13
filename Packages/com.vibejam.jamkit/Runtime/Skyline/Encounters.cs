@@ -168,6 +168,10 @@ namespace JamKit.Skyline
         /// <summary>The main hall's entrance from the warm-up hall (which joins its south wall at z = -20), 2 m inside. Encounter bearings are measured from here (plan amendment 5).</summary>
         public static readonly Vector3 HallEntry = new Vector3(0f, 0f, -18f);
 
+        /// <summary>The entry lane around <see cref="HallEntry"/> (x -6..6, z -20..-14, metres): every fight after the first
+        /// starts when the player steps in here, so each starts from the anchor its balance was measured from (Task 16 fix 1).</summary>
+        public const float EntryZoneMinX = -6f, EntryZoneMaxX = 6f, EntryZoneMinZ = -20f, EntryZoneMaxZ = -14f;
+
         const string D = SkylineEnemies.DroneId, F = SkylineEnemies.FloorCareId, S = SkylineEnemies.SpotlightId, G = SkylineEnemies.GondolaId;
 
         /// <summary>Drones hover at this height (m): below the tall pieces' tops (4.5-5 m), so a tall piece shadows the floor
@@ -281,7 +285,7 @@ namespace JamKit.Skyline
 
     public enum Speaker { Dot, Concierge, Nan }
 
-    public enum BeatTrigger { WarmupStart, PracticeBotSeen, FirstSpotCreated, NearBoostLedge, BoostLedgeReached, FirstPlatingBreak, FirstSeen }
+    public enum BeatTrigger { WarmupStart, PracticeBotSeen, FirstSpotCreated, NearBoostLedge, BoostLedgeReached, FirstPlatingBreak, FirstSeen, NextFightArmed }
 
     /// <summary>One teaching line (6.8): who says it, when, and the words. Drafts are for the creator to rewrite.</summary>
     public sealed class TeachingBeat
@@ -293,6 +297,8 @@ namespace JamKit.Skyline
         public BeatTrigger trigger;
         /// <summary>A draft (false only for the lines the spec quotes).</summary>
         public bool draft = true;
+        /// <summary>Plays every time its trigger comes (the next-fight notice); every other beat plays once.</summary>
+        public bool repeats;
     }
 
     /// <summary>M1's teaching beats (6.8): Dot teaches the guns and plating, CONCIERGE's safety notices introduce each bot,
@@ -330,6 +336,8 @@ namespace JamKit.Skyline
             new TeachingBeat { id = "concierge-gondola", speaker = Speaker.Concierge, trigger = BeatTrigger.FirstSeen,
                 enemy = SkylineEnemies.GondolaId,
                 text = "Please note: window cleaning is in progress on the walls. Guests are advised to keep their feet on the floor." },
+            new TeachingBeat { id = "concierge-next-fight", speaker = Speaker.Concierge, trigger = BeatTrigger.NextFightArmed, repeats = true,
+                text = "Security is re-deploying. Guests are asked to return to the food court entrance." },
         };
     }
 }
