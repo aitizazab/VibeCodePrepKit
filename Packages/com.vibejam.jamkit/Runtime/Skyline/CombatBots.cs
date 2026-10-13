@@ -26,12 +26,14 @@ namespace JamKit.Skyline
         }
     }
 
-    /// <summary>Runs the same lanes but flips its strafe every 0.3-0.7 s (seeded): the skill the design rewards.</summary>
+    /// <summary>Runs the same Z lane as <see cref="StraightLineBot"/> (same speed, no strafe) but reverses its running
+    /// direction at seeded random intervals of 0.3-0.7 s as well as at the lane ends: direction changes across the line
+    /// of fire, the skill the design rewards. The only difference from the straight-line bot is the reversals.</summary>
     public sealed class JinkingBot : IPlayerBot
     {
         readonly float _half;
         readonly Rng _rng;
-        float _yaw, _strafe = 1f, _nextSwitch;
+        float _yaw, _nextSwitch;
 
         public JinkingBot(ulong seed, float laneHalfLength = 15f)
         {
@@ -41,17 +43,15 @@ namespace JamKit.Skyline
 
         public MoveInput Next(MoveSim sim, float time, float h)
         {
-            if (sim.Position.Z > _half) _yaw = 180f;
-            else if (sim.Position.Z < -_half) _yaw = 0f;
             if (time >= _nextSwitch)
             {
-                _strafe = -_strafe;
+                _yaw = _yaw < 90f ? 180f : 0f;
                 _nextSwitch = time + _rng.Range(0.3f, 0.7f);
             }
-            // keep inside the arena: when far from the centre line, strafe back towards it
-            float facing = _yaw < 90f ? 1f : -1f;            // facing +Z, right is +X; facing -Z, right is -X
-            if (MathF.Abs(sim.Position.X) > 12f) _strafe = -MathF.Sign(sim.Position.X) * facing;
-            return new MoveInput { move = Vector2.Normalize(new Vector2(_strafe, 0.6f)), yaw = _yaw, sprintHeld = true };
+            // the lane ends win over a random reversal, so the bot never leaves the lane
+            if (sim.Position.Z > _half) _yaw = 180f;
+            else if (sim.Position.Z < -_half) _yaw = 0f;
+            return new MoveInput { move = new Vector2(0f, 1f), yaw = _yaw, sprintHeld = true };
         }
     }
 }

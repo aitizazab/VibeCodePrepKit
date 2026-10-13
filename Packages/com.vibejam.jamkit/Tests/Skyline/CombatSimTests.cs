@@ -67,7 +67,7 @@ namespace JamKit.Tests.Skyline
             var b = DodgeReport.Run(Arena, () => OneShooter(AimModel.LeadsYou, 0.9f), 60f, 7UL);
             Assert.That(a.straightHits, Is.EqualTo(b.straightHits));
             Assert.That(a.jinkHits, Is.EqualTo(b.jinkHits));
-            TestContext.WriteLine($"Dodge report (one leading drone, lead 0.9, 60 s): straight-line bot {a.straightHits} hits, jinking bot {a.jinkHits} hits, ratio {a.Ratio:0.00} (M1 target: about 2, neither 0)");
+            TestContext.WriteLine($"Dodge report (one leading drone, lead 0.9, 60 s): straight-line bot {a.straightHits} hits, jinking bot {a.jinkHitsMean:0.0} hits (averaged over {a.seeds} seeds), ratio {a.Ratio:0.00} (M1 target: about 2, neither 0)");
             Assert.That(a.shots, Is.GreaterThan(0));
         }
     }

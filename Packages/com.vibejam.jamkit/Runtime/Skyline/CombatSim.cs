@@ -127,19 +127,32 @@ namespace JamKit.Skyline
     public struct DodgeResult
     {
         public int straightHits, jinkHits, shots;
+        /// <summary>The jinking bot's hits averaged over the seeds run (jinkHits is this, rounded).</summary>
+        public float jinkHitsMean;
+        public int seeds;
         public float seconds;
-        public float Ratio => jinkHits > 0 ? (float)straightHits / jinkHits : float.PositiveInfinity;
+        public float Ratio => jinkHitsMean > 0f ? straightHits / jinkHitsMean : float.PositiveInfinity;
     }
 
     /// <summary>The dodging measurement (2.6): the same fight run by a straight-line bot and a jinking bot. Target on
     /// Normal: the straight-line bot takes about twice the hits, and neither goes unhit.</summary>
     public static class DodgeReport
     {
-        public static DodgeResult Run(Func<IMoveWorld> makeWorld, Func<List<Shooter>> makeShooters, float seconds, ulong seed)
+        /// <summary>The straight-line bot is deterministic, so it runs once; the jinking bot runs with seeds
+        /// <paramref name="seed"/>..<paramref name="seed"/>+<paramref name="seeds"/>-1 and its hits are averaged.</summary>
+        public static DodgeResult Run(Func<IMoveWorld> makeWorld, Func<List<Shooter>> makeShooters, float seconds, ulong seed, int seeds = 5)
         {
+            if (seeds < 1) seeds = 1;
             var straight = Fight(makeWorld(), new StraightLineBot(), makeShooters(), seconds);
-            var jink = Fight(makeWorld(), new JinkingBot(seed), makeShooters(), seconds);
-            return new DodgeResult { straightHits = straight.Hits, jinkHits = jink.Hits, shots = straight.ShotsFired, seconds = seconds };
+            int total = 0;
+            for (int i = 0; i < seeds; i++)
+                total += Fight(makeWorld(), new JinkingBot(seed + (ulong)i), makeShooters(), seconds).Hits;
+            float mean = (float)total / seeds;
+            return new DodgeResult
+            {
+                straightHits = straight.Hits, jinkHits = (int)MathF.Round(mean), jinkHitsMean = mean,
+                seeds = seeds, shots = straight.ShotsFired, seconds = seconds,
+            };
         }
 
         static CombatSim Fight(IMoveWorld world, IPlayerBot bot, List<Shooter> shooters, float seconds)
