@@ -1471,3 +1471,11 @@ Designed without seeing any Lena art so far. The brief is in `docs/art/lena-fres
   - For the creator to veto: Lena's new hand-over line (letItRestReply, their second half kept as a // note).
   - Known: the recorded Night 1 PlayMode run crashes Unity (likely memory); the occlusion bake didn't run (my script's
     -Extra argument parsing); Day's ward library + probe bake not yet run.
+- 2026-10-13, ~06:45: **overnight plan** (the creator asleep; usage resets 09:00; after the reset, save the week for the
+  hackathon and **stop at 7% weekly**). No Claude work before 09:00 (the old week is at 93%). Running on their own:
+  scratchpad/overnight-1013.ps1 (quick renders of the hill, the house and the cast on fixed main in VibeJamKit-look, then
+  a fresh full run in VibeJamKit-play: scenes, EditMode, the ward library and probe bake, the VH build, the game-window
+  captures, PlayMode) and go-watcher.ps1 (the go-ahead for game windows once the creator has slept 2 h and no other
+  session has run a heavy job for 10 min; other sessions come first). After 09:05: judges only (Look pass 4, Hill r3,
+  House r2, Cast r3, then Battle r2 and Day r2 from the player captures), checking the weekly % before each; no fix rounds;
+  stop at 6-7%. The judge reports wait for the creator, who decides what to spend before the hackathon.
