@@ -1,0 +1,30 @@
+{
+    "name": "JamKit.SkylineRepo.Recording",
+    "rootNamespace": "JamKit.SkylineRepo.EditorTools.Recording",
+    "references": [
+        "JamKit.SkylineRepo",
+        "JamKit.SkylineRepo.Editor",
+        "Unity.Recorder",
+        "Unity.Recorder.Base",
+        "Unity.Recorder.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "JAMKIT_RECORDER"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.recorder",
+            "expression": "5.0.0",
+            "define": "JAMKIT_RECORDER"
+        }
+    ],
+    "noEngineReferences": false
+}
