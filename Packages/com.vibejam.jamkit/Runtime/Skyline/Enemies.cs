@@ -50,12 +50,26 @@ namespace JamKit.Skyline
         public float sweepSeconds = 0.8f, sweepRadius = 4.5f, sweepArcDeg = 120f, sweepWidthDeg = 24f, ankleHeight = 0.4f;
         /// <summary>Plating a fresh wreck gives back when stripped, on Normal (2.4, 7.4).</summary>
         public float scrapPlating = 20f;
+        // The window-washer gondola (Gondola.cs): a rail along a wall and the mines it lays. The blast damage is attackDamage.
+        /// <summary>m/s along its rail.</summary>
+        public float railSpeed = 3f;
+        /// <summary>m of rail travel between mines.</summary>
+        public float mineSpacing = 4f;
+        /// <summary>Live mines per gondola; laying one more removes the oldest.</summary>
+        public int mineMax = 6;
+        public float mineArmSeconds = 0.6f;
+        /// <summary>The beep between trigger and blast: leaving the wall in time dodges it.</summary>
+        public float mineFuseSeconds = 0.35f;
+        public float mineTriggerRadius = 1.5f, mineBlastRadius = 2.5f;
+        /// <summary>How long (s) an untouched mine stays on the wall before it expires.</summary>
+        public float mineLifetime = 12f;
     }
 
-    /// <summary>M1's three bots (11.2). Each call returns a new instance.</summary>
+    /// <summary>M1's four bots (11.2; the gondola came with Task 9b). Each call returns a new instance.</summary>
     public static class SkylineEnemies
     {
-        public const string DroneId = "mall-cop-drone", FloorCareId = "floor-care-unit", SpotlightId = "spotlight";
+        public const string DroneId = "mall-cop-drone", FloorCareId = "floor-care-unit", SpotlightId = "spotlight",
+            GondolaId = "window-washer-gondola";
 
         /// <summary>Officious; shots that lead your movement (punishes straight lines). Aim: leads you. Layer: air.</summary>
         public static EnemyDef MallCopDrone() => new EnemyDef
@@ -88,10 +102,21 @@ namespace JamKit.Skyline
             beamFollowRate = 12f, beamHitRadius = 1.0f, beamLockBefore = 0.25f, scrapPlating = 25f,
         };
 
-        public static EnemyDef[] All() => new[] { MallCopDrone(), FloorCareUnit(), Spotlight() };
+        /// <summary>A window-washer's gondola riding a rail along a wall, dropping mines as it goes (punishes a long wall-run).
+        /// Aim: area. Layer: walls. The mine numbers are the EnemyDef defaults; its fight comes with the facade encounter.</summary>
+        public static EnemyDef Gondola() => new EnemyDef
+        {
+            id = GondolaId, displayName = "Window-washer gondola", aim = AimModel.Area, layer = ThreatLayer.Walls,
+            chassisHp = 60f, plates = new[] { new PlateDef("bucket-left", 20f), new PlateDef("bucket-right", 20f) }, bodyRadius = 0.8f,
+            attackDamage = 25f, range = 30f, scrapPlating = 25f,
+            railSpeed = 3f, mineSpacing = 4f, mineMax = 6, mineArmSeconds = 0.6f, mineFuseSeconds = 0.35f,
+            mineTriggerRadius = 1.5f, mineBlastRadius = 2.5f, mineLifetime = 12f,
+        };
+
+        public static EnemyDef[] All() => new[] { MallCopDrone(), FloorCareUnit(), Spotlight(), Gondola() };
 
         public static EnemyDef Find(string id) =>
-            id == DroneId ? MallCopDrone() : id == FloorCareId ? FloorCareUnit() : id == SpotlightId ? Spotlight() : null;
+            id == DroneId ? MallCopDrone() : id == FloorCareId ? FloorCareUnit() : id == SpotlightId ? Spotlight() : id == GondolaId ? Gondola() : null;
     }
 
     public struct BotDamage
