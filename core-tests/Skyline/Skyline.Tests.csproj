@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Shared + Movement + Skyline (Skyline Repo's pure C# systems, docs/SKYLINE-DESIGN.md). BoxWorld comes from the
-       Movement tests. Skyline is its own assembly in Unity (JamKit.Skyline), so it is deliberately not in All. -->
+  <!-- Shared + Movement + Combat + Skyline (Skyline Repo's pure C# systems, docs/SKYLINE-DESIGN.md). BoxWorld comes from
+       the Movement tests. Skyline is its own assembly in Unity (JamKit.Skyline), so it is deliberately not in All. -->
   <ItemGroup>
     <Compile Include="$(PkgRoot)Runtime\Core\Movement\**\*.cs" />
+    <Compile Include="$(PkgRoot)Runtime\Core\Combat\**\*.cs" />
     <Compile Include="$(PkgRoot)Tests\Core\Movement\BoxWorld.cs" />
     <Compile Include="$(PkgRoot)Runtime\Skyline\**\*.cs" />
     <Compile Include="$(PkgRoot)Tests\Skyline\**\*.cs" />
