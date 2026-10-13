@@ -1,0 +1,18 @@
+{
+  "_about": "Skyline Repo's look library (Task 21): CC0 sources only (Poly Haven, polyhaven.com/license). ambientCG was unreachable from this machine on 2026-10-14, so every set is Poly Haven. tile = metres one texture repeat covers (Poly Haven's own physical size unless noted). fetch.py downloads into out/skyline-look-src/ (git-ignored); prep.py writes the game textures into Assets/JamKit/Templates/SkylineRepo/ThirdParty/. grade = (saturation, brightness) push; recolor = a named recolour in prep.py.",
+  "textures": {
+    "Terrazzo_White":      {"id": "terrazzo_tiles",        "tile": 2.0, "recolor": "terrazzo_white"},
+    "Marble_Cream":        {"id": "marble_01",             "tile": 1.5, "grade": [0.85, 1.08]},
+    "Plaster_White":       {"id": "white_plaster_02",      "tile": 2.0, "recolor": "near_white", "note": "real size 1 m; shown at 2 m on big cladding panels"},
+    "Wood_Pine":           {"id": "kitchen_wood",          "tile": 1.2, "grade": [1.05, 1.0], "note": "real size 0.6 m; 1.2 m reads as wider boards on stall fronts"},
+    "Wood_Cherry":         {"id": "lacquered_cherry_wood", "tile": 1.0, "grade": [1.05, 1.1]},
+    "Parquet_Herringbone": {"id": "herringbone_parquet",   "tile": 3.4, "grade": [1.0, 1.0]},
+    "Shutter_Painted":     {"id": "painted_metal_shutter", "tile": 2.0, "recolor": "near_white"}
+  },
+  "hdri": {"Sky_Kloofendal38d": {"id": "kloofendal_38d_partly_cloudy_puresky", "res": "4k", "why": "a sunny afternoon: blue sky with thin high cloud round a 38-degree sun, a pure sky (no ground objects) so the far towers stand in front of it"}},
+  "models": {
+    "Calathea": {"id": "calathea_orbifolia_01", "res": "1k", "why": "the planters' and shops' broad-leaf plant"},
+    "Fern":     {"id": "fern_02",               "res": "1k", "why": "low fern for the planters' edges"},
+    "WetFloorSign": {"id": "WetFloorSign_01",   "res": "1k", "why": "CONCIERGE's floor care: a yellow wet-floor sign in the warm-up hall and the shops"}
+  }
+}

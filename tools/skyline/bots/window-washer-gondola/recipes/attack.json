@@ -1,0 +1,182 @@
+{
+ "sample_rate": 48000,
+ "length": 0.5,
+ "seed": 37,
+ "layers": [
+  {
+   "type": "noise",
+   "start": 0.0,
+   "attack": 0.07,
+   "decay": 0.25,
+   "gain_db": -14,
+   "highpass": 700,
+   "lowpass": 3200
+  },
+  {
+   "type": "sine",
+   "freq": 880,
+   "start": 0.0,
+   "attack": 0.006,
+   "decay": 0.5,
+   "gain_db": -6,
+   "freq_end": 1350
+  },
+  {
+   "type": "sine",
+   "freq": 893,
+   "start": 0.0,
+   "attack": 0.006,
+   "decay": 0.5,
+   "gain_db": -9,
+   "freq_end": 1371
+  },
+  {
+   "type": "sine",
+   "freq": 1760,
+   "start": 0.0,
+   "attack": 0.006,
+   "decay": 0.5,
+   "gain_db": -12,
+   "freq_end": 2700
+  },
+  {
+   "type": "sine",
+   "freq": 1786,
+   "start": 0.0,
+   "attack": 0.006,
+   "decay": 0.5,
+   "gain_db": -15,
+   "freq_end": 2742
+  },
+  {
+   "type": "sine",
+   "freq": 2640,
+   "start": 0.0,
+   "attack": 0.006,
+   "decay": 0.5,
+   "gain_db": -17,
+   "freq_end": 4050
+  },
+  {
+   "type": "sine",
+   "freq": 2679,
+   "start": 0.0,
+   "attack": 0.006,
+   "decay": 0.5,
+   "gain_db": -20,
+   "freq_end": 4113
+  },
+  {
+   "type": "noise",
+   "start": 0.0131,
+   "attack": 0.0005,
+   "decay": 0.006,
+   "gain_db": -16,
+   "highpass": 1200,
+   "lowpass": 4000
+  },
+  {
+   "type": "noise",
+   "start": 0.0335,
+   "attack": 0.0005,
+   "decay": 0.006,
+   "gain_db": -16,
+   "highpass": 1200,
+   "lowpass": 4000
+  },
+  {
+   "type": "noise",
+   "start": 0.0607,
+   "attack": 0.0005,
+   "decay": 0.006,
+   "gain_db": -16,
+   "highpass": 1200,
+   "lowpass": 4000
+  },
+  {
+   "type": "noise",
+   "start": 0.0861,
+   "attack": 0.0005,
+   "decay": 0.006,
+   "gain_db": -16,
+   "highpass": 1200,
+   "lowpass": 4000
+  },
+  {
+   "type": "noise",
+   "start": 0.11,
+   "attack": 0.0005,
+   "decay": 0.006,
+   "gain_db": -16,
+   "highpass": 1200,
+   "lowpass": 4000
+  },
+  {
+   "type": "noise",
+   "start": 0.1321,
+   "attack": 0.0005,
+   "decay": 0.006,
+   "gain_db": -16,
+   "highpass": 1200,
+   "lowpass": 4000
+  },
+  {
+   "type": "noise",
+   "start": 0.1568,
+   "attack": 0.0005,
+   "decay": 0.006,
+   "gain_db": -16,
+   "highpass": 1200,
+   "lowpass": 4000
+  },
+  {
+   "type": "noise",
+   "start": 0.1792,
+   "attack": 0.0005,
+   "decay": 0.006,
+   "gain_db": -16,
+   "highpass": 1200,
+   "lowpass": 4000
+  },
+  {
+   "type": "noise",
+   "start": 0.2042,
+   "attack": 0.0005,
+   "decay": 0.006,
+   "gain_db": -16,
+   "highpass": 1200,
+   "lowpass": 4000
+  },
+  {
+   "type": "noise",
+   "start": 0.24,
+   "attack": 0.0008,
+   "decay": 0.05,
+   "gain_db": -11,
+   "color": "pink",
+   "highpass": 300,
+   "lowpass": 2500
+  },
+  {
+   "type": "sine",
+   "freq": 210,
+   "start": 0.24,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -18,
+   "freq_end": 120
+  },
+  {
+   "type": "noise",
+   "start": 0.0,
+   "attack": 0.0005,
+   "decay": 0.02,
+   "gain_db": 0,
+   "highpass": 1000,
+   "lowpass": 5000
+  }
+ ],
+ "master": {
+  "limit_db": -1.0
+ }
+}

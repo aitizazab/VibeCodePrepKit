@@ -28,9 +28,12 @@ namespace JamKit.SkylineRepo.EditorTools
     /// their spawn markers; the entry lane's floor marker (shown while the next fight waits).</item>
     /// <item>The HUD, a 2D voice source, the <see cref="SkylineArenaDirector"/>, the <see cref="SkylineArenaDemo"/>, the sun
     /// at 50 degrees with a procedural sky, and eight <see cref="SkylineStillCamera"/>s.</item>
+    /// <item><b>Task 21</b> replaces the sun and sky with the afternoon look (<see cref="SkylineLook.ApplyAfternoon"/>; the plain sun
+    /// stays as the fallback if the look fails) and dresses the grey box (<see cref="Dress"/>, SkylineArenaDress.cs): the
+    /// gameplay pieces keep their positions and colliders; the dressing re-skins them and adds visual-only geometry.</item>
     /// </list>
     /// </summary>
-    public static class SkylineArenaBuilder
+    public static partial class SkylineArenaBuilder
     {
         const float WarmupHeight = 8f, HallHeight = 14f, WallThick = 0.4f, RoofThick = 0.2f;
         const float DoorHalfWidth = 3f, DoorHeight = 5f;
@@ -52,7 +55,18 @@ namespace JamKit.SkylineRepo.EditorTools
         public static void Build(string path)
         {
             var scene = SkylineScenes.NewScene();
-            Light();
+            SkylineLookLibrary.BeginBuild();
+            bool look = false;
+            try
+            {
+                SkylineLook.ApplyAfternoon(scene);
+                look = true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("SKYLINE_LOOK afternoon failed, the plain sun is used: " + e);
+                Light();
+            }
 
             var mWall = Lit("SK_Wall", new Color(0.72f, 0.72f, 0.7f));
             var mWarmWall = Lit("SK_Wall_Warmup", new Color(0.62f, 0.64f, 0.68f));
@@ -65,7 +79,6 @@ namespace JamKit.SkylineRepo.EditorTools
             var mKiosk = Lit("SK_Kiosk", new Color(0.82f, 0.78f, 0.7f));
             var mPlanter = Lit("SK_Planter", new Color(0.38f, 0.5f, 0.32f));
             var mGantry = Lit("SK_Gantry", new Color(0.86f, 0.66f, 0.22f));
-            var mGlass = Glass("SK_Glass_Shopfront", new Color(0.55f, 0.7f, 0.8f, 0.28f));
             var mRoof = Glass("SK_Glass_Skylight", new Color(0.75f, 0.85f, 0.95f, 0.12f));
             var mCounter = Glass("SK_Glass_Counter", new Color(0.8f, 0.9f, 0.95f, 0.3f));
             var mRail = Glass("SK_Glass_Balustrade", new Color(0.7f, 0.8f, 0.88f, 0.25f));
@@ -136,8 +149,6 @@ namespace JamKit.SkylineRepo.EditorTools
                     V(s.position.X + 0.5f, baseY, s.position.Z + 0.4f), mDeck, false, null, true);
             }
 
-            ShopFronts(hall, mGlass, mSign);
-
             // the entry lane where every fight after the food court starts: a plain lit floor marker, shown by the director
             // while the next fight is armed
             var entryMarker = Box(hall, "Entry Marker", V(GalleriaArena.EntryZoneMinX, 0f, GalleriaArena.EntryZoneMinZ),
@@ -193,6 +204,13 @@ namespace JamKit.SkylineRepo.EditorTools
             demo.cache = cache;
 
             Stills();
+
+            // ---------------------------------------------------------- the look's dressing (Task 21)
+            try { Dress(scene, arena, warm, hall, entryMarker); }
+            catch (System.Exception e) { Debug.LogError("SKYLINE_LOOK dressing failed: " + e); }
+            SkylineLook.SetupCameras(scene);
+            if (look) SkylineLook.BakeReflections(scene, path, arena);
+            AssetDatabase.SaveAssets();
             EditorSceneManager.SaveScene(scene, path);
         }
 
@@ -210,34 +228,6 @@ namespace JamKit.SkylineRepo.EditorTools
             var sky = Shader.Find("Skybox/Procedural");
             if (sky != null) RenderSettings.skybox = new Material(sky) { name = "SK_Sky_Procedural" };
             RenderSettings.sun = sun;
-        }
-
-        /// <summary>Glass shop fronts along every hall wall at ground level (and above the deck on the north wall), with a
-        /// glowing fascia strip over each; renderers only (under a SkylineNoCollider root), a few centimetres in front of the
-        /// runnable walls.</summary>
-        static void ShopFronts(Transform hall, Material glass, Material sign)
-        {
-            var root = Group(hall, "Shop Fronts");
-            root.gameObject.AddComponent<SkylineNoCollider>();
-            float x0 = GalleriaArena.HallMinX, x1 = GalleriaArena.HallMaxX, z0 = GalleriaArena.HallMinZ, z1 = GalleriaArena.HallMaxZ;
-            const float t = 0.03f, y0 = 0.3f, y1 = 3.2f, w = 5f, step = 7f;
-            for (float c = z0 + 4f; c + w * 0.5f <= z1 - 1f; c += step)
-            {
-                Box(root, "West Front", V(x0, y0, c - w * 0.5f), V(x0 + t, y1, c + w * 0.5f), glass, false, null);
-                Box(root, "West Fascia", V(x0, y1 + 0.2f, c - w * 0.5f), V(x0 + t, y1 + 0.5f, c + w * 0.5f), sign, false, null);
-                Box(root, "East Front", V(x1 - t, y0, c - w * 0.5f), V(x1, y1, c + w * 0.5f), glass, false, null);
-                Box(root, "East Fascia", V(x1 - t, y1 + 0.2f, c - w * 0.5f), V(x1, y1 + 0.5f, c + w * 0.5f), sign, false, null);
-            }
-            for (float c = x0 + 4f; c + w * 0.5f <= x1 - 1f; c += step)
-            {
-                Box(root, "North Front", V(c - w * 0.5f, y0, z1 - t), V(c + w * 0.5f, y1, z1), glass, false, null);
-                Box(root, "North Upper Front", V(c - w * 0.5f, GalleriaArena.MezzanineY + 0.3f, z1 - t), V(c + w * 0.5f, GalleriaArena.MezzanineY + y1, z1), glass, false, null);
-                bool door = c + w * 0.5f > -DoorHalfWidth - 0.5f && c - w * 0.5f < DoorHalfWidth + 0.5f;
-                if (door) continue;
-                Box(root, "South Front", V(c - w * 0.5f, y0, z0), V(c + w * 0.5f, y1, z0 + t), glass, false, null);
-                Box(root, "South Fascia", V(c - w * 0.5f, y1 + 0.2f, z0), V(c + w * 0.5f, y1 + 0.5f, z0 + t), sign, false, null);
-            }
-            foreach (var r in root.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = ShadowCastingMode.Off;
         }
 
         /// <summary>The cover box less any part inside the deck's slab: the part below the slab, and the part south of its open

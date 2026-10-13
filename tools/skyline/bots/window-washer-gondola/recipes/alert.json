@@ -1,0 +1,136 @@
+{
+ "sample_rate": 48000,
+ "length": 0.7,
+ "seed": 29,
+ "layers": [
+  {
+   "type": "noise",
+   "start": 0.0,
+   "attack": 0.0003,
+   "decay": 0.012,
+   "gain_db": -4,
+   "highpass": 1500,
+   "lowpass": 6000
+  },
+  {
+   "type": "sine",
+   "freq": 2350,
+   "start": 0.0,
+   "attack": 0.0004,
+   "decay": 0.03,
+   "gain_db": -14
+  },
+  {
+   "type": "sine",
+   "freq": 3610,
+   "start": 0.0,
+   "attack": 0.0004,
+   "decay": 0.02,
+   "gain_db": -18
+  },
+  {
+   "type": "noise",
+   "start": 0.04,
+   "attack": 0.0003,
+   "decay": 0.012,
+   "gain_db": -4,
+   "highpass": 1500,
+   "lowpass": 6000
+  },
+  {
+   "type": "sine",
+   "freq": 2350,
+   "start": 0.04,
+   "attack": 0.0004,
+   "decay": 0.03,
+   "gain_db": -14
+  },
+  {
+   "type": "sine",
+   "freq": 3610,
+   "start": 0.04,
+   "attack": 0.0004,
+   "decay": 0.02,
+   "gain_db": -18
+  },
+  {
+   "type": "noise",
+   "start": 0.08,
+   "attack": 0.0003,
+   "decay": 0.012,
+   "gain_db": -4,
+   "highpass": 1500,
+   "lowpass": 6000
+  },
+  {
+   "type": "sine",
+   "freq": 2350,
+   "start": 0.08,
+   "attack": 0.0004,
+   "decay": 0.03,
+   "gain_db": -14
+  },
+  {
+   "type": "sine",
+   "freq": 3610,
+   "start": 0.08,
+   "attack": 0.0004,
+   "decay": 0.02,
+   "gain_db": -18
+  },
+  {
+   "type": "sine",
+   "freq": 196,
+   "start": 0.13,
+   "attack": 0.002,
+   "decay": 0.5,
+   "gain_db": -10
+  },
+  {
+   "type": "sine",
+   "freq": 392.6,
+   "start": 0.13,
+   "attack": 0.002,
+   "decay": 0.35,
+   "gain_db": -16
+  },
+  {
+   "type": "sine",
+   "freq": 589.4,
+   "start": 0.13,
+   "attack": 0.002,
+   "decay": 0.25,
+   "gain_db": -21
+  },
+  {
+   "type": "sine",
+   "freq": 1500,
+   "start": 0.16,
+   "attack": 0.02,
+   "decay": 0.16,
+   "gain_db": -11,
+   "freq_end": 2150
+  },
+  {
+   "type": "sine",
+   "freq": 2000,
+   "start": 0.33,
+   "attack": 0.02,
+   "decay": 0.22,
+   "gain_db": -12,
+   "freq_end": 1350
+  },
+  {
+   "type": "noise",
+   "start": 0.16,
+   "attack": 0.02,
+   "decay": 0.35,
+   "gain_db": -34,
+   "highpass": 2000,
+   "lowpass": 5000
+  }
+ ],
+ "master": {
+  "limit_db": -1.0
+ }
+}

@@ -14,13 +14,13 @@ namespace JamKit.SkylineRepo
             switch (botId)
             {
                 case SkylineEnemies.DroneId:
-                    return Pick(bark, "Halt! Mall policy!", "Assault on an officer!", "Suspect has left the premises.", "Code... red...");
+                    return Pick(bark, "Halt! Mall security!", "That's a citation!", "Suspect fled. Noted.", "Officer... down...");
                 case SkylineEnemies.FloorCareId:
-                    return Pick(bark, "Oh! A stain!", "Rude!", "All clean!", "Out of... order...");
+                    return Pick(bark, "Ooh! A stain!", "Rude! I'm cleaning!", "Spotless again!", "Out of... order...");
                 case SkylineEnemies.SpotlightId:
-                    return Pick(bark, "Target acquired. Smile.", "Lens damage reported.", "Scanning.", "Lights... out.");
+                    return Pick(bark, "Lights on you. Smile.", "My lens! My LENS!", "Searching the dark.", "Lights... out...");
                 case SkylineEnemies.GondolaId:
-                    return Pick(bark, "Mind the squeegee!", "Window's dirty!", "Shift's over.", "Hanging... up...");
+                    return Pick(bark, "Oi! Off my glass!", "Watch the bucket!", "Back to the panes.", "Hanging... up...");
                 default:
                     return null;
             }

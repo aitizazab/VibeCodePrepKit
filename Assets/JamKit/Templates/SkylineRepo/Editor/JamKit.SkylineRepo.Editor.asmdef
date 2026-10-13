@@ -6,6 +6,8 @@
         "JamKit.Skyline",
         "JamKit.Core",
         "JamKit.Unity",
+        "JamKit.Look",
+        "JamKit.Look.Editor",
         "Unity.InputSystem",
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime",

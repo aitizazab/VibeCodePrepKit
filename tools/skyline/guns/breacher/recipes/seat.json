@@ -1,35 +1,19 @@
 {
   "sample_rate": 48000,
-  "length": 0.37,
-  "seed": 1,
+  "length": 0.45,
+  "seed": 19,
   "layers": [
     {
-      "type": "noise",
-      "highpass": 4000,
+      "type": "sample",
+      "path": "../samples/seat.wav",
       "start": 0.0,
-      "attack": 0.02,
-      "decay": 0.3,
-      "gain_db": -13
-    },
-    {
-      "type": "sine",
-      "freq": 100,
-      "freq_end": 50,
-      "start": 0.0,
-      "attack": 0.001,
-      "decay": 0.2,
-      "gain_db": -5
-    },
-    {
-      "type": "noise",
-      "lowpass": 900,
-      "start": 0.0,
-      "attack": 0.001,
-      "decay": 0.12,
-      "gain_db": -11
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": 0,
+      "pan": 0.0
     }
   ],
   "master": {
-    "limit_db": -1.0
+    "limit_db": -1.5
   }
 }

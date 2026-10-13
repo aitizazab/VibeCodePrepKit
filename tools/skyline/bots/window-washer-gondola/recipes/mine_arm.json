@@ -1,0 +1,58 @@
+{
+ "sample_rate": 48000,
+ "length": 0.25,
+ "seed": 59,
+ "layers": [
+  {
+   "type": "sine",
+   "freq": 1000,
+   "start": 0.0,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -6
+  },
+  {
+   "type": "sine",
+   "freq": 3000,
+   "start": 0.0,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -16
+  },
+  {
+   "type": "sine",
+   "freq": 5000,
+   "start": 0.0,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -22
+  },
+  {
+   "type": "sine",
+   "freq": 1500,
+   "start": 0.075,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -6
+  },
+  {
+   "type": "sine",
+   "freq": 4500,
+   "start": 0.075,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -16
+  },
+  {
+   "type": "sine",
+   "freq": 7500,
+   "start": 0.075,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -22
+  }
+ ],
+ "master": {
+  "limit_db": -1.0
+ }
+}

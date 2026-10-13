@@ -1,0 +1,140 @@
+{
+ "sample_rate": 48000,
+ "length": 0.8,
+ "seed": 43,
+ "layers": [
+  {
+   "type": "noise",
+   "start": 0.0,
+   "attack": 0.0005,
+   "decay": 0.04,
+   "gain_db": -6,
+   "color": "pink",
+   "lowpass": 3000
+  },
+  {
+   "type": "sine",
+   "freq": 523,
+   "start": 0.0,
+   "attack": 0.0008,
+   "decay": 0.4,
+   "gain_db": -6
+  },
+  {
+   "type": "sine",
+   "freq": 559.61,
+   "start": 0.33,
+   "attack": 0.0008,
+   "decay": 0.24,
+   "gain_db": -15
+  },
+  {
+   "type": "sine",
+   "freq": 1213,
+   "start": 0.0,
+   "attack": 0.0008,
+   "decay": 0.3,
+   "gain_db": -10
+  },
+  {
+   "type": "sine",
+   "freq": 1297.91,
+   "start": 0.33,
+   "attack": 0.0008,
+   "decay": 0.18,
+   "gain_db": -19
+  },
+  {
+   "type": "sine",
+   "freq": 2031,
+   "start": 0.0,
+   "attack": 0.0008,
+   "decay": 0.22,
+   "gain_db": -14
+  },
+  {
+   "type": "sine",
+   "freq": 2173.17,
+   "start": 0.33,
+   "attack": 0.0008,
+   "decay": 0.132,
+   "gain_db": -23
+  },
+  {
+   "type": "sine",
+   "freq": 3170,
+   "start": 0.0,
+   "attack": 0.0008,
+   "decay": 0.15,
+   "gain_db": -18
+  },
+  {
+   "type": "sine",
+   "freq": 3391.9,
+   "start": 0.33,
+   "attack": 0.0008,
+   "decay": 0.09,
+   "gain_db": -27
+  },
+  {
+   "type": "noise",
+   "start": 0.33,
+   "attack": 0.0005,
+   "decay": 0.03,
+   "gain_db": -15,
+   "color": "pink",
+   "lowpass": 3000
+  },
+  {
+   "type": "sine",
+   "freq": 4356.979,
+   "start": 0.0505,
+   "attack": 0.0004,
+   "decay": 0.02,
+   "gain_db": -20.72
+  },
+  {
+   "type": "sine",
+   "freq": 4337.317,
+   "start": 0.0906,
+   "attack": 0.0004,
+   "decay": 0.02,
+   "gain_db": -23.96
+  },
+  {
+   "type": "sine",
+   "freq": 4198.618,
+   "start": 0.1254,
+   "attack": 0.0004,
+   "decay": 0.02,
+   "gain_db": -20.1
+  },
+  {
+   "type": "sine",
+   "freq": 4097.9,
+   "start": 0.1602,
+   "attack": 0.0004,
+   "decay": 0.02,
+   "gain_db": -24.26
+  },
+  {
+   "type": "sine",
+   "freq": 4404.253,
+   "start": 0.1966,
+   "attack": 0.0004,
+   "decay": 0.02,
+   "gain_db": -22.17
+  },
+  {
+   "type": "sine",
+   "freq": 4480.7,
+   "start": 0.2271,
+   "attack": 0.0004,
+   "decay": 0.02,
+   "gain_db": -24.1
+  }
+ ],
+ "master": {
+  "limit_db": -1.0
+ }
+}

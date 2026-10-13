@@ -1,0 +1,29 @@
+{
+  "sample_rate": 48000,
+  "length": 0.75,
+  "seed": 19,
+  "layers": [
+    {
+      "type": "sample",
+      "path": "../samples/boost_whump.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -1,
+      "pan": 0.0
+    },
+    {
+      "type": "noise",
+      "start": 0.0,
+      "attack": 0.0003,
+      "decay": 0.05,
+      "gain_db": -18,
+      "pan": 0.0,
+      "highpass": 3000,
+      "lowpass": 9000
+    }
+  ],
+  "master": {
+    "limit_db": -1.5
+  }
+}

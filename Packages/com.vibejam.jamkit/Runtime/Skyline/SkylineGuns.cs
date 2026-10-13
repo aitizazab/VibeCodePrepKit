@@ -109,8 +109,9 @@ namespace JamKit.Skyline
                 enemyKnockback = 9f,
                 hitStopSeconds = 0.05f,
                 killHitStopSeconds = 0.1f,
-                shakePerShot = 0.22f,
-                kick = new CameraKickDef { pitchDeg = 6.5f, yawDeg = 1.5f, recoverRate = 6f },
+                // Task 19: "the camera kicks hard" (2.2). 8 degrees up, recovered to 0.5% by the next shot (0.75 s at rate 7).
+                shakePerShot = 0.3f,
+                kick = new CameraKickDef { pitchDeg = 8f, yawDeg = 2f, recoverRate = 7f },
                 aimAssist = new AimAssistDef { slowdownConeDeg = 8f, slowdownScale = 0.6f, magnetConeDeg = 5f, magnetDegPerSec = 12f, range = 20f },
                 clips = new[]
                 {
@@ -119,7 +120,7 @@ namespace JamKit.Skyline
                         new[] { P(0f, V(0.06f, -0.35f, -0.2f), V(45f, 10f, 30f)), P(0.15f, V(0.03f, -0.15f, -0.1f), V(20f, 5f, 15f)), P(0.75f, V(0f, 0.01f, 0f), V(-4f, 0f, 0f)), P(1f, O, O) }),
                     C(HandlingClipKind.Fire, 0.6f,
                         new[] { E(0f, "blast", "breacher/blast"), E(0.4f, "vent", "breacher/vent_hiss") },
-                        new[] { P(0f, O, O), P(0.08f, V(0f, 0.04f, -0.14f), V(-18f, 0f, 3f)), P(0.4f, V(0f, 0.01f, -0.03f), V(-4f, 0f, 0f)), P(1f, O, O) }),
+                        new[] { P(0f, O, O), P(0.07f, V(0f, 0.05f, -0.17f), V(-22f, 0f, 4f)), P(0.4f, V(0f, 0.01f, -0.03f), V(-4f, 0f, 0f)), P(1f, O, O) }),
                     C(HandlingClipKind.DryFire, 0.3f,
                         new[] { E(0f, "clunk", "breacher/dry_clunk") },
                         new[] { P(0f, O, O), P(0.25f, V(0f, -0.01f, -0.02f), V(2f, 0f, 0f)), P(1f, O, O) }),

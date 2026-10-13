@@ -31,6 +31,8 @@
          core-tests/UnityLayer/UnityLayer.props compiles it. -->
     <Compile Include="$(PkgRoot)Runtime\Unity\**\*.cs" />
     <PkgDll Include="$(ScriptAssemblies)Unity.InputSystem.dll;$(ScriptAssemblies)UnityEngine.UI.dll;$(ScriptAssemblies)Ink.dll;$(ScriptAssemblies)Ink-Libraries.dll;$(ScriptAssemblies)Unity.RenderPipelines.Universal.Runtime.dll;$(ScriptAssemblies)Unity.RenderPipelines.Core.Runtime.dll;$(ScriptAssemblies)Unity.AI.Navigation.dll" />
+    <!-- Visiting Hours' Look library (Task 21: the arena's look calls its API) and the Perf assembly it references. -->
+    <PkgDll Include="$(ScriptAssemblies)JamKit.Look.dll;$(ScriptAssemblies)JamKit.Look.Editor.dll;$(ScriptAssemblies)JamKit.Perf.dll" />
     <Reference Include="@(PkgDll)" Private="false" />
     <EngineDll Include="$(UnityEditorDir)\Data\Managed\UnityEngine\UnityEngine*.dll" />
     <Reference Include="@(EngineDll)" Private="false" />

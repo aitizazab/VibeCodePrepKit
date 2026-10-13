@@ -1,0 +1,82 @@
+{
+ "sample_rate": 48000,
+ "length": 0.2,
+ "seed": 7,
+ "layers": [
+  {
+   "type": "noise",
+   "start": 0.0,
+   "attack": 0.0003,
+   "decay": 0.01,
+   "gain_db": -10,
+   "highpass": 3000
+  },
+  {
+   "type": "sine",
+   "freq": 1600,
+   "start": 0.0,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": 0
+  },
+  {
+   "type": "sine",
+   "freq": 4800,
+   "start": 0.0,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -10
+  },
+  {
+   "type": "sine",
+   "freq": 8000,
+   "start": 0.0,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -16
+  },
+  {
+   "type": "sine",
+   "freq": 11200,
+   "start": 0.0,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -21
+  },
+  {
+   "type": "sine",
+   "freq": 1600,
+   "start": 0.065,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": 0
+  },
+  {
+   "type": "sine",
+   "freq": 4800,
+   "start": 0.065,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -10
+  },
+  {
+   "type": "sine",
+   "freq": 8000,
+   "start": 0.065,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -16
+  },
+  {
+   "type": "sine",
+   "freq": 11200,
+   "start": 0.065,
+   "attack": 0.001,
+   "decay": 0.06,
+   "gain_db": -21
+  }
+ ],
+ "master": {
+  "limit_db": -1.0
+ }
+}

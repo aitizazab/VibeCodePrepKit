@@ -1,0 +1,19 @@
+{
+  "sample_rate": 48000,
+  "length": 2.0,
+  "seed": 1,
+  "layers": [
+    {
+      "type": "sample",
+      "path": "../sources/dr_rotor_loop.wav",
+      "start": 0.0,
+      "attack": 0,
+      "decay": 0,
+      "gain_db": 3.0
+    }
+  ],
+  "master": {
+    "limit_db": -1.0
+  },
+  "note": "a seamless loop: the stem is circular and no layer here may filter or envelope it; sample layers +3 dB: a centred layer is panned at -3 dB per side"
+}

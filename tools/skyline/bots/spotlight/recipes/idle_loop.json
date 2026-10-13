@@ -1,0 +1,130 @@
+{
+ "sample_rate": 48000,
+ "length": 2.0,
+ "seed": 1,
+ "layers": [
+  {
+   "type": "sine",
+   "freq": 50.0,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -34.0
+  },
+  {
+   "type": "sine",
+   "freq": 100.0,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -14.0
+  },
+  {
+   "type": "sine",
+   "freq": 150.0,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -33.6
+  },
+  {
+   "type": "sine",
+   "freq": 200.0,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -26.8
+  },
+  {
+   "type": "sine",
+   "freq": 250.0,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -38.0
+  },
+  {
+   "type": "sine",
+   "freq": 300.0,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -31.2
+  },
+  {
+   "type": "sine",
+   "freq": 350.0,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -42.4
+  },
+  {
+   "type": "sine",
+   "freq": 400.0,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -35.6
+  },
+  {
+   "type": "sine",
+   "freq": 1100,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -44.0
+  },
+  {
+   "type": "sine",
+   "freq": 1300,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -45.0
+  },
+  {
+   "type": "sine",
+   "freq": 1500,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -47.0
+  },
+  {
+   "type": "sine",
+   "freq": 2300,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -50.0
+  },
+  {
+   "type": "sine",
+   "freq": 100.5,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -19
+  },
+  {
+   "type": "sine",
+   "freq": 4000.0,
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -50
+  },
+  {
+   "type": "noise",
+   "start": 0.0,
+   "attack": 0.0,
+   "decay": 0.0,
+   "gain_db": -44,
+   "color": "pink"
+  }
+ ],
+ "master": {
+  "limit_db": -1.0
+ }
+}

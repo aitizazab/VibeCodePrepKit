@@ -1,0 +1,305 @@
+using System;
+using System.IO;
+using JamKit.Look;
+using JamKit.Look.EditorTools;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+using UnityEngine.SceneManagement;
+
+namespace JamKit.SkylineRepo.EditorTools
+{
+    /// <summary>
+    /// Skyline Repo's afternoon look (Task 21; spec section 10 items 1-3; docs/SKYLINE-LOOK.md): a bright, sunny near-future
+    /// afternoon over a glass mall atrium. Built on Visiting Hours' Look library by calling its API:
+    /// <list type="bullet">
+    /// <item><c>VhLook.ApplyGoldenHour</c>'s rig, copied with afternoon values (one Mixed sun with soft shadows, a shadowless
+    /// bounce fill, Visiting Hours' runtime <see cref="VhLookRig"/> aiming them and the sky, a global post volume, the render
+    /// settings);</item>
+    /// <item>then the afternoon's own sky (a Poly Haven HDRI on Visiting Hours' sky shader, turned so its sun sits on the
+    /// light), its own post profile (Look/SK_Afternoon.asset) and a shorter, cheaper shadow request;</item>
+    /// <item><see cref="VhLook.SetupCamera"/> on every camera (HDR, post, SMAA, NaN guard; the far clip kept, since the
+    /// viewmodel's rig sits 1 km below the arena);</item>
+    /// <item>two box-projected reflection probes (the main hall, the warm-up hall) from <see cref="VhLook.AddReflectionProbe"/>,
+    /// their cubemaps baked once at build time (the project's quality levels have realtime probes off).</item>
+    /// </list>
+    /// Nothing here writes into Visiting Hours' folders: their code is called only where it has no side effects
+    /// (VhLookRig, VhLook.SetupCamera / AddReflectionProbe, VhLookLibrary.SetupLit / ValidateLit, VhLookUv) and their
+    /// shader (JamKit/Look/Sky) and three prepared texture sets are read.
+    /// </summary>
+    public static class SkylineLook
+    {
+        /// <summary>The sun: 41 degrees up (mid-afternoon, long enough shadows to model the hall) from the west-south-west,
+        /// so it rakes in over the south-west walls and lights the north half, the mezzanine and the east shops, and the
+        /// skylight's beams stripe the floor.</summary>
+        public const float SunElevation = 41f, SunAzimuth = 235f;
+        public const float SunIntensity = 2.6f;
+        public static readonly Color SunColor = new Color(1f, 0.95f, 0.87f);
+        public const string ProfilePath = SkylineLookLibrary.LookRoot + "SK_Afternoon.asset";
+
+        public const string RootName = "Skyline Look (afternoon)";
+
+        /// <summary>
+        /// Applies the afternoon to the open scene and returns the rig. This is <c>VhLook.ApplyGoldenHour</c>'s rig, copied
+        /// (docs/redesign/look.md allows calling or copying): calling it would also rebuild Visiting Hours' own post profile
+        /// and sky material, which are not in this tree, so it would write new files into their folders on every pass.
+        /// Same parts, same runtime component (<see cref="VhLookRig"/>), Skyline's own assets.
+        /// </summary>
+        public static VhLookRig ApplyAfternoon(Scene scene)
+        {
+            SkylineLookLibrary.ConfigureImporters();
+            var info = SkylineLookLibrary.ReadSkyInfo();
+            if (!scene.IsValid()) scene = SceneManager.GetActiveScene();
+            foreach (var go in scene.GetRootGameObjects())
+                if (go.name == RootName || go.name.StartsWith(VhLook.RootPrefix, StringComparison.Ordinal)) UnityEngine.Object.DestroyImmediate(go);
+            foreach (var go in scene.GetRootGameObjects())
+                foreach (var l in go.GetComponentsInChildren<Light>(true))
+                    if (l.type == LightType.Directional && l.enabled) l.enabled = false;   // one sun
+
+            var root = new GameObject(RootName);
+            SceneManager.MoveGameObjectToScene(root, scene);
+
+            var sun = new GameObject("Sun").AddComponent<Light>();
+            sun.transform.SetParent(root.transform, false);
+            sun.type = LightType.Directional;
+            sun.color = SunColor;
+            sun.intensity = SunIntensity;
+            sun.shadows = LightShadows.Soft;
+            sun.shadowStrength = 1f;
+            sun.lightmapBakeType = LightmapBakeType.Mixed;
+            sun.bounceIntensity = 1f;
+            var sunData = sun.gameObject.AddComponent<UniversalAdditionalLightData>();
+            sunData.usePipelineSettings = true;
+            sunData.softShadowQuality = SoftShadowQuality.Medium;   // the golden hour asks High; Medium is crisp enough at 80 m and cheaper
+
+            var bounce = new GameObject("Bounce (sunlit floor, fill)").AddComponent<Light>();
+            bounce.transform.SetParent(root.transform, false);
+            bounce.type = LightType.Directional;
+            bounce.color = new Color(0.96f, 0.94f, 0.88f);
+            bounce.intensity = 0.28f;
+            bounce.shadows = LightShadows.None;
+            bounce.lightmapBakeType = LightmapBakeType.Realtime;
+            bounce.bounceIntensity = 0f;
+            bounce.gameObject.AddComponent<UniversalAdditionalLightData>();
+
+            var rig = root.AddComponent<VhLookRig>();
+            rig.sun = sun;
+            rig.bounce = bounce;
+            rig.sunElevation = SunElevation;
+            rig.sunAzimuth = SunAzimuth;
+            rig.hdriSunAzimuth = info.sun_azimuth;
+            rig.hdriSunElevation = info.sun_elevation;
+            rig.cloudDrift = 0.6f;
+            rig.lightingBaked = false;
+            // The arena is ~90 m end to end: 80 m of shadow in four cascades at 2048 (the golden hour asks 160 m / 4096).
+            rig.shadowDistance = 80f;
+            rig.shadowCascades = 4;
+            rig.cascadeSplits = new Vector3(0.06f, 0.18f, 0.42f);
+            rig.shadowResolution = 2048;
+            // For the Look's own shaders only (foliage, far land; none used here): a clear afternoon's hemisphere.
+            rig.ambientSky = new Color(0.55f, 0.68f, 0.92f);
+            rig.ambientEquator = new Color(0.66f, 0.68f, 0.7f);
+            rig.ambientGround = new Color(0.3f, 0.29f, 0.27f);
+
+            var volumeGo = new GameObject("Post (Skyline afternoon)");
+            volumeGo.transform.SetParent(root.transform, false);
+            var volume = volumeGo.AddComponent<Volume>();
+            volume.isGlobal = true;
+            volume.priority = 10f;
+            volume.sharedProfile = Afternoon();
+
+            RenderSettings.skybox = SkylineLookLibrary.SkyMaterial(info);
+            RenderSettings.sun = sun;
+            RenderSettings.ambientMode = AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = 1f;
+            RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
+            RenderSettings.defaultReflectionResolution = 256;
+            RenderSettings.reflectionIntensity = 1f;
+            RenderSettings.reflectionBounces = 1;
+            RenderSettings.fog = false;
+            rig.Apply();
+            DynamicGI.UpdateEnvironment();
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log("SKYLINE_LOOK afternoon applied (sun " + SunElevation + " deg up at bearing " + SunAzimuth + ", sky " +
+                      SkylineLookLibrary.SkyName + ", HDRI sun " + info.sun_elevation.ToString("0.0") + "/" + info.sun_azimuth.ToString("0.0") + ")");
+            return rig;
+        }
+
+        // ------------------------------------------------------------------------------------------------ the post profile
+
+        static VolumeProfile Profile(string path)
+        {
+            var p = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
+            if (p == null)
+            {
+                p = ScriptableObject.CreateInstance<VolumeProfile>();
+                VhLookLibrary.EnsureAssetFolder(path);
+                AssetDatabase.CreateAsset(p, path);
+            }
+            return p;
+        }
+
+        static T Comp<T>(VolumeProfile p) where T : VolumeComponent
+        {
+            if (!p.TryGet<T>(out var c))
+            {
+                c = p.Add<T>(false);
+                c.name = typeof(T).Name;
+                AssetDatabase.AddObjectToAsset(c, p);
+            }
+            c.active = true;
+            return c;
+        }
+
+        /// <summary>
+        /// SK_Afternoon: ACES; a touch of exposure and contrast for a crisp, bright stylized afternoon; saturation up a little
+        /// (CONCIERGE's gold and the shop signs carry the colour); neutral-cool white balance (the sun is the only warm thing);
+        /// split toning with sky-cool shadows; bloom on highlights only (threshold 1: sun glints, signs, light panels), no HQ
+        /// filtering and a quarter-resolution start (Visiting Hours' perf recipe); a light vignette; no grain, no haze pass.
+        /// </summary>
+        public static VolumeProfile Afternoon()
+        {
+            var p = Profile(ProfilePath);
+            Comp<Tonemapping>(p).mode.Override(TonemappingMode.ACES);
+
+            var ca = Comp<ColorAdjustments>(p);
+            // Sunlit white terrazzo is ~2.2 before the grade (sun 2.6 x sin 41 + the sky's ambient, x 0.85 albedo): +0.1 keeps it
+            // just under ACES's shoulder, so sunlit white still shows its texture and the shade (~0.8) reads mid-grey-blue.
+            ca.postExposure.Override(0.1f);
+            ca.contrast.Override(12f);
+            ca.saturation.Override(6f);
+            ca.colorFilter.Override(Color.white);
+
+            var wb = Comp<WhiteBalance>(p);
+            wb.temperature.Override(-3f);
+            wb.tint.Override(0f);
+
+            var st = Comp<SplitToning>(p);
+            st.shadows.Override(new Color(0.44f, 0.48f, 0.56f));
+            st.highlights.Override(new Color(0.53f, 0.51f, 0.48f));
+            st.balance.Override(5f);
+
+            var smh = Comp<ShadowsMidtonesHighlights>(p);
+            smh.shadows.Override(new Vector4(0.98f, 1f, 1.05f, 0.03f));
+            smh.midtones.Override(new Vector4(1f, 1f, 1f, 0f));
+            smh.highlights.Override(new Vector4(1.02f, 1.01f, 0.98f, 0f));
+
+            var bloom = Comp<Bloom>(p);
+            bloom.threshold.Override(1.0f);
+            bloom.intensity.Override(0.65f);
+            bloom.scatter.Override(0.62f);
+            bloom.tint.Override(new Color(1f, 0.97f, 0.92f));
+            bloom.highQualityFiltering.Override(false);
+            bloom.downscale.Override(BloomDownscaleMode.Quarter);
+
+            var vig = Comp<Vignette>(p);
+            vig.intensity.Override(0.16f);
+            vig.smoothness.Override(0.5f);
+            vig.color.Override(new Color(0.05f, 0.05f, 0.07f));
+
+            EditorUtility.SetDirty(p);
+            return p;
+        }
+
+        // ------------------------------------------------------------------------------------------------ cameras
+
+        /// <summary>HDR, post-processing, SMAA, NaN guard and dithering on every camera of the scene (the player's and the
+        /// stills'), keeping each camera's own far clip.</summary>
+        public static int SetupCameras(Scene scene)
+        {
+            int n = 0;
+            foreach (var go in scene.GetRootGameObjects())
+                foreach (var cam in go.GetComponentsInChildren<Camera>(true))
+                {
+                    VhLook.SetupCamera(cam, 0f);
+                    n++;
+                }
+            return n;
+        }
+
+        // ------------------------------------------------------------------------------------------------ reflections
+
+        /// <summary>
+        /// The arena's reflections: one box-projected probe over the main hall and one over the warm-up hall
+        /// (<see cref="VhLook.AddReflectionProbe"/>), each baked to a cubemap next to the generated scene and set as its custom
+        /// texture, so the glass, the steel and the polished floors reflect the hall and the afternoon sky. Every renderer under
+        /// <paramref name="staticRoots"/> is marked reflection-probe static first. A failed bake leaves the sky's reflection.
+        /// </summary>
+        public static void BakeReflections(Scene scene, string scenePath, params Transform[] staticRoots)
+        {
+            foreach (var root in staticRoots)
+            {
+                if (root == null) continue;
+                foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    var flags = GameObjectUtility.GetStaticEditorFlags(r.gameObject);
+                    GameObjectUtility.SetStaticEditorFlags(r.gameObject, flags | StaticEditorFlags.ReflectionProbeStatic);
+                }
+            }
+            var hall = VhLook.AddReflectionProbe(scene, new Vector3(0f, 6f, 0f), new Vector3(50.8f, 14.4f, 40.8f), 1, "Reflection probe (main hall)");
+            var warm = VhLook.AddReflectionProbe(scene, new Vector3(0f, 3.5f, -34.2f), new Vector3(30.8f, 8.4f, 28.4f), 1, "Reflection probe (warm-up hall)");
+            string dir = Path.GetDirectoryName(scenePath).Replace('\\', '/');
+            string name = Path.GetFileNameWithoutExtension(scenePath);
+            WarmUpPipeline();
+            Bake(hall, dir + "/" + name + "_Reflections_Hall.exr");
+            Bake(warm, dir + "/" + name + "_Reflections_Warmup.exr");
+        }
+
+        static void Bake(ReflectionProbe p, string path)
+        {
+            p.resolution = 128;
+            p.hdr = true;
+            p.blendDistance = 1f;
+            p.clearFlags = ReflectionProbeClearFlags.Skybox;
+            p.shadowDistance = 60f;
+            try
+            {
+                VhLookLibrary.EnsureAssetFolder(path);
+                p.mode = ReflectionProbeMode.Baked;
+                bool ok = Lightmapping.BakeReflectionProbe(p, path);
+                if (ok)
+                {
+                    AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                    var cube = AssetDatabase.LoadAssetAtPath<Texture>(path);
+                    if (cube != null)
+                    {
+                        p.mode = ReflectionProbeMode.Custom;
+                        p.customBakedTexture = cube;
+                        Debug.Log("SKYLINE_LOOK reflections baked: " + p.name + " -> " + path);
+                        return;
+                    }
+                }
+                Debug.LogWarning("SKYLINE_LOOK reflections NOT baked (the sky's reflection is used): " + p.name);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("SKYLINE_LOOK reflections bake failed (the sky's reflection is used): " + p.name + ": " + e.Message);
+            }
+            p.mode = ReflectionProbeMode.Baked;
+        }
+
+        /// <summary>One render through URP so the pipeline exists in a batch-mode editor before the probe bake (Visiting
+        /// Hours' bake does the same).</summary>
+        static void WarmUpPipeline()
+        {
+            var go = new GameObject("Skyline bake warm-up camera") { hideFlags = HideFlags.HideAndDontSave };
+            var rt = new RenderTexture(64, 64, 24);
+            try
+            {
+                var cam = go.AddComponent<Camera>();
+                var request = new UniversalRenderPipeline.SingleCameraRequest { destination = rt };
+                if (RenderPipeline.SupportsRenderRequest(cam, request)) RenderPipeline.SubmitRenderRequest(cam, request);
+                else { cam.targetTexture = rt; cam.Render(); cam.targetTexture = null; }
+            }
+            catch (Exception e) { Debug.LogWarning("SKYLINE_LOOK warm-up render failed: " + e.Message); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                rt.Release();
+                UnityEngine.Object.DestroyImmediate(rt);
+            }
+        }
+    }
+}

@@ -1,0 +1,257 @@
+{
+ "sample_rate": 48000,
+ "length": 1.8,
+ "seed": 19,
+ "layers": [
+  {
+   "type": "noise",
+   "start": 0.0,
+   "attack": 0.0004,
+   "decay": 0.09,
+   "gain_db": 0,
+   "highpass": 900
+  },
+  {
+   "type": "noise",
+   "start": 0.0,
+   "attack": 0.001,
+   "decay": 0.5,
+   "gain_db": -6,
+   "color": "pink",
+   "lowpass": 1800
+  },
+  {
+   "type": "sine",
+   "freq": 85,
+   "start": 0.0,
+   "attack": 0.001,
+   "decay": 0.6,
+   "gain_db": -3,
+   "freq_end": 30
+  },
+  {
+   "type": "noise",
+   "start": 0.02,
+   "attack": 0.01,
+   "decay": 0.7,
+   "gain_db": -20,
+   "highpass": 3500
+  },
+  {
+   "type": "sine",
+   "freq": 8101.924,
+   "start": 0.2809,
+   "attack": 0.0005,
+   "decay": 0.08163729257624652,
+   "gain_db": -20.11,
+   "pan": -0.09
+  },
+  {
+   "type": "sine",
+   "freq": 4880.872,
+   "start": 0.4611,
+   "attack": 0.0005,
+   "decay": 0.05186078345477557,
+   "gain_db": -17.61,
+   "pan": -0.19
+  },
+  {
+   "type": "sine",
+   "freq": 4741.42,
+   "start": 0.1207,
+   "attack": 0.0005,
+   "decay": 0.04861151502925166,
+   "gain_db": -18.25,
+   "pan": -0.15
+  },
+  {
+   "type": "sine",
+   "freq": 4310.601,
+   "start": 0.2268,
+   "attack": 0.0005,
+   "decay": 0.04566301758313201,
+   "gain_db": -17.03,
+   "pan": 0.03
+  },
+  {
+   "type": "sine",
+   "freq": 7767.559,
+   "start": 0.1453,
+   "attack": 0.0005,
+   "decay": 0.10424476271777836,
+   "gain_db": -19.14,
+   "pan": -0.32
+  },
+  {
+   "type": "sine",
+   "freq": 7911.81,
+   "start": 0.3076,
+   "attack": 0.0005,
+   "decay": 0.07168506648558458,
+   "gain_db": -21.58,
+   "pan": -0.16
+  },
+  {
+   "type": "sine",
+   "freq": 8419.745,
+   "start": 0.4123,
+   "attack": 0.0005,
+   "decay": 0.103357041857882,
+   "gain_db": -24.54,
+   "pan": -0.21
+  },
+  {
+   "type": "sine",
+   "freq": 7753.952,
+   "start": 0.2152,
+   "attack": 0.0005,
+   "decay": 0.10411793899972818,
+   "gain_db": -18.9,
+   "pan": -0.29
+  },
+  {
+   "type": "sine",
+   "freq": 3680.172,
+   "start": 0.2549,
+   "attack": 0.0005,
+   "decay": 0.09642878857735954,
+   "gain_db": -15.07,
+   "pan": -0.04
+  },
+  {
+   "type": "sine",
+   "freq": 3778.692,
+   "start": 0.1849,
+   "attack": 0.0005,
+   "decay": 0.0784154735950158,
+   "gain_db": -20.0,
+   "pan": -0.1
+  },
+  {
+   "type": "sine",
+   "freq": 8629.456,
+   "start": 0.4015,
+   "attack": 0.0005,
+   "decay": 0.11124277770690133,
+   "gain_db": -17.45,
+   "pan": -0.38
+  },
+  {
+   "type": "sine",
+   "freq": 3738.778,
+   "start": 0.1403,
+   "attack": 0.0005,
+   "decay": 0.09641847351338409,
+   "gain_db": -17.63,
+   "pan": -0.3
+  },
+  {
+   "type": "sine",
+   "freq": 5622.252,
+   "start": 0.1042,
+   "attack": 0.0005,
+   "decay": 0.09883196781339976,
+   "gain_db": -19.61,
+   "pan": -0.16
+  },
+  {
+   "type": "sine",
+   "freq": 3294.623,
+   "start": 0.281,
+   "attack": 0.0005,
+   "decay": 0.0567364849515431,
+   "gain_db": -21.87,
+   "pan": 0.2
+  },
+  {
+   "type": "sine",
+   "freq": 3432.042,
+   "start": 0.0476,
+   "attack": 0.0005,
+   "decay": 0.080463710696239,
+   "gain_db": -21.56,
+   "pan": -0.39
+  },
+  {
+   "type": "sine",
+   "freq": 4786.199,
+   "start": 0.1658,
+   "attack": 0.0005,
+   "decay": 0.046808405593855795,
+   "gain_db": -16.71,
+   "pan": -0.17
+  },
+  {
+   "type": "sine",
+   "freq": 100,
+   "start": 0.05,
+   "attack": 0.01,
+   "decay": 1.4,
+   "gain_db": -10,
+   "freq_end": 22
+  },
+  {
+   "type": "sine",
+   "freq": 200,
+   "start": 0.05,
+   "attack": 0.01,
+   "decay": 1.4,
+   "gain_db": -14,
+   "freq_end": 44
+  },
+  {
+   "type": "sine",
+   "freq": 300,
+   "start": 0.05,
+   "attack": 0.01,
+   "decay": 1.4,
+   "gain_db": -20,
+   "freq_end": 66
+  },
+  {
+   "type": "sine",
+   "freq": 95,
+   "start": 1.25,
+   "attack": 0.0008,
+   "decay": 0.09,
+   "gain_db": -14,
+   "freq_end": 48
+  },
+  {
+   "type": "noise",
+   "start": 1.25,
+   "attack": 0.0005,
+   "decay": 0.035,
+   "gain_db": -18,
+   "color": "pink",
+   "lowpass": 1400
+  },
+  {
+   "type": "sine",
+   "freq": 1180,
+   "start": 1.25,
+   "attack": 0.0005,
+   "decay": 0.05,
+   "gain_db": -30
+  },
+  {
+   "type": "sine",
+   "freq": 1730,
+   "start": 1.25,
+   "attack": 0.0005,
+   "decay": 0.04,
+   "gain_db": -33
+  },
+  {
+   "type": "noise",
+   "start": 1.254,
+   "attack": 0.0003,
+   "decay": 0.012,
+   "gain_db": -22,
+   "highpass": 3500
+  }
+ ],
+ "master": {
+  "limit_db": -1.0
+ }
+}

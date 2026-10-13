@@ -207,6 +207,11 @@ namespace JamKit.SkylineRepo
             p.lamp = Find(p.rig, "Lamp");
             p.rail = Find(p.rig, "Rail");
             p.mineDrop = Find(p.rig, "MineDrop");
+            // the moving bits, named as the primitive bodies name them (Task 20): the drone's "Rotors" (each child spins
+            // about its own local Y), the floor-care unit's "Brush" (spins about its local Y), the gondola's "SqueegeeArm"
+            p.spinner = Find(p.rig, "Rotors");
+            if (p.spinner == null) p.spinner = Find(p.rig, "Brush");
+            p.squeegee = Find(p.rig, "SqueegeeArm");
             if ((def.id == SkylineEnemies.DroneId || def.id == SkylineEnemies.SpotlightId) && p.muzzle == null) p.muzzle = Need(def, p.rig, "Muzzle");
             if (def.id == SkylineEnemies.FloorCareId && p.nozzle == null) p.nozzle = Need(def, p.rig, "Nozzle");
             if (def.id == SkylineEnemies.SpotlightId && p.lamp == null) p.lamp = Need(def, p.rig, "Lamp");
@@ -218,6 +223,17 @@ namespace JamKit.SkylineRepo
             p.centerLocal = def.id == SkylineEnemies.FloorCareId ? new Vector3(0f, FightSim.FloorUnitCenter, 0f) : Vector3.zero;
             foreach (var r in p.rig.GetComponentsInChildren<Renderer>(true))
                 if (r.GetComponent<Collider>() == null && r is MeshRenderer) r.gameObject.AddComponent<BoxCollider>();
+            // a fixed stand (Task 20, the spotlight's): Resources/SkylineModels/bots/<id>_mount, when there is one, sits under
+            // the root beside the rig and never turns (the rig pitches and yaws); it is hit as the body, as the primitive mount
+            var mountModel = Resources.Load<GameObject>(ModelFolder + def.id + "_mount");
+            if (mountModel != null)
+            {
+                var mount = Object.Instantiate(mountModel, root, false);
+                mount.name = "Mount";
+                p.mount = mount.transform;
+                foreach (var r in p.mount.GetComponentsInChildren<Renderer>(true))
+                    if (r.GetComponent<Collider>() == null && r is MeshRenderer) r.gameObject.AddComponent<BoxCollider>();
+            }
         }
 
         static Transform Need(EnemyDef def, Transform rig, string name)

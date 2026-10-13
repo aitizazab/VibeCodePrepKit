@@ -1,18 +1,28 @@
 {
   "sample_rate": 48000,
-  "length": 0.52,
-  "seed": 1,
+  "length": 0.65,
+  "seed": 19,
   "layers": [
     {
+      "type": "sample",
+      "path": "../samples/vent.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -3,
+      "pan": 0.35
+    },
+    {
       "type": "noise",
-      "highpass": 4000,
       "start": 0.0,
       "attack": 0.02,
-      "decay": 0.45,
-      "gain_db": -15
+      "decay": 0.3,
+      "gain_db": -24,
+      "pan": -0.3,
+      "highpass": 6000
     }
   ],
   "master": {
-    "limit_db": -1.0
+    "limit_db": -1.5
   }
 }
