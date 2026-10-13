@@ -154,3 +154,24 @@ def test_cli_errors_are_clean(tmp_path, capsys):
         assert sf.main(argv) == 2
         assert capsys.readouterr().err.startswith("soundforge: ")
     assert sf.main(["timeline", str(tmp_path / "tl.json"), "--duration", "0.1", "-o", out]) == 0
+
+
+# ---- final fix wave ----
+
+def test_editing_one_layer_does_not_reroll_the_noise_of_the_others(tmp_path):
+    # Each layer has its own generator (seed + index). Layer 1's noise must be the same sample for sample whatever layer 0 is,
+    # including a layer 0 that draws random numbers itself.
+    noise_b = {"type": "noise", "attack": 0.001, "decay": 0.2}
+    master = {"limit_db": 20}
+    silent = {"type": "noise", "start": 5.0}                       # starts past the end: contributes nothing
+    loud_a = {"type": "noise", "attack": 0.001, "decay": 0.2, "gain_db": 3}
+    quiet_a = {"type": "noise", "attack": 0.001, "decay": 0.2, "gain_db": -9, "color": "pink"}
+    base = sf.render_recipe({"length": 0.5, "master": master, "layers": [silent, noise_b]}, tmp_path)
+    for a in (loud_a, quiet_a):
+        both = sf.render_recipe({"length": 0.5, "master": master, "layers": [a, noise_b]}, tmp_path)
+        a_alone = sf.render_recipe({"length": 0.5, "master": master, "layers": [a]}, tmp_path)
+        assert np.allclose(both, a_alone + base, atol=1e-5)
+    # the same recipe still renders the same every time
+    again = sf.render_recipe({"length": 0.5, "master": master, "layers": [loud_a, noise_b]}, tmp_path)
+    first = sf.render_recipe({"length": 0.5, "master": master, "layers": [loud_a, noise_b]}, tmp_path)
+    assert np.array_equal(again, first)

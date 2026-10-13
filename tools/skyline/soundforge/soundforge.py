@@ -161,10 +161,11 @@ def render_recipe(recipe: dict, base_dir: Path, sr: int | None = None) -> np.nda
     if isinstance(length, bool) or not isinstance(length, (int, float)) or length <= 0:
         raise RecipeError(f"'length' must be a number > 0, got {length!r}")
     n = int(round(float(length) * sr))
-    rng = np.random.default_rng(int(recipe.get("seed", 1)))
+    seed = int(recipe.get("seed", 1))
     out = np.zeros((n, 2))
     for i, layer in enumerate(recipe.get("layers", [])):
-        out += _layer(layer, i, n, sr, Path(base_dir), rng)
+        # one generator per layer (seed + index): editing one layer never re-rolls the noise of the others
+        out += _layer(layer, i, n, sr, Path(base_dir), np.random.default_rng(seed + i))
     return _master(out, recipe.get("master", {})).astype(np.float32)
 
 
