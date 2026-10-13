@@ -39,6 +39,7 @@ namespace JamKit.SkylineRepo
             Quaternion toAim = Quaternion.FromToRotation(Vector3.forward, aim);
             bool anyRange = false;
             int rank = 0;
+            bool hitSounded = false, worldSounded = false;   // one hit sound and one world sound a shot, however many pellets
             for (int p = 0; p < pellets; p++)
             {
                 Vector3 dir = aim;
@@ -89,8 +90,11 @@ namespace JamKit.SkylineRepo
                         }
                     }
                     SkylineImpact.Spawn(hit.point, hit.normal, onHittable);
-                    if (p == 0 || onHittable)
+                    if (onHittable ? !hitSounded : !worldSounded)
+                    {
                         SkylineSounds.PlayAt(onHittable ? SkylineImpact.HitSound : SkylineImpact.WorldSound, hit.point, onHittable ? 0.8f : 0.5f);
+                        if (onHittable) hitSounded = true; else worldSounded = true;
+                    }
                 }
                 SkylineTracer.Spawn(muzzle, end, new Color(1f, 0.92f, 0.7f));
             }
