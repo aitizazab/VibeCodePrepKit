@@ -19,3 +19,11 @@ clean sights for the gun that fit in thematically." Round 4 does exactly that (p
 muzzle opens with each beat. Implied sound: a heartbeat thump and ticking at rest, a valve-burst shot, a hiss of
 steam. The creator: "quite a cool idea, and even if it's not used for Writ, it might be worth saving as concept art
 for another gun."
+
+## The Writ: final design (2026-10-14)
+
+`writ-final.jpg` (round 5, take 1). The creator chose round 4's A take 1 (judge removed, a tall slim brass obelisk
+with an amber bead on the archway's keystone as the front sight) and asked for "a circular window behind the chair with
+a horizontal line that lines up with the other vertical line to make a cross for the sightlines"; then "just use Take 1
+of the round window". The rear sight is a round window through the empty judge's chair with one horizontal brass bar;
+through it, the bar crosses the obelisk to make the sight's cross.
