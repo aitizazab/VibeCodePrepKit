@@ -784,7 +784,12 @@ Fixed (technical and clarity):
   heavier one for a spot break and for a kill. **Writ spots must stay visually distinct from ordinary damage:** glow and
   spark fountains belong only to Writ spots (a bright pulsing seam); ordinary damage is dark (dents, scorches, missing
   plates, smoke at low chassis). Death: an error face, the remaining plates and 4-6 parts burst off with hitstop and a
-  wreck sound, a last bark; the hulk stays as the wreck, flickering while it's fresh to strip and going dark when stale.
+  wreck sound, a last bark; the hulk stays as the wreck, **throwing sparks while it's fresh to strip** and going dark
+  when stale (the creator: dead bots read differently from live ones anyway, and sparks tie to death). On a live bot,
+  sparks and glow mean a Writ spot.
+- **Every balance check simulates a real fight, with the player shooting back** (the creator: "what's the point of
+  balancing literally anything around being unable to shoot back at the enemies?"). The immortal-shooter dodge harness
+  only tests mechanics now.
 - **Lost Property:** your past wrecked Unit fights you with two guns, a prototype you've used before and one from the
   room's exclusive pool of 3 (each visit offers one you don't own, so three visits complete it); you keep one of the two
   permanently.
