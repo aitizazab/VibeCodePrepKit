@@ -74,8 +74,20 @@ namespace JamKit.Skyline
                     beamLockBefore = d.beamLockBefore,
                     beamFollowRate = d.beamFollowRate,
                     beamHitRadius = d.beamHitRadius,
+                    range = d.range,
+                    damage = d.attackDamage,
                 });
             }
+            return list;
+        }
+
+        /// <summary>The hall's cover in the fight's frame (each box moved by minus the encounter's anchor), for
+        /// <see cref="DodgeReport"/> and <see cref="CombatSim"/>. The encounter runs below pass no cover.</summary>
+        public static List<CoverBox> Cover(EncounterDef e)
+        {
+            var list = new List<CoverBox>();
+            if (e == null) return list;
+            foreach (var box in GalleriaArena.HallCover()) list.Add(CoverGeometry.Translated(box, -e.anchor));
             return list;
         }
 

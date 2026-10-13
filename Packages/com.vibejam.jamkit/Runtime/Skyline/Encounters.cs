@@ -107,6 +107,13 @@ namespace JamKit.Skyline
         }
     }
 
+    /// <summary>A solid axis-aligned piece of cover (world metres): a shot that crosses it is stopped, and a shooter can't see
+    /// through it. The arena lists them as data (<see cref="GalleriaArena.HallCover"/>) and the Unity builder builds exactly those.</summary>
+    public struct CoverBox
+    {
+        public Vector3 min, max;
+    }
+
     /// <summary>A difficulty preset's numbers (7.4). M1 builds Normal; Easy and Hard come with M4.</summary>
     public sealed class DifficultyDef
     {
@@ -173,6 +180,25 @@ namespace JamKit.Skyline
         };
 
         public static EncounterDef[] Encounters() => new[] { FoodCourt(), Skylight() };
+
+        /// <summary>The main hall's cover (world metres), built exactly as listed by the Unity builder: four pillars that hold
+        /// up the north mezzanine (1 x 1 m, floor to the 5 m mezzanine), three food-court kiosks (3 x 2 m, 2.2 m tall: full
+        /// cover) and three planters (2 x 0.8 m, 1 m tall: half cover, a low shot's shelter). The entry lane (4 m around
+        /// <see cref="HallEntry"/>) is clear, and every piece stands at least 3 m from every spawn.</summary>
+        public static CoverBox[] HallCover() => new[]
+        {
+            Pillar(-17f, 12f), Pillar(-8f, 12f), Pillar(8f, 12f), Pillar(17f, 12f),
+            Block(-12f, -3f, 3f, 2f, 2.2f), Block(12f, -3f, 3f, 2f, 2.2f), Block(6f, 3f, 3f, 2f, 2.2f),
+            Block(-5f, -9f, 2f, 0.8f, 1f), Block(5f, -9f, 2f, 0.8f, 1f), Block(-4f, 8f, 2f, 0.8f, 1f),
+        };
+
+        static CoverBox Pillar(float x, float z) => Block(x, z, 1f, 1f, MezzanineY);
+
+        static CoverBox Block(float x, float z, float sizeX, float sizeZ, float height) => new CoverBox
+        {
+            min = new Vector3(x - sizeX * 0.5f, 0f, z - sizeZ * 0.5f),
+            max = new Vector3(x + sizeX * 0.5f, height, z + sizeZ * 0.5f),
+        };
     }
 
     public enum Speaker { Dot, Concierge, Nan }
