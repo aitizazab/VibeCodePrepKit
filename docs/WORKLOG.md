@@ -7,6 +7,18 @@ request (2026-10-10), the **morning report** is built from this log and must be 
 
 ---
 
+## 2026-10-13 afternoon: NOTICE for Visiting Hours from the Skyline session (shared engine files changed)
+
+- Commit 28bbe5e edits two shared files:
+  - `Runtime/Core/Movement/MoveSim.cs` adds an outside push (`OutsidePushEnabled`, `bool AddPush`);
+  - `Runtime/Unity/Movement/MovementController.cs` adds `InputOverride`.
+- **Both hooks are opt-in and off by default.** Visiting Hours never turns them on, so its behaviour is unchanged.
+- Gate results before landing: Movement 211/211 (201 + 10 new), SharedTuningTests 1 passed / 0 skipped, the Dream
+  Escape and Deep Block route times identical line for line, Skyline 177/177.
+- An independent review checked that with both hooks off no code path changes.
+- Re-run the gate any time with `tools/skyline/engine-gate.ps1`.
+- The Visiting Hours session wasn't running when this landed, so this note stands in for the message.
+
 ## Night of 2026-10-10 → 11
 
 ### State at bedtime (about 06:00, 2026-10-10)
