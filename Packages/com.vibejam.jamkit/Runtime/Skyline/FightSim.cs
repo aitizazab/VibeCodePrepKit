@@ -734,7 +734,8 @@ namespace JamKit.Skyline
         /// <see cref="EnemyDef.searchSpeed"/> search; they move at their own height, at that speed, and never through cover.
         /// <list type="number">
         /// <item>On the step it loses sight of the player, it records where the player is then as <see cref="FightEnemy.LastKnown"/>
-        /// (the chest; the player has just stepped out of its sight).</item>
+        /// (the chest; the player has just stepped out of its sight). That is a step of perfect information: a few centimetres
+        /// past the last seen point when sight breaks at cover, but the whole jump when it is lost to range or a teleport.</item>
         /// <item>If it has a clear line to that point from where it is (it lost the player to distance, not to cover), it holds
         /// and watches it.</item>
         /// <item>Otherwise it scans ring points around itself at 1.5, 3, 4.5, 6, 8 and 10 m (16 directions each) and takes, from the
@@ -742,8 +743,9 @@ namespace JamKit.Skyline
         /// touching cover, lies inside the hall and south of the mezzanine deck's edge, and is nearest the last known position.
         /// It commits to that point: no re-picking until it gets there (then it holds), sees the player again, or its memory
         /// runs out. No such point within 10 m: it holds.</item>
-        /// <item>When <see cref="EnemyDef.rememberSeconds"/> have passed since it last saw the player, it goes home the way it came
-        /// (back through each point it set out from, to its spawn), then holds there.</item>
+        /// <item>When <see cref="EnemyDef.rememberSeconds"/> have passed since it last saw the player, it goes home the way it came:
+        /// back through each point it set out from (a leg is struck off only when reached, so a re-sight on the way loses
+        /// nothing), then to its spawn, which is fixed (<see cref="FightEnemy.Home"/>); it holds there.</item>
         /// <item>Seeing the player again ends the search at once (the trail home is kept).</item>
         /// </list>
         /// </summary>
@@ -766,17 +768,24 @@ namespace JamKit.Skyline
                 e.Returning = true;
                 e.hasSearchGoal = false;
             }
-            if (e.Returning && !e.hasSearchGoal && e.trail.Count > 0)
+            if (e.Returning && !e.hasSearchGoal)
             {
-                e.searchGoal = e.trail[e.trail.Count - 1];
-                e.trail.RemoveAt(e.trail.Count - 1);
-                e.hasSearchGoal = true;
+                // the next leg home: the last point it set out from (taken off the trail only once reached), then home itself
+                if (e.trail.Count > 0) { e.searchGoal = e.trail[e.trail.Count - 1]; e.hasSearchGoal = true; }
+                else if (Vector3.Distance(e.Position, e.Home) > 1e-3f) { e.searchGoal = e.Home; e.hasSearchGoal = true; }
             }
             if (!e.hasSearchGoal) return;
             Vector3 to = e.searchGoal - e.Position;
             float len = to.Length();
-            if (len < 1e-3f) { e.hasSearchGoal = false; return; }   // there: hold (or, returning, take the next leg home)
+            if (len < 1e-3f)
+            {
+                // there: hold, or, returning, this leg is done
+                if (e.Returning && e.trail.Count > 0 && Vector3.Distance(e.searchGoal, e.trail[e.trail.Count - 1]) < 1e-3f) e.trail.RemoveAt(e.trail.Count - 1);
+                e.hasSearchGoal = false;
+                return;
+            }
             Vector3 next = e.Position + to / len * Math.Min(len, e.Def.searchSpeed * h);
+            // a blocked step (only possible if cover moved): it holds and tries the same leg again; no leg is ever skipped
             if (CoverGeometry.BlockedThick(e.Position, next, _cover, e.Def.bodyRadius)) { e.hasSearchGoal = false; return; }
             e.Position = next;
         }

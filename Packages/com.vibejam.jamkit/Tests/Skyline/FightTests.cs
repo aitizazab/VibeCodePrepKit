@@ -501,6 +501,50 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
+        public void ADroneInterruptedOnItsWayHomeStillEndsAtItsSpawn()
+        {
+            // lose the player behind a box, search, go home after 8 s; the player shows itself mid-way home, hides behind the box
+            // again, then leaves for good: the drone must still end where it spawned
+            var box = new CoverBox { min = new Vector3(-1.5f, 0f, -1f), max = new Vector3(1.5f, 5f, 0f) };
+            var world = new BoxWorld();
+            world.Floor(-80f, 80f, -80f, 80f, 0f);
+            world.Add((box.min + box.max) * 0.5f, box.max - box.min, false);
+            Vector3 p0 = new Vector3(5f, 0f, 3f), p1 = new Vector3(0f, 0f, 3f), far = new Vector3(0f, 0f, -75f);
+            float reSight = -1f;
+            FightEnemy d = null;
+            Vector3 show = p0, hide = far;
+            var bot = new Scripted(f =>
+            {
+                // once it is half-way home, show the player at p0 for 0.4 s, then behind the box for 0.4 s, then gone
+                if (reSight < 0f && d != null && d.Returning && d.HasSearchGoal && Vector3.Distance(d.Position, d.Home) > 1f
+                    && Vector3.Distance(d.Position, d.SearchGoal) > 1f)
+                {
+                    reSight = f.Time;
+                    // somewhere it sees from where it is now, then somewhere behind the box from there
+                    foreach (var c in new[] { p0, new Vector3(-5f, 0f, 3f), new Vector3(0f, 0f, -12f) }) if (f.CanSee(d, c)) { show = c; break; }
+                    foreach (var c in new[] { p1, new Vector3(0.8f, 0f, 3f), new Vector3(-0.8f, 0f, 3f), new Vector3(0f, 0f, 5f) }) if (!f.CanSee(d, c)) { hide = c; break; }
+                }
+                Vector3 at = f.Time < 1f ? p0 : f.Time < 1.5f ? p1 : far;
+                if (reSight >= 0f) at = f.Time < reSight + 0.4f ? show : f.Time < reSight + 0.8f ? hide : far;
+                f.Player.Teleport(at, 0f, Vector3.Zero);
+                return new MoveInput();
+            }) { hold = true };
+            var home = new Vector3(0f, GalleriaArena.DroneY, -6f);
+            var fight = new FightSim(One(new Spawn(SkylineEnemies.DroneId, home, 0)), world, bot, new[] { box }, p0, 3);
+            d = fight.Enemies[0];
+            bool sawAgain = false;
+            for (int i = 0; i < 60 * 40; i++)
+            {
+                fight.Tick();
+                if (reSight >= 0f && d.SeesPlayer) sawAgain = true;
+            }
+            Assert.That(reSight, Is.GreaterThan(0f), "setup: it was on its way home when the player showed itself");
+            Assert.That(sawAgain, Is.True, "setup: it saw the player again mid-way home");
+            Assert.That(d.Home, Is.EqualTo(home), "home is fixed");
+            Assert.That(Vector3.Distance(d.Position, home), Is.LessThan(0.01f), $"it ended at its spawn, not at {d.Position}");
+        }
+
+        [Test]
         public void ADroneThatStillSeesTheLastKnownPositionHolds()
         {
             // the player leaves the drone's range (out of sight by distance, not by cover): the point where it was last seen is in
