@@ -1,0 +1,82 @@
+using System;
+using System.Numerics;
+
+namespace JamKit.Skyline
+{
+    /// <summary>The Breacher's self-knockback (docs/SKYLINE-DESIGN.md 2.2) as tunable data. The limits are the spec's
+    /// proposal, used until the creator answers (14, pending 3): one boost per airtime, refreshed by landing or touching a
+    /// wall; no self-damage; no double-jump refresh (the engine's rule); about the jump upgrade's height.</summary>
+    public sealed class BreacherBoostDef
+    {
+        /// <summary>m/s along the flat part of the shot's reverse direction.</summary>
+        public float selfPushSpeed = 6f;
+        /// <summary>Metres a straight-down shot lifts you, from rest or from a fall (it cancels the fall first).</summary>
+        public float boostHeight = 1f;
+        /// <summary>The shot must point at least this far down (the reverse direction's up part, 0..1) to lift you.</summary>
+        public float minLift = 0.35f;
+        public bool oneBoostPerAirtime = true;
+        /// <summary>Damage the shooter takes from their own blast (none, by the spec's proposal).</summary>
+        public float selfDamage = 0f;
+    }
+
+    /// <summary>The one boost per airtime: spent by a self-push in the air or one that lifts you off the ground, refreshed
+    /// by landing or touching a wall. Call <see cref="Observe"/> every frame with the body's state. The engine can refuse
+    /// a push, so a caller that asked for one reports the answer through <see cref="Commit"/>.</summary>
+    public sealed class BoostCharge
+    {
+        public bool Ready { get; private set; } = true;
+
+        public void Observe(bool grounded, bool onWall)
+        {
+            if (grounded || onWall) Ready = true;
+        }
+
+        public void Spend() => Ready = false;
+
+        /// <summary>Settles a requested push: spends the boost only when the push would have spent it
+        /// (<paramref name="spendsCharge"/>, from <see cref="BreacherKnockback.RequestSelfPush"/>) and the engine
+        /// accepted it. A refused push costs nothing.</summary>
+        public void Commit(bool spendsCharge, bool accepted)
+        {
+            if (spendsCharge && accepted) Spend();
+        }
+    }
+
+    public static class BreacherKnockback
+    {
+        /// <summary>The velocity change a Breacher shot along <paramref name="aim"/> would give its shooter (for
+        /// MoveSim.AddPush): the flat part of the reverse direction times <see cref="BreacherBoostDef.selfPushSpeed"/>,
+        /// plus, when the shot points down by more than <see cref="BreacherBoostDef.minLift"/>, enough upward speed to reach
+        /// sqrt(2 g boostHeight) x (how far down it points) from the current vertical speed (never negative). In the air it
+        /// needs the charge (zero without it). Pure: it spends nothing. <paramref name="spendsCharge"/> says whether the
+        /// push uses the boost (any air shot, or a ground shot that lifts); pass the engine's accept/refuse answer to
+        /// <see cref="BoostCharge.Commit"/> to spend it only when the push was accepted.</summary>
+        public static Vector3 RequestSelfPush(Vector3 aim, Vector3 velocity, bool grounded, float gravity, BoostCharge charge, BreacherBoostDef d, out bool spendsCharge)
+        {
+            spendsCharge = false;
+            if (d == null || charge == null) return Vector3.Zero;
+            float len = aim.Length();
+            if (!(len > 1e-4f) || float.IsInfinity(len)) return Vector3.Zero;
+            if (!grounded && d.oneBoostPerAirtime && !charge.Ready) return Vector3.Zero;
+            Vector3 back = -aim / len;
+            var push = new Vector3(back.X, 0f, back.Z) * d.selfPushSpeed;
+            if (back.Y > d.minLift)
+            {
+                float boostUp = MathF.Sqrt(2f * MathF.Max(0f, gravity) * MathF.Max(0f, d.boostHeight));
+                float vy = float.IsNaN(velocity.Y) ? 0f : velocity.Y;
+                push.Y = MathF.Max(0f, boostUp * back.Y - vy);
+            }
+            spendsCharge = !grounded || push.Y > 0f;
+            return push;
+        }
+
+        /// <summary>Request and commit in one go, for a caller whose push cannot be refused (or in tests): the same
+        /// velocity change as <see cref="RequestSelfPush"/>, with the boost spent right away when it is used.</summary>
+        public static Vector3 SelfPush(Vector3 aim, Vector3 velocity, bool grounded, float gravity, BoostCharge charge, BreacherBoostDef d, out bool boosted)
+        {
+            Vector3 push = RequestSelfPush(aim, velocity, grounded, gravity, charge, d, out boosted);
+            charge?.Commit(boosted, true);
+            return push;
+        }
+    }
+}
