@@ -11,15 +11,23 @@ namespace JamKit.SkylineRepo
 {
     /// <summary>
     /// The firing range's scripted showcase (docs/SKYLINE-PLAN-M1.md Task 14), run only under <see cref="SkylineRunArgs.Demo"/>.
-    /// It drives the player's <see cref="SkylinePlayer.ScriptedInput"/>: wait 2.0 s (in the editor capture, from the moment
-    /// the Recorder takes over the clock); play the 80 ms 440 Hz marker beep and note the time; then for each gun (the Writ
-    /// re-equipped, then a swap to the Breacher): three shots 1.0 s apart at the first plate, a partial reload, an inspect,
-    /// fire at the fire interval + 0.1 s until empty, one more press (the dry fire, whose from-empty reload follows), and the
-    /// reload's end plus 1 s. Every Event cue with a sound is recorded as {t, gun, clip, id, sound}, t in seconds after the
-    /// marker on <c>Time.unscaledTime</c> (amendment 4; hit stop is off for the demo), and written to
-    /// &lt;OutDir&gt;/firing-range-schedule.json; then <c>SKYLINE_RANGE done events=&lt;n&gt;</c>. Each clip start logs
-    /// <c>SKYLINE_RANGE &lt;gun&gt; &lt;clip&gt;</c>. A last pad-look segment sweeps across a plate so aim assist logs
+    /// It drives the player's <see cref="SkylinePlayer.ScriptedInput"/>: in the editor capture, wait for the Recorder's
+    /// constant capture step; then 2.0 s of lead-in; play the 80 ms 440 Hz marker beep and note the time; then for each gun
+    /// (the Writ re-equipped, then a swap to the Breacher): three shots 1.0 s apart at the first plate, a partial reload, an
+    /// inspect, fire at the fire interval + 0.1 s until empty, one more press (the dry fire, whose from-empty reload
+    /// follows), and the reload's end plus 1 s. Every press is confirmed by the gun on the next frame and pressed again while
+    /// the gun drops it (logged as <c>SKYLINE_RANGE &lt;gun&gt; retry &lt;what&gt;</c>), so no step of the set can go
+    /// missing. Every Event cue with a sound is recorded as {t, gun, clip, id, sound}, t in seconds after the marker, and
+    /// written to &lt;OutDir&gt;/firing-range-schedule.json; then <c>SKYLINE_RANGE done events=&lt;n&gt;</c>. Each clip start
+    /// logs <c>SKYLINE_RANGE &lt;gun&gt; &lt;clip&gt;</c>. A last pad-look segment sweeps across a plate so aim assist logs
     /// <c>SKYLINE_AIMASSIST</c> (amendment 11).
+    /// <para>The clock is <c>Time.time</c>, the game clock, not <c>Time.unscaledTime</c> (Task 17 revises amendment 4). Hit
+    /// stop is off for the demo, so <c>Time.timeScale</c> stays 1 and <c>Time.time</c> is the clock the guns tick on. Under
+    /// the Recorder's constant step it advances exactly one step per frame, which is the recording's own clock: its video
+    /// frames, and the audio its AudioRenderer renders per frame. <c>Time.unscaledTime</c> stays wall-clock time under a
+    /// capture step (the Recorder's own frame cap compares it with the frame count), so when the editor renders below 60 fps
+    /// it runs ahead of the recording. In the first pass that put the schedule up to 5 s late against the audio, and the
+    /// Breacher dropped the presses that came before its 0.75 s fire interval had passed on its own clock.</para>
     /// </summary>
     public sealed class SkylineRangeDirector : MonoBehaviour
     {
@@ -27,7 +35,13 @@ namespace JamKit.SkylineRepo
         /// <summary>Quiet after the marker before the first gun sound (Task 13: at least 0.3 s after the beep ends).</summary>
         const float AfterBeep = 0.5f;
         const float ShotSpacing = 1f, AfterEquip = 0.3f, AfterClip = 0.5f, DumpSlack = 0.1f, AfterEmptyReload = 1f;
-        const float RecorderWait = 8f, ReloadStartWait = 2f;
+        /// <summary>The longest wait for the Recorder's capture step: both this many real seconds AND this many frames from the
+        /// first frame after Start, so a few long frames (the scene's first, a shader compile) can't use the budget up.</summary>
+        const float RecorderWait = 20f;
+        const int RecorderWaitFrames = 240;
+        /// <summary>Game seconds a press is retried for (once a frame) before the set moves on.</summary>
+        const float RetryFor = 1.5f;
+        const float ReloadStartWait = 2f;
         const float PadSweepDeg = 24f, PadSweepSeconds = 2.5f;
         const int SampleRate = 48000;
 
@@ -48,6 +62,11 @@ namespace JamKit.SkylineRepo
         float _marker;
         bool _markerSet, _padLook;
         float _padYawRate;
+        /// <summary>Fire and DryFire clip starts so far: each one confirms a trigger press.</summary>
+        int _triggerClips;
+
+        /// <summary>The demo's clock (see the class notes): the game clock, which the guns tick on and the recording follows.</summary>
+        static float Now => Time.time;
 
         void Start()
         {
@@ -92,35 +111,95 @@ namespace JamKit.SkylineRepo
         void OnCue(GunCue cue, int slot)
         {
             string gun = player.Loadout[slot].Def.id;
-            if (cue.kind == GunCueKind.ClipStarted) Debug.Log("SKYLINE_RANGE " + gun + " " + cue.clip);
+            if (cue.kind == GunCueKind.ClipStarted)
+            {
+                Debug.Log("SKYLINE_RANGE " + gun + " " + cue.clip);
+                if (cue.clip == HandlingClipKind.Fire || cue.clip == HandlingClipKind.DryFire) _triggerClips++;
+            }
             if (cue.kind != GunCueKind.Event || string.IsNullOrEmpty(cue.ev.sound) || !_markerSet) return;
-            _events.Add(new Entry { t = Time.unscaledTime - _marker, gun = gun, clip = cue.clip.ToString(), id = cue.ev.id, sound = cue.ev.sound });
+            _events.Add(new Entry { t = Now - _marker, gun = gun, clip = cue.clip.ToString(), id = cue.ev.id, sound = cue.ev.sound });
         }
 
         static IEnumerator Wait(float seconds)
         {
-            float until = Time.unscaledTime + seconds;
-            while (Time.unscaledTime < until) yield return null;
+            float until = Now + seconds;
+            while (Now < until) yield return null;
+        }
+
+        /// <summary>Waits for the Recorder's constant capture step (the capture starts it after the editor has settled in
+        /// Play mode), so the lead-in and the marker are inside the recording. Counted from the first frame after Start, in
+        /// real seconds AND frames, and logged either way.</summary>
+        IEnumerator WaitForRecorder()
+        {
+            yield return null;                                  // Start's frame can carry the scene load: count from the next
+            double from = Time.realtimeSinceStartupAsDouble;
+            int frames = 0;
+            while (!(Time.captureDeltaTime > 0f) &&
+                   (frames < RecorderWaitFrames || Time.realtimeSinceStartupAsDouble - from < RecorderWait))
+            {
+                frames++;
+                yield return null;
+            }
+            var ci = CultureInfo.InvariantCulture;
+            string waited = (Time.realtimeSinceStartupAsDouble - from).ToString("0.0", ci) + " s, " + frames + " frames (realtime=" +
+                            Time.realtimeSinceStartup.ToString("0.0", ci) + ")";
+            if (Time.captureDeltaTime > 0f)
+                Debug.Log("SKYLINE_RANGE capture step " + Time.captureDeltaTime.ToString("0.#####", ci) + " after " + waited);
+            else
+                Debug.Log("SKYLINE_RANGE no constant capture step after " + waited + "; starting anyway");
+        }
+
+        /// <summary>Presses the trigger and confirms it on the next frame by a Fire or DryFire clip start; presses again each
+        /// frame while the gun drops it (a press before the gun is ready is dropped), for up to <see cref="RetryFor"/>.</summary>
+        IEnumerator PullTrigger(SkylineGun gun, string what)
+        {
+            int before = _triggerClips;
+            float giveUp = Now + RetryFor;
+            int tries = 0;
+            while (true)
+            {
+                _next.firePressed = true;
+                _next.fireHeld = true;
+                tries++;
+                yield return null;                              // the player's Update takes the press on this frame
+                if (_triggerClips != before || Now >= giveUp) break;
+            }
+            bool taken = _triggerClips != before;
+            if (tries > 1 || !taken)
+                Debug.Log("SKYLINE_RANGE " + gun.Def.id + " retry " + what + " x" + (tries - 1) + (taken ? "" : " (never taken)"));
+        }
+
+        /// <summary>Presses reload (or inspect) until the gun is reloading (or inspecting), as <see cref="PullTrigger"/> does.</summary>
+        IEnumerator PressUntil(SkylineGun gun, bool reload)
+        {
+            float giveUp = Now + RetryFor;
+            int tries = 0;
+            bool taken;
+            while (true)
+            {
+                if (reload) _next.reloadPressed = true;
+                else _next.inspectPressed = true;
+                tries++;
+                yield return null;
+                taken = reload ? gun.State.IsReloading : gun.Inspecting;
+                if (taken || Now >= giveUp) break;
+            }
+            if (tries > 1 || !taken)
+                Debug.Log("SKYLINE_RANGE " + gun.Def.id + " retry " + (reload ? "reload" : "inspect") + " x" + (tries - 1) + (taken ? "" : " (never taken)"));
         }
 
         Vector3 PlateCenter(int i) => plates != null && i < plates.Length && plates[i] != null ? plates[i].Center : player.EyePosition + Vector3.forward * 10f;
 
         IEnumerator Run()
         {
-            // In the editor capture the Recorder starts about a second into Play mode and then sets a constant capture step;
-            // the lead-in counts from there, so the beep is always inside the recording.
-            if (SkylineRunArgs.Has("-skylineOut"))
-            {
-                float giveUp = Time.unscaledTime + RecorderWait;
-                while (!(Time.captureDeltaTime > 0f) && Time.unscaledTime < giveUp) yield return null;
-                if (!(Time.captureDeltaTime > 0f)) Debug.Log("SKYLINE_RANGE no constant capture step after " + RecorderWait + " s; starting anyway");
-            }
+            // In the editor capture the lead-in counts from the Recorder's start, so the beep is always inside the recording.
+            if (SkylineRunArgs.Has("-skylineOut")) yield return WaitForRecorder();
             _aimAt = PlateCenter(0);
             yield return Wait(LeadIn);
 
             beepSource.clip = MakeBeep();
             beepSource.Play();
-            _marker = Time.unscaledTime;
+            _marker = Now;
             _markerSet = true;
             Debug.Log("SKYLINE_RANGE marker");
             yield return Wait(AfterBeep);
@@ -158,17 +237,15 @@ namespace JamKit.SkylineRepo
 
             for (int i = 0; i < 3; i++)
             {
-                _next.firePressed = true;
-                _next.fireHeld = true;
-                yield return Wait(ShotSpacing);
+                float from = Now;
+                yield return PullTrigger(gun, "shot " + (i + 1));
+                yield return Wait(ShotSpacing - (Now - from));
             }
 
-            _next.reloadPressed = true;
-            yield return null;
+            yield return PressUntil(gun, true);
             yield return Wait(gun.ReloadSeconds(false) + AfterClip);
 
-            _next.inspectPressed = true;
-            yield return null;
+            yield return PressUntil(gun, false);
             yield return Wait(gun.Def.Clip(HandlingClipKind.Inspect).seconds + AfterClip);
 
             _aimAt = PlateCenter(1);
@@ -176,15 +253,15 @@ namespace JamKit.SkylineRepo
             int guard = gun.Def.weapon.magazineSize + 2;
             while (gun.Ammo > 0 && guard-- > 0)
             {
-                _next.firePressed = true;
-                _next.fireHeld = true;
-                yield return Wait(gap);
+                float from = Now;
+                yield return PullTrigger(gun, "dump");
+                yield return Wait(gap - (Now - from));
             }
 
-            _next.firePressed = true;                           // the dry fire; its from-empty reload follows
-            _next.fireHeld = true;
-            float giveUp = Time.unscaledTime + ReloadStartWait;
-            while (!gun.State.IsReloading && Time.unscaledTime < giveUp) yield return null;
+            yield return PullTrigger(gun, "dry fire");          // the dry fire; its from-empty reload follows
+            float giveUp = Now + ReloadStartWait;
+            while (!gun.State.IsReloading && Now < giveUp) yield return null;
+            if (!gun.State.IsReloading) Debug.Log("SKYLINE_RANGE " + gun.Def.id + " no reload from empty after the dry fire");
             while (gun.State.IsReloading) yield return null;
             yield return Wait(AfterEmptyReload);
         }
@@ -207,7 +284,7 @@ namespace JamKit.SkylineRepo
             }
             var ci = CultureInfo.InvariantCulture;
             var sb = new StringBuilder();
-            sb.Append("{\"scene\":\"SkylineFiringRange\",\"clock\":\"unscaledTime\",\"marker_hz\":").Append(BeepHz.ToString("0", ci))
+            sb.Append("{\"scene\":\"SkylineFiringRange\",\"clock\":\"time\",\"marker_hz\":").Append(BeepHz.ToString("0", ci))
               .Append(",\"marker_seconds\":").Append(BeepSeconds.ToString("0.###", ci)).Append(",\"events\":[");
             for (int i = 0; i < _events.Count; i++)
             {

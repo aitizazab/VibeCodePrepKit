@@ -152,6 +152,11 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
                 controller.PrepareRecording();
                 if (!controller.StartRecording()) throw new InvalidOperationException("StartRecording returned false");
                 _controller = controller;
+                // When the Recorder took over, against the scene's own clocks: the directors wait for this capture step, so
+                // a late start shows here (Task 17: the first pass's range director gave up before the Recorder started).
+                Debug.Log("SKYLINE_CAPTURE recording " + name + " frame=" + Time.frameCount +
+                          " realtime=" + Time.realtimeSinceStartup.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) +
+                          " step=" + Time.captureDeltaTime.ToString("0.#####", System.Globalization.CultureInfo.InvariantCulture));
             }
             catch (Exception e)
             {

@@ -39,7 +39,8 @@ namespace JamKit.SkylineRepo
 
         /// <summary>Drives the player instead of the devices (the range director's demo, tests). Called once a frame.</summary>
         public Func<SkylineInputFrame> ScriptedInput;
-        /// <summary>Off for the scripted demo (amendment 4): its schedule is timed on unscaled time and must not stretch.</summary>
+        /// <summary>Off for the scripted demos (amendment 4): with no hit stop Time.timeScale stays 1, so the range's schedule,
+        /// timed on the game clock (Time.time), never stretches against the recording.</summary>
         public bool HitStopEnabled = true;
 
         public Loadout Loadout { get; private set; }
