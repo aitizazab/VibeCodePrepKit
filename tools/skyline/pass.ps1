@@ -213,7 +213,9 @@ function Update-PerfStage {
             if (-not (Test-IsNumber $p.onePercentLowMs) -or $p.onePercentLowMs -le 0) { $problems += 'onePercentLowMs missing or not above 0' }
             elseif ($p.onePercentLowMs -gt 16.7) { $problems += '1% low over 16.7 ms' }
             if ($p.resolution -ne '1920x1080') { $problems += "resolution is '$($p.resolution)', not 1920x1080" }
-            if ($p.scene -and $p.scene -ne 'SkylineArena') { $problems += "measured '$($p.scene)', not SkylineArena" }
+            # The probe always writes the scene (Task 13), so a perf.json without one is stale or foreign.
+            if (-not $p.scene) { $problems += 'scene missing (the arena must be measured)' }
+            elseif ($p.scene -ne 'SkylineArena') { $problems += "measured '$($p.scene)', not SkylineArena" }
             $perfNote = "avg $($p.avgMs) ms, 1% low $($p.onePercentLowMs) ms (blocker over 16.7), $($p.resolution)$(if ($p.gpu) { ", gpu $($p.gpu)" })$(if ($p.scene) { ", scene $($p.scene)" })"
             if ($problems.Count -gt 0) { $perfNote += '; ' + ($problems -join '; ') } else { $perfOk = $true }
         } catch {
@@ -224,6 +226,28 @@ function Update-PerfStage {
     }
     if ($Stage.note) { $Stage.note = "$($Stage.note); $perfNote" } else { $Stage.note = $perfNote }
     $Stage.ok = [bool]($Stage.ok -and $perfOk)
+}
+
+# Stage E's bookkeeping (docs/SKYLINE-DESIGN.md 2.3): runs $Runner (which prints synccheck.py's JSON) when both the
+# firing range recording and the director's schedule exist, saves the output to $JsonOut and folds its ok and note into
+# the stage. Never throws.
+function Get-SyncStage {
+    param([string]$Rec, [string]$Schedule, [string]$JsonOut, [scriptblock]$Runner)
+    $started = Get-Date
+    $eok = $false; $enote = ''
+    if ((Test-Path -LiteralPath $Rec) -and (Test-Path -LiteralPath $Schedule)) {
+        try {
+            $text = [string](& $Runner | Out-String)
+            Set-Content -Path $JsonOut -Value $text -Encoding utf8
+            $i = $text.IndexOf('{')
+            if ($i -lt 0) { throw "no JSON in its output" }
+            $m = $text.Substring($i) | ConvertFrom-Json
+            $eok = [bool]($m.ok -eq $true)
+            $enote = [string]$m.note
+        } catch { $enote = "could not run the sync check: $($_.Exception.Message)" }
+    } elseif (Test-Path -LiteralPath $Rec) { $enote = 'no firing-range-schedule.json (the range director did not write one)' }
+    else { $enote = 'skipped: no firing range recording' }
+    return [pscustomobject]@{ name = 'E sync check'; ok = $eok; seconds = [int]((Get-Date) - $started).TotalSeconds; log = ''; note = $enote }
 }
 
 if ($SelfTest) {
@@ -321,10 +345,11 @@ if ($SelfTest) {
     $dir = Join-Path ([IO.Path]::GetTempPath()) "skyline-pass-perf-selftest-$PID"
     New-Item -ItemType Directory -Force $dir | Out-Null
     try {
-        $good = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"worstMs":15.0,"resolution":"1920x1080"}'
+        $good = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"worstMs":15.0,"resolution":"1920x1080","scene":"SkylineArena"}'
         $cases = @(
             @{ n = 'good'; json = $good; ok = $true; like = '*1% low 11.2*' },
-            @{ n = 'with gpu'; json = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"worstMs":15.0,"resolution":"1920x1080","gpu":"NVIDIA GeForce RTX 3050"}'; ok = $true; like = '*1920x1080, gpu NVIDIA GeForce RTX 3050' },
+            @{ n = 'with gpu'; json = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"worstMs":15.0,"resolution":"1920x1080","gpu":"NVIDIA GeForce RTX 3050","scene":"SkylineArena"}'; ok = $true; like = '*1920x1080, gpu NVIDIA GeForce RTX 3050, scene SkylineArena' },
+            @{ n = 'no scene'; json = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"worstMs":15.0,"resolution":"1920x1080"}'; ok = $false; like = '*scene missing*' },
             @{ n = 'truncated'; json = '{"frames":1200,"avgMs":8.1,"onePerc'; ok = $false; like = '*unreadable*' },
             @{ n = 'garbage'; json = 'not json at all'; ok = $false; like = '*unreadable*' },
             @{ n = 'missing low'; json = '{"frames":1200,"avgMs":8.1,"resolution":"1920x1080"}'; ok = $false; like = '*onePercentLowMs missing*' },
@@ -355,6 +380,32 @@ if ($SelfTest) {
     } finally {
         Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
     }
+
+    # stage E's three branches and its JSON handling (the runner is faked: no uv, no ears)
+    $dir = Join-Path ([IO.Path]::GetTempPath()) "skyline-pass-sync-selftest-$PID"
+    New-Item -ItemType Directory -Force $dir | Out-Null
+    try {
+        $rec = Join-Path $dir 'rec-SkylineFiringRange.mp4'; $sched = Join-Path $dir 'firing-range-schedule.json'; $jo = Join-Path $dir 'sync-check.json'
+        $s = Get-SyncStage -Rec $rec -Schedule $sched -JsonOut $jo -Runner { throw 'must not run' }
+        if ($s.ok -or $s.note -ne 'skipped: no firing range recording') { throw "self-test: sync without a recording gave '$($s.note)'" }
+        Set-Content -LiteralPath $rec -Value 'x'
+        $s = Get-SyncStage -Rec $rec -Schedule $sched -JsonOut $jo -Runner { throw 'must not run' }
+        if ($s.ok -or $s.note -notlike 'no firing-range-schedule.json*') { throw "self-test: sync without a schedule gave '$($s.note)'" }
+        Set-Content -LiteralPath $sched -Value '{}'
+        $syncCases = @(
+            @{ n = 'ok'; run = { 'uv noise'; '{"ok": true, "note": "12/12 events within 35 ms"}' }; ok = $true; like = '12/12 events*' },
+            @{ n = 'not ok'; run = { '{"ok": false, "note": "3/12 events within 35 ms"}' }; ok = $false; like = '3/12 events*' },
+            @{ n = 'garbage'; run = { 'Traceback: boom' }; ok = $false; like = 'could not run the sync check*' },
+            @{ n = 'truncated'; run = { '{"ok": tr' }; ok = $false; like = 'could not run the sync check*' },
+            @{ n = 'throws'; run = { throw 'uv missing' }; ok = $false; like = 'could not run the sync check: uv missing' }
+        )
+        foreach ($c in $syncCases) {
+            $s = Get-SyncStage -Rec $rec -Schedule $sched -JsonOut $jo -Runner $c.run
+            if ($s.ok -ne $c.ok -or $s.note -notlike $c.like) { throw "self-test: sync case '$($c.n)' gave ok=$($s.ok) note='$($s.note)'" }
+        }
+    } finally {
+        Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
+    }
     Write-Host 'pass.ps1 self-test passed.'
     exit 0
 }
@@ -379,7 +430,7 @@ try {
     if ($preflightOk) {
         # Results of an earlier pass in a reused -Out folder must never stand in for this one.
         foreach ($stale in 'editor-batch.json', 'capture.json', 'build.json', 'perf.json', 'firing-range-schedule.json',
-                           'sync-check.json', 'build\SkylineRepo.exe') {
+                           'sync-check.json', 'sync-check.stderr.txt', 'audio-firing-range.png', 'build\SkylineRepo.exe') {
             Remove-Item -LiteralPath (Join-Path $Out $stale) -Force -ErrorAction SilentlyContinue
         }
         foreach ($pattern in 'rec-*.mp4', 'still-*.png') {
@@ -436,29 +487,23 @@ try {
 
     # E: the sync check without Unity (docs/SKYLINE-DESIGN.md 2.3): the firing range recording's sound onsets against the
     # schedule its director wrote, aligned on the marker beep; plus the ears' picture of the recording's audio.
-    $rec = Join-Path $Out 'rec-SkylineFiringRange.mp4'
-    $schedule = Join-Path $Out 'firing-range-schedule.json'
-    $started = Get-Date
-    $eok = $false; $enote = ''
-    if ((Test-Path $rec) -and (Test-Path $schedule)) {
-        try {
+    # Only after a good preflight: otherwise the stale sweep never ran, and an old recording and schedule would be checked.
+    if ($preflightOk) {
+        $rec = Join-Path $Out 'rec-SkylineFiringRange.mp4'
+        $schedule = Join-Path $Out 'firing-range-schedule.json'
+        $stages += Get-SyncStage -Rec $rec -Schedule $schedule -JsonOut (Join-Path $Out 'sync-check.json') -Runner {
             $ears = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\skills\ears'
             $sounds = Join-Path $RepoRoot 'Assets\JamKit\Templates\SkylineRepo\Resources\SkylineAudio'
             $err = Join-Path $Out 'sync-check.stderr.txt'
             # stdout (the JSON) only; uv's progress goes to stderr, which under Stop would surface as an error in PS 5.1
+            # (this scriptblock runs in its own scope, so the preference goes back by itself)
             $ErrorActionPreference = 'Continue'
             & uv run --project $ears python (Join-Path $ears 'listen.py') measure $rec --png (Join-Path $Out 'audio-firing-range.png') 2>$err | Out-Null
-            $json = & uv run --project $ears python (Join-Path $RepoRoot 'tools\skyline\soundforge\synccheck.py') $rec $schedule --sounds $sounds 2>>$err
-            $ErrorActionPreference = 'Stop'
-            $text = ($json | Out-String)
-            Set-Content -Path (Join-Path $Out 'sync-check.json') -Value $text -Encoding utf8
-            $m = $text.Substring($text.IndexOf('{')) | ConvertFrom-Json
-            $eok = [bool]$m.ok
-            $enote = [string]$m.note
-        } catch { $ErrorActionPreference = 'Stop'; $enote = "could not run the sync check: $($_.Exception.Message)" }
-    } elseif (Test-Path $rec) { $enote = 'no firing-range-schedule.json (the range director did not write one)' }
-    else { $enote = 'skipped: no firing range recording' }
-    $stages += [pscustomobject]@{ name = 'E sync check'; ok = $eok; seconds = [int]((Get-Date) - $started).TotalSeconds; log = ''; note = $enote }
+            & uv run --project $ears python (Join-Path $RepoRoot 'tools\skyline\soundforge\synccheck.py') $rec $schedule --sounds $sounds 2>>$err
+        }
+    } else {
+        $stages += [pscustomobject]@{ name = 'E sync check'; ok = $false; seconds = 0; log = ''; note = 'skipped: preflight failed' }
+    }
 } catch {
     $stages += [pscustomobject]@{ name = 'runner'; ok = $false; seconds = 0; log = ''; note = "unexpected: $($_.Exception.Message)" }
 } finally {

@@ -69,12 +69,7 @@ namespace JamKit.SkylineRepo.EditorTools
         }
 
         /// <summary>The value after <paramref name="name"/> on the command line, or null. Used by SkylineBuild and SkylineCapture too.</summary>
-        public static string Arg(string name)
-        {
-            var args = Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++) if (args[i] == name) return args[i + 1];
-            return null;
-        }
+        public static string Arg(string name) => SkylineRunArgs.Value(name);
 
         /// <summary>A JSON string literal (the editor has no JSON writer for loose values).</summary>
         public static string Quote(string s) =>

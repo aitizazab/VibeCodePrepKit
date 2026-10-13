@@ -26,9 +26,9 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
                      KeyRunInBackground = "SkylineCapture.RunInBackground";
         const int PhaseStarting = 0, PhaseRecording = 1, PhaseExiting = 2, PhaseFinalizing = 3;
         // Each scene records SkylineScenes.RecordSeconds of video at a constant 60 fps; the still at 2 s. The deadline sits
-        // under stage B's 900 s timeout so capture.json is always written.
+        // well under stage B's 900 s timeout (which also counts the editor's boot), so capture.json is always written.
         const int StillFrame = 2 * 60;
-        const float Settle = 1f, Deadline = 840f, FileWait = 10f;
+        const float Settle = 1f, Deadline = 720f, FileWait = 10f;
         static readonly string[] Scenes = SkylineScenes.All;
 
         static RecorderController _controller;
@@ -195,24 +195,35 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
             EditorApplication.isPlaying = false;
         }
 
-        /// <summary>Renders every SkylineStillCamera in the playing scene to still-&lt;scene&gt;-&lt;shot&gt;.png (1920x1080).</summary>
+        /// <summary>Renders every SkylineStillCamera in the playing scene to still-&lt;scene&gt;-&lt;shot&gt;.png (1920x1080):
+        /// through the pipeline's render request (URP's standalone path for a disabled Base camera), or Camera.Render where
+        /// the pipeline doesn't take one. A still that comes out all black throws, which fails stage B.</summary>
         static void TakeStills(string dir, string scene)
         {
             int n = 0;
             foreach (var shot in UnityEngine.Object.FindObjectsByType<JamKit.SkylineRepo.SkylineStillCamera>(FindObjectsSortMode.None))
             {
-                var cam = shot.GetComponent<Camera>();
+                var cam = shot.Enforce();                         // disabled, Base
+                if (cam == null) continue;
                 var rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
                 var tex = new Texture2D(1920, 1080, TextureFormat.RGB24, false);
                 var previousTarget = cam.targetTexture;
                 var previousActive = RenderTexture.active;
                 try
                 {
-                    cam.targetTexture = rt;
-                    cam.Render();
+                    rt.Create();
+                    var request = new UnityEngine.Rendering.RenderPipeline.StandardRequest { destination = rt };
+                    if (UnityEngine.Rendering.RenderPipeline.SupportsRenderRequest(cam, request))
+                        UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(cam, request);
+                    else
+                    {
+                        cam.targetTexture = rt;
+                        cam.Render();
+                    }
                     RenderTexture.active = rt;
                     tex.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0);
                     tex.Apply();
+                    if (IsBlack(tex)) throw new InvalidOperationException("still '" + shot.shotName + "' rendered all black");
                     File.WriteAllBytes(Path.Combine(dir, "still-" + scene + "-" + shot.shotName + ".png"), tex.EncodeToPNG());
                     n++;
                 }
@@ -226,6 +237,15 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
                 }
             }
             Debug.Log("SKYLINE_CAPTURE stills " + scene + " " + n);
+        }
+
+        /// <summary>True when no pixel rises above 2/255 in any channel (sampled on a grid).</summary>
+        static bool IsBlack(Texture2D tex)
+        {
+            var px = tex.GetPixels32();
+            for (int i = 0; i < px.Length; i += 7)
+                if (px[i].r > 2 || px[i].g > 2 || px[i].b > 2) return false;
+            return true;
         }
 
         static void TickExiting()

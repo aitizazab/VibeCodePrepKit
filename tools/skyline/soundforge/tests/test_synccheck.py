@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import synccheck as sc
 
@@ -63,6 +64,58 @@ def test_the_marker_is_found_by_its_440_hz_energy():
     audio[int(3.0 * sr):int(3.05 * sr)] += rng.normal(0, 0.5, int(0.05 * sr))       # a gun sound after it
     m = sc.find_marker(audio, sr)
     assert m is not None and abs(m - 2.0) < 0.02
+
+
+def beep(sr, seconds, amp=0.4, fade=0.005):
+    t = np.arange(int(seconds * sr)) / sr
+    env = np.minimum(1.0, t / fade) * np.minimum(1.0, (seconds - t) / 0.01)
+    return amp * np.sin(2 * np.pi * 440 * t) * env
+
+
+@pytest.mark.parametrize("sr", [48000, 44100])
+def test_a_loud_sound_right_after_a_short_beep_does_not_move_the_marker(sr):
+    audio = np.zeros(sr * 4)
+    b = beep(sr, 0.08)
+    audio[int(2.0 * sr):int(2.0 * sr) + len(b)] += b                                   # Task 14's 80 ms beep at 2.0 s
+    burst = np.random.default_rng(5).normal(0, 0.8, int(0.05 * sr))                     # louder, 30 ms after it ends
+    audio[int(2.11 * sr):int(2.11 * sr) + len(burst)] += burst
+    m = sc.find_marker(audio, sr)
+    assert m is not None and abs(m - 2.0) < 0.004, m
+
+
+def test_the_first_beep_wins_over_a_louder_tone_later():
+    sr = 48000
+    audio = np.zeros(sr * 6)
+    q = beep(sr, 0.08, amp=0.05)
+    audio[int(2.0 * sr):int(2.0 * sr) + len(q)] += q
+    loud = beep(sr, 0.5, amp=0.8)
+    audio[int(4.0 * sr):int(4.0 * sr) + len(loud)] += loud
+    m = sc.find_marker(audio, sr)
+    assert m is not None and abs(m - 2.0) < 0.004, m
+
+
+def test_a_marker_onset_farther_than_the_snap_stays_an_event():
+    onsets = [5.0, 5.03, 6.0]                  # 5.03 is 30 ms from the marker: not the beep's own onset
+    s = {"events": [{"t": 0.03, "gun": "writ", "clip": "Fire", "id": "a", "sound": "writ/shot"},
+                    {"t": 1.0, "gun": "writ", "clip": "Fire", "id": "b", "sound": "writ/shot"}]}
+    r = sc.check(s, onsets, marker=5.0)
+    assert r["ok"] and r["matched"] == 2
+
+
+def test_a_counted_sound_with_no_rendered_clip_fails():
+    s = {"events": [{"t": 1.0, "gun": "writ", "clip": "ReloadEmpty", "id": "mag_out", "sound": "writ/mag_out"},
+                    {"t": 2.0, "gun": "writ", "clip": "Fire", "id": "shot", "sound": "writ/shot"}]}
+    r = sc.check(s, [5.0, 6.0], detectable={"writ/mag_out"}, clips={"ReloadEmpty"}, missing={"writ/shot"})
+    assert r["ok"], "a missing clip outside the counted clips doesn't matter"
+    r = sc.check(s, [5.0, 6.0], detectable=set(), clips={"ReloadEmpty"}, missing={"writ/mag_out"})
+    assert not r["ok"] and r["missing_sounds"] == ["writ/mag_out"] and "no rendered clip" in r["note"]
+
+
+def test_the_chance_of_a_stray_match_is_reported():
+    s = schedule((1.0, "writ/shot"), (2.0, "writ/shot"))
+    sparse = sc.check(s, [5.0, 6.0, 7.0])
+    dense = sc.check(s, [5.0] + [6.0 + i * 0.05 for i in range(21)])
+    assert sparse["chance_hit"] < 0.1 and dense["chance_hit"] > 0.5 and "dense" in dense["note"]
 
 
 def test_no_beep_means_no_marker():

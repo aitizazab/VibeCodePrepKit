@@ -8,10 +8,11 @@ using UnityEngine;
 namespace JamKit.SkylineRepo
 {
     /// <summary>SkylinePass stage D: run the built player with <c>-skyline-perf &lt;dir&gt;</c>; after a 3 s warm-up it
-    /// records 20 s of frame times in the first scene, writes perf.json and quits.</summary>
+    /// records 45 s of frame times in the first scene (the arena: about 45 s covers its
+    /// demo, docs/SKYLINE-PLAN-M1.md amendment 9), writes perf.json and quits.</summary>
     public sealed class SkylinePerfProbe : MonoBehaviour
     {
-        const float Warmup = 3f, Measure = 20f;
+        const float Warmup = 3f, Measure = 45f;
         readonly List<float> _frames = new List<float>(4096);
         string _outDir;
         float _start;
@@ -19,9 +20,7 @@ namespace JamKit.SkylineRepo
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
         {
-            string dir = null;
-            var args = Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++) if (args[i] == "-skyline-perf") dir = args[i + 1];
+            string dir = SkylineRunArgs.Value("-skyline-perf");
             if (dir == null) return;
             try { File.Delete(Path.Combine(dir, "perf.json")); } catch (Exception) { /* a stale file must not pass for this run */ }
             var go = new GameObject("SkylinePerfProbe");
