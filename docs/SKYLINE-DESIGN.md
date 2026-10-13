@@ -140,7 +140,9 @@ Two guns plus one gadget. Swapping between the two guns is a designed moment (an
 
 ### 2.4 Health
 - **Plating** is a layer over the chassis and absorbs damage first. It's regained by stripping scrap from fresh wrecks,
-  so aggression heals (DOOM Eternal's lesson: kiting stops paying).
+  so aggression heals (DOOM Eternal's lesson: kiting stops paying). Every wrecked bot leaves a wreck you strip once,
+  by touch, while it's fresh. **Scrap you can't use as plating is banked as recovered scrap**, paid to the firm at the
+  end of the run (the creator, 2026-10-13): full plating never wastes a wreck, and aggression pays even at full health.
 - **Chassis** is health underneath. It doesn't regenerate; it carries over between floors and is restored only by
   repair rewards and vending machines.
 - **Controller aim assist:** slowdown near targets and mild magnetism, tuned per gun (the creator plays on a pad).
@@ -752,6 +754,12 @@ Fixed (technical and clarity):
   run, apply the creator's settings and write their save.json.
 - **Skyline has its own Unity-side compile check** and is excluded from Visiting Hours' core-tests compile gate (one
   line in each of two shared files, agreed with that session).
+
+### 2026-10-13 (afternoon): the creator's calls
+- **Excess plating becomes money, not stored health.** Stripping a wreck fills your plating first; whatever doesn't
+  fit is banked as recovered scrap and paid out at the end of the run, so a wreck is always used up in full (2.4).
+  M1 keeps the tally; the payout joins commission with M4's loop. Open detail, with defaults: one plating point banks
+  one scrap; the tally is paid even when the Unit is wrecked (the van already has it).
 
 ### Pending the creator (the defaults below are used until they answer)
 1. **The ears before the jam:** measurements, pictures and reference comparison only; the classifier + Gemini judge
