@@ -760,6 +760,25 @@ Fixed (technical and clarity):
   fit is banked as recovered scrap and paid out at the end of the run, so a wreck is always used up in full (2.4).
   M1 keeps the tally; the payout joins commission with M4's loop. Open detail, with defaults: one plating point banks
   one scrap; the tally is paid even when the Unit is wrecked (the van already has it).
+- **Balance targets for scrap:** each bot's plating refund is set from its threat (damage, how many come at once, how
+  hard it is to kill) and tuned in play; a skilled player who takes little damage earns up to about 20% of a run's
+  income as recovered scrap (to confirm once the game is playable).
+- **The Writ's weak spots are cracked casing:** the slug cracks the bot's shell into a glowing seam with sparks and
+  exposed wiring; hitting the seam breaks through. This sets its sounds (a heavy precise shot; a ceramic crack with an
+  electric crackle when a spot forms; a crunchy break-through and a spark burst when one is hit) (2.2).
+- **Writ spot cap by level:** 3 at levels 1 and 2, 5 at level 3.
+- **The Breacher's boost is limited only by its fire rate** (answers pending item 3): no one-per-airtime rule. Each
+  shot sets the rise speed rather than adding to it, so chained shots climb in steps; the magazine and reload are the
+  real limit.
+- **Dodging:** the 1.6-2.5 band stands, and **standing still in the open, without real cover, means a quick wreck**
+  (checked headlessly with a standing bot).
+- **Walls get threats in M1:** the window-washer gondola joins M1's bots. Wall-running is no more of an escape than
+  sprinting (its momentum only comes from wall kicks); the gondola makes long wall-runs as risky as the floor.
+- **A wrecked Unit restarts the run.**
+- **Story rooms** (answers pending item 2): the pool idea stands, but a run doesn't guarantee them: you seek them out.
+- **Recruit choices are final** (answers pending item 4): choosing greed (towing Manny's supplies) closes his arc for
+  good, with no retry through his story room. Something else later in the game grants his ability without the
+  character, so a build is never blocked by a past choice, only the character's arc. Manny is still built in M2.
 
 ### Pending the creator (the defaults below are used until they answer)
 1. **The ears before the jam:** measurements, pictures and reference comparison only; the classifier + Gemini judge
