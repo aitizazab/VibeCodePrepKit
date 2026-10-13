@@ -3,7 +3,11 @@
     "rootNamespace": "JamKit.SkylineRepo",
     "references": [
         "JamKit.Skyline",
-        "JamKit.Core"
+        "JamKit.Core",
+        "JamKit.Unity",
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

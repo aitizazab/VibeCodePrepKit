@@ -25,9 +25,11 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
                      KeyResults = "SkylineCapture.Results", KeyStarted = "SkylineCapture.Started", KeyPhase = "SkylineCapture.Phase",
                      KeyRunInBackground = "SkylineCapture.RunInBackground";
         const int PhaseStarting = 0, PhaseRecording = 1, PhaseExiting = 2, PhaseFinalizing = 3;
-        const int RecordFrames = 8 * 60, StillFrame = 2 * 60;      // 8 s of video at a constant 60 fps; the still at 2 s
-        const float Settle = 1f, Deadline = 300f, FileWait = 10f;
-        static readonly string[] Scenes = { SkylineScenes.FiringRange, SkylineScenes.Gallery };
+        // Each scene records SkylineScenes.RecordSeconds of video at a constant 60 fps; the still at 2 s. The deadline sits
+        // under stage B's 900 s timeout so capture.json is always written.
+        const int StillFrame = 2 * 60;
+        const float Settle = 1f, Deadline = 840f, FileWait = 10f;
+        static readonly string[] Scenes = SkylineScenes.All;
 
         static RecorderController _controller;
         static double _settleStart = -1, _finalizeStart = -1;
@@ -50,6 +52,7 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
                 {
                     string name = Path.GetFileNameWithoutExtension(scene);
                     foreach (string f in new[] { RecPath(outDir, name), StillPath(outDir, name) }) if (File.Exists(f)) File.Delete(f);
+                    foreach (string f in Directory.GetFiles(outDir, "still-" + name + "-*.png")) File.Delete(f);
                 }
                 string old = Path.Combine(outDir, "capture.json");
                 if (File.Exists(old)) File.Delete(old);
@@ -179,15 +182,50 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
                 ScreenCapture.CaptureScreenshot(StillPath(dir, name));
                 _stillTaken = true;
             }
-            if (frames < RecordFrames) return;
+            if (frames < SkylineScenes.RecordSeconds(Scenes[index]) * 60) return;
             var controller = _controller;
             _controller = null;
             try { controller.StopRecording(); }
             catch (Exception e) { Finish(false, "stopping the Recorder for " + name + ": " + e.Message); return; }
+            try { TakeStills(dir, name); }
+            catch (Exception e) { Finish(false, "stills for " + name + ": " + e.Message); return; }
             SessionState.SetString(KeyResults, SessionState.GetString(KeyResults, "") + name + ";");
             SessionState.SetInt(KeyIndex, index + 1);
             SessionState.SetInt(KeyPhase, PhaseExiting);          // before isPlaying = false, so no tick can start another recording
             EditorApplication.isPlaying = false;
+        }
+
+        /// <summary>Renders every SkylineStillCamera in the playing scene to still-&lt;scene&gt;-&lt;shot&gt;.png (1920x1080).</summary>
+        static void TakeStills(string dir, string scene)
+        {
+            int n = 0;
+            foreach (var shot in UnityEngine.Object.FindObjectsByType<JamKit.SkylineRepo.SkylineStillCamera>(FindObjectsSortMode.None))
+            {
+                var cam = shot.GetComponent<Camera>();
+                var rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+                var tex = new Texture2D(1920, 1080, TextureFormat.RGB24, false);
+                var previousTarget = cam.targetTexture;
+                var previousActive = RenderTexture.active;
+                try
+                {
+                    cam.targetTexture = rt;
+                    cam.Render();
+                    RenderTexture.active = rt;
+                    tex.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0);
+                    tex.Apply();
+                    File.WriteAllBytes(Path.Combine(dir, "still-" + scene + "-" + shot.shotName + ".png"), tex.EncodeToPNG());
+                    n++;
+                }
+                finally
+                {
+                    cam.targetTexture = previousTarget;
+                    RenderTexture.active = previousActive;
+                    rt.Release();
+                    UnityEngine.Object.DestroyImmediate(rt);
+                    UnityEngine.Object.DestroyImmediate(tex);
+                }
+            }
+            Debug.Log("SKYLINE_CAPTURE stills " + scene + " " + n);
         }
 
         static void TickExiting()

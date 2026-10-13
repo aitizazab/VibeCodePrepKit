@@ -153,6 +153,8 @@ function Update-BatchStage {
             $fails = @($t.failures | Where-Object { $_ })
             if ($fails.Count -gt 0) { Add-StageNote $Stage ("failures: " + ((@($fails | Select-Object -First 3) | ForEach-Object { Limit-Text $_ 160 }) -join ' | ')) }
         }
+        # The scene lint (Task 16) is reported, not part of stage A's ok: lint problems are the judges' blockers.
+        if ($j.Data.lint) { Add-StageNote $Stage "lint: $($j.Data.lint.count) problem(s)" }
         if ($j.Data.error) { $jobError = $true; Add-StageNote $Stage ("editor job error: " + (Limit-Text ([string]$j.Data.error))) }
         $jsonOk = [bool]($j.Data.ok -eq $true)
         if (-not $jsonOk -and -not $jobError -and -not ($t -and $t.failed -gt 0)) { Add-StageNote $Stage 'editor-batch.json says ok:false' }
@@ -211,7 +213,8 @@ function Update-PerfStage {
             if (-not (Test-IsNumber $p.onePercentLowMs) -or $p.onePercentLowMs -le 0) { $problems += 'onePercentLowMs missing or not above 0' }
             elseif ($p.onePercentLowMs -gt 16.7) { $problems += '1% low over 16.7 ms' }
             if ($p.resolution -ne '1920x1080') { $problems += "resolution is '$($p.resolution)', not 1920x1080" }
-            $perfNote = "avg $($p.avgMs) ms, 1% low $($p.onePercentLowMs) ms (blocker over 16.7), $($p.resolution)$(if ($p.gpu) { ", gpu $($p.gpu)" })"
+            if ($p.scene -and $p.scene -ne 'SkylineArena') { $problems += "measured '$($p.scene)', not SkylineArena" }
+            $perfNote = "avg $($p.avgMs) ms, 1% low $($p.onePercentLowMs) ms (blocker over 16.7), $($p.resolution)$(if ($p.gpu) { ", gpu $($p.gpu)" })$(if ($p.scene) { ", scene $($p.scene)" })"
             if ($problems.Count -gt 0) { $perfNote += '; ' + ($problems -join '; ') } else { $perfOk = $true }
         } catch {
             $perfNote = "perf.json unreadable: $($_.Exception.Message)"
@@ -329,7 +332,9 @@ if ($SelfTest) {
             @{ n = 'string low'; json = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":"fast","resolution":"1920x1080"}'; ok = $false; like = '*onePercentLowMs missing*' },
             @{ n = 'no frames'; json = '{"frames":0,"avgMs":8.1,"onePercentLowMs":11.2,"resolution":"1920x1080"}'; ok = $false; like = '*frames missing*' },
             @{ n = 'over budget'; json = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":20.5,"resolution":"1920x1080"}'; ok = $false; like = '*over 16.7*' },
-            @{ n = 'wrong resolution'; json = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"resolution":"1280x720"}'; ok = $false; like = "*resolution is '1280x720'*" }
+            @{ n = 'wrong resolution'; json = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"resolution":"1280x720"}'; ok = $false; like = "*resolution is '1280x720'*" },
+            @{ n = 'arena'; json = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"resolution":"1920x1080","gpu":"X","scene":"SkylineArena"}'; ok = $true; like = '*1920x1080, gpu X, scene SkylineArena' },
+            @{ n = 'wrong scene'; json = '{"frames":1200,"avgMs":8.1,"onePercentLowMs":11.2,"resolution":"1920x1080","scene":"SkylineGallery"}'; ok = $false; like = "*measured 'SkylineGallery', not SkylineArena*" }
         )
         foreach ($c in $cases) {
             $f = Join-Path $dir 'perf.json'
@@ -373,9 +378,12 @@ try {
 
     if ($preflightOk) {
         # Results of an earlier pass in a reused -Out folder must never stand in for this one.
-        foreach ($stale in 'editor-batch.json', 'capture.json', 'build.json', 'perf.json', 'rec-SkylineFiringRange.mp4', 'rec-SkylineGallery.mp4',
-                           'still-SkylineFiringRange.png', 'still-SkylineGallery.png', 'build\SkylineRepo.exe') {
+        foreach ($stale in 'editor-batch.json', 'capture.json', 'build.json', 'perf.json', 'firing-range-schedule.json',
+                           'sync-check.json', 'build\SkylineRepo.exe') {
             Remove-Item -LiteralPath (Join-Path $Out $stale) -Force -ErrorAction SilentlyContinue
+        }
+        foreach ($pattern in 'rec-*.mp4', 'still-*.png') {
+            Get-ChildItem -LiteralPath $Out -Filter $pattern -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
         }
         # A: editor batch job (tests, scenes)
         $log = Join-Path $Out 'stage-a-editor-batch.log'
@@ -426,28 +434,31 @@ try {
         }
     }
 
-    # E: audio check without Unity: the firing range recording must contain the 440 Hz test tone
+    # E: the sync check without Unity (docs/SKYLINE-DESIGN.md 2.3): the firing range recording's sound onsets against the
+    # schedule its director wrote, aligned on the marker beep; plus the ears' picture of the recording's audio.
     $rec = Join-Path $Out 'rec-SkylineFiringRange.mp4'
+    $schedule = Join-Path $Out 'firing-range-schedule.json'
     $started = Get-Date
     $eok = $false; $enote = ''
-    if (Test-Path $rec) {
+    if ((Test-Path $rec) -and (Test-Path $schedule)) {
         try {
             $ears = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\skills\ears'
-            $earsErr = Join-Path $Out 'audio-firing-range.stderr.txt'
-            # stdout (the JSON) only; uv's progress goes to stderr, which under $ErrorActionPreference = 'Stop' would otherwise
-            # surface as a terminating NativeCommandError in Windows PowerShell 5.1
+            $sounds = Join-Path $RepoRoot 'Assets\JamKit\Templates\SkylineRepo\Resources\SkylineAudio'
+            $err = Join-Path $Out 'sync-check.stderr.txt'
+            # stdout (the JSON) only; uv's progress goes to stderr, which under Stop would surface as an error in PS 5.1
             $ErrorActionPreference = 'Continue'
-            $json = & uv run --project $ears python (Join-Path $ears 'listen.py') measure $rec --png (Join-Path $Out 'audio-firing-range.png') 2>$earsErr
+            & uv run --project $ears python (Join-Path $ears 'listen.py') measure $rec --png (Join-Path $Out 'audio-firing-range.png') 2>$err | Out-Null
+            $json = & uv run --project $ears python (Join-Path $RepoRoot 'tools\skyline\soundforge\synccheck.py') $rec $schedule --sounds $sounds 2>>$err
             $ErrorActionPreference = 'Stop'
-            $jsonText = ($json | Out-String)
-            Set-Content -Path (Join-Path $Out 'audio-firing-range.json') -Value $jsonText -Encoding utf8
-            $m = $jsonText.Substring($jsonText.IndexOf('{')) | ConvertFrom-Json
-            $eok = (-not $m.error) -and (-not $m.silent) -and ($m.centroid_hz -gt 300) -and ($m.centroid_hz -lt 700)
-            if ($m.error) { $enote = "the ears reported an error: $($m.error) $($m.detail)" }
-            else { $enote = "silent=$($m.silent) centroid=$([int]$m.centroid_hz) Hz peak=$($m.sample_peak_dbfs) dBFS" }
-        } catch { $ErrorActionPreference = 'Stop'; $enote = "could not read the ears' output: $($_.Exception.Message)" }
-    } else { $enote = 'skipped: no firing range recording' }
-    $stages += [pscustomobject]@{ name = 'E audio check'; ok = $eok; seconds = [int]((Get-Date) - $started).TotalSeconds; log = ''; note = $enote }
+            $text = ($json | Out-String)
+            Set-Content -Path (Join-Path $Out 'sync-check.json') -Value $text -Encoding utf8
+            $m = $text.Substring($text.IndexOf('{')) | ConvertFrom-Json
+            $eok = [bool]$m.ok
+            $enote = [string]$m.note
+        } catch { $ErrorActionPreference = 'Stop'; $enote = "could not run the sync check: $($_.Exception.Message)" }
+    } elseif (Test-Path $rec) { $enote = 'no firing-range-schedule.json (the range director did not write one)' }
+    else { $enote = 'skipped: no firing range recording' }
+    $stages += [pscustomobject]@{ name = 'E sync check'; ok = $eok; seconds = [int]((Get-Date) - $started).TotalSeconds; log = ''; note = $enote }
 } catch {
     $stages += [pscustomobject]@{ name = 'runner'; ok = $false; seconds = 0; log = ''; note = "unexpected: $($_.Exception.Message)" }
 } finally {

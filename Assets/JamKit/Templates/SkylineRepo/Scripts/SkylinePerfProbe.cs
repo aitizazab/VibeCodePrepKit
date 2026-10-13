@@ -50,7 +50,8 @@ namespace JamKit.SkylineRepo
                 Directory.CreateDirectory(_outDir);
                 File.WriteAllText(Path.Combine(_outDir, "perf.json"),
                     "{\"frames\":" + s.frames + ",\"avgMs\":" + F(s.avgMs) + ",\"onePercentLowMs\":" + F(s.onePercentLowMs) +
-                    ",\"worstMs\":" + F(s.worstMs) + ",\"resolution\":\"" + Screen.width + "x" + Screen.height + "\",\"gpu\":\"" + Esc(SystemInfo.graphicsDeviceName) + "\"}");
+                    ",\"worstMs\":" + F(s.worstMs) + ",\"resolution\":\"" + Screen.width + "x" + Screen.height + "\",\"gpu\":\"" + Esc(SystemInfo.graphicsDeviceName) +
+                    "\",\"scene\":\"" + Esc(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name) + "\"}");
             }
             catch (Exception e)
             {

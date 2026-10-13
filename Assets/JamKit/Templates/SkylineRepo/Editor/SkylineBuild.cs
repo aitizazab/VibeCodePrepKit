@@ -25,7 +25,7 @@ namespace JamKit.SkylineRepo.EditorTools
                 SkylineScenes.BuildAll();                             // always regenerate: no stale generated scenes
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
-                    scenes = new[] { SkylineScenes.FiringRange, SkylineScenes.Gallery },
+                    scenes = SkylineScenes.All,                     // the arena first, so the player opens on it
                     locationPathName = exe,
                     target = BuildTarget.StandaloneWindows64,
                     options = BuildOptions.None,

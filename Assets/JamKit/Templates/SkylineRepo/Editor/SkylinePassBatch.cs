@@ -54,7 +54,7 @@ namespace JamKit.SkylineRepo.EditorTools
                 error = e.ToString();
             }
 
-            bool ok = error == null && c.failed == 0 && c.passed > 0 && scenes.Length == 2;
+            bool ok = error == null && c.failed == 0 && c.passed > 0 && scenes.Length == SkylineScenes.All.Length;
             var sb = new StringBuilder();
             sb.Append("{\"ok\":").Append(ok ? "true" : "false");
             sb.Append(",\"tests\":{\"passed\":").Append(c.passed).Append(",\"failed\":").Append(c.failed).Append(",\"skipped\":").Append(c.skipped);

@@ -5,6 +5,10 @@
         "JamKit.SkylineRepo",
         "JamKit.Skyline",
         "JamKit.Core",
+        "JamKit.Unity",
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
         "UnityEditor.TestRunner",
         "UnityEngine.TestRunner"
     ],
