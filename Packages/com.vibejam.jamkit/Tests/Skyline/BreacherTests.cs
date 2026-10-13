@@ -37,18 +37,26 @@ namespace JamKit.Tests.Skyline
             Assert.That(spent, Is.True, "an air shot spends the boost even when it adds no lift");
         }
 
+        static readonly BreacherBoostDef OnePerAirtimeDef = new BreacherBoostDef { oneBoostPerAirtime = true };
+
+        static Vector3 PushOne(Vector3 aim, Vector3 vel, bool grounded, BoostCharge c, out bool boosted) =>
+            BreacherKnockback.SelfPush(aim, vel, grounded, G, c, OnePerAirtimeDef, out boosted);
+
+        static Vector3 RequestOne(Vector3 aim, Vector3 vel, bool grounded, BoostCharge c, out bool spendsCharge) =>
+            BreacherKnockback.RequestSelfPush(aim, vel, grounded, G, c, OnePerAirtimeDef, out spendsCharge);
+
         [Test]
         public void OneBoostPerAirtimeRefreshedByLandingOrAWall()
         {
             var c = new BoostCharge();
-            Assert.That(Push(Down, Vector3.Zero, false, c, out _).Y, Is.GreaterThan(0f));
-            Assert.That(Push(Down, Vector3.Zero, false, c, out bool again), Is.EqualTo(Vector3.Zero));
+            Assert.That(PushOne(Down, Vector3.Zero, false, c, out _).Y, Is.GreaterThan(0f));
+            Assert.That(PushOne(Down, Vector3.Zero, false, c, out bool again), Is.EqualTo(Vector3.Zero));
             Assert.That(again, Is.False);
             c.Observe(false, false);
             Assert.That(c.Ready, Is.False, "still airborne");
             c.Observe(false, true);
             Assert.That(c.Ready, Is.True, "a wall refreshes it");
-            Push(Down, Vector3.Zero, false, c, out _);
+            PushOne(Down, Vector3.Zero, false, c, out _);
             c.Observe(true, false);
             Assert.That(c.Ready, Is.True, "landing refreshes it");
         }
@@ -93,10 +101,61 @@ namespace JamKit.Tests.Skyline
         public void TheLimitsAreTheSpecsDefaults()
         {
             var d = new BreacherBoostDef();
-            Assert.That(d.oneBoostPerAirtime, Is.True);
+            Assert.That(d.oneBoostPerAirtime, Is.False, "the creator's call (2026-10-13): limited only by the fire rate");
             Assert.That(d.selfDamage, Is.EqualTo(0f));
             Assert.That(MathF.Abs(d.boostHeight - new MoveDef().doubleJumpHeight), Is.LessThanOrEqualTo(0.25f),
                 "about the jump upgrade's height (a third jump: the double jump's)");
+        }
+
+        // The creator's call (2026-10-13): "The Breacher's boost should just be limited by its fire rate."
+
+        [Test]
+        public void ByDefaultTwoAirShotsInARowBothLift()
+        {
+            var c = new BoostCharge();
+            var first = Push(Down, new Vector3(0f, -3f, 0f), false, c, out bool boosted1);
+            Assert.That(first.Y, Is.GreaterThan(0f));
+            Assert.That(boosted1, Is.True);
+            c.Observe(false, false);
+            var second = Push(Down, new Vector3(0f, -3f, 0f), false, c, out bool boosted2);
+            Assert.That(second.Y, Is.GreaterThan(0f), "still airborne, no wall: the second shot lifts too");
+            Assert.That(boosted2, Is.True);
+        }
+
+        [Test]
+        public void EachAirShotSetsTheRiseSpeedAndNeverAddsToIt()
+        {
+            float up = MathF.Sqrt(2f * G * new BreacherBoostDef().boostHeight);
+            var c = new BoostCharge();
+            var first = Push(Down, Vector3.Zero, false, c, out _);
+            Assert.That(first.Y, Is.EqualTo(up).Within(1e-4f));
+            // Now rising at exactly the boost speed: a second shot adds nothing; slower than it adds only the difference.
+            Assert.That(Push(Down, new Vector3(0f, first.Y, 0f), false, c, out bool spent).Y, Is.EqualTo(0f), "already rising as fast as the boost");
+            Assert.That(spent, Is.True, "it still counts as an air shot");
+            Assert.That(Push(Down, new Vector3(0f, up + 4f, 0f), false, c, out _).Y, Is.EqualTo(0f), "rising faster than the boost: 0 lift");
+            Assert.That(Push(Down, new Vector3(0f, up - 2f, 0f), false, c, out _).Y, Is.EqualTo(2f).Within(1e-4f), "a slower rise is topped up to the boost speed");
+        }
+
+        [Test]
+        public void ByDefaultTheChargeNeverBlocksAShot()
+        {
+            var c = new BoostCharge();
+            c.Spend();
+            Assert.That(c.Ready, Is.False);
+            var p = Push(Down, Vector3.Zero, false, c, out bool boosted);
+            Assert.That(p.Y, Is.GreaterThan(0f), "a spent charge doesn't stop the lift when the rule is off");
+            Assert.That(boosted, Is.True);
+            var flat = Push(new Vector3(0f, 0f, 1f), Vector3.Zero, false, c, out _);
+            Assert.That(flat.Z, Is.EqualTo(-new BreacherBoostDef().selfPushSpeed).Within(1e-5f), "and the flat shove still happens");
+        }
+
+        [Test]
+        public void WithTheRuleOnASpentChargeStillBlocksTheAirShot()
+        {
+            var c = new BoostCharge();
+            c.Spend();
+            Assert.That(PushOne(Down, Vector3.Zero, false, c, out bool boosted), Is.EqualTo(Vector3.Zero));
+            Assert.That(boosted, Is.False);
         }
 
         // The engine's AddPush can refuse a push (a mantle, ignored states), so the charge is spent only on acceptance.
@@ -130,7 +189,7 @@ namespace JamKit.Tests.Skyline
             Request(Down, Vector3.Zero, false, c, out bool spends);
             c.Commit(spends, accepted: true);
             Assert.That(c.Ready, Is.False);
-            var next = Request(Down, Vector3.Zero, false, c, out bool spendsNext);
+            var next = RequestOne(Down, Vector3.Zero, false, c, out bool spendsNext);
             Assert.That(next, Is.EqualTo(Vector3.Zero));
             Assert.That(spendsNext, Is.False);
         }

@@ -146,6 +146,60 @@ namespace JamKit.Tests.Skyline
             Assert.That(t.spotMultiplier, Is.EqualTo(2.5f));
         }
 
+        // The creator's call (2026-10-13): "Writ Levels 1 and 2 have 3 max weak spots, Level 3 can have 5." The levels are the
+        // three upgrade tiers; Case Law (the capstone, level 3) isn't built, so the cap comes from WritTuning.ForLevel.
+        [TestCase(1, 3)]
+        [TestCase(2, 3)]
+        [TestCase(3, 5)]
+        public void TheSpotCapByLevelIsThreeThreeFive(int level, int cap)
+        {
+            Assert.That(WritTuning.ForLevel(level).maxSpotsPerBot, Is.EqualTo(cap));
+        }
+
+        [Test]
+        public void TheCapstoneCapIsDataAndTheBaseStaysThree()
+        {
+            Assert.That(WritTuning.CapstoneMaxSpots, Is.EqualTo(5));
+            Assert.That(new WritTuning().maxSpotsPerBot, Is.EqualTo(3));
+            Assert.That(WritTuning.ForLevel(0).maxSpotsPerBot, Is.EqualTo(3), "below level 1 is level 1");
+            Assert.That(WritTuning.ForLevel(9).maxSpotsPerBot, Is.EqualTo(5), "above level 3 is level 3");
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        public void LevelsOneAndTwoReplaceTheOldestOnTheFourthSpot(int level)
+        {
+            var t = WritTuning.ForLevel(level);
+            var spots = new WeakSpots();
+            for (int i = 0; i < 4; i++) spots.Add(new Vector3(i, 0f, 0f), i * 0.1f, t);
+            Assert.That(spots.Count, Is.EqualTo(3));
+            Assert.That(spots.All[0].local.X, Is.EqualTo(1f), "the first spot was replaced");
+        }
+
+        [Test]
+        public void LevelThreeHoldsFiveSpotsAndReplacesTheOldestOnTheSixth()
+        {
+            var t = WritTuning.ForLevel(3);
+            var spots = new WeakSpots();
+            for (int i = 0; i < 5; i++) spots.Add(new Vector3(i, 0f, 0f), i * 0.1f, t);
+            Assert.That(spots.Count, Is.EqualTo(5));
+            Assert.That(spots.All[0].local.X, Is.EqualTo(0f));
+            spots.Add(new Vector3(5f, 0f, 0f), 0.5f, t);
+            Assert.That(spots.Count, Is.EqualTo(5));
+            Assert.That(spots.All[0].local.X, Is.EqualTo(1f), "the oldest was replaced");
+        }
+
+        [Test]
+        public void ForLevelKeepsEveryOtherDefault()
+        {
+            var d = new WritTuning();
+            var t = WritTuning.ForLevel(3);
+            Assert.That(t.spotMultiplier, Is.EqualTo(d.spotMultiplier));
+            Assert.That(t.spotLifetime, Is.EqualTo(d.spotLifetime));
+            Assert.That(t.spotRadius, Is.EqualTo(d.spotRadius));
+            Assert.That(t.consumeOnHit, Is.EqualTo(d.consumeOnHit));
+        }
+
         // Amendment 13: the spot rules are tunable data defaults pending the creator, not hard-coded constants.
         [Test]
         public void TheSpotRulesAreTunableDataWithTheDecidedDefaults()

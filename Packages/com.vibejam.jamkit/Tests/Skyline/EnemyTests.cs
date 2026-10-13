@@ -129,15 +129,117 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
-        public void AStaleWreckOrFullPlatingGivesNothing()
+        public void AStaleWreckGivesNothing()
         {
             var a = new PlayerArmor(100f, 100f);
             a.Damage(50f);
             Assert.That(a.Strip(new Wreck(SkylineEnemies.MallCopDrone(), 0f), 9f), Is.EqualTo(0f), "older than 8 s");
-            var full = new PlayerArmor(100f, 100f);
-            var w = new Wreck(SkylineEnemies.MallCopDrone(), 0f);
-            Assert.That(full.Strip(w, 1f), Is.EqualTo(0f));
-            Assert.That(w.stripped, Is.False, "left for later if you couldn't use it");
+            Assert.That(a.RecoveredScrap, Is.EqualTo(0f), "a stale wreck banks nothing");
+        }
+
+        // The creator's call (2026-10-13): excess plating converts into money (recovered scrap), not stored health for later;
+        // a wreck is always used up in full by a strip.
+
+        static Wreck Scrap(float scrap) => new Wreck(new EnemyDef { id = "scrap", scrapPlating = scrap }, 0f);
+
+        [Test]
+        public void FullPlatingBanksAllTheScrapAndConsumesTheWreck()
+        {
+            var a = new PlayerArmor(100f, 100f);
+            var w = Scrap(20f);
+            Assert.That(a.Strip(w, 1f), Is.EqualTo(0f), "no plating gained");
+            Assert.That(a.Plating, Is.EqualTo(100f));
+            Assert.That(a.RecoveredScrap, Is.EqualTo(20f));
+            Assert.That(w.stripped, Is.True, "no longer left for later");
+            Assert.That(a.Strip(w, 1.5f), Is.EqualTo(0f));
+            Assert.That(a.RecoveredScrap, Is.EqualTo(20f), "a wreck is stripped once");
+        }
+
+        [Test]
+        public void PartialPlatingFillsFirstAndBanksTheRest()
+        {
+            var a = new PlayerArmor(100f, 100f);
+            a.Damage(5f);
+            var w = Scrap(20f);
+            Assert.That(a.Strip(w, 1f), Is.EqualTo(5f).Within(1e-5f));
+            Assert.That(a.Plating, Is.EqualTo(100f).Within(1e-5f));
+            Assert.That(a.RecoveredScrap, Is.EqualTo(15f).Within(1e-5f));
+            Assert.That(w.stripped, Is.True);
+        }
+
+        [Test]
+        public void EmptyPlatingTakesAllTheScrapAndBanksNothing()
+        {
+            var a = new PlayerArmor(100f, 100f);
+            a.Damage(100f);
+            Assert.That(a.Plating, Is.EqualTo(0f));
+            Assert.That(a.Strip(Scrap(20f), 1f), Is.EqualTo(20f));
+            Assert.That(a.Plating, Is.EqualTo(20f));
+            Assert.That(a.RecoveredScrap, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void TheScrapPerPlatingRateScalesTheBank()
+        {
+            var a = new PlayerArmor(100f, 100f);
+            Assert.That(a.RecoveredScrapPerPlating, Is.EqualTo(1f), "data default: one plating point, one scrap");
+            a.RecoveredScrapPerPlating = 2.5f;
+            a.Damage(5f);
+            a.Strip(Scrap(20f), 1f);
+            Assert.That(a.RecoveredScrap, Is.EqualTo(15f * 2.5f).Within(1e-4f));
+        }
+
+        [Test]
+        public void TheDifficultyScaleAppliesBeforeTheSplit()
+        {
+            var a = new PlayerArmor(100f, 100f);
+            a.Damage(10f);
+            Assert.That(a.Strip(Scrap(20f), 1f, 1.5f), Is.EqualTo(10f).Within(1e-5f));
+            Assert.That(a.RecoveredScrap, Is.EqualTo(20f).Within(1e-5f), "20 x 1.5 = 30, 10 to plating, 20 banked");
+        }
+
+        [Test]
+        public void StaleStrippedWreckedAndBrokenInputsBankNothing()
+        {
+            var a = new PlayerArmor(100f, 100f);
+            Assert.That(a.Strip(null, 1f), Is.EqualTo(0f));
+            Assert.That(a.Strip(new Wreck(null, 0f), 1f), Is.EqualTo(0f));
+            Assert.That(a.Strip(Scrap(20f), 9f), Is.EqualTo(0f), "stale");
+            var done = Scrap(20f);
+            done.stripped = true;
+            Assert.That(a.Strip(done, 1f), Is.EqualTo(0f), "already stripped");
+            var w = Scrap(20f);
+            Assert.That(a.Strip(w, 1f, float.NaN), Is.EqualTo(0f));
+            Assert.That(a.Strip(w, 1f, -2f), Is.EqualTo(0f));
+            Assert.That(a.Strip(Scrap(float.NaN), 1f), Is.EqualTo(0f));
+            Assert.That(a.Strip(Scrap(-5f), 1f), Is.EqualTo(0f));
+            Assert.That(w.stripped, Is.False, "bad scale: the wreck is left alone");
+            Assert.That(a.RecoveredScrap, Is.EqualTo(0f));
+
+            a.Damage(500f);
+            Assert.That(a.Wrecked, Is.True);
+            var late = Scrap(20f);
+            Assert.That(a.Strip(late, 1f), Is.EqualTo(0f), "a wrecked Unit strips nothing");
+            Assert.That(late.stripped, Is.False);
+            Assert.That(a.RecoveredScrap, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void TheScrapTallyOnlyGrows()
+        {
+            var a = new PlayerArmor(100f, 100f);
+            float last = 0f;
+            for (int i = 0; i < 5; i++)
+            {
+                a.Damage(i * 3f);
+                a.Strip(Scrap(10f), 1f);
+                Assert.That(a.RecoveredScrap, Is.GreaterThanOrEqualTo(last));
+                last = a.RecoveredScrap;
+                a.Damage(0.5f);
+                a.Strip(Scrap(10f), 1f, float.NaN);
+                Assert.That(a.RecoveredScrap, Is.GreaterThanOrEqualTo(last));
+            }
+            Assert.That(last, Is.GreaterThan(0f));
         }
 
         [Test]

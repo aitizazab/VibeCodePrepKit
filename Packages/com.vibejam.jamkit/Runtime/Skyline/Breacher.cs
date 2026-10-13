@@ -3,9 +3,10 @@ using System.Numerics;
 
 namespace JamKit.Skyline
 {
-    /// <summary>The Breacher's self-knockback (docs/SKYLINE-DESIGN.md 2.2) as tunable data. The limits are the spec's
-    /// proposal, used until the creator answers (14, pending 3): one boost per airtime, refreshed by landing or touching a
-    /// wall; no self-damage; no double-jump refresh (the engine's rule); about the jump upgrade's height.</summary>
+    /// <summary>The Breacher's self-knockback (docs/SKYLINE-DESIGN.md 2.2) as tunable data. The boost is limited only by the
+    /// gun's fire rate (the creator's call, 2026-10-13); the one-boost-per-airtime rule stays as an option
+    /// (<see cref="BreacherBoostDef.oneBoostPerAirtime"/>). No self-damage; no double-jump refresh (the engine's rule); about the jump
+    /// upgrade's height.</summary>
     public sealed class BreacherBoostDef
     {
         /// <summary>m/s along the flat part of the shot's reverse direction.</summary>
@@ -14,12 +15,16 @@ namespace JamKit.Skyline
         public float boostHeight = 1f;
         /// <summary>The shot must point at least this far down (the reverse direction's up part, 0..1) to lift you.</summary>
         public float minLift = 0.35f;
-        public bool oneBoostPerAirtime = true;
+        /// <summary>True: only one air boost per airtime (spent by a self-push in the air or one that lifts you off the ground,
+        /// refreshed by landing or touching a wall). False (the default; the creator's call, 2026-10-13: "just limited by its
+        /// fire rate"): every shot boosts, setting the rise speed and never adding to a faster one.</summary>
+        public bool oneBoostPerAirtime = false;
         /// <summary>Damage the shooter takes from their own blast (none, by the spec's proposal).</summary>
         public float selfDamage = 0f;
     }
 
-    /// <summary>The one boost per airtime: spent by a self-push in the air or one that lifts you off the ground, refreshed
+    /// <summary>The optional one-boost-per-airtime rule's charge (only checked when <see cref="BreacherBoostDef.oneBoostPerAirtime"/>):
+    /// spent by a self-push in the air or one that lifts you off the ground, refreshed
     /// by landing or touching a wall. Call <see cref="Observe"/> every frame with the body's state. The engine can refuse
     /// a push, so a caller that asked for one reports the answer through <see cref="Commit"/>.</summary>
     public sealed class BoostCharge
@@ -47,8 +52,8 @@ namespace JamKit.Skyline
         /// <summary>The velocity change a Breacher shot along <paramref name="aim"/> would give its shooter (for
         /// MoveSim.AddPush): the flat part of the reverse direction times <see cref="BreacherBoostDef.selfPushSpeed"/>,
         /// plus, when the shot points down by more than <see cref="BreacherBoostDef.minLift"/>, enough upward speed to reach
-        /// sqrt(2 g boostHeight) x (how far down it points) from the current vertical speed (never negative). In the air it
-        /// needs the charge (zero without it). Pure: it spends nothing. <paramref name="spendsCharge"/> says whether the
+        /// sqrt(2 g boostHeight) x (how far down it points) from the current vertical speed (never negative). With <see cref="BreacherBoostDef.oneBoostPerAirtime"/> on, in the air it
+        /// needs the charge (zero without it); off (the default) every shot lifts. Pure: it spends nothing. <paramref name="spendsCharge"/> says whether the
         /// push uses the boost (any air shot, or a ground shot that lifts); pass the engine's accept/refuse answer to
         /// <see cref="BoostCharge.Commit"/> to spend it only when the push was accepted.</summary>
         public static Vector3 RequestSelfPush(Vector3 aim, Vector3 velocity, bool grounded, float gravity, BoostCharge charge, BreacherBoostDef d, out bool spendsCharge)

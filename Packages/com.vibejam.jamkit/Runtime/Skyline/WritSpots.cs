@@ -23,6 +23,21 @@ namespace JamKit.Skyline
         /// <summary>A spot hit's multiplier: always more than the Writ's weak-point (headshot) multiplier (the identity).</summary>
         public float spotMultiplier = 2.5f;
         public int maxSpotsPerBot = 3;
+
+        /// <summary>The cap at the Writ's third level, the capstone Case Law (the creator's call, 2026-10-13: "Levels 1 and 2
+        /// have 3 max weak spots, Level 3 can have 5"). Case Law's other half, any damage hitting the spots, is unbuilt.</summary>
+        public const int CapstoneMaxSpots = 5;
+
+        /// <summary>The tuning at a Writ level (1-3, the three upgrade tiers; outside the range is clamped): the spot cap is
+        /// 3, 3, 5. Only the cap is level-dependent here; the built upgrades still go through <see cref="UpgradePaths.Apply"/>
+        /// (which refuses unbuilt ones, so Case Law's cap can't go through it).</summary>
+        public static WritTuning ForLevel(int level)
+        {
+            var t = new WritTuning();
+            if (level >= 3) t.maxSpotsPerBot = CapstoneMaxSpots;
+            return t;
+        }
+
         public float spotLifetime = 6f;
         /// <summary>How close (m, bot space) a hit must land to a spot to hit it.</summary>
         public float spotRadius = 0.2f;

@@ -273,16 +273,28 @@ namespace JamKit.Skyline
             return r;
         }
 
-        /// <summary>Strips a fresh wreck: plating back by its scrap (times <paramref name="scale"/>, the difficulty's), up to
-        /// the max. Returns what was gained; a wreck is used up only when it gave something.</summary>
+        /// <summary>This run's recovered scrap (money, delivered at the end of the run for recovered salvage): the part of
+        /// stripped wrecks that plating had no room for. Only ever grows.</summary>
+        public float RecoveredScrap { get; private set; }
+
+        /// <summary>Scrap banked per plating point that didn't fit (data; the creator's call, 2026-10-13: excess converts to
+        /// money, not stored health for later).</summary>
+        public float RecoveredScrapPerPlating = 1f;
+
+        /// <summary>Strips a fresh wreck: its scrap (times <paramref name="scale"/>, the difficulty's) fills the plating
+        /// first, up to the max; whatever doesn't fit is banked as <see cref="RecoveredScrap"/>. A wreck is always used up
+        /// in full by a strip, also at full plating. Returns the plating gained.</summary>
         public float Strip(Wreck w, float now, float scale = 1f)
         {
             if (Wrecked || w == null || w.def == null || !w.Fresh(now)) return 0f;
-            float gain = Math.Min(Math.Max(0f, w.def.scrapPlating * (scale > 0f ? scale : 0f)), PlatingMax - Plating);
+            float gain = Math.Min(Math.Max(0f, w.def.scrapPlating * (scale > 0f ? scale : 0f)), HpCeiling); // the ceiling keeps the bank finite
             if (!(gain > 0f)) return 0f; // also catches NaN
-            Plating += gain;
+            float toPlating = Math.Min(gain, PlatingMax - Plating);
+            Plating += toPlating;
+            float rate = RecoveredScrapPerPlating;
+            if (rate > 0f) RecoveredScrap += (gain - toPlating) * rate; // a NaN or negative rate banks nothing
             w.stripped = true;
-            return gain;
+            return toPlating;
         }
     }
 }
