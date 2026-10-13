@@ -779,6 +779,22 @@ Fixed (technical and clarity):
 - **Recruit choices are final** (answers pending item 4): choosing greed (towing Manny's supplies) closes his arc for
   good, with no retry through his story room. Something else later in the game grants his ability without the
   character, so a build is never blocked by a past choice, only the character's arc. Manny is still built in M2.
+- **Damage reads on the bot, with no numbers or health bars by default** (a damage-number setting may exist, off).
+  Plates fly off where hit; the chassis shows wear; the face display goes hurt; hit markers with layered sound, a
+  heavier one for a spot break and for a kill. **Writ spots must stay visually distinct from ordinary damage:** glow and
+  spark fountains belong only to Writ spots (a bright pulsing seam); ordinary damage is dark (dents, scorches, missing
+  plates, smoke at low chassis). Death: an error face, the remaining plates and 4-6 parts burst off with hitstop and a
+  wreck sound, a last bark; the hulk stays as the wreck, flickering while it's fresh to strip and going dark when stale.
+- **Lost Property:** your past wrecked Unit fights you with two guns, a prototype you've used before and one from the
+  room's exclusive pool of 3 (each visit offers one you don't own, so three visits complete it); you keep one of the two
+  permanently.
+- **Why the lockdown can become permanent:** CONCIERGE has filed, through the building's own legal systems, to transfer
+  the building's title to an unnamed buyer. When the registry clears the filing (Nan's deadline), the creditors' claim
+  dies and the laid-off staff can never be paid from the building. The buyer is revealed at the end: a trust for the
+  forty tenants. "Leave it running" lets the filing clear.
+- **Encounter density:** Normal fights are big: the food court has at least 12 drones, and the intended way through is
+  splitting them into small groups with cover and clearing them a few at a time, not thinning them out. The headless
+  checks model the player shooting back and the cover.
 
 ### Pending the creator (the defaults below are used until they answer)
 1. **The ears before the jam:** measurements, pictures and reference comparison only; the classifier + Gemini judge
