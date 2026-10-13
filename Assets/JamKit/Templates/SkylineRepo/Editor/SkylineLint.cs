@@ -1,0 +1,141 @@
+using System;
+using System.Collections.Generic;
+using JamKit.Movement;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+namespace JamKit.SkylineRepo.EditorTools
+{
+    /// <summary>
+    /// The scene lint (docs/SKYLINE-PLAN-M1.md Task 16), run by stage A on the arena. Opens the scene and returns its
+    /// problems, one line each naming the object (its hierarchy path):
+    /// <list type="number">
+    /// <item><c>no collider: &lt;object&gt;</c>: a MeshRenderer with no Collider on it or a parent, unless it or a parent is
+    /// named "... (fx)" or "... (backdrop)" or carries <see cref="SkylineNoCollider"/>.</item>
+    /// <item><c>static overlap: &lt;a&gt; x &lt;b&gt; (&lt;depth&gt; m)</c>: two static colliders (no rigidbody, not triggers,
+    /// not the player's CharacterController, neither the other's parent or child) whose
+    /// <see cref="Physics.ComputePenetration"/> depth exceeds 0.02 m. Boxes that only touch (a cover box standing on the floor,
+    /// walls meeting edge to edge) have no depth and pass.</item>
+    /// <item><c>unmarked wall: runnable or not? &lt;object&gt;</c>: a collider whose world bounds are at least 2 m tall and
+    /// 3 m long (a vertical face) with no <see cref="MovementSurface"/>. The marker must be on the collider's own object,
+    /// which is where MovementController reads it; one only on a parent is reported as
+    /// <c>wall marked on a parent only (the engine reads the collider's own): &lt;object&gt;</c>.</item>
+    /// <item><c>untextured: &lt;object&gt; (&lt;material&gt;)</c>: a renderer whose material has no _BaseMap texture, unless the
+    /// material's name starts with SK_Emissive or SK_Glass. (Every stand-in surface is flagged until Task 21; expected.)</item>
+    /// </list>
+    /// </summary>
+    public static class SkylineLint
+    {
+        public const float MaxStaticPenetration = 0.02f;
+        const float WallMinHeight = 2f, WallMinLength = 3f;
+
+        public static List<string> Run(string scenePath)
+        {
+            var problems = new List<string>();
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            var roots = scene.GetRootGameObjects();
+            var renderers = new List<Renderer>();
+            var colliders = new List<Collider>();
+            foreach (var r in roots)
+            {
+                renderers.AddRange(r.GetComponentsInChildren<Renderer>(false));
+                colliders.AddRange(r.GetComponentsInChildren<Collider>(false));
+            }
+            Physics.SyncTransforms();
+
+            // 1. renderers without colliders
+            foreach (var r in renderers)
+            {
+                if (!(r is MeshRenderer)) continue;
+                if (r.GetComponentInParent<Collider>() != null) continue;
+                if (Exempt(r.transform)) continue;
+                problems.Add("no collider: " + PathOf(r.transform));
+            }
+
+            // 2. static colliders that sink into each other
+            var statics = new List<Collider>();
+            foreach (var c in colliders)
+            {
+                if (c == null || !c.enabled || c.isTrigger || c is CharacterController) continue;
+                if (c.GetComponentInParent<Rigidbody>() != null) continue;
+                if (c is MeshCollider mc && !mc.convex) continue;     // ComputePenetration needs a primitive or convex side
+                statics.Add(c);
+            }
+            for (int i = 0; i < statics.Count; i++)
+            {
+                var a = statics[i];
+                var ba = a.bounds;
+                for (int j = i + 1; j < statics.Count; j++)
+                {
+                    var b = statics[j];
+                    if (!ba.Intersects(b.bounds)) continue;
+                    if (a.transform.IsChildOf(b.transform) || b.transform.IsChildOf(a.transform)) continue;
+                    bool hit;
+                    float depth;
+                    try
+                    {
+                        hit = Physics.ComputePenetration(a, a.transform.position, a.transform.rotation,
+                            b, b.transform.position, b.transform.rotation, out _, out depth);
+                    }
+                    catch (Exception)
+                    {
+                        continue;
+                    }
+                    if (hit && depth > MaxStaticPenetration)
+                        problems.Add("static overlap: " + PathOf(a.transform) + " x " + PathOf(b.transform) + " (" +
+                            depth.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " m)");
+                }
+            }
+
+            // 3. walls with no say on wall-running
+            foreach (var c in colliders)
+            {
+                if (c == null || !c.enabled || c.isTrigger || c is CharacterController) continue;
+                var s = c.bounds.size;
+                if (s.y < WallMinHeight || Mathf.Max(s.x, s.z) < WallMinLength) continue;
+                if (c.GetComponent<MovementSurface>() != null) continue;
+                if (c.GetComponentInParent<MovementSurface>() != null)
+                    problems.Add("wall marked on a parent only (the engine reads the collider's own): " + PathOf(c.transform));
+                else problems.Add("unmarked wall: runnable or not? " + PathOf(c.transform));
+            }
+
+            // 4. untextured surfaces
+            foreach (var r in renderers)
+            {
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                var mats = r.sharedMaterials;
+                if (mats == null || mats.Length == 0)
+                {
+                    problems.Add("untextured: " + PathOf(r.transform) + " (none)");
+                    continue;
+                }
+                foreach (var m in mats)
+                {
+                    string name = m != null ? m.name : "none";
+                    if (name.StartsWith("SK_Emissive", StringComparison.Ordinal) || name.StartsWith("SK_Glass", StringComparison.Ordinal)) continue;
+                    bool textured = m != null && m.HasProperty("_BaseMap") && m.GetTexture("_BaseMap") != null;
+                    if (!textured) problems.Add("untextured: " + PathOf(r.transform) + " (" + name + ")");
+                }
+            }
+            return problems;
+        }
+
+        static bool Exempt(Transform t)
+        {
+            for (var p = t; p != null; p = p.parent)
+            {
+                if (p.GetComponent<SkylineNoCollider>() != null) return true;
+                string n = p.name;
+                if (n.EndsWith("(fx)", StringComparison.Ordinal) || n.EndsWith("(backdrop)", StringComparison.Ordinal)) return true;
+            }
+            return false;
+        }
+
+        static string PathOf(Transform t)
+        {
+            string s = t.name;
+            for (var p = t.parent; p != null; p = p.parent) s = p.name + "/" + s;
+            return s;
+        }
+    }
+}

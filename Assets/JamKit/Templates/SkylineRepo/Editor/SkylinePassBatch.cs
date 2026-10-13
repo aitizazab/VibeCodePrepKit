@@ -9,7 +9,8 @@ using UnityEngine;
 namespace JamKit.SkylineRepo.EditorTools
 {
     /// <summary>SkylinePass stage A (docs/SKYLINE-DESIGN.md 9.4): one batch-mode editor job that runs Skyline's EditMode
-    /// tests synchronously and builds the pipeline's scenes, then writes editor-batch.json and exits.
+    /// tests synchronously and builds the pipeline's scenes, lints the arena (SkylineLint; its problems go in editor-batch.json's
+    /// "lint" block and never change "ok"), then writes editor-batch.json and exits.
     /// <c>Unity.exe -batchmode -projectPath . -executeMethod JamKit.SkylineRepo.EditorTools.SkylinePassBatch.RunFromCommandLine -skylineOut out/skyline/&lt;stamp&gt;</c></summary>
     public static class SkylinePassBatch
     {
@@ -54,6 +55,15 @@ namespace JamKit.SkylineRepo.EditorTools
                 error = e.ToString();
             }
 
+            // The arena's lint (Task 16): reported, never part of ok (untextured stand-ins are expected until Task 21).
+            var lint = new List<string>();
+            if (Array.IndexOf(scenes, SkylineScenes.Arena) >= 0)
+            {
+                try { lint = SkylineLint.Run(SkylineScenes.Arena); }
+                catch (Exception e) { lint.Add("lint failed: " + e.Message); }
+            }
+            Debug.Log("SKYLINE_LINT " + lint.Count + " problems");
+
             bool ok = error == null && c.failed == 0 && c.passed > 0 && scenes.Length == SkylineScenes.All.Length;
             var sb = new StringBuilder();
             sb.Append("{\"ok\":").Append(ok ? "true" : "false");
@@ -62,7 +72,9 @@ namespace JamKit.SkylineRepo.EditorTools
             for (int i = 0; i < c.failures.Count; i++) sb.Append(i > 0 ? "," : "").Append(Quote(c.failures[i]));
             sb.Append("]},\"scenes\":[");
             for (int i = 0; i < scenes.Length; i++) sb.Append(i > 0 ? "," : "").Append(Quote(scenes[i]));
-            sb.Append("],\"error\":").Append(error == null ? "null" : Quote(error)).Append('}');
+            sb.Append("],\"lint\":{\"count\":").Append(lint.Count).Append(",\"problems\":[");
+            for (int i = 0; i < lint.Count; i++) sb.Append(i > 0 ? "," : "").Append(Quote(lint[i]));
+            sb.Append("]},\"error\":").Append(error == null ? "null" : Quote(error)).Append('}');
             File.WriteAllText(Path.Combine(outDir, "editor-batch.json"), sb.ToString());
             Debug.Log("SKYLINE_BATCH " + (ok ? "OK" : "FAILED") + " passed=" + c.passed + " failed=" + c.failed);
             EditorApplication.Exit(ok ? 0 : 1);
