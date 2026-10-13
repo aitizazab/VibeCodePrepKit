@@ -10,7 +10,9 @@ namespace JamKit.Tests.Skyline
 {
     /// <summary>The Breacher's boost in the real movement engine (Task 7's rules through Task 12's hook), and the arena's
     /// boost ledge (6.8: "an optional ledge reachable only with a boost"). The ledge checks hold whether the boost is one
-    /// per airtime or limited only by the fire rate (the creator's rule, 2026-10-13; <see cref="BreacherBoostDef.oneBoostPerAirtime"/>).</summary>
+    /// per airtime or limited only by the fire rate (the creator's rule, 2026-10-13; <see cref="BreacherBoostDef.oneBoostPerAirtime"/>).
+    /// Braced shots (on the ground, crouched, or wall-running) are mostly eaten and never lift; jump and fire together give the
+    /// shot first, then a normal ground jump (the creator's call, 2026-10-13 evening).</summary>
     public class BreacherBoostSimTests
     {
         static readonly Vector3 Down = new Vector3(0f, -1f, 0f);
@@ -18,50 +20,44 @@ namespace JamKit.Tests.Skyline
         /// <summary>A body that can be boosted, wired the way the game wires it: each step the charge observes the body
         /// first, then a shot requests its push (<see cref="BreacherKnockback.RequestSelfPush"/>), the engine accepts or
         /// drops it (<see cref="MoveSim.AddPush"/>), and the charge settles on that answer (<see cref="BoostCharge.Commit"/>).
-        /// The take-off guard: after a committed lift off the ground the body is still Grounded until the engine's next
-        /// step applies the push (in the game a frame can pass with no fixed step), so Observe would re-arm the charge
-        /// before the body ever left; until the body has been seen off the ground, "grounded" is not passed on.</summary>
+        /// Braced, as SkylinePlayer: grounded (crouching included) or wall-running. A shot fires before the engine's step, as
+        /// SkylinePlayer runs before MovementController.</summary>
         sealed class Rig
         {
             public readonly MoveSim sim;
             public readonly BoostCharge charge = new BoostCharge();
             public readonly BreacherBoostDef def;
-            bool _awaitingTakeoff;
+            public Vector3 lastPush;
 
-            public Rig(BoxWorld w, Vector3 at, BreacherBoostDef def = null)
+            public Rig(BoxWorld w, Vector3 at, BreacherBoostDef def = null, Vector3 velocity = default)
             {
-                sim = Standing(w, at);
+                sim = Standing(w, at, velocity: velocity);
                 sim.OutsidePushEnabled = true;
                 this.def = def ?? new BreacherBoostDef();
             }
 
-            public void Observe()
-            {
-                bool grounded = sim.Grounded;
-                if (_awaitingTakeoff)
-                {
-                    if (grounded) grounded = false;
-                    else _awaitingTakeoff = false;
-                }
-                charge.Observe(grounded, sim.Mode == MoveMode.Wallrun);
-            }
+            public bool Braced => sim.Grounded || sim.Mode == MoveMode.Wallrun;
+
+            public void Observe() => charge.Observe(sim.Grounded, sim.Mode == MoveMode.Wallrun);
 
             /// <summary>Fires the Breacher along <paramref name="aim"/>; true when the push was used (it spent the charge,
             /// or would have) and the engine accepted it.</summary>
             public bool Fire(Vector3 aim)
             {
-                Vector3 push = BreacherKnockback.RequestSelfPush(aim, sim.Velocity, sim.Grounded, sim.def.gravity, charge, def, out bool spends);
+                Vector3 push = BreacherKnockback.RequestSelfPush(aim, sim.Velocity, Braced, sim.def.gravity, charge, def, out bool spends);
+                lastPush = push;
                 bool ok = sim.AddPush(push);
                 charge.Commit(spends, ok);
-                if (spends && ok && sim.Grounded && push.Y > 0f) _awaitingTakeoff = true;
                 return spends && ok;
             }
 
             /// <summary>One step: observe, maybe fire, then the engine's step. Returns whether a shot boosted.</summary>
-            public bool Tick(MoveInput input, bool fire = false)
+            public bool Tick(MoveInput input, bool fire = false) => Tick(input, fire, Down);
+
+            public bool Tick(MoveInput input, bool fire, Vector3 aim)
             {
                 Observe();
-                bool boosted = fire && Fire(Down);
+                bool boosted = fire && Fire(aim);
                 sim.Step(input, H);
                 return boosted;
             }
@@ -93,11 +89,88 @@ namespace JamKit.Tests.Skyline
         static BreacherBoostDef OnePerAirtime(bool one) => new BreacherBoostDef { oneBoostPerAirtime = one };
 
         [Test]
-        public void AStraightDownShotFromTheFloorRisesTheBoostHeight()
+        public void AStraightDownShotAtTheJumpsApexRisesTheBoostHeight()
         {
             var rig = new Rig(Flat(), Vector3.Zero);
+            rig.Tick(new MoveInput().With(jump: true));
+            float jumpTop = rig.RiseToApex(new MoveInput());
             Assert.That(rig.Tick(new MoveInput(), fire: true), Is.True);
-            Assert.That(rig.RiseToApex(new MoveInput()), Is.EqualTo(rig.def.boostHeight).Within(0.08f));
+            Assert.That(rig.RiseToApex(new MoveInput()) - jumpTop, Is.EqualTo(rig.def.boostHeight).Within(0.08f));
+        }
+
+        // The creator's call (2026-10-13 evening): braced shots are mostly eaten; the boost is felt only mid-air.
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void AShotOnTheGroundStandingOrCrouchedIsMostlyEatenAndNeverLifts(bool crouched, bool onePerAirtime)
+        {
+            var rig = new Rig(Flat(), Vector3.Zero, OnePerAirtime(onePerAirtime));
+            var still = new MoveInput().With(crouchHeld: crouched);
+            for (int i = 0; i < 30; i++) rig.Tick(still);
+            Assert.That(rig.sim.Grounded, Is.True);
+            foreach (var aim in new[] { Down, Vector3.Normalize(new Vector3(0f, -1f, 1f)), new Vector3(0f, 0f, 1f) })
+            {
+                Assert.That(rig.Tick(still, true, aim), Is.False, "a braced shot uses no boost");
+                Assert.That(rig.lastPush.Y, Is.EqualTo(0f), "no lift");
+                Assert.That(rig.lastPush.Length(), Is.LessThanOrEqualTo(rig.def.bracedScale * rig.def.selfPushSpeed + 1e-5f));
+                Assert.That(rig.charge.Ready, Is.True, "the charge is untouched");
+                for (int i = 0; i < 10; i++)
+                {
+                    Assert.That(rig.sim.Grounded, Is.True, "still on the floor");
+                    rig.Tick(still);
+                }
+            }
+        }
+
+        [Test]
+        public void AShotDuringAWallrunIsMostlyEatenAndKeepsTheRun()
+        {
+            var w = new BoxWorld();
+            w.Add(new Vector3(2.5f, -10f, 30f), new Vector3(1f, 40f, 60f));
+            var rig = new Rig(w, new Vector3(1.3f, 3f, 1f), velocity: new Vector3(0f, 0f, 10f));
+            rig.Run(Forward(), 0.2f, s => s.Mode == MoveMode.Wallrun);
+            Assert.That(rig.sim.Mode, Is.EqualTo(MoveMode.Wallrun));
+            float vyBefore = rig.sim.Velocity.Y;
+            // forward and down along the wall: in the air its reverse (up 0.6 > minLift) would lift
+            var aim = Vector3.Normalize(new Vector3(0f, -0.6f, 0.8f));
+            Assert.That(rig.Tick(Forward(), true, aim), Is.False, "a braced shot uses no boost");
+            Assert.That(rig.lastPush.Y, Is.EqualTo(0f), "no lift");
+            Assert.That(rig.lastPush.Length(), Is.LessThanOrEqualTo(rig.def.bracedScale * rig.def.selfPushSpeed + 1e-5f));
+            Assert.That(rig.sim.Mode, Is.EqualTo(MoveMode.Wallrun), "the wall eats it: still running");
+            Assert.That(rig.sim.Velocity.Y, Is.LessThanOrEqualTo(vyBefore + 1e-4f), "nothing pushed it up");
+        }
+
+        [Test]
+        public void JumpAndFireTogetherGiveTheShotFirstThenANormalGroundJump()
+        {
+            var plain = new Rig(Flat(), Vector3.Zero);
+            for (int i = 0; i < 30; i++) plain.Tick(new MoveInput());
+            plain.Tick(new MoveInput().With(jump: true));
+            Assert.That(plain.sim.Events.jumped, Is.True);
+            float plainTop = plain.RiseToApex(new MoveInput());
+
+            var rig = new Rig(Flat(), Vector3.Zero);
+            for (int i = 0; i < 30; i++) rig.Tick(new MoveInput());
+            Assert.That(rig.sim.Grounded, Is.True);
+            // one step: the shot straight down, then the jump, as SkylinePlayer (-50) runs before MovementController (-40)
+            Assert.That(rig.Tick(new MoveInput().With(jump: true), true, Down), Is.False, "the shot was braced: no boost");
+            Assert.That(rig.sim.Events.jumped, Is.True, "a ground jump");
+            Assert.That(rig.sim.Events.doubleJumped, Is.False);
+            Assert.That(rig.sim.Grounded, Is.False);
+            Assert.That(rig.sim.DoubleJumpAvailable, Is.True, "the double jump is kept");
+            float top = rig.RiseToApex(new MoveInput());
+            Assert.That(top, Is.EqualTo(plainTop).Within(0.02f), "the same apex as a plain jump");
+            Assert.That(rig.sim.DoubleJumpAvailable, Is.True, "still there at the apex");
+
+            // a mid-air shot afterwards still boosts
+            Assert.That(rig.Tick(new MoveInput(), fire: true), Is.True, "mid-air: the boost");
+            float boostTop = rig.RiseToApex(new MoveInput());
+            Assert.That(boostTop - top, Is.EqualTo(rig.def.boostHeight).Within(0.1f));
+            Assert.That(rig.sim.DoubleJumpAvailable, Is.True, "the boost doesn't use the double jump");
+            rig.Tick(new MoveInput().With(jump: true));
+            Assert.That(rig.sim.Events.doubleJumped, Is.True, "and it's still there to use");
         }
 
         [Test]
@@ -154,19 +227,17 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
-        public void AGroundLiftIsNotReArmedBeforeTheBodyLeavesTheGround()
+        public void WithOneBoostAnAirtimeAGroundShotSpendsNothingAndTheAirShotStillBoostsOnce()
         {
             var rig = new Rig(Flat(), Vector3.Zero, OnePerAirtime(true));
             rig.Observe();
-            Assert.That(rig.Fire(Down), Is.True);
-            Assert.That(rig.charge.Ready, Is.False, "spent by the lift");
-            rig.Observe();   // a frame with no engine step: the body is still on the ground
-            Assert.That(rig.sim.Grounded, Is.True);
-            Assert.That(rig.charge.Ready, Is.False, "not re-armed before take-off");
+            Assert.That(rig.Fire(Down), Is.False, "braced: no boost");
+            Assert.That(rig.charge.Ready, Is.True, "nothing spent");
             rig.sim.Step(new MoveInput(), H);
-            Assert.That(rig.sim.Grounded, Is.False);
-            rig.Observe();
-            Assert.That(rig.charge.Ready, Is.False, "in the air: still spent");
+            Assert.That(rig.sim.Grounded, Is.True, "no lift off the floor");
+            rig.Tick(new MoveInput().With(jump: true));
+            rig.RiseToApex(new MoveInput());
+            Assert.That(rig.Tick(new MoveInput(), fire: true), Is.True, "the air shot boosts");
             Assert.That(rig.Tick(new MoveInput(), fire: true), Is.False, "one boost an airtime");
             rig.Run(new MoveInput(), 3f, s => s.Grounded);
             rig.Observe();

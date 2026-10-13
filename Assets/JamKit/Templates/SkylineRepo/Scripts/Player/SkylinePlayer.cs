@@ -80,7 +80,7 @@ namespace JamKit.SkylineRepo
         readonly List<ISkylineAimable> _aimables = new List<ISkylineAimable>();
         Rng _rng;
         SkylineInputFrame _frame;
-        bool _awaitingTakeoff, _hitStopWasActive, _hitStopRequested;
+        bool _hitStopWasActive, _hitStopRequested;
         string _assistLogged = "";
         float _assistScaleLogged = 1f;
         Vector3 _spawnFeet;
@@ -169,19 +169,10 @@ namespace JamKit.SkylineRepo
             // 2. Look.
             Look(dt);
 
-            // 3. The boost charge watches the body (the take-off guard: a lift committed on the ground doesn't re-arm the
-            //    charge on the frames before the engine has applied it and the body has left).
+            // 3. The boost charge watches the body. (No take-off guard is needed: a braced shot, on the ground or a wall,
+            //    never lifts and never spends the charge, so the charge can't be re-armed before a lift has left the ground.)
             var sim = movement != null ? movement.Sim : null;
-            if (sim != null)
-            {
-                bool grounded = sim.Grounded;
-                if (_awaitingTakeoff)
-                {
-                    if (grounded) grounded = false;
-                    else _awaitingTakeoff = false;
-                }
-                Boost.Observe(grounded, sim.Mode == MoveMode.Wallrun);
-            }
+            if (sim != null) Boost.Observe(sim.Grounded, sim.Mode == MoveMode.Wallrun);
 
             // 4. The loadout and the active gun.
             if (_frame.swapPressed) Loadout.Swap(_cues);
@@ -306,17 +297,19 @@ namespace JamKit.SkylineRepo
         void OnPelletHit(SkylineHitInfo info, SkylineHitResult r) => HitLanded?.Invoke(info, r);
 
         /// <summary>The Breacher's push on its shooter, in the order Task 12 built: request it (pure), let the engine accept or
-        /// drop it, settle the charge on that answer, and arm the take-off guard after a lift from the ground.</summary>
+        /// drop it, and settle the charge on that answer. Braced (on the ground, crouched included, or wall-running), the shot is
+        /// mostly eaten (BreacherBoostDef.bracedScale of the flat push, no lift). This runs before MovementController (-50 vs
+        /// -40) and the engine applies a push at the start of its next step, before it reads the jump: a jump pressed with a
+        /// braced shot finds the body still grounded, so it is a normal ground jump and the double jump is kept.</summary>
         void SelfPush(Vector3 aim)
         {
             var sim = movement != null ? movement.Sim : null;
             if (sim == null) return;
-            bool grounded = sim.Grounded;
-            NVec3 push = BreacherKnockback.RequestSelfPush(new NVec3(aim.x, aim.y, aim.z), sim.Velocity, grounded, sim.def.gravity,
+            bool braced = sim.Grounded || sim.Mode == MoveMode.Wallrun;
+            NVec3 push = BreacherKnockback.RequestSelfPush(new NVec3(aim.x, aim.y, aim.z), sim.Velocity, braced, sim.def.gravity,
                 Boost, BoostDef, out bool spends);
             bool ok = sim.AddPush(push);
             Boost.Commit(spends, ok);
-            if (spends && ok && grounded && push.Y > 0f) _awaitingTakeoff = true;
             if (spends && ok)
                 Decisions.Add(new DecisionEvent
                 {
@@ -351,7 +344,6 @@ namespace JamKit.SkylineRepo
         {
             Armor = new PlayerArmor();
             Boost = new BoostCharge();
-            _awaitingTakeoff = false;
             Kick.Clear();
             Shake.Clear();
             HitStop.Clear();

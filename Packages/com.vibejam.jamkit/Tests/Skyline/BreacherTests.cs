@@ -11,16 +11,16 @@ namespace JamKit.Tests.Skyline
         const float G = 24f;
         static readonly Vector3 Down = new Vector3(0f, -1f, 0f);
 
-        static Vector3 Push(Vector3 aim, Vector3 vel, bool grounded, BoostCharge c, out bool boosted) =>
-            BreacherKnockback.SelfPush(aim, vel, grounded, G, c, new BreacherBoostDef(), out boosted);
+        static Vector3 Push(Vector3 aim, Vector3 vel, bool braced, BoostCharge c, out bool boosted) =>
+            BreacherKnockback.SelfPush(aim, vel, braced, G, c, new BreacherBoostDef(), out boosted);
 
-        static Vector3 Request(Vector3 aim, Vector3 vel, bool grounded, BoostCharge c, out bool spendsCharge) =>
-            BreacherKnockback.RequestSelfPush(aim, vel, grounded, G, c, new BreacherBoostDef(), out spendsCharge);
+        static Vector3 Request(Vector3 aim, Vector3 vel, bool braced, BoostCharge c, out bool spendsCharge) =>
+            BreacherKnockback.RequestSelfPush(aim, vel, braced, G, c, new BreacherBoostDef(), out spendsCharge);
 
         [Test]
         public void AStraightDownShotFromRestLiftsTheBoostHeight()
         {
-            var p = Push(Down, Vector3.Zero, true, new BoostCharge(), out bool boosted);
+            var p = Push(Down, Vector3.Zero, false, new BoostCharge(), out bool boosted);
             Assert.That(boosted, Is.True);
             Assert.That(p.X, Is.EqualTo(0f).Within(1e-5f));
             Assert.That(p.Z, Is.EqualTo(0f).Within(1e-5f));
@@ -39,11 +39,11 @@ namespace JamKit.Tests.Skyline
 
         static readonly BreacherBoostDef OnePerAirtimeDef = new BreacherBoostDef { oneBoostPerAirtime = true };
 
-        static Vector3 PushOne(Vector3 aim, Vector3 vel, bool grounded, BoostCharge c, out bool boosted) =>
-            BreacherKnockback.SelfPush(aim, vel, grounded, G, c, OnePerAirtimeDef, out boosted);
+        static Vector3 PushOne(Vector3 aim, Vector3 vel, bool braced, BoostCharge c, out bool boosted) =>
+            BreacherKnockback.SelfPush(aim, vel, braced, G, c, OnePerAirtimeDef, out boosted);
 
-        static Vector3 RequestOne(Vector3 aim, Vector3 vel, bool grounded, BoostCharge c, out bool spendsCharge) =>
-            BreacherKnockback.RequestSelfPush(aim, vel, grounded, G, c, OnePerAirtimeDef, out spendsCharge);
+        static Vector3 RequestOne(Vector3 aim, Vector3 vel, bool braced, BoostCharge c, out bool spendsCharge) =>
+            BreacherKnockback.RequestSelfPush(aim, vel, braced, G, c, OnePerAirtimeDef, out spendsCharge);
 
         [Test]
         public void OneBoostPerAirtimeRefreshedByLandingOrAWall()
@@ -65,8 +65,9 @@ namespace JamKit.Tests.Skyline
         public void AFlatShotOnTheGroundShovesBackWithoutSpendingTheBoost()
         {
             var c = new BoostCharge();
+            var d = new BreacherBoostDef();
             var p = Push(new Vector3(0f, 0f, 1f), Vector3.Zero, true, c, out bool boosted);
-            Assert.That(p.Z, Is.EqualTo(-new BreacherBoostDef().selfPushSpeed).Within(1e-5f));
+            Assert.That(p.Z, Is.EqualTo(-d.selfPushSpeed * d.bracedScale).Within(1e-5f), "braced: mostly eaten by the floor");
             Assert.That(p.Y, Is.EqualTo(0f));
             Assert.That(boosted, Is.False);
             Assert.That(c.Ready, Is.True);
@@ -75,15 +76,15 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void AShotPointingUpOrBarelyDownNeverLifts()
         {
-            Assert.That(Push(new Vector3(0f, 0.8f, 0.6f), Vector3.Zero, true, new BoostCharge(), out _).Y, Is.EqualTo(0f));
-            Assert.That(Push(Vector3.Normalize(new Vector3(0f, -0.2f, 1f)), Vector3.Zero, true, new BoostCharge(), out _).Y, Is.EqualTo(0f));
+            Assert.That(Push(new Vector3(0f, 0.8f, 0.6f), Vector3.Zero, false, new BoostCharge(), out _).Y, Is.EqualTo(0f));
+            Assert.That(Push(Vector3.Normalize(new Vector3(0f, -0.2f, 1f)), Vector3.Zero, false, new BoostCharge(), out _).Y, Is.EqualTo(0f));
         }
 
         [Test]
         public void AnAngledShotLiftsLessAndPushesBack()
         {
             var aim = Vector3.Normalize(new Vector3(0f, -1f, 1f));
-            var p = Push(aim, Vector3.Zero, true, new BoostCharge(), out _);
+            var p = Push(aim, Vector3.Zero, false, new BoostCharge(), out _);
             Assert.That(p.Y, Is.EqualTo(MathF.Sqrt(2f * G) * 0.7071f).Within(1e-3f));
             Assert.That(p.Z, Is.LessThan(0f));
         }
@@ -103,6 +104,7 @@ namespace JamKit.Tests.Skyline
             var d = new BreacherBoostDef();
             Assert.That(d.oneBoostPerAirtime, Is.False, "the creator's call (2026-10-13): limited only by the fire rate");
             Assert.That(d.selfDamage, Is.EqualTo(0f));
+            Assert.That(d.bracedScale, Is.EqualTo(0.2f), "the creator's call (2026-10-13 evening): braced shots mostly eaten");
             Assert.That(MathF.Abs(d.boostHeight - new MoveDef().doubleJumpHeight), Is.LessThanOrEqualTo(0.25f),
                 "about the jump upgrade's height (a third jump: the double jump's)");
         }
@@ -203,6 +205,63 @@ namespace JamKit.Tests.Skyline
             Assert.That(spends, Is.False, "a flat shot on the ground never spends it");
             c.Commit(spends, accepted: true);
             Assert.That(c.Ready, Is.True);
+        }
+
+        // The creator's call (2026-10-13 evening): "a Breacher shot during a wall-run should just be mostly eaten up by the
+        // wall, the same when standing or crouched on the ground. The impulse should only be felt when shot mid-air."
+
+        static readonly Vector3[] Aims =
+        {
+            new Vector3(0f, -1f, 0f), Vector3.Normalize(new Vector3(0f, -1f, 1f)), Vector3.Normalize(new Vector3(0.3f, -0.8f, 0.5f)),
+            new Vector3(0f, 0f, 1f), Vector3.Normalize(new Vector3(-1f, -0.2f, 0f)), Vector3.Normalize(new Vector3(0f, 0.8f, 0.6f)),
+        };
+
+        [Test]
+        public void ABracedShotKeepsAtMostTheBracedShareOfTheFlatPushAndNeverLifts()
+        {
+            var d = new BreacherBoostDef();
+            foreach (var aim in Aims)
+            foreach (var vel in new[] { Vector3.Zero, new Vector3(0f, -5f, 0f), new Vector3(2f, 0f, 7f) })
+            {
+                var c = new BoostCharge();
+                var p = Request(aim, vel, true, c, out bool spends);
+                Assert.That(p.Y, Is.EqualTo(0f), "no lift when braced");
+                Assert.That(p.Length(), Is.LessThanOrEqualTo(d.bracedScale * d.selfPushSpeed + 1e-5f));
+                var back = -aim;
+                var flat = new Vector3(back.X, 0f, back.Z) * d.selfPushSpeed * d.bracedScale;
+                Assert.That(Vector3.Distance(p, flat), Is.LessThan(1e-5f), "the flat push, scaled");
+                Assert.That(spends, Is.False, "a braced shot never spends the charge");
+            }
+        }
+
+        [Test]
+        public void ABracedShotWorksTheSameWithTheOneBoostRuleAndASpentCharge()
+        {
+            var d = OnePerAirtimeDef;
+            var c = new BoostCharge();
+            c.Spend();
+            var p = PushOne(new Vector3(0f, 0f, 1f), Vector3.Zero, true, c, out bool boosted);
+            Assert.That(p.Z, Is.EqualTo(-d.selfPushSpeed * d.bracedScale).Within(1e-5f), "the small shove isn't blocked by the charge");
+            Assert.That(boosted, Is.False);
+            Assert.That(PushOne(Down, Vector3.Zero, true, new BoostCharge(), out bool spent).Y, Is.EqualTo(0f));
+            Assert.That(spent, Is.False, "a braced straight-down shot doesn't spend a ready charge");
+        }
+
+        [Test]
+        public void AMidAirShotIsUnchanged()
+        {
+            var d = new BreacherBoostDef();
+            float up = MathF.Sqrt(2f * G * d.boostHeight);
+            foreach (var aim in Aims)
+            foreach (var vel in new[] { Vector3.Zero, new Vector3(0f, -5f, 0f), new Vector3(2f, 3f, 7f) })
+            {
+                var p = Request(aim, vel, false, new BoostCharge(), out bool spends);
+                var back = -aim;
+                var expect = new Vector3(back.X, 0f, back.Z) * d.selfPushSpeed;
+                if (back.Y > d.minLift) expect.Y = MathF.Max(0f, up * back.Y - vel.Y);
+                Assert.That(Vector3.Distance(p, expect), Is.LessThan(1e-4f), "the full flat push, and the lift");
+                Assert.That(spends, Is.True, "an air shot uses the boost");
+            }
         }
 
         [Test]

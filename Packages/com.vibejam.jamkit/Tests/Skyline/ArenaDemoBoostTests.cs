@@ -49,18 +49,8 @@ namespace JamKit.Tests.Skyline
             sim.OutsidePushEnabled = true;
             var charge = new BoostCharge();
             var def = new BreacherBoostDef { oneBoostPerAirtime = onePerAirtime };
-            bool awaitingTakeoff = false;
 
-            void Observe()
-            {
-                bool grounded = sim.Grounded;
-                if (awaitingTakeoff)
-                {
-                    if (grounded) grounded = false;
-                    else awaitingTakeoff = false;
-                }
-                charge.Observe(grounded, sim.Mode == MoveMode.Wallrun);
-            }
+            void Observe() => charge.Observe(sim.Grounded, sim.Mode == MoveMode.Wallrun);
 
             void StepUntilApex()
             {
@@ -96,10 +86,11 @@ namespace JamKit.Tests.Skyline
             boosted = false;
             if (shoot)
             {
-                Vector3 push = BreacherKnockback.RequestSelfPush(AimAt(0f, DemoPitch), sim.Velocity, sim.Grounded, sim.def.gravity, charge, def, out bool spends);
+                bool braced = sim.Grounded || sim.Mode == MoveMode.Wallrun;
+                Assert.That(braced, Is.False, "the shot is mid-air");
+                Vector3 push = BreacherKnockback.RequestSelfPush(AimAt(0f, DemoPitch), sim.Velocity, braced, sim.def.gravity, charge, def, out bool spends);
                 bool ok = sim.AddPush(push);
                 charge.Commit(spends, ok);
-                if (spends && ok && sim.Grounded && push.Y > 0f) awaitingTakeoff = true;
                 boosted = spends && ok && push.Y > 0f;
             }
 

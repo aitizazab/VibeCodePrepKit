@@ -108,6 +108,8 @@ Two guns plus one gadget. Swapping between the two guns is a designed moment (an
     the boost is limited only by the gun's fire rate (and its magazine and reload); each shot sets the rise speed
     rather than adding to it, so chained shots climb in steps; no self-damage; it doesn't refresh the double jump; one
     shot's lift is about the jump upgrade's height. (The old one-boost-per-airtime rule remains a data switch, off.)
+    Braced shots (on the ground, crouched or wall-running) are mostly eaten (20% of the flat push, no lift); the boost
+    is felt only mid-air. Jump and fire together: the shot comes first, then a normal ground jump.
   - **Nailer**, an SMG that pins light bots to walls.
   - **Tow Line**, a cable rifle that yanks small bots to you.
 - **Galleria prototypes** (found in runs; each changes a verb):
@@ -770,6 +772,10 @@ Fixed (technical and clarity):
 - **The Breacher's boost is limited only by its fire rate** (answers pending item 3): no one-per-airtime rule. Each
   shot sets the rise speed rather than adding to it, so chained shots climb in steps; the magazine and reload are the
   real limit.
+- **2026-10-13 (evening): braced Breacher shots are mostly eaten** (2.2). A shot while standing or crouched on the
+  ground, or wall-running, keeps 20% of its flat push and never lifts (`BreacherBoostDef.bracedScale`); the impulse is
+  felt only mid-air. Jump and fire together: the shot comes first, then a normal ground jump, so the double jump is
+  kept (the creator: "jump is an impulse that sets your upwards momentum ... while the shot applies an impulse").
 - **Dodging:** the 1.6-2.5 band stands, and **standing still in the open, without real cover, means a quick wreck**
   (checked headlessly with a standing bot).
 - **Walls get threats in M1:** the window-washer gondola joins M1's bots. Wall-running is no more of an escape than
