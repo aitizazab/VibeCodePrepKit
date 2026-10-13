@@ -35,6 +35,35 @@ namespace JamKit.SkylineRepo.EditorTools
             }
         }
 
+        /// <summary>A full-name regex matching every test except the [Explicit] ones (sweeps and design aids that print and
+        /// assert nothing): Unity's runner runs Explicit tests when no test is named, and the fight sweep outgrew its 180 s
+        /// timeout on 2026-10-14. Null when there are none.</summary>
+        static string NotExplicitPattern()
+        {
+            var names = new List<string>();
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (Array.IndexOf(TestAssemblies, asm.GetName().Name) < 0) continue;
+                foreach (var type in asm.GetTypes())
+                {
+                    bool typeExplicit = HasExplicit(type.GetCustomAttributes(true));
+                    if (typeExplicit) { names.Add(type.FullName); continue; }
+                    foreach (var m in type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static))
+                        if (HasExplicit(m.GetCustomAttributes(true))) names.Add(type.FullName + "." + m.Name);
+                }
+            }
+            if (names.Count == 0) return null;
+            var alternatives = new StringBuilder();
+            foreach (var n in names) alternatives.Append(alternatives.Length > 0 ? "|" : "").Append(System.Text.RegularExpressions.Regex.Escape(n));
+            return "^(?!(" + alternatives + ")($|[.(]))";
+        }
+
+        static bool HasExplicit(object[] attributes)
+        {
+            foreach (var a in attributes) if (a.GetType().Name == "ExplicitAttribute") return true;
+            return false;
+        }
+
         public static void RunFromCommandLine()
         {
             string outDir = Arg("-skylineOut") ?? Path.Combine("out", "skyline", "manual");
@@ -47,6 +76,8 @@ namespace JamKit.SkylineRepo.EditorTools
                 var api = ScriptableObject.CreateInstance<TestRunnerApi>();
                 api.RegisterCallbacks(c);
                 var filter = new Filter { testMode = TestMode.EditMode, assemblyNames = TestAssemblies };
+                string notExplicit = NotExplicitPattern();
+                if (notExplicit != null) filter.groupNames = new[] { notExplicit };
                 api.Execute(new ExecutionSettings(filter) { runSynchronously = true });
                 scenes = SkylineScenes.BuildAll();
             }

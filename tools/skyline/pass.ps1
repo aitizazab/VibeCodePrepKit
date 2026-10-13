@@ -12,7 +12,12 @@
 # only when the runner itself crashed before writing one.
 # -NoWindows runs only the batch stages (A, C, E): B and D open normal windows that take focus, so they wait until the
 # creator is away from the PC (the creator's rule, 2026-10-12).
-param([string]$Out = '', [switch]$SelfTest, [switch]$NoWindows)
+# -CapShare 0.45 raises the memory cap's share of RAM for the capped stages (the build's shader compiler ran out of memory at
+# 0.30 on 2026-10-14 with the arena's new materials: "out of memory while parsing", 290 errors).
+# -Only <letters> -Out <folder> runs only those stages into an existing pass folder (e.g. -Only A, then -Only B, -Only CD,
+# -Only E), sweeping only their own old results; its manifest is manifest-<letters>.json. For a machine so short of memory
+# that a whole pass can't finish in one sitting: each Unity stage then runs as its own short command.
+param([string]$Out = '', [switch]$SelfTest, [switch]$NoWindows, [string]$Only = '', [double]$CapShare = 0)
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\..\unity-env.ps1"
 . "$PSScriptRoot\unity-lock.ps1"
@@ -44,7 +49,8 @@ function Get-StageLaunch {
     $cappedRun = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.local\bin\capped-run.py'
     $uv = Get-Command uv -ErrorAction SilentlyContinue
     $uvPath = if ($uv) { $uv.Source } else { 'uv' }
-    $launch = @('run', 'python', "`"$cappedRun`"", '--session', 'skyline-repo', '--need', '3', '--retries', '1', '--no-keep-awake', '--', "`"$Exe`"") + @($StageArgs)
+    $share = if ($CapShare -gt 0) { @('--share', [string]$CapShare) } else { @() }
+    $launch = @('run', 'python', "`"$cappedRun`"", '--session', 'skyline-repo') + $share + @('--need', '3', '--retries', '1', '--no-keep-awake', '--', "`"$Exe`"") + @($StageArgs)
     return [pscustomobject]@{ File = $uvPath; Args = $launch }
 }
 
@@ -415,6 +421,9 @@ if ($SelfTest) {
 # From here on a manifest.json is always written (the finally block), even when preflight or a stage's bookkeeping throws.
 $stages = @()
 $allOk = $false
+if ($Only -and ($Only.ToUpper() -notmatch '^[ABCDE]+$')) { Write-Host "SkylinePass: -Only takes stage letters from ABCDE, got '$Only'"; exit 1 }
+if ($Only -and -not $Out) { Write-Host 'SkylinePass: -Only needs -Out <an existing pass folder>'; exit 1 }
+function Test-RunStage([string]$Letter) { (-not $Only) -or $Only.ToUpper().Contains($Letter) }
 if (-not $Out) { $Out = Join-Path $RepoRoot ("out\skyline\" + (Get-Date -Format 'yyyyMMdd-HHmm')) }
 Set-KeepAwake $true
 try {
@@ -430,15 +439,25 @@ try {
     $proj = "`"$RepoRoot`""
 
     if ($preflightOk) {
-        # Results of an earlier pass in a reused -Out folder must never stand in for this one.
-        foreach ($stale in 'editor-batch.json', 'capture.json', 'build.json', 'perf.json', 'firing-range-schedule.json',
-                           'sync-check.json', 'sync-check.stderr.txt', 'audio-firing-range.png', 'build\SkylineRepo.exe') {
-            Remove-Item -LiteralPath (Join-Path $Out $stale) -Force -ErrorAction SilentlyContinue
+        # Results of an earlier pass in a reused -Out folder must never stand in for this one (with -Only: the chosen
+        # stages' own results only).
+        $staleByStage = @{
+            A = @('editor-batch.json'); B = @('capture.json', 'firing-range-schedule.json', 'rec-*.mp4', 'still-*.png')
+            C = @('build.json', 'build\SkylineRepo.exe'); D = @('perf.json')
+            E = @('sync-check.json', 'sync-check.stderr.txt', 'audio-firing-range.png')
         }
-        foreach ($pattern in 'rec-*.mp4', 'still-*.png') {
-            Get-ChildItem -LiteralPath $Out -Filter $pattern -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+        foreach ($s in 'A', 'B', 'C', 'D', 'E') {
+            if (-not (Test-RunStage $s)) { continue }
+            foreach ($stale in $staleByStage[$s]) {
+                if ($stale.Contains('*')) {
+                    Get-ChildItem -LiteralPath $Out -Filter $stale -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+                } else {
+                    Remove-Item -LiteralPath (Join-Path $Out $stale) -Force -ErrorAction SilentlyContinue
+                }
+            }
         }
         # A: editor batch job (tests, scenes)
+        if (Test-RunStage 'A') {
         $log = Join-Path $Out 'stage-a-editor-batch.log'
         # (batch mode, no GPU: through the memory cap)
         $a = Invoke-Stage -Name 'A editor batch' -Exe $unity -Locked -Capped -CheckProject -TimeoutSec 1800 -Log $log -StageArgs @(
@@ -446,6 +465,9 @@ try {
             '-executeMethod', 'JamKit.SkylineRepo.EditorTools.SkylinePassBatch.RunFromCommandLine', '-skylineOut', "`"$Out`"")
         $aInfo = Update-BatchStage -Stage $a -JsonPath (Join-Path $Out 'editor-batch.json') -Log $log
         $stages += $a
+        } else {
+            $aInfo = [pscustomobject]@{ SkipReason = $null }   # -Only without A: an earlier -Only A in this folder compiled it
+        }
 
         if ($aInfo.SkipReason) {
             # A graphics editor on a project that doesn't compile shows a blocking safe-mode dialog: don't start B, C or D.
@@ -456,7 +478,8 @@ try {
             # B: graphics editor recording (audio plays only outside batch mode; a normal window so it keeps presenting).
             # Uncapped (the D3D11 device needs the memory a Job Object cap refuses); -silent-crashes: a crash exits, no dialog.
             $log = Join-Path $Out 'stage-b-capture.log'
-            if ($NoWindows) {
+            if (-not (Test-RunStage 'B')) {
+            } elseif ($NoWindows) {
                 $stages += [pscustomobject]@{ name = 'B recording'; ok = $false; seconds = 0; log = ''; note = 'skipped: -NoWindows (needs a normal window)' }
             } else {
             $b = Invoke-Stage -Name 'B recording' -Exe $unity -Locked -CheckProject -MinFreeGB 3 -TimeoutSec 900 -Log $log -WindowStyle Normal -StageArgs @(
@@ -469,16 +492,19 @@ try {
             # C: Windows build of Skyline's scenes (batch mode: through the memory cap). -buildTarget Win64 sets the target when
             # the editor opens (Unity's own switch-then-import path) instead of leaving BuildPipeline to switch it mid-method.
             # A project whose active target was WebGL may be left on Win64 afterwards: tell the Visiting Hours session.
+            if (Test-RunStage 'C') {
             $log = Join-Path $Out 'stage-c-build.log'
             $c = Invoke-Stage -Name 'C build' -Exe $unity -Locked -Capped -CheckProject -TimeoutSec 1800 -Log $log -StageArgs @(
                 '-batchmode', '-quit', '-buildTarget', 'Win64', '-projectPath', $proj, '-logFile', "`"$log`"",
                 '-executeMethod', 'JamKit.SkylineRepo.EditorTools.SkylineBuild.BuildFromCommandLine', '-skylineOut', "`"$Out`"")
             Update-BuildStage -Stage $c -JsonPath (Join-Path $Out 'build.json')
             $stages += $c
+            }
 
             # D: the built player's frame-time probe (windowed 1080p, normal window, not batch mode; uncapped like B)
             $exe = Join-Path $Out 'build\SkylineRepo.exe'
-            if ($NoWindows) {
+            if (-not (Test-RunStage 'D')) {
+            } elseif ($NoWindows) {
                 $stages += [pscustomobject]@{ name = 'D perf'; ok = $false; seconds = 0; log = ''; note = 'skipped: -NoWindows (needs a normal window)' }
             } elseif (Test-Path $exe) {
                 $log = Join-Path $Out 'stage-d-perf.log'
@@ -496,7 +522,7 @@ try {
     # E: the sync check without Unity (docs/SKYLINE-DESIGN.md 2.3): the firing range recording's sound onsets against the
     # schedule its director wrote, aligned on the marker beep; plus the ears' picture of the recording's audio.
     # Only after a good preflight: otherwise the stale sweep never ran, and an old recording and schedule would be checked.
-    if ($preflightOk) {
+    if ($preflightOk -and (Test-RunStage 'E')) {
         $rec = Join-Path $Out 'rec-SkylineFiringRange.mp4'
         $schedule = Join-Path $Out 'firing-range-schedule.json'
         $stages += Get-SyncStage -Rec $rec -Schedule $schedule -JsonOut (Join-Path $Out 'sync-check.json') -Runner {
@@ -509,7 +535,7 @@ try {
             & uv run --project $ears python (Join-Path $ears 'listen.py') measure $rec --png (Join-Path $Out 'audio-firing-range.png') 2>$err | Out-Null
             & uv run --project $ears python (Join-Path $RepoRoot 'tools\skyline\soundforge\synccheck.py') $rec $schedule --sounds $sounds 2>>$err
         }
-    } else {
+    } elseif (Test-RunStage 'E') {
         $stages += [pscustomobject]@{ name = 'E sync check'; ok = $false; seconds = 0; log = ''; note = 'skipped: preflight failed' }
     }
 } catch {
@@ -520,7 +546,8 @@ try {
     $manifestWritten = $false
     try {
         New-Item -ItemType Directory -Force $Out | Out-Null
-        [pscustomobject]@{ ok = $allOk; out = $Out; stages = @($stages) } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $Out 'manifest.json') -Encoding utf8
+        $manifestName = if ($Only) { "manifest-$($Only.ToUpper()).json" } else { 'manifest.json' }
+        [pscustomobject]@{ ok = $allOk; out = $Out; stages = @($stages) } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $Out $manifestName) -Encoding utf8
         $manifestWritten = $true
     } catch {
         $allOk = $false
