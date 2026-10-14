@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using JamKit.Movement;
+using JamKit.Skyline;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
@@ -121,7 +122,55 @@ namespace JamKit.SkylineRepo.EditorTools
                     if (!textured) problems.Add("untextured: " + PathOf(r.transform) + " (" + name + ")");
                 }
             }
+
+            // 5. floor 1 only: the scene is exactly the floor data (Task B1)
+            if (string.Equals(scenePath.Replace('\\', '/'), SkylineScenes.Floor1, StringComparison.Ordinal))
+                problems.AddRange(FloorDataMatch(colliders));
             return problems;
+        }
+
+        /// <summary>
+        /// The <c>FloorDataMatch</c> rule (docs/SKYLINE-PLAN-FLOOR1.md Task B1): every <see cref="FloorSolid"/> of
+        /// <see cref="RepossessArena"/> (and of <see cref="HotelLobby"/> once any collider stands south of the Food Court, i.e.
+        /// B2's lobby is built) has exactly one enabled solid collider with equal bounds (to a centimetre), an equal
+        /// <see cref="MovementSurface"/> runnable flag, and glass on the glass layer; and every other enabled solid collider is
+        /// reported as <c>no solid for collider</c>. Not counted: triggers, the player's, rigidbodies' (bots, debris), anything
+        /// under an object named "... (fx)", "... (backdrop)", "... (extra)" or carrying <see cref="SkylineNoCollider"/>. A collider
+        /// a later task adds on purpose (a door's holding collider) is named "... (extra)". Lines start with <c>FloorDataMatch:</c>.
+        /// </summary>
+        public static List<string> FloorDataMatch(IEnumerable<Collider> colliders)
+        {
+            int glassLayer = LayerMask.NameToLayer(SkylineArenaBuilder.FloorGlassLayer);
+            var placed = new List<PlacedCollider>();
+            foreach (var c in colliders)
+            {
+                if (c == null || !c.enabled || c.isTrigger || c is CharacterController) continue;
+                if (c.GetComponentInParent<Rigidbody>() != null || c.GetComponentInParent<SkylinePlayer>() != null) continue;
+                if (Exempt(c.transform) || ExtraByName(c.transform)) continue;
+                var b = c.bounds;
+                var ms = c.GetComponent<MovementSurface>();
+                placed.Add(new PlacedCollider
+                {
+                    path = PathOf(c.transform),
+                    min = new System.Numerics.Vector3(b.min.x, b.min.y, b.min.z),
+                    max = new System.Numerics.Vector3(b.max.x, b.max.y, b.max.z),
+                    runnable = ms != null && ms.runnable,
+                    glass = glassLayer >= 0 && c.gameObject.layer == glassLayer,
+                });
+            }
+            var solids = new List<FloorSolid>(RepossessArena.Solids());
+            bool lobby = false;
+            foreach (var p in placed) if ((p.min.Z + p.max.Z) * 0.5f < HotelLobby.MaxZ) { lobby = true; break; }
+            if (lobby) solids.AddRange(HotelLobby.Solids());
+            else Debug.Log("SKYLINE_LINT FloorDataMatch: no collider south of the Food Court, so the hotel lobby (B2) is not checked");
+            return JamKit.Skyline.FloorDataMatch.Match(solids, placed);
+        }
+
+        static bool ExtraByName(Transform t)
+        {
+            for (var p = t; p != null; p = p.parent)
+                if (p.name.EndsWith("(extra)", StringComparison.Ordinal)) return true;
+            return false;
         }
 
         /// <summary>An enabled collider on <paramref name="t"/> or a parent (a disabled one doesn't count).</summary>
