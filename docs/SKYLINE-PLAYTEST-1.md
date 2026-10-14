@@ -31,6 +31,10 @@ holds their calls (their words quoted) and the work queue. It overrides older do
 - **The Breacher, round 2:** "B. Take 1 looks the best, but only by a bit, and none of them are particularly
   impressive. They all are very same-y, even if things are changing." The club subwoofer (B) leads; redo it inside the
   chosen style.
+- **The style is decided: `docs/SKYLINE-STYLE.md`** (comic ink, thick hued outlines on bots/objectives/scrap, light
+  that takes over a room like Deep Rock Galactic, colour-free zones, Team Fortress 2's level of detail). Look test plan:
+  `docs/SKYLINE-PLAN-STYLE.md` (the current arena re-shaded; the creator judges stills from the game: "I'll wait for the
+  scenes from the game to judge").
 - The style comparison page: `FableAnimationTests/art/review/2026-10-14/skyline-art-style-2.html` (Steam screenshots of
   first-person games, grouped by approach).
 

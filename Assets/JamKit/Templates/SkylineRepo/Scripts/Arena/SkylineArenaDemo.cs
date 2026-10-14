@@ -292,7 +292,7 @@ namespace JamKit.SkylineRepo
         /// <summary>The crosshair's own ray (the eye along the aim, the guns' mask) lands on one of <paramref name="b"/>'s hit zones first.</summary>
         bool OnTarget(SkylineBot b)
         {
-            if (!Physics.Raycast(player.EyePosition, player.AimDirection, out var hit, MaxSight + 5f, SkylineShooting.Mask, QueryTriggerInteraction.Ignore)) return false;
+            if (!Physics.Raycast(player.EyePosition, player.AimDirection, out var hit, MaxSight + 5f, SkylineShooting.ShotMask, QueryTriggerInteraction.Ignore)) return false;
             return hit.collider.TryGetComponent<SkylineHitZone>(out var z) && z.owner == b;
         }
 
@@ -1319,7 +1319,7 @@ namespace JamKit.SkylineRepo
         }
 
         static bool Open(Vector3 eye, Vector3 dir, float dist) =>
-            !Physics.Raycast(eye, dir, dist, SkylineShooting.Mask, QueryTriggerInteraction.Ignore);
+            !Physics.Raycast(eye, dir, dist, SkylineShooting.ShotMask, QueryTriggerInteraction.Ignore);
 
         /// <summary>After a fight: strip the fresh wrecks it can reach before they go stale while the plating has room, then
         /// top up the magazine.</summary>
@@ -1518,7 +1518,7 @@ namespace JamKit.SkylineRepo
             Vector3 d = point - eye;
             float len = d.magnitude;
             if (!(len > 1e-3f)) return false;
-            if (!Physics.Raycast(eye, d / len, out var hit, len + 0.75f, SkylineShooting.Mask, QueryTriggerInteraction.Ignore)) return false;
+            if (!Physics.Raycast(eye, d / len, out var hit, len + 0.75f, SkylineShooting.ShotMask, QueryTriggerInteraction.Ignore)) return false;
             if (!hit.collider.TryGetComponent<SkylineHitZone>(out var z) || z.owner != b) return false;
             zone = z.zone;
             return true;
