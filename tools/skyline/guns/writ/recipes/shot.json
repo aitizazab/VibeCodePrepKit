@@ -1,97 +1,79 @@
 {
   "sample_rate": 48000,
-  "length": 2.8,
+  "length": 0.4,
   "seed": 1,
   "layers": [
     {
       "type": "sample",
-      "path": "../samples/shot_gavel.wav",
-      "start": 0.0,
-      "attack": 0.0,
-      "decay": 30.0,
-      "gain_db": -8.0,
-      "pan": 0.0
-    },
-    {
-      "type": "sample",
-      "path": "../samples/shot_body.wav",
-      "start": 0.0,
-      "attack": 0.0,
-      "decay": 30.0,
-      "gain_db": -2.0,
-      "pan": 0.0
-    },
-    {
-      "type": "sample",
-      "path": "../samples/shot_crack.wav",
-      "start": 0.0,
-      "attack": 0.0,
-      "decay": 30.0,
-      "gain_db": 3.0,
-      "pan": 0.0
-    },
-    {
-      "type": "sample",
-      "path": "../samples/shot_hydraulic.wav",
+      "path": "../samples/thwip_air_l.wav",
       "start": 0.0,
       "attack": 0.0,
       "decay": 30.0,
       "gain_db": -9.0,
-      "pan": 0.1
+      "pan": -0.4
     },
     {
       "type": "sample",
-      "path": "../samples/shot_room_l.wav",
+      "path": "../samples/thwip_air_r.wav",
       "start": 0.0,
       "attack": 0.0,
       "decay": 30.0,
-      "gain_db": -7.0,
-      "pan": -0.9
+      "gain_db": -9.0,
+      "pan": 0.4
     },
     {
       "type": "sample",
-      "path": "../samples/shot_room_r.wav",
+      "path": "../samples/thwip_body.wav",
       "start": 0.0,
       "attack": 0.0,
       "decay": 30.0,
-      "gain_db": -7.0,
-      "pan": 0.9
+      "gain_db": -15.0,
+      "pan": 0.0
     },
     {
       "type": "sample",
-      "path": "../samples/shot_air_l.wav",
+      "path": "../samples/thwip_flutter_l.wav",
       "start": 0.0,
       "attack": 0.0,
       "decay": 30.0,
-      "gain_db": 1.0,
+      "gain_db": -19.0,
+      "pan": -0.5
+    },
+    {
+      "type": "sample",
+      "path": "../samples/thwip_flutter_r.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -19.0,
+      "pan": 0.5
+    },
+    {
+      "type": "sample",
+      "path": "../samples/thwip_flick.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -17.0,
+      "pan": 0.15
+    },
+    {
+      "type": "sample",
+      "path": "../samples/thwip_room_l.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -27.0,
       "pan": -0.7
     },
     {
       "type": "sample",
-      "path": "../samples/shot_air_r.wav",
+      "path": "../samples/thwip_room_r.wav",
       "start": 0.0,
       "attack": 0.0,
       "decay": 30.0,
-      "gain_db": 1.0,
+      "gain_db": -27.0,
       "pan": 0.7
-    },
-    {
-      "type": "sample",
-      "path": "../samples/shot_hall_l.wav",
-      "start": 0.0,
-      "attack": 0.0,
-      "decay": 30.0,
-      "gain_db": -3.0,
-      "pan": -0.85
-    },
-    {
-      "type": "sample",
-      "path": "../samples/shot_hall_r.wav",
-      "start": 0.0,
-      "attack": 0.0,
-      "decay": 30.0,
-      "gain_db": -3.0,
-      "pan": 0.85
     }
   ],
   "master": {

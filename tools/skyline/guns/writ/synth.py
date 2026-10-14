@@ -7,10 +7,10 @@ Writes short WAV stems into samples/ (the recipes' "sample" layers) and the reci
     uv run --project tools/skyline/soundforge python tools/skyline/guns/render_all.py --gun writ
 
 Deterministic (fixed seeds): re-running rewrites the same files. The palette (docs/SKYLINE-GUN-WRIT.md):
-- the shot: a GAVEL STRIKE (a hardwood knock with a dry click) on a deep hand-cannon BODY (a saturated low boom and a
-  thump), a HYDRAULIC CHUNK (a short pneumatic breath and a latch) inside the first 15 ms, and a STONE-HALL TAIL (the
-  colonnade's slap-back, then a dark hall that settles into a hush);
-- the handling: oiled pistons, brass latches and a stone drum (the magazine) that seats with a hydraulic "pssh-THUNK";
+- the shot (the creator, 2026-10-14: "quite grating"; "a small thwip, like shooting a small quill"): a quill flicked
+  through air, a short bright airy whoosh with a soft feather flutter, a tiny ink flick and a short dark air tail. The
+  gavel keeps for the weak-spot hit (a hard dry wooden crack, impact_crack) and the reload's smack;
+- the handling: oiled pistons, brass latches and a stone drum (the magazine) that the gavel smacks home and a brass click seats;
 - the spot: a ceramic crack with an electric crackle and a tiny seal chime when it forms, a crunchy break-through with a
   spark sizzle when it is hit, and a seal-stamp THUNK with a brass bell for the shooter (the "gavel came down" moment);
 - at rest: a hushed-court air (a quiet loop SkylineWritFx plays while the Writ is out).
@@ -117,15 +117,6 @@ def sweep_noise(n, seed, f0, f1, q=3.0, start=0.0, length=None):
     return out
 
 
-def hall(n, seed, rt60, lp_start=2600.0, lp_end=420.0, predelay=0.012):
-    """A dark synthetic stone hall's impulse response tail: decaying noise whose low-pass falls over time."""
-    t = t_of(n)
-    x = rng(seed).standard_normal(n)
-    env = np.where(t < predelay, 0.0, np.exp(-(t - predelay) * 6.9078 / rt60)) * np.minimum(1.0, np.maximum(t - predelay, 0) / 0.02)
-    hi = sweep_lp(x, lp_start, lp_end, n)
-    return hi * env
-
-
 def sweep_lp(x, f0, f1, n):
     out = np.zeros(n)
     block = 1024
@@ -164,10 +155,52 @@ def write(name, x, peak_db=-1.5):
     return x
 
 
-# ---------------------------------------------------------------- the shot
+# ---------------------------------------------------------------- the shot: a thwip
 
-BODY = {"boom": 0.6, "roar": 0.95, "thump": 0.9}   # the body's three parts (tuned against the reference's band shares)
-HALL_WET = 0.06
+# The creator (2026-10-14): the shot was "quite grating"; the gavel crack belongs to a weak-spot hit only, and an ordinary
+# shot is "a small thwip, like shooting a small quill". So the shot is a quill flicked through air: a short bright airy
+# whoosh (broad, 5-11 kHz, nothing narrow in 2-5 kHz), a soft paper/feather flutter, a tiny ink flick and a soft low-mid
+# "thup" for the flick of the wrist, with a short dark air tail. The gavel is the weak-spot hit's (impact_crack) and the
+# reload's (smack).
+
+def thwip_air(seed):
+    """The whoosh: broad noise sliding up from 5.5 to 11 kHz, a soft 5 ms attack, gone in about 90 ms (no hard onset)."""
+    n = n_of(0.22)
+    whoosh = bp(sweep_noise(n, seed, 5500, 11000, q=1.1, length=0.07), 4200, None) * decay_env(n, 0.09, attack=0.005)
+    breath = noise_burst(n, 0.0, seed + 1, 800, 2800, 0.009, 0.03, gain=0.12)   # the "th": a soft breath, low and short
+    return whoosh + breath
+
+
+def thwip_body():
+    """The wrist's flick: a soft low-mid "thup" (a sine gliding 520 to 300 Hz in 30 ms); nothing under 250 Hz."""
+    n = n_of(0.08)
+    return glide(n, 520, 300, curve=60) * decay_env(n, 0.03, attack=0.002) + noise_burst(n, 0.0, 301, 350, 1300, 0.002, 0.02, gain=0.25)
+
+
+def thwip_flutter(seed):
+    """The feather and paper: high noise chopped at about 95 Hz (a vane fluttering), 70 ms, just after the whoosh starts."""
+    n = n_of(0.16)
+    t = t_of(n)
+    flutter = bp(rng(seed).standard_normal(n), 5000, 11000)
+    am = (0.5 + 0.5 * np.sin(2 * np.pi * 95 * t + seed)) ** 2
+    return flutter * am * decay_env(n, 0.07, attack=0.012, start=0.016)
+
+
+def thwip_flick():
+    """The ink: a tiny wet tick as the nib lets go and a droplet's "plip" (a short sine rising 1.2 to 2.1 kHz) just after."""
+    n = n_of(0.1)
+    tick = click(n, 0.012, 311, lo=2400, hi=7500, decay=0.0011, gain=0.5)
+    t = t_of(n) - 0.03
+    f = 2100 + (1200 - 2100) * np.exp(-np.maximum(t, 0) * 230)
+    plip = np.where(t < 0, 0.0, np.sin(2 * np.pi * np.cumsum(f) / SR)) * decay_env(n, 0.022, attack=0.002, start=0.03)
+    return tick + plip * 0.35
+
+
+def thwip_room(seed):
+    """A short dark air tail (about 0.2 s): the whoosh in the far corner of the stone hall."""
+    n = n_of(0.35)
+    return bp(sweep_lp(rng(seed).standard_normal(n), 5200.0, 1800.0, n), 900, None) * decay_env(n, 0.17, attack=0.03, start=0.008)
+
 
 def gavel_knock(n, seed=1, pitch=1.0, bright=1.0):
     """A hardwood gavel on a sound block: a dry click, then a few fast wooden modes."""
@@ -176,116 +209,41 @@ def gavel_knock(n, seed=1, pitch=1.0, bright=1.0):
     return modal(n, modes, seed=seed, jitter=0.01) + click(n, 0.0, seed + 1, lo=1800, decay=0.0022, gain=1.4 * bright)
 
 
-def shot_gavel():
-    n = n_of(0.18)
-    return gavel_knock(n, seed=11)
+def wood_hit(n, pitch, bright, seed, body_hz, body_gain):
+    """Hardwood on hardwood: the gavel's modes (pitch scales them, bright scales the upper ones), a dry click and a body thud."""
+    knock = gavel_knock(n, seed=seed, pitch=pitch, bright=bright)
+    thud = glide(n, body_hz * 1.7, body_hz, curve=45) * decay_env(n, 0.08, attack=0.001) * body_gain
+    return knock + thud
 
 
-def shot_body():
-    boom_gain, roar_gain, thump_gain = BODY["boom"], BODY["roar"], BODY["thump"]
-    n = n_of(0.9)
-    boom = glide(n, 175, 68, curve=9.0) * decay_env(n, 0.32, attack=0.0015)
-    boom = sat(boom, 3.5)
-    thump = noise_burst(n, 0.0, 12, 70, 900, 0.001, 0.16, pink=True)
-    roar = noise_burst(n, 0.0, 14, 280, 1600, 0.001, 0.32, pink=True)
-    punch = noise_burst(n, 0.0, 13, 250, 1800, 0.0008, 0.07)
-    return boom * boom_gain + thump * thump_gain + roar * roar_gain + punch * 0.3
-
-
-def shot_crack():
-    """The snap (fix round 1: the shot had no crack above 4 kHz): a sharp broadband report, the gavel's brass band ringing
-    like a struck nail, and the slug's short whiz as it leaves, so the shot cracks over its body."""
-    n = n_of(0.35)
-    snap = noise_burst(n, 0.0, 15, 1500, 15000, 0.0004, 0.014, gain=0.6)
-    snap += noise_burst(n, 0.0015, 16, 3000, 12000, 0.0005, 0.03, gain=0.35)
-    nail = modal(n, [(3610, 0.11, 0.5), (5270, 0.08, 0.38), (7930, 0.05, 0.26), (11200, 0.03, 0.15)], start=0.0005, seed=17)
-    whiz = sweep_noise(n, 18, 9500, 3800, q=3.0, length=0.04) * decay_env(n, 0.05, attack=0.002)
-    return snap + nail * 0.45 + whiz * 0.3
-
-
-def shot_hydraulic():
-    n = n_of(0.12)
-    breath = noise_burst(n, 0.004, 21, 700, 3200, 0.002, 0.035, gain=0.8)
-    latch = modal(n, [(2800, 0.02, 0.5), (4150, 0.014, 0.35)], start=0.011, seed=22) + click(n, 0.011, 23, lo=2500, decay=0.0015)
-    return breath + latch * 0.6
-
-
-def shot_hall():
-    n = n_of(2.3)
-    excite = np.zeros(n)
-    # the colonnade's slap-back: the knock and the body coming back off stone, darker each time
-    src = shot_gavel()[: n_of(0.1)] * 0.5 + shot_body()[: n_of(0.1)] * 0.7
-    for d, g in ((0.017, 0.55), (0.029, 0.42), (0.043, 0.33), (0.061, 0.24)):
+def short_room(src, n, seed, ring):
+    """A short stone-room ring: four early reflections (darker each time) and a dark wash of `ring` seconds."""
+    out = np.zeros(n)
+    for d, g in ((0.011, 0.5), (0.019, 0.38), (0.031, 0.28), (0.047, 0.2)):
         k = n_of(d)
-        seg = bp(src, None, 2400)[: n - k]
-        excite[k:k + len(seg)] += seg * g
-    tail_l = hall(n, 31, rt60=1.5, lp_start=6000.0, lp_end=700.0) + late_hall(n, 33)
-    tail_r = hall(n, 32, rt60=1.55, lp_start=6000.0, lp_end=700.0) + late_hall(n, 34)
-    # the hall is excited by the shot's mid-band roar and knock (the stone answers in the mids, like a real room)
-    feed = bp(shot_body()[: n_of(0.25)], 200, 2400)
-    knock = bp(shot_gavel(), 200, 3000)[: len(feed)]
-    feed[: len(knock)] += knock * 0.5
-    wet_l = signal.fftconvolve(feed, tail_l)[:n] * HALL_WET + excite
-    wet_r = signal.fftconvolve(feed, tail_r)[:n] * HALL_WET + np.roll(excite, n_of(0.004))
-    return wet_l, wet_r
+        seg = bp(src, None, 3200)[: n - k]
+        out[k:k + len(seg)] += seg * g
+    wash = bp(sweep_lp(rng(seed).standard_normal(n), 2600.0, 500.0, n), 220, None) * decay_env(n, ring, attack=0.012, start=0.012) * 0.16
+    return out + wash
 
 
-def late_hall(n, seed):
-    """The stone room's late tail: a slower second slope that holds the hall at about -20 to -35 dB from 0.5 to 2 s."""
-    t = t_of(n)
-    x = rng(seed).standard_normal(n)
-    env = np.exp(-np.maximum(t - 0.08, 0) * 6.9078 / 3.6) * np.clip((t - 0.06) / 0.25, 0, 1)
-    return sweep_lp(x, 4200.0, 1100.0, n) * env * 0.11
+def impact_crack():
+    """The gavel crack, on a weak-spot hit only: a hard dry crack of hardwood (a bright pitch, a thud) with a short room ring."""
+    n = n_of(0.45)
+    hit = wood_hit(n, pitch=1.12, bright=0.55, seed=321, body_hz=125, body_gain=0.55)
+    crack = noise_burst(n, 0.0, 322, 1600, 7500, 0.0003, 0.012, gain=1.4)
+    dry = bp(hit + crack, None, 8500)
+    return dry + short_room(dry[: n_of(0.12)], n, 323, ring=0.2) * 0.9
 
 
-ROOM_RT = 30.0
-
-
-SHOT_LEN = 2.8   # the shot's length (round 2: 2.3 cut the room and the air; now every layer fades out before the end)
-
-
-def tail_fade(n, seconds=0.5):
-    """A smooth (raised-cosine) fade over the last `seconds` of n samples, so a long tail ends in silence, not a cut."""
-    g = np.ones(n)
-    k = min(n, n_of(seconds))
-    g[n - k:] = 0.5 + 0.5 * np.cos(np.linspace(0, np.pi, k))
-    return g
-
-
-def shot_room(seed):
-    """The courtroom's stone room after the shot (fix round 1: the tail fell to -40 dB by 1 s; a hand cannon's room holds):
-    a dark wash with a slow second slope, faded out before the clip ends."""
-    n = n_of(SHOT_LEN)
-    t = t_of(n)
-    x = rng(seed).standard_normal(n)
-    env = np.clip((t - 0.02) / 0.3, 0, 1) * np.exp(-np.maximum(t - 0.32, 0) * 6.9078 / ROOM_RT)
-    env *= np.where(t > 1.0, np.exp(-(t - 1.0) * 6.9078 / 4.3), 1.0)        # the second slope: about -14 dB a second
-    return bp(sweep_lp(x, 420.0, 170.0, n), 70, None) * env * tail_fade(n)
-
-
-def shot_air(seed):
-    """The room's bright early reflections (the crack coming back off stone and brass): 3.5-13 kHz, fading over about 0.5 s (-60 dB at 1.5 s)."""
-    n = n_of(SHOT_LEN)
-    t = t_of(n)
-    x = rng(seed).standard_normal(n)
-    early = np.exp(-np.maximum(t - 0.008, 0) * 6.9078 / 1.5) * np.clip((t - 0.004) / 0.02, 0, 1)
-    return sweep_lp(bp(x, 3500, None), 13000.0, 5500.0, n) * early * tail_fade(n)
-
-
-def shot_mech():
-    """The gavel's hydraulic return (the fire clip's "mech" event, 99 ms after the shot), the well-oiled machine you can
-    hear: a pneumatic "psshh" in 2-8 kHz (where the shot's body has nothing, so it reads over it), a piston's brass
-    ka-chunk, and a latch tick as the gavel locks back up over the bench."""
-    n = n_of(0.26)
-    t = t_of(n)
-    held = np.clip(t / 0.006, 0, 1) * np.where(t < 0.075, 1.0, np.exp(-(t - 0.075) * 6.9078 / 0.12))   # a held breath
-    psh = sweep_noise(n, 41, 7200, 2400, q=1.4, length=0.11) * held
-    psh += noise_burst(n, 0.004, 43, 2500, 9000, 0.004, 0.08, gain=0.35)
-    piston = (modal(n, [(1820, 0.05, 0.6), (2930, 0.04, 0.5), (4350, 0.03, 0.35)], start=0.05, seed=44)
-              + click(n, 0.05, 45, lo=1500, decay=0.002, gain=1.0)
-              + glide(n, 260, 160, curve=30, start=0.05) * decay_env(n, 0.06, attack=0.001, start=0.05) * 0.35)
-    tick = modal(n, [(4100, 0.02, 0.4)], start=0.085, seed=46) + click(n, 0.085, 47, lo=3000, decay=0.001, gain=0.5)
-    return psh * 0.9 + piston * 0.8 + tick * 0.5
+def smack():
+    """The reload's gavel smack, wood on wood on the gun's roof: a heavier, lower hit than the crack (the gavel is big against
+    the court's roof), a hard dry crack with a short room ring."""
+    n = n_of(0.55)
+    hit = wood_hit(n, pitch=0.82, bright=0.5, seed=331, body_hz=95, body_gain=0.8)
+    crack = noise_burst(n, 0.0, 332, 1400, 6500, 0.0003, 0.014, gain=1.2)
+    dry = bp(hit + crack, None, 8000)
+    return dry + short_room(dry[: n_of(0.14)], n, 333, ring=0.26) * 1.0
 
 
 # ---------------------------------------------------------------- handling
@@ -347,16 +305,16 @@ def cell_in():
 
 
 def seat():
-    """The hydraulic seat: a pressurised breath, then a heavy lock, then the cell lighting up with a low hum."""
-    n = n_of(0.6)
-    pssh = sweep_noise(n, 101, 7600, 2600, q=1.6, length=0.08) * decay_env(n, 0.11, attack=0.006)
-    pssh += noise_burst(n, 0.03, 104, 3000, 10000, 0.01, 0.16, gain=0.3)          # the bleed after the lock
-    lock = (glide(n, 140, 72, curve=18, start=0.022) * decay_env(n, 0.16, attack=0.001, start=0.022) * HANDLING_LOW * 1.3
-            + modal(n, [(900, 0.06, 0.6), (2300, 0.09, 0.7), (3700, 0.07, 0.55), (5600, 0.04, 0.35)], start=0.022, seed=102)
-            + click(n, 0.022, 103, lo=1800, decay=0.003, gain=1.5))
-    t = t_of(n)
-    hum = (np.sin(2 * np.pi * 120 * t) + 0.5 * np.sin(2 * np.pi * 240 * t)) * decay_env(n, 0.4, attack=0.05, start=0.06) * 0.12
-    return pssh * 1.1 + lock + hum * 0.25
+    """The charge seats (the reload's last beat, a moment after the smack drove it home): a brass click, a small bright
+    "tink" of the latch, a second tick as it locks, and a soft low "tk" under them. Light and short: the smack is the weight."""
+    n = n_of(0.3)
+    tink = (modal(n, [(2350, 0.05, 0.45), (3150, 0.045, 0.4), (3720, 0.045, 0.5), (4600, 0.035, 0.35), (5640, 0.03, 0.35), (7900, 0.015, 0.2)], start=0.0, seed=101, jitter=0.03)
+            + click(n, 0.0, 102, lo=2500, decay=0.001, gain=0.9))
+    lock = (modal(n, [(1480, 0.03, 0.5), (3050, 0.025, 0.4)], start=0.034, seed=103)
+            + click(n, 0.034, 104, lo=2000, decay=0.0012, gain=0.7))
+    low = glide(n, 330, 190, curve=40, start=0.001) * decay_env(n, 0.04, attack=0.001, start=0.001) * HANDLING_LOW
+    breath = noise_burst(n, 0.004, 105, 3500, 9000, 0.004, 0.03, gain=0.12)
+    return tink + lock * 0.8 + low * 0.7 + breath
 
 
 def bolt():
@@ -498,35 +456,35 @@ def R(length, layers, limit=-1.6, seed=1):
 
 
 STEMS = {
-    "shot_gavel": shot_gavel, "shot_body": shot_body, "shot_crack": shot_crack,
-    "shot_room_l": lambda: shot_room(35), "shot_room_r": lambda: shot_room(36),
-    "shot_air_l": lambda: shot_air(37), "shot_air_r": lambda: shot_air(38), "shot_hydraulic": shot_hydraulic, "shot_mech": shot_mech,
+    "thwip_air_l": lambda: thwip_air(301), "thwip_air_r": lambda: thwip_air(305), "thwip_body": thwip_body,
+    "thwip_flutter_l": lambda: thwip_flutter(311), "thwip_flutter_r": lambda: thwip_flutter(315), "thwip_flick": thwip_flick,
+    "thwip_room_l": lambda: thwip_room(321), "thwip_room_r": lambda: thwip_room(325),
     "dry_click": dry_click, "equip_unfold": equip_unfold, "equip_lock": equip_lock, "mag_out": mag_out, "cell_in": cell_in,
-    "seat": seat, "bolt": bolt, "inspect_turn": inspect_turn, "inspect_tap": inspect_tap, "inspect_settle": inspect_settle,
-    "spot_form": spot_form, "spot_break": spot_break, "impact": impact, "impact_weak": impact_weak, "spot_pop": spot_pop,
-    "hush": hush,
+    "smack": smack, "seat": seat, "bolt": bolt, "inspect_turn": inspect_turn, "inspect_tap": inspect_tap, "inspect_settle": inspect_settle,
+    "spot_form": spot_form, "spot_break": spot_break, "impact": impact, "impact_weak": impact_weak, "impact_crack": impact_crack,
+    "spot_pop": spot_pop, "hush": hush,
 }
 
-# the mix of the shot's layers (dB, relative to each stem's -1.5 dBFS peak): tuned against the measurements
-SHOT_MIX = {"gavel": -8.0, "body": -2.0, "crack": 3.0, "hydraulic": -9.0, "hall": -3.0, "room": -7.0, "air": 1.0}
+# the mix of the thwip's layers (dB, relative to each stem's -1.5 dBFS peak): tuned against the measurements (a small, quiet
+# shot: about 14 dB under the old one's peak, nothing under 250 Hz, no narrow peak in 2-5 kHz)
+THWIP_MIX = {"air": -9.0, "body": -15.0, "flutter": -19.0, "flick": -17.0, "room": -27.0}
 
 
 def recipes():
-    m = SHOT_MIX
+    m = THWIP_MIX
     one = lambda name, length, gain=0.0: R(length, [S(name, gain)])  # noqa: E731
     return {
-        "shot": R(SHOT_LEN, [S("shot_gavel", m["gavel"]), S("shot_body", m["body"]), S("shot_crack", m["crack"]),
-                        S("shot_hydraulic", m["hydraulic"], pan=0.1),
-                        S("shot_room_l", m["room"], pan=-0.9), S("shot_room_r", m["room"], pan=0.9),
-                        S("shot_air_l", m["air"], pan=-0.7), S("shot_air_r", m["air"], pan=0.7),
-                        S("shot_hall_l", m["hall"], pan=-0.85), S("shot_hall_r", m["hall"], pan=0.85)]),
-        "shot_mech": one("shot_mech", 0.26, 3.0),
+        "shot": R(0.4, [S("thwip_air_l", m["air"], pan=-0.4), S("thwip_air_r", m["air"], pan=0.4), S("thwip_body", m["body"]),
+                        S("thwip_flutter_l", m["flutter"], pan=-0.5), S("thwip_flutter_r", m["flutter"], pan=0.5),
+                        S("thwip_flick", m["flick"], pan=0.15),
+                        S("thwip_room_l", m["room"], pan=-0.7), S("thwip_room_r", m["room"], pan=0.7)]),
         "dry_click": one("dry_click", 0.3, 0.5),
         "equip_unfold": one("equip_unfold", 0.45, -10.0),
         "equip_lock": one("equip_lock", 0.7, -1.5),
         "mag_out": one("mag_out", 0.4, 3.0),
         "cell_in": one("cell_in", 0.35, 3.0),
-        "seat": one("seat", 0.6, 3.0),
+        "smack": one("smack", 0.55, 3.0),
+        "seat": one("seat", 0.3, 1.0),
         "bolt": one("bolt", 0.45, 3.0),
         "inspect_turn": one("inspect_turn", 0.5, -10.5),
         "inspect_tap": one("inspect_tap", 0.45, -2.0),
@@ -535,6 +493,7 @@ def recipes():
         "spot_break": one("spot_break", 0.7, -2.0),
         "impact": one("impact", 0.22, -5.0),
         "impact_weak": one("impact_weak", 0.35, -4.0),
+        "impact_crack": one("impact_crack", 0.45, 0.0),
         "spot_pop": one("spot_pop", 1.3, -3.0),
         "hush": one("hush", 5.5, -18.0),
     }
@@ -542,18 +501,11 @@ def recipes():
 
 def main() -> int:
     for name, fn in STEMS.items():
-        if name == "hush":
-            write(name, fn(), peak_db=-3.0)
-        else:
-            write(name, fn())
-    hl, hr = shot_hall()
-    peak = max(np.abs(hl).max(), np.abs(hr).max())
-    for side, x in (("l", hl), ("r", hr)):
-        write(f"shot_hall_{side}", x / peak, peak_db=-1.5 + 20 * np.log10(np.abs(x).max() / peak))
+        write(name, fn(), peak_db=-3.0 if name == "hush" else -1.5)
     RECIPES.mkdir(parents=True, exist_ok=True)
     for name, spec in recipes().items():
         (RECIPES / f"{name}.json").write_text(json.dumps(spec, indent=2) + "\n", encoding="utf-8")
-    print(f"WRIT_SYNTH {len(STEMS) + 2} stems into {SAMPLES}, {len(recipes())} recipes into {RECIPES}")
+    print(f"WRIT_SYNTH {len(STEMS)} stems into {SAMPLES}, {len(recipes())} recipes into {RECIPES}")
     return 0
 
 
