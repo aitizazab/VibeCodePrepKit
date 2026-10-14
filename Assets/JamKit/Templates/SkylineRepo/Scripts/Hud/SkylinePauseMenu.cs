@@ -375,6 +375,9 @@ namespace JamKit.SkylineRepo
                     AddButton(() => "Controls", () => ShowPage(Page.Controls));
                     AddButton(() => "Look", () => ShowPage(Page.Look));
                     AddButton(() => "Subtitles", () => ShowPage(Page.Subtitles));
+                    // The Relay test mode (docs/SKYLINE-RELAY.md): restarts the arena in (or back out of) it.
+                    AddButton(() => SkylineRelayMode.Active ? "Relay (test): new run" : "Relay (test)", () => { Close(); SkylineRelayMode.Restart(true); });
+                    if (SkylineRelayMode.Active) AddButton(() => "Back to the normal mode", () => { Close(); SkylineRelayMode.Restart(false); });
                     AddButton(() => Time.unscaledTime < _quitArmedUntil ? "Quit to desktop: press again to confirm" : "Quit to desktop", QuitPressed);
                     break;
                 case Page.Audio:

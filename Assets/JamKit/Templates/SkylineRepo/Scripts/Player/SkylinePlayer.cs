@@ -49,6 +49,12 @@ namespace JamKit.SkylineRepo
         /// timed on the game clock (Time.time), never stretches against the recording.</summary>
         public bool HitStopEnabled = true;
 
+        /// <summary>The Relay's cable (docs/SKYLINE-RELAY.md): scales the move vector given to the engine (1 = normal; 0.75 while
+        /// carrying the cable) and, when set, stops the sprint (held or toggled) like aiming does. Both are set by
+        /// <see cref="SkylineRelayDirector"/> each frame and are 1 and false in the normal mode.</summary>
+        [NonSerialized] public float MoveScale = 1f;
+        [NonSerialized] public bool SprintBlocked;
+
         public Loadout Loadout { get; private set; }
         public PlayerArmor Armor { get; private set; }
         public BoostCharge Boost { get; private set; }
@@ -184,11 +190,11 @@ namespace JamKit.SkylineRepo
             // Aim slows the walk by scaling the move vector given to the engine (the engine itself is shared and untouched), and
             // ends a sprint: no sprint while aim is held, and a toggled sprint (the pad's L3) is stopped once by dropping the
             // forward push below the engine's stop line for one step.
-            float k = AimMoveScale;
+            float k = AimMoveScale * MoveScale;
             float mx = _frame.move.x * k, my = _frame.move.y * k;
             bool sprintHeld = _frame.sprintHeld, sprintToggle = _frame.sprintTogglePressed;
-            if (_aimWanted) { sprintHeld = false; sprintToggle = false; }
-            if (_cancelSprint)
+            if (_aimWanted || SprintBlocked) { sprintHeld = false; sprintToggle = false; }
+            if (_cancelSprint || (SprintBlocked && sim != null && sim.SprintToggled))
             {
                 _cancelSprint = false;
                 if (sim != null && sim.SprintToggled) my = Mathf.Min(my, 0.19f);

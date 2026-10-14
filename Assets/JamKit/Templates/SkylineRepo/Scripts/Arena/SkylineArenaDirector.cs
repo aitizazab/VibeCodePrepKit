@@ -138,6 +138,14 @@ namespace JamKit.SkylineRepo
             if (glowTemplate != null) SkylineBotLook.GlowTemplate = glowTemplate;
             SkylinePrewarm.Pools();
             StartCoroutine(SkylinePrewarm.ShowOnce(player.Camera));
+            // The Relay (docs/SKYLINE-RELAY.md) runs the arena itself (SkylineRelayDirector): no encounters, practice bot or
+            // teaching lines. This director stays off; the pools and the glow template above are shared.
+            if (SkylineRelayMode.Active)
+            {
+                ShowEntryMarker(false);
+                enabled = false;
+                return;
+            }
             StartCoroutine(PrepareLines());
             var defs = GalleriaArena.Encounters();
             for (int i = 0; i < defs.Length; i++)
