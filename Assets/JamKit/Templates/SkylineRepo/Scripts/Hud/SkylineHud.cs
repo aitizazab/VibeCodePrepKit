@@ -50,6 +50,10 @@ namespace JamKit.SkylineRepo
         public SkylineHudHealth Health { get; } = new SkylineHudHealth();
         public SkylineHudAmmo Ammo { get; } = new SkylineHudAmmo();
         public SkylineHudSubtitles Subtitles { get; } = new SkylineHudSubtitles();
+        /// <summary>The objective: job strip, edge markers, tow ring, wave clock (H3). The director binds it with <c>Objective.Bind(repossession, waveClock)</c>.</summary>
+        public SkylineHudObjective Objective { get; } = new SkylineHudObjective();
+        /// <summary>Comic lettering on kills and certain hits (C2).</summary>
+        public SkylineLettering Lettering { get; } = new SkylineLettering();
 
         void Awake()
         {
@@ -75,6 +79,7 @@ namespace JamKit.SkylineRepo
         void OnDestroy()
         {
             if (Instance == this) Instance = null;
+            Lettering.Unbind();
             if (_vignetteTex != null) Destroy(_vignetteTex);
         }
 
@@ -90,6 +95,8 @@ namespace JamKit.SkylineRepo
             BuildOn(docRoot);
             Health.Bind(player);
             Ammo.Bind(player);
+            Objective.BindPlayer(player);
+            Lettering.Bind(player);
         }
 
         // ------------------------------------------------------------------ building
@@ -176,6 +183,10 @@ namespace JamKit.SkylineRepo
             // The one health bar, bottom left; the ammo counter, bottom right.
             Health.Build(_safe, Margin);
             Ammo.Build(_safe, Margin);
+
+            // The objective (job strip, markers, tow ring, wave clock) and the comic lettering (H3, C2).
+            Objective.Build(_safe, Margin);
+            Lettering.Build(_safe);
 
             // The subtitles: bottom centre, white text with an ink keyline, NO box, at most two lines (SkylineHudSubtitles).
             Subtitles.Build(_safe);
@@ -331,6 +342,9 @@ namespace JamKit.SkylineRepo
                 _breakFlash.style.opacity = 0.32f * Mathf.Clamp01(_breakLeft / BreakFlashTime);
                 if (_breakLeft <= 0f) _breakFlash.style.opacity = 0f;
             }
+
+            Objective.Tick(dt);
+            Lettering.Tick(dt);
 
             // The subtitles fade and slide; nothing pops.
             Subtitles.Tick(dt);
