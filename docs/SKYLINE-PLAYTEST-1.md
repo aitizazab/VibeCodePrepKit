@@ -4,6 +4,14 @@
 `docs/skyline-judge/`). The creator then played it. Their verdict: integral problems first, balancing later. This page
 holds their calls (their words quoted) and the work queue. It overrides older docs where they disagree.
 
+## Standing rules for every session
+
+- **After every build, refresh the restart docs** (this page, `docs/SKYLINE-OPEN-THREADS.md`, `docs/SKYLINE-WORKLOG.md`)
+  and commit them, so the creator can restart with fresh context. Overnight runs: once, when the night's work is done.
+  (The creator, 2026-10-15.)
+- **Never drop a thread silently:** every open thread and its next step lives in `docs/SKYLINE-OPEN-THREADS.md`; re-ask
+  unanswered questions in the next summary. (The creator, 2026-10-14: "can we stop randomly dropping things".)
+
 ## How we work now (the creator, 2026-10-14)
 
 - "We'll work less on this today by agents, just you and me balancing the current experience now that it's built. IF
