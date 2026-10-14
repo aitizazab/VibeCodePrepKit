@@ -8,6 +8,15 @@ namespace JamKit.Skyline
 
     public static class Aim
     {
+        /// <summary>The drone's aim (the creator, 2026-10-14): where the target was <paramref name="lagSeconds"/> ago, from its
+        /// <paramref name="trail"/> (<paramref name="now"/> is the trail's clock); the target's position now while the trail is
+        /// empty or the lag is 0. No leading: a mover is missed by what it covers in the lag plus the bolt's flight.</summary>
+        public static Vector3 LaggedPoint(PositionTrail trail, float now, float lagSeconds, Vector3 targetNow)
+        {
+            if (trail == null || !(lagSeconds > 0f)) return targetNow;
+            return trail.At(now - lagSeconds, targetNow);
+        }
+
         /// <summary>Where a shot at <paramref name="speed"/> m/s must go to meet a target moving at
         /// <paramref name="targetVel"/>, with the velocity scaled by <paramref name="leadFactor"/> (0 = at the target now,
         /// 1 = a perfect intercept). Falls back to the target's position when no intercept exists.</summary>
@@ -36,6 +45,71 @@ namespace JamKit.Skyline
             if (!(t > 0f) || float.IsInfinity(t)) return target;
             return target + v * t;
         }
+    }
+
+    /// <summary>A short history of where a target was, for the drone's lagged aim (docs/SKYLINE-BOTS.md, "How the drone aims"):
+    /// <see cref="Record"/> the target's position every tick, then ask <see cref="At"/> where it was a moment ago. A fixed ring,
+    /// so recording allocates nothing; a sample that jumps further than <see cref="TeleportDistance"/> (a respawn, a restart) clears
+    /// the history so the drone never aims at the place the player teleported away from.</summary>
+    public sealed class PositionTrail
+    {
+        const int Capacity = 128;
+        /// <summary>A step longer than this (m) in one sample is a teleport: the history before it is forgotten.</summary>
+        public const float TeleportDistance = 8f;
+
+        readonly float[] _t = new float[Capacity];
+        readonly Vector3[] _p = new Vector3[Capacity];
+        int _newest = -1, _count;
+
+        public int Count => _count;
+
+        public void Clear()
+        {
+            _newest = -1;
+            _count = 0;
+        }
+
+        /// <summary>Adds the position at <paramref name="time"/>. A time that hasn't moved on replaces the newest sample, one that
+        /// runs backwards (a restarted clock) clears the history, and a position that isn't finite is ignored.</summary>
+        public void Record(float time, Vector3 position)
+        {
+            if (!IsFinite(position) || float.IsNaN(time) || float.IsInfinity(time)) return;
+            if (_count > 0)
+            {
+                float last = _t[_newest];
+                if (time < last - 1e-6f) Clear();
+                else if (time <= last + 1e-6f) { _p[_newest] = position; return; }
+                else if (Vector3.Distance(_p[_newest], position) > TeleportDistance) Clear();
+            }
+            _newest = (_newest + 1) % Capacity;
+            _t[_newest] = time;
+            _p[_newest] = position;
+            if (_count < Capacity) _count++;
+        }
+
+        /// <summary>Where the target was at <paramref name="time"/> (interpolated between the two samples round it). Before the
+        /// oldest sample: the oldest; after the newest: the newest; with no history: <paramref name="fallback"/>.</summary>
+        public Vector3 At(float time, Vector3 fallback)
+        {
+            if (_count == 0) return fallback;
+            if (time >= _t[_newest]) return _p[_newest];
+            int i = _newest;
+            for (int n = 1; n < _count; n++)
+            {
+                int prev = (i + Capacity - 1) % Capacity;
+                if (time >= _t[prev])
+                {
+                    float span = _t[i] - _t[prev];
+                    float f = span > 1e-9f ? (time - _t[prev]) / span : 1f;
+                    return Vector3.Lerp(_p[prev], _p[i], f);
+                }
+                i = prev;
+            }
+            return _p[i];
+        }
+
+        static bool IsFinite(Vector3 v) =>
+            !(float.IsNaN(v.X) || float.IsInfinity(v.X) || float.IsNaN(v.Y) || float.IsInfinity(v.Y) || float.IsNaN(v.Z) || float.IsInfinity(v.Z));
     }
 
     /// <summary>The never-mix rule (2.6): an encounter never combines shots that lead you with shots at where you are now

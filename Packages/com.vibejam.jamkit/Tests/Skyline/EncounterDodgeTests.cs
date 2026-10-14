@@ -81,18 +81,30 @@ namespace JamKit.Tests.Skyline
             Assert.That(a.jinkHitsMean, Is.EqualTo(b.jinkHitsMean));
         }
 
-        [TestCase("food-court")]
-        [TestCase("skylight")]
-        public void InTheHarnessLeadingShotsHitTheStraightRunnerMoreThanTheJinker(string id)
+        [Test]
+        public void InTheHarnessTheSpotlightsBeamHitsTheStraightRunnerMoreThanTheJinker()
         {
-            // mechanics only since Task 11b's fix round: the band (1.6-2.5) is measured in FightSim with the player shooting back
-            // (FightTests); this immortal-shooter harness only shows that leading shots punish straight lines and hit both runners
-            var r = EncounterDodge.Run(ById(id), Hall, Difficulties.Normal());
-            TestContext.WriteLine($"Old harness (mechanics only), {id}: straight-line {r.straightHitsMean:0.0} hits, jinking {r.jinkHitsMean:0.0} " +
+            // mechanics only since Task 11b's fix round: the band is measured in FightSim with the player shooting back (FightTests);
+            // this immortal-shooter harness only shows that a beam punishes straight lines and hits both runners
+            var r = EncounterDodge.Run(ById("skylight"), Hall, Difficulties.Normal());
+            TestContext.WriteLine($"Old harness (mechanics only), skylight: straight-line {r.straightHitsMean:0.0} hits, jinking {r.jinkHitsMean:0.0} " +
                 $"(means of {r.seeds} seeds), {r.shots} shots in {r.seconds:0} s, ratio {r.Ratio:0.00}");
             Assert.That(r.straightHitsMean, Is.GreaterThan(0f), "the straight-line bot is hit");
             Assert.That(r.jinkHitsMean, Is.GreaterThan(0f), "and so is the jinking bot");
             Assert.That(r.straightHitsMean, Is.GreaterThan(r.jinkHitsMean), "changing direction beats a straight line");
+        }
+
+        [Test]
+        public void InTheHarnessTheLaggedDronesMissTheRunnerAcrossTheirFireAndHitTheJinkerWhoSlowsToTurn()
+        {
+            // the creator's call of 2026-10-14 reverses what this test used to say (leading shots hit the straight runner more):
+            // the drones aim at where you were 0.2 s ago, so the lane runner crossing their line of fire is missed, and the jinker,
+            // who stops and turns, is the one they hit
+            var r = EncounterDodge.Run(ById("food-court"), Hall, Difficulties.Normal());
+            TestContext.WriteLine($"Old harness (mechanics only), food-court: straight-line {r.straightHitsMean:0.0} hits, jinking {r.jinkHitsMean:0.0} " +
+                $"(means of {r.seeds} seeds), {r.shots} shots in {r.seconds:0} s");
+            Assert.That(r.jinkHitsMean, Is.GreaterThan(0f), "the jinking bot is hit");
+            Assert.That(r.straightHitsMean, Is.LessThan(r.jinkHitsMean * 0.25f), "running across their fire beats stopping to turn");
         }
 
         // ---- The clean line (plan amendment 6): a scripted route a skilled player could take, with no hits on Normal.

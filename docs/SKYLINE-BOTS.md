@@ -55,7 +55,7 @@ again!"; wrecked "Out of... order...".
 
 **Personality.** Officious. A flying egg in a mall cop's peaked cap that takes its tiny authority very seriously:
 bored and smug on patrol, outraged at any infraction, and it writes you a ticket with every shot. It shoots where you
-are going, not where you are. Aim tag: leads you. Layer: air.
+were a moment ago, not where you are. Aim tag: leads you (kept for the never-mix rule; it lags, see "How the drone aims"). Layer: air.
 
 **Body.** A white egg (about 0.7 m) wearing a peaked cap: the gold crown with a white star badge (plate "shell") and
 the gold visor brim jutting over its face screen (plate "lens-guard"). Under the screen, the body-cam lens, blue glass
@@ -69,15 +69,15 @@ in a steel ring with a red REC light beside it: the weak point. Under its chin h
 | Idle | patrol face: half-lidded blue eyes, flat brows, a smug little smirk, a red REC light in the corner; the figure-eight hover | two rotors beating against each other, air chopped by the blades, the motors' thin whine, a soft "recording" blip each loop (a 2 s loop) |
 | Alert | white square eyes, one brow raised, an "O" mouth, a red-and-blue siren bar on top | a clipped two-whoop siren yelp, a radio squelch, two confirming chirps |
 | Telegraph (0.35 s) | angry face; it turns to you and a red charge ball swells at the taser | a sharp target chirp, then a capacitor whine climbing to the shot with a fizz under it; it clicks off just before the zap |
-| Attack | a bolt aimed where you will be | a taser zap (a snap, a crackling arc, a falling stun buzz), then the citation printer clacking out a ticket, torn off |
+| Attack | a bolt aimed where you were 0.2 s ago | a taser zap (a snap, a crackling arc, a falling stun buzz), then the citation printer clacking out a ticket, torn off |
 | Hurt | amber worried brows, eyes torn sideways by a glitch, an offended frown | a metallic tink, then an offended two-tone error buzz ("uh-uh") |
 | Plate shed | the crown or the visor flies off where it was hit | a hollow plastic clonk and a ring of gold trim, a falling "whoop" of protest, two bounces |
 | Wreck | grey "X X" eyes in screen static | a burst of sparks, the rotors winding down, three falling error beeps, the printer spewing paper, then it drops and clatters |
 
 **Telegraph.** You see it square up and the red ball swell at its chin; you hear the chirp and the climbing whine.
-0.35 s later the bolt flies, aimed where your current velocity will put you.
+0.35 s later the bolt flies, aimed at where you were 0.2 s before it left.
 
-**The habit it punishes.** Straight lines. Change direction while the bolt is in the air; speed alone doesn't save you.
+**The habit it punishes.** Standing still (and running straight at it, or straight away at a walk). Keep moving across its line of fire and it misses.
 
 **Faces** (`Resources/SkylineModels/bots/mall-cop-drone_face_<Face>.png`, 256 x 128, a 32 x 16 LED matrix):
 happy (bored patrol stare in police blue, smirk, REC light), alert (raised brow, "O", red-and-blue siren bar), angry
@@ -207,6 +207,60 @@ a chatty, sing-song workman.
 
 **Barks** (drafts for the creator): spots you "Oi! Off my glass!"; hurt "Watch the bucket!"; loses you "Back to the
 panes."; wrecked "Hanging... up...".
+
+## How the drone aims (the creator, 2026-10-14)
+
+"It's too unpredictable right now. Make it whiff less when you're standing still, and make it miss more when you're moving fast. Like
+maybe it shoots at where you were 10 or 20 frames ago, or 0.1-0.2 s ago."
+
+**Before:** a lead of 0.75 (`Aim.LeadPoint` with Normal's factor) plus a random error over a 4 degree cone. At 20 m that cone is a
+1.4 m radius disc, so a player standing still was hit by 46% of bolts over 8-30 m (99% at 8 m, 28% at 20 m, 13% at 30 m), and a
+sprinter was hit 11-60% depending on the angle: movement hardly changed anything.
+
+**Now:** `EnemyDef.aimLagSeconds = 0.2` and `aimSpreadDeg = 0.5`. Each bot keeps a short history of the player's chest
+(`PositionTrail`, a 128-sample ring fed every frame, cleared by a teleport of more than 8 m or a restarted clock) and fires at where
+the chest was 0.2 s earlier, tilted by at most 0.5 degrees (a 0.26 m disc at 30 m). No leading. FightSim, CombatSim/EncounterDodge and
+`SkylineBot` all use the same rule. A bolt flies at 30 m/s, so its flight (0.27 s at 8 m, 1 s at 30 m) adds to the miss: a mover
+is missed by `speed x (0.2 s + flight time)` across the line, against a hit width of 0.53 m (the Unit's 0.38 m radius plus the 0.15 m
+bolt). Straight at the drone or straight away the line is the same, so the bolt still meets you (the drone hovers about 3 m up, so a
+fast run toward it or away leaves the bolt's descending line too: a vertical miss).
+
+**Why 0.2 s:** the three lags in the creator's range give the same result across the line (0% for any speed from 4 m/s: the flight
+time alone puts a walker 1.5-6 m off), but along the line a lag of 0.1 s still hits a sprint at the drone 94% of the time and 0.2 s
+hits it 58% (13 m/s: 22% and 5%). The longest lag is the one that makes fast movement miss most.
+
+Hit share of one bolt over 8, 12, 16, 20, 25 and 30 m (6 ranges, equal weight; 400 bolts each, a drone 3 m above the chest, bolt 30 m/s,
+a target on a straight run; `LaggedAimTests`). "Any direction" is the mean over runs every 15 degrees to the line from the drone.
+
+| Target | Old: across | toward | away | any direction | New: across | toward | away | any direction |
+|---|---|---|---|---|---|---|---|---|
+| standing | 46% | 46% | 46% | 46% | 100% | 100% | 100% | 100% |
+| walking 4 m/s | 42% | 53% | 38% | 44% | 0% | 100% | 100% | 17% |
+| 5 m/s (the Unit's walk) | 37% | 54% | 36% | 42% | 0% | 100% | 78% | 14% |
+| 8 m/s (a wall-run) | 20% | 59% | 29% | 34% | 0% | 83% | 0% | 6% |
+| 9.5 m/s (sprint) | 11% | 60% | 25% | 29% | 0% | 58% | 0% | 4% |
+| 13 m/s (slide / fast) | 2% | 65% | 17% | 20% | 0% | 5% | 0% | 0% |
+
+New standing: 100% at every range from 8 to 30 m (old: 99, 73, 44, 28, 19, 13%). Read it: standing still is punished every time;
+moving across the line of fire is never hit at 4 m/s and up; the ways of still being hit while moving are running straight at the
+drone below 9.5 m/s or straight away at a walk (a lag of 0.2 s is not long enough to miss those, and leading would be the cure,
+which the creator ruled out). Pinned by `LaggedAimTests`: standing >= 90% at every range, a sprint or faster missed >= 75% across,
+obliquely and away (toward the drone at 9.5 m/s: under 65%, at 13 m/s: under 25%), hit share monotone in speed, and walking sitting
+between standing and sprinting over all directions.
+
+**What moved with it (floor sims):** (1) `TacticalBot` (the skilled line) strafes up to 3 m either side of its peek point,
+flipping every 0.6-0.9 s, while a lagging drone sees it (`FightTiming.peekStrafe`): a skilled player moves, and standing in the open
+for a 1-1.8 s peek was hit every time (food court: 3 of 30 seeds clean before the strafe). (2) The drone's cycle 0.8 -> 1.0 s and
+damage 26 -> 24: with perfect accuracy on a standing target the old numbers took three times the hits; the new ones hold the
+skilled-line gates (the cycle stays 1.0 s or less because the hover patrol needs a volley every second to keep strafing 0.6 m a
+second). (3) The dodge band for drones turned over: the lane runner crossing the fire is hit at under a quarter of the jinker's
+rate (the jinker stops to turn). (4) The facade's steady-pressure gate (median lowest plating at most 60) is now `[Ignore]`d as a
+gap for the creator: the strafing line takes about 1.6 hits a fight there and the median is 76.
+
+**D21 (bolts and glass):** a drone's bolt now stops at balustrades, the skylight and the bridge floor, and breaks a facade
+pane (`SkylineFacade.TryBreak`) and flies on, as the player's shots do. Sight still passes through all glass (D21: "all glass is
+see-through for sight"; the pure sim and the player's `SkylineShooting.Mask` do the same), so a drone behind a rail sees you,
+telegraphs, and its bolt hits the rail.
 
 ## Damage states (every bot; the creator, 2026-10-14)
 

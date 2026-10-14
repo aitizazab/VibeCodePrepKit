@@ -5,7 +5,9 @@ namespace JamKit.SkylineRepo
 {
     /// <summary>The mall-cop drone's taser bolt: a sphere of the def's projectile radius flying straight (FightSim's bolt).
     /// Each frame it sphere-casts the step: the target's own colliders take the hit (<see cref="ISkylineTarget.TakeAttack"/>);
-    /// anything else that isn't a bot, a shed part or a trigger stops it; it expires after 4 s.
+    /// anything else that isn't a bot, a shed part or a trigger stops it, glass included (D21: rails, the skylight and the bridge
+    /// floor stop it) except a façade pane, which it breaks through <see cref="SkylineFacade.TryBreak"/> and flies on through,
+    /// as the player's shots do; it expires after 4 s.
     /// <para>The look is CONCIERGE's, not the player's (orange is the firm's colour; judge round 1 read the old orange capsule
     /// as a floating sausage): a white-hot core stretched along its flight, a tapering gold streak behind it, and a thin
     /// crackling arc that re-jitters every frame along the streak, so a taser reads at a glance and its line can be read
@@ -18,6 +20,7 @@ namespace JamKit.SkylineRepo
         const int ArcPoints = 8;
         const float ArcLength = 0.9f, ArcJitter = 0.06f, StreakSeconds = 0.07f;
         static readonly RaycastHit[] _hits = new RaycastHit[16];
+        static readonly bool[] _passed = new bool[16];
         /// <summary>The core: white-hot with a gold cast (HDR, so it blooms).</summary>
         static readonly Color Core = new Color(2.6f, 2.3f, 1.6f);
         /// <summary>The streak: CONCIERGE's gold, hot.</summary>
@@ -137,11 +140,31 @@ namespace JamKit.SkylineRepo
                 int bi = -1;
                 for (int i = 0; i < n; i++)
                 {
+                    _passed[i] = false;
                     var c = _hits[i].collider;
                     if (c == null) continue;
                     bool isTarget = IsTarget(c);
-                    if (!isTarget && SkylineBot.IgnoredBySight(c, _owner)) continue;
+                    if (!isTarget && SkylineBot.IgnoredByBolt(c, _owner)) { _passed[i] = true; continue; }
+                    if (!isTarget && SkylineFacade.IsPane(c)) continue;   // decided below, once we know what else is in the way
+                    _passed[i] = true;
                     if (_hits[i].distance < best) { best = _hits[i].distance; bi = i; }
+                }
+                // the façade panes this step crosses before whatever stops it: each live one breaks and the bolt flies on (D21);
+                // one that won't break (the scene has no façade) stops it like any other glass
+                Vector3 dir = step / len;
+                for (;;)
+                {
+                    int pane = -1;
+                    float pd = best;
+                    for (int i = 0; i < n; i++)
+                        if (!_passed[i] && _hits[i].distance < pd) { pd = _hits[i].distance; pane = i; }
+                    if (pane < 0) break;
+                    _passed[pane] = true;
+                    Vector3 at = _hits[pane].point == Vector3.zero ? from : _hits[pane].point;
+                    if (SkylineFacade.TryBreak(_hits[pane].collider, at, dir)) continue;
+                    best = pd;
+                    bi = pane;
+                    break;
                 }
                 if (bi >= 0)
                 {

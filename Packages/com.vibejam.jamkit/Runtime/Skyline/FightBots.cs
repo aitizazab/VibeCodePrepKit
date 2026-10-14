@@ -21,6 +21,10 @@ namespace JamKit.Skyline
         public float peekMin = 1f, peekMax = 1.8f, hideMin = 2f, hideMax = 4f, reactMin = 0.15f, reactMax = 0.25f;
         /// <summary>Plating lost in one peek that sends it back to cover (after its reaction delay).</summary>
         public float duckDamage = 15f;
+        /// <summary>How far (m) either side of its peek point it strafes while a shooter sees it, flipping every 0.6-0.9 s. The
+        /// drones aim at where you were 0.2 s ago (the creator, 2026-10-14), so a peeker who stands still is hit every time and one
+        /// who moves across their fire is missed; a skilled player moves. 0: it stands.</summary>
+        public float peekStrafe = 3f;
 
         public static FightTiming Human() => new FightTiming();
 
@@ -72,6 +76,8 @@ namespace JamKit.Skyline
         float _huntClock;
         float _timer, _len, _exposed, _platingAtPeek, _idle, _checkClock, _duckAt = -1f, _dodgeUntil = -1f, _dodgeAt = -1f;
         Vector2 _dodgeDir;
+        float _strafeClock;
+        float _strafeSign = 1f;
         bool[] _beamActive = new bool[0], _beamLocked = new bool[0], _telegraphing = new bool[0];
         float[] _telegraphSeen = new float[0], _telegraphReact = new float[0];
 
@@ -224,9 +230,32 @@ namespace JamKit.Skyline
                 _dodgeAt = -1f;
                 _dodgeUntil = f.Time + 0.35f;
             }
+            if (_phase == Phase.Peek && _useCover && _t.peekStrafe > 0f && StrafeGoal(f, me, h, out Vector2 strafeTo)) goal = strafeTo;
             input.move = f.Time < _dodgeUntil ? MoveTo(f, me, me + _dodgeDir * 5f) : MoveTo(f, me, goal);
             JumpTheAcid(f, ref input.move);
             return input;
+        }
+
+        /// <summary>While a shooter sees the peeking bot at its spot: a point to one side of the spot, across that shooter's line, the
+        /// side flipping now and then (the walking strafe that makes the drones' lagged aim miss).</summary>
+        bool StrafeGoal(FightSim f, Vector2 me, float h, out Vector2 to)
+        {
+            to = _spot;
+            if (Vector2.Distance(me, _spot) > _t.peekStrafe + 1f) return false;
+            FightEnemy seer = null;
+            foreach (var e in f.Enemies) if (FightSim.IsShooter(e) && e.SeesPlayer && e.Def.aimLagSeconds > 0f) { seer = e; break; }   // only a lagging drone is strafed against
+            if (seer == null) return false;
+            _strafeClock -= h;
+            if (_strafeClock <= 0f)
+            {
+                _strafeClock = Draw(0.6f, 0.9f);
+                _strafeSign = -_strafeSign;
+            }
+            Vector3 d = f.Player.Position - seer.Position;
+            var side = new Vector2(d.Z, -d.X);
+            if (side.LengthSquared() < 1e-6f) return false;
+            to = _spot + Vector2.Normalize(side) * (_strafeSign * _t.peekStrafe);
+            return true;
         }
 
         void GoHide()

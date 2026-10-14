@@ -239,6 +239,8 @@ namespace JamKit.Skyline
         readonly List<FightEnemy> _enemies = new List<FightEnemy>();
         readonly List<FightWreck> _wrecks = new List<FightWreck>();
         readonly List<Bolt> _bolts = new List<Bolt>();
+        /// <summary>Where the Unit's chest has been lately: the drones aim at where it was <see cref="EnemyDef.aimLagSeconds"/> ago.</summary>
+        readonly PositionTrail _trail = new PositionTrail();
         readonly CoverBox[] _cover;
         readonly CoverBox[] _floorCover;
         /// <summary>What stops a Writ shot or a bolt: <see cref="_cover"/>, plus any shot-only blockers (glass balustrades).</summary>
@@ -449,6 +451,7 @@ namespace JamKit.Skyline
             _readyAt = 0f;
             Armor = new PlayerArmor(_pd.platingMax, _pd.chassisMax);
             _player.Teleport(start, startYaw, Vector3.Zero);
+            _trail.Clear();
             _gun = new SkylineGun(_gunDef);
             _gun.Equip(null);
             _gun.Tick(1f, false, false, null);
@@ -530,6 +533,7 @@ namespace JamKit.Skyline
             var input = _bot.Next(this, h);
             _player.Step(in input.move, h);
             Time += h;
+            _trail.Record(Time, Chest);
 
             Shoot(input, h);
             foreach (var e in _enemies) Act(e, h);
@@ -723,8 +727,13 @@ namespace JamKit.Skyline
         {
             var d = e.Def;
             Vector3 from = e.Center;
-            float lead = d.aim == AimModel.LeadsYou ? _difficulty.leadFactor : 0f;
-            Vector3 aim = Aim.LeadPoint(from, target, _player.Velocity, d.projectileSpeed, lead) - from;
+            Vector3 aim;
+            if (d.aimLagSeconds > 0f) aim = Aim.LaggedPoint(_trail, Time, d.aimLagSeconds, Chest) + (target - Chest) - from;   // where it was, no lead
+            else
+            {
+                float lead = d.aim == AimModel.LeadsYou ? _difficulty.leadFactor : 0f;
+                aim = Aim.LeadPoint(from, target, _player.Velocity, d.projectileSpeed, lead) - from;
+            }
             float len = aim.Length();
             if (!(len > 1e-4f)) return;
             CountShot(e);

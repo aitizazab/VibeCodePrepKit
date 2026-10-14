@@ -42,6 +42,10 @@ namespace JamKit.Skyline
         /// <summary>Degrees of random aim error on a projectile shot (a drone isn't a perfect shot; it also makes the dodge
         /// measurement a dial instead of a cliff). 0 for none.</summary>
         public float aimSpreadDeg;
+        /// <summary>The drone's lagged aim (the creator, 2026-10-14): the shot goes to where the target's chest was this many seconds
+        /// ago (<see cref="PositionTrail"/>) instead of leading it; a mover is missed by what it covers in the lag plus the bolt's
+        /// flight. 0 for the old behaviour (a lead of <see cref="DifficultyDef.leadFactor"/> for <see cref="AimModel.LeadsYou"/>).</summary>
+        public float aimLagSeconds;
         public float attackDamage = 10f;
         public float range = 40f;
         /// <summary>m/s the bot drives toward the player once awake (Task 11b's fight); 0 for bots that don't walk.</summary>
@@ -88,14 +92,15 @@ namespace JamKit.Skyline
         public const string DroneId = "mall-cop-drone", FloorCareId = "floor-care-unit", SpotlightId = "spotlight",
             GondolaId = "window-washer-gondola";
 
-        /// <summary>Officious; shots that lead your movement (punishes straight lines). Aim: leads you. Layer: air.</summary>
+        /// <summary>Officious; shots at where you were 0.2 s ago (punishes standing still; a mover is missed). Aim tag: leads you
+        /// (kept for the never-mix rule; since 2026-10-14 it lags instead of leading). Layer: air.</summary>
         public static EnemyDef MallCopDrone() => new EnemyDef
         {
             id = DroneId, displayName = "Mall-cop drone", aim = AimModel.LeadsYou, layer = ThreatLayer.Air,
             chassisHp = 70f, plates = new[] { new PlateDef("shell", 30f), new PlateDef("lens-guard", 20f) }, bodyRadius = 0.45f,
-            alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 0.8f, loseSightSeconds = 3f, rememberSeconds = 8f, searchSpeed = 2f,
+            alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 1.0f, loseSightSeconds = 3f, rememberSeconds = 8f, searchSpeed = 2f,
             patrolSpeed = 2.5f, patrolLeash = 2.5f, patrolBob = 0.25f, patrolDashSpeed = 4.5f,
-            projectileSpeed = 30f, projectileRadius = 0.15f, aimSpreadDeg = 4f, attackDamage = 26f, range = 45f, scrapPlating = 20f,
+            projectileSpeed = 30f, projectileRadius = 0.15f, aimLagSeconds = 0.2f, aimSpreadDeg = 0.5f, attackDamage = 24f, range = 45f, scrapPlating = 20f,
         };
 
         /// <summary>A roomba with a happy face, angry at "stains"; an ankle-height acid sweep (punishes staying on the floor).
