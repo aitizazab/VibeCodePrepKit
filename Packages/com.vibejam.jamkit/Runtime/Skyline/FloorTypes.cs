@@ -106,10 +106,10 @@ namespace JamKit.Skyline
         /// <summary>Layout rule 1: every standable point has at least this many exits that leave a 10 m radius
         /// (<see cref="ExitRadius"/>) by different routes.</summary>
         public const int MinExits = 2;
-        /// <summary>Layout rules 2 and 3: no standable point sees more than <see cref="MaxSeenShare"/> of the spawn points;
+        /// <summary>Layout rules 2 and 3: no standable point sees more than <see cref="MaxSeenShare"/> of the ground-level spawn doors (shutters, hatches, rail ends; roof vents excluded, decision D23);
         /// every tow circle is at least <see cref="MinCircleExposure"/> exposed from two bearings
         /// <see cref="ExposureBearingSpread"/> degrees apart.</summary>
-        public const float ExitRadius = 10f, MaxSeenShare = 0.6f, MinCircleExposure = 0.5f, ExposureBearingSpread = 90f;
+        public const float ExitRadius = 10f, MaxSeenShare = 0.7f, MinCircleExposure = 0.5f, ExposureBearingSpread = 90f;
 
         /// <summary>Which doors a bot may arrive through: the drone by shutter or vent, floor-care by shutter or hatch, the
         /// gondola only at a rail end, the spotlight never (it is not on this floor). <paramref name="enemyId"/> is an

@@ -20,7 +20,7 @@ namespace JamKit.Skyline
     /// <item><see cref="LiftShutterId"/> (the west service lift's shutter) and <see cref="CabDoorsId"/> (the arrival cab's
     /// doors onto the alcove) are CLOSED leaves: the sim/Unity disables them when the floor opens them.</item>
     /// <item>Closed shops (north 1, 3, 5; south 1, 5) are solid blocks (the shutter is a spawn door drawn on their front); the
-    /// four walk-in shops are hollow, with a 3 m front doorway and a 2.4 m back doorway.</item>
+    /// four walk-in shops are hollow, with a 4 m front doorway and a 2.4 m back doorway.</item>
     /// <item>Hatch ends of the service corridor are open openings (the rolled-up shutter is decoration).</item>
     /// </list>
     /// </summary>
@@ -30,18 +30,22 @@ namespace JamKit.Skyline
             SkylightY = 14f, RoofY = 16f, WallThick = 0.4f;
 
         /// <summary>The pit's interior (the retaining walls stand just outside it).</summary>
+        public const float ChuteMinX = -11f, ChuteMaxX = -8f;      // moved 1 m east on 2026-10-14 (D23): the pit's NW corner is no longer a pocket
         public const float PitMinX = -16f, PitMaxX = 12f, PitMinZ = -10f, PitMaxZ = 10f;
         /// <summary>The underside of the gallery decks and the top of the shops' roofs (the decks are 5.6..6.0).</summary>
         public const float DeckBottomY = 5.6f;
         /// <summary>The hall's clear height; the roof slab sits on top of it (15.6..16).</summary>
         public const float HallClearY = 15.6f;
-        public const float FrontDoorWidth = 3f, BackDoorWidth = 2.4f, DoorHeight = 3f;
+        public const float FrontDoorWidth = 4f, BackDoorWidth = 2.4f, DoorHeight = 3f;
 
         /// <summary>The facade is <see cref="PaneRows"/> x <see cref="PaneCols"/> glass panes, 2.8 m wide and 4 m tall (the top row 3.6 m).</summary>
         public const int PaneRows = 4, PaneCols = 20;
         public const float PaneWidth = 2.8f;
         public const string PanePrefix = "facade-pane-";
         public const string LiftShutterId = "lift-shutter";
+        /// <summary>The solid ledge against the east façade, x 30.5..35, z 9..14.8, top 2.8: the wall-run route's way up to the north gallery (D23).</summary>
+        public const string FacadeLandingId = "facade-landing";
+        public const float FacadeLandingMinX = 30.5f, FacadeLandingMinZ = 9f, FacadeLandingMaxZ = 14.8f, FacadeLandingTop = 2.8f;
         public const string CabDoorsId = "cab-doors";
 
         /// <summary>The alcove, where the drop lands (the lift cab's mouth opens onto it).</summary>
@@ -238,8 +242,8 @@ namespace JamKit.Skyline
             const float t = WallThick;
             B("pit-floor", "floor", PitMinX, PitMaxX, -5f, PitFloorY, PitMinZ, PitMaxZ);
             // retaining walls, -4..0, runnable, with gaps where the ramps and the chute come in
-            B("pit-wall-n1", "rim", PitMinX - t, -12f, PitFloorY, 0f, PitMaxZ, PitMaxZ + t, true);
-            B("pit-wall-n2", "rim", -9f, -4f, PitFloorY, 0f, PitMaxZ, PitMaxZ + t, true);
+            B("pit-wall-n1", "rim", PitMinX - t, ChuteMinX, PitFloorY, 0f, PitMaxZ, PitMaxZ + t, true);
+            B("pit-wall-n2", "rim", ChuteMaxX, -4f, PitFloorY, 0f, PitMaxZ, PitMaxZ + t, true);
             B("pit-wall-n3", "rim", 0f, PitMaxX + t, PitFloorY, 0f, PitMaxZ, PitMaxZ + t, true);
             B("pit-wall-s1", "rim", PitMinX - t, -4f, PitFloorY, 0f, PitMinZ - t, PitMinZ, true);
             B("pit-wall-s2", "rim", 0f, PitMaxX + t, PitFloorY, 0f, PitMinZ - t, PitMinZ, true);
@@ -251,14 +255,14 @@ namespace JamKit.Skyline
             B("floor-mouth-w", "floor", PitMinX - t, PitMinX, -1f, 0f, -2f, 2f);
             B("floor-mouth-e", "floor", PitMaxX, PitMaxX + t, -1f, 0f, -2f, 2f);
             B("floor-mouth-n", "floor", -4f, 0f, -1f, 0f, PitMaxZ, PitMaxZ + t);
-            B("floor-mouth-chute", "floor", -12f, -9f, -1f, 0f, PitMaxZ, PitMaxZ + t);
+            B("floor-mouth-chute", "floor", ChuteMinX, ChuteMaxX, -1f, 0f, PitMaxZ, PitMaxZ + t);
             B("floor-mouth-s", "floor", -4f, 0f, -1f, 0f, PitMinZ - t, PitMinZ);
             // ramps (6 m long, 4 m wide, 34 degrees) and the slide chute (5 m, 39 degrees)
             Ramp("ramp-w", "ramp", -16f, -10f, -2f, 2f, PitFloorY, 0f, PitFloorY, true);
             Ramp("ramp-e", "ramp", 6f, 12f, -2f, 2f, PitFloorY, PitFloorY, 0f, true);
             Ramp("ramp-n", "ramp", -4f, 0f, 4f, 10f, PitFloorY, PitFloorY, 0f, false);
             Ramp("ramp-s", "ramp", -4f, 0f, -10f, -4f, PitFloorY, 0f, PitFloorY, false);
-            Ramp("chute", "ramp", -12f, -9f, 5f, 10f, PitFloorY, PitFloorY, 0f, false);
+            Ramp("chute", "ramp", ChuteMinX, ChuteMaxX, 5f, 10f, PitFloorY, PitFloorY, 0f, false);
 
             // the kiosk, and crouch cover only: 8 tables, 4 planters
             B("kiosk", "kiosk", -3.5f, -0.5f, PitFloorY, -1.5f, -1.5f, 1.5f);
@@ -306,9 +310,7 @@ namespace JamKit.Skyline
                 for (int j = 0; j < Joints.Length; j++)
                     R("pilaster-" + row + "-" + j, "pilaster", Joints[j] - 0.3f, Joints[j] + 0.3f, 0f, top, r, 17.4f, 18f);
             }
-            // the alcove: its back wall flanks the cab doors
-            B("alcove-back-w", "wall", -5.2f, -2.5f, 0f, top, -24f, -23.6f);
-            B("alcove-back-e", "wall", 2.5f, 5.2f, 0f, top, -24f, -23.6f);
+            // (no alcove back walls: the corridor stubs beside the cab join the alcove; decision D23)
             // the arrival cab: side walls, roof, the doors onto the alcove (closed until the drop) and their lintel
             B("cab-side-w", "lift", -2.5f, -2.1f, 0f, 4f, -28.4f, -23.6f);
             B("cab-side-e", "lift", 2.1f, 2.5f, 0f, 4f, -28.4f, -23.6f);
@@ -386,6 +388,9 @@ namespace JamKit.Skyline
                     B(PaneId(r, c), "facade-pane", MaxX, MaxX + WallThick, rows[r], rows[r + 1], MinZ + PaneWidth * c, MinZ + PaneWidth * (c + 1), true, true);
             B("facade-post-n", "wall", MaxX, MaxX + WallThick, 0f, HallClearY, MaxZ, 28.4f);
             B("facade-post-s", "wall", MaxX, MaxX + WallThick, 0f, HallClearY, -28.4f, MinZ);
+            // the landing: the ledge (2.8 m) that makes the wall-run -> north gallery route work (decision D23). A jump and a mantle
+            // put the Unit on it, a jump and a double jump from its top put the deck face at z 15 within the longest mantle.
+            B(FacadeLandingId, "deck", FacadeLandingMinX, MaxX, 0f, FacadeLandingTop, FacadeLandingMinZ, FacadeLandingMaxZ);
         }
 
         // ---------------------------------------------------------------- zones

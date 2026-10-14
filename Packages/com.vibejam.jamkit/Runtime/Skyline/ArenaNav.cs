@@ -33,6 +33,8 @@ namespace JamKit.Skyline
         public const float MaxClimb = 3f;
         /// <summary>The id prefix of the one-way slide chute.</summary>
         public const string ChutePrefix = "chute";
+        /// <summary>The tallest low prop (a pit table, a planter) a standing Unit hops over, for the lint's exits rule (decision D23).</summary>
+        public const float HopHeight = 1.1f;
 
         const float Bucket = 4f;
 
@@ -40,7 +42,7 @@ namespace JamKit.Skyline
             role == "floor" || role == "deck" || role == "ramp" || role == "escalator";
 
         readonly FloorSolid[] _solids;
-        readonly float _cell;
+        readonly float _cell, _hop;
         readonly int _kx0, _kz0, _nx, _nz;
         readonly List<int>[] _cellNodes;           // per grid cell: node indices
         readonly Vector3[] _pos;
@@ -70,13 +72,19 @@ namespace JamKit.Skyline
         public IReadOnlyList<int> Neighbours(int node) => _adj[node];
 
         /// <summary>Builds the graph. <paramref name="cell"/> is the grid spacing (2 m by default).</summary>
-        public static ArenaNav Build(IReadOnlyList<FloorSolid> solids, float cell = 2f) => new ArenaNav(solids, cell);
+        public static ArenaNav Build(IReadOnlyList<FloorSolid> solids, float cell = 2f) => new ArenaNav(solids, cell, 0f);
 
-        ArenaNav(IReadOnlyList<FloorSolid> solids, float cell)
+        /// <summary>Builds the graph where the low props (roles table, planter and kiosk) no taller than <paramref name="hopHeight"/> do
+        /// not block: the Unit hops them. 0 makes every prop an obstacle, as <see cref="Build(IReadOnlyList{FloorSolid}, float)"/> does.</summary>
+        public static ArenaNav Build(IReadOnlyList<FloorSolid> solids, float cell, float hopHeight) => new ArenaNav(solids, cell, hopHeight);
+
+        static bool IsLowProp(FloorSolid s) => s.role == "table" || s.role == "planter" || s.role == "kiosk";
+
+        ArenaNav(IReadOnlyList<FloorSolid> solids, float cell, float hopHeight)
         {
             if (solids == null) throw new ArgumentNullException(nameof(solids));
             if (!(cell > 0.1f)) throw new ArgumentOutOfRangeException(nameof(cell));
-            _cell = cell;
+            _cell = cell; _hop = hopHeight;
             _solids = new FloorSolid[solids.Count];
             for (int i = 0; i < _solids.Length; i++) _solids[i] = solids[i];
 
@@ -193,6 +201,7 @@ namespace JamKit.Skyline
             {
                 var s = _solids[list[k]];
                 var b = s.box;
+                if (_hop > 0f && IsLowProp(s) && b.max.Y - b.min.Y <= _hop + 1e-4f) continue;
                 if (b.min.X >= x + Radius || b.max.X <= x - Radius || b.min.Z >= z + Radius || b.max.Z <= z - Radius) continue;
                 float top = b.max.Y;
                 if (s.ramp)

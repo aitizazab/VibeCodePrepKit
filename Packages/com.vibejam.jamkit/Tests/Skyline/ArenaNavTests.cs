@@ -119,7 +119,15 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void NoIslandsAndEveryEdgeObeysTheStepAndSlopeRules()
         {
-            Assert.That(Full.IslandNodes, Is.LessThanOrEqualTo(4), "island nodes");
+            int cut = 0, onLanding = 0;
+            for (int i = 0; i < Full.Count; i++)
+            {
+                if (Full.ComponentOf(i) == 0) continue;
+                if (!Full.IsClimbable(i)) cut++;
+                else if (Full.PositionOf(i).X > 30f && Full.PositionOf(i).Y > 2.5f) onLanding++;
+            }
+            Assert.That(cut, Is.LessThanOrEqualTo(4), "island nodes (a ledge a jump and a mantle climb is not one)");
+            Assert.That(onLanding, Is.GreaterThanOrEqualTo(4), "the facade landing is a climbable ledge, not an island");
             int edges = 0, oneWay = 0;
             for (int a = 0; a < Full.Count; a++)
                 foreach (int b in Full.Neighbours(a))

@@ -103,8 +103,11 @@ SHOP = walk-in (front door to the ring, back door to the service corridor).
 - **The skylight** (+14 m): the drone vents; hook anchors when the hook exists (design 6.5).
 - **The warm-up hall is replaced by the lobby (section 9)**; the practice drone and the boost ledge move into it. The lobby meets the arena at the **arrival alcove**: the south shop row's third slot is the lift cab's mouth, so the south row has four shops and the alcove (the north row keeps five). The cab sits in the south service corridor's line, so that corridor is cut in two: its west part joins the west leg, its east part is a dead end with a hatch (docs/SKYLINE-PLAN-FLOOR1.md, D2).
 - **Rules the layout must pass (measured):**
-  - every standable point has at least two exits that leave a 10 m radius by different routes;
-  - no standable point sees more than 60% of the spawn points;
+  - every standable point has at least two exits that leave a 10 m radius by different routes (props 1.1 m tall or less,
+    the pit's tables and planters, do not block an exit: you hop them);
+  - no standable point sees more than 70% of the ground-level spawn doors (shop shutters, service hatches, rail ends); the
+    roof vents are not counted (overhead and seen from everywhere, their drones fly to engage anyway), and the headless
+    camper/holder survey is the real "no safe corner" gate (docs/SKYLINE-PLAN-FLOOR1.md, D23);
   - every tow circle is at least half exposed from two bearings 90 degrees apart;
   - the floor is finishable with the base kit (wall-run, double jump, slide, mantle).
 

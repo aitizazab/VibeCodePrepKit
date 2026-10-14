@@ -40,8 +40,12 @@ namespace JamKit.Skyline
     {
         /// <summary>Rule 3: viewers stand this far (flat metres) from the circle's centre, at least and at most.</summary>
         public float viewerMin = 8f, viewerMax = 30f;
-        /// <summary>Rule 2: whether the skylight and roof vents count among the doors a point can see.</summary>
-        public bool ventsCount = true;
+        /// <summary>Rule 2: whether the skylight and roof vents count among the doors a point can see. Off by design (decision D23): a
+        /// roof vent is overhead and seen from everywhere, and its drones fly to engage anyway; the sim camper/holder survey is the
+        /// real "no safe corner" gate.</summary>
+        public bool ventsCount = false;
+        /// <summary>Rule 1: low props (tables, planters) up to this tall count as passable for the exits rule (the Unit hops them).</summary>
+        public float hopHeight = ArenaNav.HopHeight;
         /// <summary>The navigation grid's spacing (the plan's default is 2 m; a finer grid finds fewer false pockets between props).</summary>
         public float cell = 2f;
     }
@@ -51,9 +55,11 @@ namespace JamKit.Skyline
     /// section 4), run over the arena's data. Rules 1 to 3 here; rule 4 (finishable with the base kit) is BaseKitRouteTests.
     /// <list type="number">
     /// <item><b>Exits:</b> from every standable node, with the node itself removed, at least two vertex-disjoint walks lead to
-    /// nodes 10 m (3D) or more away.</item>
-    /// <item><b>Seen share:</b> from eye height (feet + 1.6 m) to each spawn door's mouth, no standable node sees more than
-    /// 60 percent of the doors (an unblocked line within 60 m; glass does not block sight).</item>
+    /// nodes 10 m (3D) or more away. Props at or under <see cref="ArenaNav.HopHeight"/> (1.1 m: pit tables, planters) do not
+    /// block those walks (you hop them).</item>
+    /// <item><b>Seen share:</b> from eye height (feet + 1.6 m) to each ground-level spawn door's mouth (shop shutters, service
+    /// hatches, rail ends; the roof vents are excluded by design), no standable node sees more than 70 percent of them (an
+    /// unblocked line within 60 m; glass does not block sight).</item>
     /// <item><b>Circle exposure:</b> round each socket's circle, 8 sectors of 45 degrees; a sector exposes the circle when a
     /// standable node 8 to 30 m (flat) from the centre inside it sees at least 50 percent of 25 sample points on the disc; the
     /// circle passes when two exposing sectors are at least 90 degrees apart.</item>
@@ -369,6 +375,7 @@ namespace JamKit.Skyline
             sockets = sockets ?? new SocketDef[0];
             var open = OpenState(solids);
             var nav = ArenaNav.Build(open, o.cell);
+            var hopNav = o.hopHeight > 0f ? ArenaNav.Build(open, o.cell, o.hopHeight) : nav;       // rule 1 only: the same grid, the low props hopped
             var blockers = BlockersOf(open);
             var targetList = new List<Vector3>();
             for (int i = 0; i < doors.Count; i++)
@@ -390,7 +397,7 @@ namespace JamKit.Skyline
                 Vector3 p = nav.PositionOf(i);
                 if (InAny(exempt, p) || nav.ComponentOf(i) != 0) { r.exempt++; continue; }    // islands and climbable ledges are not on the walking graph
                 r.standable++;
-                int exits = Exits(nav, i, FloorRules.ExitRadius);
+                int exits = Exits(hopNav, ReferenceEquals(hopNav, nav) ? i : hopNav.NodeAt(p), FloorRules.ExitRadius);
                 if (exits < r.minExits) r.minExits = exits;
                 if (exits < FloorRules.MinExits) exitFail.Add(i);
                 var eye = new Vector3(p.X, p.Y + ArenaNav.EyeHeight, p.Z);
@@ -407,7 +414,7 @@ namespace JamKit.Skyline
                 Vector3 p = nav.PositionOf(i);
                 shareOf[i] = SeenShare(blockers, new Vector3(p.X, p.Y + ArenaNav.EyeHeight, p.Z), targets, 60f);
             }
-            Cluster(nav, sightFail, nameZones, "rule 2 (seen share): sees more than 60% of the spawn doors", r.problems, i => shareOf[i]);
+            Cluster(nav, sightFail, nameZones, string.Format(CultureInfo.InvariantCulture, "rule 2 (seen share): sees more than {0:0%} of the ground spawn doors", FloorRules.MaxSeenShare), r.problems, i => shareOf[i]);
 
             // rule 3 on every socket
             r.circleExposure = new float[sockets.Count];

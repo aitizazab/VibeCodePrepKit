@@ -135,7 +135,7 @@ namespace JamKit.Tests.Skyline
         /// <paramref name="landingTop"/> 0 there is no landing. Returns the highest the feet got, or the height it landed on a gallery at.</summary>
         static float LandingClimb(float landingTop, float zMin, float zMax, float jumpZ, float jump2Z)
         {
-            var w = FloorWorld.Build();
+            var w = WorldWithoutTheLanding();
             if (landingTop > 0f) w.Add(new Vector3(32.75f, landingTop / 2, (zMin + zMax) / 2), new Vector3(4.5f, landingTop, zMax - zMin), false);
             var sim = MoveTestKit.Standing(w, new Vector3(32.5f, 0f, zMin - 12f));
             bool j1 = false, j2 = false, dj = false;
@@ -153,6 +153,16 @@ namespace JamKit.Tests.Skyline
             return best;
         }
 
+        /// <summary>The arena as the movement tests see it but without <c>facade-landing</c> (the ledge decision D23 added), for the
+        /// tests that ask what the wall alone, or a landing of another size, does.</summary>
+        static BoxWorld WorldWithoutTheLanding()
+        {
+            var map = new Dictionary<string, BoxWorld.Box>();
+            var w = FloorWorld.Build(map);
+            map[RepossessArena.FacadeLandingId].enabled = false;
+            return w;
+        }
+
         public struct Facade { public float topY, maxY, endZ; public bool wallran, kicked, doubleJumped, mantled; }
 
         /// <summary>The warm-up ledge's sequence on the façade: start at (x0, z0) facing north, sprint with the stick a little into the
@@ -160,7 +170,7 @@ namespace JamKit.Tests.Skyline
         /// apex. Returns what happened.</summary>
         static Facade WallRunSequence(float x0, float z0, float jumpZ, float kickZ, float kickYaw, float stickIn)
         {
-            var sim = MoveTestKit.Standing(FloorWorld.Build(), new Vector3(x0, 0f, z0));
+            var sim = MoveTestKit.Standing(WorldWithoutTheLanding(), new Vector3(x0, 0f, z0));
             var f = new Facade();
             bool jumped = false, kicked = false, doubled = false;
             var along = new MoveInput { move = new Vector2(stickIn, 1f), yaw = 0f, sprintHeld = true };
@@ -228,10 +238,28 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
+        public void TheFacadeWallRunRouteOfTheSitesEndsOnTheNorthGalleryWithTheLanding()
+        {
+            // the whole route of F2's data (the wall run, the landing, the double jump), driven by the RouteWalker on the real data
+            var route = RepossessSites.Routes().First(r => r.id == "facade-wall-run");
+            var w = FloorWorld.Build();
+            var sim = StandAt(w, route.waypoints[0]);
+            var bot = new RouteWalker(route) { JumpRange = 7f };
+            Assert.That(Drive(sim, bot, 60f, out float took), Is.True, $"stopped at waypoint {bot.TargetIndex}/{route.waypoints.Length} {sim.Position}");
+            var end = route.waypoints[route.waypoints.Length - 1];
+            Assert.That(sim.Position.Y, Is.EqualTo(RepossessArena.GalleryY).Within(0.3f), "on the north gallery");
+            Assert.That(Vector2.Distance(new Vector2(sim.Position.X, sim.Position.Z), new Vector2(end.X, end.Z)), Is.LessThan(1.5f));
+            // and without the landing the same route does not get there
+            var bare = WorldWithoutTheLanding();
+            var sim2 = StandAt(bare, route.waypoints[0]);
+            var bot2 = new RouteWalker(route) { JumpRange = 7f };
+            Assert.That(Drive(sim2, bot2, 60f, out _), Is.False, "without the landing the route cannot be finished");
+        }
+
+        [Test]
         public void TheMantleAndDoubleJumpHintsOfARouteWalkerClimbTheLandingOntoTheGallery()
         {
-            var w = FloorWorld.Build();
-            w.Add(new Vector3(32.75f, 1.4f, 11.9f), new Vector3(4.5f, 2.8f, 5.8f), false);      // the proposed landing
+            var w = FloorWorld.Build();                                                           // with the facade-landing in it
             var sim = MoveTestKit.Standing(w, new Vector3(32.5f, 0f, -3f));
             var wp = new[] { new Vector3(32.5f, 0f, -3f), new Vector3(32.5f, 2.8f, 12f), new Vector3(32.5f, 6f, 17.5f) };
             var bot = new RouteWalker(wp, new[] { new MoveHint { atWaypoint = 1, kind = MoveHintKind.Mantle }, new MoveHint { atWaypoint = 2, kind = MoveHintKind.DoubleJump } }) { JumpRange = 7f };

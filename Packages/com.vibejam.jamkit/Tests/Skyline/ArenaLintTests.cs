@@ -10,10 +10,9 @@ namespace JamKit.Tests.Skyline
 {
     /// <summary>
     /// The layout lint (task F3): the three measured rules and the door checks on small synthetic levels that fail each rule and
-    /// pass it, then on the real Food Court. The real arena does NOT pass yet: <see cref="TheRealArenaFindingsAreExactlyTheDocumentedOnes"/>
-    /// pins what the lint finds today, and <see cref="TheProposedNudgesClearTheirFindings"/> shows, on a patched copy of the data,
-    /// which edits (in F1's and F2's files, which F3 does not touch) clear which finding. When the data absorbs a nudge, shrink
-    /// <see cref="Known"/>; when it is empty, delete the pinning test and assert <c>Is.Empty</c> on <c>ArenaLint.Arena().problems</c>.
+    /// pass it, then on the real Food Court, which passes with no problem at all (decision D23: the door nudges, the 4 m shop
+    /// doorways, no alcove back walls, the facade landing, the chute 1 m east; low props hopped in rule 1; roof vents out of rule 2
+    /// and its limit 70 percent).
     /// </summary>
     public class ArenaLintTests
     {
@@ -249,55 +248,9 @@ namespace JamKit.Tests.Skyline
             Assert.That(b.Where(x => x.min.X >= -8.001f && x.max.X <= -1.999f).All(x => x.max.Y <= 0.001f), Is.True, "never a wedge above the surface");
         }
 
-        // ---------------------------------------------------------------- the real arena
+        // ---------------------------------------------------------------- the real arena (decision D23)
 
         static readonly Lazy<LintResult> Real = new Lazy<LintResult>(() => ArenaLint.Arena());
-
-        /// <summary>What the lint finds on the arena today, as a category and the number of points or items. Each carries the
-        /// edit that clears it (verified on a patched copy by <see cref="TheProposedNudgesClearTheirFindings"/>, except the pit
-        /// and rule 2 lines, which are open design calls).</summary>
-        static readonly string[] Known =
-        {
-            // door bodies (F2's RepossessSites.Doors): move six vents and two hatches (a ninth, shutter-n3, was blocked by the column
-            // at x 0 north; the column rows have since moved in the working tree and the finding is optional here)
-            "doors: 8",
-            // F1's FrontDoorWidth 3 -> 4
-            "rule 3: inside-n2 inside-n4 inside-s2 inside-s4",
-            // F1: delete alcove-back-w and alcove-back-e (the corridor stubs beside the arrival cab join the alcove)
-            "rule 1 corridor stubs: 4",
-            // open: prop clusters and the corner west of the chute in the pit
-            "rule 1 pit: 7",
-            // open: 14 of the 27 doors are roof vents that every open point sees (the count of points moves with every column or
-            // pilaster edit, so only its presence and the worst share are pinned)
-            "rule 2",
-        };
-
-        static string Category(string problem)
-        {
-            if (problem.StartsWith("door ")) return "doors";
-            if (problem.StartsWith("rule 3")) return "rule 3";
-            if (problem.StartsWith("rule 1") && problem.Contains("[corridor")) return "rule 1 corridor stubs";
-            if (problem.StartsWith("rule 1")) return "rule 1 pit";
-            if (problem.StartsWith("rule 2")) return "rule 2";
-            return problem;
-        }
-
-        static int Points(string problem)
-        {
-            var m = Regex.Match(problem, @": (\d+) point\(s\)");
-            return m.Success ? int.Parse(m.Groups[1].Value) : 1;
-        }
-
-        static Dictionary<string, int> Tally(LintResult r)
-        {
-            var t = new Dictionary<string, int>();
-            foreach (var p in r.problems)
-            {
-                string c = Category(p);
-                t[c] = (t.ContainsKey(c) ? t[c] : 0) + Points(p);
-            }
-            return t;
-        }
 
         [Test]
         public void TheRealArenaLintIsFastAndMeasuresWhatItShould()
@@ -305,35 +258,25 @@ namespace JamKit.Tests.Skyline
             var r = Real.Value;
             Assert.That(r.seconds, Is.LessThan(10.0), "the plan's budget");
             Assert.That(r.standable, Is.InRange(900, 1100));
-            Assert.That(r.exempt, Is.InRange(10, 30), "the arrival cab, the exit lift and a couple of stray nodes");
+            Assert.That(r.exempt, Is.InRange(10, 30), "the arrival cab, the exit lift, the facade landing and a couple of stray nodes");
             Assert.That(r.islandNodes, Is.LessThanOrEqualTo(4));
             var sockets = RepossessSites.Sockets();
             for (int i = 0; i < sockets.Length; i++)
-                if (sockets[i].group != SocketGroup.Inside)
-                    Assert.That(r.circleExposure[i], Is.GreaterThanOrEqualTo(FloorRules.MinCircleExposure), sockets[i].id);
+                Assert.That(r.circleExposure[i], Is.GreaterThanOrEqualTo(FloorRules.MinCircleExposure), sockets[i].id);
             Assert.That(r.circleSectors[Array.FindIndex(sockets, s => s.id == "high-bridge")], Is.EqualTo(8), "the bridge circle is seen from every side");
         }
 
         [Test]
-        public void TheRealArenaFindingsAreExactlyTheDocumentedOnes()
+        public void TheRealArenaPassesTheLintWithNoProblems()
         {
             var r = Real.Value;
-            var tally = Tally(r);
-            var got = new List<string>();
-            int shutterN3 = r.problems.Count(p => p.StartsWith("door shutter-n3"));
-            if (tally.ContainsKey("doors")) got.Add("doors: " + (tally["doors"] - shutterN3));
-            if (tally.ContainsKey("rule 3")) got.Add("rule 3: " + string.Join(" ", r.problems.Where(p => p.StartsWith("rule 3")).Select(p => p.Split(' ')[4]).OrderBy(x => x)));
-            if (tally.ContainsKey("rule 1 corridor stubs")) got.Add("rule 1 corridor stubs: " + tally["rule 1 corridor stubs"]);
-            if (tally.ContainsKey("rule 1 pit")) got.Add("rule 1 pit: " + tally["rule 1 pit"]);
-            if (tally.ContainsKey("rule 2")) got.Add("rule 2");
-            foreach (var p in r.problems) if (Category(p) == p) got.Add("OTHER: " + p);
-            Assert.That(got, Is.EqualTo(Known.ToList()),
-                "the lint's findings changed. If a nudge landed in F1/F2, delete its line from Known; if a new finding appeared, read it:\n" + string.Join("\n", r.problems));
-            Assert.That(r.failedDoors, Is.InRange(8, 9));
-            Assert.That(r.failedCircles, Is.EqualTo(4));
-            Assert.That(r.failedExits, Is.EqualTo(11));
-            Assert.That(r.failedSight, Is.GreaterThan(100));
-            Assert.That(r.worstSeenShare, Is.InRange(0.7f, 0.85f));
+            Assert.That(r.problems, Is.Empty, string.Join("\n", r.problems));
+            Assert.That(r.failedDoors, Is.EqualTo(0));
+            Assert.That(r.failedCircles, Is.EqualTo(0));
+            Assert.That(r.failedExits, Is.EqualTo(0));
+            Assert.That(r.failedSight, Is.EqualTo(0));
+            Assert.That(r.minExits, Is.EqualTo(FloorRules.MinExits));
+            Assert.That(r.worstSeenShare, Is.LessThanOrEqualTo(FloorRules.MaxSeenShare), "of the ground-level doors the worst point sees 8 of 13 (about 62%)");
         }
 
         [Test]
@@ -344,122 +287,68 @@ namespace JamKit.Tests.Skyline
             Assert.That(r.notes[0], Does.Contain("shutter-s1").And.Contain("high-south-west"));
         }
 
-        // ---- the proposed nudges, verified on patched copies of the data
-
-        static FloorSolid Clone(FloorSolid s) => new FloorSolid
+        [Test]
+        public void TheLayoutDecisionsOfD23AreInTheData()
         {
-            id = s.id, role = s.role, box = s.box, runnable = s.runnable, glass = s.glass,
-            ramp = s.ramp, rampAlongX = s.rampAlongX, rampTopStart = s.rampTopStart, rampTopEnd = s.rampTopEnd,
-        };
-
-        static List<SpawnDoor> NudgedDoors()
-        {
-            var l = RepossessSites.Doors().Select(d => new SpawnDoor { id = d.id, kind = d.kind, position = d.position, yawDeg = d.yawDeg }).ToList();
-            foreach (var d in l)
-            {
-                var p = d.position;
-                switch (d.id)
-                {
-                    case "vent-corridor-n": p.Z = 26.8f; break;
-                    case "vent-corridor-s": p.Z = -26.8f; break;
-                    case "vent-leg-n": case "vent-leg-s": p.X = -34.3f; break;
-                    case "vent-promenade-n": case "vent-promenade-s": p.X = 34.3f; break;
-                    case "hatch-corridor-n": p.Z = 26f; break;
-                    case "hatch-corridor-s": p.Z = -26f; break;
-                }
-                d.position = p;
-            }
-            return l;
+            var ids = RepossessArena.Solids().Select(s => s.id).ToList();
+            Assert.That(ids, Does.Not.Contain("alcove-back-w").And.Not.Contain("alcove-back-e"), "the corridor stubs open onto the alcove");
+            Assert.That(RepossessArena.FrontDoorWidth, Is.EqualTo(4f));
+            var landing = RepossessArena.Find(RepossessArena.FacadeLandingId);
+            Assert.That(landing, Is.Not.Null);
+            Assert.That(landing.role, Is.EqualTo("deck"));
+            Assert.That(landing.box.min.X, Is.EqualTo(30.5f)); Assert.That(landing.box.max.X, Is.EqualTo(35f));
+            Assert.That(landing.box.min.Z, Is.EqualTo(9f)); Assert.That(landing.box.max.Z, Is.EqualTo(14.8f));
+            Assert.That(landing.box.max.Y, Is.EqualTo(2.8f));
+            var chute = RepossessArena.Find("chute");
+            Assert.That(chute.box.min.X, Is.EqualTo(-11f)); Assert.That(chute.box.max.X, Is.EqualTo(-8f));
+            var doors = RepossessSites.Doors().ToDictionary(d => d.id);
+            Assert.That(doors["vent-corridor-n"].position.Z, Is.EqualTo(27.05f)); Assert.That(doors["vent-corridor-s"].position.Z, Is.EqualTo(-27.05f));
+            Assert.That(doors["vent-leg-n"].position.X, Is.EqualTo(-34.55f)); Assert.That(doors["vent-leg-s"].position.X, Is.EqualTo(-34.55f));
+            Assert.That(doors["vent-promenade-n"].position.X, Is.EqualTo(34.55f)); Assert.That(doors["vent-promenade-s"].position.X, Is.EqualTo(34.55f));
+            Assert.That(doors["hatch-corridor-n"].position.Z, Is.EqualTo(27f)); Assert.That(doors["hatch-corridor-s"].position.Z, Is.EqualTo(-27f));
         }
 
-        static List<FloorSolid> NudgedSolids(bool column = true, bool frontDoors = true, bool alcove = true, bool landing = false)
+        // ---- the readings D23 chose, on synthetic levels
+
+        [Test]
+        public void ALowPropIsHoppedByRule1AndATallOneIsNot()
         {
-            var l = new List<FloorSolid>();
-            foreach (var s0 in RepossessArena.Solids())
-            {
-                if (column && s0.role == "column" && s0.box.min.Z > 0f && Math.Abs((s0.box.min.X + s0.box.max.X) * 0.5f) < 1f) continue;       // the column in front of shutter-n3, if one stands there
-                if (alcove && (s0.id == "alcove-back-w" || s0.id == "alcove-back-e")) continue;
-                var s = Clone(s0);
-                if (frontDoors && s.id.StartsWith("shopfront-") && (s.id.EndsWith("-l") || s.id.EndsWith("-r") || s.id.EndsWith("-lintel")))
-                {
-                    bool walkIn = s.id.Contains("-n2") || s.id.Contains("-n4") || s.id.Contains("-s2") || s.id.Contains("-s4");
-                    if (walkIn)
-                    {
-                        float cx = (s.id.Contains("n2") || s.id.Contains("s2")) ? -10.4f : 10.4f, half = 2f;     // FrontDoorWidth 4
-                        var b = s.box;
-                        if (s.id.EndsWith("-lintel")) { b.min.X = cx - half; b.max.X = cx + half; }
-                        else if (s.id.EndsWith("-l")) b.max.X = cx - half;
-                        else b.min.X = cx + half;
-                        s.box = b;
-                    }
-                }
-                l.Add(s);
-            }
-            if (landing)
-                l.Add(new FloorSolid { id = "facade-landing", role = "deck", box = new CoverBox { min = new Vector3(30.5f, 0f, 9f), max = new Vector3(RepossessArena.MaxX, 2.8f, 14.8f) } });
-            return l;
+            // a corridor open at both ends with a prop across it, wall to wall, north of the middle
+            FloorSolid Prop(float h) => new FloorSolid { id = "prop", role = "table", box = new CoverBox { min = new Vector3(-1.2f, 0f, 11f), max = new Vector3(1.2f, h, 12f) } };
+            var low = WithCorridor(false); low.Add(Prop(1.0f));
+            var tall = WithCorridor(false); tall.Add(Prop(1.3f));
+            var lowHop = ArenaNav.Build(low, 2f, ArenaNav.HopHeight);
+            Assert.That(ArenaLint.Exits(lowHop, lowHop.NodeAt(new Vector3(0f, 0f, 8f)), 10f), Is.EqualTo(2), "a 1.0 m table is hopped");
+            var lowNoHop = ArenaNav.Build(low, 2f, 0f);
+            Assert.That(ArenaLint.Exits(lowNoHop, lowNoHop.NodeAt(new Vector3(0f, 0f, 8f)), 10f), Is.EqualTo(1), "a wall of props without hopping");
+            var tallHop = ArenaNav.Build(tall, 2f, ArenaNav.HopHeight);
+            Assert.That(ArenaLint.Exits(tallHop, tallHop.NodeAt(new Vector3(0f, 0f, 8f)), 10f), Is.EqualTo(1), "1.3 m is too tall to hop");
+            Assert.That(ArenaLint.Run(low, new SpawnDoor[0], new SocketDef[0]).failedExits, Is.EqualTo(0));
+            Assert.That(ArenaLint.Run(tall, new SpawnDoor[0], new SocketDef[0]).failedExits, Is.GreaterThan(0), "a tall prop still closes the corridor off");
+            Assert.That(ArenaLint.Arena(RepossessArena.Solids(), RepossessSites.Doors(), new LintOptions { hopHeight = 0f }).failedExits, Is.GreaterThan(0),
+                "without hopping the pit's tables and planters make pockets");
         }
 
         [Test]
-        public void TheProposedNudgesClearTheirFindings()
+        public void RuleTwoCountsTheGroundDoorsAndLeavesTheRoofVentsOut()
         {
-            var doorsOnly = ArenaLint.Arena(RepossessArena.Solids(), NudgedDoors());
-            Assert.That(doorsOnly.problems.Where(p => p.StartsWith("door")).All(p => p.StartsWith("door shutter-n3")), Is.True, "moving the eight doors leaves at most shutter-n3 (the column in front of it)");
-
-            var all = ArenaLint.Arena(NudgedSolids(), NudgedDoors());
-            Assert.That(all.failedDoors, Is.EqualTo(0), string.Join("\n", all.problems.Where(p => p.StartsWith("door"))));
-            Assert.That(all.failedCircles, Is.EqualTo(0), "front doorways 4 m wide expose the shop circles from two bearings");
-            var sockets = RepossessSites.Sockets();
-            for (int i = 0; i < sockets.Length; i++)
-                Assert.That(all.circleExposure[i], Is.GreaterThanOrEqualTo(FloorRules.MinCircleExposure), sockets[i].id);
-            Assert.That(all.problems.Any(p => p.StartsWith("rule 1") && p.Contains("[corridor")), Is.False, "the corridor stubs open onto the alcove");
-            Assert.That(all.problems.Any(p => p.StartsWith("nav:") || p.StartsWith("runnable:") || p.StartsWith("circle:")), Is.False);
-            var left = Tally(all);
-            Assert.That(left.Keys.OrderBy(k => k), Is.EqualTo(new[] { "rule 1 pit", "rule 2" }), "only the open design calls are left: " + string.Join("\n", all.problems));
-            Assert.That(left["rule 1 pit"], Is.EqualTo(7));
+            // two rooms with three shutters each (each room sees half of the ground doors) and ten roof vents every point sees
+            var hall = new List<FloorSolid> { Slab("floor", -40f, 40f, -10f, 10f), Wall("divider", -0.2f, 0.2f, -10f, 10f) };
+            var doors = SixDoors();
+            for (int i = 0; i < 10; i++)
+                doors.Add(new SpawnDoor { id = "vent" + i, kind = DoorKind.SkylightVent, position = new Vector3(-27f + i * 6f, 13.6f, 0f) });
+            var byDesign = ArenaLint.Run(hall, doors, new SocketDef[0]);
+            Assert.That(byDesign.failedSight, Is.EqualTo(0), string.Join("\n", byDesign.problems));
+            Assert.That(byDesign.worstSeenShare, Is.EqualTo(0.5f).Within(1e-4f), "three of the six ground doors");
         }
 
         [Test]
-        public void EachNudgeAloneClearsOnlyItsOwnFinding()
+        public void RuleTwoWithTheVentsCountedFailsTheRealArenaOnManyPoints()
         {
-            var column = ArenaLint.Arena(NudgedSolids(true, false, false), RepossessSites.Doors());
-            Assert.That(column.problems.Any(p => p.StartsWith("door shutter-n3")), Is.False, "without the column the shutter has room");
-            Assert.That(column.failedCircles, Is.EqualTo(4));
-            var doors = ArenaLint.Arena(NudgedSolids(false, true, false), RepossessSites.Doors());
-            Assert.That(doors.failedCircles, Is.EqualTo(0));
-            Assert.That(doors.failedDoors, Is.EqualTo(Real.Value.failedDoors));
-            var alcove = ArenaLint.Arena(NudgedSolids(false, false, true), RepossessSites.Doors());
-            Assert.That(alcove.failedExits, Is.LessThan(Real.Value.failedExits));
-            Assert.That(alcove.problems.Any(p => p.Contains("[corridor")), Is.False);
-        }
-
-        [Test]
-        public void ALandingAgainstTheFacadeAddsNoFindingBeyondTheKnownOnes()
-        {
-            var r = ArenaLint.Arena(NudgedSolids(landing: true), NudgedDoors());
-            Assert.That(r.problems.Any(p => p.StartsWith("nav:")), Is.False, "the landing is a ledge, not an island");
-            Assert.That(Tally(r).Keys.OrderBy(k => k), Is.EqualTo(new[] { "rule 1 pit", "rule 2" }), string.Join("\n", r.problems));
-        }
-
-        [Test]
-        public void RuleTwoUnderOtherReadings()
-        {
-            // as the plan words it (27 doors, 14 of them roof vents every open point sees) it fails on well over a hundred points, worst about 78%
-            Assert.That(Real.Value.failedSight, Is.GreaterThan(100));
-            // leaving the vents out of the count: 13 doors on the ground and the rail ends; the promenade still sees 9 of them
-            var noVents = ArenaLint.Arena(RepossessArena.Solids(), RepossessSites.Doors(), new LintOptions { ventsCount = false });
-            Assert.That(noVents.failedSight, Is.InRange(1, Real.Value.failedSight / 2), "still fails, on far fewer points");
-            Assert.That(noVents.worstSeenShare, Is.InRange(0.6f, 0.8f));
-            Assert.That(Real.Value.worstSeenShare, Is.LessThan(0.85f), "a limit of 85% would pass the arena as it stands");
-        }
-
-        [Test]
-        public void RuleThreeUnderOtherViewerDistances()
-        {
-            // the plan puts the viewers 8 to 30 m from the circle's centre; a walk-in shop is 5.2 m deep and its corridor 3.5 m wide,
-            // so nobody stands 8 m from its centre behind it. From 4 m the shop circles are exposed from the ring and the corridor
-            var near = ArenaLint.Arena(RepossessArena.Solids(), RepossessSites.Doors(), new LintOptions { viewerMin = 4f });
-            Assert.That(near.failedCircles, Is.EqualTo(0));
+            // why the vents are out: overhead, seen from everywhere (the sheet's 27 doors would fail 70% on 125 points, worst 81%)
+            var withVents = ArenaLint.Arena(RepossessArena.Solids(), RepossessSites.Doors(), new LintOptions { ventsCount = true });
+            Assert.That(withVents.failedSight, Is.GreaterThan(100));
+            Assert.That(withVents.worstSeenShare, Is.InRange(0.75f, 0.85f));
         }
 
         [Test]

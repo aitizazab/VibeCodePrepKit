@@ -322,7 +322,7 @@ namespace JamKit.Tests.Skyline
             // 40 points on a 2 m grid (feet dropped from just above, settled with no input)
             var pts = new List<Vector3>();   // x, fromY, z
             void Add(float x, float z, float fromY) => pts.Add(new Vector3(x, fromY, z));
-            foreach (float x in new[] { 14f, 16f, 22f, 26f, 30f, 34f }) { Add(x, -14f, 2f); Add(x, 14f, 2f); }                  // 12: south and north ring
+            foreach (float x in new[] { 14f, 16f, 22f, 26f, 30f, 34f }) { Add(x, -14f, 2f); Add(x, 14f, x > 30.5f ? 4f : 2f); }   // 12: south and north ring (x 34 is the facade landing, top 2.8)
             for (float z = -8f; z <= 8f; z += 4f) Add(24f, z, 2f);                                         // 5: east ring
             for (float x = -14f; x <= 10f; x += 4f) Add(x, 12f, 2f);                                       // 7: pit rim north
             Add(-20f, -8f, 2f); Add(-20f, 0f, 2f); Add(-28f, 6f, 2f);                                      // 3: west ring

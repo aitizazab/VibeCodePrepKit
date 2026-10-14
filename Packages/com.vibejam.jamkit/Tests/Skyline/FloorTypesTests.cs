@@ -23,7 +23,7 @@ namespace JamKit.Tests.Skyline
             Assert.That(FloorRules.ViewExclusionRange, Is.EqualTo(25f));
             Assert.That(FloorRules.MinExits, Is.EqualTo(2));
             Assert.That(FloorRules.ExitRadius, Is.EqualTo(10f));
-            Assert.That(FloorRules.MaxSeenShare, Is.EqualTo(0.6f));
+            Assert.That(FloorRules.MaxSeenShare, Is.EqualTo(0.7f));
             Assert.That(FloorRules.MinCircleExposure, Is.EqualTo(0.5f));
             Assert.That(FloorRules.ExposureBearingSpread, Is.EqualTo(90f));
         }

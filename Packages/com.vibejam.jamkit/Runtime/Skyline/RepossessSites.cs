@@ -124,15 +124,18 @@ namespace JamKit.Skyline
                     Vent("vent-e-s", 26f, -12f),
                     Vent("vent-c-n", -4f, 22f),
                     Vent("vent-c-s", -4f, -22f),
+                    // (Decision D23, 2026-10-14: the end vents and the corridor hatches sit as close to the wall as their bodies allow, 0.45 m and
+                    // 0.5 m: the lint's door-body check wants them off the wall, and the corner points of the coverage grid below want them just
+                    // outside the player's reachable box so that the bearings keep their 90 degrees.)
                     // Roof vents added so every spot of the hall has a legal spawn pair (W2's SpawnBearings: 15 m away, 90 degrees
                     // apart; the drone and gondola waves too). Without them the end bands (x beyond 21 m, the leg, the corridor ends)
                     // had none. Above the corridors, the west leg, the east promenade, and the skylight frame's west edge.
-                    Vent("vent-corridor-n", 10f, 27.4f),
-                    Vent("vent-corridor-s", 10f, -27.4f),
-                    Vent("vent-leg-n", -34.9f, 10f),
-                    Vent("vent-leg-s", -34.9f, -10f),
-                    Vent("vent-promenade-n", 34.9f, 10f),
-                    Vent("vent-promenade-s", 34.9f, -10f),
+                    Vent("vent-corridor-n", 10f, 27.05f),
+                    Vent("vent-corridor-s", 10f, -27.05f),
+                    Vent("vent-leg-n", -34.55f, 10f),
+                    Vent("vent-leg-s", -34.55f, -10f),
+                    Vent("vent-promenade-n", 34.55f, 10f),
+                    Vent("vent-promenade-s", 34.55f, -10f),
                     Vent("vent-w-frame-n", -30f, 18f),
                     Vent("vent-w-frame-s", -30f, -18f),
                     // Service hatches: the corridors' east ends open east onto the promenade; the west leg's open east into the hall.
@@ -141,8 +144,8 @@ namespace JamKit.Skyline
                     Door("hatch-w-n", DoorKind.ServiceHatch, -33f, 0f, 14f, 90f),
                     Door("hatch-w-s", DoorKind.ServiceHatch, -33f, 0f, -14f, 90f),
                     // Corridor hatches (added with the roof vents above): a floor-care unit starts in the corridor behind the shop row.
-                    Door("hatch-corridor-n", DoorKind.ServiceHatch, -10f, 0f, 27.4f, 180f),
-                    Door("hatch-corridor-s", DoorKind.ServiceHatch, -10f, 0f, -27.4f, 0f),
+                    Door("hatch-corridor-n", DoorKind.ServiceHatch, -10f, 0f, 27f, 180f),
+                    Door("hatch-corridor-s", DoorKind.ServiceHatch, -10f, 0f, -27f, 0f),
                     // The façade rail's ends, outside the glass, facing in (west).
                     Door("rail-n", DoorKind.RailEnd, 36.5f, RailY, 27f, 270f),
                     Door("rail-s", DoorKind.RailEnd, 36.5f, RailY, -27f, 270f),
@@ -249,14 +252,15 @@ namespace JamKit.Skyline
                         P(-26f, 0f, 0f), P(-29f, 0f, 0f),
                     }),
                     // The façade: from the east ring up the glass north along x 35 (30 m, so a second run after a kick off the
-                    // wall), then a mantle onto the north gallery's lip at z 15.
+                    // wall), then onto the facade-landing (a jump and a mantle, top 2.8, decision D23) and from its top a jump
+                    // and a double jump to the north gallery's lip at z 15 (a wall-run alone tops out under the deck: F3's finding).
                     Route("facade-wall-run", new[]
                     {
-                        P(28f, 0f, -10f), P(34f, 0f, -14f), P(34.6f, 2.5f, -14f), P(34.6f, 2.5f, 0f), P(34.6f, 4f, 14f),
-                        P(33.5f, 6f, 16.5f),
+                        P(28f, 0f, -10f), P(34f, 0f, -14f), P(34.6f, 2.5f, -14f), P(34.6f, 2.5f, 1f), P(32.5f, 2.8f, 12f),
+                        P(32.5f, 6f, 17.5f),
                     },
-                    H(2, MoveHintKind.WallRun), H(3, MoveHintKind.WallRun), H(4, MoveHintKind.DoubleJump),
-                    H(5, MoveHintKind.Mantle)),
+                    H(2, MoveHintKind.WallRun), H(3, MoveHintKind.WallRun), H(4, MoveHintKind.Mantle),
+                    H(5, MoveHintKind.DoubleJump)),
                 };
             }
             // Deep-ish copy: the arrays are new, the waypoint and hint values are structs.

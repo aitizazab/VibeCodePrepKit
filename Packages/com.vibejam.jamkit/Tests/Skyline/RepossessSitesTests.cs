@@ -221,7 +221,7 @@ namespace JamKit.Tests.Skyline
             Assert.That(vents.Take(6), Is.EquivalentTo(new[] { (-26f, 12f), (-26f, -12f), (26f, 12f), (26f, -12f), (-4f, 22f), (-4f, -22f) }), "the sheet's six");
             Assert.That(vents.Skip(6), Is.EquivalentTo(new[]
             {
-                (10f, 27.4f), (10f, -27.4f), (-34.9f, 10f), (-34.9f, -10f), (34.9f, 10f), (34.9f, -10f), (-30f, 18f), (-30f, -18f),
+                (10f, 27.05f), (10f, -27.05f), (-34.55f, 10f), (-34.55f, -10f), (34.55f, 10f), (34.55f, -10f), (-30f, 18f), (-30f, -18f),
             }), "the eight added for spawn coverage");
             var shutters = RepossessSites.Doors().Where(d => d.kind == DoorKind.ShopShutter).Select(d => (d.position.X, d.position.Z));
             Assert.That(shutters, Is.EquivalentTo(new[] { (-20.8f, 18f), (0f, 18f), (20.8f, 18f), (-20.8f, -18f), (20.8f, -18f) }));
@@ -443,7 +443,8 @@ namespace JamKit.Tests.Skyline
         {
             RouteDef r = RepossessSites.Routes().First(x => x.id == "facade-wall-run");
             Assert.That(Enumerable.Range(1, r.waypoints.Length - 1).Select(r.HintAt), Does.Contain(MoveHintKind.WallRun));
-            Assert.That(r.HintAt(r.waypoints.Length - 1), Is.EqualTo(MoveHintKind.Mantle));
+            Assert.That(Enumerable.Range(1, r.waypoints.Length - 1).Select(r.HintAt), Does.Contain(MoveHintKind.Mantle), "up onto the facade-landing");
+            Assert.That(r.HintAt(r.waypoints.Length - 1), Is.EqualTo(MoveHintKind.DoubleJump), "from its top, a jump and a double jump put the deck lip within a mantle");
             Vector3 last = r.waypoints[r.waypoints.Length - 1];
             Assert.That(last.Y, Is.EqualTo(6f), "ends on the gallery deck");
             Assert.That(last.Z, Is.GreaterThan(15f), "past the lip at z 15");
