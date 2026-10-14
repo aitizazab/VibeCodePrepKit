@@ -27,7 +27,7 @@ namespace JamKit.Tests.Skyline
             Assert.That(r.Step, Is.EqualTo(0));
             Assert.That(r.CurrentKind, Is.EqualTo(RelayStepKind.Button));
             Assert.That(r.CurrentStation, Is.EqualTo(r.ButtonStation));
-            Assert.That(r.Remaining, Is.EqualTo(100f));
+            Assert.That(r.Remaining, Is.EqualTo(RelayRun.DefaultSeconds));
             Assert.That(r.Outcome, Is.EqualTo(RelayOutcome.Running));
         }
 

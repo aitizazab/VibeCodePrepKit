@@ -53,13 +53,16 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
-        public void TheCatwalkIsReachedByTheRampAndTheWalkIsLonger()
+        public void TheCatwalkHasNoWalkButTheFastRouteGivesEveryHopALength()
         {
             Assert.That(RelayArena.IsHigh(5), Is.True);
             Assert.That(RelayArena.IsHigh(0), Is.False);
-            // C (the middle) to F (the catwalk) is 15 m straight but the ramp is on the west wall: the walk is far longer
-            float straight = Vector3.Distance(RelayArena.Stations[2], RelayArena.Stations[5]);
-            Assert.That(RelayTestKit.Real.PathLength(2, 5), Is.GreaterThan(straight * 2f));
+            for (int a = 0; a < 5; a++)
+            {
+                Assert.That(RelayTestKit.Real.WalkLength(a, 5), Is.LessThan(0f), "no walk from " + RelayArena.Letter(a) + " to the catwalk");
+                Assert.That(RelayTestKit.Real.WalkLength(5, a), Is.LessThan(0f), "no walk back either");
+                Assert.That(RelayTestKit.Real.PathLength(a, 5), Is.GreaterThan(Vector3.Distance(RelayArena.Stations[a], RelayArena.Stations[5])));
+            }
         }
 
         [Test]
@@ -95,14 +98,18 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
-        public void TheSpawnPointsAreClearOfTheStationsAndTheRamp()
+        public void TheSpawnPointsAreClearOfTheStationsTheWallsAndTheBlocks()
         {
             foreach (var p in RelayArena.AirSpawns.Concat(RelayArena.FloorSpawns))
             {
                 foreach (var s in RelayArena.Stations)
                     Assert.That(System.Math.Sqrt((p.X - s.X) * (p.X - s.X) + (p.Z - s.Z) * (p.Z - s.Z)), Is.GreaterThanOrEqualTo(4.0), $"{p} is near a station");
-                bool onRamp = p.X > RelayArena.RampMinX - 1f && p.X < RelayArena.RampMaxX + 1f && p.Z > RelayArena.RampStartZ - 1f && p.Z < RelayArena.RampDownEndZ + 1f;
-                Assert.That(onRamp, Is.False, $"{p} is on the ramp");
+                foreach (var s in RelayArena.StageSolids())
+                {
+                    var b = s.box;
+                    bool inside = p.X > b.min.X - 1f && p.X < b.max.X + 1f && p.Z > b.min.Z - 1f && p.Z < b.max.Z + 1f && p.Y < b.max.Y + 0.8f;
+                    Assert.That(inside, Is.False, $"{p} is in or by {s.id}");
+                }
             }
         }
     }

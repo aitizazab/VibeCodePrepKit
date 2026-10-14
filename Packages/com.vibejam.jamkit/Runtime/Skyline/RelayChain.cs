@@ -32,17 +32,23 @@ namespace JamKit.Skyline
         float StartPathLength(int station);
     }
 
-    /// <summary>A walking-distance table for the stations (built once from <see cref="ArenaNav"/>, or by hand in tests).</summary>
+    /// <summary>The route lengths between the stations: the walk (by A* on the walkable graph, each end corrected by the distance
+    /// from the station to its nearest node; negative where none exists, as to the catwalk) and the fast way
+    /// (<see cref="RelayRoutes.Skilled"/>). <see cref="PathLength"/> is the walk where there is one and the fast way where there is not,
+    /// so every hop has a length (the cable is sized by it). Built once from <see cref="ArenaNav"/>, or by hand in tests.</summary>
     public sealed class RelayStationMap : IRelayMap
     {
         readonly Vector3[] _pos;
-        readonly float[,] _path;
+        readonly float[,] _path, _walk;
         readonly float[] _start;
 
-        public RelayStationMap(Vector3[] positions, float[,] path, float[] startPath)
+        public RelayStationMap(Vector3[] positions, float[,] path, float[] startPath) : this(positions, path, path, startPath) { }
+
+        public RelayStationMap(Vector3[] positions, float[,] path, float[,] walk, float[] startPath)
         {
             _pos = positions;
             _path = path;
+            _walk = walk;
             _start = startPath;
         }
 
@@ -50,24 +56,31 @@ namespace JamKit.Skyline
         public Vector3 Position(int station) => _pos[station];
         public float PathLength(int from, int to) => _path[from, to];
         public float StartPathLength(int station) => _start[station];
+        /// <summary>The walk-only length between two stations; negative when none exists.</summary>
+        public float WalkLength(int from, int to) => _walk[from, to];
 
-        /// <summary>The map of <see cref="RelayArena"/> over its own solids: path lengths by A* on the walkable graph, each end
-        /// corrected by the distance from the station to its nearest node.</summary>
         public static RelayStationMap Build(ArenaNav nav)
         {
             int n = RelayArena.StationCount;
             var pos = (Vector3[])RelayArena.Stations.Clone();
             var path = new float[n, n];
+            var walk = new float[n, n];
             var start = new float[n];
             var nodes = new int[n];
             for (int i = 0; i < n; i++) nodes[i] = nav.NodeAt(pos[i]);
             int startNode = nav.NodeAt(RelayArena.PlayerStart);
             for (int i = 0; i < n; i++)
             {
-                start[i] = Walk(nav, RelayArena.PlayerStart, startNode, pos[i], nodes[i]);
-                for (int j = 0; j < n; j++) path[i, j] = i == j ? 0f : Walk(nav, pos[i], nodes[i], pos[j], nodes[j]);
+                float s = Walk(nav, RelayArena.PlayerStart, startNode, pos[i], nodes[i]);
+                start[i] = s >= 0f ? s : RelayRoutes.Skilled(RelayArena.PlayerStart, pos[i]).Length;
+                for (int j = 0; j < n; j++)
+                {
+                    float w = i == j ? 0f : Walk(nav, pos[i], nodes[i], pos[j], nodes[j]);
+                    walk[i, j] = w;
+                    path[i, j] = w >= 0f ? w : RelayRoutes.Skilled(pos[i], pos[j]).Length;
+                }
             }
-            return new RelayStationMap(pos, path, start);
+            return new RelayStationMap(pos, path, walk, start);
         }
 
         static float Walk(ArenaNav nav, Vector3 a, int na, Vector3 b, int nb)

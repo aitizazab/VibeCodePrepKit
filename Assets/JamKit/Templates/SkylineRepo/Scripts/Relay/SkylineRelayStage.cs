@@ -1,86 +1,54 @@
-using System.Collections.Generic;
 using JamKit.Skyline;
 using UnityEngine;
 
 namespace JamKit.SkylineRepo
 {
     /// <summary>
-    /// The Relay's one change to the hall's geometry (docs/SKYLINE-RELAY.md): the ramp up the west wall to the mezzanine
-    /// (<see cref="RelayArena.RampSolids"/>), so the catwalk station can be walked to. Built at run time, one object per solid:
-    /// wedges (a convex mesh and mesh collider) for the two ramps and a box for the landing, in flat InkLit colours.
+    /// The Relay's change to the hall's geometry (docs/SKYLINE-RELAY.md), built at run time from <see cref="RelayArena.StageSolids"/>:
+    /// the four lane walls (a jump and a mantle high, with an opening at one end each) and the two climbing blocks to the catwalk.
+    /// A bright cap strip along the top of every one marks it as a ledge to mantle. M1's own hall cover and the mezzanine's glass
+    /// upstand are turned off (the upstand's face would stop the mantle onto the deck; the cover would sit in the lanes).
+    /// No ramps and no stairs.
     /// </summary>
     public static class SkylineRelayStage
     {
-        static readonly Color RampColor = new Color(0.80f, 0.74f, 0.62f), LandingColor = new Color(0.86f, 0.85f, 0.82f);
+        static readonly Color WallColor = new Color(0.72f, 0.76f, 0.84f), BlockColor = new Color(0.86f, 0.74f, 0.55f);
 
-        /// <summary>Builds the ramp pieces under a new "Relay Stage" object and returns it.</summary>
-        public static Transform BuildRamp()
+        /// <summary>Builds the walls and blocks under a new "Relay Stage" object, turns M1's cover and glass upstand off, returns the object.</summary>
+        public static Transform Build()
         {
             var root = new GameObject("Relay Stage").transform;
-            foreach (var s in RelayArena.RampSolids())
+            foreach (var s in RelayArena.StageSolids())
             {
-                var mat = SkylineInkRoles.Flat(s.ramp ? RampColor : LandingColor, SkylineInkRoles.None) ?? SkylineBotLook.Lit(RampColor);
-                if (s.ramp) Wedge(root, s, mat);
-                else
-                {
-                    var go = SkylineBotLook.Visual(PrimitiveType.Cube, s.id, root, mat);
-                    Vector3 min = U(s.box.min), max = U(s.box.max);
-                    go.transform.position = (min + max) * 0.5f;
-                    go.transform.localScale = max - min;
-                    go.AddComponent<BoxCollider>();
-                }
+                bool block = s.id.StartsWith("climb", System.StringComparison.Ordinal);
+                var mat = SkylineInkRoles.Flat(block ? BlockColor : WallColor, SkylineInkRoles.None) ?? SkylineBotLook.Lit(WallColor);
+                Vector3 min = U(s.box.min), max = U(s.box.max);
+                var go = SkylineBotLook.Visual(PrimitiveType.Cube, s.id, root, mat);
+                go.transform.position = (min + max) * 0.5f;
+                go.transform.localScale = max - min;
+                go.AddComponent<BoxCollider>();
+                // the cap strip: a thin bright slab on top, not solid
+                var cap = SkylineBotLook.Visual(PrimitiveType.Cube, s.id + " cap", root,
+                    SkylineInkRoles.Flat(SkylineRelayProp.Orange, SkylineInkRoles.None) ?? SkylineBotLook.Lit(SkylineRelayProp.Orange), false);
+                cap.transform.position = new Vector3((min.x + max.x) * 0.5f, max.y + 0.02f, (min.z + max.z) * 0.5f);
+                cap.transform.localScale = new Vector3(max.x - min.x + 0.02f, 0.05f, Mathf.Min(max.z - min.z, 0.3f));
             }
+            TurnOffM1();
             return root;
         }
 
-        static Vector3 U(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
-
-        /// <summary>A ramp whose top slopes along Z from <c>rampTopStart</c> at the box's minimum z to <c>rampTopEnd</c> at its maximum,
-        /// down to the box's bottom: a solid wedge (flat-shaded, six faces).</summary>
-        static void Wedge(Transform parent, FloorSolid s, Material mat)
+        /// <summary>Turns off M1's hall cover (the group named Cover in the Main Hall) and the mezzanine's glass upstand.</summary>
+        static void TurnOffM1()
         {
-            float x0 = s.box.min.X, x1 = s.box.max.X, z0 = s.box.min.Z, z1 = s.box.max.Z, yb = s.box.min.Y;
-            float h0 = s.rampTopStart, h1 = s.rampTopEnd;
-            var p = new[]
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             {
-                new Vector3(x0, yb, z0), new Vector3(x1, yb, z0), new Vector3(x1, yb, z1), new Vector3(x0, yb, z1),   // bottom 0..3
-                new Vector3(x0, h0, z0), new Vector3(x1, h0, z0), new Vector3(x1, h1, z1), new Vector3(x0, h1, z1),   // top 4..7
-            };
-            Vector3 centre = Vector3.zero;
-            foreach (var v in p) centre += v;
-            centre /= p.Length;
-            var verts = new List<Vector3>();
-            var tris = new List<int>();
-            void Quad(int a, int b, int c, int d)
-            {
-                // flat face: four corners, wound so that the face looks outward (away from the solid's centre)
-                Vector3 n = Vector3.Cross(p[b] - p[a], p[c] - p[a]);
-                Vector3 mid = (p[a] + p[b] + p[c] + p[d]) * 0.25f;
-                if (Vector3.Dot(n, mid - centre) < 0f) { int t = b; b = d; d = t; }
-                int i = verts.Count;
-                verts.Add(p[a]); verts.Add(p[b]); verts.Add(p[c]); verts.Add(p[d]);
-                tris.AddRange(new[] { i, i + 1, i + 2, i, i + 2, i + 3 });
+                if (t == null) continue;
+                bool cover = t.name == "Cover" && t.parent != null && t.parent.name == "Main Hall";
+                bool rail = t.name.StartsWith("Mezzanine Balustrade", System.StringComparison.Ordinal);
+                if (cover || rail) t.gameObject.SetActive(false);
             }
-            Quad(0, 1, 2, 3);       // bottom
-            Quad(4, 5, 6, 7);       // the sloped top
-            Quad(0, 1, 5, 4);       // the low end (a sliver when the top starts at the bottom)
-            Quad(3, 2, 6, 7);       // the high end
-            Quad(0, 3, 7, 4);       // west side
-            Quad(1, 2, 6, 5);       // east side
-            var mesh = new Mesh { name = s.id };
-            mesh.SetVertices(verts);
-            mesh.SetTriangles(tris, 0);
-            var uv = new Vector2[verts.Count];
-            mesh.uv = uv;
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            var go = new GameObject(s.id);
-            go.transform.SetParent(parent, false);
-            go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
-            var col = go.AddComponent<MeshCollider>();
-            col.sharedMesh = mesh;
-            col.convex = true;
         }
+
+        static Vector3 U(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
     }
 }

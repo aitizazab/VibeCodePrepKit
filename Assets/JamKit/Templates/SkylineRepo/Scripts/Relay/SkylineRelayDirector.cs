@@ -12,7 +12,7 @@ namespace JamKit.SkylineRepo
     /// The Relay (docs/SKYLINE-RELAY.md): a timed chain across six stations in M1's hall while waves of bots shoot at the Unit.
     /// <see cref="SkylineRelayMode"/> adds this to the arena scene when the mode is on, and <see cref="SkylineArenaDirector"/> stays
     /// off. The rules are pure (<see cref="RelayRun"/>, <see cref="RelayWaves"/>, <see cref="RelayArena"/>); this class is the
-    /// Unity side: it builds the ramp to the catwalk and the six props, reads the interact press (E, or the pad's B), moves the
+    /// Unity side: it builds the lane walls, the climbing blocks and the six props, reads the interact press (E, or the pad's B), moves the
     /// cable's costs onto the player, draws the tether, spawns the waves, and handles the wipe through the player's own wreck flow.
     /// <para>Logs (for the automated pass): <c>SKYLINE_RELAY start order=&lt;letters&gt; seconds=&lt;n&gt;</c>,
     /// <c>SKYLINE_RELAY step &lt;i&gt; &lt;kind&gt; done at &lt;t&gt;</c>, <c>SKYLINE_RELAY won|wiped at &lt;t&gt;</c> (t: run seconds), and
@@ -86,7 +86,7 @@ namespace JamKit.SkylineRepo
             if (_hud == null || _hud.Safe == null || !SkylineStartCover.Done || SkylinePrewarm.Busy) return;
             if (!_ui.Build(_hud)) return;
 
-            _stage = SkylineRelayStage.BuildRamp();
+            _stage = SkylineRelayStage.Build();
             _botsRoot = new GameObject("Relay Bots").transform;
             _propsRoot = new GameObject("Relay Stations").transform;
             _tether = new SkylineRelayTether(transform);

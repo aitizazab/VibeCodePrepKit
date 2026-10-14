@@ -40,7 +40,7 @@ namespace JamKit.Skyline
     /// </summary>
     public sealed class RelayRun
     {
-        public const float DefaultSeconds = 100f, ButtonHold = 0.5f, CarryScale = 0.75f, KeycardPop = 0.6f;
+        public const float DefaultSeconds = 60f, ButtonHold = 0.5f, CarryScale = 0.75f, KeycardPop = 0.6f;
         public const int StepCount = 5;
 
         readonly IRelayMap _map;

@@ -190,7 +190,9 @@ namespace JamKit.SkylineRepo
             // Aim slows the walk by scaling the move vector given to the engine (the engine itself is shared and untouched), and
             // ends a sprint: no sprint while aim is held, and a toggled sprint (the pad's L3) is stopped once by dropping the
             // forward push below the engine's stop line for one step.
-            float k = AimMoveScale * MoveScale;
+            // The engine reads a stick as full from MoveDef.stickFullAt up, so a plain 0.75 would change nothing: the cable asks for
+            // 75% of the walk, which is a stick of 0.75 x stickFullAt.
+            float k = AimMoveScale * (MoveScale < 1f ? MoveScale * (sim != null ? sim.def.stickFullAt : 0.7f) : 1f);
             float mx = _frame.move.x * k, my = _frame.move.y * k;
             bool sprintHeld = _frame.sprintHeld, sprintToggle = _frame.sprintTogglePressed;
             if (_aimWanted || SprintBlocked) { sprintHeld = false; sprintToggle = false; }
