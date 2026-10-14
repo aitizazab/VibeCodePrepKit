@@ -215,7 +215,13 @@ namespace JamKit.SkylineRepo
             _cover.Add(Rect.MinMaxRect(pc.X - ph, pc.Z - ph, pc.X + ph, pc.Z + ph));
             var wr = GalleriaArena.WallRunLedge;
             _cover.Add(Rect.MinMaxRect(wr.min.X, wr.min.Z, wr.max.X, wr.max.Z));
+            // the walker's shortest way round them (fix "stuck": the old one-corner detour walked into the booth's screens)
+            var boxes = new List<(System.Numerics.Vector2 min, System.Numerics.Vector2 max)>(_cover.Count);
+            foreach (var r in _cover) boxes.Add((new System.Numerics.Vector2(r.xMin, r.yMin), new System.Numerics.Vector2(r.xMax, r.yMax)));
+            _path = new CoverPath(boxes, CoverMargin, CornerMargin);
         }
+
+        static CoverPath _path;
 
         float Range(float a, float b) => a + (float)_rng.NextDouble() * (b - a);
 
@@ -721,7 +727,7 @@ namespace JamKit.SkylineRepo
             }
             string mode = "";
             float start = Time.time, lastSeen = start, lastDamage = start, nextFlip = 0f, strafe = 1f, advanceRepick = 0f;
-            float health = Health(i), watchStart = 0f, watchRepick = 0f, limitFrom = start;
+            float health = Health(i), watchStart = 0f, watchRepick = 0f, limitFrom = start, survivorsLogAt = 0f;
             bool advancing = false, watchdog = false, reachedHide = false;
             Vector3 watchPos = Feet(), advancePos = Feet(), lastAim = Vector3.zero;
             SkylineBot lastTarget = null;
@@ -745,6 +751,13 @@ namespace JamKit.SkylineRepo
                     watchRepick = 0f;
                     _tac = Tactic.None;
                     Log("watchdog " + id + (now - limitFrom > FightLimit ? " fight-time" : " no-damage"));
+                    LogSurvivors(i, id, feet);
+                    survivorsLogAt = now + SurvivorsEvery;
+                }
+                else if (watchdog && now >= survivorsLogAt)
+                {
+                    LogSurvivors(i, id, feet);
+                    survivorsLogAt = now + SurvivorsEvery;
                 }
                 if (watchdog && lastDamage > watchStart)
                 {
@@ -1118,7 +1131,7 @@ namespace JamKit.SkylineRepo
                     float dist = s == 0 ? 1.4f : 2.4f;
                     Vector3 q = duck + dir * dist;
                     if (q.x < GalleriaArena.HallMinX + 1f || q.x > GalleriaArena.HallMaxX - 1f || q.z < GalleriaArena.HallMinZ + 1f || q.z > GalleriaArena.HallMaxZ - 1f) continue;
-                    if (InCover(q) || FirstBlocking(new Vector2(duck.x, duck.z), new Vector2(q.x, q.z), -1) >= 0) continue;
+                    if (InCover(q) || !_path.Clear(new System.Numerics.Vector2(duck.x, duck.z), new System.Numerics.Vector2(q.x, q.z))) continue;
                     Vector3 eye = new Vector3(q.x, eyeY, q.z);
                     bool shot = false;
                     int seen = 0;
@@ -1305,6 +1318,35 @@ namespace JamKit.SkylineRepo
                 _reload = true;
                 yield return null;
             }
+        }
+
+        /// <summary>How often (s) the survivors are logged again while the watchdog is on.</summary>
+        const float SurvivorsEvery = 15f;
+
+        /// <summary>Fix "stuck" (2026-10-14): names every live bot of encounter <paramref name="i"/> when the watchdog fires (and
+        /// every <see cref="SurvivorsEvery"/> s while it stays on), so a stalled fight is diagnosable from the log alone:
+        /// <c>SKYLINE_DEMO survivors &lt;id&gt; n=&lt;count&gt; demo (x, y, z) | &lt;bot&gt; (x, y, z) awake|asleep
+        /// line|no-line &lt;metres&gt; m chassis &lt;hp&gt; ...</c> (line: a shot from the demo's eye would land on it now).</summary>
+        void LogSurvivors(int i, string id, Vector3 feet)
+        {
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            string P(Vector3 v) => "(" + v.x.ToString("F1", inv) + ", " + v.y.ToString("F1", inv) + ", " + v.z.ToString("F1", inv) + ")";
+            var sb = new System.Text.StringBuilder(256);
+            Vector3 eye = player.EyePosition;
+            var bots = director.BotsOf(i);
+            int n = 0;
+            for (int k = 0; k < bots.Count; k++)
+            {
+                var b = bots[k];
+                if (b == null || !b.Alive) continue;
+                n++;
+                bool line = LineOfFire(b, eye, out _);
+                sb.Append(" | ").Append(b.Id).Append(' ').Append(P(b.Center))
+                  .Append(b.IsAwake ? " awake" : " asleep").Append(line ? " line " : " no-line ")
+                  .Append(Vector3.Distance(eye, b.Center).ToString("F1", inv)).Append(" m chassis ")
+                  .Append(b.Body.Chassis.ToString("F0", inv));
+            }
+            Log("survivors " + id + " n=" + n + " demo " + P(feet) + sb);
         }
 
         /// <summary>What is left of encounter <paramref name="i"/>'s live bots (chassis and plates): it drops when any is damaged
@@ -1569,77 +1611,16 @@ namespace JamKit.SkylineRepo
             _sprint = sprint;
         }
 
-        /// <summary>The way to <paramref name="goal"/> round the cover boxes: straight if clear, else toward the best corner of
-        /// the first box in the way (as FightSim's floor-care detour), a few boxes deep.</summary>
+        /// <summary>The way to <paramref name="goal"/> round the cover boxes: straight if clear, else toward the next corner of
+        /// the shortest way round (<see cref="CoverPath"/>; fix "stuck", 2026-10-14: the old greedy one-corner detour ignored a
+        /// box whose margin the demo stood in and couldn't leave the booth's U, so passes 0700 and 0735 walked into the
+        /// booth's north screen for the rest of the food court).</summary>
         static Vector3 PathDirection(Vector3 from, Vector3 goal)
         {
-            Vector2 a = new Vector2(from.x, from.z), g = new Vector2(goal.x, goal.z);
-            Vector2 next = NextWaypoint(a, g, 3);
-            Vector2 d = next - a;
+            if (_path == null) BuildCover();
+            var next = _path.Next(new System.Numerics.Vector2(from.x, from.z), new System.Numerics.Vector2(goal.x, goal.z));
+            Vector2 d = new Vector2(next.X - from.x, next.Y - from.z);
             return d.sqrMagnitude > 1e-6f ? new Vector3(d.x, 0f, d.y).normalized : Vector3.zero;
-        }
-
-        static Vector2 NextWaypoint(Vector2 a, Vector2 g, int depth)
-        {
-            int box = FirstBlocking(a, g, -1);
-            if (box < 0 || depth <= 0) return g;
-            var r = _cover[box];
-            float m = CornerMargin;
-            Vector2[] corners =
-            {
-                new Vector2(r.xMin - m, r.yMin - m), new Vector2(r.xMax + m, r.yMin - m),
-                new Vector2(r.xMin - m, r.yMax + m), new Vector2(r.xMax + m, r.yMax + m),
-            };
-            Vector2 best = g;
-            float bestCost = float.PositiveInfinity;
-            foreach (var c in corners)
-            {
-                if ((c - a).sqrMagnitude < 0.04f) continue;
-                if (Blocks(_cover[box], a, c)) continue;
-                float cost = (c - a).magnitude + (g - c).magnitude;
-                if (cost < bestCost) { bestCost = cost; best = c; }
-            }
-            if (float.IsInfinity(bestCost)) return g;
-            return NextWaypoint(a, best, depth - 1);
-        }
-
-        static int FirstBlocking(Vector2 a, Vector2 b, int skip)
-        {
-            int best = -1;
-            float bestD = float.PositiveInfinity;
-            for (int i = 0; i < _cover.Count; i++)
-            {
-                if (i == skip || !Blocks(_cover[i], a, b)) continue;
-                float d = (_cover[i].center - a).sqrMagnitude;
-                if (d < bestD) { bestD = d; best = i; }
-            }
-            return best;
-        }
-
-        /// <summary>The segment a-b passes through the box grown by the cover margin (a start inside it doesn't count).</summary>
-        static bool Blocks(Rect r, Vector2 a, Vector2 b)
-        {
-            var g = Rect.MinMaxRect(r.xMin - CoverMargin, r.yMin - CoverMargin, r.xMax + CoverMargin, r.yMax + CoverMargin);
-            if (g.Contains(a)) return false;
-            // slab test
-            float t0 = 0f, t1 = 1f;
-            Vector2 d = b - a;
-            for (int axis = 0; axis < 2; axis++)
-            {
-                float p = axis == 0 ? a.x : a.y, dv = axis == 0 ? d.x : d.y;
-                float lo = axis == 0 ? g.xMin : g.yMin, hi = axis == 0 ? g.xMax : g.yMax;
-                if (Mathf.Abs(dv) < 1e-6f)
-                {
-                    if (p <= lo || p >= hi) return false;
-                    continue;
-                }
-                float u0 = (lo - p) / dv, u1 = (hi - p) / dv;
-                if (u0 > u1) { float t = u0; u0 = u1; u1 = t; }
-                t0 = Mathf.Max(t0, u0);
-                t1 = Mathf.Min(t1, u1);
-                if (t0 >= t1) return false;
-            }
-            return true;
         }
     }
 }
