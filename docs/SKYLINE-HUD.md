@@ -43,3 +43,15 @@ crosshair; at most two on screen.
 
 Adds the hires' portraits and abilities, run currency (scrap and commission), the floor modifier, CONCIERGE's counter
 notices, and a compass.
+
+## Feedback flashes and styling (the creator, 2026-10-14)
+
+- **Plating gained** from stripping a wreck: the screen edges flash a light blue (the plating colour), briefly.
+- **Special ammo picked up** while a special weapon is out: the ammo counter flashes green.
+- **Wrecks you can strip** are outlined light blue; the outline thins as the strip window closes and flashes out over
+  its last 0.4 s (`SKYLINE-STYLE.md`, rule 2).
+- **Not generic boxes:** "the HUD health bar and ammo counter should be stylized, not generic rounded boxes and text like
+  AI-generated content usually looks like." The health bar is a **layered parallelogram** (plating a slanted layer over
+  the slanted chassis bar, ink keylines, hard edges); the ammo counter uses a **display font with character** (a bold
+  comic/condensed face that fits the ink style, never the UI default), big magazine digits, a small reserve. The whole
+  HUD shares the style sheet's ink keyline and palette.
