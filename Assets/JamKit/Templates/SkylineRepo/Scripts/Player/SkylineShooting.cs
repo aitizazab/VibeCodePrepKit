@@ -21,8 +21,70 @@ namespace JamKit.SkylineRepo
     /// applied, the Writ's flag and the knockback split across the pellets.</summary>
     public static class SkylineShooting
     {
-        /// <summary>Everything but Ignore Raycast (layer 2, where MovementController puts the player's own body).</summary>
-        public const int Mask = ~(1 << 2);
+        const int IgnoreRaycast = 1 << 2;
+
+        /// <summary>Everything a shot can meet, glass included: all but Ignore Raycast (layer 2, where MovementController puts
+        /// the player's own body). <see cref="Fire"/> casts against this and decides each glass hit by its role.</summary>
+        public const int ShotMask = ~IgnoreRaycast;
+
+        /// <summary>Everything but Ignore Raycast and the <see cref="SkylineBot.GlassLayerName"/> layer: what sight, aim and
+        /// effect rays see (glass is see-through, as for the bots; docs/SKYLINE-PLAN-FLOOR1.md D21). A shot itself uses
+        /// <see cref="ShotMask"/> (rails, the skylight and the bridge floor stop it; façade panes break and let it through).</summary>
+        public static int Mask
+        {
+            get
+            {
+                int g = GlassLayer;
+                return g >= 0 ? ShotMask & ~(1 << g) : ShotMask;
+            }
+        }
+
+        static int _glassLayer = -1;
+
+        /// <summary>The glass layer's index, or -1 while the project has no such layer (the old arena).</summary>
+        public static int GlassLayer
+        {
+            get
+            {
+                if (_glassLayer < 0) _glassLayer = LayerMask.NameToLayer(SkylineBot.GlassLayerName);
+                return _glassLayer;
+            }
+        }
+
+        /// <summary>How many façade panes one pellet can break on its way (a shot through a stack of tiles).</summary>
+        public const int MaxPanesPerPellet = 4;
+        const float PaneStep = 0.02f;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => _glassLayer = -1;
+
+        /// <summary>One pellet's ray from <paramref name="from"/> (D21): a live façade pane on the way is broken by
+        /// <see cref="SkylineFacade.TryBreak"/> and passed (the ray carries on from just beyond it); anything else, every other
+        /// glass included (balustrades, the skylight, the bridge floor), is <paramref name="hit"/>, <paramref name="distance"/>
+        /// metres from <paramref name="from"/> along the whole path. False when nothing is met within <paramref name="range"/>.</summary>
+        static bool CastShot(Vector3 from, Vector3 dir, float range, out RaycastHit hit, out float distance)
+        {
+            Vector3 origin = from;
+            float travelled = 0f;
+            for (int pass = 0; ; pass++)
+            {
+                float left = range - travelled;
+                if (left <= 0f || !Physics.Raycast(origin, dir, out hit, left, ShotMask, QueryTriggerInteraction.Ignore))
+                {
+                    hit = default(RaycastHit);
+                    distance = range;
+                    return false;
+                }
+                if (pass < MaxPanesPerPellet && SkylineFacade.IsPane(hit.collider) && SkylineFacade.TryBreak(hit.collider, hit.point, dir))
+                {
+                    travelled += hit.distance + PaneStep;
+                    origin = hit.point + dir * PaneStep;
+                    continue;
+                }
+                distance = travelled + hit.distance;
+                return true;
+            }
+        }
 
         /// <summary>Fires <paramref name="gun"/> from <paramref name="eye"/> along <paramref name="aim"/>. Each pellet that
         /// reaches a hit zone calls its TakeHit and <paramref name="onHit"/>; tracers start at <paramref name="muzzle"/>.
@@ -58,10 +120,10 @@ namespace JamKit.SkylineRepo
                     dir = toAim * new Vector3(sin * Mathf.Cos(phi), sin * Mathf.Sin(phi), cos);
                 }
                 Vector3 end = eye + dir * gun.range;
-                if (Physics.Raycast(eye, dir, out var hit, gun.range, Mask, QueryTriggerInteraction.Ignore))
+                if (CastShot(eye, dir, gun.range, out var hit, out float shotDistance))
                 {
                     end = hit.point;
-                    if (!anyRange) { o.range = hit.distance; anyRange = true; }
+                    if (!anyRange) { o.range = shotDistance; anyRange = true; }
                     var zone = hit.collider.GetComponent<SkylineHitZone>();
                     bool onHittable = false;
                     if (zone != null)
@@ -69,7 +131,7 @@ namespace JamKit.SkylineRepo
                         var info = new SkylineHitInfo
                         {
                             gun = gun,
-                            damage = gun.damage * gun.FalloffScale(hit.distance),
+                            damage = gun.damage * gun.FalloffScale(shotDistance),
                             plate = -1,
                             point = hit.point,
                             normal = hit.normal,

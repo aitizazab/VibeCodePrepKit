@@ -54,6 +54,8 @@ namespace JamKit.SkylineRepo
         public SkylineHudObjective Objective { get; } = new SkylineHudObjective();
         /// <summary>Comic lettering on kills and certain hits (C2).</summary>
         public SkylineLettering Lettering { get; } = new SkylineLettering();
+        /// <summary>The feedback flashes: plating gained (screen edges), special ammo gained (the counter) (H5).</summary>
+        public SkylineHudFlashes Flashes { get; } = new SkylineHudFlashes();
 
         void Awake()
         {
@@ -80,6 +82,7 @@ namespace JamKit.SkylineRepo
         {
             if (Instance == this) Instance = null;
             Lettering.Unbind();
+            Flashes.Unbind();
             if (_vignetteTex != null) Destroy(_vignetteTex);
         }
 
@@ -97,6 +100,8 @@ namespace JamKit.SkylineRepo
             Ammo.Bind(player);
             Objective.BindPlayer(player);
             Lettering.Bind(player);
+            Flashes.Bind(player, Ammo);
+            SkylineAmmo.Ensure(player);   // the special-ammo economy (A2)
         }
 
         // ------------------------------------------------------------------ building
@@ -143,6 +148,7 @@ namespace JamKit.SkylineRepo
             _breakFlash = Fill(_root);
             _breakFlash.style.backgroundColor = new Color(0.75f, 0.92f, 1f, 1f);
             _breakFlash.style.opacity = 0f;
+            Flashes.Build(_root);   // the plating-gained edge flash (H5)
 
             // Everything else inside the safe area.
             _safe = Fill(_root);
@@ -330,6 +336,7 @@ namespace JamKit.SkylineRepo
 
             Health.Tick(dt);
             Ammo.Tick(dt);
+            Flashes.Tick(dt);
 
             // The hurt vignette: a flare that fades, and the red edge tint that follows the low-chassis pulse (HealthBarModel).
             _hurt = Mathf.Max(0f, _hurt - HurtDecay * dt);
