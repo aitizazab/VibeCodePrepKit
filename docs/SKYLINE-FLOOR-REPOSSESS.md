@@ -150,3 +150,20 @@ move in). A 2D stylised start menu comes before it later.
    court and the wave clock starts**.
 The creator: "the hotel needs a lobby for the first floor" and "it doesn't immediately drop us into the action upon
 loading in".
+
+## 10. The creator's calls on the plan's questions (2026-10-14, evening)
+
+- **Glass is never free to shoot through.** The east façade's wall-run is made of individual glass panes (wall
+  tiles). Shooting through a pane breaks it: that tile is gone from the wall-run (a gap) and its shards and the open
+  edge add environmental danger. The bridge's glass balustrade blocks shots.
+- **The gondola never shoots.** It rides outside the glass and only lays mines on the wall-run tiles. Shooting it means
+  shooting through glass, so it costs panes. "A skilled player can give up a bit of wall tiling here and there to
+  eliminate all the Gondolas to safeguard the rest of it from mines, or completely ignore the mines, pathing around,
+  below or above them."
+- **Fonts:** the comic lettering uses **Luckiest Guy and Bangers, interchangeably**. The ammo font is to be judged:
+  show **Anton** on a mock-up first.
+- **Being wrecked** (replaces the instant restart): the Unit **staggers, clutches at itself as it falls, then lands with
+  its head turned to the side and an arm stretched out**; the screen fades to black; **a quote** shows for a moment
+  ("to ragebait the player"; CONCIERGE's passive-aggressive voice fits), **held for a time that scales with its
+  length**; then it fades back into **the lift ride** (the run restarts at the lobby's lift, so the music sync holds).
+  Quotes are drafts for the creator to rewrite (`docs/SKYLINE-DRAFT-LINES.md`).
