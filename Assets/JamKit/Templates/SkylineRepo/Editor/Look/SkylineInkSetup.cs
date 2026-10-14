@@ -54,6 +54,27 @@ namespace JamKit.SkylineRepo.EditorTools
             return true;
         }
 
+        /// <summary>The whole ink look for a small scene (the firing range, the enemy gallery): the ink rig (<see cref="SkylineLook.ApplyInk"/>,
+        /// which switches the builder's plain sun off once its own sun stands), the renderer feature, the Resources materials,
+        /// every scene material converted to its twin, and the cameras set up. Returns false (and logs) when the rig fails, the scene then keeping its plain sun.</summary>
+        public static bool ApplyToScene(UnityEngine.SceneManagement.Scene scene)
+        {
+            try
+            {
+                SkylineLook.ApplyInk(scene);
+                InstallFeature();
+                SkylineInkConvert.EnsureResourceMaterials();
+                SkylineInkConvert.ConvertScene(scene);
+                SkylineLook.SetupCameras(scene);
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("SKYLINE_INK the ink look failed for " + scene.name + ", the plain look is kept: " + e);
+                return false;
+            }
+        }
+
         /// <summary>How many <see cref="SkylineInkFeature"/>s the PC renderer holds (the tests expect exactly one after an install).</summary>
         public static int FeatureCount()
         {

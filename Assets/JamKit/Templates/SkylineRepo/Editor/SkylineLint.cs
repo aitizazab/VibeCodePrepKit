@@ -22,7 +22,7 @@ namespace JamKit.SkylineRepo.EditorTools
     /// which is where MovementController reads it; one only on a parent is reported as
     /// <c>wall marked on a parent only (the engine reads the collider's own): &lt;object&gt;</c>.</item>
     /// <item><c>untextured: &lt;object&gt; (&lt;material&gt;)</c>: a renderer whose material has no _BaseMap texture, unless the
-    /// material's name starts with SK_Emissive or SK_Glass. (Every stand-in surface is flagged until Task 21; expected.)</item>
+    /// material's name starts with SK_Emissive or SK_Glass, or is a comic-ink twin (INK_...: flat colour is the style). (Every stand-in surface is flagged until Task 21; expected.)</item>
     /// </list>
     /// </summary>
     public static class SkylineLint
@@ -115,6 +115,8 @@ namespace JamKit.SkylineRepo.EditorTools
                 {
                     string name = m != null ? m.name : "none";
                     if (name.StartsWith("SK_Emissive", StringComparison.Ordinal) || name.StartsWith("SK_Glass", StringComparison.Ordinal)) continue;
+                    // comic ink (docs/SKYLINE-STYLE.md): flat painted colour is the style, so an InkLit twin is untextured on purpose
+                    if (name.StartsWith("INK_", StringComparison.Ordinal)) continue;
                     bool textured = m != null && m.HasProperty("_BaseMap") && m.GetTexture("_BaseMap") != null;
                     if (!textured) problems.Add("untextured: " + PathOf(r.transform) + " (" + name + ")");
                 }

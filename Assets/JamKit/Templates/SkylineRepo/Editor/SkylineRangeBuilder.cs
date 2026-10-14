@@ -72,6 +72,7 @@ namespace JamKit.SkylineRepo.EditorTools
             stillCam.enabled = false;
             still.AddComponent<SkylineStillCamera>().shotName = "range";
 
+            SkylineInkSetup.ApplyToScene(scene);   // comic ink (docs/SKYLINE-STYLE.md)
             EditorSceneManager.SaveScene(scene, path);
         }
 

@@ -45,6 +45,16 @@ namespace JamKit.SkylineRepo.EditorTools
 
         public const string RootName = "Skyline Look (afternoon)";
 
+        // ---- the comic-ink rig (docs/SKYLINE-STYLE.md; the afternoon rig above stays as the fallback)
+        public const float InkSunIntensity = 2.2f, InkShadowDistance = 80f;
+        /// <summary>The ink rig's ambient (linear): darker than the afternoon's, so a room's look is decided by its own lights
+        /// (rule 3) and the shade stays cool; the sunlit hall stays the bright, warm hero space.</summary>
+        public static readonly Color InkAmbientSky = new Color(0.34f, 0.40f, 0.52f), InkAmbientEquator = new Color(0.36f, 0.35f, 0.34f),
+            InkAmbientGround = new Color(0.30f, 0.27f, 0.24f);
+        public const string InkProfilePath = SkylineLookLibrary.LookRoot + "Ink/SK_Ink.asset";
+        public const string InkSkyPath = SkylineLookLibrary.LookRoot + "Ink/SK_Sky_Ink.mat";
+        public const string InkRootName = "Skyline Look (ink)";
+
         /// <summary>
         /// Applies the afternoon to the open scene and returns the rig. This is <c>VhLook.ApplyGoldenHour</c>'s rig, copied
         /// (docs/redesign/look.md allows calling or copying): calling it would also rebuild Visiting Hours' own post profile
@@ -107,6 +117,149 @@ namespace JamKit.SkylineRepo.EditorTools
             Debug.Log("SKYLINE_LOOK afternoon applied (sun " + SunElevation + " deg up at bearing " + SunAzimuth + ", sky " +
                       SkylineLookLibrary.SkyName + ", HDRI sun " + info.sun_elevation.ToString("0.0") + "/" + info.sun_azimuth.ToString("0.0") + ")");
             return rig;
+        }
+
+        /// <summary>
+        /// Applies the comic-ink look (docs/SKYLINE-STYLE.md) to the open scene and returns the rig: the afternoon's rig
+        /// re-tuned. The sun as before (bearing <see cref="SunAzimuth"/>, <see cref="SunElevation"/> degrees up) at
+        /// <see cref="InkSunIntensity"/> with hard shadows to <see cref="InkShadowDistance"/> m and no bounce fill; a darker
+        /// Trilight ambient; the painted sky (<c>Skyline/InkSky</c>, which reads the rig's sun globals); the global post volume
+        /// <c>SK_Ink</c> (neutral tonemapping, the bloom kept for the lights, a slight vignette, and the
+        /// <see cref="SkylineInk"/> override on). The reflection probes stay (the builder bakes them). All or nothing, as
+        /// <see cref="ApplyAfternoon"/>: a failure leaves the builder's fallback sun.
+        /// </summary>
+        public static VhLookRig ApplyInk(Scene scene)
+        {
+            SkylineLookLibrary.ConfigureImporters();   // the library's textures (props, products, signs) still need their import settings
+            var skyMaterial = InkSkyMaterial();
+            var profile = Ink();
+            if (!scene.IsValid()) scene = SceneManager.GetActiveScene();
+            foreach (var go in scene.GetRootGameObjects())
+                if (go.name == RootName || go.name == InkRootName || go.name.StartsWith(VhLook.RootPrefix, StringComparison.Ordinal))
+                    UnityEngine.Object.DestroyImmediate(go);
+
+            var root = new GameObject(InkRootName);
+            SceneManager.MoveGameObjectToScene(root, scene);
+            VhLookRig rig;
+            Light sun;
+            try { rig = BuildInkRig(root, profile, out sun); }
+            catch
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+                throw;
+            }
+            foreach (var go in scene.GetRootGameObjects())
+            {
+                if (go == root) continue;
+                foreach (var l in go.GetComponentsInChildren<Light>(true))
+                    if (l.type == LightType.Directional && l.enabled) l.enabled = false;   // one sun
+            }
+            RenderSettings.skybox = skyMaterial;
+            RenderSettings.sun = sun;
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = InkAmbientSky.gamma;
+            RenderSettings.ambientEquatorColor = InkAmbientEquator.gamma;
+            RenderSettings.ambientGroundColor = InkAmbientGround.gamma;
+            RenderSettings.ambientIntensity = 1f;
+            RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
+            RenderSettings.defaultReflectionResolution = 256;
+            RenderSettings.reflectionIntensity = 1f;
+            RenderSettings.reflectionBounces = 1;
+            RenderSettings.fog = false;
+            rig.Apply();
+            DynamicGI.UpdateEnvironment();
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log("SKYLINE_LOOK ink applied (sun " + SunElevation + " deg up at bearing " + SunAzimuth + ", intensity " + InkSunIntensity + ", hard shadows to " + InkShadowDistance + " m)");
+            return rig;
+        }
+
+        static VhLookRig BuildInkRig(GameObject root, VolumeProfile profile, out Light sun)
+        {
+            sun = new GameObject("Sun").AddComponent<Light>();
+            sun.transform.SetParent(root.transform, false);
+            sun.type = LightType.Directional;
+            sun.color = SunColor;
+            sun.intensity = InkSunIntensity;
+            sun.shadows = LightShadows.Hard;
+            sun.shadowStrength = 1f;
+            sun.lightmapBakeType = LightmapBakeType.Mixed;
+            sun.bounceIntensity = 0f;
+            var sunData = sun.gameObject.AddComponent<UniversalAdditionalLightData>();
+            sunData.usePipelineSettings = true;
+
+            var rig = root.AddComponent<VhLookRig>();
+            rig.sun = sun;
+            rig.bounce = null;                      // the bounce fill is off: the ambient and the lights do the work
+            rig.sunElevation = SunElevation;
+            rig.sunAzimuth = SunAzimuth;
+            rig.hasSky = false;                     // the painted sky is a procedural shader, not an HDRI
+            rig.cloudDrift = 0.6f;                  // the InkSky's clouds read the rig's clock
+            rig.lightingBaked = false;
+            rig.shadowDistance = InkShadowDistance;
+            rig.shadowCascades = 3;
+            rig.cascadeSplits = new Vector3(0.06f, 0.18f, 0.42f);
+            rig.shadowResolution = 2048;
+            rig.ambientSky = InkAmbientSky;
+            rig.ambientEquator = InkAmbientEquator;
+            rig.ambientGround = InkAmbientGround;
+
+            var volumeGo = new GameObject("Post (Skyline ink)");
+            volumeGo.transform.SetParent(root.transform, false);
+            var volume = volumeGo.AddComponent<Volume>();
+            volume.isGlobal = true;
+            volume.priority = 10f;
+            volume.sharedProfile = profile;
+            return rig;
+        }
+
+        /// <summary>The painted sky's material (Look/Ink/SK_Sky_Ink.mat on <c>Skyline/InkSky</c>), made once.</summary>
+        static Material InkSkyMaterial()
+        {
+            var shader = Shader.Find("Skyline/InkSky");
+            if (shader == null) throw new InvalidOperationException("Skyline/InkSky shader not found");
+            var m = AssetDatabase.LoadAssetAtPath<Material>(InkSkyPath);
+            if (m == null)
+            {
+                VhLookLibrary.EnsureAssetFolder(InkSkyPath);
+                m = new Material(shader) { name = "SK_Sky_Ink" };
+                AssetDatabase.CreateAsset(m, InkSkyPath);
+            }
+            else if (m.shader != shader) m.shader = shader;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>
+        /// SK_Ink: neutral tonemapping (the flat palette must survive), exposure 0, contrast +8, saturation +4, bloom kept for
+        /// the lights (threshold 1.1, intensity 0.8, scatter 0.6), a slight vignette (0.14), and the
+        /// <see cref="SkylineInk"/> override on with its defaults (the renderer feature runs only under it).
+        /// </summary>
+        public static VolumeProfile Ink()
+        {
+            var p = Profile(InkProfilePath);
+            Comp<Tonemapping>(p).mode.Override(TonemappingMode.Neutral);
+
+            var ca = Comp<ColorAdjustments>(p);
+            ca.postExposure.Override(0f);
+            ca.contrast.Override(8f);
+            ca.saturation.Override(4f);
+            ca.colorFilter.Override(Color.white);
+
+            var bloom = Comp<Bloom>(p);
+            bloom.threshold.Override(1.1f);
+            bloom.intensity.Override(0.8f);
+            bloom.scatter.Override(0.6f);
+            bloom.highQualityFiltering.Override(false);
+            bloom.downscale.Override(BloomDownscaleMode.Quarter);
+
+            var vig = Comp<Vignette>(p);
+            vig.intensity.Override(0.14f);
+            vig.smoothness.Override(0.5f);
+            vig.color.Override(new Color(0.05f, 0.05f, 0.07f));
+
+            Comp<SkylineInk>(p).inkEnabled.Override(true);
+            EditorUtility.SetDirty(p);
+            return p;
         }
 
         /// <summary>The rig's parts under <paramref name="root"/>: the sun, the bounce fill, <see cref="VhLookRig"/>, the post volume.</summary>

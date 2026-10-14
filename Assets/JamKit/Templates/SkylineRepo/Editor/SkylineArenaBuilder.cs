@@ -55,16 +55,26 @@ namespace JamKit.SkylineRepo.EditorTools
         {
             var scene = SkylineScenes.NewScene();
             SkylineLookLibrary.BeginBuild();
-            bool look = false;
+            // Comic ink first (docs/SKYLINE-STYLE.md); the afternoon rig is the fallback, then the plain sun.
+            bool look = false, ink = false;
             try
             {
-                SkylineLook.ApplyAfternoon(scene);
-                look = true;
+                SkylineLook.ApplyInk(scene);
+                look = ink = true;
             }
             catch (System.Exception e)
             {
-                Debug.LogError("SKYLINE_LOOK afternoon failed, the plain sun is used: " + e);
-                Light();
+                Debug.LogError("SKYLINE_LOOK ink failed, the afternoon is used: " + e);
+                try
+                {
+                    SkylineLook.ApplyAfternoon(scene);
+                    look = true;
+                }
+                catch (System.Exception e2)
+                {
+                    Debug.LogError("SKYLINE_LOOK afternoon failed, the plain sun is used: " + e2);
+                    Light();
+                }
             }
 
             var mWall = Lit("SK_Wall", new Color(0.72f, 0.72f, 0.7f));
@@ -225,7 +235,7 @@ namespace JamKit.SkylineRepo.EditorTools
             demo.director = director;
             demo.cache = cache;
 
-            Stills();
+            var stillsRoot = Stills();
 
             // ---------------------------------------------------------- the look's dressing (Task 21)
             try { Dress(arena, warm, hall, entryMarker); }
@@ -233,6 +243,19 @@ namespace JamKit.SkylineRepo.EditorTools
             director.zoneMarkers = ZoneMarkers(entryMarker);
             try { SkinLevelPieces(warm, hall); }
             catch (System.Exception e) { Debug.LogError("SKYLINE_LOOK level pieces failed: " + e); }
+            // ---------------------------------------------------------- the comic-ink look (docs/SKYLINE-STYLE.md)
+            if (ink)
+            {
+                try
+                {
+                    InkAreas(arena, warm, hall, stillsRoot);
+                    SkylineInkSetup.InstallFeature();
+                    SkylineInkConvert.EnsureResourceMaterials();
+                    SkylineInkConvert.ConvertScene(scene);
+                    InkGreyWarmup(arena, warm);
+                }
+                catch (System.Exception e) { Debug.LogError("SKYLINE_INK conversion failed: " + e); }
+            }
             SkylineLook.SetupCameras(scene);
             if (look) SkylineLook.BakeReflections(scene, path, arena);
             AssetDatabase.SaveAssets();
@@ -404,7 +427,7 @@ namespace JamKit.SkylineRepo.EditorTools
             return b;
         }
 
-        static void Stills()
+        static Transform Stills()
         {
             var root = new GameObject("Stills").transform;
             var pb = U(GalleriaArena.PracticeBot);
@@ -419,9 +442,10 @@ namespace JamKit.SkylineRepo.EditorTools
             Still(root, "08-skylight", V(0f, 2f, -4f), V(0f, 14f, 8f));
             var l = GalleriaArena.LiftLobby;
             Still(root, "09-lift", V((l.min.X + l.max.X) * 0.5f - 1f, 2.2f, 7f), V((l.min.X + l.max.X) * 0.5f, 2.4f, l.min.Z));
+            return root;
         }
 
-        static void Still(Transform parent, string shot, Vector3 at, Vector3 lookAt)
+        static SkylineStillCamera Still(Transform parent, string shot, Vector3 at, Vector3 lookAt)
         {
             var go = new GameObject("Still " + shot);
             go.transform.SetParent(parent, false);
@@ -429,7 +453,9 @@ namespace JamKit.SkylineRepo.EditorTools
             var cam = go.AddComponent<Camera>();
             cam.enabled = false;
             cam.fieldOfView = 70f;
-            go.AddComponent<SkylineStillCamera>().shotName = shot;
+            var still = go.AddComponent<SkylineStillCamera>();
+            still.shotName = shot;
+            return still;
         }
 
         // ------------------------------------------------------------------ helpers

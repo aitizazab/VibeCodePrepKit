@@ -1221,5 +1221,96 @@ namespace JamKit.SkylineRepo.EditorTools
                 }
             }
         }
+
+        // ================================================================================================ the comic-ink test areas
+        //
+        // docs/SKYLINE-STYLE.md rules 3 and 4, built into the arena for the look test: the lift lobby taken over by one strong
+        // coloured light, the warm-up hall colour-free under one row of cool strip lights, and the drone seen close in the sun.
+        // All visual: lights, glow strips with no colliders (under a SkylineNoCollider root), still cameras.
+
+        /// <summary>The lift lobby's light, the warm-up hall's strip row and the three look-test stills. Called before the ink
+        /// conversion, so the strips' glow materials are converted with the rest.</summary>
+        static void InkAreas(Transform arena, Transform warm, Transform hall, Transform stills)
+        {
+            var root = Group(arena, "Ink Test Areas");
+            root.gameObject.AddComponent<SkylineNoCollider>();
+
+            // ---- the lift lobby (rule 3): one violet point light and a matching emissive strip under the deck's soffit. The
+            // lobby has no small lights of its own to turn off (its only light was the sign and the doors' glow, both emissive
+            // and kept). The light has no shadows, so the lobby's pool is hard-edged and the shutter does not block its spill.
+            var l = GalleriaArena.LiftLobby;
+            float t = GalleriaArena.LobbyWall, cx = (l.min.X + l.max.X) * 0.5f, cz = (l.min.Z + l.max.Z) * 0.5f;
+            var violet = new Color(0x8A / 255f, 0x5C / 255f, 1f);
+            var stripGlow = Emissive("SK_Emissive_LobbyViolet", new Color(violet.r * 2.4f, violet.g * 2.4f, violet.b * 2.4f));
+            NoShadow(Box(root, "Lobby Strip", V(l.min.X + t + 0.35f, l.max.Y - 0.07f, l.min.Z + 0.9f), V(l.max.X - t - 0.35f, l.max.Y - 0.02f, l.max.Z - 0.9f),
+                stripGlow, false, null, true));
+            var lobbyLight = new GameObject("Lobby Light").AddComponent<Light>();
+            lobbyLight.transform.SetParent(root, false);
+            lobbyLight.transform.position = V(cx, l.max.Y - 1.0f, cz);
+            lobbyLight.type = LightType.Point;
+            lobbyLight.color = violet;
+            lobbyLight.intensity = 6f;
+            lobbyLight.range = 9f;
+            lobbyLight.shadows = LightShadows.None;
+            lobbyLight.lightmapBakeType = LightmapBakeType.Realtime;
+
+            // ---- the warm-up hall (rule 4): colour-free (InkGreyWarmup, after the conversion) lit by one row of cool-white
+            // strip lights hung 4.2 m up across the hall (the hall's roof is at 8 m: the pools are banded at a fixed
+            // attenuation, so the lights hang low enough to reach the floor).
+            var cool = new Color(0xDD / 255f, 0xE8 / 255f, 1f);
+            var coolGlow = Emissive("SK_Emissive_StripCool", new Color(1.5f, 1.75f, 2.3f));
+            for (int i = 0; i < 5; i++)
+            {
+                float x = -12f + 6f * i;
+                NoShadow(Box(root, "Warm-up Strip " + (i + 1), V(x - 1.2f, 4.18f, -28.58f), V(x + 1.2f, 4.28f, -28.42f), coolGlow, false, null, true));
+                var light = new GameObject("Warm-up Strip Light " + (i + 1)).AddComponent<Light>();
+                light.transform.SetParent(root, false);
+                light.transform.position = V(x, 4.0f, -28.5f);
+                light.type = LightType.Point;
+                light.color = cool;
+                light.intensity = 3f;
+                light.range = 9f;
+                light.shadows = LightShadows.None;
+                light.lightmapBakeType = LightmapBakeType.Realtime;
+            }
+
+            // ---- the stills
+            // lift-lobby: from the hall, low, into the lobby (the shutter's renderer is hidden while the shot renders, so the
+            // light's pool and the lift doors show whatever the demo's state)
+            var lobbyStill = Still(stills, "lift-lobby", V(cx - 0.5f, 1.1f, 9.5f), V(cx, 1.7f, l.max.Z - 1f));
+            var shutter = hall != null ? hall.Find("Service Lift/Lift Shutter") : null;
+            if (shutter != null && shutter.GetComponent<Renderer>() != null) lobbyStill.hideDuringShot = new[] { shutter.GetComponent<Renderer>() };
+
+            // warmup-grey: from the doorway looking back in, the practice bot in frame
+            var pb = U(GalleriaArena.PracticeBot);
+            Still(stills, "warmup-grey", V(0.8f, 1.9f, GalleriaArena.HallMinZ - 1.4f), V(pb.x + 1.5f, 1.8f, pb.z));
+
+            // drone-idle: along the east shopfronts in the sun with the skylight in frame, a drone close by, a bit right of
+            // centre, face to the camera. The camera and the drone stand where the sun reaches (the south wall shades z < -12
+            // at this height); the drone is made only for this still's render (SkylineDisplayBot).
+            var cam = V(17.5f, 2.3f, -11f);
+            var look = V(23.5f, 6.2f, 14f);
+            var droneStill = Still(stills, "drone-idle", cam, look);
+            var fwd = (look - cam).normalized;
+            var flat = new Vector3(fwd.x, 0f, fwd.z).normalized;
+            var right = Vector3.Cross(Vector3.up, flat).normalized;
+            var at = cam + flat * 4f + right * 0.85f;
+            at.y = 2.35f;
+            var display = droneStill.gameObject.AddComponent<SkylineDisplayBot>();
+            display.enemyId = SkylineEnemies.DroneId;
+            display.position = at;
+            display.yaw = Mathf.Atan2(cam.x - at.x, cam.z - at.z) * Mathf.Rad2Deg;
+        }
+
+        /// <summary>The warm-up hall colour-free: every ink twin in the hall and its dressing swaps to its <c>__Grey</c>
+        /// variant (<c>_Desaturate</c> 1). Glows keep their colour (the boost kiosk's sign, the strips). The floor inlay is one
+        /// object shared with the main hall and stays coloured.</summary>
+        static void InkGreyWarmup(Transform arena, Transform warm)
+        {
+            int n = SkylineInkConvert.MakeGrey(warm);
+            var dressing = arena.Find("Dressing/Warm-up Dressing");
+            if (dressing != null) n += SkylineInkConvert.MakeGrey(dressing);
+            Debug.Log("SKYLINE_INK warm-up hall greyed: " + n + " material slots");
+        }
     }
 }

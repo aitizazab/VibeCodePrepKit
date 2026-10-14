@@ -30,6 +30,14 @@ namespace JamKit.SkylineRepo.Tests
         }
 
         [Test]
+        public void ThePaintedSkyIsSupported()
+        {
+            var shader = Shader.Find("Skyline/InkSky");
+            Assert.That(shader, Is.Not.Null, "Skyline/InkSky is not found (a compile error in InkSky.shader?)");
+            Assert.That(shader.isSupported, Is.True);
+        }
+
+        [Test]
         public void ARealMaterialHasEveryPass()
         {
             var m = new Material(Shader.Find(ShaderName));

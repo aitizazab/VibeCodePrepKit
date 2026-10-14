@@ -13,6 +13,40 @@ namespace JamKit.SkylineRepo
     {
         public string shotName = "shot";
 
+        [Tooltip("Renderers switched off while this shot renders (the lift lobby's shutter, so the still can look into the lobby).")]
+        public Renderer[] hideDuringShot;
+        bool[] _wasEnabled;
+
+        /// <summary>Called by stage B's capture just before it renders this still: hides <see cref="hideDuringShot"/> and shows
+        /// the shot's display bot (<see cref="SkylineDisplayBot"/>), if it has one. Everything is put back by <see cref="EndShot"/>
+        /// in the same editor tick, so no frame of the game sees the change.</summary>
+        public void BeginShot()
+        {
+            if (hideDuringShot != null)
+            {
+                _wasEnabled = new bool[hideDuringShot.Length];
+                for (int i = 0; i < hideDuringShot.Length; i++)
+                {
+                    if (hideDuringShot[i] == null) continue;
+                    _wasEnabled[i] = hideDuringShot[i].enabled;
+                    hideDuringShot[i].enabled = false;
+                }
+            }
+            var display = GetComponent<SkylineDisplayBot>();
+            if (display != null) display.Show();
+        }
+
+        /// <summary>Undoes <see cref="BeginShot"/>.</summary>
+        public void EndShot()
+        {
+            var display = GetComponent<SkylineDisplayBot>();
+            if (display != null) display.Hide();
+            if (hideDuringShot != null && _wasEnabled != null)
+                for (int i = 0; i < hideDuringShot.Length && i < _wasEnabled.Length; i++)
+                    if (hideDuringShot[i] != null) hideDuringShot[i].enabled = _wasEnabled[i];
+            _wasEnabled = null;
+        }
+
         /// <summary>Disables the Camera and makes it a Base camera; returns it.</summary>
         public Camera Enforce()
         {

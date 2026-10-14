@@ -225,6 +225,7 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
                 var previousActive = RenderTexture.active;
                 try
                 {
+                    shot.BeginShot();                             // the shot's display bot, a hidden shutter (put back below)
                     hdr.Create();
                     rt.Create();
                     var request = new UnityEngine.Rendering.RenderPipeline.StandardRequest { destination = hdr };
@@ -245,6 +246,7 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
                 }
                 finally
                 {
+                    shot.EndShot();
                     cam.targetTexture = previousTarget;
                     RenderTexture.active = previousActive;
                     hdr.Release();

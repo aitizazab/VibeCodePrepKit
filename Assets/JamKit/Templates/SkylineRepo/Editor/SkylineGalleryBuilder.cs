@@ -85,6 +85,7 @@ namespace JamKit.SkylineRepo.EditorTools
             Still("Still wide", wide.position, wide.rotation, "wide");
             cam.transform.SetPositionAndRotation(wide.position, wide.rotation);
 
+            SkylineInkSetup.ApplyToScene(scene);   // comic ink (docs/SKYLINE-STYLE.md)
             EditorSceneManager.SaveScene(scene, path);
         }
 
