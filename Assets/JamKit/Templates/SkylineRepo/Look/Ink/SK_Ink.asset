@@ -204,3 +204,24 @@ MonoBehaviour:
   normalThreshold:
     m_OverrideState: 0
     m_Value: 0.35
+  creasesFromDepth:
+    m_OverrideState: 0
+    m_Value: 0
+  creaseSlope:
+    m_OverrideState: 0
+    m_Value: 0.5
+  lineWeightVariation:
+    m_OverrideState: 1
+    m_Value: 1
+  halftoneDots:
+    m_OverrideState: 0
+    m_Value: 0
+  handWobble:
+    m_OverrideState: 0
+    m_Value: 0
+  posterize:
+    m_OverrideState: 0
+    m_Value: 0
+  paperGrain:
+    m_OverrideState: 0
+    m_Value: 0

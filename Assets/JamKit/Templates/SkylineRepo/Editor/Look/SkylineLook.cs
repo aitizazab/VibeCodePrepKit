@@ -257,7 +257,9 @@ namespace JamKit.SkylineRepo.EditorTools
             vig.smoothness.Override(0.5f);
             vig.color.Override(new Color(0.05f, 0.05f, 0.07f));
 
-            Comp<SkylineInk>(p).inkEnabled.Override(true);
+            var ink = Comp<SkylineInk>(p);
+            ink.inkEnabled.Override(true);
+            ink.lineWeightVariation.Override(1f);   // the creator's one pick of the five stylization options (2026-10-15): line weight
             EditorUtility.SetDirty(p);
             return p;
         }
