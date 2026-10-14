@@ -60,3 +60,24 @@ All drafts for you to rewrite, except the lines marked **(yours)**: those the sp
 | You first pick up special ammo | Dot | Special rounds! Kill with the Writ and the wreck drops one. The Breacher runs dry; the Writ never does. |
 
 The spotlight has no notice here: it is not on this floor.
+
+## Comic lettering (hit and kill words)
+
+Drafts for you to rewrite. They live in `ComicLettering.Words` (`Runtime/Skyline/ComicLettering.cs`) as plain string arrays. The
+core picks one word of the set (never the same word twice in a row for one bot type or gun), and one of your two fonts, Luckiest
+Guy or Bangers, per word (never the same font on both of two words showing at once). Lettering is hostile red-magenta with a
+dark ink keyline, at most two on screen, at least 0.35 s apart, only for the events below.
+
+| When it plays | Words |
+|---|---|
+| A security drone is wrecked | KZZT! / BZZT-CRK! / ZAP! |
+| A floor-care unit is wrecked | SPLORCH! / GLORP! / SPLAT! |
+| A window-washer gondola is wrecked | CLANG! / KA-SPLASH! |
+| A spotlight is wrecked (new draft; the spotlight is not on floor 1) | KLAK! / FZZT-POP! |
+| A weak-point hit that is not a kill (any known bot) | CRACK! / TINK! |
+| A Writ spot breaks | OBJECTION! / SUSTAINED! / OVERRULED! |
+| A big Breacher shove (knockback of 8 m/s or more) | WHUMP! / BWOOM! |
+| Any other (unknown) bot is wrecked (new draft, a fallback) | POW! / BAM! / KRAK! |
+| A weak-point hit on an unknown bot (new draft, a fallback) | PING! / TICK! |
+| A spot breaks from an unknown gun (new draft, a fallback) | SNAP! / CRACK-OPEN! |
+| A shove from an unknown gun (new draft, a fallback) | THUD! / WHAM! |
