@@ -6,7 +6,7 @@ start goes here with its next step; a thread leaves this list only when it's don
 ## Dropped without a reason (found 2026-10-14 evening): resume these
 | Thread | Where it stopped | Next step |
 |---|---|---|
-| Music: the rest of the floor song | Normal layer v2 (sampled instruments, the settle, layered hook) 2026-10-15, page `art/review/2026-10-15/skyline-music-song-normal-v2.html`; the plan of next steps is at the end of `SKYLINE-MUSIC.md` | Creator's verdict + hook pick; then danger, quiet, speed layers; then M2 in the game |
+| Music: the rest of the floor song | v3 "heaven" (remade from the settle, at the creator's call) + the riser hand-over pass 2, page `art/review/2026-10-15/skyline-music-heaven-v3.html`; next steps at the end of `SKYLINE-MUSIC.md` | Creator's verdict on v3 and the hand-over pick; then danger, quiet, speed layers against v3's stems; then M2 in the game |
 | Music: the riser's instrument | Brass / accordion / reed, pairs, with and without backing (`art/review/2026-10-14/skyline-music-step6-2.html`); never picked, never followed up | Creator picks |
 | Bot redesigns from playtest 1 (`SKYLINE-PLAYTEST-1.md`) | Held all day; 2026-10-15 the SIZES and weak points went to the drone agent (priority: "impossible to land a headshot on a drone"); the shape redesigns below still wait | All bots larger; floor-care: face on its top, the canister the only protrusion, wind-up then molly acid, 15 s recharge unless the canister is shot; drone: much larger rotors as the weak spot, faceplate part of the face; spotlight: a larger humanoid with the spotlight as its head, charging an electric railgun before locking on |
 | Damage states for every bot (`SKYLINE-BOTS.md`) | Assigned 2026-10-15 to the drone agent (after aim, with the sizes) | Animated threshold crossings; Unity stills of each state |
@@ -15,7 +15,7 @@ start goes here with its next step; a thread leaves this list only when it's don
 | The shop-S4 corner drones can't see | Noted from the sim; never checked | Check in the camper survey (DM2) |
 | A per-assembly compile check | Promised after the second missing-reference failure | Make `core-tests/SkylineUnity` compile each asmdef with only its references |
 | Perf: the food-court fight stutters (ink part FIXED in perf10: 1% low 16.3 ms, worst fight 20.9 ms) | Re-measured in perf9 with the fixed pilot (demo completed): average 6.6 ms but 1% low 30.4 ms, worst fight 44 ms; the spikes are in the food-court fight with 15 bots, mostly waiting on the GPU (25 ms) with some CPU spikes (19-24 ms); perf8 was the same, so not tonight's work | The remaining spikes are CPU (no-ink worst fight 15.3 ms): profile them (the new HUD elements, bots); depth creases gave nothing (off) |
-| The art style (gate G0) | PASSED 2026-10-15: "The comic-look is good, but I'd like it to get even more stylized if possible." | Dressing DR1-DR5 is unblocked; the ink agent adds stylization options (off by default) for a stills page |
+| The art style (gate G0) | PASSED 2026-10-15. Of the five stylization options the creator wants only **line weight** ("I can't really tell the change wrought on by many of the variations"): on by default from commit 2166f74f | Dressing DR1-DR5 is unblocked |
 
 ## New from the Writ rework (merged 2026-10-15, not yet seen in Unity)
 | Thread | Where it stopped | Next step |
@@ -23,8 +23,7 @@ start goes here with its next step; a thread leaves this list only when it's don
 | Writ reload sounds | The reload is silent except the seat click (the old drum/gavel recipes no longer fit) | Options for the quill leaving the ink, scratching on paper, and dipping back (identity first); creator picks |
 
 ## Waiting on the creator
-- The ink style options: which of the five (any mix, how strong): `FableAnimationTests/art/review/2026-10-15/skyline-ink-styles.html`.
-- The music: normal layer v2 and the hook layering (`art/review/2026-10-15/skyline-music-song-normal-v2.html`).
+- The music: the v3 heavenly theme, and which riser hand-over (`art/review/2026-10-15/skyline-music-heaven-v3.html`).
 - The Relay: is the space big enough for an 18 m/s skill check (`SKYLINE-RELAY.md`)?
 - The HUD: does "- RELOADING" under the ammo count go (the gun's name stays)?
 - The Valet (`SKYLINE-BOTS.md`): name, the "ding" through walls, 25 damage, lunging at a wall-runner.

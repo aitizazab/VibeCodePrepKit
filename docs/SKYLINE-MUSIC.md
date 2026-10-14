@@ -112,3 +112,20 @@ near or the objective is simpler** (parkour between sections).
 5. **In the game:** M2 (the music director: the sequencer exists, `MusicSequencer.cs`; stems scheduled on DSP time,
    bar-line changes) and the lift-ride opening.
 6. Before anything is public: swap the original pre-drop and drop recordings for our instruments (one comparison).
+
+## The heavenly theme, v3 (2026-10-15) and the hand-over, pass 2
+- The creator on v2: "I like how the post-drop moves into a heavenly type of theme, and honestly I just want more of that
+  over the rest of the song instead. Remake the theme from scratch starting from the settle." So **v3** keeps v2's
+  opening, drop, kept final hit, freeze and settle, and remakes everything after: C major with a Lydian lift (F major 7
+  with B natural), the "royal road" progression (Fmaj7 G6 Em7 Am7) for A, C and A'; B floats (Dm7 G Cmaj7 Am7 | Bbmaj7
+  Fmaj7 Gsus G). Celesta + glockenspiel sing the riser's figure turned Lydian (C E G A B, landing up on C); harp
+  arpeggios, choir and slow strings held, soft halftime drums; C swells (strings in octaves, timpani roll, snare build,
+  harp glissando); A' doubles the melody in the strings with bells on the downbeats. 32-bar loop after the settle.
+  Ears: A matches the settle's band balance (only slightly brighter); sections steady at about -16 dB. Script
+  `audio/skyline-music/scripts/music_song_heaven_v3.py`; files `song-heaven-v3/`.
+- **Riser -> pre-drop, pass 2** (`scripts/music_riser_handover_v2.py`, files `riser-handover-v2/`): measured that the
+  pre-drop's first wub is on B-flat (the repeated note), so option 1 morphs each repeat's spectrum into that wub; 2
+  doubles the riser with sampled brass; 3 both; 4 the morph plus the pre-drop entering through an opening low-pass (the
+  pre-drop is brighter: 2.7 -> 3.7 kHz centroid). The level step is 0.1-0.5 dB in every version.
+- Page: `FableAnimationTests/art/review/2026-10-15/skyline-music-heaven-v3.html`. **Waiting on the creator:** the v3
+  verdict and the hand-over pick. Then the next steps above (danger, quiet, speed, M2) are built against v3's stems.
