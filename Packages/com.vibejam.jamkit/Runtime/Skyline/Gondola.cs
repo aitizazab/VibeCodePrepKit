@@ -26,6 +26,10 @@ namespace JamKit.Skyline
 
         public Vector3 Position { get; private set; }
 
+        /// <summary>The rail's two ends.</summary>
+        public Vector3 Start => _a;
+        public Vector3 End => _b;
+
         /// <summary>Total distance moved (m); never decreases, so mine spacing is measured on it, not on the position.</summary>
         public float Travelled => (float)_travelled;
 
@@ -66,6 +70,9 @@ namespace JamKit.Skyline
     }
 
     public enum MineState { Arming, Armed, Fusing, Exploded, Expired }
+
+    /// <summary>Where a <see cref="MineLayer"/> puts its mines.</summary>
+    public enum MinePlacement { Auto, OnRail, Facade }
 
     /// <summary>One mine stuck to the wall where the gondola dropped it. It arms, waits for a chest to come close, beeps for
     /// the fuse (leaving the wall in time dodges the blast), then goes off once. Distances are spherical, to the chest.</summary>
@@ -144,6 +151,15 @@ namespace JamKit.Skyline
 
         public IReadOnlyList<WallMine> Mines => _mines;
 
+        /// <summary>Where this layer drops: by default (Auto) on the rail itself, except along the Food Court's façade rail, where
+        /// the mine goes on the inside of the glass at the nearest service hatch (<see cref="FacadeHatches"/>). The gondola rides
+        /// outside; the sim lays along a rail already offset to the inside (<see cref="FightArea.mineRailOffset"/>): both land on the
+        /// same hatch points.</summary>
+        public MinePlacement placement = MinePlacement.Auto;
+
+        /// <summary>Added to the rail point before a mine is placed (OnRail placement only; the hatch placement fixes x and y).</summary>
+        public Vector3 mineOffset;
+
         /// <summary>Ticks every mine (adding each blast's damage, if above 0, to <paramref name="blasts"/>), drops the
         /// finished ones, then lays new mines along the rail while <paramref name="laying"/>.</summary>
         public void Tick(float dt, GondolaRail rail, bool laying, Vector3 playerChest, List<float> blasts)
@@ -172,19 +188,182 @@ namespace JamKit.Skyline
             }
             // Mines go at exact multiples of the spacing even when one tick covers several; only the last mineMax matter.
             int guard = 0;
+            bool facade = placement == MinePlacement.Facade || (placement == MinePlacement.Auto && FacadeHatches.IsFacadeRail(rail));
             while (rail.Travelled >= _nextAt && guard++ < 1000)
             {
-                Drop(rail.PositionAt(_nextAt));
+                Drop(rail.PositionAt(_nextAt), facade);
                 _nextAt += spacing;
             }
             if (rail.Travelled >= _nextAt) _nextAt = rail.Travelled + spacing; // a jump beyond the guard: resume from here
         }
 
-        void Drop(Vector3 at)
+        void Drop(Vector3 at, bool facade)
         {
             if (_def.mineMax < 1) return;
+            if (facade)
+            {
+                at = FacadeHatches.MinePoint(FacadeHatches.NearestIndex(at.Z));
+                // one mine to a hatch: a ride that comes back to the same hatch before the old mine is gone lays nothing
+                for (int i = 0; i < _mines.Count; i++)
+                    if (Vector3.DistanceSquared(_mines[i].Position, at) < 0.25f) return;
+            }
+            else at += mineOffset;
             while (_mines.Count >= _def.mineMax) _mines.RemoveAt(0); // the oldest live mine goes
             _mines.Add(new WallMine(at, _def));
         }
+    }
+}
+
+namespace JamKit.Skyline
+{
+    /// <summary>The Food Court façade's twelve service hatches and the rail outside them (docs/SKYLINE-PLAN-FLOOR1.md Task G1,
+    /// SKYLINE-FLOOR-REPOSSESS.md section 10): the gondola rides x 36.5, y 3.0, z -27..27 outside the glass; its mines land on the
+    /// inside face of the glass (x 34.9, y 2.5) at the hatch nearest the rail, z -22..22 every 4 m.</summary>
+    public static class FacadeHatches
+    {
+        public const int Count = 12;
+        public const float FirstZ = -22f, Step = 4f;
+        /// <summary>The glass's inner face, where the hatches sit.</summary>
+        public const float GlassX = 35f;
+        /// <summary>Where a mine lands: just inside the glass, at the hatches' mid height.</summary>
+        public const float MineX = 34.9f, MineY = 2.5f;
+        public const float HatchMinY = 2f, HatchMaxY = 3f;
+        /// <summary>The outside rail the gondola rides.</summary>
+        public const float RailX = 36.5f, RailY = 3f, RailEndZ = 27f;
+
+        public static float ZOf(int index) => FirstZ + Step * Math.Max(0, Math.Min(Count - 1, index));
+
+        /// <summary>The hatch nearest to <paramref name="z"/> (clamped to the ends; NaN gives hatch 0).</summary>
+        public static int NearestIndex(float z)
+        {
+            if (float.IsNaN(z)) return 0;
+            double i = Math.Floor((z - FirstZ) / Step + 0.5);
+            return (int)Math.Max(0.0, Math.Min(Count - 1, i));
+        }
+
+        /// <summary>The z of the hatch nearest to <paramref name="z"/>.</summary>
+        public static float HatchSnap(float z) => ZOf(NearestIndex(z));
+
+        /// <summary>Where a mine through hatch <paramref name="index"/> lands.</summary>
+        public static Vector3 MinePoint(int index) => new Vector3(MineX, MineY, ZOf(index));
+
+        /// <summary>True for a point a hatch mine can be at (within 5 cm of a hatch's mine point).</summary>
+        public static bool IsHatchPoint(Vector3 p)
+        {
+            if (float.IsNaN(p.X) || float.IsNaN(p.Y) || float.IsNaN(p.Z)) return false;
+            return Math.Abs(p.X - MineX) < 0.05f && Math.Abs(p.Y - MineY) < 0.05f && Math.Abs(p.Z - HatchSnap(p.Z)) < 0.05f;
+        }
+
+        /// <summary>True for a rail that runs along the façade: both ends within 2 m of the glass line (the outside rail or the sim's
+        /// inside copy), at the rail's height or the mines' (2.3..3.2 m), and at least 40 m long.</summary>
+        public static bool IsFacadeRail(GondolaRail rail)
+        {
+            if (rail == null || rail.Length < 40f) return false;
+            return NearFacade(rail.Start) && NearFacade(rail.End);
+        }
+
+        static bool NearFacade(Vector3 p) => p.X > MineX - 0.2f && p.X < RailX + 0.2f && p.Y > 2.3f && p.Y < 3.2f;
+    }
+
+    /// <summary>The façade's glass as the rules see it (pure; the Unity side is SkylineFacade): which pane a point of the wall belongs to,
+    /// which panes are broken, and what an open pane does to a Unit near it. A shot through glass breaks the pane (decision D21); the
+    /// tile is gone from the wall-run, its open edge cuts anyone in it, and falling out wrecks the Unit.</summary>
+    public sealed class FacadeGlass
+    {
+        public const float EdgeDamage = 8f, EdgeInterval = 0.6f;
+        /// <summary>How far past a pane's opening (m) its edge still cuts, and how deep into the hall.</summary>
+        public const float EdgeReach = 0.25f, EdgeDepth = 0.7f;
+        /// <summary>The Unit's chest below this y has fallen out and is wrecked (the sim's <c>fallDeathY</c>).</summary>
+        public const float FallDeathY = -12f;
+
+        static readonly float[] RowEdges = { 0f, 4f, 8f, 12f, RepossessArena.HallClearY };
+
+        readonly HashSet<string> _broken = new HashSet<string>();
+        float _cutCooldown;
+
+        public int BrokenCount => _broken.Count;
+        public bool IsBroken(string paneId) => paneId != null && _broken.Contains(paneId);
+
+        /// <summary>Breaks a pane; false when the id is not a pane or it is already broken.</summary>
+        public bool Break(string paneId)
+        {
+            if (!TryParse(paneId, out _, out _)) return false;
+            return _broken.Add(paneId);
+        }
+
+        /// <summary>Mends every pane (the floor restarts).</summary>
+        public void MendAll()
+        {
+            _broken.Clear();
+            _cutCooldown = 0f;
+        }
+
+        /// <summary>Appends the ids of the broken panes to <paramref name="into"/>.</summary>
+        public void BrokenIds(List<string> into)
+        {
+            if (into == null) return;
+            foreach (var id in _broken) into.Add(id);
+        }
+
+        public static bool TryParse(string id, out int row, out int col)
+        {
+            row = col = -1;
+            if (!RepossessArena.IsPane(id)) return false;
+            string[] parts = id.Substring(RepossessArena.PanePrefix.Length).Split('-');
+            if (parts.Length != 2 || !int.TryParse(parts[0], out row) || !int.TryParse(parts[1], out col)) return false;
+            return row >= 0 && row < RepossessArena.PaneRows && col >= 0 && col < RepossessArena.PaneCols;
+        }
+
+        /// <summary>The pane whose face holds the wall point (y, z), or null on the posts and above the hall.</summary>
+        public static string PaneAt(float y, float z)
+        {
+            if (float.IsNaN(y) || float.IsNaN(z)) return null;
+            if (y < 0f || y >= RepossessArena.HallClearY || z < RepossessArena.MinZ || z >= RepossessArena.MaxZ) return null;
+            int row = 0;
+            while (row < RepossessArena.PaneRows - 1 && y >= RowEdges[row + 1]) row++;
+            int col = Math.Min(RepossessArena.PaneCols - 1, (int)Math.Floor((z - RepossessArena.MinZ) / RepossessArena.PaneWidth));
+            return RepossessArena.PaneId(row, col);
+        }
+
+        /// <summary>The pane a segment from <paramref name="from"/> to <paramref name="to"/> crosses on the glass plane (x = 35.2, the
+        /// middle of the pane), or null when it does not cross it or crosses on a post.</summary>
+        public static string PaneCrossed(Vector3 from, Vector3 to)
+        {
+            float dx = to.X - from.X;
+            if (!(Math.Abs(dx) > 1e-6f)) return null;
+            float t = (RepossessArena.MaxX + 0.2f - from.X) / dx;
+            if (!(t >= 0f && t <= 1f)) return null;
+            return PaneAt(from.Y + (to.Y - from.Y) * t, from.Z + (to.Z - from.Z) * t);
+        }
+
+        /// <summary>True when the chest is in the open edge of a broken pane (its opening, <see cref="EdgeReach"/> past it, from
+        /// <see cref="EdgeDepth"/> inside the hall to a little way out).</summary>
+        public bool InGap(Vector3 chest)
+        {
+            if (_broken.Count == 0) return false;
+            if (!(chest.X > RepossessArena.MaxX - EdgeDepth && chest.X < RepossessArena.MaxX + 1.2f)) return false;
+            foreach (var id in _broken)
+            {
+                if (!TryParse(id, out int row, out int col)) continue;
+                float z0 = RepossessArena.MinZ + RepossessArena.PaneWidth * col, z1 = z0 + RepossessArena.PaneWidth;
+                if (chest.Y >= RowEdges[row] - EdgeReach && chest.Y <= RowEdges[row + 1] + EdgeReach && chest.Z >= z0 - EdgeReach && chest.Z <= z1 + EdgeReach)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>The damage the open edges do this tick (<see cref="EdgeDamage"/> once per <see cref="EdgeInterval"/> while the chest
+        /// is in a gap), else 0. A chest that is not finite is nowhere.</summary>
+        public float Tick(float dt, Vector3 chest)
+        {
+            if (dt > 0f && !float.IsInfinity(dt) && _cutCooldown > 0f) _cutCooldown -= dt;
+            if (float.IsNaN(chest.X) || float.IsNaN(chest.Y) || float.IsNaN(chest.Z)) return 0f;
+            if (_cutCooldown > 0f || !InGap(chest)) return 0f;
+            _cutCooldown = EdgeInterval;
+            return EdgeDamage;
+        }
+
+        /// <summary>True when the chest has fallen out of the building.</summary>
+        public static bool HasFallen(Vector3 chest) => chest.Y < FallDeathY;
     }
 }

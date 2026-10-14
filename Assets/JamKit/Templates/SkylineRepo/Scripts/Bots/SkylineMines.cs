@@ -17,7 +17,10 @@ namespace JamKit.SkylineRepo
     public sealed class SkylineMineView
     {
         const float DropSeconds = 0.2f, RingTicks = 12;
-        static readonly Color Off = new Color(0.18f, 0.18f, 0.2f), Red = new Color(1f, 0.1f, 0.08f);
+        /// <summary>A hatch mine (on the inside of the façade) is drawn this much bigger, so it reads across the hall.</summary>
+        const float FacadeScale = 1.8f;
+        // the hostile hue #FF2E63 (SKYLINE-STYLE.md: hostile bots and their mines), the same as its outline
+        static readonly Color Off = new Color(0.18f, 0.18f, 0.2f), Red = SkylineInkRoles.Hue(SkylineInkRoles.Hostile);
 
         public readonly WallMine mine;
         public MineState lastState;
@@ -25,9 +28,14 @@ namespace JamKit.SkylineRepo
         readonly Transform _ring;
         readonly Renderer _led;
         readonly Vector3 _from, _to;
+        readonly float _base;
         float _t, _expire = -1f;
 
         public Vector3 Logical { get; }
+
+        /// <summary>True for a mine on the inside of the façade (laid through a hatch): bigger, faces into the hall, and its trigger
+        /// ring stays up while it is armed, so a player can path round, above or below it.</summary>
+        public bool Facade { get; }
 
         public SkylineMineView(WallMine mine, Vector3 logical, Vector3 dropFrom, Vector3 wallBack, float triggerRadius, Transform owner)
         {
@@ -38,14 +46,22 @@ namespace JamKit.SkylineRepo
             // stick it to the wall behind the logical point, if there's one within 1.5 m
             _to = logical;
             Vector3 normal = -wallBack;
-            if (wallBack.sqrMagnitude > 1e-6f && SkylineBot.CastClear(logical, wallBack.normalized, 1.5f, owner, out var hit))
+            Facade = FacadeHatches.IsHatchPoint(new System.Numerics.Vector3(logical.x, logical.y, logical.z));
+            if (Facade)
+            {
+                // on the glass's inside face: it faces into the hall (-x), whichever way the gondola outside faces
+                normal = Vector3.left;
+            }
+            else if (wallBack.sqrMagnitude > 1e-6f && SkylineBot.CastClear(logical, wallBack.normalized, 1.5f, owner, out var hit))
             {
                 _to = hit.point + hit.normal * 0.03f;
                 normal = hit.normal;
             }
+            _base = Facade ? FacadeScale : 1f;
             _root = new GameObject("Wall Mine");
             _root.transform.position = _from;
             _root.transform.rotation = Quaternion.LookRotation(normal.sqrMagnitude > 1e-6f ? normal : Vector3.forward);
+            _root.transform.localScale = Vector3.one * _base;
             SkylineBotLook.Part(PrimitiveType.Cylinder, "Puck", _root.transform, Vector3.zero, new Vector3(0.32f, 0.03f, 0.32f), SkylineBotLook.Dark, false, new Vector3(90f, 0f, 0f));
             SkylineBotLook.Part(PrimitiveType.Cube, "Rim", _root.transform, new Vector3(0f, 0f, 0.035f), new Vector3(0.22f, 0.04f, 0.02f), SkylineBotLook.Gold, false);
             _led = SkylineBotLook.Part(PrimitiveType.Sphere, "Led", _root.transform, new Vector3(0f, 0.07f, 0.05f), Vector3.one * 0.06f, Off, false).GetComponent<Renderer>();
@@ -58,6 +74,7 @@ namespace JamKit.SkylineRepo
                 float a = i * Mathf.PI * 2f / RingTicks;
                 SkylineBotLook.Part(PrimitiveType.Cube, "Tick", _ring, new Vector3(Mathf.Cos(a) * triggerRadius, Mathf.Sin(a) * triggerRadius, 0f), new Vector3(0.14f, 0.05f, 0.02f), Red, false, new Vector3(0f, 0f, a * Mathf.Rad2Deg + 90f));
             }
+            SkylineInkRoles.Apply(_ring.gameObject, SkylineInkRoles.Hostile);
             _ring.gameObject.SetActive(false);
             SkylineInkRoles.Apply(_root, SkylineInkRoles.Hostile);   // comic ink: a hostile mine is outlined
             foreach (var r in _root.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -80,12 +97,12 @@ namespace JamKit.SkylineRepo
                 default: on = false; break;
             }
             _led.sharedMaterial = SkylineBotLook.Lit(on ? Red : Off, SkylineInkRoles.Hostile);
-            _ring.gameObject.SetActive(state == MineState.Fusing);
+            _ring.gameObject.SetActive(state == MineState.Fusing || (Facade && state == MineState.Armed));
             if (_expire >= 0f)
             {
                 _expire += dt;
                 float s = Mathf.Clamp01(1f - _expire / 0.3f);
-                _root.transform.localScale = Vector3.one * s;
+                _root.transform.localScale = Vector3.one * (s * _base);
                 if (s <= 0f) { Destroy(); return false; }
             }
             return true;
