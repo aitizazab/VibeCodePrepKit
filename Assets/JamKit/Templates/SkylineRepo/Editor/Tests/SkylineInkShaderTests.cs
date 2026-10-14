@@ -72,7 +72,7 @@ namespace JamKit.SkylineRepo.Tests
                     Assert.That(m.HasProperty(p), Is.True, "property " + p + " is missing");
                 Assert.That(m.GetFloat("_GradBottom"), Is.EqualTo(0.78f).Within(1e-4f));
                 Assert.That(m.GetFloat("_GradHeight"), Is.EqualTo(6f).Within(1e-4f));
-                Assert.That(m.GetFloat("_HatchStrength"), Is.EqualTo(0.15f).Within(1e-4f));
+                Assert.That(m.GetFloat("_HatchStrength"), Is.EqualTo(0.08f).Within(1e-4f));
                 Assert.That(m.GetFloat("_RimStrength"), Is.EqualTo(0.25f).Within(1e-4f));
                 Assert.That(m.GetFloat("_InkRole"), Is.EqualTo(0f));
             }
