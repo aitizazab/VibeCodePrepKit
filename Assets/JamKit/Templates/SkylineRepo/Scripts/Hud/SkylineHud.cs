@@ -5,33 +5,27 @@ using UnityEngine.UIElements;
 
 namespace JamKit.SkylineRepo
 {
-    /// <summary>The M1 HUD (UI Toolkit, one UIDocument): the crosshair and its coloured hit marker (white a hit, yellow a weak
-    /// point, gold a Writ spot, red a kill), the gun and its magazine, the Unit's own plating and chassis bars (labelled; the
-    /// plating bar flashes when it breaks), a wedge pointing to where the last hit came from, the subtitle box for Dot,
-    /// CONCIERGE and Nan, CONCIERGE's notice banner, the bots' bark bubbles, and the hurt vignette. No damage numbers and no
-    /// enemy health bars (the creator's rule).
-    /// <para>Judge round 1: everything sits inside the screen's safe area and scales with the screen (the panel's
-    /// scale-with-screen-size, 1920 x 1080 reference), whatever the resolution or DPI; every text has a dark backing and a
-    /// shadow, so it reads on the sunlit white floors; subtitles sit bottom-left, clear of the viewmodel (which fills the
-    /// bottom right), and fade and slide in and out (no text pops); barks are drawn on the HUD, above the viewmodel, at a
-    /// readable size.</para></summary>
+    /// <summary>The Skyline HUD base (UI Toolkit, one UIDocument; docs/SKYLINE-HUD.md): the crosshair and its coloured hit
+    /// marker (white a hit, yellow a weak point, gold a Writ spot, red a kill), the one layered-parallelogram health bar
+    /// (<see cref="SkylineHudHealth"/>), the display-font ammo counter (<see cref="SkylineHudAmmo"/>), a wedge pointing to
+    /// where the last hit came from, the hurt vignette (and the low-chassis red edge tint), and an interim unboxed subtitle
+    /// line. No boxes, no rounded corners, no CONCIERGE banner card, no speaker card; no damage numbers and no enemy health
+    /// bars (the creator's rule). H3/H4/H5/C2 add their own elements under <see cref="Safe"/> and <see cref="Root"/>.
+    /// <para>Everything sits inside the screen's safe area and scales with the screen (the panel's scale-with-screen-size, 1920
+    /// x 1080 reference). Barks are still drawn here until H4 removes them.</para></summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class SkylineHud : MonoBehaviour
     {
         // Layout (reference 1920 x 1080 panel units).
-        const float Margin = 40f, BarWidth = 260f, BarHeight = 12f, BarGap = 10f, LabelWidth = 92f, PanelPad = 12f;
+        const float Margin = 40f;
         const float CrossDot = 4f, MarkerArm = 12f, MarkerThick = 3f, MarkerGap = 7f;
         const float WedgeRadius = 120f, WedgeWidth = 46f, WedgeHeight = 8f;
-        const float SayMaxWidth = 820f, SayBottom = 132f, SaySlide = 12f, BannerTop = 64f;
+        const float SayBottom = 120f, SaySlide = 12f, SaySizePx = 34f;
         // Timing (unscaled seconds).
-        const float MarkerTime = 0.18f, KillMarkerTime = 0.32f, FlashTime = 0.6f, WedgeTime = 1.1f, SayTime = 4f;
+        const float MarkerTime = 0.18f, KillMarkerTime = 0.32f, WedgeTime = 1.1f, SayTime = 4f;
         const float FadeIn = 0.18f, FadeOut = 0.32f, BannerTime = 2.8f, HurtDecay = 2.2f, BreakFlashTime = 0.28f;
         const float LowChassis = 0.35f;
 
-        static readonly Color PanelBack = new Color(0.04f, 0.05f, 0.08f, 0.72f);
-        static readonly Color PanelEdge = new Color(1f, 1f, 1f, 0.08f);
-        static readonly Color Shadow = new Color(0f, 0f, 0f, 0.9f);
-        static readonly Color PlatingColor = new Color(0.55f, 0.85f, 1f, 0.95f), ChassisColor = new Color(1f, 0.62f, 0.25f, 0.95f);
         static readonly Color HurtColor = new Color(0.9f, 0.06f, 0.03f, 1f);
 
         public static SkylineHud Instance { get; private set; }
@@ -40,17 +34,24 @@ namespace JamKit.SkylineRepo
         public PanelSettings panelSettings;
         public SkylinePlayer player;
 
-        VisualElement _root, _safe, _dot, _marker, _plating, _platingFill, _chassisFill, _wedgePivot, _wedge;
-        VisualElement _sayBox, _banner, _vignette, _breakFlash, _barks;
-        Label _gun, _ammo, _speaker, _line, _platingLabel, _bannerHead, _bannerBody;
+        VisualElement _root, _safe, _dot, _marker, _wedgePivot, _wedge;
+        VisualElement _sayBox, _vignette, _breakFlash, _barks;
+        KeylinedLabel _say;
         readonly VisualElement[] _arms = new VisualElement[4];
-        float _markerLeft, _markerTime, _flashLeft, _wedgeLeft, _sayLeft, _sayAlpha, _bannerLeft, _bannerAlpha;
-        float _hurt, _breakLeft, _pulse;
+        float _markerLeft, _markerTime, _wedgeLeft, _sayLeft, _sayAlpha;
+        float _hurt, _breakLeft;
         Vector3 _hitFrom;
         Rect _safeRect;
         Vector2Int _screen;
         Texture2D _vignetteTex;
         readonly List<BarkTag> _barkTags = new List<BarkTag>();
+
+        /// <summary>The full-screen HUD layer (under it: the vignette, the flashes, the barks, then <see cref="Safe"/>).</summary>
+        public VisualElement Root => _root;
+        /// <summary>Everything that must stay on screen lives here: it follows the screen's safe area.</summary>
+        public VisualElement Safe => _safe;
+        public SkylineHudHealth Health { get; } = new SkylineHudHealth();
+        public SkylineHudAmmo Ammo { get; } = new SkylineHudAmmo();
 
         void Awake()
         {
@@ -88,7 +89,9 @@ namespace JamKit.SkylineRepo
                 Debug.LogWarning("SkylineHud: the UIDocument has no panel; the HUD is off");
                 return;
             }
-            Build(docRoot);
+            BuildOn(docRoot);
+            Health.Bind(player);
+            Ammo.Bind(player);
         }
 
         // ------------------------------------------------------------------ building
@@ -106,40 +109,7 @@ namespace JamKit.SkylineRepo
             return e;
         }
 
-        static Label Text(VisualElement parent, int size, Color c, bool bold = true)
-        {
-            var l = new Label { pickingMode = PickingMode.Ignore };
-            l.style.fontSize = size;
-            l.style.color = c;
-            l.style.unityFontStyleAndWeight = bold ? FontStyle.Bold : FontStyle.Normal;
-            l.style.marginLeft = 0;
-            l.style.marginRight = 0;
-            l.style.marginTop = 0;
-            l.style.marginBottom = 0;
-            l.style.paddingLeft = 0;
-            l.style.paddingRight = 0;
-            l.style.paddingTop = 0;
-            l.style.paddingBottom = 0;
-            l.style.textShadow = new TextShadow { offset = new Vector2(0f, 2f), blurRadius = 3f, color = Shadow };
-            parent.Add(l);
-            return l;
-        }
-
-        /// <summary>A dark rounded backing panel (text on it reads on any floor).</summary>
-        static VisualElement Panel(VisualElement parent, float pad)
-        {
-            var p = new VisualElement { pickingMode = PickingMode.Ignore };
-            p.style.position = Position.Absolute;
-            p.style.backgroundColor = PanelBack;
-            Round(p, 8f);
-            p.style.borderTopWidth = p.style.borderBottomWidth = p.style.borderLeftWidth = p.style.borderRightWidth = 1f;
-            p.style.borderTopColor = p.style.borderBottomColor = p.style.borderLeftColor = p.style.borderRightColor = PanelEdge;
-            p.style.paddingLeft = p.style.paddingRight = pad + 4f;
-            p.style.paddingTop = p.style.paddingBottom = pad;
-            parent.Add(p);
-            return p;
-        }
-
+        /// <summary>Only the bark bubbles still round (H4 removes them).</summary>
         static void Round(VisualElement e, float r)
         {
             e.style.borderTopLeftRadius = r;
@@ -160,7 +130,9 @@ namespace JamKit.SkylineRepo
             return e;
         }
 
-        void Build(VisualElement docRoot)
+        /// <summary>Builds the HUD under <paramref name="docRoot"/> (the UIDocument's root, or any element: the EditMode tests
+        /// build it on a bare one). Call <see cref="Health"/>.Bind and <see cref="Ammo"/>.Bind afterwards.</summary>
+        public void BuildOn(VisualElement docRoot)
         {
             _root = Fill(docRoot);
             _root.name = "skyline-hud";
@@ -211,81 +183,25 @@ namespace JamKit.SkylineRepo
             _wedgePivot.style.position = Position.Absolute;
             centre.Add(_wedgePivot);
             _wedge = Box(_wedgePivot, -WedgeWidth * 0.5f, -WedgeRadius, WedgeWidth, WedgeHeight, new Color(1f, 0.3f, 0.2f, 0.9f));
-            Round(_wedge, 3f);
             _wedgePivot.style.display = DisplayStyle.None;
 
-            // The Unit's plating and chassis, bottom left, labelled, on a backing panel.
-            var armor = Panel(_safe, PanelPad);
-            armor.style.left = Margin;
-            armor.style.bottom = Margin;
-            _platingLabel = ArmorRow(armor, "PLATING", PlatingColor, out _plating, out _platingFill, 0f);
-            ArmorRow(armor, "CHASSIS", ChassisColor, out _, out _chassisFill, BarGap);
+            // The one health bar, bottom left; the ammo counter, bottom right.
+            Health.Build(_safe, Margin);
+            Ammo.Build(_safe, Margin);
 
-            // The gun and its magazine, bottom right, on a backing panel (it reads over the viewmodel).
-            var gunBox = Panel(_safe, PanelPad - 4f);
-            gunBox.style.right = Margin;
-            gunBox.style.bottom = Margin;
-            gunBox.style.alignItems = Align.FlexEnd;
-            _ammo = Text(gunBox, 40, Color.white);
-            _gun = Text(gunBox, 16, new Color(1f, 1f, 1f, 0.8f));
-            _gun.style.letterSpacing = 2f;
-
-            // Subtitles, bottom left above the armour panel: clear of the viewmodel, which fills the bottom right.
-            _sayBox = Panel(_safe, 14f);
-            _sayBox.style.left = Margin;
+            // The interim subtitle: bottom centre, white text with an ink keyline, NO box, italic for CONCIERGE's PA lines.
+            // H4 replaces it with SkylineHudSubtitles (two lines, the size setting, the barks filter).
+            _sayBox = SkylineHudStyle.Layer(_safe, "hud-say");
+            _sayBox.style.left = Length.Percent(15);
+            _sayBox.style.right = Length.Percent(15);
             _sayBox.style.bottom = SayBottom;
-            _sayBox.style.maxWidth = SayMaxWidth;
-            _sayBox.style.borderLeftWidth = 4f;
-            _speaker = Text(_sayBox, 18, Color.white);
-            _speaker.style.letterSpacing = 2f;
-            _speaker.style.marginBottom = 4f;
-            _line = Text(_sayBox, 28, Color.white, false);
-            _line.style.whiteSpace = WhiteSpace.Normal;
-            _line.style.unityTextAlign = TextAnchor.UpperLeft;
+            _sayBox.style.alignItems = Align.Center;
+            _say = new KeylinedLabel(SaySizePx, 2f, null, true);
+            _say.style.width = Length.Percent(100);
+            _say.SetWrap(true, TextAnchor.LowerCenter);
+            _sayBox.Add(_say);
             _sayBox.style.opacity = 0f;
             _sayBox.style.display = DisplayStyle.None;
-
-            // CONCIERGE's notice banner, top centre.
-            var bannerRow = new VisualElement { pickingMode = PickingMode.Ignore };
-            bannerRow.style.position = Position.Absolute;
-            bannerRow.style.left = 0;
-            bannerRow.style.right = 0;
-            bannerRow.style.top = BannerTop;
-            bannerRow.style.alignItems = Align.Center;
-            _safe.Add(bannerRow);
-            _banner = Panel(bannerRow, 12f);
-            _banner.style.position = Position.Relative;
-            _banner.style.alignItems = Align.Center;
-            _banner.style.borderTopWidth = 3f;
-            _banner.style.borderTopColor = new Color(0.95f, 0.8f, 0.4f, 0.95f);
-            _bannerHead = Text(_banner, 15, new Color(0.95f, 0.8f, 0.4f));
-            _bannerHead.style.letterSpacing = 3f;
-            _bannerHead.style.marginBottom = 4f;
-            _bannerBody = Text(_banner, 22, Color.white, false);
-            _banner.style.opacity = 0f;
-            _banner.style.display = DisplayStyle.None;
-        }
-
-        static Label ArmorRow(VisualElement parent, string name, Color fillColor, out VisualElement back, out VisualElement fill, float top)
-        {
-            var row = new VisualElement { pickingMode = PickingMode.Ignore };
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
-            row.style.marginTop = top;
-            parent.Add(row);
-            var label = Text(row, 13, new Color(fillColor.r, fillColor.g, fillColor.b, 1f));
-            label.style.width = LabelWidth;
-            label.style.letterSpacing = 2f;
-            label.text = name;
-            back = new VisualElement { pickingMode = PickingMode.Ignore };
-            back.style.width = BarWidth;
-            back.style.height = BarHeight;
-            back.style.backgroundColor = new Color(1f, 1f, 1f, 0.12f);
-            Round(back, 3f);
-            back.style.overflow = Overflow.Hidden;
-            row.Add(back);
-            fill = Box(back, 0f, 0f, BarWidth, BarHeight, fillColor);
-            return label;
         }
 
         /// <summary>A white radial vignette (clear in the middle, opaque at the corners), tinted red by the style.</summary>
@@ -326,19 +242,20 @@ namespace JamKit.SkylineRepo
 
         // ------------------------------------------------------------------ the API
 
-        /// <summary>Shows a subtitle line under the speaker's name for a few seconds.</summary>
+        /// <summary>Shows a subtitle line (the speaker's name a coloured prefix) for a few seconds.</summary>
         public void Say(Speaker speaker, string text) => Say(speaker, text, SayTime);
 
         /// <summary>As <see cref="Say(Speaker, string)"/>, shown for <paramref name="seconds"/> (a teaching line's reading time).
         /// It fades and slides in; a line that replaces one still showing dips and comes back, never pops.</summary>
         public void Say(Speaker speaker, string text, float seconds)
         {
-            if (_line == null) return;
-            var accent = SpeakerColor(speaker);
-            _speaker.text = speaker == Speaker.Concierge ? "CONCIERGE" : speaker.ToString().ToUpperInvariant();
-            _speaker.style.color = accent;
-            _sayBox.style.borderLeftColor = accent;
-            _line.text = text ?? "";
+            if (_say == null) return;
+            string name = speaker == Speaker.Concierge ? "CONCIERGE" : speaker.ToString().ToUpperInvariant();
+            var (r, g, b) = SpeakerColours.Of(name);
+            string hex = ColorUtility.ToHtmlStringRGB(new Color(r, g, b));
+            string body = (text ?? "").Replace("<", "");
+            _say.SetItalic(speaker == Speaker.Concierge);   // CONCIERGE's lines are PA announcements
+            _say.SetText("<color=#" + hex + ">" + name + ":</color> " + body, name + ": " + body);
             _sayBox.style.display = DisplayStyle.Flex;
             _sayAlpha = Mathf.Min(_sayAlpha, 0.35f);
             _sayLeft = seconds > 0f ? seconds : SayTime;
@@ -347,26 +264,8 @@ namespace JamKit.SkylineRepo
         /// <summary>Takes the subtitle down now (it fades out): its line ended early.</summary>
         public void EndSay() => _sayLeft = Mathf.Min(_sayLeft, 0f);
 
-        static Color SpeakerColor(Speaker s)
-        {
-            switch (s)
-            {
-                case Speaker.Dot: return new Color(1f, 0.8f, 0.35f);
-                case Speaker.Nan: return new Color(0.55f, 0.92f, 0.85f);
-                default: return new Color(0.96f, 0.88f, 0.62f);
-            }
-        }
-
-        /// <summary>CONCIERGE's notice banner (a fight starting): a gold-edged card at the top that slides in and fades.</summary>
-        public void Banner(string header, string body)
-        {
-            if (_banner == null) return;
-            _bannerHead.text = header ?? "";
-            _bannerBody.text = body ?? "";
-            _banner.style.display = DisplayStyle.Flex;
-            _bannerAlpha = Mathf.Min(_bannerAlpha, 0.35f);
-            _bannerLeft = BannerTime;
-        }
+        /// <summary>CONCIERGE's notice (a fight starting): no banner card any more, just a PA subtitle line (H4 owns subtitles).</summary>
+        public void Banner(string header, string body) => Say(Speaker.Concierge, body, BannerTime);
 
         /// <summary>The hit marker for a shot's strongest result: white a hit, yellow a weak point, gold a Writ spot, red a kill.</summary>
         public void Marker(SkylineHitResult r) => Marker(r, false);
@@ -381,8 +280,8 @@ namespace JamKit.SkylineRepo
             _marker.style.display = DisplayStyle.Flex;
         }
 
-        /// <summary>The plating just broke: its bar flashes.</summary>
-        public void FlashPlating() => _flashLeft = FlashTime;
+        /// <summary>The plating just broke: the bar flashes.</summary>
+        public void FlashPlating() => Health.Flash();
 
         /// <summary>A hit came from <paramref name="attackerPosition"/>: the wedge points there for a moment.</summary>
         public void DamageFrom(Vector3 attackerPosition)
@@ -498,7 +397,6 @@ namespace JamKit.SkylineRepo
                 if (_markerLeft <= 0f) _marker.style.display = DisplayStyle.None;
             }
 
-            float chassisShare = 1f;
             if (player != null)
             {
                 // Aim down sights: for the Writ the sights are the crosshair, so the dot fades out as they come up (the Breacher
@@ -507,25 +405,6 @@ namespace JamKit.SkylineRepo
                 {
                     bool sights = player.Loadout.Active.Def.id == SkylineGuns.WritId;
                     _dot.style.opacity = sights ? 1f - player.AimEased : 1f;
-                }
-                var a = player.Armor;
-                if (a != null)
-                {
-                    float plating = a.PlatingMax > 0f ? a.Plating / a.PlatingMax : 0f;
-                    chassisShare = a.ChassisMax > 0f ? a.Chassis / a.ChassisMax : 0f;
-                    _platingFill.style.width = BarWidth * plating;
-                    _chassisFill.style.width = BarWidth * chassisShare;
-                    bool down = plating <= 0f;
-                    _platingLabel.text = down ? "NO PLATING" : "PLATING";
-                    _platingLabel.style.color = down ? new Color(1f, 0.35f, 0.3f) : PlatingColor;
-                }
-                var lo = player.Loadout;
-                if (lo != null)
-                {
-                    var g = lo.Active;
-                    string name = g.Def.displayName.ToUpperInvariant();
-                    _ammo.text = g.State.IsReloading ? "-- / " + g.Def.weapon.magazineSize : g.Ammo + " / " + g.Def.weapon.magazineSize;
-                    _gun.text = g.State.IsReloading ? name + "  ·  RELOADING" : name;
                 }
                 if (_wedgeLeft > 0f)
                 {
@@ -539,18 +418,13 @@ namespace JamKit.SkylineRepo
                 }
             }
 
-            if (_flashLeft > 0f)
-            {
-                _flashLeft -= dt;
-                bool on = Mathf.Repeat(_flashLeft, 0.15f) > 0.075f;
-                _plating.style.backgroundColor = on ? new Color(1f, 0.25f, 0.2f, 0.85f) : new Color(1f, 1f, 1f, 0.12f);
-                if (_flashLeft <= 0f) _plating.style.backgroundColor = new Color(1f, 1f, 1f, 0.12f);
-            }
+            Health.Tick(dt);
+            Ammo.Tick(dt);
 
-            // The hurt vignette: a flare that fades, and a slow pulse while the chassis is low.
+            // The hurt vignette: a flare that fades, and the red edge tint that follows the low-chassis pulse (HealthBarModel).
             _hurt = Mathf.Max(0f, _hurt - HurtDecay * dt);
-            _pulse += dt;
-            float low = chassisShare < LowChassis ? (0.18f + 0.1f * Mathf.Sin(_pulse * 5f)) * (1f - chassisShare / LowChassis) : 0f;
+            float chassisShare = Health.ChassisFrac;
+            float low = chassisShare < LowChassis ? (0.12f + 0.2f * Health.EdgeTint) * (1f - chassisShare / LowChassis) : 0f;
             _vignette.style.opacity = Mathf.Clamp01(Mathf.Max(_hurt, low));
             if (_breakLeft > 0f)
             {
@@ -559,13 +433,10 @@ namespace JamKit.SkylineRepo
                 if (_breakLeft <= 0f) _breakFlash.style.opacity = 0f;
             }
 
-            // Subtitles and the banner fade and slide; nothing pops.
+            // The subtitle fades and slides; nothing pops.
             _sayLeft -= dt;
             _sayAlpha = Step(_sayAlpha, _sayLeft > 0f, dt);
             Show(_sayBox, _sayAlpha, _sayLeft > 0f, SaySlide);
-            _bannerLeft -= dt;
-            _bannerAlpha = Step(_bannerAlpha, _bannerLeft > 0f, dt);
-            Show(_banner, _bannerAlpha, _bannerLeft > 0f, -SaySlide);
         }
 
         static float Step(float alpha, bool on, float dt) =>

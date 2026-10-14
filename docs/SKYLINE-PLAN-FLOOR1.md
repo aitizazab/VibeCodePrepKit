@@ -296,7 +296,7 @@ tight (the week is in the red); run at most 3-4 agents at once, cheapest and mos
 | W4 | Door-spawned bots: arrival and engagement | pure + Unity hook | M | `BotArrival.cs`, `HoverPatrol.cs`, `SkylineBot.cs`, tests | F0 (W3 for the sim) |
 | B1 | Floor builder: the scene from data (grey-box) | Unity | M | `SkylineArenaBuilder.Floor.cs`, `SkylineScenes.cs`, `SkylineLint.cs` | F1, F2 |
 | B2 | Lobby builder (grey-box) | Unity | M | `SkylineArenaBuilder.Lobby.cs` | L1, B1 |
-| H2 | HUD base: health bar, ammo, font, old boxes removed | Unity | M | `SkylineHud.cs`, `SkylineHudHealth.cs`, `SkylineHudAmmo.cs`, `ThirdParty/Fonts` | V1 |
+| H2 | HUD base: health bar, ammo, font, old boxes removed (DONE 2026-10-14) | Unity | M | `SkylineHud.cs`, `SkylineHudHealth.cs`, `SkylineHudAmmo.cs`, `ThirdParty/Fonts` | V1 |
 | H3 | HUD objective: job strip, markers, tow ring, wave clock | Unity | M | `SkylineHudObjective.cs` | V1, R1, H2 |
 | H4 | Subtitles, settings, bubbles out | Unity | M | `SkylineHudSubtitles.cs`, `SkylineSettings.cs`, `SkylinePauseMenu.cs` | V1, H2, W4 |
 | H5 | Flashes: plating, ammo, wreck outline timing | Unity | S | `SkylineHudFlashes.cs` | H2, A2, S0 |
