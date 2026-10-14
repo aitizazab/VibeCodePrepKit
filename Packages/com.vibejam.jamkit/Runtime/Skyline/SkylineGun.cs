@@ -14,8 +14,11 @@ namespace JamKit.Skyline
         public string id = "";
         public string displayName = "";
         /// <summary>Magazine, fire mode and fire interval. <see cref="SkylineGun"/> copies it and sets reloadTime (from the
-        /// clips), autoReloadOnEmpty off (a dry fire comes first) and infiniteReserve on (no ammo pickups in M1).</summary>
+        /// clips), autoReloadOnEmpty off (a dry fire comes first) and infiniteReserve on, except for a <see cref="special"/> gun.</summary>
         public WeaponDef weapon = new WeaponDef();
+        /// <summary>A special weapon (the Breacher and later ones; docs/SKYLINE-HUD.md "Ammo") has a finite reserve fed by
+        /// <see cref="SpecialAmmoLedger"/>; a primary weapon (the Writ) has an infinite one.</summary>
+        public bool special;
         /// <summary>Damage per bullet (per pellet for a shotgun) before falloff and multipliers.</summary>
         public float damage = 10f;
         public int pellets = 1;
@@ -136,7 +139,8 @@ namespace JamKit.Skyline
             if (bad != null) throw new ArgumentException(bad, nameof(def));
             _weapon = Copy(def.weapon);
             _weapon.autoReloadOnEmpty = false;
-            _weapon.infiniteReserve = true;
+            _weapon.infiniteReserve = !def.special;
+            if (def.special) _weapon.startingReserve = 0;   // the SpecialAmmoLedger feeds a special gun; WeaponDef defaults to 48
             _state = new WeaponState(_weapon);
             _state.Fired += OnFired;
             _state.DryFired += OnDryFired;

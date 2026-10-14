@@ -181,6 +181,7 @@ namespace JamKit.Skyline
             {
                 id = BreacherId,
                 displayName = "Breacher",
+                special = true,
                 weapon = new WeaponDef { magazineSize = 4, fireMode = FireMode.Semi, fireInterval = 0.75f },
                 damage = 9f,
                 pellets = 9,

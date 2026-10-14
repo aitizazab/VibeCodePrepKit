@@ -286,7 +286,7 @@ tight (the week is in the red); run at most 3-4 agents at once, cheapest and mos
 | R1 | Tow meter, repossession, floor flow (DONE 2026-10-14) | pure | M | `Repossession.cs`, `FloorFlow.cs`, tests | F0 |
 | L1 | Lobby data and the floor's teaching beats (DONE 2026-10-14) | pure | M | `HotelLobby.cs`, `FloorBeats.cs`, tests | F0 |
 | M1 | Music sequencer, lift-ride plan, layers (DONE 2026-10-14) | pure | M | `MusicSequencer.cs`, `MusicLayers.cs`, tests | F0 |
-| A1 | Special-ammo ledger and the finite reserve hook | pure | S | `SpecialAmmo.cs`, `SkylineGun.cs` (additive), `SkylineGuns.cs` (one line), tests | F0 |
+| A1 | Special-ammo ledger and the finite reserve hook (DONE 2026-10-14) | pure | S | `SpecialAmmo.cs`, `SkylineGun.cs` (additive), `SkylineGuns.cs` (one line), tests | F0 |
 | C1 | Comic lettering core | pure | S | `ComicLettering.cs`, tests | F0 |
 | V1 | HUD models (health, edge marker, subtitles, wave text, wreck sequence) (DONE 2026-10-14) | pure | M | `HudModels.cs`, tests | F0 |
 | S0 | Ink roles: hues, wreck thinning, x-ray objective, hostile-hue lint | Unity | M | `InkLit.shader`, `SkylineInk*.cs`, `SkylineInkRoles.cs`, `SkylineWreck.cs`, a new editor lint | none |
