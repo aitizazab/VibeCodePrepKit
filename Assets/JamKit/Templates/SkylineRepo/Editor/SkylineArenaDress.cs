@@ -1258,7 +1258,7 @@ namespace JamKit.SkylineRepo.EditorTools
             // strip lights hung 4.2 m up across the hall (the hall's roof is at 8 m: the pools are banded at a fixed
             // attenuation, so the lights hang low enough to reach the floor).
             var cool = new Color(0xDD / 255f, 0xE8 / 255f, 1f);
-            var coolGlow = Emissive("SK_Emissive_StripCool", new Color(1.5f, 1.75f, 2.3f));
+            var coolGlow = Emissive("SK_Emissive_StripCool", new Color(2.2f, 2.5f, 3.2f));
             for (int i = 0; i < 5; i++)
             {
                 float x = -12f + 6f * i;
@@ -1268,8 +1268,8 @@ namespace JamKit.SkylineRepo.EditorTools
                 light.transform.position = V(x, 4.0f, -28.5f);
                 light.type = LightType.Point;
                 light.color = cool;
-                light.intensity = 3f;
-                light.range = 9f;
+                light.intensity = 7f;   // fix round 1: raised so the hard-edged pools take the hall over
+                light.range = 11f;
                 light.shadows = LightShadows.None;
                 light.lightmapBakeType = LightmapBakeType.Realtime;
             }
@@ -1298,6 +1298,8 @@ namespace JamKit.SkylineRepo.EditorTools
             at.y = 2.35f;
             var display = droneStill.gameObject.AddComponent<SkylineDisplayBot>();
             display.enemyId = SkylineEnemies.DroneId;
+            display.bodyScale = 1.4f;     // display only (fix round 1): a preview of the larger-drone, much-larger-rotor redesign
+            display.rotorScale = 2f;
             display.position = at;
             display.yaw = Mathf.Atan2(cam.x - at.x, cam.z - at.z) * Mathf.Rad2Deg;
         }
@@ -1307,6 +1309,10 @@ namespace JamKit.SkylineRepo.EditorTools
         /// object shared with the main hall and stays coloured.</summary>
         static void InkGreyWarmup(Transform arena, Transform warm)
         {
+            // fix round 1: the sun flooded the hall, so the strip lights could not take over. The roof glass now casts the sun's shadow
+            // (an opaque shadow: the hall is dim, lit by its own strips and the cool ambient; the glass itself still shows the sky).
+            var roof = warm != null ? warm.Find("Roof (glass)") : null;
+            if (roof != null && roof.GetComponent<Renderer>() != null) roof.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.On;
             int n = SkylineInkConvert.MakeGrey(warm);
             var dressing = arena.Find("Dressing/Warm-up Dressing");
             if (dressing != null) n += SkylineInkConvert.MakeGrey(dressing);

@@ -125,6 +125,14 @@ namespace JamKit.SkylineRepo.EditorTools
             else if (grey.shader != twin.shader) grey.shader = twin.shader;
             grey.CopyPropertiesFromMaterial(twin);
             grey.SetFloat("_Desaturate", 1f);
+            // Fix round 1 (the colour-free hall read near-white): mid greys, not the palette's luminance. Floors #6E6E6E, everything
+            // else #8E8E8E scaled by how light the palette colour is against the plaster (so trims and panels still differ).
+            string n = twin.name.ToLowerInvariant();
+            bool floor = n.Contains("marble") || n.Contains("terrazzo") || n.Contains("parquet") || n.Contains("floor") || n.Contains("ground");
+            Color src = twin.GetColor("_BaseColor");
+            float lum = src.r * 0.2126f + src.g * 0.7152f + src.b * 0.0722f;
+            float g = floor ? 0x6E / 255f : Mathf.Clamp((0x8E / 255f) * Mathf.Clamp(lum / 0.8f, 0.55f, 1f), 0f, 1f);
+            grey.SetColor("_BaseColor", new Color(g, g, g, 1f));
             foreach (var kw in twin.shaderKeywords) grey.EnableKeyword(kw);
             SkylineInkRoles.SetRole(grey, SkylineInkRoles.GetRole(twin));
             EditorUtility.SetDirty(grey);

@@ -80,7 +80,8 @@ namespace JamKit.SkylineRepo.EditorTools
             for (int i = 0; i < director.slots.Length; i++)
             {
                 var pose = director.slots[i].cameraPose;
-                Still("Still " + director.slots[i].label, pose.position, pose.rotation, director.slots[i].label);
+                var still = Still("Still " + director.slots[i].label, pose.position, pose.rotation, director.slots[i].label);
+                DisplayBot(still, director.slots[i], pose);
             }
             Still("Still wide", wide.position, wide.rotation, "wide");
             cam.transform.SetPositionAndRotation(wide.position, wide.rotation);
@@ -95,6 +96,19 @@ namespace JamKit.SkylineRepo.EditorTools
                 label = label, enemyId = enemyId, spawn = Marker(markers, "Spawn " + label, at, 180f), railEnd = railEnd, dummy = dummy,
                 cameraPose = pose, seconds = seconds,
             };
+
+        /// <summary>Fix round 1 (the gallery's stills caught dead bots, a wreck behind a pillar): each bot's still gets a display bot
+        /// (<see cref="SkylineDisplayBot"/>), alive and idle, 4.5 m down the camera's line of sight and facing the camera, made only
+        /// while that still renders; every other bot and wreck is hidden for the shot. A floor-care unit stands on the floor.</summary>
+        static void DisplayBot(SkylineStillCamera still, SkylineGalleryDirector.Slot slot, Transform pose)
+        {
+            var at = pose.position + pose.forward * 4.5f;
+            if (slot.enemyId == SkylineEnemies.FloorCareId) at.y = 0f;
+            var display = still.gameObject.AddComponent<SkylineDisplayBot>();
+            display.enemyId = slot.enemyId;
+            display.position = at;
+            display.yaw = Mathf.Atan2(pose.position.x - at.x, pose.position.z - at.z) * Mathf.Rad2Deg;
+        }
 
         static Transform Marker(Transform parent, string name, Vector3 at, float yaw)
         {
@@ -112,14 +126,16 @@ namespace JamKit.SkylineRepo.EditorTools
             return t;
         }
 
-        static void Still(string name, Vector3 at, Quaternion rot, string shot)
+        static SkylineStillCamera Still(string name, Vector3 at, Quaternion rot, string shot)
         {
             var go = new GameObject(name);
             go.transform.SetPositionAndRotation(at, rot);
             var c = go.AddComponent<Camera>();
             c.fieldOfView = 55f;
             c.enabled = false;
-            go.AddComponent<SkylineStillCamera>().shotName = shot;
+            var still = go.AddComponent<SkylineStillCamera>();
+            still.shotName = shot;
+            return still;
         }
 
         /// <summary>A beige mannequin (its root at its feet, a capsule collider for the bots' bolts), facing <paramref name="face"/>.</summary>

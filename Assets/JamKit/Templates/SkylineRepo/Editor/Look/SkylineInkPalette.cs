@@ -30,7 +30,7 @@ namespace JamKit.SkylineRepo.EditorTools
     /// </summary>
     public static class SkylineInkPalette
     {
-        public const float DefaultGradBottom = 0.78f, DefaultHatch = 0.15f;
+        public const float DefaultGradBottom = 0.78f, DefaultHatch = 0.08f;   // fix round 1: hatching 0.15 read as moire
         /// <summary>The sky's horizon colour (<c>Skyline/InkSky</c>), the far city fades towards it.</summary>
         public static readonly Color Horizon = Hex("CFE0EE");
 
@@ -40,22 +40,35 @@ namespace JamKit.SkylineRepo.EditorTools
             return new Color32((byte)((v >> 16) & 255), (byte)((v >> 8) & 255), (byte)(v & 255), 255);
         }
 
-        static InkEntry Paint(string hex, float gradBottom = DefaultGradBottom, float hatch = DefaultHatch) =>
+        /// <summary>Fix round 1 (washed out, "a white box with lines"): the tints, shutters, woods and metals take 18% more chroma and
+        /// are 6% darker than the first table; the two base surfaces (the plaster white and the floors) are the exact values the
+        /// creator's concept asks for (warm cream, a cream-gold floor) and are not boosted.</summary>
+        static Color Boost(Color c)
+        {
+            float lum = c.r * 0.2126f + c.g * 0.7152f + c.b * 0.0722f;
+            Color o = new Color(lum + (c.r - lum) * 1.18f, lum + (c.g - lum) * 1.18f, lum + (c.b - lum) * 1.18f, 1f);
+            return new Color(Mathf.Clamp01(o.r * 0.94f), Mathf.Clamp01(o.g * 0.94f), Mathf.Clamp01(o.b * 0.94f), 1f);
+        }
+
+        static InkEntry Exact(string hex, float gradBottom = DefaultGradBottom, float hatch = DefaultHatch) =>
             new InkEntry { color = Hex(hex), gradBottom = gradBottom, hatch = hatch };
+
+        static InkEntry Paint(string hex, float gradBottom = DefaultGradBottom, float hatch = DefaultHatch) =>
+            new InkEntry { color = Boost(Hex(hex)), gradBottom = gradBottom, hatch = hatch };
 
         static InkEntry Keep() => new InkEntry { keepTexture = true, gradBottom = DefaultGradBottom, hatch = DefaultHatch, color = Color.white };
 
         static readonly Dictionary<string, InkEntry> Table = new Dictionary<string, InkEntry>
         {
-            { "SKL_Plaster_White", Paint("EDE5D8") },
+            { "SKL_Plaster_White", Exact("E2D3B8") },
             { "SKL_Plaster_White__Blush", Paint("E8C9C0") },
             { "SKL_Plaster_White__Mint", Paint("CFE3D3") },
             { "SKL_Plaster_White__Sage", Paint("BCC9A8") },
             { "SKL_Plaster_White__Sand", Paint("E3CFAE") },
             { "SKL_Plaster_White__Sky", Paint("C4D8E6") },
             { "SKL_Plaster_White__Slate", Paint("8E9BA8") },
-            { "SKL_Marble_Cream", Paint("DCD2C1", 1f) },
-            { "SKL_Terrazzo_White", Paint("DCD2C1", 1f) },
+            { "SKL_Marble_Cream", Exact("CDBB9C", 1f) },
+            { "SKL_Terrazzo_White", Exact("CDBB9C", 1f) },
             { "SKL_Parquet_Herringbone", Paint("A0603E", 1f) },
             { "SKL_Wood_Cherry", Paint("A0603E") },
             { "SKL_Wood_Pine", Paint("C99B62") },
@@ -85,7 +98,7 @@ namespace JamKit.SkylineRepo.EditorTools
 
         static readonly Dictionary<string, Color> Families = new Dictionary<string, Color>
         {
-            { "Blue", Hex("7FA6C9") }, { "Bronze", Hex("B08A63") }, { "Dark", Hex("4E5866") }, { "Green", Hex("86B3A0") },
+                { "Blue", Hex("7FA6C9") }, { "Bronze", Hex("B08A63") }, { "Dark", Hex("4E5866") }, { "Green", Hex("86B3A0") },
             { "Silver", Hex("B7C0C9") }, { "Stone", Hex("C9BBA5") }, { "White", Hex("E4E6EA") },
         };
 

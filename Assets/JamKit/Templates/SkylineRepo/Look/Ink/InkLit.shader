@@ -25,7 +25,7 @@ Shader "Skyline/InkLit"
         _GradFloorY("Gradient: floor height (m)", Float) = 0
         _GradHeight("Gradient: height to full (m)", Float) = 6
         _Desaturate("Desaturate (colour-free zone)", Range(0, 1)) = 0
-        _HatchStrength("Deep-shade hatching", Range(0, 1)) = 0.15
+        _HatchStrength("Deep-shade hatching", Range(0, 1)) = 0.08
         _InkRole("Ink role (0 none, 1 hostile, 2 objective, 3 scrap, 4 viewmodel, 5 weak spot, 6 bot weak point)", Float) = 0
         [Toggle] _Unlit("Unlit glow (no lighting)", Float) = 0
         _RimStrength("Rim", Range(0, 1)) = 0.25
@@ -206,20 +206,25 @@ Shader "Skyline/InkLit"
                 half w = max(fwidth(x), 0.002h);
                 half bandLit = smoothstep(0.45h - w, 0.45h + w, x);
                 half bandHalf = smoothstep(0.08h - w, 0.08h + w, x);
-                half sunIntensity = 0.28h + 0.32h * bandHalf + 0.4h * bandLit;
+                // Fix round 1 (washed out): the shade band must read as its own painted tone, about half the lit value on screen
+                // (about a fifth in linear light): a floor of 0.08 of the sun, 0.30 more in the half band, 0.62 in the lit band.
+                half sunIntensity = 0.08h + 0.30h * bandHalf + 0.62h * bandLit;
 
                 // The shade colour is the ambient (SH evaluated per pixel: SampleSHPixel with neither EVALUATE_SH_* keyword).
                 // The Trilight ambient is cool above, so shade takes the sky's tint.
                 half3 ambient = SampleSHPixel(half3(0, 0, 0), normalWS);
-                half3 color = albedo * (ambient * 0.9h + mainLight.color * sunIntensity);
+                half3 color = albedo * (ambient * 0.55h + mainLight.color * sunIntensity);
 
                 // ---- hatching in the deepest band only: world-space diagonal lines, a triangle wave thresholded with an
                 // anti-aliased edge, faded out where the lines would be thinner than a pixel.
-                float u = dot(positionWS, float3(0.70711, 0.70711, 0.0)) * 6.0;
+                // Fix round 1 (moire on big walls and floors): half the density (3 lines a metre), only in the deepest shade, and
+                // gone by 15 m.
+                float u = dot(positionWS, float3(0.70711, 0.70711, 0.0)) * 3.0;
                 float aa = max(fwidth(u) * 1.5, 0.0001);
                 float tri = abs(frac(u) - 0.5) * 2.0;
-                half hatch = (half)smoothstep(0.5 - aa, 0.5 + aa, tri) * (half)saturate(1.0 - (aa - 0.3) * 2.5);
-                color *= 1.0h - _HatchStrength * hatch * (1.0h - bandHalf);
+                half hatch = (half)smoothstep(0.5 - aa, 0.5 + aa, tri) * (half)saturate(1.0 - (aa - 0.3) * 2.5)
+                    * (half)(1.0 - smoothstep(8.0, 15.0, distance(positionWS, _WorldSpaceCameraPos)));
+                color *= 1.0h - _HatchStrength * hatch * (1.0h - smoothstep(0.0h, 0.3h, bandHalf));
 
                 // ---- additional lights (Forward+ and the per-object path)
                 half3 additional = 0;

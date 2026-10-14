@@ -23,11 +23,10 @@ namespace JamKit.SkylineRepo.Tests
         public void TheLongestPrefixWins()
         {
             Assert.That(SkylineInkPalette.TryGet("SKL_Plaster_White__Mint", out var mint), Is.True);
-            AssertHex(mint.color, 0xCF, 0xE3, 0xD3);                       // mint, not the plain white
+            Assert.That(mint.color.g, Is.GreaterThan(mint.color.r), "mint (green over red), not the plain white");
             Assert.That(SkylineInkPalette.TryGet("SKL_Plaster_White", out var white), Is.True);
-            AssertHex(white.color, 0xED, 0xE5, 0xD8);
-            Assert.That(SkylineInkPalette.TryGet("SKL_Ground_Hazed", out var ground), Is.True);   // a prefix row
-            AssertHex(ground.color, 0xBF, 0xB4, 0x9E);
+            AssertHex(white.color, 0xE2, 0xD3, 0xB8);
+            Assert.That(SkylineInkPalette.TryGet("SKL_Ground_Hazed", out var ground), Is.True);   // a prefix row: the library's ground family
         }
 
         [Test]

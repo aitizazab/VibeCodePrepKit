@@ -46,7 +46,7 @@ namespace JamKit.SkylineRepo.EditorTools
         public const string RootName = "Skyline Look (afternoon)";
 
         // ---- the comic-ink rig (docs/SKYLINE-STYLE.md; the afternoon rig above stays as the fallback)
-        public const float InkSunIntensity = 2.2f, InkShadowDistance = 80f;
+        public const float InkSunIntensity = 1.4f, InkShadowDistance = 80f;   // fix round 1: 2.2 washed every wall and floor out
         /// <summary>The ink rig's ambient (linear): darker than the afternoon's, so a room's look is decided by its own lights
         /// (rule 3) and the shade stays cool; the sunlit hall stays the bright, warm hero space.</summary>
         public static readonly Color InkAmbientSky = new Color(0.34f, 0.40f, 0.52f), InkAmbientEquator = new Color(0.36f, 0.35f, 0.34f),
@@ -230,7 +230,7 @@ namespace JamKit.SkylineRepo.EditorTools
         }
 
         /// <summary>
-        /// SK_Ink: neutral tonemapping (the flat palette must survive), exposure 0, contrast +8, saturation +4, bloom kept for
+        /// SK_Ink: neutral tonemapping (the flat palette must survive), exposure -0.3, contrast +8, saturation +4, bloom kept for
         /// the lights (threshold 1.1, intensity 0.8, scatter 0.6), a slight vignette (0.14), and the
         /// <see cref="SkylineInk"/> override on with its defaults (the renderer feature runs only under it).
         /// </summary>
@@ -240,7 +240,7 @@ namespace JamKit.SkylineRepo.EditorTools
             Comp<Tonemapping>(p).mode.Override(TonemappingMode.Neutral);
 
             var ca = Comp<ColorAdjustments>(p);
-            ca.postExposure.Override(0f);
+            ca.postExposure.Override(-0.3f);   // fix round 1: the flat palette was blowing out in the sun
             ca.contrast.Override(8f);
             ca.saturation.Override(4f);
             ca.colorFilter.Override(Color.white);
