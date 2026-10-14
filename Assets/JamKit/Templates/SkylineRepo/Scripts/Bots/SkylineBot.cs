@@ -123,7 +123,7 @@ namespace JamKit.SkylineRepo
         static readonly Collider[] _overlaps = new Collider[64];
         /// <summary>The eye above the chest (m): the player's eye is 1.6 m up, its chest 1.25 m.</summary>
         const float EyeAboveChest = 0.35f;
-        const float RegrowSeconds = 3f, FlashSeconds = 0.07f, HurtSoundGap = 0.15f;
+        const float RegrowSeconds = 3f, FlashSeconds = 0.07f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
@@ -339,7 +339,7 @@ namespace JamKit.SkylineRepo
         readonly Dictionary<int, SkylineSpotMarker> _markers = new Dictionary<int, SkylineSpotMarker>();
         readonly List<int> _markerGone = new List<int>();
         readonly List<Renderer> _flashing = new List<Renderer>();
-        float _flashLeft, _lastHurtSound = -1f, _spin, _charge;
+        float _flashLeft, _spin, _charge;
         bool _charging;
         GameObject _chargeBall;
         float[] _regrowAt;
@@ -1110,11 +1110,8 @@ namespace JamKit.SkylineRepo
             if (_patrol != null && !practice) _patrol.OnHit();   // a short dash to a new spot (HoverPatrol)
             HandleCues(_hitCues, SeesTarget, TargetLive(target) ? target.Chest : Center, false);
 
-            if (Time.time - _lastHurtSound >= HurtSoundGap || _lastHurtSound < 0f)
-            {
-                _lastHurtSound = Time.time;
-                Sound("hurt");
-            }
+            // No hurt sound on a hit (the creator, 2026-10-14: "the bot's hurt sound is overriding the gun's hit sound"): the
+            // gun's own impact carries the hit; an enemy cry replaces the hurt sound later (docs/SKYLINE-OPEN-THREADS.md).
             if (r.writ.spotHit)
             {
                 if (_markers.TryGetValue(r.writ.spot.id, out var mk) && mk != null) mk.BreakThrough();
