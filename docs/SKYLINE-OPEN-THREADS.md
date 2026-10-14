@@ -14,7 +14,7 @@ start goes here with its next step; a thread leaves this list only when it's don
 | The corridor-camper pincer (D22) | Decided; not built; the pinned sim test `ACamperHiddenInTheWestCorridors...` waits to flip | Build in the director (X0) or as its own task |
 | The shop-S4 corner drones can't see | Noted from the sim; never checked | Check in the camper survey (DM2) |
 | A per-assembly compile check | Promised after the second missing-reference failure | Make `core-tests/SkylineUnity` compile each asmdef with only its references |
-| Perf re-measure | Stage D failed in perf8 (the pilot loop); 1% low 29 ms | Read perf9's stage D with the fixed pilot |
+| Perf: the food-court fight stutters | Re-measured in perf9 with the fixed pilot (demo completed): average 6.6 ms but 1% low 30.4 ms, worst fight 44 ms; the spikes are in the food-court fight with 15 bots, mostly waiting on the GPU (25 ms) with some CPU spikes (19-24 ms); perf8 was the same, so not tonight's work | A/B with `-skyline-no-ink` (the ink pass's cost), then profile the CPU spikes (the new HUD elements, bots) |
 | The art-style verdict (gate G0) | The creator played the ink look; never asked for the verdict | Ask; dressing DR1-DR5 waits on it |
 
 ## Waiting on the creator
@@ -28,7 +28,7 @@ start goes here with its next step; a thread leaves this list only when it's don
   hip-fire aim assist.
 - Drone aim (agent, branch `skyline-drone`): fires at where you were 0.1-0.2 s ago; bots stop seeing/shooting through
   rails and balustrades (D21).
-- Unity pass perf9 (tonight's floor-1 work), then a build.
+- Unity pass perf9 passed (1074 EditMode tests, 0 failed; lint 0; build OK; sync 12/12); perf failed (above). Next build after the Writ and drone branches merge.
 
 ## Queued in order (the floor-1 plan, `SKYLINE-PLAN-FLOOR1.md`)
 X0 the floor director, L2 the lobby runtime, M2 the music director, DM1-DM3 the pilot and camper, DR1-DR5 dressing (gate
