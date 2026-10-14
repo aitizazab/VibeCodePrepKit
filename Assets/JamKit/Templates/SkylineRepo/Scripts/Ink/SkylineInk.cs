@@ -41,6 +41,26 @@ namespace JamKit.SkylineRepo
         [Tooltip("1 - dot(normal, neighbour normal) that makes a crease line.")]
         public ClampedFloatParameter normalThreshold = new ClampedFloatParameter(0.35f, 0.02f, 1.5f);
 
+        [Header("Cost")]
+        [Tooltip("Creases (the surface turning without a depth jump) from the depth buffer's curvature instead of a normals prepass. Saves a whole extra pass over the scene's geometry; the lines come out a little different (docs/SKYLINE-STYLE.md). Off = the original normal-based creases. -skyline-ink-depth-creases / -skyline-ink-normal-creases force it for a perf A/B.")]
+        public BoolParameter creasesFromDepth = new BoolParameter(false);
+        [Tooltip("Depth-curvature creases: how sharply the depth plane must bend (in units of one pixel's slope change) to draw a line. Lower = more lines.")]
+        public ClampedFloatParameter creaseSlope = new ClampedFloatParameter(0.5f, 0.05f, 4f);
+
+        // ---- Optional stylization (docs/SKYLINE-STYLE.md, "Optional stylization"): all 0 = off, so nothing changes until the creator picks.
+        // None of them touches the hued gameplay outlines. -skyline-ink-style <name>[,<name>] turns them on for a capture.
+        [Header("Stylization (all off by default)")]
+        [Tooltip("Line-weight variation: scenery lines thicker on near objects and tapering to thin with distance, and softer inside surfaces than on silhouettes. About 0 ms (a few ALU ops in the composite).")]
+        public ClampedFloatParameter lineWeightVariation = new ClampedFloatParameter(0f, 0f, 1f);
+        [Tooltip("Halftone (Ben-Day) dots in the deepest shade band, replacing the hatching in proportion. About 0.05 ms (one dot-grid evaluation in the lit shader's shade branch).")]
+        public ClampedFloatParameter halftoneDots = new ClampedFloatParameter(0f, 0f, 1f);
+        [Tooltip("A hand-drawn wobble on the scenery ink lines: a smooth screen-space noise offset (up to about 1.2 px at 1080p), jumping at 6 Hz like a boiling line. The hued outlines stay steady. About 0.05 ms.")]
+        public ClampedFloatParameter handWobble = new ClampedFloatParameter(0f, 0f, 1f);
+        [Tooltip("Fewer, crisper light bands: the sun and the local lights go from three bands to two. About 0 ms (replaces the band maths).")]
+        public ClampedFloatParameter posterize = new ClampedFloatParameter(0f, 0f, 1f);
+        [Tooltip("A faint paper grain: sparse dark flecks over the scene colour (never over a hued outline). About 0.1 ms (it makes the composite touch every pixel instead of only the inked ones).")]
+        public ClampedFloatParameter paperGrain = new ClampedFloatParameter(0f, 0f, 1f);
+
         public bool IsActive() => inkEnabled.value;
     }
 }

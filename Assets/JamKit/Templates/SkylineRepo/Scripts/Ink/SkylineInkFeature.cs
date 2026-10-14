@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
 
 namespace JamKit.SkylineRepo
@@ -14,16 +13,18 @@ namespace JamKit.SkylineRepo
     /// pattern of Visiting Hours' VhAtmosphereFeature (a volume gate, a property block that binds the textures itself).
     /// <para>Passes, before post-processing: (A) the mask: every renderer whose material has the <c>SkylineInkMask</c> pass
     /// enabled is drawn into an R8G8B8A8 mask, against the camera depth (read-only), the weak-spot queue last so yellow
-    /// overwrites red-magenta; (B) a copy of the camera colour; (C) the composite, which reads the copy, the depth, the normals
-    /// and the mask and writes the thin ink and the thick outlines straight back into the camera colour.</para>
-    /// <para>Why (B) and (C) instead of swapping in a new camera colour as the atmosphere pass does: this look runs on the base
-    /// camera of a stack too (the first-person viewmodel is an overlay camera), and a stacked camera hands its colour buffer to
-    /// the next one. Writing into the active colour keeps that buffer the one the overlay continues from (the pattern of URP's
-    /// own FullScreenPassRendererFeature).</para>
+    /// overwrites red-magenta; (B) the occupancy: a quarter-resolution map of where the mask is (one texel per 4x4 block),
+    /// then grown by the outline radius, so the composite can skip the thick outline's 24-tap search wherever the mask is out
+    /// of reach (most of a frame); (C) the composite, which reads the depth, the normals (unless the volume asks for depth-curvature
+    /// creases), the mask and the occupancy and draws the thin ink and the thick outlines straight over the camera colour with a
+    /// premultiplied blend, so the colour is never copied or read.</para>
+    /// <para>Why (C) draws into the active colour instead of swapping in a new camera colour as the atmosphere pass does: this look
+    /// runs on the base camera of a stack too (the first-person viewmodel is an overlay camera), and a stacked camera hands its
+    /// colour buffer to the next one. Blending into the active colour keeps that buffer the one the overlay continues from.</para>
     /// <para>The overlay camera (the viewmodel): the feature runs there as well. Its depth holds only the guns (an overlay
-    /// clears depth), so it adds the guns' own ink and their thin outline and nothing to the scenery. If a camera has no normals
-    /// texture the composite uses depth edges only. MSAA is not supported (the PC asset has none): with it on, the pass skips
-    /// and logs once.</para>
+    /// clears depth), so it adds the guns' own ink and their thin outline and nothing to the scenery; the occupancy skip makes the
+    /// rest of that screen nearly free. If a camera has no normals texture the composite uses depth edges only. MSAA is not
+    /// supported (the PC asset has none): with it on, the pass skips and logs once.</para>
     /// </summary>
     public sealed class SkylineInkFeature : ScriptableRendererFeature
     {
@@ -33,6 +34,7 @@ namespace JamKit.SkylineRepo
         Material _material;
         InkPass _pass;
         static bool _warnedMsaa;
+        static readonly int LitStyleId = Shader.PropertyToID("_SkInkLitStyle");
 
         /// <summary>True when the override exists and is on: the whole feature's gate (public for the tests).</summary>
         public static bool ShouldRun(SkylineInk ink) => ink != null && ink.IsActive();
@@ -56,7 +58,11 @@ namespace JamKit.SkylineRepo
             if (add != null) stack = add.volumeStack;
             if (stack == null) stack = VolumeManager.instance.stack;
             var ink = stack != null ? stack.GetComponent<SkylineInk>() : null;
-            if (ForceOff || !ShouldRun(ink)) return;
+            if (ForceOff || !ShouldRun(ink))
+            {
+                Shader.SetGlobalVector(LitStyleId, Vector4.zero);   // the lit shader's stylization is off wherever the ink is
+                return;
+            }
             if (renderingData.cameraData.cameraTargetDescriptor.msaaSamples > 1)
             {
                 if (!_warnedMsaa) { _warnedMsaa = true; Debug.LogWarning("SKYLINE_INK the ink pass skips cameras with MSAA on (the mask and the depth would differ in sample count)"); }
@@ -68,8 +74,12 @@ namespace JamKit.SkylineRepo
                 if (shader == null) return;
                 _material = CoreUtils.CreateEngineMaterial(shader);
             }
-            _pass.Setup(_material, ink);
-            _pass.ConfigureInput(ScriptableRenderPassInput.Depth | ScriptableRenderPassInput.Normal);
+            var style = SkylineInkStyle.Resolve(ink);
+            bool depthCreases = SkylineInkStyle.UseDepthCreases(ink);
+            // The two stylizations that live in the lit shader reach it as a global (not a keyword: nothing for a build to strip).
+            Shader.SetGlobalVector(LitStyleId, new Vector4(style.halftone, style.posterize, 0f, 0f));
+            _pass.Setup(_material, ink, style, depthCreases);
+            _pass.ConfigureInput(depthCreases ? ScriptableRenderPassInput.Depth : ScriptableRenderPassInput.Depth | ScriptableRenderPassInput.Normal);
             renderer.EnqueuePass(_pass);
         }
 
@@ -81,37 +91,54 @@ namespace JamKit.SkylineRepo
 
         sealed class InkPass : ScriptableRenderPass
         {
+            // The composite shader's passes (see Hidden/Skyline/InkComposite).
+            const int PassComposite = 0, PassOccupancy = 1, PassDilate = 2;
+
             static readonly ShaderTagId MaskTag = new ShaderTagId(SkylineInkRoles.MaskPass);
             static readonly ShaderTagId XrayTag = new ShaderTagId(SkylineInkRoles.ObjectiveXrayPass);
-            static readonly int BlitTextureId = Shader.PropertyToID("_BlitTexture");
             static readonly int BlitScaleBiasId = Shader.PropertyToID("_BlitScaleBias");
             static readonly int DepthId = Shader.PropertyToID("_SkInkDepth");
             static readonly int NormalsId = Shader.PropertyToID("_SkInkNormals");
             static readonly int MaskId = Shader.PropertyToID("_SkInkMask");
+            static readonly int OccId = Shader.PropertyToID("_SkInkOcc");
+            static readonly int OccSrcId = Shader.PropertyToID("_SkInkOccSrc");
             static readonly int InkColorId = Shader.PropertyToID("_SkInkColor");
             static readonly int LineId = Shader.PropertyToID("_SkInkLine");
             static readonly int FadeId = Shader.PropertyToID("_SkInkFade");
             static readonly int ScreenId = Shader.PropertyToID("_SkInkScreen");
             static readonly int ZParamsId = Shader.PropertyToID("_SkInkZParams");
             static readonly int TimeId = Shader.PropertyToID("_SkInkTime");
+            static readonly int ModeId = Shader.PropertyToID("_SkInkMode");
+            static readonly int StyleId = Shader.PropertyToID("_SkInkStyle");
+            static readonly int OccParamsId = Shader.PropertyToID("_SkInkOccParams");
 
             static readonly MaterialPropertyBlock Props = new MaterialPropertyBlock();
             static int _logged;
 
             Material _material;
             SkylineInk _ink;
+            SkylineInkStyleSettings _style;
+            bool _depthCreases;
 
             sealed class MaskPassData
             {
                 public RendererListHandle xray, ordinary, late, botWeak, weak;
             }
 
+            sealed class OccPassData
+            {
+                public Material material;
+                public int shaderPass;
+                public TextureHandle source;   // the mask (occupancy pass) or the raw occupancy (dilate pass)
+                public Vector4 screen, occ;
+            }
+
             sealed class CompositePassData
             {
                 public Material material;
-                public TextureHandle source, depth, normals, mask;
+                public TextureHandle depth, normals, mask, occupancy;
                 public bool hasNormals;
-                public Vector4 inkColor, line, fade, screen, zParams, time;
+                public Vector4 inkColor, line, fade, screen, zParams, time, mode, style, occ;
             }
 
             public InkPass()
@@ -119,10 +146,12 @@ namespace JamKit.SkylineRepo
                 profilingSampler = new ProfilingSampler("Skyline Ink");
             }
 
-            public void Setup(Material material, SkylineInk ink)
+            public void Setup(Material material, SkylineInk ink, SkylineInkStyleSettings style, bool depthCreases)
             {
                 _material = material;
                 _ink = ink;
+                _style = style;
+                _depthCreases = depthCreases;
             }
 
             public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
@@ -140,7 +169,7 @@ namespace JamKit.SkylineRepo
                 // attachment itself (sampled in the composite, where it is not an attachment).
                 TextureHandle depthTex = resources.cameraDepthTexture.IsValid() ? resources.cameraDepthTexture : depthAttachment;
                 TextureHandle normals = resources.cameraNormalsTexture;
-                bool hasNormals = normals.IsValid();
+                bool hasNormals = normals.IsValid() && !_depthCreases;
                 if (!color.IsValid() || !depthTex.IsValid()) return;
 
                 var colorDesc = renderGraph.GetTextureDesc(resources.cameraColor);
@@ -149,8 +178,10 @@ namespace JamKit.SkylineRepo
                 {
                     _logged++;
                     Debug.Log("SKYLINE_INK camera " + cam.name + " (" + cameraData.renderType + "), depth " +
-                              (resources.cameraDepthTexture.IsValid() ? "bound" : "attachment") + ", normals " +
-                              (hasNormals ? "bound" : "MISSING (depth edges only)") + ", " + width + "x" + height);
+                              (resources.cameraDepthTexture.IsValid() ? "bound" : "attachment") + ", creases " +
+                              (_depthCreases ? "from the depth curvature (no normals prepass)" : (hasNormals ? "from the normals" : "MISSING normals (depth edges only)")) +
+                              ", style " + (_style.Any ? "lineweight=" + _style.lineWeight + " halftone=" + _style.halftone + " wobble=" + _style.wobble +
+                                            " posterize=" + _style.posterize + " grain=" + _style.grain : "plain") + ", " + width + "x" + height);
                 }
 
                 // ---- A: the mask
@@ -210,61 +241,107 @@ namespace JamKit.SkylineRepo
                     }
                 }
 
-                // ---- B: a copy of the colour (the composite reads the copy and writes the camera colour)
-                var copyDesc = colorDesc;
-                copyDesc.name = "_SkylineInkColorCopy";
-                copyDesc.clearBuffer = false;
-                copyDesc.msaaSamples = MSAASamples.None;
-                TextureHandle copy = renderGraph.CreateTexture(copyDesc);
-                renderGraph.AddBlitPass(color, copy, Vector2.one, Vector2.zero, passName: "Skyline Ink Copy Color");
+                float scale = SkylineInkMath.PixelScale(height);   // widths are given at 1080p
+                float outlinePx = SkylineInkMath.OutlineRadiusPx(_ink.outlineWidthPx.value, height);
+
+                // ---- B: where the mask is (quarter resolution), then grown by the outline radius
+                int occW = SkylineInkMath.OccupancySize(width), occH = SkylineInkMath.OccupancySize(height);
+                int blocks = SkylineInkMath.DilationBlocks(outlinePx);
+                var occDesc = new TextureDesc(occW, occH)
+                {
+                    format = GraphicsFormat.R8_UNorm,
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp,
+                    name = "_SkylineInkOccupancyRaw",
+                };
+                TextureHandle occRaw = renderGraph.CreateTexture(occDesc);
+                occDesc.name = "_SkylineInkOccupancy";
+                TextureHandle occ = renderGraph.CreateTexture(occDesc);
+                var screenVec = new Vector4(1f / width, 1f / height, width, height);
+                var occVec = new Vector4(blocks, 0f, occW, occH);
+                AddOccupancyPass(renderGraph, "Skyline Ink Occupancy", PassOccupancy, mask, occRaw, screenVec, occVec);
+                AddOccupancyPass(renderGraph, "Skyline Ink Occupancy Dilate", PassDilate, occRaw, occ, screenVec, occVec);
 
                 // ---- C: the composite
-                float scale = Mathf.Max(0.5f, height / 1080f);   // widths are given at 1080p
                 float n = cam.nearClipPlane, f = cam.farClipPlane;
                 var zParams = SystemInfo.usesReversedZBuffer
                     ? new Vector4(-1f + f / n, 1f, (-1f + f / n) / f, 1f / f)
                     : new Vector4(1f - f / n, f / n, (1f - f / n) / f, (f / n) / f);
+                float pixelAngle = SkylineInkMath.PixelAngle(cameraData.GetProjectionMatrix().m11, height);
                 using (var builder = renderGraph.AddRasterRenderPass<CompositePassData>("Skyline Ink Composite", out var d, profilingSampler))
                 {
                     var ink = _ink;
                     var c = ink.inkColor.value.linear;
                     d.material = _material;
-                    d.source = copy;
                     d.depth = depthTex;
                     d.normals = normals;
                     d.mask = mask;
+                    d.occupancy = occ;
                     d.hasNormals = hasNormals;
                     d.inkColor = new Vector4(c.r, c.g, c.b, 1f);
-                    d.line = new Vector4(ink.lineWidthPx.value * scale, ink.outlineWidthPx.value * scale, ink.depthThreshold.value, ink.normalThreshold.value);
+                    d.line = new Vector4(ink.lineWidthPx.value * scale, outlinePx, ink.depthThreshold.value, ink.normalThreshold.value);
                     d.fade = new Vector4(ink.fadeStart.value, ink.fadeEnd.value, ink.farInk.value, hasNormals ? 1f : 0f);
-                    d.screen = new Vector4(1f / width, 1f / height, width, height);
+                    d.screen = screenVec;
                     d.zParams = zParams;
                     d.time = new Vector4(Time.time, 0f, 0f, 0f);
-                    builder.UseTexture(copy, AccessFlags.Read);
+                    d.mode = new Vector4(_depthCreases ? 1f : 0f, ink.creaseSlope.value, pixelAngle, 0f);
+                    d.style = new Vector4(_style.lineWeight, SkylineInkMath.WobbleAmplitudePx(_style.wobble, height), _style.grain, 0f);
+                    d.occ = occVec;
                     builder.UseTexture(depthTex, AccessFlags.Read);
                     if (hasNormals) builder.UseTexture(normals, AccessFlags.Read);
                     builder.UseTexture(mask, AccessFlags.Read);
-                    builder.SetRenderAttachment(color, 0, AccessFlags.Write);
+                    builder.UseTexture(occ, AccessFlags.Read);
+                    // ReadWrite: the shader blends over what the camera colour already holds
+                    builder.SetRenderAttachment(color, 0, AccessFlags.ReadWrite);
+                    builder.AllowPassCulling(false);
                     builder.SetRenderFunc((CompositePassData data, RasterGraphContext ctx) => ExecuteComposite(data, ctx));
+                }
+            }
+
+            void AddOccupancyPass(RenderGraph renderGraph, string name, int shaderPass, TextureHandle source, TextureHandle target, Vector4 screen, Vector4 occ)
+            {
+                using (var builder = renderGraph.AddRasterRenderPass<OccPassData>(name, out var d, profilingSampler))
+                {
+                    d.material = _material;
+                    d.shaderPass = shaderPass;
+                    d.source = source;
+                    d.screen = screen;
+                    d.occ = occ;
+                    builder.UseTexture(source, AccessFlags.Read);
+                    builder.SetRenderAttachment(target, 0, AccessFlags.Write);
+                    builder.AllowPassCulling(false);
+                    builder.SetRenderFunc((OccPassData data, RasterGraphContext ctx) =>
+                    {
+                        Props.Clear();
+                        Props.SetVector(BlitScaleBiasId, new Vector4(1f, 1f, 0f, 0f));
+                        if (data.shaderPass == PassOccupancy) Props.SetTexture(MaskId, (RTHandle)data.source);
+                        else Props.SetTexture(OccSrcId, (RTHandle)data.source);
+                        Props.SetVector(ScreenId, data.screen);
+                        Props.SetVector(OccParamsId, data.occ);
+                        ctx.cmd.DrawProcedural(Matrix4x4.identity, data.material, data.shaderPass, MeshTopology.Triangles, 3, 1, Props);
+                    });
                 }
             }
 
             static void ExecuteComposite(CompositePassData d, RasterGraphContext ctx)
             {
                 Props.Clear();
-                Props.SetTexture(BlitTextureId, (RTHandle)d.source);
                 Props.SetVector(BlitScaleBiasId, new Vector4(1f, 1f, 0f, 0f));
                 Props.SetTexture(DepthId, (RTHandle)d.depth);
                 if (d.hasNormals) Props.SetTexture(NormalsId, (RTHandle)d.normals);
                 else Props.SetTexture(NormalsId, Texture2D.blackTexture);
                 Props.SetTexture(MaskId, (RTHandle)d.mask);
+                Props.SetTexture(OccId, (RTHandle)d.occupancy);
                 Props.SetVector(InkColorId, d.inkColor);
                 Props.SetVector(LineId, d.line);
                 Props.SetVector(FadeId, d.fade);
                 Props.SetVector(ScreenId, d.screen);
                 Props.SetVector(ZParamsId, d.zParams);
                 Props.SetVector(TimeId, d.time);
-                ctx.cmd.DrawProcedural(Matrix4x4.identity, d.material, 0, MeshTopology.Triangles, 3, 1, Props);
+                Props.SetVector(ModeId, d.mode);
+                Props.SetVector(StyleId, d.style);
+                Props.SetVector(OccParamsId, d.occ);
+                ctx.cmd.DrawProcedural(Matrix4x4.identity, d.material, PassComposite, MeshTopology.Triangles, 3, 1, Props);
             }
         }
     }

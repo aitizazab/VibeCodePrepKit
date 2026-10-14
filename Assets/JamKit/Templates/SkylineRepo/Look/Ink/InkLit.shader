@@ -144,6 +144,10 @@ Shader "Skyline/InkLit"
                 return output;
             }
 
+            // Optional stylization, set by SkylineInkFeature as a global each camera (0 = off; never a keyword, so a build keeps it):
+            // x: halftone dots in the deepest shade (0..1), y: posterize the light bands to two (0..1).
+            float4 _SkInkLitStyle;
+
             /// One additional light as a hard-edged pool: a = how much of the light reaches the surface (distance falloff,
             /// shadow, facing), then two crisp steps. A strong light paints its colour across the room instead of a soft glow.
             half3 InkAdditionalLight(Light light, half3 normalWS, uint meshRenderingLayers)
@@ -153,6 +157,7 @@ Shader "Skyline/InkLit"
             #endif
                 half a = light.distanceAttenuation * light.shadowAttenuation * saturate(dot(normalWS, light.direction));
                 half band = smoothstep(0.03h, 0.06h, a) * 0.55h + smoothstep(0.25h, 0.3h, a) * 0.85h;
+                if (_SkInkLitStyle.y > 0.001) band = lerp(band, smoothstep(0.08h, 0.11h, a) * 0.8h, (half)_SkInkLitStyle.y);   // posterize: one crisp step
                 return light.color * band;
             }
 
@@ -214,6 +219,12 @@ Shader "Skyline/InkLit"
                 // Fix round 1 (washed out): the shade band must read as its own painted tone, about half the lit value on screen
                 // (about a fifth in linear light): a floor of 0.08 of the sun, 0.30 more in the half band, 0.62 in the lit band.
                 half sunIntensity = 0.08h + 0.30h * bandHalf + 0.62h * bandLit;
+                if (_SkInkLitStyle.y > 0.001)
+                {
+                    // posterize: two crisp tones instead of three (shade and lit), blended in by the strength
+                    half bandMid = smoothstep(0.30h - w, 0.30h + w, x);
+                    sunIntensity = lerp(sunIntensity, 0.10h + 0.60h * bandMid, (half)_SkInkLitStyle.y);
+                }
 
                 // The shade colour is the ambient (SH evaluated per pixel: SampleSHPixel with neither EVALUATE_SH_* keyword).
                 // The Trilight ambient is cool above, so shade takes the sky's tint.
@@ -230,7 +241,24 @@ Shader "Skyline/InkLit"
                 float tri = abs(frac(u) - 0.5) * 2.0;
                 half hatch = (half)smoothstep(0.5 - aa, 0.5 + aa, tri) * (half)saturate(1.0 - (aa - 0.3) * 2.5)
                     * (half)(1.0 - smoothstep(8.0, 15.0, distance(positionWS, _WorldSpaceCameraPos)));
-                color *= 1.0h - _HatchStrength * hatch * (1.0h - smoothstep(0.0h, 0.3h, bandHalf));
+                half deepShade = 1.0h - smoothstep(0.0h, 0.3h, bandHalf);
+                half halftone = (half)_SkInkLitStyle.x;
+                color *= 1.0h - _HatchStrength * (1.0h - halftone) * hatch * deepShade;
+
+                // ---- optional Ben-Day dots in the deepest band (halftone > 0): a 45-degree dot grid, 5 dots a metre, projected on the
+                // plane the surface faces most (like the hatching it is world-space, so it does not swim with the camera), fading
+                // out where the dots would be under about 3 pixels.
+                if (halftone > 0.001h)
+                {
+                    float3 an = abs(normalWS);
+                    float2 hp = (an.y >= an.x && an.y >= an.z) ? positionWS.xz : ((an.x >= an.z) ? positionWS.zy : positionWS.xy);
+                    float2 g = float2(hp.x + hp.y, hp.x - hp.y) * (0.70711 * 5.0);
+                    float dd = length(frac(g) - 0.5);
+                    float aaH = max(fwidth(g.x) + fwidth(g.y), 0.0001) * 0.75;
+                    float dots = (1.0 - smoothstep(0.34 - aaH, 0.34 + aaH, dd)) * saturate(1.0 - (aaH - 0.12) * 4.0)
+                        * (1.0 - smoothstep(14.0, 26.0, distance(positionWS, _WorldSpaceCameraPos)));
+                    color *= 1.0h - halftone * 0.55h * (half)dots * deepShade;
+                }
 
                 // ---- additional lights (Forward+ and the per-object path)
                 half3 additional = 0;
