@@ -17,6 +17,11 @@ start goes here with its next step; a thread leaves this list only when it's don
 | Perf: the food-court fight stutters (FOUND: the ink pass; ink off 1% low 16.8 ms vs on 30.4 ms) | Re-measured in perf9 with the fixed pilot (demo completed): average 6.6 ms but 1% low 30.4 ms, worst fight 44 ms; the spikes are in the food-court fight with 15 bots, mostly waiting on the GPU (25 ms) with some CPU spikes (19-24 ms); perf8 was the same, so not tonight's work | Ink agent (branch `skyline-ink`) cutting the ink passes' GPU cost; then re-measure; then the remaining CPU spikes |
 | The art style (gate G0) | PASSED 2026-10-15: "The comic-look is good, but I'd like it to get even more stylized if possible." | Dressing DR1-DR5 is unblocked; the ink agent adds stylization options (off by default) for a stills page |
 
+## New from the Writ rework (merged 2026-10-15, not yet seen in Unity)
+| Thread | Where it stopped | Next step |
+|---|---|---|
+| Writ reload sounds | The reload is silent except the seat click (the old drum/gavel recipes no longer fit) | Options for the quill leaving the ink, scratching on paper, and dipping back (identity first); creator picks |
+
 ## Waiting on the creator
 - The music: the normal layer (`art/review/2026-10-15/skyline-music-song-normal.html`).
 - The Relay: is the space big enough for an 18 m/s skill check (`SKYLINE-RELAY.md`)?
