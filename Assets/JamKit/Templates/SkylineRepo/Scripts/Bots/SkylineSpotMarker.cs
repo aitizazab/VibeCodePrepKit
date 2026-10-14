@@ -47,9 +47,9 @@ namespace JamKit.SkylineRepo
             // the dark gap with wiring in it, along the crack's main line
             float angle = rng.Range(-40f, 40f);
             var main = Quaternion.Euler(0f, 0f, angle);
-            Bar("Gap", Vector3.zero, main, 0.17f, 0.03f, SkylineBotLook.Lit(Gap), null);
-            Bar("Wire", new Vector3(0.02f, 0.004f, -0.002f), main * Quaternion.Euler(0f, 0f, 8f), 0.08f, 0.008f, SkylineBotLook.Lit(Wire), null);
-            Bar("Wire", new Vector3(-0.03f, -0.004f, -0.002f), main * Quaternion.Euler(0f, 0f, -12f), 0.06f, 0.008f, SkylineBotLook.Lit(Wire), null);
+            Bar("Gap", Vector3.zero, main, 0.17f, 0.03f, SkylineBotLook.Lit(Gap, SkylineInkRoles.WeakSpot), null);
+            Bar("Wire", new Vector3(0.02f, 0.004f, -0.002f), main * Quaternion.Euler(0f, 0f, 8f), 0.08f, 0.008f, SkylineBotLook.Lit(Wire, SkylineInkRoles.WeakSpot), null);
+            Bar("Wire", new Vector3(-0.03f, -0.004f, -0.002f), main * Quaternion.Euler(0f, 0f, -12f), 0.06f, 0.008f, SkylineBotLook.Lit(Wire, SkylineInkRoles.WeakSpot), null);
             // the seams: a jagged polyline either side of the gap, plus two branches
             for (int side = -1; side <= 1; side += 2)
             {
@@ -60,13 +60,13 @@ namespace JamKit.SkylineRepo
                     a += rng.Range(-35f, 35f);
                     float len = rng.Range(0.035f, 0.06f);
                     Vector3 dir = Quaternion.Euler(0f, 0f, a) * new Vector3(side, 0f, 0f);
-                    Bar("Seam", p + dir * (len * 0.5f), Quaternion.Euler(0f, 0f, a), len, 0.007f, SkylineBotLook.Glow(k == 0 ? WhiteHot : HotGold), _seams);
+                    Bar("Seam", p + dir * (len * 0.5f), Quaternion.Euler(0f, 0f, a), len, 0.007f, SkylineBotLook.Glow(k == 0 ? WhiteHot : HotGold, SkylineInkRoles.WeakSpot), _seams);
                     p += dir * len;
                     if (k == 1)
                     {
                         float b = a + side * rng.Range(40f, 70f);
                         Vector3 bd = Quaternion.Euler(0f, 0f, b) * new Vector3(side, 0f, 0f);
-                        Bar("Seam", p + bd * 0.02f, Quaternion.Euler(0f, 0f, b), 0.04f, 0.005f, SkylineBotLook.Glow(HotGold), _seams);
+                        Bar("Seam", p + bd * 0.02f, Quaternion.Euler(0f, 0f, b), 0.04f, 0.005f, SkylineBotLook.Glow(HotGold, SkylineInkRoles.WeakSpot), _seams);
                     }
                 }
             }
@@ -84,10 +84,10 @@ namespace JamKit.SkylineRepo
         /// <summary>Makes the crack's materials now (at scene start), so the first spot made mid-fight creates none.</summary>
         public static void PrewarmLooks()
         {
-            SkylineBotLook.Lit(Gap);
-            SkylineBotLook.Lit(Wire);
-            SkylineBotLook.Glow(HotGold);
-            SkylineBotLook.Glow(WhiteHot);
+            SkylineBotLook.Lit(Gap, SkylineInkRoles.WeakSpot);
+            SkylineBotLook.Lit(Wire, SkylineInkRoles.WeakSpot);
+            SkylineBotLook.Glow(HotGold, SkylineInkRoles.WeakSpot);
+            SkylineBotLook.Glow(WhiteHot, SkylineInkRoles.WeakSpot);
         }
 
         /// <summary>The spot was shot: a break-through (spark burst, crunchy break) and gone.</summary>

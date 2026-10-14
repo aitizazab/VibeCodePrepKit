@@ -19,13 +19,15 @@ namespace JamKit.SkylineRepo
     /// </summary>
     public static class SkylineInkRoles
     {
-        public const int None = 0, Hostile = 1, Objective = 2, Scrap = 3, Viewmodel = 4, WeakSpot = 5;
+        public const int None = 0, Hostile = 1, Objective = 2, Scrap = 3, Viewmodel = 4, WeakSpot = 5, BotWeakPoint = 6;
 
         public const string ShaderName = "Skyline/InkLit";
         /// <summary>The pass name and its LightMode tag (the same string, so SetShaderPassEnabled matches either way).</summary>
         public const string MaskPass = "SkylineInkMask";
         /// <summary>The render queue of weak-spot materials: inside the opaque range, after every ordinary opaque.</summary>
         public const int WeakQueue = 2050;
+        /// <summary>The render queue of a bot's own weak-point parts (role 6): after the ordinary roles, before the Writ's spots (5 over 6 over 1).</summary>
+        public const int BotWeakQueue = 2040;
 
         public const string TemplateFolder = "SkylineFx/";
         public const string TemplatePlain = "SK_Ink_Plain", TemplateNormal = "SK_Ink_Normal",
@@ -39,6 +41,7 @@ namespace JamKit.SkylineRepo
         static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
         static readonly int EmissionMapId = Shader.PropertyToID("_EmissionMap");
         static readonly int CullId = Shader.PropertyToID("_Cull");
+        static readonly int UnlitId = Shader.PropertyToID("_Unlit");
 
         /// <summary>The role colour as the style sheet gives it (sRGB), for tests and docs.</summary>
         public static Color Hue(int role)
@@ -50,8 +53,22 @@ namespace JamKit.SkylineRepo
                 case Scrap: return new Color32(0x5C, 0xFF, 0x8A, 255);
                 case Viewmodel: return new Color32(0x16, 0x14, 0x1F, 255);
                 case WeakSpot: return new Color32(0xFF, 0xD6, 0x0A, 255);
+                case BotWeakPoint: return new Color32(0xFF, 0x2E, 0x63, 255);   // pulsed towards yellow by the composite
                 default: return Color.clear;
             }
+        }
+
+        /// <summary>A plain flat-colour InkLit material in <paramref name="c"/> with <paramref name="role"/> (the bots'
+        /// primitive parts, the mines, the spot marker's gap and wiring); a clone of the plain template, so it is in the build.
+        /// Null when the templates aren't in Resources.</summary>
+        public static Material Flat(Color c, int role)
+        {
+            var template = Resources.Load<Material>(TemplateFolder + TemplatePlain);
+            if (template == null) return null;
+            var m = new Material(template) { name = "Ink flat" };
+            m.SetColor(BaseColorId, c);
+            SetRole(m, role);
+            return m;
         }
 
         /// <summary>Sets a material's role: <c>_InkRole</c>, the mask pass on only when the role is above zero, and the weak
@@ -62,7 +79,8 @@ namespace JamKit.SkylineRepo
             m.SetFloat(RoleId, role);
             m.SetShaderPassEnabled(MaskPass, role > 0);
             if (role == WeakSpot) m.renderQueue = WeakQueue;
-            else if (m.renderQueue == WeakQueue) m.renderQueue = -1;
+            else if (role == BotWeakPoint) m.renderQueue = BotWeakQueue;
+            else if (m.renderQueue == WeakQueue || m.renderQueue == BotWeakQueue) m.renderQueue = -1;
         }
 
         public static int GetRole(Material m) => m != null && m.HasProperty(RoleId) ? Mathf.RoundToInt(m.GetFloat(RoleId)) : None;
@@ -78,8 +96,21 @@ namespace JamKit.SkylineRepo
         /// A new InkLit material from a (usually URP Lit) material: a clone of the matching build-included template with the
         /// source's colour, painted map, normal map and emission copied across, and <paramref name="role"/> set. A material that
         /// is already InkLit is cloned as it is. Null when the templates aren't in Resources (the caller keeps the source).
+        /// One shared material per (source, role): bots of one kind share their materials, so the SRP Batcher keeps batching.
         /// </summary>
         public static Material FromLit(Material src, int role)
+        {
+            if (src == null) return null;
+            var key = (src.GetInstanceID(), role);
+            if (_cache.TryGetValue(key, out var cached) && cached != null) return cached;
+            var made = MakeFromLit(src, role);
+            if (made != null) _cache[key] = made;
+            return made;
+        }
+
+        static readonly System.Collections.Generic.Dictionary<(int, int), Material> _cache = new System.Collections.Generic.Dictionary<(int, int), Material>();
+
+        static Material MakeFromLit(Material src, int role)
         {
             if (src == null) return null;
             Material clone;
@@ -92,6 +123,7 @@ namespace JamKit.SkylineRepo
                 if (template == null) return null;
                 clone = new Material(template);
                 CopyLook(src, clone, normal, emission);
+                if (src.shader != null && src.shader.name.Contains("Unlit")) clone.SetFloat(UnlitId, 1f);   // a glow stays a glow
             }
             clone.name = src.name + " (ink)";
             SetRole(clone, role);

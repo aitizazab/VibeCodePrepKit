@@ -88,6 +88,7 @@ namespace JamKit.SkylineRepo
             static readonly int FadeId = Shader.PropertyToID("_SkInkFade");
             static readonly int ScreenId = Shader.PropertyToID("_SkInkScreen");
             static readonly int ZParamsId = Shader.PropertyToID("_SkInkZParams");
+            static readonly int TimeId = Shader.PropertyToID("_SkInkTime");
 
             static readonly MaterialPropertyBlock Props = new MaterialPropertyBlock();
             static int _logged;
@@ -97,7 +98,7 @@ namespace JamKit.SkylineRepo
 
             sealed class MaskPassData
             {
-                public RendererListHandle ordinary, late, weak;
+                public RendererListHandle ordinary, late, botWeak, weak;
             }
 
             sealed class CompositePassData
@@ -105,7 +106,7 @@ namespace JamKit.SkylineRepo
                 public Material material;
                 public TextureHandle source, depth, normals, mask;
                 public bool hasNormals;
-                public Vector4 inkColor, line, fade, screen, zParams;
+                public Vector4 inkColor, line, fade, screen, zParams, time;
             }
 
             public InkPass()
@@ -165,15 +166,21 @@ namespace JamKit.SkylineRepo
                         var sort = cameraData.defaultOpaqueSortFlags;
                         var drawing = RenderingUtils.CreateDrawingSettings(MaskTag, renderingData, cameraData, lightData, sort);
                         drawing.perObjectData = PerObjectData.None;
-                        int weakQ = SkylineInkRoles.WeakQueue;
+                        // Queues: ordinary roles below BotWeakQueue, then the bots' own weak points, then the Writ's weak spots, so
+                        // where parts overlap in depth the later one overwrites the earlier (5 over 6 over 1). Anything above the
+                        // weak-spot queue (a transparent role, none today) is drawn before them.
+                        int botQ = SkylineInkRoles.BotWeakQueue, weakQ = SkylineInkRoles.WeakQueue;
                         data.ordinary = renderGraph.CreateRendererList(new RendererListParams(renderingData.cullResults, drawing,
-                            new FilteringSettings(new RenderQueueRange { lowerBound = 0, upperBound = weakQ - 1 }, -1)));
+                            new FilteringSettings(new RenderQueueRange { lowerBound = 0, upperBound = botQ - 1 }, -1)));
                         data.late = renderGraph.CreateRendererList(new RendererListParams(renderingData.cullResults, drawing,
                             new FilteringSettings(new RenderQueueRange { lowerBound = weakQ + 1, upperBound = 5000 }, -1)));
+                        data.botWeak = renderGraph.CreateRendererList(new RendererListParams(renderingData.cullResults, drawing,
+                            new FilteringSettings(new RenderQueueRange { lowerBound = botQ, upperBound = weakQ - 1 }, -1)));
                         data.weak = renderGraph.CreateRendererList(new RendererListParams(renderingData.cullResults, drawing,
                             new FilteringSettings(new RenderQueueRange { lowerBound = weakQ, upperBound = weakQ }, -1)));
                         builder.UseRendererList(data.ordinary);
                         builder.UseRendererList(data.late);
+                        builder.UseRendererList(data.botWeak);
                         builder.UseRendererList(data.weak);
                         builder.SetRenderAttachment(mask, 0, AccessFlags.Write);
                         builder.SetRenderAttachmentDepth(depthAttachment, AccessFlags.Read);
@@ -182,6 +189,7 @@ namespace JamKit.SkylineRepo
                         {
                             ctx.cmd.DrawRendererList(d.ordinary);
                             ctx.cmd.DrawRendererList(d.late);
+                            ctx.cmd.DrawRendererList(d.botWeak);
                             ctx.cmd.DrawRendererList(d.weak);   // last: where a weak spot overlaps its body in depth, yellow wins
                         });
                     }
@@ -216,6 +224,7 @@ namespace JamKit.SkylineRepo
                     d.fade = new Vector4(ink.fadeStart.value, ink.fadeEnd.value, ink.farInk.value, hasNormals ? 1f : 0f);
                     d.screen = new Vector4(1f / width, 1f / height, width, height);
                     d.zParams = zParams;
+                    d.time = new Vector4(Time.time, 0f, 0f, 0f);
                     builder.UseTexture(copy, AccessFlags.Read);
                     builder.UseTexture(depthTex, AccessFlags.Read);
                     if (hasNormals) builder.UseTexture(normals, AccessFlags.Read);
@@ -239,6 +248,7 @@ namespace JamKit.SkylineRepo
                 Props.SetVector(FadeId, d.fade);
                 Props.SetVector(ScreenId, d.screen);
                 Props.SetVector(ZParamsId, d.zParams);
+                Props.SetVector(TimeId, d.time);
                 ctx.cmd.DrawProcedural(Matrix4x4.identity, d.material, 0, MeshTopology.Triangles, 3, 1, Props);
             }
         }

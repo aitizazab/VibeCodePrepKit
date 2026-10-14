@@ -18,7 +18,7 @@ namespace JamKit.SkylineRepo.Tests
         static readonly string[] Properties =
         {
             "_BaseColor", "_BaseMap", "_BumpMap", "_BumpScale", "_EmissionColor", "_EmissionMap",
-            "_GradBottom", "_GradFloorY", "_GradHeight", "_Desaturate", "_HatchStrength", "_InkRole", "_RimStrength",
+            "_GradBottom", "_GradFloorY", "_GradHeight", "_Desaturate", "_HatchStrength", "_InkRole", "_RimStrength", "_Unlit",
         };
 
         [Test]

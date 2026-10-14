@@ -18,8 +18,10 @@ namespace JamKit.SkylineRepo
         public static readonly Color Acid = new Color(0.55f, 0.85f, 0.2f);
         public static readonly Color Scorched = new Color(0.22f, 0.21f, 0.2f);
 
-        static readonly Dictionary<Color, Material> _lit = new Dictionary<Color, Material>();
-        static readonly Dictionary<Color, Material> _glow = new Dictionary<Color, Material>();
+        // Comic ink (docs/SKYLINE-STYLE.md): materials are InkLit when the build-included templates exist (SkylineInkRoles),
+        // each keyed by colour and ink role; without the templates they fall back to the URP Lit/Unlit materials of old.
+        static readonly Dictionary<(Color, int), Material> _lit = new Dictionary<(Color, int), Material>();
+        static readonly Dictionary<(Color, int), Material> _glow = new Dictionary<(Color, int), Material>();
         static readonly Dictionary<PrimitiveType, Mesh> _meshes = new Dictionary<PrimitiveType, Mesh>();
         static Material _template;
 
@@ -67,11 +69,11 @@ namespace JamKit.SkylineRepo
         }
 
         /// <summary>A shared lit material of <paramref name="c"/>.</summary>
-        public static Material Lit(Color c)
+        public static Material Lit(Color c, int inkRole = SkylineInkRoles.None)
         {
-            if (_lit.TryGetValue(c, out var m) && m != null) return m;
-            m = new Material(Template()) { color = c };
-            _lit[c] = m;
+            if (_lit.TryGetValue((c, inkRole), out var m) && m != null) return m;
+            m = SkylineInkRoles.Flat(c, inkRole) ?? new Material(Template()) { color = c };
+            _lit[(c, inkRole)] = m;
             return m;
         }
 
@@ -99,16 +101,20 @@ namespace JamKit.SkylineRepo
         public const string AcidResource = "SkylineFx/SK_Fx_Acid";
 
         /// <summary>A shared unlit material for the few things that glow (HDR colours read as hot under bloom): a copy of the
-        /// scene's glow material when a director set one, else of <see cref="GlowResource"/>; never a shader looked up by name
+        /// <see cref="GlowResource"/>, else of the scene's glow material a director set; never a shader looked up by name
         /// (a build strips variants no material asset uses, and those render magenta). Without either, the lit template.</summary>
-        public static Material Glow(Color hdr)
+        public static Material Glow(Color hdr, int inkRole = SkylineInkRoles.None)
         {
-            if (_glow.TryGetValue(hdr, out var m) && m != null) return m;
-            var template = GlowTemplate != null ? GlowTemplate : GlowAsset();
-            m = template != null ? new Material(template) : new Material(Template());
+            if (_glow.TryGetValue((hdr, inkRole), out var m) && m != null) return m;
+            // The Resources asset first (InkLit in glow mode once the editor has converted it, with its mask pass in the build);
+            // the scene's template (URP Unlit) is only the fallback for an unconverted project.
+            var template = GlowAsset();
+            if (template == null) template = GlowTemplate;
+            m =template != null ? new Material(template) : new Material(Template());
             m.color = hdr;
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", hdr);
-            _glow[hdr] = m;
+            if (inkRole != SkylineInkRoles.None) SkylineInkRoles.SetRole(m, inkRole);
+            _glow[(hdr, inkRole)] = m;
             return m;
         }
 
@@ -541,6 +547,7 @@ namespace JamKit.SkylineRepo
                     case SkylineEnemies.GondolaId: Gondola(def, parts); break;
                     default: Drone(def, parts); break;
                 }
+                InkRoles(def, parts);
             }
             AssignZones(def, parts, owner);
             return parts;
@@ -620,6 +627,20 @@ namespace JamKit.SkylineRepo
             // real surfaces in place of the FBX's flat colours (judge round 3)
             SkylineBotLook.Dress(p.rig);
             if (p.mount != null) SkylineBotLook.Dress(p.mount);
+            InkRoles(def, p);
+        }
+
+        /// <summary>Comic ink (docs/SKYLINE-STYLE.md rule 2): every material of the body becomes an InkLit twin with the hostile
+        /// role, and the weak-point parts (the model's <c>WeakPoint</c>, and the drone's <c>Rotors</c>) the bot weak-point role,
+        /// which outlines them in red-magenta pulsing towards yellow. Shared per source material and role, so bots of a kind
+        /// still batch; a project without the ink templates keeps its Lit materials.</summary>
+        static void InkRoles(EnemyDef def, SkylineBotParts p)
+        {
+            SkylineInkRoles.Apply(p.rig.gameObject, SkylineInkRoles.Hostile);
+            if (p.mount != null) SkylineInkRoles.Apply(p.mount.gameObject, SkylineInkRoles.Hostile);
+            if (p.weakPoint != null) SkylineInkRoles.Apply(p.weakPoint.gameObject, SkylineInkRoles.BotWeakPoint);
+            if (def.id == SkylineEnemies.DroneId && p.spinner != null && p.spinner.name == "Rotors")
+                SkylineInkRoles.Apply(p.spinner.gameObject, SkylineInkRoles.BotWeakPoint);
         }
 
         /// <summary>

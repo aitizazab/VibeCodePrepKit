@@ -123,6 +123,7 @@ namespace JamKit.SkylineRepo
 
             foreach (var r in GetComponentsInChildren<Renderer>(true)) _renderers.Add(r);
             BakeBlocks();
+            SetInkRole(SkylineInkRoles.Scrap);   // fresh and unstripped: outlined green (comic ink, rule 2)
         }
 
         // ------------------------------------------------------------------ drawing cost (judge round 2, perf)
@@ -195,6 +196,27 @@ namespace JamKit.SkylineRepo
                 for (int k = 0; k < mats.Length; k++) baked[k] = Tinted(mats[k], c);
                 r.SetPropertyBlock(null);
                 r.sharedMaterials = baked;
+            }
+        }
+
+        /// <summary>Gives every part of the wreck an ink copy of its material with <paramref name="role"/> (shared per material
+        /// and role, so the SRP Batcher keeps batching): scrap green while the wreck is fresh and worth stripping.</summary>
+        void SetInkRole(int role)
+        {
+            for (int i = 0; i < _renderers.Count; i++)
+            {
+                var r = _renderers[i];
+                if (r == null) continue;
+                var mats = r.sharedMaterials;
+                bool changed = false;
+                for (int k = 0; k < mats.Length; k++)
+                {
+                    var ink = SkylineInkRoles.FromLit(mats[k], role);
+                    if (ink == null) continue;
+                    mats[k] = ink;
+                    changed = true;
+                }
+                if (changed) r.sharedMaterials = mats;
             }
         }
 
@@ -472,6 +494,7 @@ namespace JamKit.SkylineRepo
                     if (_faceDark.HasProperty(BaseColorId)) _faceDark.SetColor(BaseColorId, screenOff);
                     if (_faceDark.HasProperty(ColorId)) _faceDark.SetColor(ColorId, screenOff);
                     r.SetPropertyBlock(null);
+                    SkylineInkRoles.SetRole(_faceDark, SkylineInkRoles.None);
                     r.sharedMaterial = _faceDark;
                     continue;
                 }
@@ -481,6 +504,7 @@ namespace JamKit.SkylineRepo
                     var m = plain[k];
                     Color c = m != null ? m.color : Color.grey;
                     dark[k] = m != null ? Tinted(m, new Color(c.r * DarkScale, c.g * DarkScale, c.b * DarkScale, c.a)) : null;
+                    if (dark[k] != null) dark[k] = SkylineInkRoles.FromLit(dark[k], SkylineInkRoles.None) ?? dark[k];   // stripped or stale: the green goes
                 }
                 r.SetPropertyBlock(null);
                 r.sharedMaterials = dark;

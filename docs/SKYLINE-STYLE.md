@@ -36,7 +36,8 @@ dressing being re-skinned). Decided by the creator on 2026-10-14 after the compa
 | Hostile bots (and their mines, acid, bolts) | hot red-magenta `#FF2E63` | no scenery ever uses this hue |
 | Objectives (the tow assets, the lift when it opens) | cyan `#2EE6FF` | |
 | Scrap and wrecks you can strip | green `#5CFF8A` | goes when the wreck is stripped |
-| Weak spots and other vulnerabilities (the Writ's cracked casing, a drone's lens, whatever a body marks as its weak point) | yellow `#FFD60A` | its own thick outline, drawn over the hostile red-magenta where the two overlap, so a weak point reads at a glance on a hostile body |
+| Weak spots and other vulnerabilities (the Writ's cracked casing and spots) | yellow `#FFD60A` | its own thick outline, drawn over the hostile red-magenta where the two overlap, so a weak point reads at a glance on a hostile body |
+| A bot's own weak-point parts (the drone's rotors and lens, whatever each body marks as its weak point) | the hostile red-magenta tinted towards yellow, `lerp(#FF2E63, #FFD60A, t)` with t pulsing between 0.35 and 0.6 at about 1.2 Hz | a slight pulse, so the part reads as the thing to shoot; priority where outlines overlap: the Writ's yellow over this over the hostile hue |
 | The Unit's guns (the viewmodel) | the ink colour, 2.5 px | heavier than scenery, not hued |
 
 - Hues are tested in the stills against every area's palette, the colour-free zones included; the creator judges them.

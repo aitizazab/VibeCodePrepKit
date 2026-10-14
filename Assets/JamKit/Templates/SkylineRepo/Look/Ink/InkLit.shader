@@ -8,7 +8,7 @@
 // ShaderLibrary/Lighting.hlsl (UniversalFragmentBlinnPhong), and ShadowCaster / DepthOnly / DepthNormals include URP's own
 // pass files, so their bias, clamping and normal packing are URP's.
 //
-// Roles (_InkRole): 0 none, 1 hostile, 2 objective, 3 scrap, 4 viewmodel (thin ink), 5 weak spot. Pass SkylineInkMask draws
+// Roles (_InkRole): 0 none, 1 hostile, 2 objective, 3 scrap, 4 viewmodel (thin ink), 5 weak spot (Writ), 6 bot weak point. Pass SkylineInkMask draws
 // only when the material has the role set and the pass enabled (Material.SetShaderPassEnabled).
 Shader "Skyline/InkLit"
 {
@@ -26,7 +26,8 @@ Shader "Skyline/InkLit"
         _GradHeight("Gradient: height to full (m)", Float) = 6
         _Desaturate("Desaturate (colour-free zone)", Range(0, 1)) = 0
         _HatchStrength("Deep-shade hatching", Range(0, 1)) = 0.15
-        _InkRole("Ink role (0 none, 1 hostile, 2 objective, 3 scrap, 4 viewmodel, 5 weak spot)", Float) = 0
+        _InkRole("Ink role (0 none, 1 hostile, 2 objective, 3 scrap, 4 viewmodel, 5 weak spot, 6 bot weak point)", Float) = 0
+        [Toggle] _Unlit("Unlit glow (no lighting)", Float) = 0
         _RimStrength("Rim", Range(0, 1)) = 0.25
 
         [HideInInspector] _Cull("__cull", Float) = 2.0
@@ -245,6 +246,9 @@ Shader "Skyline/InkLit"
                 half rim = pow(saturate(1.0h - saturate(dot(normalWS, viewDirWS))), 4.0h) * _RimStrength;
                 color += mainLight.color * rim;
                 color += SampleEmission(input.uv, _EmissionColor.rgb, TEXTURE2D_ARGS(_EmissionMap, sampler_EmissionMap));
+                // an Unlit material's twin: the colour and map as they are (HDR colours stay hot for the bloom), no lighting
+                if (_Unlit > 0.5h)
+                    color = SampleAlbedoAlpha(input.uv, TEXTURE2D_ARGS(_BaseMap, sampler_BaseMap)).rgb * _BaseColor.rgb;
                 color = MixFog(color, inputData.fogCoord);
 
                 outColor = half4(color, 1.0h);
@@ -332,7 +336,7 @@ Shader "Skyline/InkLit"
         // ------------------------------------------------------------------ SkylineInkMask
         // Drawn by SkylineInkFeature's renderer list against the camera depth (LEqual, no depth write): only the visible
         // surface of a role > 0 object lands in the mask. rgb = the role's hue (sRGB, converted by the composite); alpha is the
-        // class: 1.0 hued outline, 0.6 thin ink (the viewmodel), 0.8 weak spot (yellow, wins over the others).
+        // class: 1.0 hued outline, 0.9 bot weak point (pulsing red-yellow), 0.8 weak spot (yellow), 0.6 thin ink (the viewmodel).
         Pass
         {
             Name "SkylineInkMask"
@@ -383,7 +387,8 @@ Shader "Skyline/InkLit"
                 if (role == 2) return half4(0.1804h, 0.9020h, 1.0h, 1.0h);        // #2EE6FF objective
                 if (role == 3) return half4(0.3608h, 1.0h, 0.5412h, 1.0h);        // #5CFF8A scrap
                 if (role == 4) return half4(0.0863h, 0.0784h, 0.1216h, 0.6h);     // #16141F ink: thin outline
-                if (role == 5) return half4(1.0h, 0.8392h, 0.0392h, 0.8h);        // #FFD60A weak spot
+                if (role == 5) return half4(1.0h, 0.8392h, 0.0392h, 0.8h);        // #FFD60A weak spot (the Writ's)
+                if (role == 6) return half4(1.0h, 0.1804h, 0.3882h, 0.9h);        // a bot's own weak point: hostile hue in the mask, pulsed towards yellow by the composite
                 discard;
                 return half4(0, 0, 0, 0);
             }

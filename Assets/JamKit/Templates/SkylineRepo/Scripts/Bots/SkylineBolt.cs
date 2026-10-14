@@ -87,10 +87,10 @@ namespace JamKit.SkylineRepo
             var go = new GameObject("Bolt");
             go.SetActive(false);
             var b = go.AddComponent<SkylineBolt>();
-            b._core = SkylineBotLook.Visual(PrimitiveType.Sphere, "Core", go.transform, SkylineBotLook.Glow(Core), false).transform;
+            b._core = SkylineBotLook.Visual(PrimitiveType.Sphere, "Core", go.transform, SkylineBotLook.Glow(Core, SkylineInkRoles.Hostile), false).transform;
 
             b._trail = go.AddComponent<TrailRenderer>();
-            b._trail.sharedMaterial = SkylineBotLook.Glow(Streak);
+            b._trail.sharedMaterial = SkylineBotLook.Glow(Streak, SkylineInkRoles.Hostile);
             b._trail.time = StreakSeconds;
             b._trail.minVertexDistance = 0.05f;
             b._trail.widthCurve = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(0.35f, 0.55f), new Keyframe(1f, 0f));
@@ -103,7 +103,7 @@ namespace JamKit.SkylineRepo
             var arcGo = new GameObject("Arc");
             arcGo.transform.SetParent(go.transform, false);
             b._arc = arcGo.AddComponent<LineRenderer>();
-            b._arc.sharedMaterial = SkylineBotLook.Glow(Arc);
+            b._arc.sharedMaterial = SkylineBotLook.Glow(Arc, SkylineInkRoles.Hostile);
             b._arc.useWorldSpace = true;
             b._arc.widthMultiplier = 0.014f;
             b._arc.widthCurve = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 0.3f));

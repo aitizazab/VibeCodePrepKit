@@ -164,6 +164,10 @@ namespace JamKit.SkylineRepo
 
             ComputeAimPose(g, gun);
 
+            // Comic ink: the guns carry the viewmodel role, the thin ink-colour outline (2.5 px, heavier than the scenery's
+            // lines, not hued). The overlay camera runs the ink feature too, so the outline is drawn there.
+            SkylineInkRoles.Apply(root.gameObject, SkylineInkRoles.Viewmodel);
+
             foreach (var r in root.GetComponentsInChildren<Renderer>(true))
             {
                 r.shadowCastingMode = ShadowCastingMode.Off;

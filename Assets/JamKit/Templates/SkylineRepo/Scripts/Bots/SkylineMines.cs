@@ -59,6 +59,7 @@ namespace JamKit.SkylineRepo
                 SkylineBotLook.Part(PrimitiveType.Cube, "Tick", _ring, new Vector3(Mathf.Cos(a) * triggerRadius, Mathf.Sin(a) * triggerRadius, 0f), new Vector3(0.14f, 0.05f, 0.02f), Red, false, new Vector3(0f, 0f, a * Mathf.Rad2Deg + 90f));
             }
             _ring.gameObject.SetActive(false);
+            SkylineInkRoles.Apply(_root, SkylineInkRoles.Hostile);   // comic ink: a hostile mine is outlined
             foreach (var r in _root.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
@@ -78,7 +79,7 @@ namespace JamKit.SkylineRepo
                 case MineState.Fusing: on = Mathf.Repeat(_t, 0.1f) < 0.05f; break;
                 default: on = false; break;
             }
-            _led.sharedMaterial = SkylineBotLook.Lit(on ? Red : Off);
+            _led.sharedMaterial = SkylineBotLook.Lit(on ? Red : Off, SkylineInkRoles.Hostile);
             _ring.gameObject.SetActive(state == MineState.Fusing);
             if (_expire >= 0f)
             {

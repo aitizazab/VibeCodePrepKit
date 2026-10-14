@@ -3,7 +3,8 @@
 //   1. thin ink from the depth and normal edges (a Roberts-style cross of four diagonal neighbours), fading with distance;
 //      sky pixels take a line only where a neighbour is geometry;
 //   2. the thick hued outline from the mask SkylineInkMask drew: 12 taps on a circle and 8 on an inner circle, outside the
-//      silhouette only; the weak-spot yellow wins over every other hue, and draws on hostile bodies too.
+//      silhouette only; the weak-spot yellow wins over every other hue, then a bot's own weak point (red-magenta pulsing
+//      towards yellow), and both draw on hostile bodies too.
 // URP-standard HLSL: Core.hlsl and core's Blit.hlsl (full-screen triangle, _BlitTexture), as Visiting Hours' atmosphere pass.
 // Texture coordinates follow Unity's render-texture layout, the same for colour, depth, normals and the mask.
 Shader "Hidden/Skyline/InkComposite"
@@ -35,6 +36,7 @@ Shader "Hidden/Skyline/InkComposite"
             float4 _SkInkFade;      // x: fade start (m), y: fade end (m), z: ink strength at the end, w: 1 when the normals texture is bound
             float4 _SkInkScreen;    // x,y: texel size, z,w: size in pixels
             float4 _SkInkZParams;   // the depth buffer's linearisation, Unity's _ZBufferParams layout, from the camera itself
+            float4 _SkInkTime;      // x: time in seconds (the bot weak point's pulse)
 
             float SkRaw(float2 uv)
             {
@@ -72,15 +74,31 @@ Shader "Hidden/Skyline/InkComposite"
                 return SAMPLE_TEXTURE2D_X_LOD(_SkInkMask, sampler_PointClamp, uv, 0);
             }
 
-            // Mask alpha classes (see SkylineInkMask in InkLit.shader): 1.0 hued, 0.8 weak spot, 0.6 thin ink.
-            bool SkIsHued(float a) { return a > 0.9; }
-            bool SkIsWeak(float a) { return a > 0.7 && a < 0.9; }
-            bool SkIsThin(float a) { return a > 0.5 && a < 0.7; }
+            // Mask alpha classes (see SkylineInkMask in InkLit.shader): 1.0 hued, 0.9 bot weak point, 0.8 weak spot, 0.6 thin ink.
+            bool SkIsHued(float a) { return a > 0.95; }
+            bool SkIsBotWeak(float a) { return a > 0.85 && a <= 0.95; }
+            bool SkIsWeak(float a) { return a > 0.7 && a <= 0.85; }
+            bool SkIsThin(float a) { return a > 0.5 && a <= 0.7; }
 
             // Hostile (r high) beats objective (b high, r low) beats scrap.
             float SkHueRank(float3 rgb)
             {
                 return rgb.r > 0.9 ? 3.0 : (rgb.b > 0.9 ? 2.0 : 1.0);
+            }
+
+            // Counts one mask tap into its class. Thin ink counts only from the inner circle.
+            void SkTap(float4 m, bool inner, inout float weak, inout float botWeak, inout float hue, inout float thin,
+                inout float bestRank, inout float3 bestHue)
+            {
+                if (SkIsWeak(m.a)) weak += 1.0;
+                else if (SkIsBotWeak(m.a)) botWeak += 1.0;
+                else if (SkIsHued(m.a))
+                {
+                    hue += 1.0;
+                    float rank = SkHueRank(m.rgb);
+                    if (rank > bestRank) { bestRank = rank; bestHue = m.rgb; }
+                }
+                else if (inner && SkIsThin(m.a)) thin += 1.0;
             }
 
             half4 FragComposite(Varyings i) : SV_Target
@@ -133,7 +151,7 @@ Shader "Hidden/Skyline/InkComposite"
                 if (!centreWeak)
                 {
                     float2 R = _SkInkLine.y * texel;
-                    float weakHits = 0.0, hueHits = 0.0, thinHits = 0.0, bestRank = 0.0;
+                    float weakHits = 0.0, botWeakHits = 0.0, hueHits = 0.0, thinHits = 0.0, bestRank = 0.0;
                     float3 bestHue = float3(0, 0, 0);
 
                     // outer circle: 12 taps at the full radius
@@ -142,14 +160,7 @@ Shader "Hidden/Skyline/InkComposite"
                     {
                         float s, c;
                         sincos((a + 0.5) * 0.5235988, s, c);              // 2*pi/12, offset half a step
-                        float4 m = SkMask(uv + float2(c, s) * R);
-                        if (SkIsWeak(m.a)) weakHits += 1.0;
-                        else if (SkIsHued(m.a))
-                        {
-                            hueHits += 1.0;
-                            float rank = SkHueRank(m.rgb);
-                            if (rank > bestRank) { bestRank = rank; bestHue = m.rgb; }
-                        }
+                        SkTap(SkMask(uv + float2(c, s) * R), false, weakHits, botWeakHits, hueHits, thinHits, bestRank, bestHue);
                     }
                     // inner circle: 8 taps at 0.6 of the radius (a viewmodel's thin ink reaches only this far)
                     [unroll]
@@ -157,24 +168,24 @@ Shader "Hidden/Skyline/InkComposite"
                     {
                         float s, c;
                         sincos(b * 0.7853982, s, c);                      // 2*pi/8
-                        float4 m = SkMask(uv + float2(c, s) * R * 0.6);
-                        if (SkIsWeak(m.a)) weakHits += 1.0;
-                        else if (SkIsHued(m.a))
-                        {
-                            hueHits += 1.0;
-                            float rank = SkHueRank(m.rgb);
-                            if (rank > bestRank) { bestRank = rank; bestHue = m.rgb; }
-                        }
-                        else if (SkIsThin(m.a)) thinHits += 1.0;
+                        SkTap(SkMask(uv + float2(c, s) * R * 0.6), true, weakHits, botWeakHits, hueHits, thinHits, bestRank, bestHue);
                     }
 
                     float3 outlineRgb = float3(0, 0, 0);
                     float cover = 0.0;
                     if (weakHits > 0.0)
                     {
-                        // the yellow wins over a hostile body's red-magenta, and also draws on it (the centre may be hostile)
+                        // priority 5 over 6 over 1: the Writ's yellow wins over everything, and also draws on a hostile body
+                        // (the centre may be hostile)
                         outlineRgb = SRGBToLinear(float3(1.0, 0.8392, 0.0392));
                         cover = smoothstep(0.0, 4.0, weakHits);
+                    }
+                    else if (botWeakHits > 0.0 && !SkIsBotWeak(m0.a))
+                    {
+                        // a bot's own weak point: the hostile red-magenta tinted towards yellow, t pulsing 0.35..0.6 at 1.2 Hz
+                        float t = lerp(0.35, 0.6, 0.5 + 0.5 * sin(_SkInkTime.x * 7.5398));   // 2*pi*1.2
+                        outlineRgb = SRGBToLinear(lerp(float3(1.0, 0.1804, 0.3882), float3(1.0, 0.8392, 0.0392), t));
+                        cover = smoothstep(0.0, 4.0, botWeakHits);
                     }
                     else if (!centreHas && hueHits > 0.0)
                     {
