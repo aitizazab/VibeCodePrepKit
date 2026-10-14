@@ -6,7 +6,7 @@ start goes here with its next step; a thread leaves this list only when it's don
 ## Dropped without a reason (found 2026-10-14 evening): resume these
 | Thread | Where it stopped | Next step |
 |---|---|---|
-| Music: the rest of the floor song | Drop decided (the original, re-stretched); the whole normal layer drafted (32-bar loop) 2026-10-15, page `skyline-music-song-normal.html` | Creator's verdict on the normal layer; then the danger, quiet and speed layers against its stems |
+| Music: the rest of the floor song | Normal layer v2 (sampled instruments, the settle, layered hook) 2026-10-15, page `art/review/2026-10-15/skyline-music-song-normal-v2.html`; the plan of next steps is at the end of `SKYLINE-MUSIC.md` | Creator's verdict + hook pick; then danger, quiet, speed layers; then M2 in the game |
 | Music: the riser's instrument | Brass / accordion / reed, pairs, with and without backing (`art/review/2026-10-14/skyline-music-step6-2.html`); never picked, never followed up | Creator picks |
 | Bot redesigns from playtest 1 (`SKYLINE-PLAYTEST-1.md`) | Held all day; 2026-10-15 the SIZES and weak points went to the drone agent (priority: "impossible to land a headshot on a drone"); the shape redesigns below still wait | All bots larger; floor-care: face on its top, the canister the only protrusion, wind-up then molly acid, 15 s recharge unless the canister is shot; drone: much larger rotors as the weak spot, faceplate part of the face; spotlight: a larger humanoid with the spotlight as its head, charging an electric railgun before locking on |
 | Damage states for every bot (`SKYLINE-BOTS.md`) | Assigned 2026-10-15 to the drone agent (after aim, with the sizes) | Animated threshold crossings; Unity stills of each state |
@@ -24,7 +24,7 @@ start goes here with its next step; a thread leaves this list only when it's don
 
 ## Waiting on the creator
 - The ink style options: stills per option (capturing; page to follow).
-- The music: the normal layer (`art/review/2026-10-15/skyline-music-song-normal.html`).
+- The music: normal layer v2 and the hook layering (`art/review/2026-10-15/skyline-music-song-normal-v2.html`).
 - The Relay: is the space big enough for an 18 m/s skill check (`SKYLINE-RELAY.md`)?
 - The HUD: does "- RELOADING" under the ammo count go (the gun's name stays)?
 - The Valet (`SKYLINE-BOTS.md`): name, the "ding" through walls, 25 damage, lunging at a wall-runner.
@@ -45,3 +45,10 @@ G0), P1 perf, J1 captures, X1 the switch-over. The Valet (planned in `SKYLINE-BO
 - Bot hurt sounds were removed on hits (2026-10-15: they overrode the gun's hit sound); **an enemy cry** replaces them later.
 - The pre-drop is the original PopularMMOs recording: one swap to our instruments before anything goes public.
 - The overnight draft lines (`SKYLINE-DRAFT-LINES-OVERNIGHT.md`): the creator's to rewrite.
+
+## Housekeeping
+- Disk ran low (4.2 GB free) on 2026-10-15: old pass folders' builds, recordings and stills deleted (16 GB; logs and
+  results kept; only the latest pass keeps its build), old music renders removed, and XXL-McDonalds' old takes (842 MB,
+  see its HANDOFF.md). Not deleted (the creator's call): XXL's voice-conversion toolchain (~7 GB: `.venv-applio`, the
+  training-resume checkpoints, the separation models), needed only to resume or extend the paused voice work.
+  **Keep doing:** after each pass, delete the previous pass folders' build/, *.mp4 and stills.

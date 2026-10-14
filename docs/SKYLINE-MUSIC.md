@@ -74,3 +74,41 @@ near or the objective is simpler** (parkour between sections).
   bars land on A and C. Stems: drums, bass, chords, lead, brass, arp.
 - Files: `FableAnimationTests/audio/skyline-music/song-normal/` (full, loop, loop-check, stems, `song-normal.json`);
   scripts in `audio/skyline-music/scripts/`; page `art/review/2026-10-15/skyline-music-song-normal.html`.
+
+## The normal layer, version 2 (2026-10-15)
+- The creator on v1: "it doesn't connect from the opening cleanly at all, and the main instrument alone sounds too retro
+  or digital ... Try layering it, and using our music analysis skill or script ... Try continuing the end of the opening
+  sound into something that settles, and starting there. It absolutely needs to be clean." v1 was synthesised in numpy
+  and never measured against a reference; v2 fixes both.
+- **Tools (use these for every music step):** compose as MIDI (mido) and render with sampled instruments: the
+  GeneralUser GS SoundFont (`C:/Users/User/tools/soundfonts/GeneralUser-GS.sf2`; also SGM-V2.01 and THInst in
+  `.../soundfonts/toby/`) through FluidSynth 2.6 (`C:/Users/User/tools/fluidsynth/.../fluidsynth.exe -ni -F out.wav -r 48000 sf2 mid`;
+  the project skill `.claude/skills/music-gen`); measure every render with the ears skill
+  (`uv run --project ~/.claude/skills/ears python ~/.claude/skills/ears/listen.py compare take.wav ref.wav`) against the
+  reference; `audio-tools/sf2-presets.py` lists a SoundFont's instruments.
+- **The settle:** the drop's own final hit is kept as the song's first downbeat; its sound is spectrally frozen and darkens
+  over two bars while a warm pad, strings and a held bass take over on F (the drop ends on F, measured), then electric
+  piano, hats, kick and a snare pickup over 4 bars into A. Join measured clean (level -13.5 dB before, -12.8 after; the
+  largest sample jump is inside the original drop). Settle 5-8 dB under the drop; A about 1 dB under it.
+- **Band:** GM drum kit + congas + tambourine, finger bass + a sine sub, muted-guitar off-beats, electric piano, warm
+  pad, slow strings, brass section (B's answers, the C callback, A's counter line), vibraphone arpeggio. **Hook:** steel
+  drums + marimba (+ vibraphone an octave up in A'); four other layerings rendered for the creator to pick.
+- **Balance vs the Subway Surfers main part (ears):** first v2 render 35% low+sub / 60% mid (reference 95% / 4%); now
+  about 60% low+sub / 31% mid, with congas and tambourine for density (30 events vs the reference's 124 in 16 s by the
+  ears event detector). Still lighter and busier in the mids than the reference: the hook and comping live there.
+- Files: `FableAnimationTests/audio/skyline-music/song-normal-v2/` (full, loop, loop-check, drop-to-settle, stems,
+  hook-options, page copies); script `audio/skyline-music/scripts/music_song_normal_v2.py`; page
+  `art/review/2026-10-15/skyline-music-song-normal-v2.html`.
+
+## What's next with the music (in order)
+1. The creator's verdict on v2 and the hook layering pick (and the still-open riser instrument pick).
+2. **The danger layer** (Empress of Light's first 17 s): a parallel arrangement of the same 32 bars on the same clock,
+   crossfaded on bar lines by threat: the minor colour pushed further (harmonic minor's G#, the pre-drop's A-flat/E-flat
+   colour), a driving low string ostinato, choir pad, fast high bell runs in sixteenths, heavier drums. Built against v2's stems.
+3. **The quiet layer** (Stonewood and Plankerton): the same chords stripped to soft keys, plucked guitar and strings,
+   no drums, slower-feeling; for traversal and low threat.
+4. **The speed stems** (Visiting Hours' system): drive (eighth bass pulse, four-on-the-floor, hats, clap) and peak
+   (sixteenth arpeggio, shimmer), muffled-to-open with speed, per mood.
+5. **In the game:** M2 (the music director: the sequencer exists, `MusicSequencer.cs`; stems scheduled on DSP time,
+   bar-line changes) and the lift-ride opening.
+6. Before anything is public: swap the original pre-drop and drop recordings for our instruments (one comparison).
