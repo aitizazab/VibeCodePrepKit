@@ -61,6 +61,7 @@ namespace JamKit.SkylineRepo
             public Func<string> text;
             public Action activate;
             public float min, max, step;
+            public Func<float, string> format;   // the slider's value text; null shows a percentage
             public Func<float> get;
             public Action<float> set;
             public Func<bool> getBool;
@@ -244,9 +245,9 @@ namespace JamKit.SkylineRepo
             return it;
         }
 
-        Item AddSlider(string label, float min, float max, float step, Func<float> get, Action<float> set)
+        Item AddSlider(string label, float min, float max, float step, Func<float> get, Action<float> set, Func<float, string> format = null)
         {
-            var it = new Item { kind = Kind.Slider, min = min, max = max, step = step, get = get, set = set };
+            var it = new Item { kind = Kind.Slider, min = min, max = max, step = step, get = get, set = set, format = format };
             it.el = NewRow();
             it.name = Text(it.el, RowSize, Color.white);
             it.name.text = label;
@@ -364,6 +365,8 @@ namespace JamKit.SkylineRepo
                     _title.text = "LOOK";
                     AddSlider("Mouse sensitivity", SkylineOptions.MinSensitivity, SkylineOptions.MaxSensitivity, 0.05f, () => o.mouseSensitivity, v => o.mouseSensitivity = v);
                     AddSlider("Pad sensitivity", SkylineOptions.MinSensitivity, SkylineOptions.MaxSensitivity, 0.05f, () => o.padSensitivity, v => o.padSensitivity = v);
+                    AddSlider("Field of view", SkylineOptions.MinFieldOfView, SkylineOptions.MaxFieldOfView, 1f, () => o.fieldOfView, v => o.fieldOfView = v,
+                        v => Mathf.RoundToInt(v) + " deg");
                     AddToggle("Invert Y", () => o.invertY, v => o.invertY = v);
                     AddToggle("Aim assist (pad)", () => o.aimAssist, v => o.aimAssist = v);
                     AddButton(() => "Back", () => ShowPage(Page.Main));
@@ -412,7 +415,7 @@ namespace JamKit.SkylineRepo
                         float v = it.get();
                         float t = Mathf.Clamp01((v - it.min) / (it.max - it.min));
                         it.fill.style.width = TrackWidth * t;
-                        it.value.text = Mathf.RoundToInt(v * 100f) + "%";
+                        it.value.text = it.format != null ? it.format(v) : Mathf.RoundToInt(v * 100f) + "%";
                         it.name.style.color = sel ? Gold : Color.white;
                         break;
                     }

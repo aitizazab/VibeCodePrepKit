@@ -7,12 +7,16 @@ namespace JamKit.Skyline
     /// <summary>
     /// The player's options (the pause menu's Audio and Look pages) as plain data, saved as one string: four volumes
     /// (master for the whole mix; music; effects, which is the guns, impacts, bots and beds; voices, which is the lines and
-    /// the barks) from 0 to 1, a look sensitivity multiplier for the mouse and one for the pad, invert Y, and aim assist.
+    /// the barks) from 0 to 1, a look sensitivity multiplier for the mouse and one for the pad, invert Y, aim assist, and the
+    /// field of view.
     /// Pure (no engine): SkylineSettings keeps it in PlayerPrefs and applies it.
     /// </summary>
     public sealed class SkylineOptions
     {
         public const float MinSensitivity = 0.25f, MaxSensitivity = 3f;
+        /// <summary>The vertical field of view, degrees (the Look page's slider). 68 is what the movement camera gave before the
+        /// slider existed (about 100 degrees across at 16:9), so it is the default and the "no change" point.</summary>
+        public const float MinFieldOfView = 60f, MaxFieldOfView = 110f, DefaultFieldOfView = 68f;
         public const string Header = "skyline-options 1";
 
         public float master = 1f, music = 1f, effects = 1f, voices = 1f;
@@ -22,6 +26,9 @@ namespace JamKit.Skyline
         public float padSensitivity = 1f;
         public bool invertY;
         public bool aimAssist = true;
+        /// <summary>The main camera's resting vertical field of view (degrees); aiming down sights narrows it by the gun's own
+        /// factor from there, and the speed effects widen it in proportion.</summary>
+        public float fieldOfView = DefaultFieldOfView;
 
         public SkylineOptions Clone() => (SkylineOptions)MemberwiseClone();
 
@@ -34,6 +41,7 @@ namespace JamKit.Skyline
             voices = Unit(voices, 1f);
             mouseSensitivity = Range(mouseSensitivity, MinSensitivity, MaxSensitivity, 1f);
             padSensitivity = Range(padSensitivity, MinSensitivity, MaxSensitivity, 1f);
+            fieldOfView = Range(fieldOfView, MinFieldOfView, MaxFieldOfView, DefaultFieldOfView);
         }
 
         static float Unit(float v, float fallback) => Range(v, 0f, 1f, fallback);
@@ -54,6 +62,7 @@ namespace JamKit.Skyline
             Add(sb, "voices", voices);
             Add(sb, "mouse", mouseSensitivity);
             Add(sb, "pad", padSensitivity);
+            Add(sb, "fov", fieldOfView);
             sb.Append("invertY=").Append(invertY ? "1" : "0").Append('\n');
             sb.Append("aimAssist=").Append(aimAssist ? "1" : "0").Append('\n');
             return sb.ToString();
@@ -85,6 +94,7 @@ namespace JamKit.Skyline
                         case "voices": if (isNumber) o.voices = f; break;
                         case "mouse": if (isNumber) o.mouseSensitivity = f; break;
                         case "pad": if (isNumber) o.padSensitivity = f; break;
+                        case "fov": if (isNumber) o.fieldOfView = f; break;
                         case "invertY": o.invertY = value == "1"; break;
                         case "aimAssist": o.aimAssist = value != "0"; break;
                     }

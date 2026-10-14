@@ -19,6 +19,22 @@ namespace JamKit.Tests.Skyline
             Assert.That(o.padSensitivity, Is.EqualTo(1f));
             Assert.That(o.invertY, Is.False);
             Assert.That(o.aimAssist, Is.True);
+            Assert.That(o.fieldOfView, Is.EqualTo(SkylineOptions.DefaultFieldOfView), "the default view is what the game had before the slider");
+        }
+
+        [Test]
+        public void TheFieldOfViewIsSavedClampedAndSurvivesAnOldSave()
+        {
+            var o = new SkylineOptions { fieldOfView = 95f };
+            Assert.That(SkylineOptions.Deserialize(o.Serialize()).fieldOfView, Is.EqualTo(95f).Within(1e-4f));
+            o.fieldOfView = 300f;
+            o.Clamp();
+            Assert.That(o.fieldOfView, Is.EqualTo(SkylineOptions.MaxFieldOfView));
+            o.fieldOfView = float.NaN;
+            o.Clamp();
+            Assert.That(o.fieldOfView, Is.EqualTo(SkylineOptions.DefaultFieldOfView));
+            Assert.That(SkylineOptions.Deserialize("skyline-options 1\nmaster=0.5\n").fieldOfView, Is.EqualTo(SkylineOptions.DefaultFieldOfView), "a save from before the slider");
+            Assert.That(SkylineOptions.Deserialize("fov=20\n").fieldOfView, Is.EqualTo(SkylineOptions.MinFieldOfView));
         }
 
         [Test]

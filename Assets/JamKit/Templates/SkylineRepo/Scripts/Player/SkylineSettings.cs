@@ -70,6 +70,10 @@ namespace JamKit.SkylineRepo
             Commit();
         }
 
+        /// <summary>The factor the main camera's field of view is scaled by for the player's field-of-view option (1 at the
+        /// default): the movement camera sets the view afresh every frame from its own base, and the viewmodel multiplies it.</summary>
+        public static float FovScale => Options.fieldOfView / SkylineOptions.DefaultFieldOfView;
+
         /// <summary>The master volume onto the listener (every frame is cheap: it only writes on a change).</summary>
         public static void ApplyMaster()
         {

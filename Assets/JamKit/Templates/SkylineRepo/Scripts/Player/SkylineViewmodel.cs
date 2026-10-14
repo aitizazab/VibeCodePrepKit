@@ -312,9 +312,11 @@ namespace JamKit.SkylineRepo
 
             // Aim down sights: the cameras narrow and the gun comes to its aim pose.
             float k = player.AimEased;
+            // The overlay camera (the guns) keeps its own view when only the field-of-view option changes, so the guns stay one
+            // size; the main camera's view is the option (SkylineSettings.FovScale) times the aim's narrowing.
             float fovScale = player.AimFovScale;
             _cam.fieldOfView = Fov * fovScale;
-            ApplyMainFov(fovScale);
+            ApplyMainFov(fovScale * SkylineSettings.FovScale);
 
             for (int i = 0; i < _guns.Length; i++)
             {
