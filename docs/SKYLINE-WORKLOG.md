@@ -181,3 +181,28 @@ Newest first. Every agent result and every Unity pass gets an entry (what was do
   the corridor-camper pincer; the lint fixes).
 - **Held** until a Unity pass verifies the above: X0 (director), G1 (gondola), M2, L2, R2, SD1, A2, C2, H3, H5, DM1-3,
   D0, DR1-5, P1, J1, and the D22 pincer.
+
+## 2026-10-14 late night to 2026-10-15: two playtests, floor-1 runtime, the Writ rework, ink perf, the song
+
+- **Passes:** perf8 (tests fixed: a test-asmdef reference, a Mono-vs-.NET float tie in `BotArrival`), perf9 (1074 EditMode
+  tests pass; another test-asmdef reference, JamKit.Core), perf10 (1097 pass, lint 0, build OK, sync OK). The demo pilot
+  looped on a floor-care unit with an empty Breacher (fixed: Breacher only with shots; back off after two jumps).
+- **Floor 1 runtime (Sonnet agents):** A2 special ammo + H5 flashes + façade glass shots (D21), R2 repossession runtime +
+  SD1 spawn doors, H3 objective HUD + C2 comic lettering, G1 the gondola (mines through hatches, breakable panes). The
+  wave clock is 16 bars (31.35 s). Dot's lines are the creator's: "Clamped! Get Moving!" (first tow's end) and "Don't go
+  too far, you need to stay nearby to transmat!" (first time leaving a circle mid-tow).
+- **The Relay (test mode):** six stations, lane walls, F on the catwalk by mantles only, a 60 s clock (`SKYLINE-RELAY.md`).
+  The creator: 18 m/s is a real skill check; judge the space in play.
+- **The Writ (second playtest):** no chair or gavel; a clean ADS window; a bigger quill (4 segments) that curls clear in
+  ADS; the reload writes on paper while the ink refills, hands still, gun tilted up; the indigo gleam back; hip aim
+  assist halved. Bot hits: the creator's picks installed (Writ: ink jet through metal; Breacher: the same without the
+  water); bot hurt sounds removed on hits (an enemy cry later).
+- **Ink perf:** the ink pass was the fight stutter (1% low 30.4 ms with ink, 16.8 without). Fixed by blending straight
+  over the camera colour and a quarter-res occupancy map that limits the outline search: perf10 1% low 16.3 ms, worst
+  fight 20.9 ms (no ink: 15.0 / 15.3; depth creases gave nothing, left off). Five stylization options added, off by
+  default (`-skyline-ink-style`). The look passed the creator's gate (G0): "good, but even more stylized if possible".
+- **Music:** pre-drop = the original (base A); hand-over = B-flat repeats every 3.5 sixteenths with a harsh drop; the drop
+  = the original (Rubber Band); the normal layer of the floor song drafted (32-bar loop). References chosen for danger
+  (Empress of Light, first 17 s), quiet (Stonewood, Plankerton) and the main theme (Subway Surfers after 16 s).
+- **Planned:** the Valet (melee assassin, `SKYLINE-BOTS.md`). **Tracked:** `docs/SKYLINE-OPEN-THREADS.md` (new; the
+  creator asked to stop dropping threads).

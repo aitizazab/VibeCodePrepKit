@@ -14,7 +14,7 @@ start goes here with its next step; a thread leaves this list only when it's don
 | The corridor-camper pincer (D22) | Decided; not built; the pinned sim test `ACamperHiddenInTheWestCorridors...` waits to flip | Build in the director (X0) or as its own task |
 | The shop-S4 corner drones can't see | Noted from the sim; never checked | Check in the camper survey (DM2) |
 | A per-assembly compile check | Promised after the second missing-reference failure | Make `core-tests/SkylineUnity` compile each asmdef with only its references |
-| Perf: the food-court fight stutters (FOUND: the ink pass; ink off 1% low 16.8 ms vs on 30.4 ms) | Re-measured in perf9 with the fixed pilot (demo completed): average 6.6 ms but 1% low 30.4 ms, worst fight 44 ms; the spikes are in the food-court fight with 15 bots, mostly waiting on the GPU (25 ms) with some CPU spikes (19-24 ms); perf8 was the same, so not tonight's work | Ink agent (branch `skyline-ink`) cutting the ink passes' GPU cost; then re-measure; then the remaining CPU spikes |
+| Perf: the food-court fight stutters (ink part FIXED in perf10: 1% low 16.3 ms, worst fight 20.9 ms) | Re-measured in perf9 with the fixed pilot (demo completed): average 6.6 ms but 1% low 30.4 ms, worst fight 44 ms; the spikes are in the food-court fight with 15 bots, mostly waiting on the GPU (25 ms) with some CPU spikes (19-24 ms); perf8 was the same, so not tonight's work | The remaining spikes are CPU (no-ink worst fight 15.3 ms): profile them (the new HUD elements, bots); depth creases gave nothing (off) |
 | The art style (gate G0) | PASSED 2026-10-15: "The comic-look is good, but I'd like it to get even more stylized if possible." | Dressing DR1-DR5 is unblocked; the ink agent adds stylization options (off by default) for a stills page |
 
 ## New from the Writ rework (merged 2026-10-15, not yet seen in Unity)
@@ -23,6 +23,7 @@ start goes here with its next step; a thread leaves this list only when it's don
 | Writ reload sounds | The reload is silent except the seat click (the old drum/gavel recipes no longer fit) | Options for the quill leaving the ink, scratching on paper, and dipping back (identity first); creator picks |
 
 ## Waiting on the creator
+- The ink style options: stills per option (capturing; page to follow).
 - The music: the normal layer (`art/review/2026-10-15/skyline-music-song-normal.html`).
 - The Relay: is the space big enough for an 18 m/s skill check (`SKYLINE-RELAY.md`)?
 - The HUD: does "- RELOADING" under the ammo count go (the gun's name stays)?

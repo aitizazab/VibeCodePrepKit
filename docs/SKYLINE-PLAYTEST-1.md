@@ -12,6 +12,22 @@ holds their calls (their words quoted) and the work queue. It overrides older do
 - **Never drop a thread silently:** every open thread and its next step lives in `docs/SKYLINE-OPEN-THREADS.md`; re-ask
   unanswered questions in the next summary. (The creator, 2026-10-14: "can we stop randomly dropping things".)
 
+## Where we are (updated 2026-10-15 after pass perf10; read this first in a fresh session)
+
+- **Latest build:** `out/skyline/20261015-perf10/build/SkylineRepo.exe` (the M1 arena in the comic-ink look; the Relay
+  from the pause menu). In it: the reworked Writ (no chair or gavel, clean ADS, the curling quill, the paper-writing
+  reload, the indigo gleam), halved hip aim assist, the new bot-hit sounds (no bot hurt sounds), the cheaper ink pass,
+  and floor-1 runtime pieces that are not playable until the floor director (X0) exists. Not in it: the drone agent's
+  work (lagged drone aim, bots blocked by rails/balustrades, bigger bots and weak points, damage states), on branch
+  `skyline-drone` in `../VibeJamKit-drone` until it reports.
+- **Every open thread and its next step:** `docs/SKYLINE-OPEN-THREADS.md`. **History:** `docs/SKYLINE-WORKLOG.md`.
+  **Music:** `docs/SKYLINE-MUSIC.md`. **The Writ:** `docs/SKYLINE-GUN-WRIT.md`. **Bots and the planned Valet:**
+  `docs/SKYLINE-BOTS.md`. **Floor 1 plan and task map:** `docs/SKYLINE-PLAN-FLOOR1.md`. **Relay:** `docs/SKYLINE-RELAY.md`.
+- **The creator's priorities (2026-10-15):** perf (done for the ink; CPU spikes remain), damage states, and bigger
+  bots with bigger weak points ("impossible to land a headshot on a drone"); then the music layers; the look "even more
+  stylized" (options captured as stills for the creator to pick).
+- **Usage:** the week is in the red: well-scoped Sonnet agents only (Opus agents only if the creator forces it).
+
 ## How we work now (the creator, 2026-10-14)
 
 - "We'll work less on this today by agents, just you and me balancing the current experience now that it's built. IF
@@ -125,7 +141,7 @@ holds their calls (their words quoted) and the work queue. It overrides older do
 - The Breacher reload (heavier than the Witchfire Echo pick) and the Writ's "hushed court" loop: the creator's calls.
 - The Subway Surfers floor theme: not started (compose together with the creator).
 
-## Work queue (suggested order)
+## Work queue (superseded: see `docs/SKYLINE-OPEN-THREADS.md`)
 
 1. The creator confirms the new build (bots visible, menu, ADS, quiet drone).
 2. Level design: a short design (objective types, a more complex arena, timed successive waves) for the creator's
