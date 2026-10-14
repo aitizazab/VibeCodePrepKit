@@ -384,8 +384,11 @@ namespace JamKit.Skyline
             for (int i = 0; i < blockers.Count; i++)
             {
                 var b = blockers[i];
-                bool touchesStart = _start.X >= b.min.X - _r && _start.X <= b.max.X + _r && _start.Y >= b.min.Y - _r && _start.Y <= b.max.Y + _r
-                    && _start.Z >= b.min.Z - _r && _start.Z <= b.max.Z + _r;
+                // (a vent sits exactly one body radius off its wall by design, D23: compare with a millimetre of slack so that float vs double
+                // intermediates, Unity's Mono against CoreCLR, cannot flip "touching" on the equality)
+                const float slack = 1e-3f;
+                bool touchesStart = _start.X >= b.min.X - _r - slack && _start.X <= b.max.X + _r + slack && _start.Y >= b.min.Y - _r - slack && _start.Y <= b.max.Y + _r + slack
+                    && _start.Z >= b.min.Z - _r - slack && _start.Z <= b.max.Z + _r + slack;
                 if (touchesStart) _thin.Add(b); else _active.Add(b);
             }
         }
