@@ -1405,3 +1405,11 @@ lift gets one short line (at most ~50 characters, e.g. Dot: "Doors open, clock s
 `dropAt`. Whoever next owns `FloorBeats.cs` (L2 or X0) moves the trigger, adds the short lift line as a draft in
 `docs/SKYLINE-DRAFT-LINES.md`, and updates `FloorBeatsTests.NansJobSheetFitsInsideTheLiftRide` to read
 `MusicSequencer.PlanLiftRide` (the line must END before `dropAt`).
+
+### D21 (main session, 2026-10-14): what glass does to shots (from the creator's call, SKYLINE-FLOOR-REPOSSESS.md section 10)
+All glass is see-through for sight (bots and player), on the `SkylineGlass` layer. For SHOTS it depends on the role:
+**façade panes** (`facade-pane-*`): a shot passes through and BREAKS the pane (the tile leaves the wall-run; shards and
+the open edge are a hazard); **balustrades / glass rails** (bridge and galleries): a shot STOPS there (no free shooting
+through); the **skylight** and the **bridge floor**: a shot stops. So `SkylineShooting` (A2) and the bots' bolts must
+decide by the solid's role, not by the layer alone; W4's "bolts pass through glass" is wrong for balustrades and must
+follow this table. `RepossessArena.ShotBlockers()` (balustrades in, panes out) is already right.
