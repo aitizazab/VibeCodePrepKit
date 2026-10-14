@@ -1395,3 +1395,11 @@ needed by the floor tasks above, because the floor reads `EnemyDef.bodyRadius` a
     sectors, 25 sample points). Does that match your intent, or should a bearing mean the bots' spawn directions?
 11. **Special ammo numbers** (start 2, max 8, 1 per primary kill, 1 per 3 special kills) are placeholders for the balancing session.
 12. **Bridge floor:** glass you can see the pit through (default) or opaque (cheaper, less vertigo)?
+
+### D20 (main session, 2026-10-14): Nan's job sheet is briefed in the lobby, not in the lift
+M1 measured the lift ride (stepping in to the drop) at 5.1-7.1 s; `nan-job-sheet` (~120 characters, ~8.5 s) cannot
+fit. So `nan-job-sheet` fires in the lobby (on reaching the desk or the lift lobby, before `SteppedIntoLift`), and the
+lift gets one short line (at most ~50 characters, e.g. Dot: "Doors open, clock starts. Go!") that ends before
+`dropAt`. Whoever next owns `FloorBeats.cs` (L2 or X0) moves the trigger, adds the short lift line as a draft in
+`docs/SKYLINE-DRAFT-LINES.md`, and updates `FloorBeatsTests.NansJobSheetFitsInsideTheLiftRide` to read
+`MusicSequencer.PlanLiftRide` (the line must END before `dropAt`).
