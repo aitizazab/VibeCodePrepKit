@@ -23,7 +23,8 @@ dressing being re-skinned). Decided by the creator on 2026-10-14 after the compa
   shade takes the sky's cool tint. The deepest shade carries light world-space hatching (Borderlands' trick).
 - **Painted flat colour:** no photographic textures. Each surface is a flat palette colour with soft, large-scale
   painted variation: walls darken towards the floor and lighten towards the top (Team Fortress 2's vertical gradient),
-  and edges catch a little light.
+  and edges catch a little light. **Walls are a cool blue-white** (plaster about `#E9EDF2`, its tints cooler and lighter
+  with them) **and floors a warm cream** (about `#CDBB9C`), so the lit and shaded halves read as warm sun against cool sky.
 - **The sky** is a painted gradient (zenith to horizon) with a drawn sun and simple cloud shapes, not a photo.
 - **Post:** neutral tonemapping (the flat palette must survive), bloom kept for the lights, a slight vignette.
 
