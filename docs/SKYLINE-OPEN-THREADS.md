@@ -23,7 +23,7 @@ start goes here with its next step; a thread leaves this list only when it's don
 | Writ reload sounds | The reload is silent except the seat click (the old drum/gavel recipes no longer fit) | Options for the quill leaving the ink, scratching on paper, and dipping back (identity first); creator picks |
 
 ## Waiting on the creator
-- The ink style options: stills per option (capturing; page to follow).
+- The ink style options: which of the five (any mix, how strong): `FableAnimationTests/art/review/2026-10-15/skyline-ink-styles.html`.
 - The music: normal layer v2 and the hook layering (`art/review/2026-10-15/skyline-music-song-normal-v2.html`).
 - The Relay: is the space big enough for an 18 m/s skill check (`SKYLINE-RELAY.md`)?
 - The HUD: does "- RELOADING" under the ammo count go (the gun's name stays)?
