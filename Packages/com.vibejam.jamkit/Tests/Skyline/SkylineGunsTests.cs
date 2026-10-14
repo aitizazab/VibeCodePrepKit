@@ -29,6 +29,39 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
+        public void AimDownSightsNumbersAreInSaneRanges()
+        {
+            foreach (var g in SkylineGuns.All())
+            {
+                Assert.That(g.aimFovScale, Is.InRange(0.5f, 1f), g.id + " aimFovScale");
+                Assert.That(g.aimLookScale, Is.InRange(0.3f, 1f), g.id + " aimLookScale");
+                Assert.That(g.aimMoveScale, Is.InRange(0.5f, 1f), g.id + " aimMoveScale");
+                Assert.That(g.aimSpreadScale, Is.InRange(0.5f, 1f), g.id + " aimSpreadScale");
+                Assert.That(g.Validate(), Is.Null);
+            }
+            var writ = SkylineGuns.Writ();
+            var breacher = SkylineGuns.Breacher();
+            Assert.That(writ.aimFovScale, Is.EqualTo(0.75f).Within(1e-5f));
+            Assert.That(breacher.aimFovScale, Is.EqualTo(0.88f).Within(1e-5f));
+            Assert.That(writ.aimLookScale, Is.EqualTo(0.65f).Within(1e-5f));
+            Assert.That(breacher.aimLookScale, Is.EqualTo(0.8f).Within(1e-5f));
+            Assert.That(writ.aimMoveScale, Is.EqualTo(0.8f).Within(1e-5f));
+            Assert.That(breacher.aimMoveScale, Is.EqualTo(0.8f).Within(1e-5f));
+            Assert.That(breacher.aimSpreadScale, Is.EqualTo(0.8f).Within(1e-5f));
+        }
+
+        [Test]
+        public void AimNumbersOutOfRangeAreRefused()
+        {
+            var g = SkylineGuns.Breacher();
+            g.aimFovScale = 0.2f;
+            Assert.That(g.Validate(), Does.Contain("aimFovScale"));
+            g = SkylineGuns.Breacher();
+            g.aimSpreadScale = 1.5f;
+            Assert.That(g.Validate(), Does.Contain("aimSpreadScale"));
+        }
+
+        [Test]
         public void EverySoundBelongsToItsGun()
         {
             foreach (var g in SkylineGuns.All())

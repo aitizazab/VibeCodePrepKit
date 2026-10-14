@@ -49,6 +49,7 @@ namespace JamKit.SkylineRepo
         sealed class Loop
         {
             public AudioSource src;
+            public string sound;
             public float original, lastSet = -1f;
         }
 
@@ -162,7 +163,7 @@ namespace JamKit.SkylineRepo
                 return;
             }
 
-            float gain = Mathf.Clamp01(volume * SkylineMix.GainOf(sound));
+            float gain = Mathf.Clamp01(volume * SkylineMix.GainOf(sound) * SkylineMix.UserGain(cat));
             float audible = gain * (pool.world ? Rolloff(Vector3.Distance(_listener, position), WorldMinDistance, WorldMaxDistance) : 1f);
 
             int active = 0, same = 0;
@@ -279,7 +280,7 @@ namespace JamKit.SkylineRepo
                 var l = _loops[i];
                 if (l.src == null) { _loops.RemoveAt(i); continue; }
                 if (Mathf.Abs(l.src.volume - l.lastSet) > 1e-4f) l.original = l.src.volume;   // its owner changed it
-                l.lastSet = Mathf.Clamp01(l.original * SkylineMix.CategoryGain[(int)SkylineSoundCategory.Ambience]
+                l.lastSet = Mathf.Clamp01(l.original * SkylineMix.GainOf(l.sound) * SkylineMix.UserGain(SkylineSoundCategory.Ambience)
                                           * SkylineMix.DuckGain(SkylineSoundCategory.Ambience, _duck));
                 l.src.volume = l.lastSet;
             }
@@ -313,7 +314,7 @@ namespace JamKit.SkylineRepo
                 if (!TryNameOf(s.clip, out var name) || !name.EndsWith("/idle_loop", StringComparison.Ordinal)) continue;
                 bool known = false;
                 foreach (var l in _loops) if (l.src == s) { known = true; break; }
-                if (!known) _loops.Add(new Loop { src = s, original = s.volume });
+                if (!known) _loops.Add(new Loop { src = s, sound = name, original = s.volume });
             }
         }
 

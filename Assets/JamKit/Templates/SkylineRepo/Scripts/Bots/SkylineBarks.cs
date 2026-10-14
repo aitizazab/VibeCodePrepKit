@@ -62,7 +62,7 @@ namespace JamKit.SkylineRepo
             if (source != null)
             {
                 var clip = SkylineBabble.Make(voice, text, seed);
-                if (clip != null) source.PlayOneShot(clip, 0.9f);
+                if (clip != null) source.PlayOneShot(clip, 0.9f * SkylineMix.UserGain(SkylineSoundCategory.Voices));
                 if (clip != null) SkylineSounds.NoteSpeech(source, clip.length);   // the mix ducks the effects under the bark
             }
             return bubble;

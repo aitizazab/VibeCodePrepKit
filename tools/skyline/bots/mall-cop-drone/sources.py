@@ -25,23 +25,20 @@ def rotor_buzz(f: np.ndarray, rng, n: int) -> np.ndarray:
 
 
 def rotor_loop(rng) -> np.ndarray:
-    """2 s, seamless: two rotors beating against each other, air turbulence chopped by the blades, the motors' thin
-    whine, and a soft "recording" blip once a loop."""
+    """2 s, seamless, SOFT (the creator, 2026-10-14: "very grating noise and beeps ... it won't shut up"): two rotors
+    beating gently against each other as a low hum (a filtered blade-pass buzz, nothing above ~650 Hz), a little air under
+    it, no motor whine and no "recording" blip (that was a beep once a loop). Quiet by itself: peak -20 dB."""
     L = 2.0
     n = bs.n_of(L)
     t = np.arange(n) / bs.SR
-    f1, f2 = bs.loop_freq(176.0, L), bs.loop_freq(183.5, L)
+    f1, f2 = bs.loop_freq(104.0, L), bs.loop_freq(106.5, L)
     a = rotor_buzz(np.full(n, f1), rng, n)
     b = rotor_buzz(np.full(n, f2), rng, n)
-    buzz = bs.loop_filter(a + 0.85 * b, 90, 2400)
-    chop = (0.5 + 0.5 * np.abs(np.sin(np.pi * f1 * t))) ** 2
-    air = bs.loop_noise(n, rng, 350, 2600) * chop
-    whine = np.sin(2 * np.pi * bs.loop_freq(3150.0, L) * t) + 0.35 * np.sin(2 * np.pi * bs.loop_freq(6300.0, L) * t)
-    whine *= 1 + 0.2 * np.sin(2 * np.pi * bs.loop_freq(3.5, L) * t)
-    x = 0.45 * buzz + 0.35 * air + 0.04 * whine
-    blip = bs.osc(np.full(bs.n_of(0.05), 2400.0)) * bs.envelope([(0, 0), (0.003, 1), (0.04, 1), (0.05, 0)], bs.n_of(0.05))
-    bs.place(x, blip, 0.4, 0.06)
-    return bs.norm(x, -12.0)
+    buzz = bs.loop_filter(a + 0.85 * b, 70, 420)
+    chop = (0.6 + 0.4 * np.abs(np.sin(np.pi * f1 * t))) ** 2
+    air = bs.loop_noise(n, rng, 120, 650) * chop
+    x = 0.8 * buzz / (np.abs(buzz).max() or 1) + 0.18 * air
+    return bs.norm(bs.loop_filter(x, 60, 650), -20.0)
 
 
 def yelp(rng) -> np.ndarray:

@@ -35,6 +35,9 @@ namespace JamKit.Skyline
         public float shakePerShot = 0.05f;
         public CameraKickDef kick = new CameraKickDef();
         public AimAssistDef aimAssist = new AimAssistDef();
+        /// <summary>Aim down sights (hold Aim; the pause-menu plan, section 3), as scales at full aim: the field of view of the
+        /// main and viewmodel cameras, look sensitivity, move speed, and the pellet spread. 1 is no change.</summary>
+        public float aimFovScale = 1f, aimLookScale = 1f, aimMoveScale = 1f, aimSpreadScale = 1f;
         /// <summary>Indexed by (int)HandlingClipKind; every kind is required.</summary>
         public HandlingClip[] clips = new HandlingClip[ClipKinds];
 
@@ -57,6 +60,10 @@ namespace JamKit.Skyline
             if (weapon.magazineSize < 1) return name + ": magazineSize must be at least 1";
             if (pellets < 1) return name + ": pellets must be at least 1";
             if (!(damage > 0f)) return name + ": damage must be > 0";
+            if (!(aimFovScale >= 0.5f && aimFovScale <= 1f)) return name + ": aimFovScale must be 0.5 to 1";
+            if (!(aimLookScale >= 0.3f && aimLookScale <= 1f)) return name + ": aimLookScale must be 0.3 to 1";
+            if (!(aimMoveScale >= 0.5f && aimMoveScale <= 1f)) return name + ": aimMoveScale must be 0.5 to 1";
+            if (!(aimSpreadScale >= 0.5f && aimSpreadScale <= 1f)) return name + ": aimSpreadScale must be 0.5 to 1";
             if (clips == null || clips.Length != ClipKinds) return $"{name}: clips must have one entry per HandlingClipKind ({ClipKinds})";
             for (int k = 0; k < ClipKinds; k++)
             {

@@ -18,6 +18,12 @@ namespace JamKit.SkylineRepo
     /// the camera kick, shake, hit stop, the marker, tracers, impacts, and the Breacher's self-push through the engine's
     /// Request → AddPush → Commit); then the kick, the shake and hit stop tick and the pivot under the head takes the kick and
     /// shake, so the aim itself never moves. Runs before MovementController (-50 vs -40).
+    /// <para>Aim down sights (the pause-menu plan, section 3): hold Aim and <see cref="AimAmount"/> eases to 1 over 0.15 s (back
+    /// over 0.12 s). It narrows the cameras (<see cref="AimFovScale"/>, applied by the viewmodel), slows the look
+    /// (<see cref="AimLookScale"/>) and the move (<see cref="AimMoveScale"/>, on the move vector given to the engine) and tightens
+    /// the pellets (<see cref="AimSpreadScale"/>); the viewmodel moves the gun to its aim pose. There is no aim during a reload,
+    /// an inspect or an equip, and sprint ends when aim starts and cannot start while aim is held. Each aim is logged as
+    /// <c>SKYLINE_AIM &lt;gun&gt; in|out</c>. While the pause menu is open the player does nothing.</para>
     /// </summary>
     [DefaultExecutionOrder(-50)]
     public sealed class SkylinePlayer : MonoBehaviour, ISkylineTarget
@@ -52,6 +58,19 @@ namespace JamKit.SkylineRepo
         public LedgerRun Ledger { get; private set; }
         public MovementController Movement => movement;
         public Camera Camera => cam;
+        /// <summary>How far the active gun is aimed, 0 (hip) to 1 (sights up), moved at 0.15 s in and 0.12 s out. Poses and
+        /// scales use the eased value (<see cref="JamKit.Skyline.AimDownSights.Ease"/>).</summary>
+        public float AimAmount { get; private set; }
+        /// <summary>The eased aim, 0..1.</summary>
+        public float AimEased => AimDownSights.Ease(AimAmount);
+        /// <summary>Aim is held and the gun can be aimed this frame.</summary>
+        public bool AimWanted => _aimWanted;
+        /// <summary>The active gun's field-of-view scale at this aim (1 at the hip): the viewmodel applies it to the main and
+        /// the viewmodel camera.</summary>
+        public float AimFovScale => Loadout != null ? AimDownSights.Scale(Loadout.Active.Def.aimFovScale, AimAmount) : 1f;
+        public float AimLookScale => Loadout != null ? AimDownSights.Scale(Loadout.Active.Def.aimLookScale, AimAmount) : 1f;
+        public float AimMoveScale => Loadout != null ? AimDownSights.Scale(Loadout.Active.Def.aimMoveScale, AimAmount) : 1f;
+        public float AimSpreadScale => Loadout != null ? AimDownSights.Scale(Loadout.Active.Def.aimSpreadScale, AimAmount) : 1f;
         public CameraKick Kick { get; } = new CameraKick();
         public ScreenShake Shake { get; } = new ScreenShake();
         public HitStop HitStop { get; } = new HitStop();
@@ -86,6 +105,8 @@ namespace JamKit.SkylineRepo
         float _assistScaleLogged = 1f;
         Vector3 _spawnFeet;
         float _spawnYaw;
+        bool _aimWanted, _cancelSprint;
+        string _aimGun = "";
 
         void Awake()
         {
@@ -145,17 +166,32 @@ namespace JamKit.SkylineRepo
             if (movement != null) movement.SetLook(Yaw, Pitch);
         }
 
-        MoveInput BuildMoveInput(MoveSim sim, float dt) => new MoveInput
+        MoveInput BuildMoveInput(MoveSim sim, float dt)
         {
-            move = new NVec2(_frame.move.x, _frame.move.y),
-            yaw = Yaw,
-            jumpHeld = _frame.jumpHeld,
-            jumpPressed = _frame.jumpPressed,
-            crouchHeld = _frame.crouchHeld,
-            crouchPressed = _frame.crouchPressed,
-            sprintHeld = _frame.sprintHeld,
-            sprintTogglePressed = _frame.sprintTogglePressed,
-        };
+            // Aim slows the walk by scaling the move vector given to the engine (the engine itself is shared and untouched), and
+            // ends a sprint: no sprint while aim is held, and a toggled sprint (the pad's L3) is stopped once by dropping the
+            // forward push below the engine's stop line for one step.
+            float k = AimMoveScale;
+            float mx = _frame.move.x * k, my = _frame.move.y * k;
+            bool sprintHeld = _frame.sprintHeld, sprintToggle = _frame.sprintTogglePressed;
+            if (_aimWanted) { sprintHeld = false; sprintToggle = false; }
+            if (_cancelSprint)
+            {
+                _cancelSprint = false;
+                if (sim != null && sim.SprintToggled) my = Mathf.Min(my, 0.19f);
+            }
+            return new MoveInput
+            {
+                move = new NVec2(mx, my),
+                yaw = Yaw,
+                jumpHeld = _frame.jumpHeld,
+                jumpPressed = _frame.jumpPressed,
+                crouchHeld = _frame.crouchHeld,
+                crouchPressed = _frame.crouchPressed,
+                sprintHeld = sprintHeld,
+                sprintTogglePressed = sprintToggle,
+            };
+        }
 
         void Update()
         {
@@ -164,8 +200,15 @@ namespace JamKit.SkylineRepo
             EnsureOutsidePush();
             // 1. One frame of input. Read before the cursor update, so the click that locks the cursor doesn't also fire
             //    (the device reader ignores the mouse while the cursor is free).
+            if (ScriptedInput == null && SkylineDeviceInput.Paused)
+            {
+                // The pause menu is open: nothing moves, turns, fires or ticks (the menu holds the time scale at 0 and owns the cursor).
+                _frame = default(SkylineInputFrame);
+                return;
+            }
             _frame = ScriptedInput != null ? ScriptedInput() : SkylineDeviceInput.Read(udt);
             UpdateCursor();
+            TickAim(udt);
 
             // 2. Look.
             Look(dt);
@@ -203,10 +246,31 @@ namespace JamKit.SkylineRepo
             }
         }
 
+        /// <summary>Aim down sights: whether the aim is held and allowed (not while equipping, inspecting or reloading), the
+        /// ease, the sprint it ends, and the <c>SKYLINE_AIM</c> log.</summary>
+        void TickAim(float udt)
+        {
+            var gun = Loadout.Active;
+            bool can = AimDownSights.CanAim(gun.Equipped, gun.Equipping, gun.Inspecting, gun.State.IsReloading) && !Armor.Wrecked;
+            bool want = _frame.aimHeld && can;
+            if (want && !_aimWanted)
+            {
+                _cancelSprint = true;
+                _aimGun = gun.Def.id;
+                Debug.Log("SKYLINE_AIM " + _aimGun + " in");
+            }
+            else if (!want && _aimWanted)
+            {
+                Debug.Log("SKYLINE_AIM " + _aimGun + " out");
+            }
+            _aimWanted = want;
+            AimAmount = AimDownSights.Step(AimAmount, want, Mathf.Min(udt, 0.1f));
+        }
+
         void Look(float dt)
         {
-            Vector2 look = _frame.look;
-            if (_frame.lookFromPad)
+            Vector2 look = _frame.look * AimLookScale;
+            if (_frame.lookFromPad && SkylineSettings.Options.aimAssist)
             {
                 bool moving = _frame.move.sqrMagnitude > 0.01f || look.sqrMagnitude > TurningThreshold * TurningThreshold;
                 var r = ComputeAssist(moving, dt);
@@ -282,7 +346,7 @@ namespace JamKit.SkylineRepo
             var def = gun.Def;
             Vector3 aim = AimDirection;
             Vector3 muzzle = viewmodel != null ? viewmodel.MuzzleWorld() : EyePosition + aim * 0.5f;
-            var o = SkylineShooting.Fire(def, EyePosition, aim, muzzle, _rng, OnPelletHit);
+            var o = SkylineShooting.Fire(def, EyePosition, aim, muzzle, _rng, OnPelletHit, AimSpreadScale);
             Ledger.RecordShot(slot, o.hit, o.damage, o.range, o.killed);
             Kick.Kick(def.kick, _rng.NextFloat() * 2f - 1f);
             Shake.AddTrauma(def.shakePerShot);
@@ -352,6 +416,8 @@ namespace JamKit.SkylineRepo
             Time.timeScale = 1f;
             _cues.Clear();
             Loadout = new Loadout(new SkylineGun(SkylineGuns.Writ()), new SkylineGun(SkylineGuns.Breacher()), _cues);
+            AimAmount = 0f;
+            _aimWanted = false;
             if (movement != null) movement.Teleport(feet, yaw, Vector3.zero);
             SetAim(yaw, 0f);
             EnsureOutsidePush();
@@ -362,14 +428,10 @@ namespace JamKit.SkylineRepo
         void UpdateCursor()
         {
             if (Application.isBatchMode || ScriptedInput != null) return;
-            var kb = UnityEngine.InputSystem.Keyboard.current;
+            // Escape (the Pause binding) no longer just frees the cursor: the pause menu opens and frees it (SkylinePauseMenu).
+            if (SkylinePauseMenu.IsOpen) return;
             var mouse = UnityEngine.InputSystem.Mouse.current;
-            if (kb != null && kb.escapeKey.wasPressedThisFrame)
-            {
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
-            else if (Cursor.lockState != CursorLockMode.Locked && mouse != null && mouse.leftButton.wasPressedThisFrame)
+            if (Cursor.lockState != CursorLockMode.Locked && mouse != null && mouse.leftButton.wasPressedThisFrame)
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;

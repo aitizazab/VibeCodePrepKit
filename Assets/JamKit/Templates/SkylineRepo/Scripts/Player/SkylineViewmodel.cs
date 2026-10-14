@@ -17,6 +17,12 @@ namespace JamKit.SkylineRepo
     /// rig (1 km down, beyond its 600 m far plane) and the overlay camera sees nothing else, so the guns never clip into walls and no project
     /// layer is needed. Models: Resources/SkylineModels/&lt;gun&gt;/&lt;gun&gt; (children Mag and Muzzle) and
     /// Resources/SkylineModels/arms/arms (children HandR, HandL) when present; primitives otherwise.
+    /// <para>Aim down sights: each gun has an aim pose that puts its sights on the screen centre, solved at build time from the
+    /// sight children in the model (SightRear, SightFront; <see cref="AimDownSights.SolveSights"/>): the Writ's round window
+    /// 13 cm from the eye with the brass bar crossing the obelisk's bead (the same pose its inspect's sight check uses), the
+    /// Breacher's rear notch and front sight 20 cm out. With no sight children a gun's muzzle line is centred just under the
+    /// screen centre. While aim is held the gun eases from its rest pose to the aim pose (<see cref="SkylinePlayer.AimEased"/>),
+    /// the walk bob fades out, and this component narrows the main and the viewmodel camera by the gun's <c>aimFovScale</c>.</para>
     /// </summary>
     [DefaultExecutionOrder(100)]
     public sealed class SkylineViewmodel : MonoBehaviour
@@ -42,13 +48,31 @@ namespace JamKit.SkylineRepo
         GameObject _rigRoot;
         readonly GunRig[] _guns = new GunRig[2];
         float _bobWeight;
+        float _fovBase, _fovWritten = -1f;
 
         sealed class GunRig
         {
             public Transform root, mag, muzzle;
             public Vector3 rest, magRest;
             public Quaternion restRot = Quaternion.identity;
+            public bool hasModel;
+            /// <summary>The gun root's pose with its sights on the screen centre (viewmodel camera space).</summary>
+            public Vector3 aimPos;
+            public Quaternion aimRot = Quaternion.identity;
         }
+
+        // The Breacher's sights are part of its body mesh in the FBX (no child to find): their places in the gun's frame, from
+        // tools/skyline/guns/breacher/model/build_breacher.py (the rear notch, and the top of the front blade).
+        static readonly Vector3 BreacherRearSight = new Vector3(0f, 0.1f, 0.025f);
+        static readonly Vector3 BreacherFrontSight = new Vector3(0f, 0.105f, 0.222f);
+        // The Writ's, if an older model lacks its SightRear / SightFront empties (tools/skyline/guns/writ/model/build_writ.py).
+        static readonly Vector3 WritRearSight = new Vector3(0f, 0.088f, -0.079f);
+        static readonly Vector3 WritFrontSight = new Vector3(0f, 0.088f, 0.202f);
+        /// <summary>How far in front of the eye the rear sight sits when aimed (m): the Writ's window (its sight design) and the
+        /// Breacher's notch.</summary>
+        const float WritSightDistance = 0.13f, BreacherSightDistance = 0.2f;
+        /// <summary>Muzzle fallback: the muzzle this far under the screen centre, the gun's origin this far out.</summary>
+        const float MuzzleBelow = 0.02f, MuzzleAimDistance = 0.2f;
 
         /// <summary>The overlay camera (null before Start).</summary>
         public Camera OverlayCamera => _cam;
@@ -121,6 +145,7 @@ namespace JamKit.SkylineRepo
                 var model = Instantiate(prefab, root, false);
                 g.mag = Find(model.transform, "Mag");
                 g.muzzle = Find(model.transform, "Muzzle");
+                g.hasModel = true;
             }
             else if (gun == SkylineGuns.BreacherId) BuildBreacher(root, g);
             else BuildWrit(root, g);
@@ -137,6 +162,8 @@ namespace JamKit.SkylineRepo
             if (arms != null) Instantiate(arms, root, false);
             else BuildArms(root, gun == SkylineGuns.BreacherId);
 
+            ComputeAimPose(g, gun);
+
             foreach (var r in root.GetComponentsInChildren<Renderer>(true))
             {
                 r.shadowCastingMode = ShadowCastingMode.Off;
@@ -145,6 +172,49 @@ namespace JamKit.SkylineRepo
             foreach (var c in root.GetComponentsInChildren<Collider>(true)) Destroy(c);
             root.gameObject.SetActive(false);
             return g;
+        }
+
+        static System.Numerics.Vector3 N(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
+
+        static Vector3 U(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
+
+        /// <summary>Solves the gun's aim pose: its sights on the screen centre. From the model's SightRear and SightFront
+        /// children when it has them (their places in the gun's frame), else the known places of the shipped models' sights, else
+        /// the muzzle line just under the centre. Logs which one was used.</summary>
+        static void ComputeAimPose(GunRig g, string gun)
+        {
+            bool breacher = gun == SkylineGuns.BreacherId;
+            var rearT = Find(g.root, "SightRear");
+            var frontT = Find(g.root, "SightFront");
+            Vector3 rear = Vector3.zero, front = Vector3.zero;
+            string how;
+            if (rearT != null && frontT != null)
+            {
+                rear = g.root.InverseTransformPoint(rearT.position);
+                front = g.root.InverseTransformPoint(frontT.position);
+                how = "sight children";
+            }
+            else if (g.hasModel)
+            {
+                rear = breacher ? BreacherRearSight : WritRearSight;
+                front = breacher ? BreacherFrontSight : WritFrontSight;
+                how = "model sight places";
+            }
+            else how = "muzzle line";
+
+            System.Numerics.Vector3 pos;
+            System.Numerics.Quaternion rot;
+            if (how != "muzzle line" && (front - rear).sqrMagnitude > 1e-6f)
+                AimDownSights.SolveSights(N(rear), N(front), breacher ? BreacherSightDistance : WritSightDistance, out pos, out rot);
+            else
+            {
+                Vector3 m = g.muzzle != null ? g.root.InverseTransformPoint(g.muzzle.position) : new Vector3(0f, 0.04f, 0.3f);
+                AimDownSights.SolveMuzzle(N(m), MuzzleBelow, MuzzleAimDistance, out pos, out rot);
+                how = "muzzle line";
+            }
+            g.aimPos = U(pos);
+            g.aimRot = new Quaternion(rot.X, rot.Y, rot.Z, rot.W);
+            Debug.Log("SKYLINE_AIM_POSE " + gun + " from " + how + " pos " + g.aimPos.ToString("F3") + " rot " + g.aimRot.eulerAngles.ToString("F1"));
         }
 
         static Transform Find(Transform t, string name)
@@ -222,8 +292,6 @@ namespace JamKit.SkylineRepo
             Part(PrimitiveType.Capsule, l, "Forearm", new Vector3(-0.08f, -0.09f, -0.2f), new Vector3(0.06f, 0.14f, 0.06f), graphite, new Vector3(60f, 25f, 0f));
         }
 
-        static Vector3 U(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
-
         void LateUpdate()
         {
             if (_cam == null || player == null || player.Loadout == null) return;
@@ -237,6 +305,12 @@ namespace JamKit.SkylineRepo
             bool onFoot = mv != null && (mv.Mode == JamKit.Movement.MoveMode.Grounded || mv.Mode == JamKit.Movement.MoveMode.Sprint);
             float want = onFoot ? Mathf.Clamp01(speed / BobFullSpeed) : 0f;
             _bobWeight = Mathf.MoveTowards(_bobWeight, want, 4f * Time.deltaTime);
+
+            // Aim down sights: the cameras narrow and the gun comes to its aim pose.
+            float k = player.AimEased;
+            float fovScale = player.AimFovScale;
+            _cam.fieldOfView = Fov * fovScale;
+            ApplyMainFov(fovScale);
 
             for (int i = 0; i < _guns.Length; i++)
             {
@@ -257,12 +331,29 @@ namespace JamKit.SkylineRepo
                 if (!handling.Playing && mv != null)
                 {
                     float ph = mv.StridePhase * Mathf.PI;
-                    offset += new Vector3(Mathf.Sin(ph) * BobSide, -Mathf.Abs(Mathf.Sin(ph)) * BobUp, 0f) * _bobWeight;
+                    offset += new Vector3(Mathf.Sin(ph) * BobSide, -Mathf.Abs(Mathf.Sin(ph)) * BobUp, 0f) * _bobWeight * (1f - k);
                 }
-                g.root.localPosition = g.rest + offset;
-                g.root.localRotation = g.restRot * Quaternion.Euler(euler);
+                // Rest pose to aim pose by the eased aim; the handling clip (the shot's recoil, ...) plays on top of either.
+                Vector3 pos = k > 0f ? Vector3.Lerp(g.rest, g.aimPos, k) : g.rest;
+                Quaternion rot = k > 0f ? Quaternion.Slerp(g.restRot, g.aimRot, k) : g.restRot;
+                g.root.localPosition = pos + offset;
+                g.root.localRotation = rot * Quaternion.Euler(euler);
                 if (g.mag != null) g.mag.localPosition = g.magRest + mag;
             }
+        }
+
+        /// <summary>Scales the main camera's field of view by <paramref name="scale"/> on top of whatever sets it (the movement
+        /// camera sets it afresh every LateUpdate, before this component's; the scaled value is remembered so a frame where
+        /// nothing reset it isn't scaled twice).</summary>
+        void ApplyMainFov(float scale)
+        {
+            if (_main == null) return;
+            float cur = _main.fieldOfView;
+            float baseFov = _fovWritten > 0f && Mathf.Abs(cur - _fovWritten) < 1e-3f ? _fovBase : cur;
+            _fovBase = baseFov;
+            if (_fovWritten < 0f && Mathf.Approximately(scale, 1f)) return;   // never touched: leave the camera alone
+            _main.fieldOfView = baseFov * scale;
+            _fovWritten = _main.fieldOfView;
         }
 
         /// <summary>Where the active gun's muzzle appears in the world (its place in the overlay camera's view, carried into

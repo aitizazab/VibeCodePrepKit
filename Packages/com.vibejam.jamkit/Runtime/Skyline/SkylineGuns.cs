@@ -63,6 +63,8 @@ namespace JamKit.Skyline
                 shakePerShot = 0.07f,
                 kick = new CameraKickDef { pitchDeg = 2.8f, yawDeg = 0.6f, recoverRate = 11f },
                 aimAssist = new AimAssistDef { slowdownConeDeg = 5f, slowdownScale = 0.5f, magnetConeDeg = 3f, magnetDegPerSec = 8f, range = 50f },
+                // Aim down sights: through the judge's chair window, so the view narrows most and slows most (no spread to tighten).
+                aimFovScale = 0.75f, aimLookScale = 0.65f, aimMoveScale = 0.8f, aimSpreadScale = 1f,
                 clips = new[]
                 {
                     C(HandlingClipKind.Equip, 0.55f,
@@ -147,6 +149,8 @@ namespace JamKit.Skyline
                 shakePerShot = 0.3f,
                 kick = new CameraKickDef { pitchDeg = 8f, yawDeg = 2f, recoverRate = 7f },
                 aimAssist = new AimAssistDef { slowdownConeDeg = 8f, slowdownScale = 0.6f, magnetConeDeg = 5f, magnetDegPerSec = 12f, range = 20f },
+                // Aim down sights: shouldered, a little narrower and slower, the pellets 20% tighter.
+                aimFovScale = 0.88f, aimLookScale = 0.8f, aimMoveScale = 0.8f, aimSpreadScale = 0.8f,
                 clips = new[]
                 {
                     C(HandlingClipKind.Equip, 0.7f,

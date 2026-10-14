@@ -25,9 +25,11 @@ namespace JamKit.SkylineRepo
         public const int Mask = ~(1 << 2);
 
         /// <summary>Fires <paramref name="gun"/> from <paramref name="eye"/> along <paramref name="aim"/>. Each pellet that
-        /// reaches a hit zone calls its TakeHit and <paramref name="onHit"/>; tracers start at <paramref name="muzzle"/>.</summary>
+        /// reaches a hit zone calls its TakeHit and <paramref name="onHit"/>; tracers start at <paramref name="muzzle"/>.
+        /// <paramref name="spreadScale"/> narrows (or widens) the gun's cone: aim down sights passes the gun's
+        /// <c>aimSpreadScale</c> eased by how far it is aimed.</summary>
         public static SkylineShotOutcome Fire(GunDef gun, Vector3 eye, Vector3 aim, Vector3 muzzle, Rng rng,
-            Action<SkylineHitInfo, SkylineHitResult> onHit)
+            Action<SkylineHitInfo, SkylineHitResult> onHit, float spreadScale = 1f)
         {
             var o = new SkylineShotOutcome { range = gun.range };
             if (aim.sqrMagnitude < 1e-8f) return o;
@@ -35,7 +37,7 @@ namespace JamKit.SkylineRepo
             bool fromWrit = gun.id == SkylineGuns.WritId;
             int pellets = Math.Max(1, gun.pellets);
             float knock = gun.enemyKnockback / pellets;
-            float cosMax = Mathf.Cos(Mathf.Max(0f, gun.spreadDeg) * Mathf.Deg2Rad);
+            float cosMax = Mathf.Cos(Mathf.Max(0f, gun.spreadDeg * spreadScale) * Mathf.Deg2Rad);
             Quaternion toAim = Quaternion.FromToRotation(Vector3.forward, aim);
             bool anyRange = false;
             int rank = 0;

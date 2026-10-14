@@ -16,6 +16,11 @@ namespace JamKit.SkylineRepo
         Bots,
         /// <summary>Beds and loops: &lt;bot id&gt;/idle_loop, writ/hush.</summary>
         Ambience,
+        /// <summary>Spoken lines and barks (the teaching-line voice and the bots' babble): they are not played through
+        /// <see cref="SkylineSounds"/>, but they take this bus's user gain (the pause menu's Voices slider).</summary>
+        Voices,
+        /// <summary>Music (none in M1; the pause menu's Music slider drives this bus for when there is some).</summary>
+        Music,
     }
 
     /// <summary>
@@ -49,14 +54,16 @@ namespace JamKit.SkylineRepo
             0.63f,  // Impacts   (-4 dB)
             0.28f,  // Bots      (-11 dB: five bots fire every 0.8-1.2 s, and their WAVs are mastered hot)
             0.5f,   // Ambience  (-6 dB: the idle loops of every bot in earshot add up to a bed)
+            1f,     // Voices    (the lines carry their own level, SkylineMix.VoiceGain; the player's slider scales it)
+            1f,     // Music     (none yet)
         };
 
         /// <summary>How far each category ducks (dB) while a teaching line is spoken (a bark ducks by
         /// <see cref="BarkDuckShare"/> of it). The handling never ducks: a reload must stay audible.</summary>
-        public static readonly float[] DuckDb = { -3f, 0f, -4f, -6f, -6f };
+        public static readonly float[] DuckDb = { -3f, 0f, -4f, -6f, -6f, 0f, 0f };
 
         /// <summary>Unity voice priority per category (0 = most important).</summary>
-        public static readonly int[] Priority = { 16, 32, 48, 128, 200 };
+        public static readonly int[] Priority = { 16, 32, 48, 128, 200, 24, 220 };
 
         /// <summary>The arena's teaching-line voice (the 2D source the lines are spoken from): its level on the bus.</summary>
         public const float VoiceGain = 0.8f;
@@ -92,6 +99,9 @@ namespace JamKit.SkylineRepo
             { "mall-cop-drone/hurt", -6f },
             { "mall-cop-drone/attack", -3f },
             { "floor-care-unit/hurt", -6f },
+            // The practice drone's rotor bed (the creator, 2026-10-14: "very grating noise ... it won't shut up"): the stem is
+            // now a soft low hum (tools/skyline/bots/mall-cop-drone/sources.py) and sits another 6 dB under the other beds.
+            { "mall-cop-drone/idle_loop", -6f },
             { "writ/impact", 5f },
             { "writ/impact_weak", 5f },
         };
@@ -126,6 +136,16 @@ namespace JamKit.SkylineRepo
                 return SkylineSoundCategory.Handling;
             }
             return SkylineSoundCategory.Bots;
+        }
+
+        /// <summary>The player's own volume for a category (the pause menu's Audio page): Voices and Music have a slider each;
+        /// every other category is an effect. The master volume is the listener's (SkylineSettings.ApplyMaster).</summary>
+        public static float UserGain(SkylineSoundCategory c)
+        {
+            var o = SkylineSettings.Options;
+            if (c == SkylineSoundCategory.Voices) return o.voices;
+            if (c == SkylineSoundCategory.Music) return o.music;
+            return o.effects;
         }
 
         /// <summary>The bus gain times the sound's trim (linear).</summary>

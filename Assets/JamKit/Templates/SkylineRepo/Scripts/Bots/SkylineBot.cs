@@ -201,7 +201,7 @@ namespace JamKit.SkylineRepo
         public float Radius => Def != null ? Def.bodyRadius : 0.5f;
         public bool Alive => _initialized && Body != null && !Body.Wrecked;
 
-        bool _initialized, _everSeen, _sawLastStep, _beamStartedThisFrame, _lockBeeped;
+        bool _initialized, _everSeen, _sawLastStep, _beamStartedThisFrame, _lockBeeped, _practiceNoticed, _practiceBarked;
         ulong _seed;
         Rng _rng;
         WritTuning _writ;
@@ -490,14 +490,27 @@ namespace JamKit.SkylineRepo
                 {
                     case BotCueKind.State:
                         StateEntered?.Invoke(this, c.state);
-                        if (c.state == BotState.Alert) Sound("alert");
-                        else if (c.state == BotState.Telegraph) { Sound("telegraph"); OnTelegraph(sees); }
+                        // Dot's practice bot is a target, not an attacker (the creator, 2026-10-14: "very grating noise and beeps ...
+                        // it won't shut up"): it notices you once (the alert chirp), and after that its alert and telegraph
+                        // sounds stay off, however many times it cycles; it makes noise only when it is hit (hurt, shed, wreck).
+                        if (c.state == BotState.Alert)
+                        {
+                            if (!practice || !_practiceNoticed) Sound("alert");
+                            _practiceNoticed = true;
+                        }
+                        else if (c.state == BotState.Telegraph) { if (!practice) Sound("telegraph"); OnTelegraph(sees); }
                         else if (c.state == BotState.Recover || c.state == BotState.Idle) { _charging = false; _squeegeeTarget = 0f; }
                         break;
                     case BotCueKind.Attack:
                         OnAttack(sees, aimAt, floorReach);
                         break;
                     case BotCueKind.Bark:
+                        // the practice bot's "spotted" and "lost" barks come once, not on every pass of its cycle
+                        if (practice && (c.bark == "spotted" || c.bark == "lost"))
+                        {
+                            if (_practiceBarked) break;
+                            _practiceBarked = true;
+                        }
                         Bark(c.bark);
                         break;
                 }

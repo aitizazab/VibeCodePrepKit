@@ -18,6 +18,7 @@ namespace JamKit.SkylineRepo
         const float ListenerCheckSeconds = 0.5f, VoiceCheckSeconds = 1f, LoopCheckSeconds = 2f;
 
         AudioListener _listener;
+        AudioSource _lineVoice;
         float _nextListener, _nextVoice, _nextLoops;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -55,6 +56,15 @@ namespace JamKit.SkylineRepo
                 SkylineSounds.AdoptLoops(FindObjectsByType<AudioSource>(FindObjectsSortMode.None));
             }
 
+            // The player's options (the pause menu's Audio page): the master volume on the listener, and the teaching-line
+            // voice at its level times the Voices slider (the barks take the slider where they play, SkylineBarks).
+            SkylineSettings.ApplyMaster();
+            if (_lineVoice != null)
+            {
+                float v = SkylineMix.VoiceGain * SkylineMix.UserGain(SkylineSoundCategory.Voices);
+                if (!Mathf.Approximately(_lineVoice.volume, v)) _lineVoice.volume = v;
+            }
+
             SkylineSounds.Tick(dt, _listener != null ? _listener.transform.position : Vector3.zero);
         }
 
@@ -75,13 +85,14 @@ namespace JamKit.SkylineRepo
                 _listener.gameObject.AddComponent<SkylineMasterLimiter>();
         }
 
-        static void FindVoice()
+        void FindVoice()
         {
             var director = FindAnyObjectByType<SkylineArenaDirector>();
             if (director == null || director.voice == null) return;
             var go = director.voice.gameObject;
             if (go.GetComponent<AudioListener>() != null) return;   // a tap there would hear the whole mix
-            director.voice.volume = SkylineMix.VoiceGain;
+            _lineVoice = director.voice;
+            director.voice.volume = SkylineMix.VoiceGain * SkylineMix.UserGain(SkylineSoundCategory.Voices);
             var tap = go.GetComponent<SkylineSpeechTap>();
             if (tap == null) tap = go.AddComponent<SkylineSpeechTap>();
             SkylineSounds.SetSpeechTap(tap);

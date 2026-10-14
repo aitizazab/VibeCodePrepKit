@@ -20,6 +20,8 @@ namespace JamKit.SkylineRepo
         /// <summary>The pad's L3 click: sprint until you stop moving forward (MovementController's own pad scheme).</summary>
         public bool sprintTogglePressed;
         public bool fireHeld, firePressed;
+        /// <summary>The Aim binding is held (right mouse / left trigger by default): aim down sights.</summary>
+        public bool aimHeld;
         public bool reloadPressed, swapPressed, inspectPressed;
     }
 }

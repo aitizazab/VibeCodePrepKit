@@ -40,7 +40,7 @@ namespace JamKit.SkylineRepo
         public PanelSettings panelSettings;
         public SkylinePlayer player;
 
-        VisualElement _root, _safe, _marker, _plating, _platingFill, _chassisFill, _wedgePivot, _wedge;
+        VisualElement _root, _safe, _dot, _marker, _plating, _platingFill, _chassisFill, _wedgePivot, _wedge;
         VisualElement _sayBox, _banner, _vignette, _breakFlash, _barks;
         Label _gun, _ammo, _speaker, _line, _platingLabel, _bannerHead, _bannerBody;
         readonly VisualElement[] _arms = new VisualElement[4];
@@ -190,7 +190,7 @@ namespace JamKit.SkylineRepo
             centre.style.width = 0;
             centre.style.height = 0;
             _safe.Add(centre);
-            var dot = Box(centre, -CrossDot * 0.5f, -CrossDot * 0.5f, CrossDot, CrossDot, new Color(1f, 1f, 1f, 0.9f));
+            var dot = _dot = Box(centre, -CrossDot * 0.5f, -CrossDot * 0.5f, CrossDot, CrossDot, new Color(1f, 1f, 1f, 0.9f));
             dot.style.borderTopWidth = dot.style.borderBottomWidth = dot.style.borderLeftWidth = dot.style.borderRightWidth = 1f;
             dot.style.borderTopColor = dot.style.borderBottomColor = dot.style.borderLeftColor = dot.style.borderRightColor = new Color(0f, 0f, 0f, 0.6f);
             _marker = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -501,6 +501,13 @@ namespace JamKit.SkylineRepo
             float chassisShare = 1f;
             if (player != null)
             {
+                // Aim down sights: for the Writ the sights are the crosshair, so the dot fades out as they come up (the Breacher
+                // keeps its dot; the hit marker stays for both).
+                if (_dot != null && player.Loadout != null)
+                {
+                    bool sights = player.Loadout.Active.Def.id == SkylineGuns.WritId;
+                    _dot.style.opacity = sights ? 1f - player.AimEased : 1f;
+                }
                 var a = player.Armor;
                 if (a != null)
                 {
