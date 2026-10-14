@@ -48,3 +48,14 @@ near or the objective is simpler** (parkour between sections).
   `FableAnimationTests/.work/music_step6d.py` (on `music_step5.py`).
 - Riser instrument candidates (brass, accordion, reed, pairs, with/without a bass and hi-hats): `skyline-music-step6-2.html`;
   not chosen yet.
+
+## The mood references (the creator, 2026-10-14 evening; page `art/review/2026-10-14/skyline-music-refs-moods.html`)
+- **Main theme:** the Subway Surfers theme's main part is **after 16 s** (not its opening). Source `audio/sources/youtube/subway-surfers-theme.wav`.
+- **Dangerous:** the **first 17 s** of the Empress of Light theme (Terraria). Measured: C minor (our tonic), about 161 BPM,
+  bright with little bass, 6-9 note onsets a second. Source `audio/sources/youtube/5qRGzzcw52E - Empress of Light ...wav`.
+- **Quiet:** both the **Stonewood** pieces (0-30 s and 62-92 s of `fortnite-stw/stw-stonewood-Y8N9lZUtb6Y.wav`) and both
+  **Plankerton** pieces (0-30 s and 50-80 s of `fortnite-stw/stw-plankerton-of-MDd6dvfc.wav`) are the music the creator
+  meant; "we can take the parts we want from them". Measured: slow (about 92-96 BPM), dark-toned, sparse; Plankerton in C major.
+- Plan (proposed 2026-10-14): normal is the default; danger is a parallel C-minor arrangement crossfaded on bar lines by
+  threat; a light (Save the World) arrangement for traversal or very low threat; Visiting Hours' speed stems (drive, peak,
+  muffled-to-open, the whistle; `docs/SPEED-MUSIC-BREAKDOWN.md`) on top of each mood. Waves every 16 bars (31.35 s).
