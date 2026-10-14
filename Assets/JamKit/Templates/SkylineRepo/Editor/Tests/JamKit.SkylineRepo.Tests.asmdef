@@ -3,6 +3,7 @@
     "rootNamespace": "JamKit.SkylineRepo.Tests",
     "references": [
         "JamKit.SkylineRepo",
+        "JamKit.Skyline",
         "JamKit.SkylineRepo.Editor",
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
