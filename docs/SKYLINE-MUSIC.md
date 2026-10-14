@@ -140,3 +140,11 @@ The creator: "The new heavenly theme is great, make a note to get started on the
 - **"Updraft"** (drive, fast) and **"Rapture"** (peak, flying): the speed stems on top of whichever mood plays.
 - The riser into the pre-drop is being redone from scratch (the creator's four sources): a "perfect" transition and a
   step transition (one detail of the sound changes at a time).
+- **Done 2026-10-15: the riser into the pre-drop from scratch** (`FableAnimationTests/audio/skyline-music/scripts/music_riser_predrop_v3.py`,
+  files `riser-predrop-v3/`, page `art/review/2026-10-15/skyline-music-riser-predrop-v3.html`). Built from the original
+  Subway Surfers riser and PopularMMOs pre-drop (Rubber Band), shaped by the creator's two imitations (measured: same five
+  steps; the hum scoops up a semitone into each wub; the pre-drop's first wub is B-flat in our key, so A -> B-flat is the
+  scoop). **Perfect:** the riser plays C E G A, and its B-flat morphs over 0.3 s into the first wub, which starts on that
+  beat (no landing C): +1.5 dB, brightness 2.4 -> 2.5 kHz at the hand-over. **Step:** one detail per step (E: the
+  pre-drop's low end under it; G: a third of the way to the wub's sound; A: the wub's filter wobble, two thirds; B-flat:
+  the hum's scoop, becomes the wub). Both run on into the drop and Heaven. Waiting on the creator's pick.
