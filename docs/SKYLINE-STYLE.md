@@ -28,7 +28,7 @@ dressing being re-skinned). Decided by the creator on 2026-10-14 after the compa
 - **Post:** neutral tonemapping (the flat palette must survive), bloom kept for the lights, a slight vignette.
 
 ### 2. Thick hued outlines on what matters
-- **Bots, objectives and pickups** get a **thick outline (about 4 px at 1080p, constant on screen)** in a **hue that
+- **Bots, objectives, pickups and weak spots** get a **thick outline (about 4 px at 1080p, constant on screen)** in a **hue that
   says what they are**, drawn round their visible silhouette:
 
 | Role | Hue | Notes |
@@ -36,6 +36,7 @@ dressing being re-skinned). Decided by the creator on 2026-10-14 after the compa
 | Hostile bots (and their mines, acid, bolts) | hot red-magenta `#FF2E63` | no scenery ever uses this hue |
 | Objectives (the tow assets, the lift when it opens) | cyan `#2EE6FF` | |
 | Scrap and wrecks you can strip | green `#5CFF8A` | goes when the wreck is stripped |
+| Weak spots and other vulnerabilities (the Writ's cracked casing, a drone's lens, whatever a body marks as its weak point) | yellow `#FFD60A` | its own thick outline, drawn over the hostile red-magenta where the two overlap, so a weak point reads at a glance on a hostile body |
 | The Unit's guns (the viewmodel) | the ink colour, 2.5 px | heavier than scenery, not hued |
 
 - Hues are tested in the stills against every area's palette, the colour-free zones included; the creator judges them.

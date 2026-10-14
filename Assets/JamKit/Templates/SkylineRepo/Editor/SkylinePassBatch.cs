@@ -14,7 +14,8 @@ namespace JamKit.SkylineRepo.EditorTools
     /// <c>Unity.exe -batchmode -projectPath . -executeMethod JamKit.SkylineRepo.EditorTools.SkylinePassBatch.RunFromCommandLine -skylineOut out/skyline/&lt;stamp&gt;</c></summary>
     public static class SkylinePassBatch
     {
-        static readonly string[] TestAssemblies = { "JamKit.Skyline.Tests" };
+        // JamKit.SkylineRepo.Tests (Editor/Tests): the comic-ink shader, renderer feature and converter (docs/SKYLINE-STYLE.md).
+        static readonly string[] TestAssemblies = { "JamKit.Skyline.Tests", "JamKit.SkylineRepo.Tests" };
 
         sealed class Collector : ICallbacks
         {
