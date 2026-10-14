@@ -208,6 +208,9 @@ namespace JamKit.SkylineRepo
             {
                 Enter("lift", false, t);
                 if (_endAt < 0f) _endAt = t + AfterExit;
+                // perf round 4: the run reached its goal; the window ends 3 s later, often before the demo's own "done"
+                // line, which used to leave demoComplete false on a finished run
+                _demoDone = true;
             }
             else if (message.StartsWith("SKYLINE_ARENA wrecked restart", StringComparison.Ordinal)) Enter("restart", false, t);
             else if (message.StartsWith("SKYLINE_DEMO done", StringComparison.Ordinal))

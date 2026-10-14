@@ -91,7 +91,24 @@ namespace JamKit.SkylineRepo
 
         /// <summary>Shows one tiny copy of each runtime drawing 0.6 m in front of <paramref name="cam"/> for two frames, then
         /// removes it.</summary>
+        /// <summary>True while <see cref="ShowOnce"/> is still warming (perf round 4: <see cref="SkylineStartCover"/> waits for
+        /// it, so the warm-up frames stay under the cover; round 4's glyph frames, 36-41 ms, came just after it lifted).</summary>
+        public static bool Busy { get; private set; }
+
         public static IEnumerator ShowOnce(Camera cam)
+        {
+            Busy = true;
+            try
+            {
+                yield return ShowOnceSteps(cam);
+            }
+            finally
+            {
+                Busy = false;
+            }
+        }
+
+        static IEnumerator ShowOnceSteps(Camera cam)
         {
             if (cam == null) yield break;
             var root = new GameObject("Prewarm (two frames)").transform;
@@ -136,29 +153,57 @@ namespace JamKit.SkylineRepo
         /// </summary>
         static IEnumerator DrawEverythingOnce(Camera cam)
         {
-            var root = new GameObject("Prewarm (every pooled drawing, two frames)").transform;
-            root.SetPositionAndRotation(cam.transform.position + cam.transform.forward * 0.6f, cam.transform.rotation);
+            // Perf round 4: round 4 still stalled 220 ms (waiting on the render thread) on the first Writ shot. Its muzzle
+            // flash and gun light live in the viewmodel's rig, drawn by the viewmodel's overlay camera, and are switched off by
+            // disabling the renderer, not the object, so round 3's scan (switched-off objects only, all drawn in front of the
+            // main camera) missed them. Now every renderer that isn't drawing (object off, or renderer off) is warmed, on its
+            // own layer, in front of a camera that draws that layer (the main camera when it does, else the viewmodel's).
+            var roots = new Dictionary<Camera, Transform>();
             var seen = new HashSet<string>();
             var temp = new List<Object>();
             int n = 0;
             Vector3 Slot() { int i = n++; return new Vector3((i % 12 - 6) * 0.004f, (i / 12 % 12 - 6) * 0.004f, 0f); }
+            Transform RootFor(int layer)
+            {
+                Camera pick = (cam.cullingMask & (1 << layer)) != 0 ? cam : null;
+                if (pick == null)
+                    foreach (var c in Camera.allCameras)
+                        if (c != null && (c.cullingMask & (1 << layer)) != 0) { pick = c; break; }
+                if (pick == null) return null;
+                if (roots.TryGetValue(pick, out var t) && t != null) return t;
+                float d = Mathf.Clamp(0.6f, pick.nearClipPlane * 4f, Mathf.Max(pick.nearClipPlane * 4f, pick.farClipPlane * 0.5f));
+                t = new GameObject("Prewarm (every pooled drawing, two frames) " + pick.name).transform;
+                t.SetPositionAndRotation(pick.transform.position + pick.transform.forward * d, pick.transform.rotation);
+                roots[pick] = t;
+                return t;
+            }
+            var root = RootFor(cam.gameObject.layer) ?? RootFor(0);
+            if (root == null) yield break;
 
             foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                if (r == null || r.gameObject.activeInHierarchy || n >= 300) continue;
+                if (r == null || (r.enabled && r.gameObject.activeInHierarchy) || n >= 400) continue;
                 var mf = r.GetComponent<MeshFilter>();
                 var mesh = mf != null ? mf.sharedMesh : null;
                 var mats = r.sharedMaterials;
                 if (mesh == null || mats == null || mats.Length == 0) continue;
-                if (!seen.Add(Layout(mesh) + Ids(mats))) continue;
-                Draw(root, mesh, mats, r.shadowCastingMode, Slot());
+                int layer = r.gameObject.layer;
+                if (!seen.Add(layer + "/" + Layout(mesh) + Ids(mats))) continue;
+                var at = RootFor(layer);
+                if (at != null) Draw(at, mesh, mats, r.shadowCastingMode, Slot()).layer = layer;
             }
             foreach (var lr in Object.FindObjectsByType<LineRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                if (lr != null && !lr.gameObject.activeInHierarchy && lr.sharedMaterial != null && seen.Add("line" + lr.sharedMaterial.GetInstanceID()))
-                    Line(root, lr.sharedMaterial, Slot());
+                if (lr != null && !(lr.enabled && lr.gameObject.activeInHierarchy) && lr.sharedMaterial != null && seen.Add(lr.gameObject.layer + "line" + lr.sharedMaterial.GetInstanceID()))
+                {
+                    var at = RootFor(lr.gameObject.layer);
+                    if (at != null) Line(at, lr.sharedMaterial, Slot()).layer = lr.gameObject.layer;
+                }
             foreach (var tr in Object.FindObjectsByType<TrailRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                if (tr != null && tr.sharedMaterial != null && seen.Add("line" + tr.sharedMaterial.GetInstanceID()))
-                    Line(root, tr.sharedMaterial, Slot());
+                if (tr != null && tr.sharedMaterial != null && seen.Add(tr.gameObject.layer + "line" + tr.sharedMaterial.GetInstanceID()))
+                {
+                    var at = RootFor(tr.gameObject.layer);
+                    if (at != null) Line(at, tr.sharedMaterial, Slot()).layer = tr.gameObject.layer;
+                }
 
             // the acid: its stream (positions, normals and UVs, rebuilt each frame) and its droplets (spheres)
             var tube = StripMesh();
@@ -177,9 +222,9 @@ namespace JamKit.SkylineRepo
 
             yield return null;
             yield return null;
-            Object.Destroy(root.gameObject);
+            foreach (var t in roots.Values) if (t != null) Object.Destroy(t.gameObject);
             foreach (var o in temp) if (o != null) Object.Destroy(o);
-            Debug.Log("SKYLINE_PREWARM drew " + n + " pooled drawings once");
+            Debug.Log("SKYLINE_PREWARM drew " + n + " idle drawings once (" + roots.Count + " cameras)");
         }
 
         static Material[] AcidMaterials() => new[]
@@ -188,7 +233,7 @@ namespace JamKit.SkylineRepo
             SkylineBotLook.Wet(SkylineAcid.AcidWet),
         };
 
-        static void Draw(Transform root, Mesh mesh, Material[] mats, UnityEngine.Rendering.ShadowCastingMode shadows, Vector3 at)
+        static GameObject Draw(Transform root, Mesh mesh, Material[] mats, UnityEngine.Rendering.ShadowCastingMode shadows, Vector3 at)
         {
             var go = new GameObject("warm");
             go.transform.SetParent(root, false);
@@ -198,9 +243,10 @@ namespace JamKit.SkylineRepo
             var r = go.AddComponent<MeshRenderer>();
             r.sharedMaterials = mats;
             r.shadowCastingMode = shadows;
+            return go;
         }
 
-        static void Line(Transform root, Material m, Vector3 at)
+        static GameObject Line(Transform root, Material m, Vector3 at)
         {
             var go = new GameObject("warm line");
             go.transform.SetParent(root, false);
@@ -212,6 +258,7 @@ namespace JamKit.SkylineRepo
             lr.SetPosition(1, at + Vector3.right * 0.003f);
             lr.widthMultiplier = 0.002f;
             lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return go;
         }
 
         /// <summary>A tiny strip with positions, normals and UVs (the acid stream's mesh layout).</summary>

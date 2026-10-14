@@ -16,7 +16,7 @@ namespace JamKit.SkylineRepo
     /// trace the perf run saves, <see cref="SkylinePerfProbe"/>), its pipeline states are built before the first frame,
     /// in one go. A trace from another graphics API or quality level is skipped by Unity itself.</item>
     /// <item><b>A cover.</b> In a player, a Skyline scene opens on black, which stays until the frames have run smoothly for a
-    /// moment (eight frames under 50 ms in a row, at least 0.3 s in, at most 6 s), then fades out over half a second: the
+    /// moment (eight frames under 50 ms in a row, at least 0.3 s in, after the start-up warm-ups, at most 8 s), then fades out over half a second: the
     /// player sees the scene fade in, not a frozen first frame. Not in the editor (the recordings start on the scene).</item>
     /// </list>
     /// Logs <c>SKYLINE_START ...</c> when the cover lifts (how long it stayed, the slowest frame under it).
@@ -24,7 +24,7 @@ namespace JamKit.SkylineRepo
     public sealed class SkylineStartCover : MonoBehaviour
     {
         public const string TraceFolder = "Skyline";
-        const float MinHold = 0.3f, MaxHold = 6f, Fade = 0.5f, SmoothMs = 50f;
+        const float MinHold = 0.3f, MaxHold = 8f, Fade = 0.5f, SmoothMs = 50f;
         const int SmoothFrames = 8;
 
         float _born, _fadeFrom = -1f, _slowest;
@@ -72,7 +72,9 @@ namespace JamKit.SkylineRepo
             if (_fadeFrom < 0f)
             {
                 if (ms > _slowest) _slowest = ms;
-                _smooth = ms < SmoothMs ? _smooth + 1 : 0;
+                // perf round 4: the start-up warm-ups (sounds, bodies, idle drawings, glyphs) must finish under the cover
+                bool warming = SkylinePrewarm.Busy || SkylineWarmQueue.Pending > 0;
+                _smooth = ms < SmoothMs && !warming ? _smooth + 1 : 0;
                 float held = now - _born;
                 if ((held >= MinHold && _smooth >= SmoothFrames) || held >= MaxHold)
                 {

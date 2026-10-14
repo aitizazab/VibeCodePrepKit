@@ -80,6 +80,7 @@ namespace JamKit.SkylineRepo
 
         void TakeBody(EnemyDef def, SkylineBot bot, Vector3 floor, int seed)
         {
+            _bot = bot;
             var parts = bot.Parts;
             var rig = parts.rig;
             // nothing on a wreck collides or is shot (as the old husk): the hit zones and colliders go
@@ -135,9 +136,24 @@ namespace JamKit.SkylineRepo
         // and cost a draw in each cascade). The models' meshes aren't readable at run time, so the parts can't be merged
         // into one mesh here.
 
-        /// <summary>Parts smaller than this across (the bounds' diagonal, metres) stop casting shadows once the wreck settles.</summary>
-        const float SmallPart = 0.35f;
+        // Perf round 4 (pass 20261014-0700): the skylight fight's slow frames were main-thread bound (13.3 ms of CPU, 2.6 ms
+        // of waiting) with 26-31 wrecks lying about, up to 2,392 batches and 687 shadow casters. So, on top of the above:
+        // - a wreck that has come to rest casts no shadows at all (every part, not only the small ones);
+        // - at most MaxWrecks husks stay: past that, the oldest dark ones (stale or stripped: nothing left to strip, so no
+        //   gameplay goes with them) are removed while no camera sees them, one a frame; if more than MaxWrecks + 4 remain
+        //   and every candidate is in view, the oldest sinks into the floor over SinkSeconds and is then removed;
+        // - once dark, the dead bot's own scripts (its brain, face, acid, beam) are switched off, unless it still has mines on
+        //   the wall to tick (the gondola).
+        // Nothing on a wreck has a collider or a rigidbody (StripColliders), so there is no physics to put to sleep.
+
+        public const int MaxWrecks = 12;
+        const float SinkSeconds = 2.5f, SinkDepth = 1.6f;
         const float DarkScale = 0.55f;
+        static int _cullFrame = -1;
+        SkylineBot _bot;
+        bool _sinking;
+        float _sinkAge;
+        Vector3 _sinkFrom;
         static readonly Dictionary<long, Material> _tinted = new Dictionary<long, Material>();
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor"), ColorId = Shader.PropertyToID("_Color");
         readonly List<Material[]> _plain = new List<Material[]>();   // each renderer's materials before any tint (the dark copies are made from them)
@@ -182,15 +198,69 @@ namespace JamKit.SkylineRepo
             }
         }
 
-        /// <summary>Settled: the small parts stop casting shadows.</summary>
+        /// <summary>Settled: no part casts a shadow any more (it still receives them).</summary>
         void QuietShadows()
         {
             for (int i = 0; i < _renderers.Count; i++)
             {
                 var r = _renderers[i];
-                if (r == null || r == _face || r.shadowCastingMode == UnityEngine.Rendering.ShadowCastingMode.Off) continue;
-                if (r.bounds.size.magnitude < SmallPart) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                if (r != null) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
+        }
+
+        /// <summary>Dark: the dead bot's scripts stop (none of them has anything left to do), unless its mines still tick.</summary>
+        void RetireBot()
+        {
+            if (_bot == null || _bot.Mines != null) return;
+            foreach (var b in _bot.GetComponentsInChildren<MonoBehaviour>(true))
+                if (b != null && b.enabled) b.enabled = false;
+        }
+
+        /// <summary>Whether any camera draws one of its parts this frame.</summary>
+        bool Seen()
+        {
+            for (int i = 0; i < _renderers.Count; i++)
+            {
+                var r = _renderers[i];
+                if (r != null && r.enabled && r.isVisible) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Once a frame (whichever wreck gets there first): over <see cref="MaxWrecks"/>, removes the oldest dark,
+        /// settled wreck that nothing sees; far over, sinks the oldest one even in view.</summary>
+        static void Retire()
+        {
+            if (_cullFrame == Time.frameCount) return;
+            _cullFrame = Time.frameCount;
+            int kept = 0;
+            for (int i = 0; i < All.Count; i++) if (All[i] != null && !All[i]._sinking) kept++;
+            if (kept <= MaxWrecks) return;
+            SkylineWreck firstSeen = null;
+            for (int i = 0; i < All.Count; i++)
+            {
+                var w = All[i];
+                if (w == null || w._sinking || !w._dark || !w._settled) continue;
+                if (!w.Seen())
+                {
+                    Destroy(w.gameObject);
+                    return;
+                }
+                if (firstSeen == null) firstSeen = w;
+            }
+            if (firstSeen != null && kept > MaxWrecks + 4)
+            {
+                firstSeen._sinking = true;
+                firstSeen._sinkFrom = firstSeen.transform.position;
+            }
+        }
+
+        void Sink(float dt)
+        {
+            _sinkAge += dt;
+            float u = Mathf.Clamp01(_sinkAge / SinkSeconds);
+            transform.position = _sinkFrom + Vector3.down * (SinkDepth * u * u);
+            if (u >= 1f) Destroy(gameObject);
         }
 
         void OnDestroy()
@@ -266,6 +336,8 @@ namespace JamKit.SkylineRepo
         {
             if (Data == null) return;
             float dt = Time.deltaTime;
+            if (_sinking) { Sink(dt); return; }
+            if (_dark && _settled) Retire();
             if (dt > 0f && !_settled && _moving != null) Animate(dt);
             float now = Time.time;
             if (Data.Fresh(now))
@@ -413,6 +485,7 @@ namespace JamKit.SkylineRepo
                 r.SetPropertyBlock(null);
                 r.sharedMaterials = dark;
             }
+            RetireBot();
         }
     }
 }
