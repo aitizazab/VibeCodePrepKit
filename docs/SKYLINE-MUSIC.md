@@ -148,3 +148,31 @@ The creator: "The new heavenly theme is great, make a note to get started on the
   beat (no landing C): +1.5 dB, brightness 2.4 -> 2.5 kHz at the hand-over. **Step:** one detail per step (E: the
   pre-drop's low end under it; G: a third of the way to the wub's sound; A: the wub's filter wobble, two thirds; B-flat:
   the hum's scoop, becomes the wub). Both run on into the drop and Heaven. Waiting on the creator's pick.
+
+## The variants and the riser, 2026-10-15 night
+- **Approved: "Judgement" v2 and "Sanctuary" v2** (the creator: "Both v2 attempts are amazing, we'll use them"). Judgement v2
+  carries both parts of the Empress of Light opening (transcribed, down to A minor, its eighths = our sixteenths: part 1 on
+  celesta/glockenspiel/harp in A and A', part 2 on strings and horn in B). Sanctuary v2 carries Plankerton part 2 (the
+  plucked arpeggio and the F-to-E sigh on harp + guitar, slow half-time feel, sub added). Both keep Heaven's clock, length,
+  sections and chord roots. Scripts `FableAnimationTests/audio/skyline-music/scripts/music_song_{judgement,sanctuary}_v2.py`,
+  files `song-judgement-v2/`, `song-sanctuary-v2/`. The v1s are kept (`song-judgement/`, `song-sanctuary/`). Page
+  `art/review/2026-10-15/skyline-music-pass2.html`.
+- **The riser into the pre-drop:** v4 (step + perfect, about 5 bars) and v5 (note-wise, 12 sixteenths after C E G A) were both
+  rejected: "too long. It needs to be quick and hasty, so our elevator ride can hold it, and it's also not a good conversion
+  at all ... not to go from the left track to the right track, but instead have them meet in the middle." Perfect is dropped.
+  v6 (overnight, from scratch): both sides travel toward one hybrid sound and meet; within about 2 bars; our instruments only.
+- **The PopularMMOs intro in our instruments:** the first rebuild (`pmmo-intro-ours/`) was "a complete failure". Last try
+  (overnight): a layered, near-exact replica (analysis by synthesis, layer by layer, scored against the original), then a
+  variant "distinct but very clearly inspired" (`pmmo-replica/`).
+- **Updraft and Rapture:** written; their first run failed (a filter-type bug, and Updraft wrongly assumed Judgement's roots
+  equal Heaven's in every bar: Judgement's B ends on E). Fixed and rendered per mood overnight, against the v2 moods.
+- **How the swaps stay dynamic and smooth (the plan for M2, told to the creator):**
+  - **One clock:** every mood and speed stem is scheduled together on the DSP clock and always plays. A swap is a gain
+    change, never a restart.
+  - **Shared chords:** the moods share chord roots and section boundaries, so a crossfade's overlap is consonant.
+  - **Bar-line changes:** equal-power fades. Danger comes in fast (a 1 s fade at the next bar) and leaves slowly (a 2-4 s
+    fade, only after the threat stays low for about 2 bars).
+  - **No flicker:** the threat score is smoothed over seconds, with hysteresis (in at a higher threshold, out at a lower one).
+  - **Phrase boundaries:** a big change waits for a section boundary when one is within about a bar. Danger never waits
+    longer than one bar.
+  - **Speed:** the muffled-to-open filter follows speed continuously; the speed stems enter on bar lines.
