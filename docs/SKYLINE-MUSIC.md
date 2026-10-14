@@ -13,6 +13,7 @@ In the lobby (`SKYLINE-FLOOR-REPOSSESS.md` section 9): hotel muzak of the theme'
 the lift, the six-step riser; the PopularMMOs-style pre-drop as the doors are about to open; the drop as they open and
 the wave clock starts; then the floor's main song (a reimagining of the Subway Surfers theme, recognisable for its
 first 10-15 s, then its own tune).
+The PopularMMOs intro (the creator, 2026-10-14): the 8 s clip `pmmo-intro-8s-NX6lODP5faM.wav`; the drop is at about 3.5 s and everything before it is the pre-drop (measured about 86 BPM). The riser (confirmed): C-E-G-A-Bb walking up the C chord one per beat, landing on C at about 16.1 s of the original.
 References (cut and labelled; the creator confirms the moments by ear): `FableAnimationTests/audio/sources/youtube/`
 (`ss-riser-candidate-*.wav`, `pmmo-predrop-and-drop-*.wav`; page `art/review/2026-10-14/skyline-music-refs.html`).
 Measured: the Subway Surfers theme is about 122.5 BPM; its opening sits on C for about 14 s and moves at about 16 s.
