@@ -59,3 +59,18 @@ near or the objective is simpler** (parkour between sections).
 - Plan (proposed 2026-10-14): normal is the default; danger is a parallel C-minor arrangement crossfaded on bar lines by
   threat; a light (Save the World) arrangement for traversal or very low threat; Visiting Hours' speed stems (drive, peak,
   muffled-to-open, the whistle; `docs/SPEED-MUSIC-BREAKDOWN.md`) on top of each mood. Waves every 16 bars (31.35 s).
+
+## The drop and the normal layer (2026-10-15)
+- **The drop** (the creator): "The drop should start off with the original drop ... and then continue into the rest of
+  the song." The earlier render had noise in the drop's second half (librosa's stretch smearing it) and friction into the
+  stand-in main part (the drop's final hit ringing into a different groove). Now: the original drop (3.31 s to just before
+  its final hit at 6.77 s of the PopularMMOs intro), stretched with Rubber Band (crisp transients), down a whole step;
+  our song starts on a clean downbeat exactly where that final hit would be.
+- **The normal layer, drafted for the creator's judgement** (the creator: "come up with and make the entire rest of the
+  normal layer ... making sure it can loop"): 122.5 BPM, A minor / C major, 32 bars looping from the end of A' to A bar 1:
+  A theme (Am F C G x2; a steel-pan hook whose first bar uses the riser's rhythm), B answer (F G Em Am, F G Am Am; the
+  riser's instrument walks up each chord), C breakdown (kick and hats, held bass, pad, arpeggio, the hook echoed; a snare
+  roll and the riser figure on G lead back), A' return (theme with the arpeggio and a slow brass line). Waves every 16
+  bars land on A and C. Stems: drums, bass, chords, lead, brass, arp.
+- Files: `FableAnimationTests/audio/skyline-music/song-normal/` (full, loop, loop-check, stems, `song-normal.json`);
+  scripts in `audio/skyline-music/scripts/`; page `art/review/2026-10-15/skyline-music-song-normal.html`.

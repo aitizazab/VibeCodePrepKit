@@ -6,18 +6,19 @@ start goes here with its next step; a thread leaves this list only when it's don
 ## Dropped without a reason (found 2026-10-14 evening): resume these
 | Thread | Where it stopped | Next step |
 |---|---|---|
-| Music: the rest of the floor song | Mood plan and references agreed (`SKYLINE-MUSIC.md`); no layer after the pre-drop was started | The drop (next layer), then main A's base |
+| Music: the rest of the floor song | Drop decided (the original, re-stretched); the whole normal layer drafted (32-bar loop) 2026-10-15, page `skyline-music-song-normal.html` | Creator's verdict on the normal layer; then the danger, quiet and speed layers against its stems |
 | Music: the riser's instrument | Brass / accordion / reed, pairs, with and without backing (`art/review/2026-10-14/skyline-music-step6-2.html`); never picked, never followed up | Creator picks |
-| Bot redesigns from playtest 1 (`SKYLINE-PLAYTEST-1.md`) | Held all day "until a Unity pass verifies"; passes ran, never resumed | All bots larger; floor-care: face on its top, the canister the only protrusion, wind-up then molly acid, 15 s recharge unless the canister is shot; drone: much larger rotors as the weak spot, faceplate part of the face; spotlight: a larger humanoid with the spotlight as its head, charging an electric railgun before locking on |
-| Damage states for every bot (`SKYLINE-BOTS.md`) | Held | Animated threshold crossings |
+| Bot redesigns from playtest 1 (`SKYLINE-PLAYTEST-1.md`) | Held all day; 2026-10-15 the SIZES and weak points went to the drone agent (priority: "impossible to land a headshot on a drone"); the shape redesigns below still wait | All bots larger; floor-care: face on its top, the canister the only protrusion, wind-up then molly acid, 15 s recharge unless the canister is shot; drone: much larger rotors as the weak spot, faceplate part of the face; spotlight: a larger humanoid with the spotlight as its head, charging an electric railgun before locking on |
+| Damage states for every bot (`SKYLINE-BOTS.md`) | Assigned 2026-10-15 to the drone agent (after aim, with the sizes) | Animated threshold crossings; Unity stills of each state |
 | The Breacher redesign | Round 2's club subwoofer (B, take 1) leads; "redo it inside the chosen style" never started | Concepts in the comic-ink style, then the model |
 | The corridor-camper pincer (D22) | Decided; not built; the pinned sim test `ACamperHiddenInTheWestCorridors...` waits to flip | Build in the director (X0) or as its own task |
 | The shop-S4 corner drones can't see | Noted from the sim; never checked | Check in the camper survey (DM2) |
 | A per-assembly compile check | Promised after the second missing-reference failure | Make `core-tests/SkylineUnity` compile each asmdef with only its references |
-| Perf: the food-court fight stutters | Re-measured in perf9 with the fixed pilot (demo completed): average 6.6 ms but 1% low 30.4 ms, worst fight 44 ms; the spikes are in the food-court fight with 15 bots, mostly waiting on the GPU (25 ms) with some CPU spikes (19-24 ms); perf8 was the same, so not tonight's work | A/B with `-skyline-no-ink` (the ink pass's cost), then profile the CPU spikes (the new HUD elements, bots) |
-| The art-style verdict (gate G0) | The creator played the ink look; never asked for the verdict | Ask; dressing DR1-DR5 waits on it |
+| Perf: the food-court fight stutters (FOUND: the ink pass; ink off 1% low 16.8 ms vs on 30.4 ms) | Re-measured in perf9 with the fixed pilot (demo completed): average 6.6 ms but 1% low 30.4 ms, worst fight 44 ms; the spikes are in the food-court fight with 15 bots, mostly waiting on the GPU (25 ms) with some CPU spikes (19-24 ms); perf8 was the same, so not tonight's work | Ink agent (branch `skyline-ink`) cutting the ink passes' GPU cost; then re-measure; then the remaining CPU spikes |
+| The art style (gate G0) | PASSED 2026-10-15: "The comic-look is good, but I'd like it to get even more stylized if possible." | Dressing DR1-DR5 is unblocked; the ink agent adds stylization options (off by default) for a stills page |
 
 ## Waiting on the creator
+- The music: the normal layer (`art/review/2026-10-15/skyline-music-song-normal.html`).
 - The Relay: is the space big enough for an 18 m/s skill check (`SKYLINE-RELAY.md`)?
 - The HUD: does "- RELOADING" under the ammo count go (the gun's name stays)?
 - The Valet (`SKYLINE-BOTS.md`): name, the "ding" through walls, 25 damage, lunging at a wall-runner.
@@ -35,5 +36,6 @@ X0 the floor director, L2 the lobby runtime, M2 the music director, DM1-DM3 the 
 G0), P1 perf, J1 captures, X1 the switch-over. The Valet (planned in `SKYLINE-BOTS.md`) after X0.
 
 ## Deliberately deferred (with a reason)
+- Bot hurt sounds were removed on hits (2026-10-15: they overrode the gun's hit sound); **an enemy cry** replaces them later.
 - The pre-drop is the original PopularMMOs recording: one swap to our instruments before anything goes public.
 - The overnight draft lines (`SKYLINE-DRAFT-LINES-OVERNIGHT.md`): the creator's to rewrite.
