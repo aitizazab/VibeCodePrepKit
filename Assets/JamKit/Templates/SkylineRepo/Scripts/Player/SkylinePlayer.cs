@@ -325,7 +325,7 @@ namespace JamKit.SkylineRepo
                 _aimables.Add(a);
             }
             var def = Loadout.Active.Def.aimAssist;
-            return AimAssist.Compute(new NVec3(eye.x, eye.y, eye.z), Yaw, Pitch, _aimTargets, movingOrTurning, dt, def);
+            return AimAssist.Compute(new NVec3(eye.x, eye.y, eye.z), Yaw, Pitch, _aimTargets, movingOrTurning, dt, def, AimEased);
         }
 
         void LogAssist(AimAssistResult r)

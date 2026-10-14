@@ -84,6 +84,69 @@ namespace JamKit.Tests.Skyline
             Assert.That(float.IsNaN(onEye.yawNudge), Is.False);
         }
 
+        // ---- hip-fire vs aimed (the creator, 2026-10-14: "aim assist is too strong when hip-firing")
+
+        [Test]
+        public void TheHipConesAndTheMagnetAreWeakerThanAimed()
+        {
+            var d = new AimAssistDef { slowdownConeDeg = 6f, slowdownScale = 0.5f, magnetConeDeg = 4f, magnetDegPerSec = 8f, range = 40f };
+            Assert.That(d.SlowdownCone(1f), Is.EqualTo(6f).Within(1e-4f), "aimed: the gun's own numbers");
+            Assert.That(d.MagnetCone(1f), Is.EqualTo(4f).Within(1e-4f));
+            Assert.That(d.MagnetSpeed(1f), Is.EqualTo(8f).Within(1e-4f));
+            Assert.That(d.SlowdownTurnScale(1f), Is.EqualTo(0.5f).Within(1e-4f));
+            Assert.That(d.SlowdownCone(0f), Is.EqualTo(3f).Within(1e-4f), "hip: the cone halves");
+            Assert.That(d.MagnetCone(0f), Is.EqualTo(2f).Within(1e-4f));
+            Assert.That(d.MagnetSpeed(0f), Is.EqualTo(4f).Within(1e-4f), "hip: the magnet halves");
+            Assert.That(d.SlowdownTurnScale(0f), Is.EqualTo(0.75f).Within(1e-4f), "hip: half the slowdown");
+            Assert.That(d.MagnetSpeed(0.5f), Is.InRange(4f, 8f), "it blends with the aim");
+            Assert.That(d.SlowdownCone(-1f), Is.EqualTo(3f).Within(1e-4f), "aim is clamped");
+            Assert.That(d.SlowdownCone(7f), Is.EqualTo(6f).Within(1e-4f));
+        }
+
+        [Test]
+        public void ATargetJustInsideTheAimedConeIsIgnoredAtTheHip()
+        {
+            // 5 degrees off the crosshair: inside the aimed slowdown cone (6), outside the hip one (3)
+            var t = One(AtYaw(5f, 10f), 0f);
+            Assert.That(AimAssist.Compute(Vector3.Zero, 0f, 0f, t, true, 0.1f, Def, 1f).turnScale, Is.EqualTo(0.55f).Within(1e-4f));
+            var hip = AimAssist.Compute(Vector3.Zero, 0f, 0f, t, true, 0.1f, Def, 0f);
+            Assert.That(hip.turnScale, Is.EqualTo(1f));
+            Assert.That(hip.target, Is.EqualTo(-1));
+            // the old signature is the aimed numbers
+            Assert.That(AimAssist.Compute(Vector3.Zero, 0f, 0f, t, true, 0.1f, Def).turnScale, Is.EqualTo(0.55f).Within(1e-4f));
+        }
+
+        [Test]
+        public void AtTheHipTheMagnetPullsHalfAsHardAndTheSlowdownIsGentler()
+        {
+            var t = One(AtYaw(1f, 10f), 0f);
+            var aimed = AimAssist.Compute(Vector3.Zero, 0f, 0f, t, true, 0.1f, Def, 1f);
+            var hip = AimAssist.Compute(Vector3.Zero, 0f, 0f, t, true, 0.1f, Def, 0f);
+            Assert.That(hip.yawNudge, Is.EqualTo(aimed.yawNudge * 0.5f).Within(1e-3f));
+            Assert.That(hip.turnScale, Is.GreaterThan(aimed.turnScale), "a gentler slowdown");
+            Assert.That(hip.turnScale, Is.LessThan(1f), "but still there inside the hip cone");
+        }
+
+        [Test]
+        public void TheShippedGunsAssistLessAtTheHipThanAimedAndTheWritsAimedNumbersAreUnchanged()
+        {
+            foreach (var g in SkylineGuns.All())
+            {
+                var a = g.aimAssist;
+                Assert.That(a.hipConeScale, Is.InRange(0.3f, 0.6f), g.id + " hip cones: clearly smaller");
+                Assert.That(a.hipMagnetScale, Is.InRange(0.3f, 0.6f), g.id + " hip magnet: clearly weaker");
+                Assert.That(a.hipSlowdownStrength, Is.InRange(0.3f, 0.6f), g.id + " hip slowdown: clearly gentler");
+                Assert.That(a.MagnetSpeed(0f), Is.LessThan(a.MagnetSpeed(1f) * 0.6f), g.id);
+                Assert.That(a.SlowdownCone(0f), Is.LessThan(a.SlowdownCone(1f) * 0.6f), g.id);
+                Assert.That(a.SlowdownTurnScale(0f), Is.GreaterThan(a.SlowdownTurnScale(1f)), g.id);
+            }
+            var w = SkylineGuns.Writ().aimAssist;
+            Assert.That(w.slowdownConeDeg, Is.EqualTo(5f).Within(1e-4f), "aimed: as before");
+            Assert.That(w.magnetConeDeg, Is.EqualTo(3f).Within(1e-4f));
+            Assert.That(w.magnetDegPerSec, Is.EqualTo(8f).Within(1e-4f));
+            Assert.That(w.slowdownScale, Is.EqualTo(0.5f).Within(1e-4f));
+        }
+
         [Test]
         public void DeltaAngleWrapsTheShortWay()
         {
