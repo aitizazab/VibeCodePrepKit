@@ -71,6 +71,8 @@ namespace JamKit.SkylineRepo
         [Tooltip("One per encounter; matched by encounterIndex.")]
         public SkylineEncounterZone[] zones = new SkylineEncounterZone[0];
         public SkylineScrapCache cache;
+        [Tooltip("The second cache, on the wall-run lockers.")]
+        public SkylineScrapCache wallRunCache;
         [Tooltip("2D source the teaching lines are spoken from.")]
         public AudioSource voice;
         [Tooltip("Where the encounters' bots are spawned (one child per encounter).")]
@@ -111,6 +113,7 @@ namespace JamKit.SkylineRepo
         bool _ledgeReached, _counterReached, _liftSeen;
         float _warmupAt = -1f;
         bool _started, _warmupTriggered;
+        float _nextSightCheck;
 
         public Phase PhaseOf(int i) => i >= 0 && i < _encounters.Count ? _encounters[i].phase : Phase.Waiting;
         public string IdOf(int i) => i >= 0 && i < _encounters.Count ? _encounters[i].def.id : "";
@@ -202,11 +205,17 @@ namespace JamKit.SkylineRepo
                 _warmupTriggered = true;
                 Trigger(BeatTrigger.WarmupStart, null);
             }
-            // the warm-up's own lessons wait for Nan's opener (the practice bot is in view from the very first frame)
-            if (_warmupTriggered && !Fired(BeatTrigger.PracticeBotSeen) && PracticeBotInView()) Trigger(BeatTrigger.PracticeBotSeen, null);
-            if (_warmupTriggered && !Fired(BeatTrigger.NearBoostLedge) && NearKiosk()) Trigger(BeatTrigger.NearBoostLedge, null);
+            // the warm-up's lessons start with the clock (judge round 2: they outrank Nan's opener, which no longer gates them)
+            bool clock = _warmupAt >= 0f || _warmupTriggered;
+            if (clock && !Fired(BeatTrigger.PracticeBotSeen) && PracticeBotInView()) Trigger(BeatTrigger.PracticeBotSeen, null);
+            if (clock && !Fired(BeatTrigger.NearBoostLedge) && NearKiosk()) Trigger(BeatTrigger.NearBoostLedge, null);
             if (!_counterReached && OnCounter()) _counterReached = true;
-            if (_warmupTriggered && !Fired(BeatTrigger.NearPracticeLedge) && NearCounter(NearLedgeRange)) Trigger(BeatTrigger.NearPracticeLedge, null);
+            if (clock && !Fired(BeatTrigger.NearPracticeLedge) && NearCounter(NearLedgeRange)) Trigger(BeatTrigger.NearPracticeLedge, null);
+            if (now >= _nextSightCheck)
+            {
+                _nextSightCheck = now + SightCheckEvery;
+                CheckFirstSight();
+            }
             if (LiftOpen && !_liftSeen)
             {
                 _liftSeen = true;
@@ -230,6 +239,12 @@ namespace JamKit.SkylineRepo
             {
                 ExitReached = true;
                 Debug.Log("SKYLINE_ARENA exit reached");
+                // the floor is done: the shutter rolls right up, so the Unit can look back over the hall it cleared
+                if (liftShutter != null && _shutterKnown)
+                {
+                    if (_shutterRoll != null) StopCoroutine(_shutterRoll);
+                    _shutterRoll = StartCoroutine(RollUp(_shutterScale.y - 0.05f));
+                }
             }
 
             TickLedger(Time.deltaTime);
@@ -250,15 +265,41 @@ namespace JamKit.SkylineRepo
             player.Ledger.Tick(dt, sim.Mode, reach);
         }
 
-        bool PracticeBotInView()
+        bool PracticeBotInView() => InView(PracticeBot, PracticeSeenRange);
+
+        const float SightCheckEvery = 0.1f, NoticeSightRange = 45f;
+
+        /// <summary>CONCIERGE's safety notice for a kind of bot fires the first time the player sees one (on screen, within
+        /// 45 m, nothing in between), or when one goes Alert, whichever comes first (judge round 2: the spotlight's notice came
+        /// after its beam).</summary>
+        void CheckFirstSight()
         {
-            var b = PracticeBot;
+            foreach (var e in _encounters)
+            {
+                if (e.phase != Phase.Fighting) continue;
+                foreach (var bot in e.bots)
+                {
+                    if (bot == null || !bot.Alive || bot.Def == null || !NoticeArmed(bot.Def.id)) continue;
+                    if (InView(bot, NoticeSightRange)) Trigger(BeatTrigger.FirstSeen, bot.Def.id);
+                }
+            }
+        }
+
+        bool NoticeArmed(string enemyId)
+        {
+            foreach (var b in _beats)
+                if (b.trigger == BeatTrigger.FirstSeen && b.enemy == enemyId && !_beatUsed.Contains(b.id)) return true;
+            return false;
+        }
+
+        bool InView(SkylineBot b, float range)
+        {
             var cam = player.Camera;
             if (b == null || !b.Alive || cam == null) return false;
             Vector3 eye = player.EyePosition, c = b.Center;
             Vector3 d = c - eye;
             float dist = d.magnitude;
-            if (dist > PracticeSeenRange || dist < 1e-3f) return false;
+            if (dist > range || dist < 1e-3f) return false;
             Vector3 vp = cam.WorldToViewportPoint(c);
             if (vp.z <= 0f || vp.x < 0f || vp.x > 1f || vp.y < 0f || vp.y > 1f) return false;
             return !SkylineBot.CastClear(eye, d / dist, dist - 0.05f, b.transform, out _);
@@ -433,7 +474,7 @@ namespace JamKit.SkylineRepo
             if (up)
             {
                 Debug.Log("SKYLINE_ARENA lift open");
-                _shutterRoll = StartCoroutine(RollUp());
+                _shutterRoll = StartCoroutine(RollUp(-1f));
             }
             else
             {
@@ -442,17 +483,19 @@ namespace JamKit.SkylineRepo
             }
         }
 
-        System.Collections.IEnumerator RollUp()
+        /// <param name="toLocal">How far (local units) the bottom edge ends up; negative: <see cref="GalleriaArena.ShutterGap"/>.</param>
+        System.Collections.IEnumerator RollUp(float toLocal)
         {
             // the shutter is a box from the floor to the fascia: rolling up keeps its top and lifts its bottom edge
             float height = _shutterScale.y, gap = GalleriaArena.ShutterGap, t = 0f;
             Vector3 axisUp = liftShutter.parent != null ? liftShutter.parent.InverseTransformVector(Vector3.up) : Vector3.up;
             float unit = axisUp.magnitude > 1e-4f ? 1f / axisUp.magnitude : 1f;   // world metres per local unit along up
-            float localGap = gap / unit;
+            float localGap = toLocal >= 0f ? toLocal : gap / unit;
+            float from = _shutterScale.y - liftShutter.localScale.y;
             while (t < 1f)
             {
                 t = Mathf.Min(1f, t + Time.deltaTime / 1.5f);
-                float lift = Mathf.SmoothStep(0f, 1f, t) * localGap;
+                float lift = Mathf.Lerp(from, localGap, Mathf.SmoothStep(0f, 1f, t));
                 liftShutter.localScale = new Vector3(_shutterScale.x, height - lift, _shutterScale.z);
                 liftShutter.localPosition = _shutterPos + Vector3.up * (lift * 0.5f);
                 yield return null;
@@ -487,6 +530,7 @@ namespace JamKit.SkylineRepo
             player.Ledger.Reset();
             player.Restart(U(GalleriaArena.PlayerStart), 0f);
             if (cache != null) cache.ReArm();
+            if (wallRunCache != null) wallRunCache.ReArm();
             Restarted?.Invoke();
         }
 
@@ -525,7 +569,17 @@ namespace JamKit.SkylineRepo
                 Debug.Log("SKYLINE_LINE " + d.id + (rearm ? " dropped rearmed" : " dropped"));
             }
             foreach (var c in _cut) Debug.Log("SKYLINE_LINE " + c.id + " cut");
-            if (b == null) return;
+            if (b == null)
+            {
+                if (_cut.Count > 0)
+                {
+                    // the line's moment ended mid-line and nothing replaces it: take it down
+                    var h = SkylineHud.Instance;
+                    if (h != null) h.EndSay();
+                    if (voice != null) voice.Stop();
+                }
+                return;
+            }
             float seconds = SkylineBabble.LineSeconds(b.text);
             var hud = SkylineHud.Instance;
             if (hud != null) hud.Say(b.speaker, b.text, seconds);

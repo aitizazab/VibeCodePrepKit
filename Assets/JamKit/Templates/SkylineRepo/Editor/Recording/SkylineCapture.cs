@@ -137,7 +137,12 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
                 movie.Enabled = true;
                 movie.EncoderSettings = new CoreEncoderSettings
                 {
-                    EncodingQuality = CoreEncoderSettings.VideoEncodingQuality.High,
+                    // "High" came out at about 6.6 Mbit/s and broke into blocks in fast motion (judges B and E, round 2): the
+                    // judges and the creator read the game from these recordings, so they get a high fixed bitrate.
+                    EncodingQuality = CoreEncoderSettings.VideoEncodingQuality.Custom,
+                    TargetBitRate = 24f,
+                    GopSize = 60,
+                    NumConsecutiveBFrames = 2,
                     Codec = CoreEncoderSettings.OutputCodec.MP4,
                 };
                 movie.ImageInputSettings = new GameViewInputSettings { OutputWidth = 1920, OutputHeight = 1080 };

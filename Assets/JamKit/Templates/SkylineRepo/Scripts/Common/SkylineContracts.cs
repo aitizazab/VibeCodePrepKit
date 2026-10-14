@@ -49,28 +49,6 @@ namespace JamKit.SkylineRepo
         SkylineHitResult TakeHit(in SkylineHitInfo hit);
     }
 
-    /// <summary>Marks a collider as part of a hittable: which zone, which plate, and whose. <see cref="owner"/> is
-    /// serialized as a MonoBehaviour and cast to <see cref="ISkylineHittable"/> at hit time; an owner that is missing,
-    /// destroyed or isn't one makes the hit a no-op (hit = false). <see cref="TakeHit"/> fills the hit's zone and plate
-    /// from this component before passing it on.</summary>
-    public sealed class SkylineHitZone : MonoBehaviour
-    {
-        public MonoBehaviour owner;
-        public HitZone zone;
-        public int plate = -1;
-
-        public SkylineHitResult TakeHit(in SkylineHitInfo hit)
-        {
-            if (owner == null) return default(SkylineHitResult);      // Unity's null: also true for a destroyed owner
-            var hittable = owner as ISkylineHittable;
-            if (hittable == null) return default(SkylineHitResult);
-            var info = hit;
-            info.zone = zone;
-            info.plate = plate;
-            return hittable.TakeHit(in info);
-        }
-    }
-
     /// <summary>Something aim assist may pull toward.</summary>
     public interface ISkylineAimable
     {

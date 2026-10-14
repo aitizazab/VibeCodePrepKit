@@ -137,7 +137,10 @@ namespace JamKit.Skyline
                 falloffEnd = 18f,
                 falloffMinScale = 0.25f,
                 weakPointMultiplier = 1.25f,
-                enemyKnockback = 9f,
+                // Judge round 2 (N3): 9 m/s read small (a drone hit by three pellets at 6.5 m slid 0.4-0.6 m, under the camera
+                // kick). 15 m/s, shared by the pellets that land: about 1 m at 6.5 m, about 3 m at point blank (the bots'
+                // slide decays at rate 5, so slide = speed / 5), plus SkylineShoveLurch's tilt and spin on the bot.
+                enemyKnockback = 15f,
                 hitStopSeconds = 0.05f,
                 killHitStopSeconds = 0.1f,
                 // Task 19: "the camera kicks hard" (2.2). 8 degrees up, recovered to 0.5% by the next shot (0.75 s at rate 7).

@@ -256,44 +256,53 @@ def latch(seed: int, pitch: float = 1.0) -> np.ndarray:
 
 
 def cell_out() -> np.ndarray:
-    """The cell unlatches and drops: latch tick, a short pressure release (pssht), the cell scraping out of its rails, and
-    a soft knock as it leaves."""
+    """The cell unlatches and drops: a heavy latch clack (steel ring plus a solid mid knock), a short pressure release
+    (pssht), the cell scraping out of its rails, and a knock as it leaves. Round 2 (N5): more body, less hiss."""
     n = n_of(0.34)
-    x = latch(61, 1.0)[: n] if n <= n_of(0.16) else np.pad(latch(61, 1.0), (0, n - n_of(0.16)))
-    x += hiss(n, 0.006, 0.004, 0.14, 62, 3000, 15000, -8)
-    x += scrape(n, 0.05, 0.16, 63, 2500, 12000, 90, -11)
-    x += thump(n, 0.2, 260, 150, 0.08, -22)
+    x = np.pad(latch(61, 0.8), (0, n - n_of(0.16)))
+    x += 0.7 * band(noise(n, 64, "pink"), 500, 2200, 2) * env(n, 0.0008, 0.008, 0.06)   # the latch's body
+    x += thump(n, 0.0, 220, 120, 0.08, -14)
+    x += hiss(n, 0.006, 0.004, 0.12, 62, 3000, 12000, -15)
+    x += scrape(n, 0.05, 0.16, 63, 1800, 9000, 90, -14)
+    x += thump(n, 0.2, 260, 150, 0.08, -16)
     return x
 
 
 def cell_in() -> np.ndarray:
-    """A fresh cell driven into the rails: the broadband clack of it bottoming comes first (the event's moment, so the
-    sync check finds it), then the rails' ratchet and a short scrape as it settles, then a small second tick (the
-    Witchfire shell inserts' tick-scrape-thump pattern, drawn as one heavier part)."""
+    """A fresh cell driven into the rails: the clack of it bottoming comes first (the event's moment, so the sync check
+    finds it): a hard tick, a solid mid knock of a heavy part (500-2500 Hz), steel modes and a low thunk. Then the rails'
+    ratchet and a short scrape as it settles, and a small second tick. Round 2 (N5): the knock and the thunk carry it; the
+    scrape and ratchet sit under them."""
     n = n_of(0.3)
     x = tick(n, 0.0, 74, 900, 13000, 0.006, 0)
-    x += 0.6 * modal(n, [(2380, 0.06, 0), (4120, 0.045, -2), (6350, 0.03, -4), (9100, 0.02, -8)])
-    x += thump(n, 0.0, 190, 95, 0.12, -15)
+    x += 0.9 * band(noise(n, 77, "pink"), 500, 2500, 2) * env(n, 0.0008, 0.01, 0.07)
+    x += 0.5 * modal(n, [(1350, 0.07, 0), (2380, 0.06, -2), (4120, 0.045, -4), (6350, 0.03, -8)])
+    x += thump(n, 0.0, 190, 95, 0.12, -11)
     rng = np.random.default_rng(75)
     for k in range(4):
-        x += tick(n, 0.035 + 0.016 * k + 0.004 * rng.random(), 76 + k, 5000, 20000, 0.003, -9 - 2 * k)
-    x += scrape(n, 0.04, 0.14, 73, 4000, 18000, 120, -7)
-    x += tick(n, 0.16, 71, 3000, 13000, 0.003, -10)
+        x += tick(n, 0.035 + 0.016 * k + 0.004 * rng.random(), 76 + k, 2000, 9000, 0.004, -11 - 2 * k)
+    x += scrape(n, 0.04, 0.12, 73, 1500, 7000, 120, -13)
+    x += tick(n, 0.16, 71, 1500, 9000, 0.004, -10)
     return x
 
 
 def seat() -> np.ndarray:
-    """The cell seated and pressurised: the lock's hard clack, a low hydraulic thump, and the hiss of the cell charging
-    the chamber (rising a little, then cut off)."""
+    """The cell seated and pressurised: the lock's hard clack with a heavy mid knock, a low hydraulic thump (140 to
+    62 Hz, the weight), and a short hiss of the cell charging the chamber, cut off by the valve. Round 2 (N5): the thump
+    and the knock lead; the hiss is 9 dB lower than before."""
     n = n_of(0.45)
-    x = tick(n, 0.0, 81, 1500, 14000, 0.005, 0)
-    x += 0.6 * modal(n, [(1650, 0.09, 0), (3300, 0.07, -2), (5200, 0.05, -4), (8100, 0.03, -8)])
-    x += thump(n, 0.0, 140, 62, 0.22, -12)
-    h = hiss(n, 0.03, 0.12, 0.34, 82, 5000, 18000, -5)
+    x = tick(n, 0.0, 81, 1200, 14000, 0.006, 0)
+    x += 0.9 * band(noise(n, 84, "pink"), 400, 2000, 2) * env(n, 0.0008, 0.012, 0.08)
+    x += 0.5 * modal(n, [(980, 0.1, 0), (1650, 0.09, -1), (3300, 0.07, -4), (5200, 0.05, -8)])
+    x += thump(n, 0.0, 140, 62, 0.25, -9)
+    # the hydraulic press: a low rumble and a mid groan held while the cell charges (the weight, under the hiss)
+    x += 0.12 * band(noise(n, 85, "brown"), 70, 400, 2) / 0.2 * env(n, 0.02, 0.22, 0.15)
+    x += 0.1 * glide(n, 420, 300, 2.0) * env(n, 0.03, 0.2, 0.15)
+    h = hiss(n, 0.05, 0.1, 0.3, 82, 4000, 14000, -15)
     t = t_of(n)
     h *= np.where(t < 0.33, 1.0, np.exp(-(t - 0.33) * 60))   # cut off when the chamber is full
     x += h
-    x += tick(n, 0.33, 83, 4000, 12000, 0.002, -14)     # the valve shutting
+    x += tick(n, 0.33, 83, 2000, 9000, 0.003, -12)     # the valve shutting
     return x
 
 
@@ -381,18 +390,28 @@ def inspect_settle() -> np.ndarray:
 # ---------------------------------------------------------------- hits and the boost
 
 def breacher_hit() -> np.ndarray:
-    """The Breacher's pellets landing on a bot: a spray of hard ticks spread over 25 ms (nine pellets) on top of a deep
-    body slam: the knockback heard."""
+    """The Breacher's pellets landing on a bot, built to cut through its own blast (judge round 2, N2: the old one was a
+    103 Hz thump the blast's body masked). The blast lives in 60-250 Hz; this lives in 1-6 kHz:
+    a saturated crunch of the casing giving (1.2-5 kHz, 0.1 s), nine pellets rattling on the plating over 45 ms (each a
+    hard tick and a short steel ring at 1.9-4.6 kHz), the plating's loose rattle settling to 0.25 s, and only a small
+    body knock underneath."""
     n = n_of(0.4)
     x = np.zeros(n)
+    crunch = band(noise(n, 175), 1200, 5000, 2)
+    crunch = np.tanh(3.0 * crunch / (np.abs(crunch).max() or 1.0))
+    x += 0.9 * crunch * env(n, 0.001, 0.02, 0.1)
     rng = np.random.default_rng(161)
     for k in range(9):
-        at = 0.025 * rng.random() ** 1.5
-        x += tick(n, at, 162 + k, 2500, 14000, 0.004, -rng.uniform(0, 6))
-        x += 0.08 * modal(n, [(2100 + 900 * rng.random(), 0.05, 0), (4300 + 1500 * rng.random(), 0.035, -4)], start=at)
-    x += thump(n, 0.0, 150, 55, 0.22, 0)
-    x += 0.6 * band(noise(n, 175, "pink"), 200, 1600) * env(n, 0.002, 0.01, 0.12)
-    return x
+        at = 0.045 * rng.random() ** 1.3
+        x += tick(n, at, 162 + k, 2000, 14000, 0.005, -rng.uniform(0, 5))
+        x += 0.28 * modal(n, [(1900 + 1200 * rng.random(), 0.09, 0), (3300 + 1300 * rng.random(), 0.06, -3)], start=at)
+    for k in range(6):
+        at = 0.07 + 0.03 * k + 0.012 * rng.random()
+        x += tick(n, at, 180 + k, 1500, 7000, 0.004, -10 - 2.5 * k)
+        x += 0.1 * modal(n, [(2200 + 900 * rng.random(), 0.05, 0)], start=at)
+    x += thump(n, 0.0, 170, 80, 0.12, -9)
+    # pressed: louder for its peak, so the rattle carries over the blast (the forge masters every sound to a peak)
+    return np.tanh(2.2 * x / (np.abs(x).max() or 1.0))
 
 
 def boost_whump() -> np.ndarray:

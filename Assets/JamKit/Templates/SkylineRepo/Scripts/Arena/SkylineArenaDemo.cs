@@ -24,6 +24,13 @@ namespace JamKit.SkylineRepo
     /// face it; jump, double jump at the jump's apex, at the double jump's apex the view is down at 85 degrees (it starts
     /// pitching down at the first apex) and it fires (the boost), holding forward throughout (the mantle); take the cache on
     /// top; swap back to the Writ; drop off the north side.</item>
+    /// <item><b>Judge round 2.</b> The warm-up also climbs the practice counter (jump, double jump, mantle) and runs the west
+    /// wall onto the lockers (run, kick off toward them, double jump, mantle: <c>wall-run</c>, <c>wall-kick</c>,
+    /// <c>on-lockers</c>), and each lesson waits for its line to be said before doing the thing (<c>SKYLINE_LINE</c> read
+    /// from the log). In the fights it <b>watches</b> each kind of bot once before killing it (<c>watch &lt;kind&gt;</c>): a
+    /// drone strafing, the gondola on its rail, a spotlight's beam from the spotlight's end until it locks, a floor-care
+    /// unit's sweep; and it <b>swaps to the Breacher</b> for bots within 5 m (<c>breacher-on</c> / <c>breacher-off</c>). After
+    /// the lift it turns back to the cleared hall (<c>vista</c>) and pans slowly until the recording ends.</item>
     /// <item>Through the doorway into the hall, then each encounter in order along the route (food-court by the entrance,
     /// facade in the middle, skylight by the mezzanine; judge round 1): walk into its zone, the lane round its own anchor
     /// (the food court's to the information booth's U; the facade's to the two staggered stall backs; the skylight's under
@@ -137,6 +144,37 @@ namespace JamKit.SkylineRepo
         const float CalmRate = 200f, FullRate = 650f;
         bool _calm;
 
+        // judge round 2: lines heard (from the log), bots watched once per kind, the Breacher at close range
+        readonly Dictionary<string, float> _linesAt = new Dictionary<string, float>();
+        readonly HashSet<string> _watched = new HashSet<string>();
+        SkylineBot _watch;
+        float _watchUntil;
+        string _watchKind;
+        bool _breacher;
+        float _breacherOffAt;
+        const float BreacherRange = 5f, WatchDrone = 2f, WatchGondola = 2.5f, WatchSpotlight = 3f, WatchSweep = 1.6f;
+
+        void OnLog(string message, string stack, LogType type)
+        {
+            if (message == null || !message.StartsWith("SKYLINE_LINE ")) return;
+            string rest = message.Substring("SKYLINE_LINE ".Length);
+            if (rest.IndexOf(' ') >= 0) return;   // "dropped", "cut": not said
+            _linesAt[rest] = Time.time;
+        }
+
+        /// <summary>Waits (at most <paramref name="max"/> s) for line <paramref name="id"/> to start, then for its reading time:
+        /// a player hears the line, then does the thing.</summary>
+        IEnumerator AwaitLine(string id, float max)
+        {
+            float until = Time.time + max;
+            while (!_linesAt.ContainsKey(id) && Time.time < until) yield return null;
+            if (!_linesAt.TryGetValue(id, out float at)) yield break;
+            string text = null;
+            foreach (var b in TeachingBeats.M1()) if (b.id == id) text = b.text;
+            float end = at + (text != null ? SkylineBabble.LineSeconds(text) : 3f) + 0.2f;
+            while (Time.time < end && Time.time < until + 6f) yield return null;
+        }
+
         void Start()
         {
             if (!SkylineRunArgs.Demo || player == null || director == null)
@@ -149,6 +187,7 @@ namespace JamKit.SkylineRepo
             player.ScriptedInput = NextFrame;
             director.Restarted += OnRestarted;
             SkylineBot.StateEntered += OnBotState;
+            Application.logMessageReceived += OnLog;
             StartCoroutine(Run());
         }
 
@@ -156,6 +195,7 @@ namespace JamKit.SkylineRepo
         {
             if (director != null) director.Restarted -= OnRestarted;
             SkylineBot.StateEntered -= OnBotState;
+            Application.logMessageReceived -= OnLog;
             if (player != null && player.ScriptedInput == (System.Func<SkylineInputFrame>)NextFrame) player.ScriptedInput = null;
         }
 
@@ -170,6 +210,11 @@ namespace JamKit.SkylineRepo
             var k = GalleriaArena.BoostLedgeTop;
             float h = GalleriaArena.BoostLedgeSize * 0.5f;
             _cover.Add(Rect.MinMaxRect(k.X - h, k.Z - h, k.X + h, k.Z + h));
+            var pc = GalleriaArena.PracticeLedgeTop;
+            float ph = GalleriaArena.PracticeLedgeSize * 0.5f;
+            _cover.Add(Rect.MinMaxRect(pc.X - ph, pc.Z - ph, pc.X + ph, pc.Z + ph));
+            var wr = GalleriaArena.WallRunLedge;
+            _cover.Add(Rect.MinMaxRect(wr.min.X, wr.min.Z, wr.max.X, wr.max.Z));
         }
 
         float Range(float a, float b) => a + (float)_rng.NextDouble() * (b - a);
@@ -290,6 +335,8 @@ namespace JamKit.SkylineRepo
             _acidJumpAt = -1f;
             _tac = Tactic.None;
             _hasLastDuck = false;
+            _watch = null;
+            _breacher = false;
             _life++;
             StartCoroutine(Run());
         }
@@ -376,6 +423,8 @@ namespace JamKit.SkylineRepo
                 yield return MoveTo(spot, false, CoarseArrive, 4f, () => WeakPoint(bot));
                 _move = Vector2.zero;
                 yield return Wait(0.4f);
+                // Dot's lesson first: then the shots
+                yield return AwaitLine("dot-writ-spots", 6f);
                 for (int s = 0; s < 3; s++)
                 {
                     yield return CarefulShot(bot, () => WeakPoint(bot), "writ-shot " + (s + 1), 1.2f);
@@ -391,6 +440,8 @@ namespace JamKit.SkylineRepo
                 }
                 else Log("writ-no-spot");
             }
+
+            yield return PracticeCounter();
 
             Log("swap-breacher");
             _aimPoint = null;
@@ -411,6 +462,14 @@ namespace JamKit.SkylineRepo
             // stop, and turn to face the kiosk (the hands turn; the jump waits until they have)
             float settle = Time.time + 1.2f;
             while (Time.time < settle && ((Sim != null && new Vector2(Sim.Velocity.X, Sim.Velocity.Z).magnitude > 0.05f) || !Settled)) yield return null;
+            // look up at the kiosk's top while Dot explains the boost, then back level: then the move
+            _aimPitch = -25f;
+            _calm = true;
+            yield return AwaitLine("dot-breacher-boost", 7f);
+            _aimPitch = 0f;
+            float level = Time.time + 0.8f;
+            while (Time.time < level && !Settled) yield return null;
+            _calm = false;
             yield return Wait(0.2f);
 
             // jump, double jump at the apex, the boost at the double jump's apex; forward held throughout (the mantle). The
@@ -457,8 +516,106 @@ namespace JamKit.SkylineRepo
             yield return null;
             Log("drop-off");
             yield return MoveTo(new Vector3(k.x, Feet().y, k.z + half + 1.5f), false, CoarseArrive, 3f);
-            yield return Wait(0.5f);
+            yield return Wait(0.3f);
+            yield return Lockers();
             Log("run-to-doorway");
+        }
+
+        /// <summary>Nan's lesson: 0.8 m north of the practice counter, facing it; jump, double jump at the apex, forward into
+        /// the mantle; then off its north side.</summary>
+        IEnumerator PracticeCounter()
+        {
+            var pc = SkylineArenaDirector.U(GalleriaArena.PracticeLedgeTop);
+            float ph = GalleriaArena.PracticeLedgeSize * 0.5f;
+            Log("practice-counter");
+            yield return MoveTo(new Vector3(pc.x, 0f, pc.z + ph + 0.8f), false, ArriveRadius, 7f);
+            _move = Vector2.zero;
+            _aimFixed = true;
+            _aimYaw = 180f;
+            _aimPitch = -15f;
+            _calm = true;
+            float settle = Time.time + 1.5f;
+            while (Time.time < settle && ((Sim != null && new Vector2(Sim.Velocity.X, Sim.Velocity.Z).magnitude > 0.05f) || !Settled)) yield return null;
+            yield return AwaitLine("nan-double-jump-mantle", 3f);
+            _aimPitch = 0f;
+            _move = new Vector2(0f, 1f);
+            _sprint = true;
+            Log("counter-jump");
+            _jump = true;
+            yield return UntilAirborne(0.5f);
+            yield return UntilApex(2f);
+            Log("counter-double-jump");
+            _jump = true;
+            float until = Time.time + 3f;
+            while (Time.time < until && !(Grounded && Feet().y > pc.y - 0.3f)) yield return null;
+            Log(Feet().y > pc.y - 0.3f ? "on-counter" : "counter-missed");
+            _move = Vector2.zero;
+            _sprint = false;
+            yield return Wait(0.5f);
+            _aimFixed = false;
+            yield return MoveTo(new Vector3(pc.x, Feet().y, pc.z + ph + 1.5f), false, CoarseArrive, 3f);
+            _calm = false;
+        }
+
+        /// <summary>The wall-run lesson (WallRunLedgeTests' sequence): from the start by the west wall facing north, sprint with
+        /// the stick a little into the wall; jump 6 m short of the lockers; on the wall, 3 m short, kick off it with the stick
+        /// 45 degrees toward them; double jump at that jump's apex; forward into the mantle; take the cache; off the east side.</summary>
+        IEnumerator Lockers()
+        {
+            var wr = GalleriaArena.WallRunLedge;
+            Vector3 start = SkylineArenaDirector.U(GalleriaArena.WallRunStart);
+            float face = wr.min.Z;
+            Log("walk-to-wall-run");
+            yield return MoveTo(start, true, 0.3f, 8f);
+            _move = Vector2.zero;
+            _aimFixed = true;
+            _aimYaw = 0f;
+            _aimPitch = -8f;
+            _calm = true;
+            float settle = Time.time + 1.2f;
+            while (Time.time < settle && ((Sim != null && new Vector2(Sim.Velocity.X, Sim.Velocity.Z).magnitude > 0.05f) || !Settled)) yield return null;
+            Log("wall-run");
+            bool jumped = false, kicked = false, dj = false;
+            float until = Time.time + 6f;
+            float k = 45f * Mathf.Deg2Rad;
+            while (Time.time < until)
+            {
+                var sim = Sim;
+                if (sim == null) break;
+                Vector3 feet = Feet();
+                _sprint = true;
+                _move = kicked ? new Vector2(Mathf.Sin(k), Mathf.Cos(k)) : new Vector2(-0.2f, 1f);
+                if (!jumped && feet.z >= face - 6f) { _jump = true; jumped = true; }
+                else if (jumped && !kicked && sim.Mode == MoveMode.Wallrun && feet.z >= face - 3f)
+                {
+                    _move = new Vector2(Mathf.Sin(k), Mathf.Cos(k));
+                    _jump = true;
+                    kicked = true;
+                    Log("wall-kick");
+                }
+                else if (kicked && !dj && !sim.Grounded && sim.Mode == MoveMode.Air && sim.Velocity.Y <= 0f)
+                {
+                    _jump = true;
+                    dj = true;
+                    Log("wall-double-jump");
+                }
+                if (sim.Grounded && feet.y > 1f) break;
+                if (jumped && sim.Grounded && feet.y < 0.1f && Time.time > until - 4.5f) break;
+                yield return null;
+            }
+            _move = Vector2.zero;
+            _sprint = false;
+            bool on = Feet().y > wr.max.Y - 0.3f;
+            Log(on ? "on-lockers" : "lockers-missed");
+            if (on)
+            {
+                yield return MoveTo(new Vector3((wr.min.X + wr.max.X) * 0.5f, Feet().y, (wr.min.Z + wr.max.Z) * 0.5f), false, 0.4f, 2f);
+                yield return Wait(0.4f);
+                Log("drop-off-lockers");
+                yield return MoveTo(new Vector3(wr.max.X + 1.5f, Feet().y, (wr.min.Z + wr.max.Z) * 0.5f), false, CoarseArrive, 3f);
+            }
+            _aimFixed = false;
+            _calm = false;
         }
 
         /// <summary>The far goal: once the shutter is up, run at the lift lobby, slide under the shutter (crouch pressed 3.5 m
@@ -495,7 +652,35 @@ namespace JamKit.SkylineRepo
             _move = Vector2.zero;
             _sprint = false;
             Log(director.ExitReached ? "lift" : "lift-missed");
-            yield return Wait(1.5f);
+            yield return Wait(1f);
+            // the ending: turn back to the cleared hall (the shutter rolls right up once the Unit is in) and take it in
+            Log("vista");
+            _aimFixed = true;
+            _calm = true;
+            _aimYaw = 180f;
+            _aimPitch = -6f;
+            yield return Wait(3f);
+            _aimYaw = 160f;
+            yield return Wait(3f);
+            _aimYaw = 200f;
+            _aimPitch = -14f;
+            yield return Wait(3f);
+            StartCoroutine(Linger());
+        }
+
+        /// <summary>After the run: a slow look across the hall, back and forth, until the recording ends.</summary>
+        IEnumerator Linger()
+        {
+            float t = 0f;
+            while (true)
+            {
+                t += Time.deltaTime;
+                _aimFixed = true;
+                _calm = true;
+                _aimYaw = 180f + 28f * Mathf.Sin(t * 0.35f);
+                _aimPitch = -8f - 6f * Mathf.Sin(t * 0.21f);
+                yield return null;
+            }
         }
 
         IEnumerator UntilAirborne(float max)
@@ -575,6 +760,17 @@ namespace JamKit.SkylineRepo
                 }
 
                 var target = PickTarget(i, out Vector3 aim);
+                // watch each kind of bot once doing its thing before killing it (judge round 2: the bots never showed)
+                if (_watch != null && (now > _watchUntil || !_watch.Alive || (_watchKind == "spotlight" && _watch.Beam != null && _watch.Beam.Locked && now > _watchUntil - WatchSpotlight + 0.8f)))
+                    _watch = null;
+                if (_watch == null && !watchdog) _watch = PickWatch(i, now);
+                bool watching = _watch != null;
+                if (watching) { target = _watch; aim = _watch.Center; }
+                // the Breacher for bots within 5 m in the line of fire
+                bool close = target != null && Flat(feet, target.transform.position) <= BreacherRange;
+                if (close && !_breacher) { _breacher = true; Log(id + " breacher-on"); }
+                if (close) _breacherOffAt = now + 1.5f;
+                else if (_breacher && now > _breacherOffAt) { _breacher = false; Log(id + " breacher-off"); }
                 if (target != null)
                 {
                     if (target != lastTarget) _hand.React(Range(0.05f, 0.12f));   // a new target: a beat before the wrist moves
@@ -630,14 +826,14 @@ namespace JamKit.SkylineRepo
                 }
 
                 // aim, fire and reload: the trigger is pulled while the crosshair is on the target (NextFrame checks the ray)
-                if (player.Loadout.ActiveIndex != 0) _swap = true;
+                if (player.Loadout.ActiveIndex != (_breacher ? 1 : 0)) _swap = true;
                 _aimFixed = false;
                 _calm = target == null && !grace;
                 if (target != null)
                 {
                     _aimPoint = aim;
                     if (gun.Ammo <= 0) { if (!reloading) _reload = true; }
-                    else if (!reloading) _fireAt = target;
+                    else if (!reloading && !watching) _fireAt = target;
                 }
                 else
                 {
@@ -683,6 +879,8 @@ namespace JamKit.SkylineRepo
             }
             _fighting = false;
             _calm = true;
+            _watch = null;
+            if (_breacher) { _breacher = false; Log(id + " breacher-off"); }
             _tac = Tactic.None;
             _move = Vector2.zero;
             _aimPoint = null;
@@ -949,11 +1147,15 @@ namespace JamKit.SkylineRepo
         Vector3? LookWhileNoTarget(int i, Vector3 feet, Vector3 goal)
         {
             Vector3 eye = player.EyePosition;
+            SkylineBot threat = NearestShooterOrBot(i, eye);
             if (Flat(feet, goal) > 2f && (_tac == Tactic.Move || _tac == Tactic.None))
             {
                 Vector3 d = PathDirection(feet, goal);
-                if (d.sqrMagnitude > 1e-4f) return eye + d * 10f;
+                // running: the way ahead, unless that turns its back on the fight (then it runs looking at the threat)
+                bool backToFight = threat != null && Vector3.Angle(new Vector3(d.x, 0f, d.z), new Vector3(threat.Center.x - eye.x, 0f, threat.Center.z - eye.z)) > 100f;
+                if (d.sqrMagnitude > 1e-4f && !backToFight) return eye + d * 10f;
             }
+            if (threat != null) return LookToward(eye, threat.Center);
             SkylineBot nearest = null;
             float nd = float.PositiveInfinity;
             var bots = director.BotsOf(i);
@@ -982,6 +1184,72 @@ namespace JamKit.SkylineRepo
                 }
             }
             return nearest != null ? OpenLook(eye, nearest.Center) : (Vector3?)null;
+        }
+
+        /// <summary>A bot of a kind not yet watched, in the line of fire and doing its thing: a drone awake within 25 m (its
+        /// strafe), the gondola awake on its rail (its mines), a spotlight whose beam is up (watched until it locks), a floor-care
+        /// unit telegraphing or sweeping within 10 m. Starts the watch and logs it.</summary>
+        SkylineBot PickWatch(int i, float now)
+        {
+            Vector3 eye = player.EyePosition, feet = Feet();
+            var bots = director.BotsOf(i);
+            for (int k = 0; k < bots.Count; k++)
+            {
+                var b = bots[k];
+                if (b == null || !b.Alive || b.Def == null || b.practice) continue;
+                string kind = b.Def.id;
+                if (_watched.Contains(kind)) continue;
+                float d = Flat(feet, b.transform.position), len;
+                bool doing;
+                if (kind == SkylineEnemies.DroneId) { doing = b.IsAwake && d <= 25f; len = WatchDrone; }
+                else if (kind == SkylineEnemies.GondolaId) { doing = b.IsAwake; len = WatchGondola; }
+                else if (kind == SkylineEnemies.SpotlightId) { doing = b.Beam != null && b.Beam.Active && !b.Beam.Locked; len = WatchSpotlight; }
+                else { doing = d <= 10f && b.Brain != null && (b.Brain.State == BotState.Telegraph || b.Brain.State == BotState.Recover); len = WatchSweep; }
+                if (!doing || !LineOfFire(b, eye, out _)) continue;
+                _watched.Add(kind);
+                _watchKind = kind;
+                _watchUntil = now + len;
+                Log("watch " + kind);
+                return b;
+            }
+            return null;
+        }
+
+        /// <summary>Looks toward <paramref name="threat"/> along the nearest bearing (up to 100 degrees either way, in 15 degree
+        /// steps) whose line is open for 3 m: facing the fight, never a wall at a metre, never the way it came.</summary>
+        static Vector3 LookToward(Vector3 eye, Vector3 threat)
+        {
+            Vector3 d = threat - eye;
+            Vector3 flat = new Vector3(d.x, 0f, d.z);
+            if (flat.sqrMagnitude < 1e-4f) return threat;
+            float pitchY = Mathf.Clamp(d.y / flat.magnitude, -0.4f, 0.6f);
+            flat.Normalize();
+            for (int step = 0; step <= 7; step++)
+                for (int sign = -1; sign <= 1; sign += 2)
+                {
+                    if (step == 0 && sign > 0) continue;
+                    Vector3 r = Quaternion.AngleAxis(sign * step * 15f, Vector3.up) * flat;
+                    Vector3 dir = (r + Vector3.up * pitchY).normalized;
+                    if (Open(eye, dir, 3f)) return eye + dir * 10f;
+                }
+            return threat;
+        }
+
+        /// <summary>The nearest live drone or spotlight of fight <paramref name="i"/>, else the nearest live bot.</summary>
+        SkylineBot NearestShooterOrBot(int i, Vector3 eye)
+        {
+            SkylineBot best = null, any = null;
+            float bd = float.PositiveInfinity, ad = float.PositiveInfinity;
+            var bots = director.BotsOf(i);
+            for (int k = 0; k < bots.Count; k++)
+            {
+                var b = bots[k];
+                if (b == null || !b.Alive || b.Def == null) continue;
+                float d = Vector3.Distance(eye, b.Center);
+                if (d < ad) { ad = d; any = b; }
+                if (Shooter(b.Def) && d < bd) { bd = d; best = b; }
+            }
+            return best ?? any;
         }
 
         /// <summary>A point to look at toward <paramref name="want"/>: itself if the line there is open for 6 m, else the

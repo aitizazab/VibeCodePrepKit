@@ -22,6 +22,8 @@ namespace JamKit.SkylineRepo
         public float radius = 1.4f;
         [Tooltip("How far (m) below or above the cache the feet may be.")]
         public float heightTolerance = 0.6f;
+        [Tooltip("Which ledge this cache tops: 'boost-ledge' (the kiosk) or 'wall-run-ledge' (the lockers); names its log lines.")]
+        public string ledgeId = "boost-ledge";
         [Tooltip("What the cache is worth (scrap): plating first, the rest banked as recovered scrap.")]
         public float scrap = 50f;
         [Tooltip("The crate's look; hidden once taken.")]
@@ -45,8 +47,8 @@ namespace JamKit.SkylineRepo
             float gained = armor.Strip(new Wreck(def, Time.time), Time.time, 1f);
             Recovered = armor.RecoveredScrap - banked;
             if (visual != null) visual.SetActive(false);
-            Debug.Log("SKYLINE_ARENA boost-ledge reached");
-            Debug.Log("SKYLINE_ARENA scrap-cache plating +" + gained.ToString("0.#", CultureInfo.InvariantCulture) +
+            Debug.Log("SKYLINE_ARENA " + ledgeId + " reached");
+            Debug.Log("SKYLINE_ARENA " + (ledgeId == "boost-ledge" ? "scrap-cache" : ledgeId + " cache") + " plating +" + gained.ToString("0.#", CultureInfo.InvariantCulture) +
                       " recovered +" + Recovered.ToString("0.#", CultureInfo.InvariantCulture));
             Taken?.Invoke();
         }

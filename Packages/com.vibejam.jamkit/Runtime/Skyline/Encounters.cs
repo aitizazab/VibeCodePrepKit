@@ -216,13 +216,13 @@ namespace JamKit.Skyline
                 new Spawn(D, new Vector3(21f, DroneY, 0f), 1), new Spawn(D, new Vector3(18f, DroneY, 2f), 1),
                 new Spawn(D, new Vector3(-9f, 4.2f, 9f), 2), new Spawn(D, new Vector3(-6f, 4.2f, 9.5f), 2),
                 new Spawn(D, new Vector3(6f, 4.2f, 9.5f), 2), new Spawn(D, new Vector3(9f, 4.2f, 9f), 2),
-                new Spawn(F, new Vector3(-21f, 0f, 9f), 0), new Spawn(F, new Vector3(21f, 0f, 9f), 1),
+                new Spawn(F, new Vector3(-21f, 0f, 12f), 0), new Spawn(F, new Vector3(21f, 0f, 12f), 1),
             },
         };
 
-        /// <summary>The skylight, the last fight, by the mezzanine: two spotlights on its railing (air, where you are now), each
-        /// with two floor-care units (floor) that wake with it and come from the hall's sides (three each swarmed the line
-        /// under the deck: 22/30 clean). Walls open. Break their sight (the tall pieces, the mezzanine's underside) and
+        /// <summary>The skylight, the last fight and the climax, by the mezzanine: three spotlights on its railing (air, where
+        /// you are now; the third, off-centre, since judge round 2's escalation), the outer two each with two floor-care units
+        /// (floor) that wake with it and come from the hall's sides (three each swarmed the line under the deck: 22/30 clean). Walls open. Break their sight (the tall pieces, the mezzanine's underside) and
         /// change direction against the beams while jumping the acid.</summary>
         public static EncounterDef Skylight() => new EncounterDef
         {
@@ -230,7 +230,7 @@ namespace JamKit.Skyline
             anchor = SkylightAnchor,
             spawns = new[]
             {
-                new Spawn(S, new Vector3(-12.5f, 6.5f, 12.3f), 0), new Spawn(S, new Vector3(12.5f, 6.5f, 12.3f), 1),
+                new Spawn(S, new Vector3(-12.5f, 6.5f, 12.3f), 0), new Spawn(S, new Vector3(12.5f, 6.5f, 12.3f), 1), new Spawn(S, new Vector3(20f, 6.5f, 12.3f), 2),
                 new Spawn(F, new Vector3(-21f, 0f, -8f), 0), new Spawn(F, new Vector3(-17f, 0f, 7f), 0),
                 new Spawn(F, new Vector3(21f, 0f, -8f), 1), new Spawn(F, new Vector3(17f, 0f, 7f), 1),
             },
@@ -355,6 +355,17 @@ namespace JamKit.Skyline
         /// the boost kiosk, so no jump from its top reaches the kiosk's: that one still needs the boost.</summary>
         public static readonly Vector3 PracticeLedgeTop = new Vector3(12.5f, 3.5f, -45.5f);
         public const float PracticeLedgeSize = 3f;
+
+        /// <summary>The warm-up's wall-run ledge (judge round 2: nothing asked for a wall-run): a column of lockers 1.5 m off the
+        /// west wall, its top (4.6 m) out of a jump, a double jump and a mantle (4.15 m). Run the west wall north, kick off it
+        /// toward the lockers and pull up; a scrap cache waits on top. It stands over 12 m (edge to edge) from the boost kiosk.</summary>
+        public static readonly CoverBox WallRunLedge = new CoverBox
+        {
+            min = new Vector3(WarmupMinX + 1.5f, 0f, -24f), max = new Vector3(WarmupMinX + 4f, 4.6f, -22f),
+        };
+
+        /// <summary>Where the wall-run starts: by the west wall, south of the lockers, facing north.</summary>
+        public static readonly Vector3 WallRunStart = new Vector3(WarmupMinX + 0.6f, 0f, -40f);
 
         static CoverBox Pillar(float x, float z) => Block(x, z, 1f, 1f, MezzanineY);
 

@@ -90,22 +90,103 @@ namespace JamKit.SkylineRepo
             return m;
         }
 
-        /// <summary>A shared unlit material for the few things that glow (HDR colours read as hot under bloom): URP's Unlit,
-        /// else Sprites/Default (always in a build), else the lit template.</summary>
+        /// <summary>The glow's material asset in a Resources folder (URP Unlit, opaque): always in the build with its shader
+        /// variant, whatever the scene holds. Judge round 2 found a magenta bar in the build only: a glow made before the arena
+        /// director handed over its scene material had looked URP's Unlit up by name, and the build had no such variant.</summary>
+        public const string GlowResource = "SkylineFx/SK_Emissive_FxGlow";
+        /// <summary>The acid's material asset in a Resources folder (URP Lit, very smooth, with the normal-map and emission
+        /// variants switched on, so both are built).</summary>
+        public const string AcidResource = "SkylineFx/SK_Fx_Acid";
+
+        /// <summary>A shared unlit material for the few things that glow (HDR colours read as hot under bloom): a copy of the
+        /// scene's glow material when a director set one, else of <see cref="GlowResource"/>; never a shader looked up by name
+        /// (a build strips variants no material asset uses, and those render magenta). Without either, the lit template.</summary>
         public static Material Glow(Color hdr)
         {
             if (_glow.TryGetValue(hdr, out var m) && m != null) return m;
-            if (GlowTemplate != null) m = new Material(GlowTemplate);
-            else
-            {
-                var sh = Shader.Find("Universal Render Pipeline/Unlit");
-                if (sh == null) sh = Shader.Find("Sprites/Default");
-                m = sh != null ? new Material(sh) : new Material(Template());
-            }
+            var template = GlowTemplate != null ? GlowTemplate : GlowAsset();
+            m = template != null ? new Material(template) : new Material(Template());
             m.color = hdr;
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", hdr);
             _glow[hdr] = m;
             return m;
+        }
+
+        static Material _glowAsset, _acidAsset;
+        static Texture2D _ripples;
+
+        static Material GlowAsset()
+        {
+            if (_glowAsset == null) _glowAsset = Resources.Load<Material>(GlowResource);
+            return _glowAsset;
+        }
+
+        static readonly Dictionary<Color, Material> _acid = new Dictionary<Color, Material>();
+
+        /// <summary>A shared acid material: URP Lit from <see cref="AcidResource"/>, base <paramref name="baseColor"/>, a faint
+        /// emissive <paramref name="glow"/>, very smooth, with a rippled normal map (<see cref="Ripples"/>), so it shades like a
+        /// wet, slightly lit-from-within liquid rather than a flat sticker. Falls back to <see cref="Wet"/>.</summary>
+        public static Material AcidMaterial(Color baseColor, Color glow, float smoothness = 0.95f)
+        {
+            var key = new Color(baseColor.r + glow.r * 7.1f, baseColor.g + glow.g * 13.3f, baseColor.b + glow.b * 3.7f, smoothness);
+            if (_acid.TryGetValue(key, out var m) && m != null) return m;
+            if (_acidAsset == null) _acidAsset = Resources.Load<Material>(AcidResource);
+            if (_acidAsset == null) return Wet(baseColor);
+            m = new Material(_acidAsset) { name = "Acid" };
+            m.color = baseColor;
+            m.SetColor("_BaseColor", baseColor);
+            m.SetFloat("_Smoothness", smoothness);
+            m.SetColor("_EmissionColor", glow);
+            m.EnableKeyword("_EMISSION");
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            m.SetTexture("_BumpMap", Ripples());
+            m.SetFloat("_BumpScale", 0.7f);
+            m.EnableKeyword("_NORMALMAP");
+            _acid[key] = m;
+            return m;
+        }
+
+        /// <summary>Moves every acid material's ripples on (a slow drift, so the liquid's highlights crawl). Call once a frame.</summary>
+        public static void FlowAcid(float time)
+        {
+            foreach (var kv in _acid)
+                if (kv.Value != null) kv.Value.SetTextureOffset("_BumpMap", new Vector2(time * 0.07f, time * 0.11f));
+        }
+
+        /// <summary>A tiling normal map of soft overlapping ripples, made in code (linear).</summary>
+        public static Texture2D Ripples()
+        {
+            if (_ripples != null) return _ripples;
+            const int N = 64;
+            var h = new float[N * N];
+            var rng = new System.Random(5309);
+            for (int k = 0; k < 9; k++)
+            {
+                float cx = (float)rng.NextDouble() * N, cy = (float)rng.NextDouble() * N, f = 0.35f + 0.5f * (float)rng.NextDouble(), ph = (float)rng.NextDouble() * 6.3f;
+                for (int y = 0; y < N; y++)
+                    for (int x = 0; x < N; x++)
+                    {
+                        // the nearest wrapped copy of the centre, so the map tiles
+                        float dx = Mathf.Repeat(x - cx + N * 0.5f, N) - N * 0.5f, dy = Mathf.Repeat(y - cy + N * 0.5f, N) - N * 0.5f;
+                        float r = Mathf.Sqrt(dx * dx + dy * dy);
+                        h[y * N + x] += Mathf.Sin(r * f + ph) * Mathf.Exp(-r * 0.06f);
+                    }
+            }
+            var px = new Color32[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float gx = h[y * N + (x + 1) % N] - h[y * N + (x + N - 1) % N];
+                    float gy = h[((y + 1) % N) * N + x] - h[((y + N - 1) % N) * N + x];
+                    var n = new Vector3(-gx * 0.6f, -gy * 0.6f, 1f).normalized;
+                    // plain RGB with alpha 1 decodes right both ways: the RGB decode reads xyz, the RG-or-AG decode multiplies
+                    // alpha by red and reads x from it
+                    px[y * N + x] = new Color32((byte)(n.x * 127.5f + 127.5f), (byte)(n.y * 127.5f + 127.5f), (byte)(n.z * 127.5f + 127.5f), 255);
+                }
+            _ripples = new Texture2D(N, N, TextureFormat.RGBA32, true, true) { name = "Acid ripples", wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
+            _ripples.SetPixels32(px);
+            _ripples.Apply(true, true);
+            return _ripples;
         }
 
         /// <summary>A primitive with a shared material; its collider removed when <paramref name="collider"/> is false.</summary>
@@ -221,6 +302,9 @@ namespace JamKit.SkylineRepo
 
         public static SkylineBotParts Build(EnemyDef def, Transform root, MonoBehaviour owner)
         {
+            // a body built ahead at load (judge round 2, perf: no Instantiate, colliders or hit zones on the frame a fight starts)
+            var pooled = SkylineBodyPool.Take(def, root, owner);
+            if (pooled != null) return pooled;
             var parts = new SkylineBotParts();
             var model = Resources.Load<GameObject>(ModelFolder + def.id);
             if (model != null)
@@ -241,6 +325,19 @@ namespace JamKit.SkylineRepo
                 }
             }
             AssignZones(def, parts, owner);
+            return parts;
+        }
+
+        /// <summary>A model body built ahead under <paramref name="holder"/> for <see cref="SkylineBodyPool"/>, exactly as
+        /// <see cref="Build"/> builds it (the model, its box colliders, the weak point cleared, the hit zones) but with no owner
+        /// yet; null when the bot has no model (the primitive bodies are cheap and stay built on spawn).</summary>
+        public static SkylineBotParts BuildAhead(EnemyDef def, Transform holder)
+        {
+            var model = Resources.Load<GameObject>(ModelFolder + def.id);
+            if (model == null) return null;
+            var parts = new SkylineBotParts { fromModel = true };
+            FromModel(def, holder, model, parts);
+            AssignZones(def, parts, null);
             return parts;
         }
 

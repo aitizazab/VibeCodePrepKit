@@ -125,6 +125,18 @@ namespace JamKit.SkylineRepo.EditorTools
             var pc = U(GalleriaArena.PracticeLedgeTop);
             float ph = GalleriaArena.PracticeLedgeSize * 0.5f;
             Box(warm, "Practice Counter", V(pc.x - ph, 0f, pc.z - ph), V(pc.x + ph, pc.y, pc.z + ph), mKiosk, true, false);
+            // the lockers by the west wall (the wall-run lesson): run the wall, kick off it toward them, pull up; a cache on top
+            var wr = GalleriaArena.WallRunLedge;
+            Box(warm, "Wall-run Lockers", U(wr.min), U(wr.max), mKiosk, true, false);
+            Box(warm, "Wall-run Lockers Edge", V(wr.min.X, wr.max.Y, wr.min.Z), V(wr.max.X, wr.max.Y + 0.04f, wr.min.Z + 0.12f), mSign, false, null, true);
+            var wrTop = new Vector3((wr.min.X + wr.max.X) * 0.5f, wr.max.Y, (wr.min.Z + wr.max.Z) * 0.5f);
+            var wrCacheGo = new GameObject("Wall-run Cache");
+            wrCacheGo.transform.SetParent(warm, false);
+            wrCacheGo.transform.position = wrTop;
+            var wrCache = wrCacheGo.AddComponent<SkylineScrapCache>();
+            wrCache.ledgeId = "wall-run-ledge";
+            wrCache.scrap = 30f;
+            wrCache.visual = Box(wrCacheGo.transform, "Crate", wrTop + V(-0.35f, 0f, -0.25f), wrTop + V(0.35f, 0.4f, 0.25f), mCache, false, null, true);
             Box(warm, "Practice Counter Edge", V(pc.x - ph, pc.y, pc.z + ph - 0.12f), V(pc.x + ph, pc.y + 0.04f, pc.z + ph), mSign, false, null, true);
 
             // ---------------------------------------------------------- the main hall
@@ -147,7 +159,7 @@ namespace JamKit.SkylineRepo.EditorTools
             var rail = GalleriaArena.MezzanineRail();
             Box(hall, "Mezzanine Balustrade (glass)", U(rail[0].min), U(rail[0].max), mRail, true, false);
             for (int i = 1; i < rail.Length; i++)
-                Box(hall, "Spotlight Plinth " + (rail[i].min.X < 0f ? "West" : "East"), U(rail[i].min), U(rail[i].max), mDeck, true, false);
+                Box(hall, "Spotlight Plinth " + i, U(rail[i].min), U(rail[i].max), mDeck, true, false);
 
             // the far goal: the service lift's lobby under the mezzanine (GalleriaArena.LiftLobby), its shutter down until the
             // hall is cleared; then it rolls up to GalleriaArena.ShutterGap and the Unit slides under it to the lift
@@ -177,6 +189,7 @@ namespace JamKit.SkylineRepo.EditorTools
             // ---------------------------------------------------------- the player, the HUD, the director, the demo
             var player = SkylinePlayerBuilder.Build(null, U(GalleriaArena.PlayerStart), 0f);
             cache.player = player;
+            wrCache.player = player;
 
             var hudGo = new GameObject("HUD");
             var doc = hudGo.AddComponent<UIDocument>();
@@ -197,6 +210,7 @@ namespace JamKit.SkylineRepo.EditorTools
             director.player = player;
             director.zones = zones;
             director.cache = cache;
+            director.wallRunCache = wrCache;
             director.voice = voice;
             director.botsRoot = new GameObject("Bots").transform;
             director.entryMarker = entryMarker;
@@ -217,6 +231,8 @@ namespace JamKit.SkylineRepo.EditorTools
             try { Dress(arena, warm, hall, entryMarker); }
             catch (System.Exception e) { Debug.LogError("SKYLINE_LOOK dressing failed: " + e); }
             director.zoneMarkers = ZoneMarkers(entryMarker);
+            try { SkinLevelPieces(warm, hall); }
+            catch (System.Exception e) { Debug.LogError("SKYLINE_LOOK level pieces failed: " + e); }
             SkylineLook.SetupCameras(scene);
             if (look) SkylineLook.BakeReflections(scene, path, arena);
             AssetDatabase.SaveAssets();
@@ -319,6 +335,8 @@ namespace JamKit.SkylineRepo.EditorTools
             var shutter = Box(root, "Lift Shutter", V(l.min.X + t, 0f, l.min.Z), V(l.max.X - t, fascia, l.min.Z + 0.2f), wall, true, false);
             float cx = (l.min.X + l.max.X) * 0.5f;
             Box(root, "Lift Doors", V(cx - 1f, 0f, l.max.Z - 0.03f), V(cx + 1f, 2.6f, l.max.Z), glow, false, null, true);
+            Box(root, "Lift Door Seam", V(cx - 0.01f, 0f, l.max.Z - 0.04f), V(cx + 0.01f, 2.6f, l.max.Z - 0.03f), sign, false, null, true);
+            Box(root, "Lift Indicator", V(cx - 0.45f, 2.8f, l.max.Z - 0.03f), V(cx + 0.45f, 3.05f, l.max.Z), glow, false, null, true);
             var go = new GameObject("Zone lift");
             go.transform.SetParent(root, false);
             var b = Bounds(l.min.X + t, l.max.X - t, l.min.Z + 0.6f, l.max.Z);
@@ -328,6 +346,35 @@ namespace JamKit.SkylineRepo.EditorTools
             zone.encounterId = "lift";
             zone.size = b.size;
             return new Lift { shutter = shutter.transform, zone = zone };
+        }
+
+        /// <summary>The look library's materials (metre UVs) on the level's own pieces that the dressing doesn't know: the
+        /// practice counter in marble like the boost kiosk, the lift lobby's walls in plaster, its fascia and doors in brushed
+        /// steel, its shutter a painted roll-up shutter.</summary>
+        static void SkinLevelPieces(Transform warm, Transform hall)
+        {
+            var marble = SkylineLookLibrary.Get("Marble_Cream");
+            var plaster = SkylineLookLibrary.Get("Plaster_White");
+            var steel = SkylineLookLibrary.Get("Steel_Brushed");
+            var shutter = SkylineLookLibrary.Variant("Shutter_Painted", "Lift", new Color(0.7f, 0.74f, 0.78f));
+            var counter = warm.Find("Practice Counter");
+            if (counter != null) SkinGo(counter.gameObject, marble, true);
+            var lockers = warm.Find("Wall-run Lockers");
+            if (lockers != null) SkinGo(lockers.gameObject, SkylineLookLibrary.Variant("Shutter_Painted", "Lockers", new Color(0.45f, 0.62f, 0.66f)), true);
+            var lift = hall.Find("Service Lift");
+            if (lift == null) return;
+            foreach (var n in new[] { "Lift Wall West", "Lift Wall East" })
+            {
+                var t = lift.Find(n);
+                if (t != null) SkinGo(t.gameObject, plaster, true);
+            }
+            foreach (var n in new[] { "Lift Fascia", "Lift Doors" })
+            {
+                var t = lift.Find(n);
+                if (t != null) SkinGo(t.gameObject, steel, true);
+            }
+            var sh = lift.Find("Lift Shutter");
+            if (sh != null) SkinGo(sh.gameObject, shutter, true);
         }
 
         /// <summary>One floor marker per fight after the first (index = encounter): the dressed entry marker for the second,

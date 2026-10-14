@@ -241,24 +241,35 @@ def late_hall(n, seed):
 ROOM_RT = 30.0
 
 
+SHOT_LEN = 2.8   # the shot's length (round 2: 2.3 cut the room and the air; now every layer fades out before the end)
+
+
+def tail_fade(n, seconds=0.5):
+    """A smooth (raised-cosine) fade over the last `seconds` of n samples, so a long tail ends in silence, not a cut."""
+    g = np.ones(n)
+    k = min(n, n_of(seconds))
+    g[n - k:] = 0.5 + 0.5 * np.cos(np.linspace(0, np.pi, k))
+    return g
+
+
 def shot_room(seed):
     """The courtroom's stone room after the shot (fix round 1: the tail fell to -40 dB by 1 s; a hand cannon's room holds):
-    a bright early wash that darkens (5 kHz to 900 Hz) and a slow second slope (RT60 about 4 s)."""
-    n = n_of(2.3)
+    a dark wash with a slow second slope, faded out before the clip ends."""
+    n = n_of(SHOT_LEN)
     t = t_of(n)
     x = rng(seed).standard_normal(n)
     env = np.clip((t - 0.02) / 0.3, 0, 1) * np.exp(-np.maximum(t - 0.32, 0) * 6.9078 / ROOM_RT)
     env *= np.where(t > 1.0, np.exp(-(t - 1.0) * 6.9078 / 4.3), 1.0)        # the second slope: about -14 dB a second
-    return bp(sweep_lp(x, 420.0, 170.0, n), 70, None) * env
+    return bp(sweep_lp(x, 420.0, 170.0, n), 70, None) * env * tail_fade(n)
 
 
 def shot_air(seed):
     """The room's bright early reflections (the crack coming back off stone and brass): 3.5-13 kHz, fading over about 0.5 s (-60 dB at 1.5 s)."""
-    n = n_of(0.9)
+    n = n_of(SHOT_LEN)
     t = t_of(n)
     x = rng(seed).standard_normal(n)
     early = np.exp(-np.maximum(t - 0.008, 0) * 6.9078 / 1.5) * np.clip((t - 0.004) / 0.02, 0, 1)
-    return sweep_lp(bp(x, 3500, None), 13000.0, 5500.0, n) * early
+    return sweep_lp(bp(x, 3500, None), 13000.0, 5500.0, n) * early * tail_fade(n)
 
 
 def shot_mech():
@@ -326,11 +337,11 @@ def mag_out():
 def cell_in():
     n = n_of(0.35)
     r = rng(91)
-    slide = bp(r.standard_normal(n), 500, 2400) * decay_env(n, 0.07, attack=0.03) * 0.45
-    k = n_of(0.028)
-    thunk = (glide(n, 190, 120, curve=25, start=0.028) * decay_env(n, 0.1, attack=0.001, start=0.028) * HANDLING_LOW
-             + modal(n, [(720, 0.05, 0.5), (1620, 0.04, 0.6), (2900, 0.03, 0.55), (4300, 0.02, 0.35)], start=0.028, seed=92)
-             + click(n, 0.028, 93, lo=1500, decay=0.0025, gain=1.3))
+    # the drum lands at the event's instant (a hard thunk), then slides the last millimetres home
+    slide = bp(r.standard_normal(n), 500, 2400) * decay_env(n, 0.06, attack=0.012, start=0.012) * 0.4
+    thunk = (glide(n, 190, 120, curve=25, start=0.001) * decay_env(n, 0.1, attack=0.001, start=0.001) * HANDLING_LOW
+             + modal(n, [(720, 0.05, 0.5), (1620, 0.04, 0.6), (2900, 0.03, 0.55), (4300, 0.02, 0.35)], start=0.001, seed=92)
+             + click(n, 0.0005, 93, lo=1500, decay=0.0025, gain=1.3))
     touch = click(n, 0.0, 94, lo=1500, decay=0.0015, gain=0.7) + modal(n, [(2600, 0.012, 0.35)], seed=95)   # the drum meets the column
     return slide + thunk + touch
 
@@ -497,14 +508,14 @@ STEMS = {
 }
 
 # the mix of the shot's layers (dB, relative to each stem's -1.5 dBFS peak): tuned against the measurements
-SHOT_MIX = {"gavel": -8.0, "body": -2.0, "crack": 3.0, "hydraulic": -9.0, "hall": -3.0, "room": -8.0, "air": 1.0}
+SHOT_MIX = {"gavel": -8.0, "body": -2.0, "crack": 3.0, "hydraulic": -9.0, "hall": -3.0, "room": -7.0, "air": 1.0}
 
 
 def recipes():
     m = SHOT_MIX
     one = lambda name, length, gain=0.0: R(length, [S(name, gain)])  # noqa: E731
     return {
-        "shot": R(2.3, [S("shot_gavel", m["gavel"]), S("shot_body", m["body"]), S("shot_crack", m["crack"]),
+        "shot": R(SHOT_LEN, [S("shot_gavel", m["gavel"]), S("shot_body", m["body"]), S("shot_crack", m["crack"]),
                         S("shot_hydraulic", m["hydraulic"], pan=0.1),
                         S("shot_room_l", m["room"], pan=-0.9), S("shot_room_r", m["room"], pan=0.9),
                         S("shot_air_l", m["air"], pan=-0.7), S("shot_air_r", m["air"], pan=0.7),

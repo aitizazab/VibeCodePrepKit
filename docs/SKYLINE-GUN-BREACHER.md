@@ -16,7 +16,7 @@ left.
 
 ## The verbs
 
-- **Shove:** a hit pushes a bot back (9 m/s shared across the pellets that land); a shed plate flies off along the shot.
+- **Shove:** a hit pushes a bot back (15 m/s shared across the pellets that land), tipping and spinning it; a shed plate flies off along the shot.
 - **Breach:** close range only; nine pellets in a 5° cone, full damage to 6 m, a quarter of it by 18 m, nothing past 30 m.
 - **Boost:** fired downward in mid-air, the blast lifts you (see the rules below). Fired flat in mid-air, it shoves you
   backward instead.
@@ -50,7 +50,7 @@ These are the creator's calls (2026-10-13), already in the code; nothing here ch
 | Spread | 5° cone | Tight enough that 6 m is a sure hit, loose enough that 15 m isn't. |
 | Falloff | full to 6 m, 25% by 18 m, range 30 m | A close-range gun; at range you'd rather swap to the Writ (2.1's designed swap moment). |
 | Weak point | x1.25 | A shotgun doesn't reward precision much; the Writ owns weak points. |
-| Bot knockback | 9 m/s per shot | The identity: a bot slides about a body length. Shared by the pellets that land (1 m/s each). |
+| Bot knockback | 15 m/s per shot (was 9) | The identity: a bot slides about a metre at 6.5 m, about 3 m at point blank. It is shared by the pellets that land (1.7 m/s each), and SkylineShoveLurch tips and spins the bot's body with it (judge round 2, N3). |
 | Hit stop | 0.05 s (kill 0.1 s) | Weight on contact without stalling the next shot. |
 | Camera kick | 8° up, 2° side, recovers at rate 7 | **Changed by Task 19** (was 6.5° / 1.5° / 6): "the camera kicks hard". At rate 7 the kick is back to 0.5% before the next shot. |
 | Shake | 0.3 trauma per shot | **Changed by Task 19** (was 0.22): the blast should rattle the view: five times the Writ's 0.06 per shot, and 0.4 a second at full rate against the Writ's 0.25. |
@@ -236,3 +236,16 @@ Reload sync (`listen.py events` on the rendered clips; every event found at its 
 - **The hit-sound rule** (proposed to the Writ side and the mix): one hit sound a shot. A gun that has its own impact
   plays only that (the Breacher's `breacher/impact`; the Writ's `writ/impact`, `impact_weak` or `spot_pop`).
   `impact/hit` is the fallback for guns without one, and `impact/world` stays for the world.
+
+## Fix round 2 (judge round 2, 2026-10-14)
+
+- **The hit** (`breacher/impact`, N2): it is rebuilt to cut through the blast. It has a saturated crunch of casing
+  (1.2-5 kHz), nine pellets rattling on plating over 45 ms (hard ticks with steel rings at 1.9-4.6 kHz), and a loose
+  rattle settling to 0.25 s, all pressed. The low knock is now small. Over the blast's first 120 ms it adds +7.5 dB in
+  1-6 kHz (the old one added +0.1 dB).
+- **The shove** (N3): bot knockback is 15 m/s (was 9), plates are kicked at 11 m/s plus 3 up (was 7 plus 2), and a sprung
+  lurch tips each bot's body back up to 38° and spins it, ringing out in about half a second.
+- **The reload** (N5): every part now leads with a mechanical clack. `cell_out` and `cell_in` add a solid mid knock of a
+  heavy part. `seat` adds a held hydraulic press (a low rumble and a mid groan) under a hiss that is 10 dB lower. This
+  moves the reload away from the Witchfire Echo's airy brightness (centroid about 1.3 kHz against 4.8 kHz). Weight was
+  the call here; the creator's ears decide between the two.

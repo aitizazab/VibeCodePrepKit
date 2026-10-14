@@ -18,9 +18,9 @@ namespace JamKit.SkylineRepo.EditorTools
         public const string Gallery = Folder + "/SkylineGallery.unity";
         public static readonly string[] All = { Arena, FiringRange, Gallery };
 
-        /// <summary>Seconds stage B records each scene (its director's script fits inside; the arena: 170 s, so the demo goes the whole
+        /// <summary>Seconds stage B records each scene (its director's script fits inside; the arena: 180 s, so the demo goes the whole
         /// route: the warm-up, the three fights and the slide into the lift (judge round 1); the gallery: a 1 s lead-in and four segments of 12, 12, 12 and 14 s, about 52 s, or about 60 s if the drone's and gondola's fallback waits both run).</summary>
-        public static int RecordSeconds(string scene) => scene == Arena ? 170 : scene == FiringRange ? 45 : 62;
+        public static int RecordSeconds(string scene) => scene == Arena ? 180 : scene == FiringRange ? 45 : 62;
 
         public static string[] BuildAll()
         {

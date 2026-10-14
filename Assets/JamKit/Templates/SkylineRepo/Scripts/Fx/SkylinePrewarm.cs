@@ -16,6 +16,8 @@ namespace JamKit.SkylineRepo
     /// face, a bark bubble's text) shown in front of the camera for two frames, so the graphics driver builds their
     /// pipeline states during the scene's first frames (before the recording starts and inside the frame-time probe's
     /// warm-up), not on the frame a bot first sparks or barks.</item>
+    /// <item>Judge round 2 (perf): every sound's data decoded and, in the arena, every bot's body built ahead, spread over the
+    /// scene's first frames (<see cref="SkylineWarmQueue"/>, <see cref="SkylineBodyPool"/>).</item>
     /// </list>
     /// </summary>
     public static class SkylinePrewarm
@@ -48,10 +50,43 @@ namespace JamKit.SkylineRepo
                     if (m != null) models.Add(m);
                 }
             _models = models.ToArray();
+            WarmSounds();
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == ArenaScene) WarmArenaBodies();
         }
 
-        const string BotModelFolder = "SkylineModels/bots/";
+        const string BotModelFolder = "SkylineModels/bots/", SoundFolder = "SkylineAudio", ArenaScene = "SkylineArena";
         static GameObject[] _models = new GameObject[0];
+        static AudioClip[] _clips = new AudioClip[0];
+
+        /// <summary>
+        /// Judge round 2 (perf): every Skyline sound is imported with "preload audio data" off and "decompress on load", so a
+        /// sound's first play loaded and decoded the whole clip on the main thread, mid-fight: a bot's idle loop as each bot
+        /// spawned, its alert, shot, hit and wreck sounds the first time each happened. The clips are loaded now and their
+        /// data decoded on <see cref="SkylineWarmQueue"/>, a few a frame, during the scene's first second (held here, so an
+        /// unload of unused assets can't drop them). <see cref="SkylineSounds.Get"/> later loads the same objects, already
+        /// decoded.
+        /// </summary>
+        static void WarmSounds()
+        {
+            _clips = Resources.LoadAll<AudioClip>(SoundFolder);
+            foreach (var clip in _clips)
+            {
+                var c = clip;
+                if (c == null || c.loadState == AudioDataLoadState.Loaded) continue;
+                SkylineWarmQueue.Add(() => { if (c != null && c.loadState == AudioDataLoadState.Unloaded) c.LoadAudioData(); });
+            }
+        }
+
+        /// <summary>The arena's bot bodies, one for every spawn of its three fights in fight order, built ahead on
+        /// <see cref="SkylineWarmQueue"/> (<see cref="SkylineBodyPool"/>): an encounter's start then only moves them into place.</summary>
+        static void WarmArenaBodies()
+        {
+            var ids = new System.Collections.Generic.List<string>();
+            foreach (var e in GalleriaArena.Encounters())
+                if (e != null && e.spawns != null)
+                    foreach (var s in e.spawns) ids.Add(s.enemy);
+            SkylineBodyPool.Fill(ids);
+        }
 
         /// <summary>Shows one tiny copy of each runtime drawing 0.6 m in front of <paramref name="cam"/> for two frames, then
         /// removes it.</summary>

@@ -344,6 +344,9 @@ namespace JamKit.SkylineRepo
             _sayLeft = seconds > 0f ? seconds : SayTime;
         }
 
+        /// <summary>Takes the subtitle down now (it fades out): its line ended early.</summary>
+        public void EndSay() => _sayLeft = Mathf.Min(_sayLeft, 0f);
+
         static Color SpeakerColor(Speaker s)
         {
             switch (s)

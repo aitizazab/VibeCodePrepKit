@@ -274,17 +274,19 @@ namespace JamKit.Tests.Skyline
 
         static string Clean(EncounterDef e, CoverBox[] cover, ulong first)
         {
-            int clean = 0, damaged = 0;
+            int clean = 0, damaged = 0, cleared = 0;
+            float clearSum = 0f;
             var lows = new List<float>();
             for (ulong s = first; s < first + 30; s++)
             {
                 var r = new FightSim(e, World(cover), new TacticalBot(s, FightTiming.Human()), cover, e.anchor, s, Difficulties.Normal(), null, null, null, 0f).Run(180f);
                 if (r.cleared && r.chassisLost == 0f) clean++;
                 if (r.damageTaken > 0f) damaged++;
+                if (r.cleared) { cleared++; clearSum += r.clearSeconds; }
                 lows.Add(r.minPlating);
             }
             lows.Sort();
-            return $"clean {clean}/30, median low {lows[15]:0}, damaged {damaged}";
+            return $"clean {clean}/30, median low {lows[15]:0}, damaged {damaged}, mean clear {clearSum / Math.Max(1, cleared):0} s";
         }
 
         static CoverBox Box(float x, float z, float sx, float sz, float h) =>
@@ -295,6 +297,52 @@ namespace JamKit.Tests.Skyline
             var r = new Spawn[s.Length];
             for (int i = 0; i < s.Length; i++) r[i] = f(s[i]);
             return r;
+        }
+
+        static Spawn D(float x, float z, int g) => new Spawn(SkylineEnemies.DroneId, new Vector3(x, GalleriaArena.DroneY, z), g);
+        static Spawn F(float x, float z, int g) => new Spawn(SkylineEnemies.FloorCareId, new Vector3(x, 0f, z), g);
+        static Spawn S(float x, int g) => new Spawn(SkylineEnemies.SpotlightId, new Vector3(x, 6.5f, 12.3f), g);
+
+        [Test, Explicit("design aid: escalation variants of the later fights (gate seeds 101-130, held-out 201-230)")]
+        public void SweepEscalation([Values(0, 1, 2, 3, 4, 5, 6, 7)] int variant)
+        {
+            var cover = new List<CoverBox>(GalleriaArena.FightCover());
+            EncounterDef e;
+            string what;
+            var fa = FightTests.ById("facade");
+            var sk = FightTests.ById("skylight");
+            var g = new List<Spawn>();
+            foreach (var x in fa.spawns) if (x.enemy == SkylineEnemies.GondolaId) g.Add(x);
+            switch (variant)
+            {
+                case 0: e = fa; what = "facade as shipped"; break;
+                case 1:
+                    e = fa; what = "facade, 10 drones (one more each side)";
+                    e.spawns = new List<Spawn>(fa.spawns) { D(-22f, -5f, 0), D(22f, -5f, 1) }.ToArray();
+                    break;
+                case 2:
+                    e = fa; what = "facade, 12 drones (two more each side)";
+                    e.spawns = new List<Spawn>(fa.spawns) { D(-22f, -5f, 0), D(22f, -5f, 1), D(-22f, 2f, 0), D(22f, 2f, 1) }.ToArray();
+                    break;
+                case 3:
+                    e = fa; what = "facade, 12 drones, the extra pair a third group (south-west/south-east)";
+                    e.spawns = new List<Spawn>(fa.spawns) { D(-22f, -5f, 0), D(22f, -5f, 1), D(-17f, -15f, 2), D(17f, -15f, 2) }.ToArray();
+                    break;
+                case 4: e = sk; what = "skylight as shipped"; break;
+                default:
+                {
+                    e = sk;
+                    var list = new List<Spawn>(sk.spawns);
+                    list.Add(S(-4.5f, 2));
+                    cover.Add(new CoverBox { min = new Vector3(-5f, GalleriaArena.MezzanineY, 12.05f), max = new Vector3(-4f, 6.5f - GalleriaArena.SpotlightBaseBelow, 12.7f) });
+                    if (variant == 5) what = "skylight, a third spotlight (x -4.5) alone";
+                    else if (variant == 6) { what = "skylight, a third spotlight with two floor-care units from the south"; list.Add(F(-10f, -15f, 2)); list.Add(F(10f, -15f, 2)); }
+                    else { what = "skylight, a third spotlight with one floor-care unit from the south"; list.Add(F(10f, -15f, 2)); }
+                    e.spawns = list.ToArray();
+                    break;
+                }
+            }
+            TestContext.WriteLine($"variant {variant} ({what}): spread {EncounterRules.BearingSpread(e):0}, rules [{string.Join("; ", EncounterRules.Check(e, SkylineEnemies.Find))}]; gate {Clean(e, cover.ToArray(), 101)}; held-out {Clean(e, cover.ToArray(), 201)}");
         }
 
         [Test, Explicit("design aid: the skylight's clean seeds for variants of the mezzanine's rail")]
@@ -312,45 +360,25 @@ namespace JamKit.Tests.Skyline
             TestContext.WriteLine($"skylight variant {variant} ({what}): gate {Clean(e, cover.ToArray(), 101)}; held-out {Clean(e, cover.ToArray(), 201)}");
         }
 
-        [Test, Explicit("design aid: the human-timed line's clean seeds for layout variants (gate seeds 101-130, held-out 201-230)")]
+        [Test, Explicit("design aid: the food court's human-timed line for layout variants (gate seeds 101-130, held-out 201-230 and 301-330)")]
         public void SweepRouteVariants([Values(0, 1, 2, 3, 4, 5, 6, 7)] int variant)
         {
             var e = FightTests.ById("food-court");
             var cover = new List<CoverBox>(GalleriaArena.FightCover());
             string what = "as shipped";
+            Func<Spawn, bool> north = s => s.group == 2 && s.enemy == SkylineEnemies.DroneId;
+            Func<Spawn, bool> side = s => s.group < 2 && s.enemy == SkylineEnemies.DroneId;
             switch (variant)
             {
-                case 1:
-                    what = "north group 1.5 m further north";
-                    e.spawns = Moved(e.spawns, s => { if (s.group == 2 && s.enemy == SkylineEnemies.DroneId) s.position.Z += 1.5f; return s; });
-                    break;
-                case 2:
-                    what = "W/E groups' two southern drones 2 m north";
-                    e.spawns = Moved(e.spawns, s => { if (s.group < 2 && s.enemy == SkylineEnemies.DroneId && s.position.Z < -3f) s.position.Z += 2f; return s; });
-                    break;
-                case 3:
-                    what = "planters flank the booth's mouth";
-                    for (int i = 0; i < cover.Count; i++)
-                        if (cover[i].max.Y < 1.1f) cover[i] = Box(cover[i].min.X < 0f ? -4.6f : 4.6f, -14.6f, 0.8f, 2f, 1f);
-                    break;
-                case 5:
-                    what = "north group 1.5 m north and 2 m wider";
-                    e.spawns = Moved(e.spawns, s => { if (s.group == 2 && s.enemy == SkylineEnemies.DroneId) { s.position.Z += 1.5f; s.position.X += s.position.X < 0f ? -2f : 2f; } return s; });
-                    break;
-                case 6:
-                    what = "north group 2 m wider, W/E southern drones 2 m north";
-                    e.spawns = Moved(e.spawns, s => { if (s.group == 2 && s.enemy == SkylineEnemies.DroneId) s.position.X += s.position.X < 0f ? -2f : 2f; if (s.group < 2 && s.enemy == SkylineEnemies.DroneId && s.position.Z < -3f) s.position.Z += 2f; return s; });
-                    break;
-                case 7:
-                    what = "north group 1.5 m north, 2 m wider, W/E southern drones 2 m north";
-                    e.spawns = Moved(e.spawns, s => { if (s.group == 2 && s.enemy == SkylineEnemies.DroneId) { s.position.Z += 1.5f; s.position.X += s.position.X < 0f ? -2f : 2f; } if (s.group < 2 && s.enemy == SkylineEnemies.DroneId && s.position.Z < -3f) s.position.Z += 2f; return s; });
-                    break;
-                case 4:
-                    what = "north group a further 2 m from the middle (the shipped data took this step once)";
-                    e.spawns = Moved(e.spawns, s => { if (s.group == 2 && s.enemy == SkylineEnemies.DroneId) s.position.X += s.position.X < 0f ? -2f : 2f; return s; });
-                    break;
+                case 1: what = "north group 0.75 m north"; e.spawns = Moved(e.spawns, s => { if (north(s)) s.position.Z += 0.75f; return s; }); break;
+                case 2: what = "north group 1.5 m north"; e.spawns = Moved(e.spawns, s => { if (north(s)) s.position.Z += 1.5f; return s; }); break;
+                case 3: what = "side groups 1 m nearer their walls"; e.spawns = Moved(e.spawns, s => { if (side(s)) s.position.X += s.position.X < 0f ? -1f : 1f; return s; }); break;
+                case 4: what = "side groups' southernmost drones 1 m north"; e.spawns = Moved(e.spawns, s => { if (side(s) && s.position.Z < -6f) s.position.Z += 1f; return s; }); break;
+                case 5: what = "floor-care units 3 m further north"; e.spawns = Moved(e.spawns, s => { if (s.enemy == SkylineEnemies.FloorCareId) s.position.Z += 3f; return s; }); break;
+                case 6: what = "side groups' (19,-4) drones 1 m out"; e.spawns = Moved(e.spawns, s => { if (side(s) && Math.Abs(s.position.Z + 4f) < 0.1f) s.position.X += s.position.X < 0f ? -1f : 1f; return s; }); break;
+                case 7: what = "north group at 4.0 m"; e.spawns = Moved(e.spawns, s => { if (north(s)) s.position.Y = 4f; return s; }); break;
             }
-            TestContext.WriteLine($"variant {variant} ({what}): gate {Clean(e, cover.ToArray(), 101)}; held-out {Clean(e, cover.ToArray(), 201)}");
+            TestContext.WriteLine($"variant {variant} ({what}): gate {Clean(e, cover.ToArray(), 101)}; held-out {Clean(e, cover.ToArray(), 201)}; {Clean(e, cover.ToArray(), 301)}");
         }
 
         [Test, Explicit("design aid: per hit taken on the human-timed line, where the player stood and who could see it")]

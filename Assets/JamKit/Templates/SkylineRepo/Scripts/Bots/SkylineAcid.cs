@@ -7,26 +7,31 @@ namespace JamKit.SkylineRepo
     /// <summary>The floor-care unit's acid sweep drawn and timed (2.5: "ankle-height acid sweep"). The bot starts it facing the
     /// target and steps it on its own clock (<see cref="SkylineBot"/> checks <see cref="AcidSweep.Touches"/> at <see cref="T"/>
     /// before each <see cref="Advance"/>, as FightSim does, and damages once per sweep: the look below changes none of that).
-    /// <para>The look (judge round 1: the jet had been a stretched green cube and the puddles flat paper discs): a liquid
-    /// stream from the nozzle, low over the floor with a slight bow, that lags behind the nozzle as it swings (a hose's curve,
-    /// not a rigid bar), fanning out toward the end, with a bright toxic core inside a wet, glossy sheath; droplets spatter
-    /// off where it lands; and where it lands it leaves a line of glossy, irregular puddles (<see cref="SkylinePuddle"/>, one
-    /// pool shared by every unit) that splat out and shrink away.</para></summary>
+    /// <para>The look (judge rounds 1 and 2: a green cube, then flat lime "stickers"): the stream is a real tube of liquid
+    /// (a mesh rebuilt each frame, round in section and a little flattened, fattening toward the end), low over the floor
+    /// with a slight bow, lagging behind the nozzle as it swings (a hose's curve, not a rigid bar). It and the droplets that
+    /// spatter where it lands use the acid material (<see cref="SkylineBotLook.AcidMaterial"/>: URP Lit, very smooth, a faint
+    /// toxic glow, a drifting ripple normal map), so they shade, catch the sun and the sky, and crawl. Where it lands it
+    /// leaves glossy puddles (<see cref="SkylinePuddle"/>).</para></summary>
     public sealed class SkylineAcid : MonoBehaviour
     {
         const float JetHeight = 0.12f, PuddleEvery = 0.05f;
-        const int StreamPoints = 14, DropletCount = 14;
+        const int StreamPoints = 14, Sides = 8, DropletCount = 14;
         /// <summary>How far behind the nozzle's swing the stream's far end trails (s of swing).</summary>
         const float Lag = 0.11f;
         /// <summary>The stream's bow above the straight line from the nozzle to the floor (m).</summary>
         const float Bow = 0.1f;
+        /// <summary>The stream's radius at the nozzle and at the far end (m), and how much wider than tall it is.</summary>
+        const float RadiusNozzle = 0.028f, RadiusEnd = 0.07f, Flatten = 1.5f;
         public static readonly Color AcidWet = new Color(0.36f, 0.66f, 0.08f);
-        static readonly Color AcidCore = new Color(0.9f, 1.9f, 0.25f);
-        static readonly Color DropletColor = new Color(0.45f, 0.78f, 0.12f);
+        /// <summary>The stream: a brighter, more saturated green, glowing a little more than the puddles.</summary>
+        static readonly Color StreamColor = new Color(0.42f, 0.82f, 0.1f), StreamGlow = new Color(0.12f, 0.38f, 0.02f);
+        static readonly Color DropletColor = new Color(0.45f, 0.8f, 0.12f), DropletGlow = new Color(0.08f, 0.24f, 0.01f);
 
         EnemyDef _def;
         GameObject _jet;
-        LineRenderer _sheath, _core;
+        Mesh _tube;
+        Vector3[] _tubeVerts, _tubeNormals;
         readonly Vector3[] _pts = new Vector3[StreamPoints];
         float _sincePuddle;
         Transform[] _drops;
@@ -49,40 +54,49 @@ namespace JamKit.SkylineRepo
             var a = go.AddComponent<SkylineAcid>();
             a._def = def;
             a._jet = new GameObject("Acid Jet");
-            a._sheath = Line(a._jet.transform, "Sheath", SkylineBotLook.Wet(AcidWet), true,
-                new AnimationCurve(new Keyframe(0f, 0.06f), new Keyframe(0.6f, 0.1f), new Keyframe(1f, 0.2f)));
-            a._core = Line(a._jet.transform, "Core", SkylineBotLook.Glow(AcidCore), false,
-                new AnimationCurve(new Keyframe(0f, 0.025f), new Keyframe(0.7f, 0.035f), new Keyframe(1f, 0.05f)));
+            a._tube = a.BuildTube();
+            a._jet.AddComponent<MeshFilter>().sharedMesh = a._tube;
+            var r = a._jet.AddComponent<MeshRenderer>();
+            r.sharedMaterial = SkylineBotLook.AcidMaterial(StreamColor, StreamGlow, 0.97f);
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             a._jet.SetActive(false);
             a._drops = new Transform[DropletCount];
             a._dropVel = new Vector3[DropletCount];
             a._dropFloor = new float[DropletCount];
-            var dropMat = SkylineBotLook.Wet(DropletColor);
+            var dropMat = SkylineBotLook.AcidMaterial(DropletColor, DropletGlow, 0.97f);
             for (int i = 0; i < DropletCount; i++)
             {
-                var d = SkylineBotLook.Visual(PrimitiveType.Sphere, "Acid Drop", a._jet.transform.parent, dropMat, false);
+                var d = SkylineBotLook.Visual(PrimitiveType.Sphere, "Acid Drop", null, dropMat, false);
                 d.SetActive(false);
                 a._drops[i] = d.transform;
             }
             return a;
         }
 
-        static LineRenderer Line(Transform parent, string name, Material m, bool lit, AnimationCurve width)
+        /// <summary>The tube's mesh: <see cref="StreamPoints"/> rings of <see cref="Sides"/> (plus a seam copy for the UVs), the
+        /// triangles and UVs fixed; the positions and normals are rewritten every frame.</summary>
+        Mesh BuildTube()
         {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            var lr = go.AddComponent<LineRenderer>();
-            lr.sharedMaterial = m;
-            lr.useWorldSpace = true;
-            lr.positionCount = StreamPoints;
-            lr.widthCurve = width;
-            lr.widthMultiplier = 1f;
-            lr.numCapVertices = 3;
-            lr.numCornerVertices = 2;
-            lr.generateLightingData = lit;
-            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            lr.receiveShadows = lit;
-            return lr;
+            int ring = Sides + 1;
+            _tubeVerts = new Vector3[StreamPoints * ring];
+            _tubeNormals = new Vector3[_tubeVerts.Length];
+            var uv = new Vector2[_tubeVerts.Length];
+            var tris = new List<int>();
+            for (int i = 0; i < StreamPoints; i++)
+                for (int k = 0; k < ring; k++)
+                {
+                    uv[i * ring + k] = new Vector2((float)k / Sides, i * 0.6f);
+                    if (i == StreamPoints - 1 || k == Sides) continue;
+                    int a = i * ring + k, b = a + 1, c = a + ring, d = c + 1;
+                    tris.Add(a); tris.Add(b); tris.Add(c);      // wound so the faces look outward
+                    tris.Add(b); tris.Add(d); tris.Add(c);
+                }
+            var m = new Mesh { name = "Acid stream" };
+            m.MarkDynamic();
+            m.vertices = _tubeVerts;
+            m.uv = uv;
+            m.SetTriangles(tris, 0);
+            return m;
         }
 
         public void Begin(float yawDeg)
@@ -99,8 +113,6 @@ namespace JamKit.SkylineRepo
             Running = false;
             if (_jet != null) _jet.SetActive(false);
         }
-
-        float SweepRate => _def.sweepSeconds > 0f ? _def.sweepArcDeg / _def.sweepSeconds : 0f;
 
         /// <summary>The jet's bearing now (degrees).</summary>
         public float JetBearing => BearingAt(T);
@@ -122,13 +134,12 @@ namespace JamKit.SkylineRepo
                 Vector3 dir = Quaternion.Euler(0f, bearing, 0f) * Vector3.forward;
                 Vector3 side = new Vector3(dir.z, 0f, -dir.x);
                 Vector3 p = from + dir * (_def.sweepRadius * u);
-                p.y = Mathf.Lerp(floorY + JetHeight, floorY + 0.02f, u * u) + Bow * 4f * u * (1f - u);
+                p.y = Mathf.Lerp(floorY + JetHeight, floorY + 0.03f, u * u) + Bow * 4f * u * (1f - u);
                 p += side * (Mathf.Sin(u * 9f - wob) * 0.03f * u);
                 _pts[i] = p;
             }
             _jet.SetActive(true);
-            _sheath.SetPositions(_pts);
-            _core.SetPositions(_pts);
+            UpdateTube();
             Vector3 land = _pts[StreamPoints - 1];
             _sincePuddle += dt;
             if (_sincePuddle >= PuddleEvery)
@@ -142,6 +153,37 @@ namespace JamKit.SkylineRepo
             }
             T += dt;
             if (T > _def.sweepSeconds) Stop();
+        }
+
+        /// <summary>Rings round the stream's points (world space; the jet object sits at the origin), with a little wobble in
+        /// the radius so the surface looks poured, not extruded.</summary>
+        void UpdateTube()
+        {
+            int ring = Sides + 1;
+            float t = Time.time;
+            for (int i = 0; i < StreamPoints; i++)
+            {
+                float u = (float)i / (StreamPoints - 1);
+                Vector3 fwd = i < StreamPoints - 1 ? _pts[i + 1] - _pts[i] : _pts[i] - _pts[i - 1];
+                if (fwd.sqrMagnitude < 1e-8f) fwd = Vector3.forward;
+                fwd.Normalize();
+                Vector3 right = Vector3.Cross(Vector3.up, fwd);
+                if (right.sqrMagnitude < 1e-6f) right = Vector3.right;
+                right.Normalize();
+                Vector3 up = Vector3.Cross(fwd, right);
+                float r = Mathf.Lerp(RadiusNozzle, RadiusEnd, u) * (1f + 0.12f * Mathf.Sin(u * 17f - t * 30f));
+                for (int k = 0; k < ring; k++)
+                {
+                    float a = (float)(k % Sides) / Sides * Mathf.PI * 2f;
+                    Vector3 n = right * Mathf.Cos(a) + up * Mathf.Sin(a);
+                    _tubeVerts[i * ring + k] = _pts[i] + right * (Mathf.Cos(a) * r * Flatten) + up * (Mathf.Sin(a) * r);
+                    _tubeNormals[i * ring + k] = (right * (Mathf.Cos(a) / Flatten) + up * Mathf.Sin(a)).normalized;
+                }
+            }
+            _tube.vertices = _tubeVerts;
+            _tube.normals = _tubeNormals;
+            _tube.RecalculateTangents();
+            _tube.RecalculateBounds();
         }
 
         /// <summary>A droplet thrown up and out from where the stream lands.</summary>
@@ -173,22 +215,26 @@ namespace JamKit.SkylineRepo
         void OnDestroy()
         {
             if (_jet != null) Destroy(_jet);
+            if (_tube != null) Destroy(_tube);
             if (_drops != null) foreach (var d in _drops) if (d != null) Destroy(d.gameObject);
         }
     }
 
-    /// <summary>One acid puddle: a glossy, irregular blob of acid on the floor (one of a few shapes, turned and sized at random,
-    /// domed a few millimetres like a liquid's meniscus, very smooth so it catches the light) that splats out in a moment,
-    /// sits, then shrinks away over <see cref="Life"/> s. One pool for every floor-care unit, filled up front by
-    /// <see cref="Prewarm"/> (back-to-back sweeps keep about 70 alive at once), so a sweep creates nothing and a wrecked
+    /// <summary>One acid puddle: a pool of acid on the floor (one of a few irregular shapes, turned and sized at random) that
+    /// splats out in a moment, sits, then shrinks away over <see cref="Life"/> s. It has depth (judge round 2: the old ones read
+    /// as flat lime stickers): a domed, glossy, faintly glowing centre with drifting ripples (<see cref="SkylineBotLook.AcidMaterial"/>)
+    /// inside a darker, duller rim where it thins out and stains the floor. One pool for every floor-care unit, filled up front
+    /// by <see cref="Prewarm"/> (back-to-back sweeps keep about 70 alive at once), so a sweep creates nothing and a wrecked
     /// unit's puddles just fade out.</summary>
     public sealed class SkylinePuddle : MonoBehaviour
     {
-        const float Life = 2.5f, Size = 0.5f, Splat = 0.12f, Height = 0.014f;
+        const float Life = 2.5f, Size = 0.5f, Splat = 0.12f, Height = 0.016f;
         const int PrewarmCount = 110, Shapes = 4;
+        static readonly Color PoolColor = new Color(0.3f, 0.6f, 0.06f), PoolGlow = new Color(0.05f, 0.15f, 0.01f);
+        static readonly Color RimColor = new Color(0.12f, 0.24f, 0.03f), RimGlow = new Color(0.01f, 0.03f, 0f);
         static readonly List<SkylinePuddle> _pool = new List<SkylinePuddle>();
         static readonly Mesh[] _shapes = new Mesh[Shapes];
-        static int _scan;
+        static int _scan, _flowFrame = -1;
 
         float _age, _life, _size;
 
@@ -226,7 +272,7 @@ namespace JamKit.SkylineRepo
             var go = new GameObject("Acid Puddle");
             go.AddComponent<MeshFilter>().sharedMesh = Shape(_pool.Count % Shapes);
             var r = go.AddComponent<MeshRenderer>();
-            r.sharedMaterial = SkylineBotLook.Wet(SkylineAcid.AcidWet);
+            r.sharedMaterials = new[] { SkylineBotLook.AcidMaterial(PoolColor, PoolGlow, 0.96f), SkylineBotLook.AcidMaterial(RimColor, RimGlow, 0.7f) };
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             go.SetActive(false);
             var p = go.AddComponent<SkylinePuddle>();
@@ -245,8 +291,9 @@ namespace JamKit.SkylineRepo
             return Make();
         }
 
-        /// <summary>A puddle shape about 1 unit across: a wobbly outline (a few overlapping waves round the rim), domed to 1 at
-        /// the centre, falling to a soft edge.</summary>
+        /// <summary>A puddle shape about 1 unit across: a wobbly outline (a few overlapping waves round the rim); the pool (sub-mesh
+        /// 0) domed to 1 at the centre down to a meniscus ring, the rim (sub-mesh 1) falling from there to the edge on the floor.
+        /// Planar UVs (for the ripples) and tangents.</summary>
         static Mesh Shape(int i)
         {
             if (_shapes[i] != null) return _shapes[i];
@@ -259,21 +306,27 @@ namespace JamKit.SkylineRepo
             {
                 float t = k * Mathf.PI * 2f / N;
                 float r = 0.5f * (1f + a2 * Mathf.Sin(2f * t + p1) + a3 * Mathf.Sin(3f * t + p2) + a5 * Mathf.Sin(5f * t + p3));
-                verts.Add(new Vector3(Mathf.Cos(t) * r * 0.8f, 0.8f, Mathf.Sin(t) * r * 0.8f));   // the meniscus
-                verts.Add(new Vector3(Mathf.Cos(t) * r, 0f, Mathf.Sin(t) * r));                    // the edge
+                verts.Add(new Vector3(Mathf.Cos(t) * r * 0.78f, 0.75f, Mathf.Sin(t) * r * 0.78f));   // the meniscus
+                verts.Add(new Vector3(Mathf.Cos(t) * r, 0f, Mathf.Sin(t) * r));                       // the edge
             }
-            var tris = new List<int>();
+            var pool = new List<int>();
+            var rim = new List<int>();
             for (int k = 0; k < N; k++)
             {
                 int a = 1 + 2 * k, b = 1 + 2 * ((k + 1) % N);
-                tris.Add(0); tris.Add(b); tris.Add(a);
-                tris.Add(a); tris.Add(b); tris.Add(b + 1);
-                tris.Add(a); tris.Add(b + 1); tris.Add(a + 1);
+                pool.Add(0); pool.Add(b); pool.Add(a);
+                rim.Add(a); rim.Add(b); rim.Add(b + 1);
+                rim.Add(a); rim.Add(b + 1); rim.Add(a + 1);
             }
-            var m = new Mesh { name = "Acid puddle " + i };
+            var uv = new List<Vector2>();
+            foreach (var v in verts) uv.Add(new Vector2(v.x * 1.6f + 0.5f, v.z * 1.6f + 0.5f));
+            var m = new Mesh { name = "Acid puddle " + i, subMeshCount = 2 };
             m.SetVertices(verts);
-            m.SetTriangles(tris, 0);
+            m.SetUVs(0, uv);
+            m.SetTriangles(pool, 0);
+            m.SetTriangles(rim, 1);
             m.RecalculateNormals();
+            m.RecalculateTangents();
             m.RecalculateBounds();
             _shapes[i] = m;
             return m;
@@ -291,6 +344,11 @@ namespace JamKit.SkylineRepo
 
         void Update()
         {
+            if (_flowFrame != Time.frameCount)
+            {
+                _flowFrame = Time.frameCount;
+                SkylineBotLook.FlowAcid(Time.time);
+            }
             _age += Time.deltaTime;
             if (_age >= _life) { gameObject.SetActive(false); return; }
             Apply();

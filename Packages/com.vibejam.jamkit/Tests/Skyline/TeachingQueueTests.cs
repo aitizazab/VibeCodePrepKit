@@ -42,7 +42,7 @@ namespace JamKit.Tests.Skyline
             Assert.That(lift, Is.Not.Null, "CONCIERGE announces the lift");
             Assert.That(lift.speaker, Is.EqualTo(Speaker.Concierge));
             Assert.That(TeachingQueue.UrgencyOf(BeatTrigger.LiftOpened), Is.EqualTo(LineUrgency.Notice));
-            Assert.That(TeachingQueue.UrgencyOf(BeatTrigger.NearPracticeLedge), Is.EqualTo(LineUrgency.Hint));
+            Assert.That(TeachingQueue.UrgencyOf(BeatTrigger.NearPracticeLedge), Is.EqualTo(LineUrgency.Lesson));
             Assert.That(Array.Find(beats, b => b.id == "concierge-next-fight").text, Does.Not.Contain("food court"));
         }
 
@@ -58,7 +58,7 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
-        public void ReactionsThenNoticesThenHintsAndSharedTriggersKeepTheirOrder()
+        public void ReactionsThenNoticesThenLessonsThenTheOpenerAndSharedTriggersKeepTheirOrder()
         {
             var q = new TeachingQueue();
             q.Enqueue(Beat("nan-1", BeatTrigger.WarmupStart), 0f);
@@ -73,7 +73,7 @@ namespace JamKit.Tests.Skyline
                 var b = q.Next(t, null, null);
                 if (b != null) said.Add(b.id);
             }
-            Assert.That(said, Is.EqualTo(new[] { "dot-plating", "concierge-drone", "nan-1", "dot-spots", "nan-kiosk", "dot-kiosk" }));
+            Assert.That(said, Is.EqualTo(new[] { "dot-plating", "concierge-drone", "dot-spots", "nan-kiosk", "dot-kiosk", "nan-1" }));
         }
 
         [Test]
@@ -130,21 +130,67 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
-        public void ANoticeCutsAHintOnlyOnceTheHintsMomentHasPassed()
+        public void ANoticeCutsALessonOnSightAndTheLessonIsSaidAgainAfter()
         {
             var q = new TeachingQueue();
-            q.Enqueue(Beat("hint", BeatTrigger.PracticeBotSeen, 120), 0f);
-            Assert.That(q.Next(0f, null, null).id, Is.EqualTo("hint"));
-            q.Enqueue(Beat("notice", BeatTrigger.FirstSeen), 2f);
-            bool hintOver = false;
-            Func<TeachingBeat, bool> passed = b => b.id == "hint" && hintOver;
+            q.Enqueue(Beat("lesson", BeatTrigger.NearBoostLedge, 120), 0f);
+            Assert.That(q.Next(0f, null, null).id, Is.EqualTo("lesson"));
+            q.Enqueue(Beat("concierge-floor-care", BeatTrigger.FirstSeen, 87), 0.5f);
+            var cut = new List<TeachingBeat>();
+            Assert.That(q.Next(1f, b => false, null, cut), Is.Null, "the lesson has been up under the minimum");
+            Assert.That(q.Next(TeachingQueue.MinShownBeforeCut, b => false, null, cut).id, Is.EqualTo("concierge-floor-care"));
+            Assert.That(cut.Count, Is.EqualTo(1));
+            Assert.That(q.Contains("lesson"), Is.True, "said again after, while its moment holds");
+        }
+
+        [Test]
+        public void ALessonCutsTheOpener()
+        {
+            var q = new TeachingQueue();
+            q.Enqueue(Beat("nan-warmup", BeatTrigger.WarmupStart, 70), 0f);
+            Assert.That(q.Next(0f, null, null).id, Is.EqualTo("nan-warmup"));
+            q.Enqueue(Beat("dot-boost", BeatTrigger.NearBoostLedge, 80), 1f);
+            Assert.That(q.Next(TeachingQueue.MinShownBeforeCut + 0.1f, null, null).id, Is.EqualTo("dot-boost"));
+        }
+
+        [Test]
+        public void ANoticeIsNeverDroppedForWaitingWhileItsMomentHolds()
+        {
+            var q = new TeachingQueue();
+            q.Enqueue(Beat("concierge-drone", BeatTrigger.FirstSeen, 120), 0f);
+            q.Enqueue(Beat("concierge-floor-care", BeatTrigger.FirstSeen, 87), 0f);
             var dropped = new List<TeachingBeat>();
-            Assert.That(q.Next(2.5f, passed, dropped), Is.Null, "the hint's moment holds: the notice waits");
-            hintOver = true;
-            Assert.That(q.Next(2.6f, passed, dropped).id, Is.EqualTo("notice"));
-            Assert.That(q.Next(2.7f, passed, dropped), Is.Null);
-            Assert.That(dropped.Count, Is.EqualTo(1), "the cut hint is dropped, not said again");
-            Assert.That(dropped[0].id, Is.EqualTo("hint"));
+            Assert.That(q.Next(0f, b => false, dropped).id, Is.EqualTo("concierge-drone"));
+            float after = TeachingQueue.LineSeconds(new string('a', 120)) + TeachingQueue.Gap;
+            Assert.That(q.Next(after, b => false, dropped).id, Is.EqualTo("concierge-floor-care"), "a notice waits a whole notice");
+            Assert.That(dropped, Is.Empty);
+        }
+
+        [Test]
+        public void ALineWhoseMomentPassesWhileSaidEndsAndTheNextStartsAtOnce()
+        {
+            var q = new TeachingQueue();
+            q.Enqueue(Beat("concierge-spotlight", BeatTrigger.FirstSeen, 121), 0f);
+            q.Enqueue(Beat("concierge-floor-care", BeatTrigger.FirstSeen, 87), 0f);
+            Assert.That(q.Next(0f, null, null).id, Is.EqualTo("concierge-spotlight"));
+            bool spotlightsWrecked = false;
+            Func<TeachingBeat, bool> passed = b => b.id == "concierge-spotlight" && spotlightsWrecked;
+            var dropped = new List<TeachingBeat>();
+            var cut = new List<TeachingBeat>();
+            Assert.That(q.Next(2f, passed, dropped, cut), Is.Null);
+            spotlightsWrecked = true;
+            Assert.That(q.Next(2.1f, passed, dropped, cut).id, Is.EqualTo("concierge-floor-care"), "no gap: the next notice at once");
+            Assert.That(cut.Count, Is.EqualTo(1));
+            Assert.That(dropped.Count, Is.EqualTo(1), "ended, not said again");
+            Assert.That(q.Contains("concierge-spotlight"), Is.False);
+
+            var q2 = new TeachingQueue();
+            q2.Enqueue(Beat("concierge-spotlight", BeatTrigger.FirstSeen, 121), 0f);
+            q2.Next(0f, null, null);
+            cut.Clear();
+            Assert.That(q2.Next(3f, b => true, null, cut), Is.Null);
+            Assert.That(cut.Count, Is.EqualTo(1), "nothing replaces it: the caller takes the subtitle down");
+            Assert.That(q2.Current(3.01f), Is.Null);
         }
 
         [Test]

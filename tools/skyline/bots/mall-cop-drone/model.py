@@ -37,9 +37,11 @@ root = None
 k.sphere("Chassis", 0.36, (0, -0.02, 0), white, root, scale=(1.0, 0.86, 1.04), segs=40, rings=20)
 k.torus("Waist", 0.345, 0.018, (0, -0.06, 0), dark, root, segs=48, minor_segs=8)
 
-# the face: a dark bezel on the front, the screen tilted a little down toward the people below
+# the face: a dark bezel on the front, the screen tilted a little down toward the people below. It stands proud of the
+# egg (judge round 2: the egg's front, z 0.374, pushed through the old screen at 0.337 and left only the eye corners): the
+# face now sits about 1 cm in front of the egg's surface everywhere across it
 TILT = -8.0
-SCREEN = (0, 0.0, 0.3)
+SCREEN = (0, 0.0, 0.35)
 k.box("Bezel", (0.46, 0.25, 0.07), SCREEN, dark, root, bevel=0.03, tilt=TILT, segments=3)
 front, n = k.tilted_front(SCREEN, 0.07, TILT)
 k.face_plane("Face", 0.42, 0.21, k.along(front, n, 0.002), root, tilt=TILT)
@@ -57,10 +59,11 @@ k.star("Badge", 0.055, 0.024, 0.02, (0, 0.235, 0.3), white, shell)
 k.arc_slab("Plate_lens-guard", 0.02, 0.24, 0.162, 0.185, -80, 80, gold, root, segs=24, center=(0, 0.16), bevel=0.008, droop=0.025)
 
 # the weak point: the body-cam lens under the screen (blue glass in a steel ring), a red REC light beside it
-wp = k.empty("WeakPoint", (0, -0.2, 0.3), root)
-k.sphere("CamLens", 0.062, (0, -0.2, 0.3), lens, wp, scale=(1, 1, 0.6), segs=24, rings=12)
-k.torus("CamRing", 0.066, 0.014, (0, -0.2, 0.3), grey, wp, axis="z", segs=24, minor_segs=8)
-k.sphere("RecLight", 0.016, (0.1, -0.2, 0.31), red, root, segs=12, rings=6)
+# (brought forward with the screen, so the bezel's lip never shades it)
+wp = k.empty("WeakPoint", (0, -0.2, 0.33), root)
+k.sphere("CamLens", 0.062, (0, -0.2, 0.33), lens, wp, scale=(1, 1, 0.6), segs=24, rings=12)
+k.torus("CamRing", 0.066, 0.014, (0, -0.2, 0.33), grey, wp, axis="z", segs=24, minor_segs=8)
+k.sphere("RecLight", 0.016, (0.1, -0.2, 0.33), red, root, segs=12, rings=6)
 
 # the taser pod under the chin, two prongs, the muzzle between them
 k.cyl("TaserPod", 0.055, 0.2, (0, -0.31, 0.17), grey, root, axis="z", verts=24, bevel=0.015)

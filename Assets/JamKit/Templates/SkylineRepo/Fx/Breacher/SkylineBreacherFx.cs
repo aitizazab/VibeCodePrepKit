@@ -40,7 +40,8 @@ namespace JamKit.SkylineRepo
         // soft and gone in 0.2 s, so it reads as the blast leaving the barrel, not a reticle over the target
         const float RingLife = 0.2f, RingDistance = 0.7f, RingFrom = 0.12f, RingTo = 0.55f;
         const float DustRange = 4f, BoostFloorRange = 6f, DustRingTo = 2.6f, DustRingLife = 0.28f;
-        const float PlateFling = 7f, PlateLift = 2f, PlateSearch = 1.3f;
+        // round 2 (N3): plates fly further, so the shove reads past the camera kick
+        const float PlateFling = 11f, PlateLift = 3f, PlateSearch = 1.3f;
         const float CellDip = 0.4f, CellHot = 0.35f;
         const int Chunks = 40, Chips = 40, Rings = 4, Softs = 64, SoftRings = 6, VmSofts = 24, Flames = 8;
 
@@ -447,12 +448,27 @@ namespace JamKit.SkylineRepo
         {
             if (_worldRoot == null || info.gun == null || info.gun.id != SkylineGuns.BreacherId) return;
             CasingChips(info.point, info.normal, info.direction);
+            Lurch(info);
             if (_impactFrame != Time.frameCount)
             {
                 _impactFrame = Time.frameCount;   // one heavy slam per shot, not nine
                 SkylineSounds.PlayAt(ImpactSound, info.point, 1f);
             }
             if (r.damage.plateShed >= 0) _plateKicks.Add((info.point, info.direction));
+        }
+
+        /// <summary>Tips and spins the bot this pellet landed on (SkylineShoveLurch), a pellet's share of a whole shot.</summary>
+        void Lurch(SkylineHitInfo info)
+        {
+            int n = Physics.OverlapSphereNonAlloc(info.point, 0.06f, _overlap, ~0, QueryTriggerInteraction.Collide);
+            for (int i = 0; i < n; i++)
+            {
+                var bot = _overlap[i] != null ? _overlap[i].GetComponentInParent<SkylineBot>() : null;
+                if (bot == null) continue;
+                int pellets = info.gun != null && info.gun.pellets > 0 ? info.gun.pellets : 1;
+                SkylineShoveLurch.On(bot)?.Kick(info.direction, 1f / pellets);
+                return;
+            }
         }
 
         // ---------------------------------------------------------------- the shot

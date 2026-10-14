@@ -224,7 +224,14 @@ function Update-PerfStage {
             # The probe always writes the scene (Task 13), so a perf.json without one is stale or foreign.
             if (-not $p.scene) { $problems += 'scene missing (the arena must be measured)' }
             elseif ($p.scene -ne 'SkylineArena') { $problems += "measured '$($p.scene)', not SkylineArena" }
-            $perfNote = "avg $($p.avgMs) ms, 1% low $($p.onePercentLowMs) ms (blocker over 16.7), $($p.resolution)$(if ($p.gpu) { ", gpu $($p.gpu)" })$(if ($p.scene) { ", scene $($p.scene)" })"
+            # The whole-demo measurement (judge E, round 2: the 45 s window never reached the heavier fights). Older
+            # probes don't write these fields; a probe that does must have measured all three fights to the end.
+            if ($null -ne $p.fightsMeasured) {
+                if ($p.fightsMeasured -lt 3) { $problems += "only $($p.fightsMeasured) of 3 fights measured" }
+                if ($p.demoComplete -ne $true) { $problems += 'the demo did not complete' }
+                if ((Test-IsNumber $p.worstFightOnePercentLowMs) -and $p.worstFightOnePercentLowMs -gt 16.7) { $problems += "the worst fight's 1% low is over 16.7 ms" }
+            }
+            $perfNote = "avg $($p.avgMs) ms, 1% low $($p.onePercentLowMs) ms (blocker over 16.7)$(if (Test-IsNumber $p.worstFightOnePercentLowMs) { ", worst fight $($p.worstFightOnePercentLowMs) ms" }), $($p.resolution)$(if ($p.gpu) { ", gpu $($p.gpu)" })$(if ($p.scene) { ", scene $($p.scene)" })"
             if ($problems.Count -gt 0) { $perfNote += '; ' + ($problems -join '; ') } else { $perfOk = $true }
         } catch {
             $perfNote = "perf.json unreadable: $($_.Exception.Message)"
@@ -518,7 +525,7 @@ try {
                 $stages += [pscustomobject]@{ name = 'D perf'; ok = $false; seconds = 0; log = ''; note = 'skipped: -NoWindows (needs a normal window)' }
             } elseif (Test-Path $exe) {
                 $log = Join-Path $Out 'stage-d-perf.log'
-                $d = Invoke-Stage -Name 'D perf' -Exe $exe -Locked -MinFreeGB 3 -TimeoutSec 180 -Log $log -WindowStyle Normal -StageArgs @(
+                $d = Invoke-Stage -Name 'D perf' -Exe $exe -Locked -MinFreeGB 3 -TimeoutSec 240 -Log $log -WindowStyle Normal -StageArgs @(
                     '-screen-fullscreen', '0', '-screen-width', '1920', '-screen-height', '1080', '-logFile', "`"$log`"", '-silent-crashes',
                     '-skyline-perf', "`"$Out`"")
                 Update-PerfStage -Stage $d -PerfPath (Join-Path $Out 'perf.json')

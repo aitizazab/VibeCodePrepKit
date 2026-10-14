@@ -37,6 +37,7 @@ namespace JamKit.SkylineRepo
 
         // ---- presentation tuning (the gun's numbers live in SkylineGuns.Writ)
         const int FlashFrames = 3;
+        static readonly float[] FlashSize = { 0.11f, 0.15f, 0.17f }, FlashAlpha = { 1f, 0.7f, 0.32f }, FlashReach = { 0.8f, 1.1f, 1.25f };
         const float LightLife = 0.05f, LightRange = 5f, LightIntensity = 2.6f;
         const float GavelDown = 0.0077f, GavelStrike = 0.025f, GavelReturn = 0.16f, GavelTilt = 10f;
         const float DoorsOpen = 68f, DoorsClose = 0.2f, BenchKick = 0.005f, BenchRack = 0.018f;
@@ -115,7 +116,13 @@ namespace JamKit.SkylineRepo
         readonly List<Bit> _live = new List<Bit>();
         int _nSpark, _nFlake, _nRing, _nRay, _nDecal, _nRibbon, _nSeal, _nBurst;
         Transform _worldRoot, _flashRoot;
-        readonly List<Transform> _spikes = new List<Transform>();
+        readonly List<Transform> _streaks = new List<Transform>();
+        readonly float[] _streakLen = new float[Spikes];
+        Transform _flashCore;
+        Material _flashMat, _streakMat;
+        Texture2D _flashTex, _streakTex;
+        Mesh _quad, _streakQuad;
+        float _flashRoll;
         Light _light;
         float _lightLeft;
         int _lightPrewarm = 3, _flashLeft;
@@ -124,9 +131,9 @@ namespace JamKit.SkylineRepo
 
         // the shot's beats
         float _shotAge = 99f, _rackAge = 99f, _equipAge = 99f, _equipSeconds = 0.55f, _seatFlash, _strikeScale = 1f;
-        bool _pendingShot;
-        Vector3 _shotEye, _shotAim;
-        float _shotRange;
+        bool _pendingShot, _shotLanded, _shotHitWorld;
+        Vector3 _shotEye, _shotAim, _shotEnd, _shotNormal;
+        float _shotRange, _shotDistance;
 
         // ---------------------------------------------------------------- installing itself
 
@@ -238,6 +245,8 @@ namespace JamKit.SkylineRepo
             if (_flashRoot != null) Destroy(_flashRoot.gameObject);
             foreach (var m in _mats.Values) if (m != null) Destroy(m);
             _mats.Clear();
+            foreach (Object o in new Object[] { _flashMat, _streakMat, _flashTex, _streakTex, _quad, _streakQuad })
+                if (o != null) Destroy(o);
         }
 
         Bit MakeBit(PrimitiveType type, Transform parent, Material m, int kind)
@@ -422,21 +431,97 @@ namespace JamKit.SkylineRepo
             // under the gun's root in its frame (an FBX empty may carry the import's axis conversion), at the doorway
             _flashRoot.SetParent(_gunRoot, false);
             _flashRoot.localPosition = _muzzle != null ? _gunRoot.InverseTransformPoint(_muzzle.position) : new Vector3(0f, 0.012f, 0.214f);
-            var hot = SkylineBotLook.Glow(Hot);
-            // the core sits in front of the gatehouse and is taller than its arch (top 0.075), so the player, behind and above
-            // the gun, sees the burst (judge C 11: the doorway's flash faced away)
-            var core = SkylineBotLook.Visual(PrimitiveType.Sphere, "core", _flashRoot, hot, false).transform;
-            core.localScale = new Vector3(0.075f, 0.1f, 0.11f);
-            core.localPosition = new Vector3(0f, 0.022f, 0.055f);
-            var halo = SkylineBotLook.Visual(PrimitiveType.Sphere, "halo", _flashRoot, SkylineBotLook.Glow(Amber), false).transform;
-            halo.localScale = new Vector3(0.13f, 0.13f, 0.05f);
-            halo.localPosition = new Vector3(0f, 0.03f, 0.03f);
-            for (int i = 0; i < Spikes; i++)
-            {
-                var s = SkylineBotLook.Visual(PrimitiveType.Cube, "spike", _flashRoot, hot, false).transform;
-                _spikes.Add(s);
-            }
+            // in front of the gatehouse and above its arch (top 0.075), so the player behind and above the gun sees it (round 1,
+            // judge C 11). Round 2 (judge C N1): soft camera-facing quads with textures made here (a hot white core fading to
+            // amber, five tapering streaks) on Sprites/Default (always in a build, alpha-blended, unlit), so it reads as a
+            // soft hot flash with or without the scene's bloom, not as a solid disc.
+            _flashRoot.localPosition += new Vector3(0f, 0.022f, 0.05f);
+            _flashTex = FlashTexture();
+            _streakTex = StreakTexture();
+            _flashMat = SoftMaterial(_flashTex, "Writ flash");
+            _streakMat = SoftMaterial(_streakTex, "Writ flash streak");
+            _quad = QuadMesh(-0.5f, 0.5f, "Writ flash quad");
+            _streakQuad = QuadMesh(0f, 1f, "Writ streak quad");
+            _flashCore = MakeQuad("core", _flashRoot, _quad, _flashMat);
+            for (int i = 0; i < Spikes; i++) _streaks.Add(MakeQuad("streak", _flashRoot, _streakQuad, _streakMat));
             _flashRoot.gameObject.SetActive(false);
+        }
+
+        static Transform MakeQuad(string name, Transform parent, Mesh mesh, Material m)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            return go.transform;
+        }
+
+        /// <summary>A quad in the XY plane from x0 to x1 (a streak's pivot is its inner end), y -0.5..0.5.</summary>
+        static Mesh QuadMesh(float x0, float x1, string name)
+        {
+            var m = new Mesh { name = name };
+            m.vertices = new[] { new Vector3(x0, -0.5f, 0f), new Vector3(x1, -0.5f, 0f), new Vector3(x1, 0.5f, 0f), new Vector3(x0, 0.5f, 0f) };
+            m.uv = new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(0f, 1f) };
+            m.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+            m.RecalculateBounds();
+            return m;
+        }
+
+        /// <summary>The flash's core: white-hot in the middle, amber toward the edge, alpha falling smoothly to nothing.</summary>
+        static Texture2D FlashTexture()
+        {
+            const int n = 64;
+            var t = new Texture2D(n, n, TextureFormat.RGBA32, true) { name = "Writ flash", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float u = (x + 0.5f) / n * 2f - 1f, v = (y + 0.5f) / n * 2f - 1f;
+                    float r = Mathf.Sqrt(u * u + v * v);
+                    float edge = Mathf.Clamp01(1f - r);
+                    float a = edge * edge * (0.55f + 0.45f * Mathf.Exp(-r * r * 14f));
+                    float hot = Mathf.Exp(-r * r * 9f);
+                    var c = Color.Lerp(new Color(1f, 0.6f, 0.2f), new Color(1f, 0.98f, 0.92f), hot);
+                    px[y * n + x] = new Color(c.r, c.g, c.b, a);
+                }
+            t.SetPixels32(px);
+            t.Apply(true, true);
+            return t;
+        }
+
+        /// <summary>A streak: hot at its inner end (u = 0), tapering and fading toward the tip, soft across its width.</summary>
+        static Texture2D StreakTexture()
+        {
+            const int w = 64, h = 16;
+            var t = new Texture2D(w, h, TextureFormat.RGBA32, true) { name = "Writ streak", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            var px = new Color32[w * h];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float u = (x + 0.5f) / w, v = (y + 0.5f) / h * 2f - 1f;
+                    float width = Mathf.Lerp(1f, 0.25f, u);
+                    float across = Mathf.Exp(-(v / width) * (v / width) * 3f);
+                    float a = Mathf.Pow(1f - u, 1.4f) * across;
+                    var c = Color.Lerp(new Color(1f, 0.97f, 0.88f), new Color(1f, 0.58f, 0.18f), u);
+                    px[y * w + x] = new Color(c.r, c.g, c.b, a);
+                }
+            t.SetPixels32(px);
+            t.Apply(true, true);
+            return t;
+        }
+
+        /// <summary>Sprites/Default (in the always-included shaders, so in every build: unlit, alpha-blended, no depth write,
+        /// both faces), as the Breacher's soft particles use.</summary>
+        static Material SoftMaterial(Texture2D tex, string name)
+        {
+            var sh = Shader.Find("Sprites/Default");
+            var m = sh != null ? new Material(sh) : new Material(SkylineBotLook.Glow(Color.white));
+            m.name = name;
+            m.mainTexture = tex;
+            return m;
         }
 
         // ---------------------------------------------------------------- the hooks
@@ -461,9 +546,22 @@ namespace JamKit.SkylineRepo
                     _flashLeft = FlashFrames;
                     _lightLeft = LightLife;
                     _pendingShot = true;
+                    _shotLanded = false;
                     _shotEye = player.EyePosition;
                     _shotAim = player.AimDirection;
                     _shotRange = player.Loadout[slot].Def.range;
+                    _flashRoll = Random.Range(0f, 360f);
+                    // where the slug goes, read now (CueRaised comes before the shooting code), so a plate's wobble or a bot's
+                    // knockback can't move the target before the world effects look (round 2: a plate hit drew a wall decal)
+                    _shotEnd = _shotEye + _shotAim * _shotRange;
+                    _shotHitWorld = false;
+                    if (Physics.Raycast(_shotEye, _shotAim, out var aimHit, _shotRange, SkylineShooting.Mask, QueryTriggerInteraction.Ignore))
+                    {
+                        _shotEnd = aimHit.point;
+                        _shotNormal = aimHit.normal;
+                        _shotDistance = aimHit.distance;
+                        _shotHitWorld = aimHit.collider.GetComponent<SkylineHitZone>() == null;
+                    }
                     break;
                 case GunCueKind.ClipStarted:
                     if (cue.clip == HandlingClipKind.Equip) { _equipAge = 0f; _equipSeconds = Mathf.Max(0.1f, cue.seconds); }
@@ -481,6 +579,7 @@ namespace JamKit.SkylineRepo
         void OnHit(SkylineHitInfo info, SkylineHitResult r)
         {
             if (!info.fromWrit || !r.hit) return;
+            _shotLanded = true;
             Vector3 n = info.normal.sqrMagnitude > 1e-6f ? info.normal.normalized : -info.direction;
             float far = player != null ? Mathf.Max(1f, Vector3.Distance(player.EyePosition, info.point) / ReadDistance) : 1f;
             if (r.writ.spotHit)
@@ -634,21 +733,20 @@ namespace JamKit.SkylineRepo
             if (_flashRoot == null) return;
             if (_flashLeft > 0)
             {
-                if (_flashLeft == FlashFrames)
-                {
-                    _flashRoot.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
-                    for (int i = 0; i < _spikes.Count; i++)
+                int f = FlashFrames - _flashLeft;                       // 0, 1, 2: bloom, open, fade
+                if (f == 0)
+                    for (int i = 0; i < _streaks.Count; i++)
                     {
-                        float a = 360f * i / _spikes.Count + Random.Range(-12f, 12f);
-                        float len = Random.Range(0.07f, 0.11f);
-                        var s = _spikes[i];
-                        s.localRotation = Quaternion.Euler(0f, 0f, a);
-                        s.localPosition = new Vector3(0f, 0.022f, 0.05f) + s.localRotation * new Vector3(len * 0.5f, 0f, 0f);
-                        s.localScale = new Vector3(len, 0.008f, 0.008f);
+                        _streakLen[i] = Random.Range(0.08f, 0.15f);
+                        _streaks[i].localRotation = Quaternion.Euler(0f, 0f, 360f * i / _streaks.Count + Random.Range(-14f, 14f));
                     }
-                }
-                float k = (float)_flashLeft / FlashFrames;
-                _flashRoot.localScale = Vector3.one * (0.7f + 0.5f * k);
+                // facing the viewmodel camera, wherever the gun's pose has turned it
+                if (_vmCam != null) _flashRoot.rotation = _vmCam.rotation * Quaternion.Euler(0f, 0f, _flashRoll);
+                float[] size = FlashSize, alpha = FlashAlpha, reach = FlashReach;
+                _flashCore.localScale = Vector3.one * size[f];
+                for (int i = 0; i < _streaks.Count; i++) _streaks[i].localScale = new Vector3(_streakLen[i] * reach[f], 0.022f, 1f);
+                _flashMat.color = new Color(1f, 1f, 1f, alpha[f]);
+                _streakMat.color = new Color(1f, 1f, 1f, alpha[f] * 0.9f);
                 _flashRoot.gameObject.SetActive(true);
                 _flashLeft--;
             }
@@ -662,17 +760,13 @@ namespace JamKit.SkylineRepo
             if (player == null) return;
             Vector3 aim = _shotAim.sqrMagnitude > 1e-6f ? _shotAim.normalized : player.AimDirection;
             _light.transform.position = _shotEye + aim * 0.8f;
-            Vector3 end = _shotEye + aim * _shotRange;
-            if (Physics.Raycast(_shotEye, aim, out var hit, _shotRange, SkylineShooting.Mask, QueryTriggerInteraction.Ignore))
+            Vector3 end = _shotEnd;
+            if (_shotHitWorld && !_shotLanded)          // the world, not a bot or a plate (those had HitLanded this shot)
             {
-                end = hit.point;
-                if (hit.collider.GetComponent<SkylineHitZone>() == null)
-                {
-                    float far = Mathf.Max(1f, hit.distance / ReadDistance);
-                    for (int i = 0; i < 10; i++) Spark(hit.point + hit.normal * 0.01f, hit.normal, 3f, Mathf.Min(far, 3f));
-                    Burst(hit.point + hit.normal * 0.03f, 0.09f * Mathf.Min(far, 3f));
-                    Decal(hit.point, hit.normal);
-                }
+                float far = Mathf.Max(1f, _shotDistance / ReadDistance);
+                for (int i = 0; i < 10; i++) Spark(end + _shotNormal * 0.01f, _shotNormal, 3f, Mathf.Min(far, 3f));
+                Burst(end + _shotNormal * 0.03f, 0.09f * Mathf.Min(far, 3f));
+                Decal(end, _shotNormal);
             }
             Vector3 from = player.viewmodel != null ? player.viewmodel.MuzzleWorld() : _shotEye + aim * 0.5f;
             Ribbon(from, end);

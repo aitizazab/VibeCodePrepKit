@@ -43,7 +43,7 @@ namespace JamKit.Tests.Skyline
             Assert.That(food[0].aimSpreadDeg, Is.EqualTo(SkylineEnemies.MallCopDrone().aimSpreadDeg));
             Assert.That(food[1].firstShotAt, Is.GreaterThan(food[0].firstShotAt), "staggered, not in lockstep");
             var sky = EncounterDodge.Shooters(ById("skylight"), SkylineEnemies.Find, Difficulties.Normal());
-            Assert.That(sky.Count, Is.EqualTo(2), "the two spotlights");
+            Assert.That(sky.Count, Is.EqualTo(3), "the three spotlights");
             Assert.That(sky[0].projectileSpeed, Is.EqualTo(0f));
             Assert.That(sky[0].leadFactor, Is.EqualTo(0f));
             Assert.That(sky[0].beamTelegraph, Is.EqualTo(SkylineEnemies.Spotlight().telegraphSeconds));

@@ -121,6 +121,81 @@ namespace JamKit.SkylineRepo
             _moving.SetPositionAndRotation(_fromPos, _fromRot);
 
             foreach (var r in GetComponentsInChildren<Renderer>(true)) _renderers.Add(r);
+            BakeBlocks();
+        }
+
+        // ------------------------------------------------------------------ drawing cost (judge round 2, perf)
+        //
+        // A wreck keeps the bot's whole model (20-40 parts), and a late fight has a dozen or more on the floor. The bot hands
+        // its body over tinted by material property blocks (its wear, the spotlight's dead lens), and the wreck dulled itself
+        // with one more: a renderer with a property block falls out of URP's SRP Batcher, so every wreck part cost a full
+        // draw call in the main pass and again in every shadow cascade. The tints are now baked into shared copies of the
+        // materials (one per material and colour, shared by every wreck), the blocks cleared, and going dark swaps to the
+        // dark copies. Once a wreck lies still, its small parts stop casting shadows (they add nothing to its contact shadow
+        // and cost a draw in each cascade). The models' meshes aren't readable at run time, so the parts can't be merged
+        // into one mesh here.
+
+        /// <summary>Parts smaller than this across (the bounds' diagonal, metres) stop casting shadows once the wreck settles.</summary>
+        const float SmallPart = 0.35f;
+        const float DarkScale = 0.55f;
+        static readonly Dictionary<long, Material> _tinted = new Dictionary<long, Material>();
+        static readonly int BaseColorId = Shader.PropertyToID("_BaseColor"), ColorId = Shader.PropertyToID("_Color");
+        readonly List<Material[]> _plain = new List<Material[]>();   // each renderer's materials before any tint (the dark copies are made from them)
+        Material _faceDark;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetTints() => _tinted.Clear();
+
+        /// <summary>A shared copy of <paramref name="source"/> in <paramref name="c"/> (the same copy for every wreck).</summary>
+        static Material Tinted(Material source, Color c)
+        {
+            if (source == null) return null;
+            Color32 q = c;
+            long key = ((long)source.GetInstanceID() << 32) | (uint)(q.r | q.g << 8 | q.b << 16 | q.a << 24);
+            if (_tinted.TryGetValue(key, out var m) && m != null) return m;
+            m = new Material(source) { name = source.name + " (wreck)" };
+            if (m.HasProperty(BaseColorId)) m.SetColor(BaseColorId, c);
+            if (m.HasProperty(ColorId)) m.SetColor(ColorId, c);
+            _tinted[key] = m;
+            return m;
+        }
+
+        /// <summary>Each renderer's property-block colour (the bot's wear, a dead lens) baked into shared material copies, and
+        /// the block cleared, so the wreck's parts stay in the SRP Batcher.</summary>
+        void BakeBlocks()
+        {
+            if (_block == null) _block = new MaterialPropertyBlock();
+            for (int i = 0; i < _renderers.Count; i++)
+            {
+                var r = _renderers[i];
+                var mats = r != null ? r.sharedMaterials : null;
+                _plain.Add(mats);
+                if (r == null || !r.HasPropertyBlock()) continue;
+                r.GetPropertyBlock(_block);
+                bool has = _block.HasColor(BaseColorId), hasLegacy = _block.HasColor(ColorId);
+                if (!has && !hasLegacy) continue;   // a block without a colour: left as it is
+                Color c = has ? _block.GetColor(BaseColorId) : _block.GetColor(ColorId);
+                var baked = new Material[mats.Length];
+                for (int k = 0; k < mats.Length; k++) baked[k] = Tinted(mats[k], c);
+                r.SetPropertyBlock(null);
+                r.sharedMaterials = baked;
+            }
+        }
+
+        /// <summary>Settled: the small parts stop casting shadows.</summary>
+        void QuietShadows()
+        {
+            for (int i = 0; i < _renderers.Count; i++)
+            {
+                var r = _renderers[i];
+                if (r == null || r == _face || r.shadowCastingMode == UnityEngine.Rendering.ShadowCastingMode.Off) continue;
+                if (r.bounds.size.magnitude < SmallPart) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+        }
+
+        void OnDestroy()
+        {
+            if (_faceDark != null) Destroy(_faceDark);
         }
 
         /// <summary>The gondola: the platform's parts go under a pivot at the left stirrup's eye (the right one if
@@ -276,6 +351,7 @@ namespace JamKit.SkylineRepo
             _settled = true;
             if (_fall == Fall.Hang) _moving.SetPositionAndRotation(_fromPos, _restRot);
             else _moving.SetPositionAndRotation(_restPos, _restRot);
+            QuietShadows();
         }
 
         Bounds Bounds()
@@ -304,22 +380,38 @@ namespace JamKit.SkylineRepo
                 Debug.Log("SKYLINE_BOT stripped " + botName + " plating +" + gained.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture));
         }
 
-        /// <summary>Stale or stripped: the screen switches off and the body dulls (each renderer's own colour, darkened).</summary>
+        /// <summary>Stale or stripped: the screen switches off and the body dulls (each part's own colour, darkened), by
+        /// swapping to shared dark copies of its materials (no property blocks: see <see cref="BakeBlocks"/>).</summary>
         void GoDark()
         {
             _dark = true;
-            if (_block == null) _block = new MaterialPropertyBlock();
+            var screenOff = new Color(0.03f, 0.035f, 0.04f, 1f);
             for (int i = 0; i < _renderers.Count; i++)
             {
                 var r = _renderers[i];
                 if (r == null) continue;
-                var m = r.sharedMaterial;
-                Color c = m != null ? m.color : Color.grey;
-                Color dull = r == _face ? new Color(0.03f, 0.035f, 0.04f, 1f) : new Color(c.r * 0.55f, c.g * 0.55f, c.b * 0.55f, c.a);
-                r.GetPropertyBlock(_block);
-                _block.SetColor("_BaseColor", dull);
-                _block.SetColor("_Color", dull);
-                r.SetPropertyBlock(_block);
+                var plain = i < _plain.Count && _plain[i] != null ? _plain[i] : r.sharedMaterials;
+                if (r == _face)
+                {
+                    // the face's material is the bot's own (its texture changes per bot): its own dark copy, not a shared one
+                    var src = r.sharedMaterial;
+                    if (src == null) continue;
+                    _faceDark = new Material(src) { name = src.name + " (off)" };
+                    if (_faceDark.HasProperty(BaseColorId)) _faceDark.SetColor(BaseColorId, screenOff);
+                    if (_faceDark.HasProperty(ColorId)) _faceDark.SetColor(ColorId, screenOff);
+                    r.SetPropertyBlock(null);
+                    r.sharedMaterial = _faceDark;
+                    continue;
+                }
+                var dark = new Material[plain.Length];
+                for (int k = 0; k < plain.Length; k++)
+                {
+                    var m = plain[k];
+                    Color c = m != null ? m.color : Color.grey;
+                    dark[k] = m != null ? Tinted(m, new Color(c.r * DarkScale, c.g * DarkScale, c.b * DarkScale, c.a)) : null;
+                }
+                r.SetPropertyBlock(null);
+                r.sharedMaterials = dark;
             }
         }
     }
