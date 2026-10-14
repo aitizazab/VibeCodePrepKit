@@ -51,7 +51,7 @@ namespace JamKit.SkylineRepo
         /// <summary>Called after a hit has landed: notes the new health and queues each stage it crossed.</summary>
         void OnDamageHealth()
         {
-            if (Body == null || Parts == null) return;
+            if (Body == null || Parts == null || SkylinePerfSwitches.NoDamageFx) return;   // -skyline-no-damage-fx: a perf A/B, no stage ever starts
             _crossedStages.Clear();
             _damageStates.Observe(DamageStates.Integrity(Body), _crossedStages);
             for (int i = 0; i < _crossedStages.Count; i++) _pendingStages.Add(_crossedStages[i]);

@@ -11,5 +11,7 @@ foreach ($p in 'Skyline', 'Movement') {
 }
 & dotnet build (Join-Path $root 'core-tests\SkylineUnity\SkylineUnity.Check.csproj') --nologo -v q -p:NuGetAudit=false
 if ($LASTEXITCODE -ne 0) { $bad += 'SkylineUnity (Unity-side compile check)' }
+& powershell -NoProfile -File (Join-Path $root 'core-tests\SkylineUnity\check-asmdefs.ps1')
+if ($LASTEXITCODE -ne 0) { $bad += 'SkylineUnity per-assembly check (a missing asmdef reference)' }
 if ($bad.Count -gt 0) { Write-Host "Failed: $($bad -join ', ')"; exit 1 }
 Write-Host 'Skyline and Movement tests passed; the Unity-side compile check is green.'

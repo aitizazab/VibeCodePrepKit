@@ -117,7 +117,9 @@ namespace JamKit.SkylineRepo
         public static SkylineInkStyleSettings Resolve(SkylineInk ink)
         {
             ReadOnce();
-            return SkylineInkStyleSettings.Max(FromVolume(ink), _cli);
+            var s = SkylineInkStyleSettings.Max(FromVolume(ink), _cli);
+            if (SkylinePerfSwitches.NoLineWeight) s.lineWeight = 0f;   // measurement only: -skyline-no-lineweight
+            return s;
         }
 
         /// <summary>True when the creases come from the depth buffer's curvature (no normals prepass).</summary>

@@ -103,6 +103,7 @@ namespace JamKit.SkylineRepo
             var probe = go.AddComponent<SkylinePerfProbe>();
             probe._outDir = dir;
             SkylineInkFeature.ForceOff = SkylineRunArgs.Has("-skyline-no-ink");   // measurement only: the cost of the ink passes
+            Debug.Log("SKYLINE_PERF switches: ink off " + SkylineInkFeature.ForceOff + ", " + SkylinePerfSwitches.Json());
             probe._start = Time.realtimeSinceStartup;
             probe._lastGc = GC.CollectionCount(0);
             string cap = SkylineRunArgs.Value("-skyline-perf-seconds");
@@ -415,6 +416,7 @@ namespace JamKit.SkylineRepo
                     ",\"shadows\":\"" + Esc(asset != null ? asset.shadowDistance.ToString("0", CultureInfo.InvariantCulture) + " m x" + asset.shadowCascadeCount : "") + "\"" +
                     ",\"gpuTiming\":" + (_timingOn ? "true" : "false") +
                     ",\"inkOff\":" + (SkylineInkFeature.ForceOff ? "true" : "false") +
+                    "," + SkylinePerfSwitches.Json() +
                     ",\"over\":{\"ms16_7\":" + _over17 + ",\"ms25\":" + _over25 + ",\"ms33\":" + _over33 + ",\"ms50\":" + _over50 + ",\"ms100\":" + _over100 + "}" +
                     ",\"spikes\":[" + spikes + "]" +
                     ",\"phases\":[" + phases + "]" +

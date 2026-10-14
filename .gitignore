@@ -45,3 +45,4 @@ tools/house-plan/obj/
 # Skyline Repo: scenes the pipeline generates every pass (docs/SKYLINE-PLAN-M0.md Task 7)
 /Assets/JamKit/Templates/SkylineRepo/Generated/
 /Assets/JamKit/Templates/SkylineRepo/Generated.meta
+core-tests/SkylineUnity/asm/

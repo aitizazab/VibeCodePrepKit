@@ -666,26 +666,27 @@ namespace JamKit.SkylineRepo
                 if (p.spinner != null && p.spinner.name == "Rotors")
                 {
                     p.weakParts.Add(p.spinner);
-                    foreach (Transform rotor in p.spinner) rotor.localScale *= def.weakPointScale;
+                    foreach (Transform rotor in p.spinner) rotor.localScale *= SkylinePerfSwitches.WeakPointScale(def);
                 }
                 foreach (var t in p.rig.GetComponentsInChildren<Transform>(true))
                     if (t.name.StartsWith("Duct") && (p.spinner == null || !t.IsChildOf(p.spinner)))
                     {
                         p.weakParts.Add(t);
-                        t.localScale *= def.weakPointScale;
+                        t.localScale *= SkylinePerfSwitches.WeakPointScale(def);
                     }
                 return;
             }
-            if (p.weakPoint != null && !Mathf.Approximately(def.weakPointScale, 1f)) p.weakPoint.localScale *= def.weakPointScale;
+            if (p.weakPoint != null && !Mathf.Approximately(def.weakPointScale, 1f)) p.weakPoint.localScale *= SkylinePerfSwitches.WeakPointScale(def);
         }
 
         /// <summary>The whole body (and the spotlight's stand) by <see cref="EnemyDef.bodyScale"/> about the root: the floor-care unit's
         /// feet stay on the floor, a hovering bot grows round its centre.</summary>
         static void ScaleBody(EnemyDef def, SkylineBotParts p)
         {
-            if (Mathf.Approximately(def.bodyScale, 1f)) return;
-            p.rig.localScale *= def.bodyScale;
-            if (p.mount != null) p.mount.localScale *= def.bodyScale;
+            float scale = SkylinePerfSwitches.BodyScale(def);
+            if (Mathf.Approximately(scale, 1f)) return;
+            p.rig.localScale *= scale;
+            if (p.mount != null) p.mount.localScale *= scale;
         }
 
         /// <summary>

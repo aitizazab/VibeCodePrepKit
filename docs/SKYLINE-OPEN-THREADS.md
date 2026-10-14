@@ -52,7 +52,7 @@ start goes here with its next step; a thread leaves this list only when it's don
 | The Breacher redesign | Round 2's club subwoofer (B, take 1) leads; "redo it inside the chosen style" never started | Concepts in the comic-ink style, then the model |
 | The corridor-camper pincer (D22) | Decided; not built; the pinned sim test `ACamperHiddenInTheWestCorridors...` waits to flip | Build in the director (X0) or as its own task |
 | The shop-S4 corner drones can't see | Noted from the sim; never checked | Check in the camper survey (DM2) |
-| A per-assembly compile check | Promised after the second missing-reference failure | Make `core-tests/SkylineUnity` compile each asmdef with only its references |
+| A per-assembly compile check | Built (branch skyline-perf-ab): `core-tests/SkylineUnity/check-asmdefs.ps1`, run by `tools/skyline/test.ps1` | Done once merged |
 | Perf: the food-court fight stutters (ink part fixed in perf10: 16.3 ms; REGRESSED in perf11 to 22.3 ms, worst fight 28.2 ms, GPU 15 ms wait + CPU 12.8 ms) | Re-measured in perf9 with the fixed pilot (demo completed): average 6.6 ms but 1% low 30.4 ms, worst fight 44 ms; the spikes are in the food-court fight with 15 bots, mostly waiting on the GPU (25 ms) with some CPU spikes (19-24 ms); perf8 was the same, so not tonight's work | A/B perf11's regression: line weight off, damage-state effects off, the old bot sizes; then the CPU spikes (HUD elements, bots) |
 | The art style (gate G0) | PASSED 2026-10-15. Of the five stylization options the creator wants only **line weight** ("I can't really tell the change wrought on by many of the variations"): on by default from commit 2166f74f | Dressing DR1-DR5 is unblocked |
 
