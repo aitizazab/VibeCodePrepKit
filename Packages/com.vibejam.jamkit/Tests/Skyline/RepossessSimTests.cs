@@ -854,7 +854,10 @@ namespace JamKit.Tests.Skyline
         {
             // the hatch at (26, -26) spawns a floor-care unit 4 m from a Unit standing at (22, -25.75): wrecked at 9..15 s, wave 1.
             // A spawn door this close to a corridor position is a layout finding for F2/F3 (the spawn-distance rule is 6 m to a socket only).
-            AssertWreckedEarly(new Vector3(22f, 0f, -25.75f), 40f, 1, 2, 3);
+            // 2026-10-15 (larger bots, lagged drones): the camper dies in wave 1 at 13 s in about 40% of seeds and, in the rest, to wave 2, which
+            // arrives at about 40 s (seeds 1-10: 13-14 s or 40-42 s); the old bound of 40 s sat on that second mode (39 to 40.1 s), so it is
+            // 45 s: still "early", before a third wave could matter
+            AssertWreckedEarly(new Vector3(22f, 0f, -25.75f), 45f, 1, 2, 3);
         }
     }
 }

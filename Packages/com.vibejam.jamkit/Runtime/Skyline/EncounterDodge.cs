@@ -69,6 +69,7 @@ namespace JamKit.Skyline
                     leadFactor = d.aim == AimModel.LeadsYou ? difficulty.leadFactor : 0f,
                     projectileRadius = d.projectileRadius,
                     aimSpreadDeg = d.aimSpreadDeg,
+                    aimLagSeconds = d.aimLagSeconds,
                     firstShotAt = d.alertSeconds + (beam ? 0f : d.telegraphSeconds) + Stagger * list.Count,
                     beamTelegraph = d.telegraphSeconds,
                     beamLockBefore = d.beamLockBefore,

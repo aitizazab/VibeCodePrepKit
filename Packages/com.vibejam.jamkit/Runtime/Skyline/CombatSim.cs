@@ -26,6 +26,8 @@ namespace JamKit.Skyline
         public float firstShotAt = 0.5f;
         /// <summary>Degrees of random aim error on a projectile (uniform over a cone); 0 is a perfect shot.</summary>
         public float aimSpreadDeg;
+        /// <summary>Above 0: fires at where the player's chest was this many seconds ago (the drone's lagged aim, no lead).</summary>
+        public float aimLagSeconds;
         /// <summary>A telegraphed hitscan's beam (projectileSpeed 0): its telegraph, lock, follow rate and hit radius.</summary>
         public float beamTelegraph = 0.8f, beamLockBefore = 0.25f, beamFollowRate = 10f, beamHitRadius = 0.6f;
         /// <summary>It fires only when the player's chest is within this many metres (and in line of sight); unlimited by default.</summary>
@@ -136,6 +138,7 @@ namespace JamKit.Skyline
         readonly List<Projectile> _shots = new List<Projectile>();
         readonly List<CoverBox> _cover;
         readonly Rng _rng;
+        readonly PositionTrail _trail = new PositionTrail();
 
         public int Hits { get; private set; }
         public int ShotsFired { get; private set; }
@@ -187,6 +190,7 @@ namespace JamKit.Skyline
             var input = _bot.Next(_player, Time, h);
             _player.Step(in input, h);
             Time += h;
+            _trail.Record(Time, Chest);
 
             foreach (var s in _shooters)
             {
@@ -220,9 +224,11 @@ namespace JamKit.Skyline
                     s.telegraphShot.Start(Chest);
                     continue;
                 }
-                Vector3 aimAt = s.aim == AimModel.LeadsYou
-                    ? Aim.LeadPoint(s.position, Chest, _player.Velocity, s.projectileSpeed, s.leadFactor)
-                    : Chest;
+                Vector3 aimAt = s.aimLagSeconds > 0f
+                    ? Aim.LaggedPoint(_trail, Time, s.aimLagSeconds, Chest)
+                    : s.aim == AimModel.LeadsYou
+                        ? Aim.LeadPoint(s.position, Chest, _player.Velocity, s.projectileSpeed, s.leadFactor)
+                        : Chest;
                 Vector3 dir = aimAt - s.position;
                 float len = dir.Length();
                 if (len < 1e-4f) continue;

@@ -28,7 +28,16 @@ namespace JamKit.Skyline
         public float chassisHp = 50f;
         public PlateDef[] plates = new PlateDef[0];
         /// <summary>The bot's size for aim assist and line-of-sight checks (m).</summary>
-        public float bodyRadius = 0.5f;
+        public float bodyRadius = 0.625f;
+        /// <summary>How much larger the body is built than its model or primitives (the creator, 2026-10-15: "It was impossible to land
+        /// a headshot on a drone"). The Unity body scales its whole rig by this; <see cref="bodyRadius"/> is already the scaled radius.</summary>
+        public float bodyScale = 1f;
+        /// <summary>The weak part's extra scale on top of <see cref="bodyScale"/> (the drone's rotors with their ducts, the floor-care unit's
+        /// canister, the spotlight's lens), about its own centre. The hit zones are the visible parts' own colliders, so they grow with it.</summary>
+        public float weakPointScale = 1f;
+        /// <summary>The weak part's visible radius in the unscaled model (m), for <see cref="BotSizes"/>: the drone's rotor duct, the
+        /// canister, the lens.</summary>
+        public float weakPointRadius = 0.15f;
         // The behaviour clock (BotBrain): alert, then a cycle of telegraph + attack + recovery.
         public float alertSeconds = 0.6f;
         public float telegraphSeconds = 0.4f;
@@ -42,6 +51,10 @@ namespace JamKit.Skyline
         /// <summary>Degrees of random aim error on a projectile shot (a drone isn't a perfect shot; it also makes the dodge
         /// measurement a dial instead of a cliff). 0 for none.</summary>
         public float aimSpreadDeg;
+        /// <summary>The drone's lagged aim (the creator, 2026-10-14): the shot goes to where the target's chest was this many seconds
+        /// ago (<see cref="PositionTrail"/>) instead of leading it; a mover is missed by what it covers in the lag plus the bolt's
+        /// flight. 0 for the old behaviour (a lead of <see cref="DifficultyDef.leadFactor"/> for <see cref="AimModel.LeadsYou"/>).</summary>
+        public float aimLagSeconds;
         public float attackDamage = 10f;
         public float range = 40f;
         /// <summary>m/s the bot drives toward the player once awake (Task 11b's fight); 0 for bots that don't walk.</summary>
@@ -88,14 +101,16 @@ namespace JamKit.Skyline
         public const string DroneId = "mall-cop-drone", FloorCareId = "floor-care-unit", SpotlightId = "spotlight",
             GondolaId = "window-washer-gondola";
 
-        /// <summary>Officious; shots that lead your movement (punishes straight lines). Aim: leads you. Layer: air.</summary>
+        /// <summary>Officious; shots at where you were 0.2 s ago (punishes standing still; a mover is missed). Aim tag: leads you
+        /// (kept for the never-mix rule; since 2026-10-14 it lags instead of leading). Layer: air.</summary>
         public static EnemyDef MallCopDrone() => new EnemyDef
         {
             id = DroneId, displayName = "Mall-cop drone", aim = AimModel.LeadsYou, layer = ThreatLayer.Air,
-            chassisHp = 70f, plates = new[] { new PlateDef("shell", 30f), new PlateDef("lens-guard", 20f) }, bodyRadius = 0.45f,
-            alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 0.8f, loseSightSeconds = 3f, rememberSeconds = 8f, searchSpeed = 2f,
+            chassisHp = 70f, plates = new[] { new PlateDef("shell", 30f), new PlateDef("lens-guard", 20f) }, bodyRadius = 0.63f,
+            bodyScale = 1.4f, weakPointScale = 2f, weakPointRadius = 0.175f,
+            alertSeconds = 0.6f, telegraphSeconds = 0.35f, fireInterval = 1.0f, loseSightSeconds = 3f, rememberSeconds = 8f, searchSpeed = 2f,
             patrolSpeed = 2.5f, patrolLeash = 2.5f, patrolBob = 0.25f, patrolDashSpeed = 4.5f,
-            projectileSpeed = 30f, projectileRadius = 0.15f, aimSpreadDeg = 4f, attackDamage = 26f, range = 45f, scrapPlating = 20f,
+            projectileSpeed = 30f, projectileRadius = 0.15f, aimLagSeconds = 0.2f, aimSpreadDeg = 0.5f, attackDamage = 24f, range = 45f, scrapPlating = 20f,
         };
 
         /// <summary>A roomba with a happy face, angry at "stains"; an ankle-height acid sweep (punishes staying on the floor).
@@ -103,7 +118,8 @@ namespace JamKit.Skyline
         public static EnemyDef FloorCareUnit() => new EnemyDef
         {
             id = FloorCareId, displayName = "Floor-care unit", aim = AimModel.Area, layer = ThreatLayer.Floor,
-            chassisHp = 80f, plates = new[] { new PlateDef("lid", 40f), new PlateDef("bumper", 30f) }, bodyRadius = 0.5f,
+            chassisHp = 80f, plates = new[] { new PlateDef("lid", 40f), new PlateDef("bumper", 30f) }, bodyRadius = 0.625f,
+            bodyScale = 1.25f, weakPointScale = 1.8f, weakPointRadius = 0.13f,
             alertSeconds = 0.8f, telegraphSeconds = 0.6f, fireInterval = 1.2f, loseSightSeconds = 3f,
             projectileSpeed = 0f, attackDamage = 14f, range = 10f, moveSpeed = 5f,
             sweepSeconds = 0.8f, sweepRadius = 4.5f, sweepArcDeg = 120f, sweepWidthDeg = 24f, ankleHeight = 0.4f, scrapPlating = 30f,
@@ -115,7 +131,8 @@ namespace JamKit.Skyline
         public static EnemyDef Spotlight() => new EnemyDef
         {
             id = SpotlightId, displayName = "Spotlight", aim = AimModel.FiresAtWhereYouAre, layer = ThreatLayer.Air,
-            chassisHp = 80f, plates = new[] { new PlateDef("housing-left", 55f), new PlateDef("housing-right", 55f) }, bodyRadius = 0.6f,
+            chassisHp = 80f, plates = new[] { new PlateDef("housing-left", 55f), new PlateDef("housing-right", 55f) }, bodyRadius = 0.78f,
+            bodyScale = 1.3f, weakPointScale = 1.3f, weakPointRadius = 0.33f,
             alertSeconds = 0.5f, telegraphSeconds = 0.8f, fireInterval = 2.4f, loseSightSeconds = 3f,
             projectileSpeed = 0f, attackDamage = 35f, range = 60f,
             beamFollowRate = 20f, beamHitRadius = 1.4f, beamLockBefore = 0.25f, scrapPlating = 25f,
@@ -137,6 +154,21 @@ namespace JamKit.Skyline
 
         public static EnemyDef Find(string id) =>
             id == DroneId ? MallCopDrone() : id == FloorCareId ? FloorCareUnit() : id == SpotlightId ? Spotlight() : id == GondolaId ? Gondola() : null;
+    }
+
+    /// <summary>What the bots' sizes look like from where they are fought (the creator's playtest: the drone was "tiny. I could barely see
+    /// it at the ranges I was fighting it", and its weak point could not be hit). Pure maths on the def.</summary>
+    public static class BotSizes
+    {
+        /// <summary>The weak part's visible radius as built (m): the model's, times the body scale and the weak part's own scale.</summary>
+        public static float WeakRadius(EnemyDef d) => d.weakPointRadius * d.bodyScale * d.weakPointScale;
+
+        /// <summary>The weak part's visible radius in the old, unscaled bots (m).</summary>
+        public static float OldWeakRadius(EnemyDef d) => d.weakPointRadius;
+
+        /// <summary>How wide a disc of <paramref name="radius"/> metres looks from <paramref name="distance"/> metres, in degrees.</summary>
+        public static float AngularDegrees(float radius, float distance) =>
+            distance > 0f ? 2f * (float)Math.Atan(radius / distance) * (180f / (float)Math.PI) : 180f;
     }
 
     public struct BotDamage

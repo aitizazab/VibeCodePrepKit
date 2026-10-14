@@ -1451,3 +1451,10 @@ F3's lint (commit f409ee3d) found the real arena failing three of the four rules
 Numbers (before -> after): doors failing 8 -> 0; tow circles failing 4 -> 0; rule 1 points failing 11 -> 0 (4 corridor-stub, 7 pit);
 rule 2 with all 27 doors at 60%: 290 points, worst 78%; with the 13 ground doors at 60%: 42 points, worst 69%; as decided (13 ground
 doors, 70%): 0 points, worst 62% (8 of 13 doors, at the west ring (-18, 0)).
+
+### D21 follow-up (drone-aim agent, 2026-10-15): the bots' bolts follow the glass table
+`SkylineBolt` now stops at every glass that is not a facade pane (balustrades, the skylight, the bridge floor) and breaks a live
+pane through `SkylineFacade.TryBreak` and flies on (`SkylineBot.IgnoredByBolt`, which unlike `IgnoredBySight` does not skip the
+glass layer). Bot SIGHT is unchanged: it still sees through all glass, as D21's first sentence says and as `RepossessSim` and the
+player's `SkylineShooting.Mask` do; so a bot behind a rail sees you, telegraphs, and its bolt hits the rail. If the creator wants
+rails to block sight too, it is a one-line change in `IgnoredBySight` plus `SightBlockers` in the pure sim.

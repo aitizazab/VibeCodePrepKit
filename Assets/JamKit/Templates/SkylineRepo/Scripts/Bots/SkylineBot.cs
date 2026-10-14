@@ -28,8 +28,9 @@ namespace JamKit.SkylineRepo
     /// when hit; asleep, or as Dot's practice bot, a slow short drift), banking into each strafe. Awake and out of sight, its post searches by FightSim's documented rule
     /// (<see cref="Search"/>: last-known point; hold if it has a clear line to it; else the nearest vantage on the rings within
     /// 10 m, committed to; home the way it came when its memory runs out, a leg struck off only on arrival; Home fixed) at the
-    /// def's <c>searchSpeed</c>. Fires a <see cref="SkylineBolt"/> at <see cref="Aim.LeadPoint"/> with Normal's lead factor,
-    /// tilted by a seeded error over a cone of the def's <c>aimSpreadDeg</c>.</item>
+    /// def's <c>searchSpeed</c>. Fires a <see cref="SkylineBolt"/> at where the target's chest was the def's <c>aimLagSeconds</c> ago
+    /// (<see cref="PositionTrail"/>, the creator's call of 2026-10-14: no leading, so a mover is missed), tilted by a small seeded
+    /// error over a cone of the def's <c>aimSpreadDeg</c>. A def with no lag leads by <see cref="Aim.LeadPoint"/> with Normal's factor.</item>
     /// <item><b>Floor-care unit.</b> Drives at the def's <c>moveSpeed</c> toward the target round the cover (FightSim's
     /// detour-to-the-best-corner of a blocking collider's bounds, and a slide along a face it still runs into), stops half its
     /// sweep radius short, never moves while telegraphing or sweeping; sweeps (<see cref="SkylineAcid"/>) when the target's
@@ -54,7 +55,7 @@ namespace JamKit.SkylineRepo
     /// from the shooter); only a Writ spot (<see cref="SkylineSpotMarker"/>) glows and sparks on a live bot; a fresh wreck
     /// sparks (<see cref="SkylineWreck"/>).
     /// </summary>
-    public sealed class SkylineBot : MonoBehaviour, ISkylineHittable, ISkylineAimable
+    public sealed partial class SkylineBot : MonoBehaviour, ISkylineHittable, ISkylineAimable
     {
         // ------------------------------------------------------------------ statics
 
@@ -105,8 +106,9 @@ namespace JamKit.SkylineRepo
             set => _arrivalBlockers = value;
         }
 
-        /// <summary>The physics layer the glass panes (the façade's, the bridge's) are on (task B1 adds it): bots see and shoot
-        /// through it, as guns do not. -1 while the project has no such layer.</summary>
+        /// <summary>The physics layer the glass (the façade's panes, the rails, the skylight, the bridge floor) is on (task B1 adds
+        /// it): bots see through all of it; their bolts pass only façade panes, which they break (D21, <see cref="IgnoredByBolt"/>).
+        /// -1 while the project has no such layer.</summary>
         public const string GlassLayerName = "SkylineGlass";
         static int _glassLayer = int.MinValue;
         static int GlassLayer
@@ -238,9 +240,22 @@ namespace JamKit.SkylineRepo
             if (c == null || c.isTrigger) return true;
             int glass = GlassLayer;
             if (glass >= 0 && c.gameObject.layer == glass) return true;   // the gondola outside the façade sees the Unit through it
+            return NeverBlocks(c, self);
+        }
+
+        /// <summary>Triggers, bots' hit zones, shed parts and <paramref name="self"/>'s own colliders: never in the way of anything.</summary>
+        static bool NeverBlocks(Collider c, Transform self)
+        {
+            if (c == null || c.isTrigger) return true;
             if (c.TryGetComponent<SkylineHitZone>(out _) || c.TryGetComponent<SkylineDebris>(out _)) return true;
             return self != null && c.transform.IsChildOf(self);
         }
+
+        /// <summary>What a bolt does not stop at (D21): like <see cref="IgnoredBySight"/> but glass is NOT ignored. Façade panes are
+        /// broken and passed by the bolt itself (<see cref="SkylineFacade.IsPane"/>, <see cref="SkylineBolt"/>); balustrades, the
+        /// skylight and the bridge floor stop it. Sight still sees through all glass, as the player's
+        /// <see cref="SkylineShooting.Mask"/> does.</summary>
+        public static bool IgnoredByBolt(Collider c, Transform self) => NeverBlocks(c, self);
 
         /// <summary>The first thing that blocks along a ray (cover only), within <paramref name="dist"/>.</summary>
         public static bool CastClear(Vector3 from, Vector3 dir, float dist, Transform self, out RaycastHit hit)
@@ -303,6 +318,8 @@ namespace JamKit.SkylineRepo
         readonly List<BotCue> _cues = new List<BotCue>();
         readonly List<BotCue> _hitCues = new List<BotCue>();
         float _clock;
+        /// <summary>Where the target's chest has been lately, for a lagged aim (<see cref="EnemyDef.aimLagSeconds"/>); fed every frame.</summary>
+        readonly PositionTrail _chestTrail = new PositionTrail();
         Vector3 _pos, _home, _kick;
         float _yaw, _pitch, _spawnYaw, _shake, _sway, _swayVel;
         // the drone's search
@@ -459,6 +476,7 @@ namespace JamKit.SkylineRepo
             SyncMarkers();
 
             bool live = TargetLive(target) && target.Root != null && target.Root.gameObject.activeInHierarchy;
+            if (live && Def.aimLagSeconds > 0f) _chestTrail.Record(_clock, N(target.Chest));
             Vector3 aimAt = Vector3.zero;
             bool sees = live && Sees(out aimAt);
             SeesTarget = sees;
@@ -523,6 +541,7 @@ namespace JamKit.SkylineRepo
             Knockback(dt);
             Face(dt, sees, live);
             Pose(dt);
+            TickDamage(dt);
             TickFlash(dt);
         }
 
@@ -660,8 +679,18 @@ namespace JamKit.SkylineRepo
         {
             var d = Def;
             Vector3 from = Parts.muzzle != null ? Parts.muzzle.position : Center;
-            float lead = d.aim == AimModel.LeadsYou ? Difficulties.Normal().leadFactor : 0f;
-            Vector3 aim = U(Aim.LeadPoint(N(from), N(aimAt), N(target.Velocity), d.projectileSpeed, lead)) - from;
+            Vector3 aim;
+            if (d.aimLagSeconds > 0f)
+            {
+                // where the chest was a moment ago, no lead; the eye offset of an aimAt that had to settle for the eye is kept
+                Vector3 chest = target.Chest;
+                aim = U(Aim.LaggedPoint(_chestTrail, _clock, d.aimLagSeconds, N(chest))) + (aimAt - chest) - from;
+            }
+            else
+            {
+                float lead = d.aim == AimModel.LeadsYou ? Difficulties.Normal().leadFactor : 0f;
+                aim = U(Aim.LeadPoint(N(from), N(aimAt), N(target.Velocity), d.projectileSpeed, lead)) - from;
+            }
             float len = aim.magnitude;
             if (!(len > 1e-4f)) return;
             Vector3 dir = Spread(aim / len, d.aimSpreadDeg);
@@ -1127,6 +1156,7 @@ namespace JamKit.SkylineRepo
             if (plateWasOn && Parts.plates[plate] != null) Flash(Parts.plates[plate].GetComponentsInChildren<Renderer>());
             else if (hit.zone == HitZone.Body || hit.zone == HitZone.Plate) Flash(Parts.bodyRenderers);
             ApplyWear();
+            OnDamageHealth();
             if (r.damage.plateShed >= 0) ShedPlate(r.damage.plateShed, hit.normal);
             Knock(hit.direction, hit.knockback);
             if (r.damage.wrecked)
@@ -1347,6 +1377,7 @@ namespace JamKit.SkylineRepo
                 if (Parts.plates[i] != null) Parts.plates[i].gameObject.SetActive(true);
             }
             ApplyWear(true);
+            ResetDamage();
             Debug.Log("SKYLINE_BOT " + Id + " practice refill");
         }
 
@@ -1493,7 +1524,7 @@ namespace JamKit.SkylineRepo
 
         void Face(float dt, bool sees, bool live)
         {
-            _face.Show(Brain.Face);
+            _face.Show(DamageGlitch ? BotFace.Hurt : Brain.Face);
             if (Beam != null)
             {
                 // the spotlight turns: onto the beam's point, else the target, else a slow idle scan
@@ -1559,7 +1590,7 @@ namespace JamKit.SkylineRepo
                 rig.rotation = Quaternion.Euler(-_bumpTilt, _yaw, 0f);
                 bool fast = Brain.State == BotState.Telegraph || (_acid != null && _acid.Running);
                 bool cleaning = !IsAwake && _cleaning != null && !practice;
-                _spin += (fast ? 1440f : cleaning ? 300f : 120f) * dt;
+                _spin += (fast ? 1440f : cleaning ? 300f : 120f) * _damageSpin * dt;
                 if (Parts.spinner != null) Parts.spinner.localRotation = Quaternion.Euler(0f, _spin, 0f);
             }
             else
@@ -1583,11 +1614,12 @@ namespace JamKit.SkylineRepo
                 // the lean in the drone's own frame: forward motion pitches it, sideways motion rolls it
                 Vector3 leanLocal = Quaternion.Euler(0f, -_yaw, 0f) * lean;
                 rig.rotation = Quaternion.Euler(Mathf.Clamp(leanLocal.z, -25f, 25f), _yaw, Mathf.Clamp(-leanLocal.x, -25f, 25f));
-                _spin += 1800f * dt;
+                _spin += 1800f * _damageSpin * dt;
                 if (Parts.spinner != null)
                     for (int i = 0; i < Parts.spinner.childCount; i++) Parts.spinner.GetChild(i).localRotation = Quaternion.Euler(0f, _spin * (i % 2 == 0 ? 1f : -1f), 0f);
                 ChargeBall(dt);
             }
+            if (_lookStage > 0) rig.rotation = rig.rotation * DamageTilt();   // the limp damage puts in the pose (SkylineBotDamage.cs)
         }
 
         /// <summary>The drone's telegraph: a red ball swelling at the muzzle until it fires (lit, not glowing).</summary>
@@ -1614,7 +1646,8 @@ namespace JamKit.SkylineRepo
         public Collider PlateCollider(int i) =>
             Parts.plates != null && i >= 0 && i < Parts.plates.Length && Parts.plates[i] != null ? Parts.plates[i].GetComponentInChildren<Collider>() : null;
 
-        public Collider WeakPointCollider => Parts.weakPoint != null ? Parts.weakPoint.GetComponentInChildren<Collider>() : null;
+        public Collider WeakPointCollider =>
+            Parts.weakParts.Count > 0 ? Parts.weakParts[0].GetComponentInChildren<Collider>() : Parts.weakPoint != null ? Parts.weakPoint.GetComponentInChildren<Collider>() : null;
 
         /// <summary>The largest body-zone collider (the chassis).</summary>
         public Collider BodyCollider

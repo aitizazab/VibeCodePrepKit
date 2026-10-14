@@ -221,7 +221,7 @@ namespace JamKit.Tests.Skyline
             Assert.That(vents.Take(6), Is.EquivalentTo(new[] { (-26f, 12f), (-26f, -12f), (26f, 12f), (26f, -12f), (-4f, 22f), (-4f, -22f) }), "the sheet's six");
             Assert.That(vents.Skip(6), Is.EquivalentTo(new[]
             {
-                (10f, 27.05f), (10f, -27.05f), (-34.55f, 10f), (-34.55f, -10f), (34.55f, 10f), (34.55f, -10f), (-30f, 18f), (-30f, -18f),
+                (10f, 26.85f), (10f, -26.85f), (-34.35f, 10f), (-34.35f, -10f), (34.35f, 10f), (34.35f, -10f), (-30f, 18f), (-30f, -18f),
             }), "the eight added for spawn coverage");
             var shutters = RepossessSites.Doors().Where(d => d.kind == DoorKind.ShopShutter).Select(d => (d.position.X, d.position.Z));
             Assert.That(shutters, Is.EquivalentTo(new[] { (-20.8f, 18f), (0f, 18f), (20.8f, 18f), (-20.8f, -18f), (20.8f, -18f) }));

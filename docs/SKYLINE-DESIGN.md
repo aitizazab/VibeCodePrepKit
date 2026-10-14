@@ -157,7 +157,7 @@ Every enemy has a face or display, idle, alert and attack states, its own sounds
 |---|---|---|---|---|---|
 | Floor-care unit | a roomba with a happy face display; angry when it spots a "stain" (you) and tries to clean you out, with acid | ankle-height acid sweep | staying on the floor | area | floor |
 | Greeter | relentlessly welcoming | charges from the flanks | standing still | melee | floor |
-| Mall-cop drone | officious | shots that **lead your movement** | straight lines | leads you | air |
+| Mall-cop drone | officious | shots at **where you were 0.2 s ago** (no leading; since 2026-10-14) | standing still | leads you (tag kept; it lags) | air |
 | Window-washer gondola | rides the façade | lays mines along walls | long wall-runs | area | walls |
 | Spotlight | a searchlight with a rifle | a 0.8 s laser telegraph that follows you with a lag, **locks 0.25 s before the shot**, then hitscan; guards hook anchors. Dodged by changing direction in that last 0.25 s or breaking line of sight | lingering exposed up high | fires at where you are now (telegraphed) | air |
 | Foam turret | a gift-wrap station | sticky slowing patches on the floor | standing still | area | floor |
@@ -839,3 +839,12 @@ its canister is shot; drone: big rotors as the weak spot; spotlights: humanoid r
 Writ's shot is a quill thwip with the gavel crack only on weak-spot hits, ink tracers, a gavel-smack reload, and a
 designed back; the Breacher becomes a sound-system weapon; enemies must read clearly at range without text bubbles.
 Full calls and the work queue: `docs/SKYLINE-PLAYTEST-1.md`.
+
+### 2026-10-14 (night): the drone aims at where you were (the creator's call)
+"The Drone AI is too unpredictable. Make it whiff less when you're standing still, and make it miss more when you're moving fast."
+The drone no longer leads (a lead of 0.75 and 4 degrees of random error): it fires at where your chest was **0.2 s ago**, with a
+tight 0.5 degree error and no leading, so the bolt's flight time adds to the miss. Measured table and numbers: `docs/SKYLINE-BOTS.md`,
+"How the drone aims". Consequences: the dodge band (a straight runner takes about twice the jinker's hits) no longer holds for
+drones and is now the other way round (a runner across their fire is rarely hit; one who stops to turn is); the skilled line
+(`TacticalBot`) now strafes while peeking; drone cycle 0.8 -> 1.0 s and damage 26 -> 24 to keep the skilled-line gates. The
+`AimModel.LeadsYou` tag stays on the drone for the never-mix rule (drone and spotlight in one encounter).

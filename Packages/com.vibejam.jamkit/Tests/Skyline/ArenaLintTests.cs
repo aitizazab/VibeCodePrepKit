@@ -302,10 +302,10 @@ namespace JamKit.Tests.Skyline
             var chute = RepossessArena.Find("chute");
             Assert.That(chute.box.min.X, Is.EqualTo(-11f)); Assert.That(chute.box.max.X, Is.EqualTo(-8f));
             var doors = RepossessSites.Doors().ToDictionary(d => d.id);
-            Assert.That(doors["vent-corridor-n"].position.Z, Is.EqualTo(27.05f)); Assert.That(doors["vent-corridor-s"].position.Z, Is.EqualTo(-27.05f));
-            Assert.That(doors["vent-leg-n"].position.X, Is.EqualTo(-34.55f)); Assert.That(doors["vent-leg-s"].position.X, Is.EqualTo(-34.55f));
-            Assert.That(doors["vent-promenade-n"].position.X, Is.EqualTo(34.55f)); Assert.That(doors["vent-promenade-s"].position.X, Is.EqualTo(34.55f));
-            Assert.That(doors["hatch-corridor-n"].position.Z, Is.EqualTo(27f)); Assert.That(doors["hatch-corridor-s"].position.Z, Is.EqualTo(-27f));
+            Assert.That(doors["vent-corridor-n"].position.Z, Is.EqualTo(26.85f).Within(1e-3f)); Assert.That(doors["vent-corridor-s"].position.Z, Is.EqualTo(-26.85f).Within(1e-3f));
+            Assert.That(doors["vent-leg-n"].position.X, Is.EqualTo(-34.35f).Within(1e-3f)); Assert.That(doors["vent-leg-s"].position.X, Is.EqualTo(-34.35f).Within(1e-3f));
+            Assert.That(doors["vent-promenade-n"].position.X, Is.EqualTo(34.35f).Within(1e-3f)); Assert.That(doors["vent-promenade-s"].position.X, Is.EqualTo(34.35f).Within(1e-3f));
+            Assert.That(doors["hatch-corridor-n"].position.Z, Is.EqualTo(26.85f).Within(1e-3f)); Assert.That(doors["hatch-corridor-s"].position.Z, Is.EqualTo(-26.85f).Within(1e-3f));
         }
 
         // ---- the readings D23 chose, on synthetic levels

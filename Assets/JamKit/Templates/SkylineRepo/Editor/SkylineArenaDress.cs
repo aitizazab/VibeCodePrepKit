@@ -1298,8 +1298,7 @@ namespace JamKit.SkylineRepo.EditorTools
             at.y = 2.35f;
             var display = droneStill.gameObject.AddComponent<SkylineDisplayBot>();
             display.enemyId = SkylineEnemies.DroneId;
-            display.bodyScale = 1.4f;     // display only (fix round 1): a preview of the larger-drone, much-larger-rotor redesign
-            display.rotorScale = 2f;
+            // the larger drone and its much larger rotors are the gameplay bot now (EnemyDef.bodyScale 1.4, weakPointScale 2), so no display scale
             display.position = at;
             display.yaw = Mathf.Atan2(cam.x - at.x, cam.z - at.z) * Mathf.Rad2Deg;
         }
