@@ -79,7 +79,7 @@ namespace JamKit.Tests.Skyline
             var sb = new StringBuilder();
             foreach (var e in GalleriaArena.Encounters())
             {
-                var f = new FightSim(e, Hall(), new StandAndShootBot(), GalleriaArena.FightCover(), GalleriaArena.HallEntry, 1);
+                var f = new FightSim(e, Hall(), new StandAndShootBot(), GalleriaArena.FightCover(), e.anchor, 1);
                 sb.AppendLine(e.id + (counts ? " COUNTS of shooters" : " group masks (bit 0 = group 0)") + "  (rows z = 19 at the top to -19; columns x = -24..24; . = none)");
                 for (int z = 19; z >= -19; z--)
                 {
@@ -215,9 +215,9 @@ namespace JamKit.Tests.Skyline
         [TestCase("facade")]
         public void AHumanTimedSkilledLineClearsItWithNoChassisDamageAndTheSameChoicesWithoutCoverDoNot(string id)
         {
-            var human = RunSims(id, s => new TacticalBot(s, FightTiming.Human()), GalleriaArena.HallEntry);
-            var perfect = RunSeeds(id, s => new TacticalBot(s, FightTiming.Perfect()), GalleriaArena.HallEntry);
-            var control = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human(), false), GalleriaArena.HallEntry);
+            var human = RunSims(id, s => new TacticalBot(s, FightTiming.Human()), ById(id).anchor);
+            var perfect = RunSeeds(id, s => new TacticalBot(s, FightTiming.Perfect()), ById(id).anchor);
+            var control = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human(), false), ById(id).anchor);
             var hr = Results(human);
             TestContext.WriteLine($"{id}, human-timed skilled line, {Seeds} seeds: {Summary(hr)}");
             TestContext.WriteLine($"{id}, perfect-timed reference: {Summary(perfect)}");
@@ -246,7 +246,7 @@ namespace JamKit.Tests.Skyline
 
         static void AssertPressure(string id)
         {
-            var h = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human()), GalleriaArena.HallEntry);
+            var h = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human()), ById(id).anchor);
             TestContext.WriteLine($"{id}, human-timed line, {Seeds} seeds: median lowest plating {MedianLow(h):0}, damaged in {Damaged(h)}/{Seeds}, lowest {Lowest(h):0}");
             Assert.That(MedianLow(h), Is.LessThanOrEqualTo(PressureMedianLow), id + ": the median lowest plating (steady pressure)");
             Assert.That(Damaged(h), Is.GreaterThanOrEqualTo(PressureDamagedSeeds), id + ": fights that do the line some damage");
@@ -259,7 +259,6 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void TheSkylightKeepsTheSkilledLineUnderSteadyPressure() => AssertPressure("skylight");
 
-        [Ignore("gap for the creator: the facade's human-timed line takes one drone hit or none in most fights (median lowest plating 74, damaged in 17-24/30); tried the drones' fire interval 1.2-0.6 s, damage 26-34, and the drones in close pairs (a peek that sees one sees both): the median stayed at one hit (66-74). Its own threat is on the walls (the gondolas' mines) and the line never needs the walls; the floor is the safe layer by design. A wall-run route the line is pushed onto, or a third threat, would be the creator's call.")]
         [Test]
         public void TheFacadeKeepsTheSkilledLineUnderSteadyPressure() => AssertPressure("facade");
 
@@ -636,7 +635,7 @@ namespace JamKit.Tests.Skyline
             for (ulong s = FirstSeed; s < FirstSeed + 5; s++)
             {
                 var bot = new TacticalBot(s, FightTiming.Human());
-                var f = Make(id, bot, s, GalleriaArena.HallEntry);
+                var f = Make(id, bot, s, ById(id).anchor);
                 bot.HidePicked = (spot, isClean) =>
                 {
                     picks++;
@@ -661,7 +660,7 @@ namespace JamKit.Tests.Skyline
             foreach (var e in GalleriaArena.Encounters())
                 foreach (int g in Groups(e))
                 {
-                    var f = Make(e.id, new StandAndShootBot(), 1, GalleriaArena.HallEntry);
+                    var f = Make(e.id, new StandAndShootBot(), 1, e.anchor);
                     foreach (var en in f.Enemies) if (en.Group != g && FightSim.IsShooter(en)) f.Damage(en, 1e6f);
                     f.Wake(g);
                     var bot = new TacticalBot(1);
@@ -725,9 +724,9 @@ namespace JamKit.Tests.Skyline
                         return d;
                     };
                     var open = RunSeeds(id, s => new StandAndShootBot(), OpenSpot(id), Seeds, 60f, lk);
-                    var h = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human()), GalleriaArena.HallEntry, Seeds, Cap, lk);
-                    var h2 = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human()), GalleriaArena.HallEntry, Seeds, Cap, lk, null, HeldOutSeed);
-                    var c = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human(), false), GalleriaArena.HallEntry, Seeds, Cap, lk);
+                    var h = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human()), ById(id).anchor, Seeds, Cap, lk);
+                    var h2 = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human()), ById(id).anchor, Seeds, Cap, lk, null, HeldOutSeed);
+                    var c = RunSeeds(id, s => new TacticalBot(s, FightTiming.Human(), false), ById(id).anchor, Seeds, Cap, lk);
                     int cf = 0;
                     foreach (var r in c) if (r.playerWrecked || r.chassisLost > 0f) cf++;
                     string band = "";

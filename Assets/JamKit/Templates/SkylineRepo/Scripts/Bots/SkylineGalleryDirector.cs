@@ -11,11 +11,11 @@ namespace JamKit.SkylineRepo
     /// The enemy gallery's script (docs/SKYLINE-PLAN-M1.md Task 15, with the gondola as the fourth bot). The four bots are
     /// spawned at Start (each its own group, each with its own hidden <see cref="SkylineDummy"/>); then, in the order drone,
     /// floor-care, spotlight, gondola, the main camera cuts to that bot's close-up and its segment runs:
-    /// idle 2 s; the dummy is revealed (alert, then two attack cycles; for the gondola: it rides its rail laying mines, and once
+    /// idle (3 to 6.5 s by bot, <see cref="IdleSeconds"/>); the dummy is revealed (alert, then two attack cycles; for the gondola: it rides its rail laying mines, and once
     /// a mine on the dummy's line is armed and the gondola is clear of it, the dummy wall-runs past the mine, which triggers,
     /// fuses and blasts); then an invisible shooter by the camera lands Writ hits: plate 0 and plate 1 until each sheds, the
     /// weak point (a spot cracks open and is held on camera 1.8 s), the spot (a break-through), then the chassis until it
-    /// wrecks. The stills are taken by the capture 2 s into the recording (SkylineCapture), during the wide lead-in, when all
+    /// wrecks, held 2.4 s on the broken bot. At the end the camera cuts back to the wide shot of the four wrecks. The stills are taken by the capture 2 s into the recording (SkylineCapture), during the wide lead-in, when all
     /// four bots are idle with happy faces, so nothing is staged for them at the end.
     /// <para>Logs: <c>SKYLINE_GALLERY &lt;bot&gt; state &lt;State&gt;</c>, <c>plate-shed &lt;plateId&gt;</c>,
     /// <c>spot created</c>, <c>spot hit</c>, <c>wrecked</c>, <c>gondola mine laid|armed|triggered|blast|expired</c>; also
@@ -41,7 +41,24 @@ namespace JamKit.SkylineRepo
             public Transform runFrom, runTo;
         }
 
-        const float LeadIn = 1f, IdleSeconds = 2f, AttackWait = 7f, ShotGap = 0.4f, AfterWreck = 1.2f;
+        const float LeadIn = 1f, AttackWait = 7f, ShotGap = 0.4f;
+        /// <summary>How long the wreck is held on camera: the fall, the error face, the sparks (judge round 1: 1.2 s cut it off).</summary>
+        const float AfterWreck = 2.4f;
+
+        /// <summary>How long each bot is watched idle before the dummy shows (judge round 1: 2 s for every bot never showed the
+        /// spotlight's scan or the gondola's ride). The drone's hover and bank read in 3 s; the floor-care unit needs a few of its
+        /// short cleaning runs; the spotlight most of a scan round (about 7 s); the gondola a whole ride out along its first 2 m
+        /// and a stop at the end. With these the gallery runs about 56 s of the 62 s recorded.</summary>
+        static float IdleSeconds(string enemyId)
+        {
+            switch (enemyId)
+            {
+                case SkylineEnemies.FloorCareId: return 4.5f;
+                case SkylineEnemies.SpotlightId: return 5f;
+                case SkylineEnemies.GondolaId: return 6.5f;
+                default: return 3f;
+            }
+        }
         /// <summary>How long the cracked spot stays on camera before it is shot (so the crack reads in the video).</summary>
         const float SpotHold = 1.8f;
         const float RunSpeed = 5f, MineWait = 9f;
@@ -178,6 +195,8 @@ namespace JamKit.SkylineRepo
             for (int i = 0; i < slots.Length; i++)
                 if (slots[i] != null && i < _bots.Length && _bots[i] != null) yield return Segment(i);
 
+            // the wide shot again to end on: the four wrecks, each its own broken bot
+            Cut(widePose);
             Log("done");
             RestoreSearchArea();
         }
@@ -189,7 +208,7 @@ namespace JamKit.SkylineRepo
             float end = Time.time + s.seconds;
             Cut(s.cameraPose);
             Log(s.label + " segment");
-            yield return Wait(IdleSeconds);
+            yield return Wait(IdleSeconds(bot.Def.id));
 
             if (s.dummy != null)
             {

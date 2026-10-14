@@ -59,13 +59,16 @@ k.face_plane("Face", 0.5, 0.25, k.along(front, n, 0.0165), root, tilt=TILT)
 k.sphere("Beacon", 0.045, (0.0, 0.79, 0.12), amber, root, scale=(1, 0.8, 1))
 k.cyl("BeaconBase", 0.055, 0.025, (0.0, 0.77, 0.12), grey, root, verts=24)
 
-# the weak point: the acid canister on the back-left shoulder, with steel caps and a hose to the nozzle
-wp = k.empty("WeakPoint", (-0.26, 0.5, -0.2), root)
-k.cyl("AcidTank", 0.12, 0.3, (-0.26, 0.5, -0.2), acid, wp, verts=32)
-k.cyl("TankCapTop", 0.13, 0.04, (-0.26, 0.665, -0.2), grey, wp, verts=32, bevel=0.01)
-k.cyl("TankCapBottom", 0.13, 0.04, (-0.26, 0.335, -0.2), grey, wp, verts=32, bevel=0.01)
-k.cyl("TankValve", 0.025, 0.06, (-0.26, 0.71, -0.2), dark, wp, verts=12)
-k.tube("Hose1", (-0.33, 0.36, -0.12), (-0.47, 0.3, 0.12), 0.022, dark, root)
+# the weak point: the acid canister on the back-left shoulder, with steel caps and a hose to the nozzle. Set out to the
+# left and standing tall (judge round 1 fix: from the front the head hid most of it; tools/skyline/bots/weakpoint_reach.py
+# now finds it from all four of the judge's angles)
+TANK = (-0.32, 0.54, -0.2)
+wp = k.empty("WeakPoint", TANK, root)
+k.cyl("AcidTank", 0.12, 0.38, TANK, acid, wp, verts=32)
+k.cyl("TankCapTop", 0.13, 0.04, (TANK[0], 0.745, TANK[2]), grey, wp, verts=32, bevel=0.01)
+k.cyl("TankCapBottom", 0.13, 0.04, (TANK[0], 0.355, TANK[2]), grey, wp, verts=32, bevel=0.01)
+k.cyl("TankValve", 0.025, 0.06, (TANK[0], 0.79, TANK[2]), dark, wp, verts=12)
+k.tube("Hose1", (-0.39, 0.37, -0.12), (-0.47, 0.3, 0.12), 0.022, dark, root)
 k.tube("Hose2", (-0.47, 0.3, 0.12), (-0.36, 0.17, 0.42), 0.022, dark, root)
 k.tube("Hose3", (-0.36, 0.17, 0.42), (-0.05, 0.09, 0.5), 0.022, dark, root)
 

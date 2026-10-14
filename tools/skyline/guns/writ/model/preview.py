@@ -26,13 +26,20 @@ import writkit as K  # noqa: E402
 import build_arms as A  # noqa: E402
 import build_writ as W  # noqa: E402
 
-WRIT_REST = (0.16, -0.15, 0.36)
-BREACHER_REST = (0.17, -0.18, 0.40)
+# SkylineViewmodel's rests (fix round 1: moved out and up so the hands and the grip show; the Writ's convergence yaw is
+# now its rest rotation, not SkylineWritFx's "home" layer)
+WRIT_REST, WRIT_REST_EULER = (0.2, -0.13, 0.5), (0.0, -9.0, 0.0)
+BREACHER_REST, BREACHER_REST_EULER = (0.2, -0.13, 0.5), (0.0, -5.0, 0.0)
+# poses to check (offset, euler, mag offset) from SkylineGuns.Writ(): the reload's held pose and the equip's middle
+POSES = {
+    "reload": ((-0.07, 0.07, -0.1), (28.0, -18.0, 22.0), (0.02, -0.08, 0.0)),
+    "reload-out": ((-0.07, 0.07, -0.1), (28.0, -18.0, 22.0), (0.0, 0.0, 0.0)),
+    "equip": ((-0.03, 0.03, -0.04), (-5.0, -35.0, -8.0), (0.0, 0.0, 0.0)),
+}
 SIGHT_Y, SIGHT_REAR_Z, SIGHT_FRONT_Z = 0.088, -0.079, 0.202
 SIGHT_EYE_DIST = 0.13
 # the Writ's home pose, layered on the viewmodel's by SkylineWritFx (HomeYaw / HomeOffset): a convergence yaw toward the
 # crosshair, so the colonnade's side shows, and a small lift
-HOME_YAW, HOME_OFF = -9.0, (0.0, 0.015, 0.0)
 TAN = math.tan(math.radians(30))
 ASPECT = 16 / 9
 
@@ -62,6 +69,28 @@ def unity_matrix(origin, fwd, up):
     x, y, z = A.look_rotation(fwd, up)
     m = Matrix(((x[0], y[0], z[0]), (x[1], y[1], z[1]), (x[2], y[2], z[2])))
     return m
+
+
+SHOULDER_R, SHOULDER_L = (0.30, -0.42, 0.0), (-0.22, -0.44, 0.02)   # camera frame: SkylineRobotArms.ShoulderR / ShoulderL
+
+
+def side_objs(arms, side):
+    return [o for o in (by_name(arms, "Hand" + side), by_name(arms, "Forearm" + side), by_name(arms, "Elbow" + side)) if o is not None]
+
+
+def aim_forearms(arms, pos, R):
+    """As SkylineRobotArms does: each forearm turned about its wrist so its elbow points at the shoulder."""
+    for side, sh in (("R", SHOULDER_R), ("L", SHOULDER_L)):
+        fa, el = by_name(arms, "Forearm" + side), by_name(arms, "Elbow" + side)
+        if fa is None or el is None:
+            continue
+        bpy.context.view_layer.update()
+        shoulder = K.C_U2B @ (R.inverted() @ (Vector(sh) - pos))
+        wrist = fa.matrix_world.translation.copy()
+        rot = (el.matrix_world.translation - wrist).rotation_difference(shoulder - wrist).to_matrix().to_4x4()
+        m = Matrix.Translation(wrist) @ rot @ Matrix.Translation(-wrist)
+        fa.matrix_world = m @ fa.matrix_world
+        el.matrix_world = m @ el.matrix_world
 
 
 def repose(ob, from_pose, to_pose):
@@ -116,9 +145,38 @@ def eye_camera(eye, yaw=0.0):
     bpy.context.scene.camera = cam
 
 
-def home_eye(rest):
-    """The eye in the gun's frame when the gun's root sits at rest + HOME_OFF turned by HOME_YAW in the camera's frame."""
-    return K.ry(K.scale(K.add(rest, HOME_OFF), -1), -HOME_YAW)
+def umat(e):
+    """Unity's Quaternion.Euler(e) as a 3x3 matrix (columns: where x, y, z go)."""
+    cols = [K.euler(v, e) for v in ((1, 0, 0), (0, 1, 0), (0, 0, 1))]
+    return Matrix(((cols[0][0], cols[1][0], cols[2][0]), (cols[0][1], cols[1][1], cols[2][1]), (cols[0][2], cols[1][2], cols[2][2])))
+
+
+def gun_pose(rest, rest_e, off=(0, 0, 0), e=(0, 0, 0)):
+    """The gun root in the camera's frame: position rest + off, rotation Euler(rest_e) * Euler(e) (SkylineViewmodel)."""
+    return Vector(K.add(rest, off)), umat(rest_e) @ umat(e)
+
+
+def eye_in_gun(pos, R):
+    return tuple(R.inverted() @ (-pos))
+
+
+def fp_camera(pos, R):
+    """The viewmodel camera, placed in the gun's frame."""
+    cd = bpy.data.cameras.new("cam")
+    cd.sensor_fit = "VERTICAL"
+    cd.angle_y = math.radians(60)
+    cd.clip_start = 0.01
+    cam = bpy.data.objects.new("cam", cd)
+    bpy.context.collection.objects.link(cam)
+    base = Matrix.Rotation(math.radians(180), 4, "Z") @ Matrix.Rotation(math.radians(90), 4, "X")
+    rb = K.C_U2B @ R.inverted() @ K.C_U2B.inverted()
+    cam.matrix_world = Matrix.Translation(K.C_U2B @ Vector(eye_in_gun(pos, R))) @ rb.to_4x4() @ base
+    bpy.context.scene.camera = cam
+
+
+def screen_of(pos, R, p):
+    q = R @ Vector(p) + pos
+    return None if q.z <= 0 else (q.x / q.z / (TAN * ASPECT), q.y / q.z / TAN)
 
 
 def retint(objs, repo):
@@ -243,17 +301,21 @@ def main():
         if view == "breacher":
             imp(M / "breacher" / "breacher.fbx")
             arms = imp(M / "arms" / "arms.fbx")
-            hl = by_name(arms, "HandL")
-            if hl is not None:
-                repose(hl, A.POSES["HandL.writ"], A.POSES["HandL.breacher"])
-            eye = K.scale(BREACHER_REST, -1)
+            for o in side_objs(arms, "L"):
+                repose(o, A.POSES["HandL.writ"], A.POSES["HandL.breacher"])
+            pos, R = gun_pose(BREACHER_REST, BREACHER_REST_EULER)
+            aim_forearms(arms, pos, R)
+            for name, p in (("right fist", (0.0, -0.07, -0.06)), ("left hand", A.POSES["HandL.breacher"][0]), ("muzzle", (0, 0.035, 0.40)), ("top", (0, 0.09, 0.12))):
+                print("SIGHT_BREACHER", name, "screen", tuple(round(v, 3) for v in screen_of(pos, R, p)))
             lights()
-            eye_camera(eye)
+            fp_camera(pos, R)
             render(out / "fp-breacher.png")
             continue
-        retint(imp(M / "writ" / "writ.fbx"), repo)
-        if view in ("hip", "sight", "arms"):
-            imp(M / "arms" / "arms.fbx")
+        objs = imp(M / "writ" / "writ.fbx")
+        retint(objs, repo)
+        arms = []
+        if view in ("hip", "sight", "arms") or view in POSES:
+            arms = imp(M / "arms" / "arms.fbx")
         lights(dark=view == "side")
         if view == "side":
             orbit_camera((-0.62, 0.16, 0.12), (0, -0.01, 0.07), lens=50)
@@ -261,11 +323,24 @@ def main():
         elif view == "arms":
             orbit_camera((-0.45, 0.05, 0.45), (0, -0.04, 0.02), lens=40)
             render(out / "arms.png")
-        elif view == "hip":
-            eye = home_eye(WRIT_REST)
-            report_hip(eye, "HIP", HOME_YAW)
-            eye_camera(eye, HOME_YAW)
-            render(out / "fp-hip.png")
+        elif view == "hip" or view in POSES:
+            off, e, mag = POSES.get(view, ((0, 0, 0), (0, 0, 0), (0, 0, 0)))
+            pos, R = gun_pose(WRIT_REST, WRIT_REST_EULER, off, e)
+            if any(mag):
+                for o in [by_name(objs, "Mag")] + side_objs(arms, "L"):
+                    if o is not None:
+                        o.location = o.location + K.C_U2B @ Vector(mag)
+            if arms:
+                aim_forearms(arms, pos, R)
+            eye = eye_in_gun(pos, R)
+            if view == "hip":
+                report_hip(eye, "HIP", 0.0)
+            for name, p in (("right fist", (0.01, -0.07, -0.06)), ("grip base", (0, -0.131, -0.08)), ("drum", K.add((0, -0.115, -0.075), mag)),
+                            ("chair crest", (0, 0.137, -0.079)), ("bead", (0, SIGHT_Y, SIGHT_FRONT_Z)), ("muzzle", (0, 0.012, 0.214))):
+                sc = screen_of(pos, R, p)
+                print(f"SIGHT_SCREEN {view} {name}", None if sc is None else tuple(round(v, 3) for v in sc))
+            fp_camera(pos, R)
+            render(out / f"fp-{view}.png")
         elif view == "sight":
             eye = (0.0, SIGHT_Y, SIGHT_REAR_Z - SIGHT_EYE_DIST)
             report_sight(eye)

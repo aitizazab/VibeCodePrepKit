@@ -198,13 +198,21 @@ def blast_room(seed: int) -> np.ndarray:
     reference's level bumps again near 0.75 s (about 18 dB under the blast)."""
     n = n_of(2.5)
     tail = band(noise(n, seed, "pink"), 60, 650, 2) * env(n, 0.035, 0.12, 3.4)
-    tail += 0.1 * band(noise(n, seed + 7), 2000, 9000, 2) * env(n, 0.02, 0.08, 1.6)
+    tail += 0.2 * band(noise(n, seed + 7), 2000, 10000, 2) * env(n, 0.02, 0.08, 1.6)
     slap = np.zeros(n)
     s = n_of(0.66)
     m = n - s
     slap[s:] = band(noise(m, seed + 1, "pink"), 120, 2400, 2) * env(m, 0.01, 0.05, 0.42)
     slap += thump(n, 0.665, 120, 70, 0.35, -10)
     return tail + 0.16 * slap
+
+
+def blast_hang(seed: int) -> np.ndarray:
+    """The hall's long low hang after the blast: dark rumble that swells in over a quarter second, holds, and is still
+    there at 2.5 s (the Fourth Horseman's tail holds at -35 to -40 dB to its end; ours fell to -60 by 2 s)."""
+    n = n_of(2.5)
+    x = band(noise(n, seed, "pink"), 70, 400, 2)
+    return x * env(n, 0.3, 1.6, 4.0)
 
 
 def blast_debris() -> np.ndarray:
@@ -218,7 +226,8 @@ def blast_debris() -> np.ndarray:
         x += tick(n, at, 400 + k, 1500, 9000, 0.003 + 0.004 * rng.random(), -rng.uniform(0, 14))
     for k in range(14):
         at = 0.4 + 0.9 * rng.random()
-        x += tick(n, at, 450 + k, 1800, 11000, 0.004 + 0.006 * rng.random(), -rng.uniform(9, 20))
+        # landing fragments: softer and duller than a click (judge round 1: they were broadband clicks at 0.95-1.3 s)
+        x += tick(n, at, 450 + k, 1500, 8000, 0.006 + 0.006 * rng.random(), -rng.uniform(13, 23))
     return x
 
 
@@ -459,6 +468,8 @@ def R(length: float, layers: list[dict], limit: float = -1.5, seed: int = 19) ->
     return {"sample_rate": SR, "length": length, "seed": seed, "layers": layers, "master": {"limit_db": limit}}
 
 
+HANG = -22.0   # the hang level in the blast (dB)
+
 RECIPES = {
     # The blast: crack, a mid blast of air, the punch, the held boom, debris, and the room (wide).
     "blast": R(2.5, [
@@ -467,11 +478,13 @@ RECIPES = {
         W(-10, 170, 72, 0.22),                                 # the punch in the chest
         S("blast_boom", -2.0),                                 # the held pressure-wave body
         S("blast_roar", -1.0),                                 # its roar, held with it
-        S("blast_debris", -3, 0.25),                           # grit and fragments
+        S("blast_debris", 3, 0.25),                            # grit and fragments
         S("blast_room_l", -12, -0.75),                         # the mall answering, left
-        S("blast_room_r", -12, 0.75),                          # and right
+        S("blast_room_r", -12, 0.75), 
+        S("blast_hang_l", HANG, -0.6),                         # the hall's long hang, left
+        S("blast_hang_r", HANG, 0.6),                          # and right                         # and right
         N(-8, 0.12, 0.0003, hp=8000),                          # air on the crack
-    ]),
+    ], limit=-3.0),   # mastered 3 dB under full scale: headroom for the hit layers and bots on top (judge C2)
     "vent_hiss": R(0.65, [S("vent", -3, 0.35), N(-24, 0.3, 0.02, hp=6000, pan=-0.3)]),
     "dry_clunk": R(0.3, [S("dry_clunk", -4)]),
     "equip_rack": R(0.3, [S("equip_rack", -3, -0.15)]),
@@ -515,6 +528,8 @@ def main() -> int:
     write("blast_room_l", blast_room(21))
     write("blast_room_r", blast_room(23))
     write("blast_debris", blast_debris())
+    write("blast_hang_l", blast_hang(41))
+    write("blast_hang_r", blast_hang(43))
     write("vent", vent())
     write("cell_out", cell_out())
     write("cell_in", cell_in())

@@ -8,7 +8,7 @@ namespace JamKit.SkylineRepo
     /// <see cref="encounterIndex"/> indexes <c>GalleriaArena.Encounters()</c>; the director arms the zones in that order.</summary>
     public sealed class SkylineEncounterZone : MonoBehaviour
     {
-        [Tooltip("Index into GalleriaArena.Encounters(): 0 food-court, 1 skylight, 2 facade.")]
+        [Tooltip("Index into GalleriaArena.Encounters(): 0 food-court, 1 facade, 2 skylight (-1: the lift's exit zone).")]
         public int encounterIndex;
         public string encounterId = "";
         [Tooltip("World-space size of the box (metres), centred on this object.")]

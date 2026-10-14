@@ -51,8 +51,10 @@ k.cut_below(shell, CROWN_Y)
 k.torus("CapBand", 0.37, 0.024, (0, CROWN_Y + 0.02, -0.035), dark, shell, segs=48, minor_segs=8)
 k.star("Badge", 0.055, 0.024, 0.02, (0, 0.235, 0.3), white, shell)
 
-# plate 1, the lens-guard: the cap's gold visor brim jutting over the screen
-k.arc_slab("Plate_lens-guard", 0.02, 0.29, 0.142, 0.167, -82, 82, gold, root, segs=24, center=(0, 0.18), bevel=0.008, droop=0.06)
+# plate 1, the lens-guard: the cap's gold visor brim jutting over the screen. Kept above the screen and short (judge round
+# 1: the old brim reached 14 cm past the screen and drooped over its top, so at eye level and below the face read as a
+# black band): its front edge sits 3 cm above the face's top and 6-7 cm in front of the screen, still a peaked cap.
+k.arc_slab("Plate_lens-guard", 0.02, 0.24, 0.162, 0.185, -80, 80, gold, root, segs=24, center=(0, 0.16), bevel=0.008, droop=0.025)
 
 # the weak point: the body-cam lens under the screen (blue glass in a steel ring), a red REC light beside it
 wp = k.empty("WeakPoint", (0, -0.2, 0.3), root)

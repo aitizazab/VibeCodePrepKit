@@ -5,16 +5,31 @@ using UnityEngine;
 namespace JamKit.SkylineRepo
 {
     /// <summary>
-    /// A wrecked bot's husk on the floor under where it fell (2.4: "aggression heals"). While its <see cref="Wreck"/> is fresh
-    /// and unstripped it throws sparks; it goes dark when stale (after <see cref="Wreck.freshSeconds"/>, 8 s) or once stripped.
-    /// The player strips it by coming within <see cref="StripRadius"/> m (flat, and less than 2.5 m above it, as FightSim):
-    /// <c>PlayerArmor.Strip(Data, Time.time, Difficulties.Normal().scrapScale)</c> (recovered scrap is inside Strip). Logs
+    /// A wrecked bot (2.4: "aggression heals"; 14: "Death: an error face ... the hulk stays as the wreck"). The bot's own model
+    /// is kept and broken (judge round 1: every wreck had been the same grey lozenge, and the error face never showed): its
+    /// plates are already gone (flung by <see cref="SkylineBot"/>), its face shows the wrecked "X X", and it comes to rest in a
+    /// pose of its own:
+    /// <list type="bullet">
+    /// <item><b>Drone:</b> drops out of the air, clatters (one bounce) and lies tilted on its side, one rotor broken off.</item>
+    /// <item><b>Floor-care unit:</b> hops as its canister bursts (the tank gone, a gush of acid round it) and slumps onto one
+    /// side, as if a wheel gave.</item>
+    /// <item><b>Spotlight:</b> its head sags forward and to one side on the stand with a dead-weight bob; the big lens goes
+    /// dark (the glass flies off as shards).</item>
+    /// <item><b>Gondola:</b> one cable snaps: the platform swings down from the other and hangs, swaying to a stop, under the
+    /// trolley and winch that stay on the rail.</item>
+    /// </list>
+    /// While its <see cref="Wreck"/> is fresh and unstripped it throws sparks from its body; it goes dark when stale (after
+    /// <see cref="Wreck.freshSeconds"/>, 8 s) or once stripped: the screen switches off and the body dulls. Nothing on it
+    /// collides or can be shot. The player strips it by coming within <see cref="StripRadius"/> m (flat, and less than 2.5 m
+    /// above the wreck's point, the floor under where the bot was, as FightSim):
+    /// <c>PlayerArmor.Strip(Data, Time.time, Difficulties.Normal().scrapScale)</c>. Logs
     /// <c>SKYLINE_BOT stripped &lt;bot&gt; plating +&lt;n&gt;</c>.
     /// </summary>
     public sealed class SkylineWreck : MonoBehaviour
     {
         public const float StripRadius = 1.8f;
         const float MaxStripHeight = 2.5f;
+        const float Gravity = 13f;
 
         /// <summary>Every husk in the scene (enabled ones), so nothing has to search the scene for them.</summary>
         public static readonly List<SkylineWreck> All = new List<SkylineWreck>();
@@ -31,13 +46,26 @@ namespace JamKit.SkylineRepo
         /// <summary>Whoever can strip it (the player); anything that isn't a <see cref="SkylinePlayer"/> never strips.</summary>
         public ISkylineTarget stripper;
 
-        Renderer[] _renderers;
+        enum Fall { Drop, Slump, Droop, Hang }
+
+        Fall _fall;
+        Transform _moving;            // what falls: the rig (drone, floor-care, spotlight) or the gondola's platform pivot
+        Vector3 _fromPos, _restPos;
+        Quaternion _fromRot, _restRot;
+        float _age, _dropTime;
+        bool _settled;
+        readonly List<Renderer> _renderers = new List<Renderer>();
+        Renderer _face;
         float _nextSpark;
         bool _dark;
         readonly float _scrapScale = Difficulties.Normal().scrapScale;
+        static MaterialPropertyBlock _block;
 
-        /// <summary>Leaves a husk of <paramref name="def"/> at <paramref name="floorPoint"/>, wrecked now.</summary>
-        public static SkylineWreck Create(EnemyDef def, string botName, Vector3 floorPoint, float yaw, ISkylineTarget stripper, Transform parent)
+        /// <summary>Takes over <paramref name="bot"/>'s body (its rig and, for the spotlight, its stand) as the wreck of
+        /// <paramref name="def"/> whose strip point is <paramref name="floorPoint"/>, wrecked now. <paramref name="seed"/> picks
+        /// which way it falls.</summary>
+        public static SkylineWreck Create(EnemyDef def, string botName, Vector3 floorPoint, float yaw, ISkylineTarget stripper, Transform parent,
+            SkylineBot bot, int seed)
         {
             var root = new GameObject("Wreck " + botName);
             if (parent != null) root.transform.SetParent(parent, true);
@@ -46,15 +74,115 @@ namespace JamKit.SkylineRepo
             w.Data = new Wreck(def, Time.time);
             w.botName = botName;
             w.stripper = stripper;
-            var c = SkylineBotLook.White * 0.55f;
-            c.a = 1f;
-            float r = Mathf.Clamp(def.bodyRadius, 0.35f, 0.9f);
-            // a squashed chassis, a broken-off panel and a strut: reads as remains, not as a live bot
-            SkylineBotLook.Part(PrimitiveType.Sphere, "Husk", root.transform, new Vector3(0f, r * 0.3f, 0f), new Vector3(r * 1.8f, r * 0.6f, r * 1.5f), c, false, new Vector3(0f, 0f, 8f));
-            SkylineBotLook.Part(PrimitiveType.Cube, "Panel", root.transform, new Vector3(r * 0.7f, 0.05f, r * 0.4f), new Vector3(r * 0.8f, 0.04f, r * 0.5f), SkylineBotLook.Gold * 0.6f, false, new Vector3(0f, 30f, 12f));
-            SkylineBotLook.Part(PrimitiveType.Cube, "Strut", root.transform, new Vector3(-r * 0.6f, 0.08f, -r * 0.3f), new Vector3(0.06f, 0.06f, r * 1.2f), SkylineBotLook.Grey, false, new Vector3(10f, -40f, 0f));
-            w._renderers = root.GetComponentsInChildren<Renderer>();
+            if (bot != null && bot.Parts != null && bot.Parts.rig != null) w.TakeBody(def, bot, floorPoint, seed);
             return w;
+        }
+
+        void TakeBody(EnemyDef def, SkylineBot bot, Vector3 floor, int seed)
+        {
+            var parts = bot.Parts;
+            var rig = parts.rig;
+            // nothing on a wreck collides or is shot (as the old husk): the hit zones and colliders go
+            StripColliders(rig);
+            if (parts.mount != null) StripColliders(parts.mount);
+            rig.SetParent(transform, true);
+            if (parts.mount != null) parts.mount.SetParent(transform, true);
+            _face = parts.face != null ? parts.face.GetComponent<Renderer>() : null;
+            _moving = rig;
+            _fromPos = rig.position;
+            _fromRot = rig.rotation;
+            float side = (seed & 1) == 0 ? 1f : -1f;
+            float yaw = rig.eulerAngles.y;
+
+            if (def.layer == ThreatLayer.Walls) Hang(rig, side);
+            else if (def.moveSpeed > 0f)
+            {
+                // the floor-care unit: a hop as the canister bursts, then slumped onto one side
+                _fall = Fall.Slump;
+                _restPos = new Vector3(_fromPos.x, floor.y - 0.02f, _fromPos.z);
+                _restRot = Quaternion.Euler(0f, yaw + side * 6f, 0f) * Quaternion.Euler(-5f, 0f, side * 9f);
+            }
+            else if (parts.mount != null || bot.Beam != null)
+            {
+                // the spotlight: its head sags forward and to one side on the stand
+                _fall = Fall.Droop;
+                _restPos = _fromPos;
+                _restRot = Quaternion.Euler(52f, yaw + side * 10f, side * 14f);
+            }
+            else
+            {
+                // the drone: drops, clatters and lies on its side (its centre about 0.3 m up, rolled onto a duct)
+                _fall = Fall.Drop;
+                _restPos = new Vector3(_fromPos.x, floor.y + 0.3f, _fromPos.z);
+                _restRot = Quaternion.Euler(0f, yaw + side * 20f, 0f) * Quaternion.Euler(16f, 0f, side * 27f);
+                float h = Mathf.Max(0.02f, _fromPos.y - _restPos.y);
+                _dropTime = Mathf.Sqrt(2f * h / Gravity);
+            }
+            _moving.SetPositionAndRotation(_fromPos, _fromRot);
+
+            foreach (var r in GetComponentsInChildren<Renderer>(true)) _renderers.Add(r);
+        }
+
+        /// <summary>The gondola: the platform's parts go under a pivot at the left stirrup's eye (the right one if
+        /// <paramref name="side"/> is negative), the other cable snaps (hidden), and the trolley, the winch and the kept cable
+        /// stay on the rail.</summary>
+        void Hang(Transform rig, float side)
+        {
+            _fall = Fall.Hang;
+            string keep = side > 0f ? "CableL" : "CableR", snap = side > 0f ? "CableR" : "CableL";
+            Vector3 eyeLocal = new Vector3(side > 0f ? -1.02f : 1.02f, 0.6f, 0.14f);
+            var eye = SkylineBotBodies.Find(rig, side > 0f ? "StirrupEyeL" : "StirrupEyeR");
+            Vector3 pivotWorld = eye != null ? eye.position : rig.TransformPoint(eyeLocal);
+            var pivot = new GameObject("Platform").transform;
+            pivot.SetParent(rig, false);
+            pivot.position = pivotWorld;
+            pivot.rotation = rig.rotation;
+            foreach (var top in TopParts(rig))
+            {
+                if (top == pivot) continue;
+                string n = top.name;
+                if (n == snap) { top.gameObject.SetActive(false); continue; }
+                if (n == keep || n == "Rail" || n.StartsWith("Winch") || n == "WeakPoint" || n.StartsWith("Cheek") || n.StartsWith("Wheel")) continue;
+                if (rig.InverseTransformPoint(Centre(top)).y > 0.9f) continue;   // anything else up by the trolley stays
+                top.SetParent(pivot, true);
+            }
+            _moving = pivot;
+            _fromPos = pivot.position;
+            _fromRot = pivot.rotation;
+            _restPos = _fromPos;
+            // the free end drops: rolled about the platform's own forward axis, nearly hanging from the kept eye (the roll's
+            // sign from where the eye is, so it holds whichever way the model's x runs)
+            float eyeX = rig.InverseTransformPoint(pivotWorld).x;
+            _restRot = rig.rotation * Quaternion.Euler(0f, 0f, (eyeX < 0f ? -1f : 1f) * 68f);
+        }
+
+        /// <summary>The model's parts: the rig's children, or, when the model came in under one root node, that node's.</summary>
+        static List<Transform> TopParts(Transform rig)
+        {
+            var list = new List<Transform>();
+            Transform holder = rig;
+            if (rig.childCount == 1 && rig.GetChild(0).childCount > 3 && rig.GetChild(0).GetComponent<Renderer>() == null) holder = rig.GetChild(0);
+            for (int i = 0; i < holder.childCount; i++) list.Add(holder.GetChild(i));
+            return list;
+        }
+
+        static Vector3 Centre(Transform t)
+        {
+            var rs = t.GetComponentsInChildren<Renderer>(true);
+            if (rs.Length == 0) return t.position;
+            var b = rs[0].bounds;
+            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+            return b.center;
+        }
+
+        static void StripColliders(Transform t)
+        {
+            foreach (var z in t.GetComponentsInChildren<SkylineHitZone>(true)) Destroy(z);
+            foreach (var c in t.GetComponentsInChildren<Collider>(true))
+            {
+                c.enabled = false;
+                Destroy(c);
+            }
         }
 
         public bool Fresh => Data != null && Data.Fresh(Time.time);
@@ -62,19 +190,106 @@ namespace JamKit.SkylineRepo
         void Update()
         {
             if (Data == null) return;
+            float dt = Time.deltaTime;
+            if (dt > 0f && !_settled && _moving != null) Animate(dt);
             float now = Time.time;
             if (Data.Fresh(now))
             {
                 TryStrip(now);
-                _nextSpark -= Time.deltaTime;
-                if (_nextSpark <= 0f && !Data.stripped)
+                _nextSpark -= dt;
+                if (_nextSpark <= 0f && !Data.stripped && _renderers.Count > 0)
                 {
                     _nextSpark = Random.Range(0.12f, 0.3f);
-                    float r = Mathf.Clamp(Data.def.bodyRadius, 0.35f, 0.9f);
-                    SkylineSpark.Burst(transform.position + new Vector3(Random.Range(-r, r) * 0.6f, r * 0.45f, Random.Range(-r, r) * 0.5f), Vector3.up, Random.Range(2, 5), 3f);
+                    var b = Bounds();
+                    Vector3 at = b.center + new Vector3(Random.Range(-0.4f, 0.4f) * b.extents.x, Random.Range(0f, 0.6f) * b.extents.y, Random.Range(-0.4f, 0.4f) * b.extents.z);
+                    SkylineSpark.Burst(at, Vector3.up, Random.Range(2, 5), 3f);
                 }
             }
             if (!_dark && !Data.Fresh(now)) GoDark();
+        }
+
+        void Animate(float dt)
+        {
+            _age += dt;
+            switch (_fall)
+            {
+                case Fall.Drop:
+                {
+                    // a free fall onto the floor, turning toward its resting tilt; then one clattering bounce
+                    const float Bounce = 0.26f;
+                    if (_age < _dropTime)
+                    {
+                        float u = _age / Mathf.Max(1e-3f, _dropTime);
+                        Vector3 p = Vector3.Lerp(_fromPos, _restPos, u);
+                        p.y = _fromPos.y - 0.5f * Gravity * _age * _age;
+                        _moving.SetPositionAndRotation(p, Quaternion.Slerp(_fromRot, _restRot, u * u));
+                    }
+                    else if (_age < _dropTime + Bounce)
+                    {
+                        float u = (_age - _dropTime) / Bounce;
+                        float hop = 0.1f * Mathf.Sin(Mathf.PI * u);
+                        var wobble = Quaternion.Euler(0f, 0f, 9f * Mathf.Sin(Mathf.PI * u) * (1f - u));
+                        _moving.SetPositionAndRotation(_restPos + Vector3.up * hop, _restRot * wobble);
+                    }
+                    else Settle();
+                    break;
+                }
+                case Fall.Slump:
+                {
+                    const float T = 0.55f;
+                    float u = Mathf.Clamp01(_age / T);
+                    float hop = 0.14f * Mathf.Sin(Mathf.PI * Mathf.Min(1f, u * 1.6f));
+                    _moving.SetPositionAndRotation(Vector3.Lerp(_fromPos, _restPos, u) + Vector3.up * hop,
+                        Quaternion.SlerpUnclamped(_fromRot, _restRot, BackOut(u)));
+                    if (u >= 1f) Settle();
+                    break;
+                }
+                case Fall.Droop:
+                {
+                    // a dead weight sagging on its yoke: overshoots and bobs to rest
+                    float k = 1f - Mathf.Exp(-4.5f * _age) * Mathf.Cos(8f * _age);
+                    _moving.rotation = Quaternion.SlerpUnclamped(_fromRot, _restRot, k);
+                    if (_age > 1.6f) Settle();
+                    break;
+                }
+                case Fall.Hang:
+                {
+                    // a pendulum swinging down and to a stop
+                    float k = 1f - Mathf.Exp(-1.6f * _age) * Mathf.Cos(4.2f * _age);
+                    _moving.rotation = Quaternion.SlerpUnclamped(_fromRot, _restRot, k);
+                    _moving.position = _fromPos;
+                    if (_age > 3.5f) Settle();
+                    break;
+                }
+            }
+        }
+
+        static float BackOut(float u)
+        {
+            const float s = 1.6f;
+            float x = u - 1f;
+            return 1f + x * x * ((s + 1f) * x + s);
+        }
+
+        void Settle()
+        {
+            _settled = true;
+            if (_fall == Fall.Hang) _moving.SetPositionAndRotation(_fromPos, _restRot);
+            else _moving.SetPositionAndRotation(_restPos, _restRot);
+        }
+
+        Bounds Bounds()
+        {
+            Bounds b = default(Bounds);
+            bool any = false;
+            for (int i = 0; i < _renderers.Count; i++)
+            {
+                var r = _renderers[i];
+                if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) continue;
+                if (!any) { b = r.bounds; any = true; }
+                else b.Encapsulate(r.bounds);
+            }
+            return any ? b : new Bounds(transform.position + Vector3.up * 0.3f, Vector3.one * 0.5f);
         }
 
         void TryStrip(float now)
@@ -89,12 +304,23 @@ namespace JamKit.SkylineRepo
                 Debug.Log("SKYLINE_BOT stripped " + botName + " plating +" + gained.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture));
         }
 
+        /// <summary>Stale or stripped: the screen switches off and the body dulls (each renderer's own colour, darkened).</summary>
         void GoDark()
         {
             _dark = true;
-            if (_renderers == null) return;
-            var m = SkylineBotLook.Lit(SkylineBotLook.Scorched);
-            foreach (var r in _renderers) if (r != null) r.sharedMaterial = m;
+            if (_block == null) _block = new MaterialPropertyBlock();
+            for (int i = 0; i < _renderers.Count; i++)
+            {
+                var r = _renderers[i];
+                if (r == null) continue;
+                var m = r.sharedMaterial;
+                Color c = m != null ? m.color : Color.grey;
+                Color dull = r == _face ? new Color(0.03f, 0.035f, 0.04f, 1f) : new Color(c.r * 0.55f, c.g * 0.55f, c.b * 0.55f, c.a);
+                r.GetPropertyBlock(_block);
+                _block.SetColor("_BaseColor", dull);
+                _block.SetColor("_Color", dull);
+                r.SetPropertyBlock(_block);
+            }
         }
     }
 }

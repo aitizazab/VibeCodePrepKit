@@ -168,9 +168,32 @@ namespace JamKit.Skyline
         /// <summary>The main hall's entrance from the warm-up hall (which joins its south wall at z = -20), 2 m inside. Encounter bearings are measured from here (plan amendment 5).</summary>
         public static readonly Vector3 HallEntry = new Vector3(0f, 0f, -18f);
 
-        /// <summary>The entry lane around <see cref="HallEntry"/> (x -6..6, z -20..-14, metres): every fight after the first
-        /// starts when the player steps in here, so each starts from the anchor its balance was measured from (Task 16 fix 1).</summary>
+        /// <summary>The entry lane around <see cref="HallEntry"/> (x -6..6, z -20..-14, metres): the food court starts when the
+        /// player steps in here (the first fight's zone, <see cref="ZoneOf"/>).</summary>
         public const float EntryZoneMinX = -6f, EntryZoneMaxX = 6f, EntryZoneMinZ = -20f, EntryZoneMaxZ = -14f;
+
+        /// <summary>The route through the hall (judge round 1: three waves in one room, one booth winning them all): the fights
+        /// progress north, each from its own anchor, where its balance is measured, each with its own pocket of cover: the food
+        /// court by the entrance (<see cref="HallEntry"/>; the information booth's U), the facade in the middle (two staggered
+        /// stall backs, each shielding one side's drones; the gondolas ride the side walls), the skylight by the mezzanine
+        /// (its underside hides from the spotlights on its rail); then the far goal, the service lift under the mezzanine
+        /// (<see cref="LiftLobby"/>), its sign in sight from the middle of the hall on.</summary>
+        public static readonly Vector3 FacadeAnchor = new Vector3(0f, 0f, -3f), SkylightAnchor = new Vector3(0f, 0f, 8f);
+
+        /// <summary>Each fight starts when the player's feet enter its zone: a 12 x 6 m lane round its anchor (the food court's is
+        /// the entry lane), shown by a lit floor marker while the fight is armed and waiting.</summary>
+        public const float ZoneHalfX = 6f, ZoneHalfZ = 3f;
+
+        public static void ZoneOf(EncounterDef e, out float minX, out float maxX, out float minZ, out float maxZ)
+        {
+            if (e != null && e.anchor == HallEntry)
+            {
+                minX = EntryZoneMinX; maxX = EntryZoneMaxX; minZ = EntryZoneMinZ; maxZ = EntryZoneMaxZ;
+                return;
+            }
+            Vector3 a = e != null ? e.anchor : HallEntry;
+            minX = a.X - ZoneHalfX; maxX = a.X + ZoneHalfX; minZ = a.Z - ZoneHalfZ; maxZ = a.Z + ZoneHalfZ;
+        }
 
         const string D = SkylineEnemies.DroneId, F = SkylineEnemies.FloorCareId, S = SkylineEnemies.SpotlightId, G = SkylineEnemies.GondolaId;
 
@@ -191,49 +214,53 @@ namespace JamKit.Skyline
                 new Spawn(D, new Vector3(-21f, DroneY, 0f), 0), new Spawn(D, new Vector3(-18f, DroneY, 2f), 0),
                 new Spawn(D, new Vector3(21f, DroneY, -8f), 1), new Spawn(D, new Vector3(19f, DroneY, -4f), 1),
                 new Spawn(D, new Vector3(21f, DroneY, 0f), 1), new Spawn(D, new Vector3(18f, DroneY, 2f), 1),
-                new Spawn(D, new Vector3(-7f, 4.2f, 9f), 2), new Spawn(D, new Vector3(-4f, 4.2f, 9.5f), 2),
-                new Spawn(D, new Vector3(4f, 4.2f, 9.5f), 2), new Spawn(D, new Vector3(7f, 4.2f, 9f), 2),
+                new Spawn(D, new Vector3(-9f, 4.2f, 9f), 2), new Spawn(D, new Vector3(-6f, 4.2f, 9.5f), 2),
+                new Spawn(D, new Vector3(6f, 4.2f, 9.5f), 2), new Spawn(D, new Vector3(9f, 4.2f, 9f), 2),
                 new Spawn(F, new Vector3(-21f, 0f, 9f), 0), new Spawn(F, new Vector3(21f, 0f, 9f), 1),
             },
         };
 
-        /// <summary>The skylight: two spotlights on the mezzanine's railing (air, where you are now), each with three floor-care
-        /// units (floor) that wake with it. Walls open. Break their sight (the tall pieces, the mezzanine's underside) and
+        /// <summary>The skylight, the last fight, by the mezzanine: two spotlights on its railing (air, where you are now), each
+        /// with two floor-care units (floor) that wake with it and come from the hall's sides (three each swarmed the line
+        /// under the deck: 22/30 clean). Walls open. Break their sight (the tall pieces, the mezzanine's underside) and
         /// change direction against the beams while jumping the acid.</summary>
         public static EncounterDef Skylight() => new EncounterDef
         {
             id = "skylight",
-            anchor = HallEntry,
+            anchor = SkylightAnchor,
             spawns = new[]
             {
                 new Spawn(S, new Vector3(-12.5f, 6.5f, 12.3f), 0), new Spawn(S, new Vector3(12.5f, 6.5f, 12.3f), 1),
-                new Spawn(F, new Vector3(-21f, 0f, -8f), 0), new Spawn(F, new Vector3(-17f, 0f, 7f), 0), new Spawn(F, new Vector3(-4f, 0f, 9f), 0),
-                new Spawn(F, new Vector3(21f, 0f, -8f), 1), new Spawn(F, new Vector3(17f, 0f, 7f), 1), new Spawn(F, new Vector3(4f, 0f, 9f), 1),
+                new Spawn(F, new Vector3(-21f, 0f, -8f), 0), new Spawn(F, new Vector3(-17f, 0f, 7f), 0),
+                new Spawn(F, new Vector3(21f, 0f, -8f), 1), new Spawn(F, new Vector3(17f, 0f, 7f), 1),
             },
         };
 
         /// <summary>The gondolas' rails: along the side walls at wall-run height, so their mines guard the wall-run route.</summary>
         public const float RailY = 2.4f;
+        /// <summary>Where the rails run along the side walls (z), south to north.</summary>
+        public const float RailStartZ = -14f, RailEndZ = 10f;
 
-        /// <summary>The facade: two window-washer gondolas on rails along the side walls at wall-run height (walls), and eight
-        /// drones in two groups of four over the west and east halves (air) that also cover the centre floor. The floor is the
+        /// <summary>The facade, the middle fight: two window-washer gondolas on rails along the side walls at wall-run height
+        /// (walls), and eight drones in two groups of four along the west and east walls (air; 19-21 m out, so a peek from the
+        /// middle's stall backs isn't point-blank) that also cover the centre floor. The floor is the
         /// safe layer; the side walls are the fast line between cover (a wall-run past the rails), and the mines guard it.</summary>
         public static EncounterDef Facade() => new EncounterDef
         {
             id = "facade",
-            anchor = HallEntry,
+            anchor = FacadeAnchor,
             spawns = new[]
             {
-                new Spawn(G, new Vector3(-24.2f, RailY, -14f), 0, new Vector3(-24.2f, RailY, 10f)),
-                new Spawn(G, new Vector3(24.2f, RailY, -14f), 1, new Vector3(24.2f, RailY, 10f)),
-                new Spawn(D, new Vector3(-18f, DroneY, -9f), 0), new Spawn(D, new Vector3(-17f, DroneY, -1f), 0),
-                new Spawn(D, new Vector3(-11f, DroneY, -2f), 0), new Spawn(D, new Vector3(-17f, DroneY, 8f), 0),
-                new Spawn(D, new Vector3(18f, DroneY, -9f), 1), new Spawn(D, new Vector3(17f, DroneY, -1f), 1),
-                new Spawn(D, new Vector3(11f, DroneY, -2f), 1), new Spawn(D, new Vector3(17f, DroneY, 8f), 1),
+                new Spawn(G, new Vector3(-24.2f, RailY, RailStartZ), 0, new Vector3(-24.2f, RailY, RailEndZ)),
+                new Spawn(G, new Vector3(24.2f, RailY, RailStartZ), 1, new Vector3(24.2f, RailY, RailEndZ)),
+                new Spawn(D, new Vector3(-21f, DroneY, -9f), 0), new Spawn(D, new Vector3(-20f, DroneY, -2f), 0),
+                new Spawn(D, new Vector3(-19f, DroneY, 5f), 0), new Spawn(D, new Vector3(-20f, DroneY, 9f), 0),
+                new Spawn(D, new Vector3(21f, DroneY, -9f), 1), new Spawn(D, new Vector3(20f, DroneY, -2f), 1),
+                new Spawn(D, new Vector3(19f, DroneY, 5f), 1), new Spawn(D, new Vector3(20f, DroneY, 9f), 1),
             },
         };
 
-        public static EncounterDef[] Encounters() => new[] { FoodCourt(), Skylight(), Facade() };
+        public static EncounterDef[] Encounters() => new[] { FoodCourt(), Facade(), Skylight() };
 
         /// <summary>The mezzanine's deck (x across the hall, z 12..20, its slab 0.4 m thick under the 5 m floor): it blocks sight
         /// and shots between above it and below it, except past its open edge at z = 12. Not a floor piece, so it isn't in
@@ -248,9 +275,10 @@ namespace JamKit.Skyline
         /// the player stands, and splitting a fight is the player's job.
         /// <list type="bullet">
         /// <item>three pillars that hold up the north mezzanine (1 x 1 m, floor to the 5 m mezzanine);</item>
-        /// <item>four food-stall backs with their menu boards, two each side with a 6 m gap between (0.6 x 4 m, 4.8 m tall);</item>
+        /// <item>four food-stall backs with their menu boards (0.6 m wide, 4.8 m tall): two by the side walls (4 m), and two in
+        /// the middle, staggered either side of the facade's anchor (5 m, overlapping 3 m), the facade's pocket;</item>
         /// <item>an information booth on the approach: three advertising screens in a U open to the entry (two 0.4 x 4 m, one
-        /// 5.4 x 0.4 m; 4.5 m tall), the first cover a player reaches;</item>
+        /// 5.4 x 0.4 m; 4.5 m tall), the food court's pocket;</item>
         /// <item>two kiosks, staggered either side of the middle (4 x 3 m, 2.5 m tall);</item>
         /// <item>two planters beside the booth (2 x 0.8 m, 1 m tall: half cover).</item>
         /// </list>
@@ -258,7 +286,7 @@ namespace JamKit.Skyline
         public static CoverBox[] HallCover() => new[]
         {
             Pillar(-16f, 12f), Pillar(0f, 12f), Pillar(16f, 12f),
-            Block(-13f, -7f, 0.6f, 4f, 4.8f), Block(-13f, 3f, 0.6f, 4f, 4.8f), Block(13f, -7f, 0.6f, 4f, 4.8f), Block(13f, 3f, 0.6f, 4f, 4.8f),
+            Block(-13f, -7f, 0.6f, 4f, 4.8f), Block(-2.2f, -3.5f, 0.6f, 5f, 4.8f), Block(13f, -7f, 0.6f, 4f, 4.8f), Block(2.2f, -1.5f, 0.6f, 5f, 4.8f),
             Block(-2.5f, -12f, 0.4f, 4f, 4.5f), Block(2.5f, -12f, 0.4f, 4f, 4.5f), Block(0f, -9.8f, 5.4f, 0.4f, 4.5f),
             Block(-6f, -3f, 4f, 3f, 2.5f), Block(6f, 3f, 4f, 3f, 2.5f),
             Block(-6f, -12f, 2f, 0.8f, 1f), Block(6f, -12f, 2f, 0.8f, 1f),
@@ -268,11 +296,65 @@ namespace JamKit.Skyline
         public static CoverBox[] FightCover()
         {
             var floor = HallCover();
-            var all = new CoverBox[floor.Length + 1];
+            var rail = MezzanineRail();
+            var all = new CoverBox[floor.Length + 2 + rail.Length];
             floor.CopyTo(all, 0);
             all[floor.Length] = MezzanineDeck;
+            all[floor.Length + 1] = LiftLobby;
+            rail.CopyTo(all, floor.Length + 2);
             return all;
         }
+
+        /// <summary>The glass balustrade's height above the deck (m): its top (6.05 m) is out of a mantle's reach from a boosted
+        /// double jump off the floor (feet about 3.3 m + 1.9 m), so the deck isn't an unplanned perch (judge round 1).</summary>
+        public const float BalustradeHeight = 0.55f;
+        /// <summary>The spotlights' bodies sit this far under their centres (SkylineBotBodies' mount): the plinths' tops.</summary>
+        public const float SpotlightBaseBelow = 0.88f;
+
+        /// <summary>The solid pieces on the mezzanine's edge (judge round 1: every visible solid has a collider): the glass
+        /// balustrade along the open edge, and a plinth under each spotlight on the skylight's railing (1 x 0.65 m, from the
+        /// deck up to the spotlight's base). Shots and sight stop at them in Unity, so they are in <see cref="FightCover"/>.</summary>
+        public static CoverBox[] MezzanineRail()
+        {
+            var d = MezzanineDeck;
+            var list = new List<CoverBox>
+            {
+                new CoverBox { min = new Vector3(d.min.X, d.max.Y, d.min.Z), max = new Vector3(d.max.X, d.max.Y + BalustradeHeight, d.min.Z + 0.05f) },
+            };
+            foreach (var s in Skylight().spawns)
+            {
+                if (s.enemy != SkylineEnemies.SpotlightId) continue;
+                float top = s.position.Y - SpotlightBaseBelow;
+                if (top <= d.max.Y + 0.01f) continue;
+                list.Add(new CoverBox
+                {
+                    min = new Vector3(s.position.X - 0.5f, d.max.Y, d.min.Z + 0.05f), max = new Vector3(s.position.X + 0.5f, top, s.position.Z + 0.4f),
+                });
+            }
+            return list.ToArray();
+        }
+
+        /// <summary>The far goal (judge round 1: no route, no far goal): the service lift up to the next floor, a lobby under the
+        /// mezzanine against the north wall (x 4..8, z 16..20, floor to the deck's underside). In every fight its security
+        /// shutter is down, so it is one solid box (in <see cref="FightCover"/>); once the hall is cleared the shutter rises to
+        /// <see cref="ShutterGap"/> m and the lobby is reached by sliding (or crouching) under it: the hall's slide. Its lit
+        /// sign shows under the deck's soffit from the middle of the hall on.</summary>
+        public static readonly CoverBox LiftLobby = new CoverBox
+        {
+            min = new Vector3(4f, 0f, 16f), max = new Vector3(8f, MezzanineY - 0.4f, HallMaxZ),
+        };
+
+        /// <summary>The raised shutter's clearance (m): under a standing Unit (1.7 m), over a sliding or crouching one (1.0 m).</summary>
+        public const float ShutterGap = 1.25f;
+
+        /// <summary>The lobby's walls' thickness (m); the shutter hangs in its open south face.</summary>
+        public const float LobbyWall = 0.3f;
+
+        /// <summary>The practice counter in the warm-up (Nan's double jump and mantle, 6.8): its top is above a jump and a mantle
+        /// (3.15 m) and below a jump, a double jump and a mantle (4.15 m). It stands by the start, over 12 m (edge to edge) from
+        /// the boost kiosk, so no jump from its top reaches the kiosk's: that one still needs the boost.</summary>
+        public static readonly Vector3 PracticeLedgeTop = new Vector3(12.5f, 3.5f, -45.5f);
+        public const float PracticeLedgeSize = 3f;
 
         static CoverBox Pillar(float x, float z) => Block(x, z, 1f, 1f, MezzanineY);
 
@@ -285,7 +367,7 @@ namespace JamKit.Skyline
 
     public enum Speaker { Dot, Concierge, Nan }
 
-    public enum BeatTrigger { WarmupStart, PracticeBotSeen, FirstSpotCreated, NearBoostLedge, BoostLedgeReached, FirstPlatingBreak, FirstSeen, NextFightArmed }
+    public enum BeatTrigger { WarmupStart, PracticeBotSeen, FirstSpotCreated, NearBoostLedge, BoostLedgeReached, FirstPlatingBreak, FirstSeen, NextFightArmed, NearPracticeLedge, LiftOpened }
 
     /// <summary>One teaching line (6.8): who says it, when, and the words. Drafts are for the creator to rewrite.</summary>
     public sealed class TeachingBeat
@@ -310,18 +392,22 @@ namespace JamKit.Skyline
 
         public static TeachingBeat[] M1() => new[]
         {
+            // Judge round 1: each line fires at its moment (SkylineArenaDirector.MomentPassed) and is dropped once that has
+            // passed. Nan opens; Dot's Writ lesson at the practice bot; Nan's double jump and mantle at the practice counter;
+            // Dot's boost at the kiosk; the reactions (a spot made, the ledge reached, the plating broken) cut in at once.
+            // CONCIERGE points to each next fight's marked area and announces the lift.
             new TeachingBeat { id = "nan-warmup", speaker = Speaker.Nan, trigger = BeatTrigger.WarmupStart,
-                text = "Unit's live. Warm-up hall first; the Galleria's through the far doors. Try not to dent anything we have to return." },
-            new TeachingBeat { id = "nan-double-jump-mantle", speaker = Speaker.Nan, trigger = BeatTrigger.WarmupStart,
-                text = "Tap jump twice for a second hop, and reach a ledge's lip to mantle up. Every kiosk in here is built for practice." },
+                text = "Unit's live. Warm up here, then the Galleria's through the far doors." },
             new TeachingBeat { id = "dot-writ-spots", speaker = Speaker.Dot, trigger = BeatTrigger.PracticeBotSeen,
-                text = "Practice bot, dead ahead! Tag its lens with the Writ and it leaves a weak spot. Hit the spot: hurts more than the lens!" },
+                text = "Practice bot! Tag its lens with the Writ: it cracks open a weak spot. Then hit the spot." },
             new TeachingBeat { id = "dot-writ-spot-made", speaker = Speaker.Dot, trigger = BeatTrigger.FirstSpotCreated,
-                text = "That glowy bit? That's the spot. Shoot it!" },
+                text = "That glowing crack? That's the spot. Shoot it!" },
+            new TeachingBeat { id = "nan-double-jump-mantle", speaker = Speaker.Nan, trigger = BeatTrigger.NearPracticeLedge,
+                text = "That counter's your practice. Tap jump twice for a second hop, then catch its lip and pull yourself up." },
             new TeachingBeat { id = "dot-breacher-boost", speaker = Speaker.Dot, trigger = BeatTrigger.NearBoostLedge,
-                text = "Breacher kicks both ways. Jump, jump again, then shoot your own feet. There's scrap on top of that kiosk." },
+                text = "Breacher kicks both ways. Jump, jump again, then blast the floor. Scrap's up top!" },
             new TeachingBeat { id = "dot-boost-done", speaker = Speaker.Dot, trigger = BeatTrigger.BoostLedgeReached,
-                text = "Ha! One boost a jump, mind. Land or touch a wall to get it back." },
+                text = "Ha! Doesn't hurt you, either. Shoot again mid-air to climb higher." },
             new TeachingBeat { id = "dot-plating", speaker = Speaker.Dot, trigger = BeatTrigger.FirstPlatingBreak, draft = false,
                 text = "Strip it! Scrap's armour!" },
             new TeachingBeat { id = "concierge-floor-care", speaker = Speaker.Concierge, trigger = BeatTrigger.FirstSeen,
@@ -337,7 +423,9 @@ namespace JamKit.Skyline
                 enemy = SkylineEnemies.GondolaId,
                 text = "Please note: window cleaning is in progress on the walls. Guests are advised to keep their feet on the floor." },
             new TeachingBeat { id = "concierge-next-fight", speaker = Speaker.Concierge, trigger = BeatTrigger.NextFightArmed, repeats = true,
-                text = "Security is re-deploying. Guests are asked to return to the food court entrance." },
+                text = "Security is re-deploying further in. Guests are asked to proceed to the marked area." },
+            new TeachingBeat { id = "concierge-lift-open", speaker = Speaker.Concierge, trigger = BeatTrigger.LiftOpened,
+                text = "The service lift is now open. Its shutter is stuck at knee height; guests are asked to slide under it." },
         };
     }
 }

@@ -9,7 +9,7 @@
       "start": 0.0,
       "attack": 0.0,
       "decay": 30.0,
-      "gain_db": -4.0,
+      "gain_db": -8.0,
       "pan": 0.0
     },
     {
@@ -23,12 +23,57 @@
     },
     {
       "type": "sample",
+      "path": "../samples/shot_crack.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": 3.0,
+      "pan": 0.0
+    },
+    {
+      "type": "sample",
       "path": "../samples/shot_hydraulic.wav",
       "start": 0.0,
       "attack": 0.0,
       "decay": 30.0,
-      "gain_db": -13.0,
+      "gain_db": -9.0,
       "pan": 0.1
+    },
+    {
+      "type": "sample",
+      "path": "../samples/shot_room_l.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -8.0,
+      "pan": -0.9
+    },
+    {
+      "type": "sample",
+      "path": "../samples/shot_room_r.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -8.0,
+      "pan": 0.9
+    },
+    {
+      "type": "sample",
+      "path": "../samples/shot_air_l.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": 1.0,
+      "pan": -0.7
+    },
+    {
+      "type": "sample",
+      "path": "../samples/shot_air_r.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": 1.0,
+      "pan": 0.7
     },
     {
       "type": "sample",

@@ -59,7 +59,7 @@ These are the creator's calls (2026-10-13), already in the code; nothing here ch
 | Equip | 0.7 s: grab at 15%, lock at 75% | A heavy gun takes a moment; the lock is the cell arming. |
 | Fire clip | 0.6 s: blast at 0, vent at 40% (0.24 s) | The vent lands after the blast's held body starts to fall. |
 | Dry fire | 0.3 s | A dead clunk and a fizzle, then the from-empty reload starts. |
-| Reload (partial) | 1.6 s: cell out 15%, cell in 50%, seat 66% | A cell swap. |
+| Reload (partial) | 1.6 s: cell out 15%, cell in 50%, seat 66% | A cell swap. The gun lifts 7 cm up and in, nose up 10°, rolled 55° clockwise (as the player sees it), so the cell under the receiver faces the camera; it drops 16 cm toward the middle of the view and the robot arms' left hand brings the new one (fix round 1, judge C4). |
 | Reload (from empty) | 2.1 s: cell out 12%, cell in 42%, seat 56%, pump 82% | The swap plus a pump to chamber. |
 | Inspect | 2.6 s: turn 10%, knock 50%, settle 85% | A knuckle on the cell: the gun's personality beat. |
 | Boost | 6 m/s flat, 1 m lift, min lift 0.35, braced 20% | The creator's calls (above); unchanged. |
@@ -81,7 +81,9 @@ clip is read by any of it.
   5. *Roar*: pressed-flat broadband pressure noise (250 Hz-6 kHz) held with the boom, so the blast has mids and bite
      instead of only weight.
   6. *Debris*: 34 grit ticks in the first 0.35 s, then a few fragments landing up to 1.3 s.
-  7. and 8. *The mall*: two dark room tails (60-650 Hz, about 2.4 s to -60 dB), panned left and right for width, with a
+  7. and 8. *The mall*: two dark room tails (60-650 Hz, about 2.4 s to -60 dB), panned left and right for width, plus
+     (fix round 1) a long low hang (70-400 Hz) that holds the tail at about -40 dB to 2 s as the Fourth Horseman's does,
+     with a
      soft slap-back off a far wall at 0.66 s.
 - **vent_hiss** (0.65 s): the cell venting. A valve pop, a fluttering pressurised hiss (2.5-9.5 kHz), a short low
   hiss, and a falling whistle.
@@ -125,11 +127,15 @@ The generic impacts (Task 19's ruling; every gun's pellets play them through `Sk
 - **Arms:** the primitive robot arms (graphite forearms with a pale wrist band). The shared robot arms are Task 18's
   and Task 18 is not running, so the Breacher uses the viewmodel's primitive arms for now.
 - **VFX** (`Fx/Breacher/SkylineBreacherFx.cs`, added to every SkylinePlayer when a Skyline scene loads):
-  - *Muzzle blast* (viewmodel): a white-hot core and six spikes, one long one down the barrel, for 0.045 s (three
-    frames at 60 fps), then three puffs of smoke rolling off the muzzle for half a second.
+  - *Muzzle blast* (viewmodel): a hot orange fireball with two smaller balls down the barrel's line and a star of five
+    flame petals, for 0.065 s (about four frames), then a thin wisp of smoke off the muzzle (alpha 0.3, half a second).
+    All the smoke, dust, vapour, flame and pressure rings are soft particles (fix round 1, judge C blocker): camera-facing
+    quads with a generated soft texture, drawn unlit and alpha-blended with the always-included Sprites/Default shader,
+    fading as they grow. Nothing is a solid grey ball any more.
   - *Flash*: a warm point light at the muzzle for 0.07 s, so the blast lights the room.
-  - *Shockwave ring*: a thin, hollow glowing ring 2.6 m out along the aim, growing from 0.1 m to 0.6 m (about 26° of
-    view) in 0.14 s; the crosshair's target stays visible through its middle.
+  - *Pressure ring and blast cloud*: a soft warm ring centred on the muzzle (low right of the view), 0.7 m out along
+    the aim, growing to 0.55 m and gone in 0.2 s, plus four puffs of blast smoke thrown about a metre out of the muzzle.
+    It reads as the blast leaving the barrel, not a reticle over the target (judge C8).
   - *Pellet hits on a bot*: three dark chips and flakes of its white-and-gold casing and a dull grey dust puff at every
     pellet that lands. No glow and no sparks: on a live bot, sparks and glow mean a Writ spot (the spec's damage-feedback
     rule; the controller's ruling, 2026-10-14, over the brief's "pellet sparks"). Where the centre of the spread lands
@@ -138,8 +144,8 @@ The generic impacts (Task 19's ruling; every gun's pellets play them through `Sk
   - *Plates fly*: a plate the Breacher sheds is kicked along the shot (7 m/s plus 2 m/s up, with spin) on top of the
     bots' own throw.
   - *Boost*: a blast under your feet. If the spread hits a floor within 6 m: a glowing ring racing out over the floor to
-    2.6 m, eighteen dust chunks skidding outward, eight dust puffs, and a flash of light on the floor. With no floor
-    below: a pressure puff, two pale rings and ten puffs of vapour bursting out under you.
+    2.6 m, eighteen dust chunks skidding outward, ten soft dust clouds rolling up to about a metre, and a flash of light
+    on the floor. With no floor below: two soft pale rings and ten puffs of vapour bursting out under you.
   - *The cell's vent*: at the "vent" event, five puffs of vapour jet sideways out of the vent port.
   - *The cell's window*: amber when full, dark when spent (it shows the shells left), dims for a moment when a shot
     draws on it, and flashes white-hot when a fresh cell seats.
@@ -219,3 +225,14 @@ Reload sync (`listen.py events` on the rendered clips; every event found at its 
         -P tools/skyline/guns/breacher/model/build_breacher.py -- <repo> [--preview out.png]
 
 (Blender: `FableAnimationTests/BasilDownfall/tools/blender/blender.exe`; the build takes about 6 s with the preview.)
+
+## Fix round 1 (judge round 1, 2026-10-14)
+
+- **The colour:** the firm's orange is now (0.70, 0.19, 0.02), rough 0.6 (was (0.93, 0.36, 0.04), rough 0.42). In the sun
+  through ACES the old orange clipped to lemon yellow (hue 50, the bots' gold). The deeper, redder, matter orange keeps
+  its hue even when the light pushes it. The receiver also has panel seams and rivets now.
+- **The blast is mastered to -2.9 dBTP** (was -1.4), to leave headroom for the hit layers and the bots, and its late
+  debris is softer and duller (no more broadband clicks at 1 s).
+- **The hit-sound rule** (proposed to the Writ side and the mix): one hit sound a shot. A gun that has its own impact
+  plays only that (the Breacher's `breacher/impact`; the Writ's `writ/impact`, `impact_weak` or `spot_pop`).
+  `impact/hit` is the fallback for guns without one, and `impact/world` stays for the world.

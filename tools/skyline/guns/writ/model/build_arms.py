@@ -4,9 +4,11 @@
         -P tools/skyline/guns/writ/model/build_arms.py -- <repo>
 
 Writes <repo>/Assets/JamKit/Templates/SkylineRepo/Resources/SkylineModels/arms/arms.fbx (SkylineViewmodel instantiates
-Resources/SkylineModels/arms/arms under each gun's root). Two top-level objects:
-  HandR  the right hand on the grip, its forearm running back out of the bottom right of the view
-  HandL  the left hand, its forearm running back out of the bottom left
+Resources/SkylineModels/arms/arms under each gun's root). Top-level objects:
+  HandR / HandL        the hands (origin: the centre of what each holds)
+  ForearmR / ForearmL  the forearms (origin: the wrist); SkylineRobotArms keeps each on its hand's wrist and aims it at a
+                       shoulder below the screen
+  ElbowR / ElbowL      empties at the forearms' far ends (the rest direction of each forearm)
 Each hand's origin is the centre of what it holds. The look (spec 1.2 / the creator's concept inset): white robotic hand
 plates on graphite joints, the forearm a shell in the firm's tow-truck orange with a hazard band (yellow with black
 diagonal stripes) at the wrist and a small amber status lamp.
@@ -43,7 +45,10 @@ def grip_point(s):
 POSES = {
     "HandR": (grip_point(0.035), RAKED_FWD, RAKED_UP),                              # both guns
     "HandL.writ": (add(grip_point(0.047), (-0.004, 0.0, 0.004)), K.norm(K.ry(RAKED_FWD, -14)), RAKED_UP),
-    "HandL.breacher": ((0.0, -0.016, 0.218), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0)),      # under the pump, along it
+    # cupping the pump from below with the fingers wrapping up the LEFT side of the receiver (toward the camera, so they
+    # show; the pump sits mostly inside the receiver). Fix round 1: the fingers wrapped the far side and only the
+    # forearm showed ("a stick")
+    "HandL.breacher": ((-0.004, -0.012, 0.214), (-1.0, 0.0, 0.0), (0.0, 0.0, -1.0)),
 }
 
 
@@ -91,7 +96,7 @@ def wrap(radius, y, angles):
     return [(radius * math.sin(math.radians(a)), y, radius * math.cos(math.radians(a))) for a in angles]
 
 
-def forearm(start, direction, length=0.27):
+def forearm(start, direction, length=0.52):
     """An octagonal shell from start along direction: white cuff, hazard band, orange shell, graphite elbow, amber lamp."""
     d = K.norm(direction)
     yaw = math.degrees(math.atan2(d[0], d[2]))
@@ -133,8 +138,7 @@ def right_hand():
     P += finger([(0.027, 0.026, 0.018), (0.028, 0.033, 0.038), (0.017, 0.038, 0.051), (0.006, 0.039, 0.056)], 0.0105, 0.0098)
     # the thumb along the left side, high, pointing forward
     P += finger([(-0.008, 0.024, -0.028), (-0.024, 0.026, -0.008), (-0.027, 0.028, 0.012)], 0.0118, 0.011)
-    P += forearm((0.024, -0.024, -0.036), (0.36, -0.78, -0.51))
-    return P
+    return P, ((0.024, -0.024, -0.036), (0.36, -0.78, -0.51))
 
 
 def left_hand():
@@ -147,8 +151,7 @@ def left_hand():
     for y, w in ((0.019, 0.0112), (0.004, 0.0112), (-0.011, 0.011), (-0.025, 0.0098)):
         P += finger(wrap(0.0405, y, (-74, -36, 2, 40)), w, 0.0102)
     P += finger([(0.006, 0.026, -0.034), (0.022, 0.028, -0.016), (0.027, 0.03, 0.004)], 0.0118, 0.011)
-    P += forearm((-0.028, -0.024, -0.038), (-0.36, -0.78, -0.51))
-    return P
+    return P, ((-0.028, -0.024, -0.038), (-0.36, -0.78, -0.51))
 
 
 def materials():
@@ -168,8 +171,17 @@ def build():
     import bpy
     bpy.ops.wm.read_factory_settings(use_empty=True)
     mats = materials()
-    for name, parts, pose in (("HandR", right_hand(), POSES["HandR"]), ("HandL", left_hand(), POSES["HandL.writ"])):
-        K.to_object(name, posed(parts, pose), mats, origin=pose[0], bevel=0.0004)
+    # each forearm is its own object (origin at the wrist) with an empty at its elbow end, so SkylineRobotArms can aim it
+    # at a shoulder below the screen whatever the hand is doing (fix round 1: a forearm baked to the hand jutted sideways
+    # in the reload and hid the Breacher's pump hand)
+    for side, (parts, (wrist, direction)), pose in (("R", right_hand(), POSES["HandR"]), ("L", left_hand(), POSES["HandL.writ"])):
+        K.to_object("Hand" + side, posed(parts, pose), mats, origin=pose[0], bevel=0.0004)
+        arm = posed(forearm(wrist, direction), pose)
+        wrist_gun = posed([K.Part([wrist], [], 0)], pose)[0].verts[0]
+        elbow_gun = posed([K.Part([K.add(wrist, K.scale(K.norm(direction), 0.52))], [], 0)], pose)[0].verts[0]
+        K.to_object("Forearm" + side, arm, mats, origin=wrist_gun, bevel=0.0004)
+        K.empty("Elbow" + side, elbow_gun)
+        print("ARMS_WRIST", side, tuple(round(v, 4) for v in wrist_gun), "elbow", tuple(round(v, 4) for v in elbow_gun))
 
 
 def main():

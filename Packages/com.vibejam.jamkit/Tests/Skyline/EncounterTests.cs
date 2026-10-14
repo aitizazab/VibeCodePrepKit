@@ -104,14 +104,16 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
-        public void ShippedEncountersAreAnchoredAtTheHallEntryAndSpreadWideFromIt()
+        public void ShippedEncountersAreAnchoredWhereTheyStartAndSpreadWideFromThere()
         {
-            // Amendment 5: bearings are measured from the zone's entry point, not the hall's centre.
+            // Amendment 5: bearings are measured from the zone's entry point, not the hall's centre. Since judge round 1 each
+            // fight has its own anchor along the route (RouteTests); the first is the hall's entry.
+            Assert.That(GalleriaArena.Encounters()[0].anchor, Is.EqualTo(GalleriaArena.HallEntry), "the first fight starts at the entry");
             foreach (var e in GalleriaArena.Encounters())
             {
-                Assert.That(e.anchor, Is.EqualTo(GalleriaArena.HallEntry), e.id + " anchor");
-                Assert.That(GalleriaArena.HallEntry.X, Is.InRange(GalleriaArena.HallMinX, GalleriaArena.HallMaxX));
-                Assert.That(GalleriaArena.HallEntry.Z, Is.InRange(GalleriaArena.HallMinZ, GalleriaArena.HallMaxZ));
+                Assert.That(e.anchor.X, Is.InRange(GalleriaArena.HallMinX, GalleriaArena.HallMaxX), e.id + " anchor");
+                Assert.That(e.anchor.Z, Is.InRange(GalleriaArena.HallMinZ, GalleriaArena.HallMaxZ), e.id + " anchor");
+                Assert.That(CoverGeometry.DistanceToCover(e.anchor, GalleriaArena.HallCover()), Is.GreaterThanOrEqualTo(1.5f), e.id + ": the anchor stands clear of cover");
                 foreach (var s in e.spawns)
                 {
                     float dx = s.position.X - e.anchor.X, dz = s.position.Z - e.anchor.Z;

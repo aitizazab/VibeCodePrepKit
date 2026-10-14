@@ -82,6 +82,54 @@ namespace JamKit.SkylineRepo.EditorTools
             Face(b, lo, hi, 2, -1); Face(b, lo, hi, 2, 1);
         }
 
+        /// <summary>An axis-aligned box whose every face takes the material <paramref name="pick"/> returns for its outward
+        /// normal (the city's towers: a sunlit, a slanting and a shaded version of one facade), metre UVs.</summary>
+        public void Box(System.Func<Vector3, Material> pick, Vector3 min, Vector3 max)
+        {
+            if (pick == null) return;
+            var lo = Vector3.Min(min, max);
+            var hi = Vector3.Max(min, max);
+            var size = hi - lo;
+            if (size.x <= 1e-4f || size.y <= 1e-4f || size.z <= 1e-4f) return;
+            for (int axis = 0; axis < 3; axis++)
+                for (int sign = -1; sign <= 1; sign += 2)
+                {
+                    var n = Vector3.zero;
+                    n[axis] = sign;
+                    var m = pick(n);
+                    if (m != null) Face(Get(m), lo, hi, axis, sign);
+                }
+        }
+
+        /// <summary><see cref="BoxYaw(Material, Vector3, Vector3, float)"/> with a material per face, as
+        /// <see cref="Box(System.Func{Vector3, Material}, Vector3, Vector3)"/>.</summary>
+        public void BoxYaw(System.Func<Vector3, Material> pick, Vector3 center, Vector3 size, float yawDeg)
+        {
+            if (pick == null) return;
+            var rot = Quaternion.Euler(0f, yawDeg, 0f);
+            var h = size * 0.5f;
+            for (int axis = 0; axis < 3; axis++)
+                for (int sign = -1; sign <= 1; sign += 2)
+                {
+                    var nl = Vector3.zero;
+                    nl[axis] = sign;
+                    var n = rot * nl;
+                    var m = pick(n);
+                    if (m == null) continue;
+                    int a1 = (axis + 1) % 3, a2 = (axis + 2) % 3;
+                    var c = new Vector3[4];
+                    for (int k = 0; k < 4; k++)
+                    {
+                        var p = Vector3.zero;
+                        p[axis] = sign * h[axis];
+                        p[a1] = (k == 1 || k == 2) ? h[a1] : -h[a1];
+                        p[a2] = (k >= 2) ? h[a2] : -h[a2];
+                        c[k] = center + rot * p;
+                    }
+                    QuadRaw(Get(m), c[0], c[1], c[2], c[3], n, WorldUv(c[0], n), WorldUv(c[1], n), WorldUv(c[2], n), WorldUv(c[3], n));
+                }
+        }
+
         void Face(Buf b, Vector3 lo, Vector3 hi, int axis, int sign)
         {
             var n = Vector3.zero;

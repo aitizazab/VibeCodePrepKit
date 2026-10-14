@@ -25,18 +25,23 @@ namespace JamKit.Skyline
         public static GunDef Find(string id) => id == WritId ? Writ() : id == BreacherId ? Breacher() : null;
 
         /// <summary>The Writ's inspect sight check (Task 18; docs/SKYLINE-GUN-WRIT.md): the pose offset (camera space) that puts
-        /// the rear sight's window 13 cm straight ahead of the eye, on the sight line. It also undoes the home pose
-        /// SkylineWritFx layers on top of every Writ pose (a yaw of -9 degrees toward the crosshair, 1.5 cm up): the viewmodel
-        /// rest is (0.16, -0.15, 0.36) and the window is at (0, 0.088, -0.079) in the gun's frame.</summary>
-        public static readonly Vector3 WritSightCheck = new Vector3(-0.16f, 0.047f, -0.151f);
+        /// the rear sight's window 13 cm straight ahead of the eye, on the sight line, and the turn that undoes the Writ's rest
+        /// turn. From SkylineViewmodel's Writ rest, (0.2, -0.13, 0.5) turned -9 degrees, and the window at (0, 0.088, -0.079)
+        /// in the gun's frame: change them together.</summary>
+        public static readonly Vector3 WritSightCheck = new Vector3(-0.2f, 0.042f, -0.291f);
         public static readonly Vector3 WritSightCheckEuler = new Vector3(0f, 9f, 0f);
 
         /// <summary>The Writ: a precise sidearm. Every weak-point hit leaves a weak spot that takes more than a headshot (2.2).
         /// 250 RPM, 8 rounds; a magazine-and-cell reload with a bolt from empty.</summary>
         public static GunDef Writ()
         {
-            var tilt = V(-0.04f, -0.05f, 0f);
-            var tiltEuler = V(10f, -10f, -25f);
+            // the reload's held pose (fix round 1, judge C 4): the gun lifted toward the middle, muzzle dipped and turned in,
+            // rolled so the column grip's base faces the camera and the drum drops out of it on screen (8 cm, not 25 cm)
+            var tilt = V(-0.07f, 0.07f, -0.1f);
+            var tiltEuler = V(28f, -18f, 22f);
+            var drumOut = V(0.02f, -0.08f, 0f);
+            var seatKick = V(-0.06f, 0.05f, -0.08f);
+            var seatEuler = V(22f, -14f, 16f);
             return new GunDef
             {
                 id = WritId,
@@ -62,7 +67,9 @@ namespace JamKit.Skyline
                 {
                     C(HandlingClipKind.Equip, 0.55f,
                         new[] { E(0f, "unfold", "writ/equip_unfold"), E(0.7f, "lock", "writ/equip_lock") },
-                        new[] { P(0f, V(0.05f, -0.3f, -0.15f), V(40f, 0f, 25f)), P(0.7f, V(0f, 0.01f, 0f), V(-3f, 0f, 0f)), P(1f, O, O) }),
+                        // rises turned, showing its side while the court assembles (SkylineWritFx), then swings onto the target
+                        new[] { P(0f, V(0.06f, -0.28f, -0.12f), V(40f, 10f, 30f)), P(0.45f, V(-0.03f, 0.03f, -0.04f), V(-5f, -35f, -8f)),
+                                P(0.7f, V(0f, 0.01f, 0f), V(-3f, 0f, 0f)), P(1f, O, O) }),
                     C(HandlingClipKind.Fire, 0.22f,
                         new[] { E(0f, "shot", "writ/shot"), E(0.45f, "mech", "writ/shot_mech") },
                         new[] { P(0f, O, O), P(0.12f, V(0f, 0.02f, -0.07f), V(-9f, 0f, 1.5f)), P(0.45f, V(0f, 0.004f, -0.012f), V(-2f, 0f, 0.3f)), P(1f, O, O) }),
@@ -73,17 +80,18 @@ namespace JamKit.Skyline
                         new[] { E(0.18f, "mag_out", "writ/mag_out"), E(0.52f, "cell_in", "writ/cell_in"), E(0.68f, "seat", "writ/seat") },
                         new[]
                         {
-                            P(0f, O, O), P(0.15f, tilt, tiltEuler), P(0.18f, tilt, tiltEuler), P(0.3f, tilt, tiltEuler, V(0f, -0.25f, 0f)),
-                            P(0.45f, tilt, tiltEuler, V(0f, -0.12f, 0f)), P(0.52f, tilt, tiltEuler, V(0f, -0.02f, 0f)),
-                            P(0.68f, V(-0.04f, -0.03f, 0f), V(4f, -6f, -15f)), P(1f, O, O),
+                            P(0f, O, O), P(0.15f, tilt, tiltEuler), P(0.18f, tilt, tiltEuler), P(0.3f, tilt, tiltEuler, drumOut),
+                            P(0.45f, tilt, tiltEuler, V(0.01f, -0.04f, 0f)), P(0.52f, tilt, tiltEuler, V(0f, -0.012f, 0f)),
+                            P(0.68f, seatKick, seatEuler), P(1f, O, O),
                         }),
                     C(HandlingClipKind.ReloadEmpty, 1.75f,
                         new[] { E(0.13f, "mag_out", "writ/mag_out"), E(0.42f, "cell_in", "writ/cell_in"), E(0.55f, "seat", "writ/seat"), E(0.8f, "bolt", "writ/bolt") },
                         new[]
                         {
-                            P(0f, O, O), P(0.11f, tilt, tiltEuler), P(0.13f, tilt, tiltEuler), P(0.25f, tilt, tiltEuler, V(0f, -0.25f, 0f)),
-                            P(0.36f, tilt, tiltEuler, V(0f, -0.12f, 0f)), P(0.42f, tilt, tiltEuler, V(0f, -0.02f, 0f)),
-                            P(0.55f, V(-0.04f, -0.03f, 0f), V(4f, -6f, -15f)), P(0.8f, V(0.02f, -0.02f, 0f), V(0f, 8f, 12f)), P(1f, O, O),
+                            P(0f, O, O), P(0.11f, tilt, tiltEuler), P(0.13f, tilt, tiltEuler), P(0.25f, tilt, tiltEuler, drumOut),
+                            P(0.36f, tilt, tiltEuler, V(0.01f, -0.04f, 0f)), P(0.42f, tilt, tiltEuler, V(0f, -0.012f, 0f)),
+                            P(0.55f, seatKick, seatEuler), P(0.72f, V(-0.03f, 0.04f, -0.06f), V(8f, -24f, 6f)),
+                            P(0.8f, V(-0.02f, 0.05f, -0.07f), V(4f, -20f, 10f)), P(1f, O, O),
                         }),
                     // The inspect turns the courtroom to show its side (the colonnade, the lamps, the brass plate), taps the
                     // plate, then raises the gun to the eye for a sight check: the gun centred so the eye looks along the sight
@@ -104,8 +112,18 @@ namespace JamKit.Skyline
         /// is Breacher.cs). 80 RPM, a 4-shell cell; a cell swap, with a pump from empty.</summary>
         public static GunDef Breacher()
         {
-            var tilt = V(0.03f, -0.06f, 0f);
-            var tiltEuler = V(15f, 12f, 30f);
+            // The reload lifts the gun a little up and in and rolls it 55 degrees clockwise (as the player sees it: the top
+            // goes right), so its underside and the cell face the camera; the cell then drops 14 cm toward the middle of the
+            // view and the left hand brings the new one (judge round 1, C4: the cell was never on screen). Posed against
+            // SkylineViewmodel's Breacher rest (0.2, -0.13, 0.5) turned -5 degrees, FOV 60, 16:9. On screen (x, y from -1
+            // to 1): the muzzle stays at (0.16, -0.14), clear of the crosshair; the cell is held at (0.22, -0.42) and drops
+            // to (0.0, -0.69), its lowest edge at -0.82; the pump hand is at (0.19, -0.25); nothing comes nearer the
+            // camera than 0.27 m. Change these together with the rest.
+            var tilt = V(-0.03f, 0.04f, -0.06f);
+            var tiltEuler = V(0f, -4f, -55f);
+            var cellOut = V(0f, -0.14f, 0.02f);
+            var seat = V(-0.02f, 0.025f, -0.03f);
+            var seatEuler = V(-2f, -3f, -25f);
             return new GunDef
             {
                 id = BreacherId,
@@ -141,17 +159,17 @@ namespace JamKit.Skyline
                         new[] { E(0.15f, "cell_out", "breacher/cell_out"), E(0.5f, "cell_in", "breacher/cell_in"), E(0.66f, "seat", "breacher/seat") },
                         new[]
                         {
-                            P(0f, O, O), P(0.12f, tilt, tiltEuler), P(0.15f, tilt, tiltEuler), P(0.28f, tilt, tiltEuler, V(0.05f, -0.3f, 0f)),
-                            P(0.44f, tilt, tiltEuler, V(0.02f, -0.12f, 0f)), P(0.5f, tilt, tiltEuler, V(0f, -0.02f, 0f)),
-                            P(0.66f, V(0.02f, -0.04f, 0f), V(6f, 8f, 18f)), P(1f, O, O),
+                            P(0f, O, O), P(0.12f, tilt, tiltEuler), P(0.15f, tilt, tiltEuler), P(0.28f, tilt, tiltEuler, cellOut),
+                            P(0.44f, tilt, tiltEuler, V(0f, -0.07f, 0.01f)), P(0.5f, tilt, tiltEuler, V(0f, -0.01f, 0f)),
+                            P(0.66f, seat, seatEuler), P(1f, O, O),
                         }),
                     C(HandlingClipKind.ReloadEmpty, 2.1f,
                         new[] { E(0.12f, "cell_out", "breacher/cell_out"), E(0.42f, "cell_in", "breacher/cell_in"), E(0.56f, "seat", "breacher/seat"), E(0.82f, "pump", "breacher/pump") },
                         new[]
                         {
-                            P(0f, O, O), P(0.1f, tilt, tiltEuler), P(0.12f, tilt, tiltEuler), P(0.24f, tilt, tiltEuler, V(0.05f, -0.3f, 0f)),
-                            P(0.37f, tilt, tiltEuler, V(0.02f, -0.12f, 0f)), P(0.42f, tilt, tiltEuler, V(0f, -0.02f, 0f)),
-                            P(0.56f, V(0.02f, -0.04f, 0f), V(6f, 8f, 18f)), P(0.78f, V(0f, -0.02f, -0.08f), V(-6f, 0f, 0f)),
+                            P(0f, O, O), P(0.1f, tilt, tiltEuler), P(0.12f, tilt, tiltEuler), P(0.24f, tilt, tiltEuler, cellOut),
+                            P(0.37f, tilt, tiltEuler, V(0f, -0.07f, 0.01f)), P(0.42f, tilt, tiltEuler, V(0f, -0.01f, 0f)),
+                            P(0.56f, seat, seatEuler), P(0.78f, V(0f, -0.02f, -0.08f), V(-6f, 0f, 0f)),
                             P(0.82f, V(0f, -0.02f, 0.02f), V(2f, 0f, 0f)), P(1f, O, O),
                         }),
                     C(HandlingClipKind.Inspect, 2.6f,

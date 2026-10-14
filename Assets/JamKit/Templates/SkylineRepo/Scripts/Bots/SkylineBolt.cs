@@ -3,42 +3,61 @@ using UnityEngine;
 
 namespace JamKit.SkylineRepo
 {
-    /// <summary>The mall-cop drone's bolt: a sphere of the def's projectile radius flying straight (FightSim's bolt). Each frame
-    /// it sphere-casts the step: the target's own colliders take the hit (<see cref="ISkylineTarget.TakeAttack"/>); anything
-    /// else that isn't a bot, a shed part or a trigger stops it; it expires after 4 s. A short orange slug, not glowing.
-    /// Pooled renderer-only capsules (filled up front by <see cref="Prewarm"/>): a spent bolt is switched off and reused,
-    /// never destroyed.</summary>
+    /// <summary>The mall-cop drone's taser bolt: a sphere of the def's projectile radius flying straight (FightSim's bolt).
+    /// Each frame it sphere-casts the step: the target's own colliders take the hit (<see cref="ISkylineTarget.TakeAttack"/>);
+    /// anything else that isn't a bot, a shed part or a trigger stops it; it expires after 4 s.
+    /// <para>The look is CONCIERGE's, not the player's (orange is the firm's colour; judge round 1 read the old orange capsule
+    /// as a floating sausage): a white-hot core stretched along its flight, a tapering gold streak behind it, and a thin
+    /// crackling arc that re-jitters every frame along the streak, so a taser reads at a glance and its line can be read
+    /// from the side. Pooled (filled up front by <see cref="Prewarm"/>): a spent bolt is switched off and reused, never
+    /// destroyed.</para></summary>
     public sealed class SkylineBolt : MonoBehaviour
     {
         const float MaxAge = 4f;
         const int PrewarmCount = 24;
+        const int ArcPoints = 8;
+        const float ArcLength = 0.9f, ArcJitter = 0.06f, StreakSeconds = 0.07f;
         static readonly RaycastHit[] _hits = new RaycastHit[16];
-        static readonly Color Slug = new Color(1f, 0.45f, 0.12f);
+        /// <summary>The core: white-hot with a gold cast (HDR, so it blooms).</summary>
+        static readonly Color Core = new Color(2.6f, 2.3f, 1.6f);
+        /// <summary>The streak: CONCIERGE's gold, hot.</summary>
+        static readonly Color Streak = new Color(2.2f, 1.45f, 0.35f);
+        /// <summary>The arc: a paler, electric gold-white.</summary>
+        static readonly Color Arc = new Color(2.4f, 2.2f, 1.3f);
         static readonly List<SkylineBolt> _pool = new List<SkylineBolt>();
 
         Vector3 _vel;
         float _radius, _damage, _age;
         string _attackerId;
-        Vector3 _attackerPos;
+        Vector3 _attackerPos, _from;
         ISkylineTarget _target;
-        Transform _owner;
+        Transform _owner, _core;
+        TrailRenderer _trail;
+        LineRenderer _arc;
+        readonly Vector3[] _arcPts = new Vector3[ArcPoints];
 
         public static SkylineBolt Fire(Vector3 from, Vector3 velocity, float radius, float damage, string attackerId, ISkylineTarget target, Transform owner)
         {
             var b = Take();
             var go = b.gameObject;
             float d = Mathf.Max(0.05f, radius * 2f);
-            go.transform.localScale = new Vector3(d, d * 2.2f, d);
             b._vel = velocity;
             b._radius = radius;
             b._damage = damage;
             b._attackerId = attackerId;
             b._attackerPos = from;
+            b._from = from;
             b._target = target;
             b._owner = owner;
             b._age = 0f;
-            go.transform.SetPositionAndRotation(from, velocity.sqrMagnitude > 1e-6f ? Quaternion.FromToRotation(Vector3.up, velocity) : Quaternion.identity);
+            go.transform.SetPositionAndRotation(from, velocity.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(velocity) : Quaternion.identity);
+            // the core: a little smaller than the hit sphere, drawn out along the flight
+            b._core.localScale = new Vector3(d * 0.55f, d * 0.55f, d * 1.6f);
+            b._trail.widthMultiplier = d * 0.7f;
+            b._arc.positionCount = 0;
             go.SetActive(true);
+            b._trail.Clear();
+            b._trail.emitting = true;
             return b;
         }
 
@@ -55,7 +74,7 @@ namespace JamKit.SkylineRepo
         public static void ClearAll()
         {
             Purge();
-            for (int i = 0; i < _pool.Count; i++) _pool[i].gameObject.SetActive(false);
+            for (int i = 0; i < _pool.Count; i++) _pool[i].Stop();
         }
 
         static void Purge()
@@ -65,9 +84,33 @@ namespace JamKit.SkylineRepo
 
         static SkylineBolt Make()
         {
-            var go = SkylineBotLook.Visual(PrimitiveType.Capsule, "Bolt", null, SkylineBotLook.Lit(Slug), false);
+            var go = new GameObject("Bolt");
             go.SetActive(false);
             var b = go.AddComponent<SkylineBolt>();
+            b._core = SkylineBotLook.Visual(PrimitiveType.Sphere, "Core", go.transform, SkylineBotLook.Glow(Core), false).transform;
+
+            b._trail = go.AddComponent<TrailRenderer>();
+            b._trail.sharedMaterial = SkylineBotLook.Glow(Streak);
+            b._trail.time = StreakSeconds;
+            b._trail.minVertexDistance = 0.05f;
+            b._trail.widthCurve = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(0.35f, 0.55f), new Keyframe(1f, 0f));
+            b._trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            b._trail.receiveShadows = false;
+            b._trail.numCapVertices = 2;
+            b._trail.autodestruct = false;
+            b._trail.emitting = false;
+
+            var arcGo = new GameObject("Arc");
+            arcGo.transform.SetParent(go.transform, false);
+            b._arc = arcGo.AddComponent<LineRenderer>();
+            b._arc.sharedMaterial = SkylineBotLook.Glow(Arc);
+            b._arc.useWorldSpace = true;
+            b._arc.widthMultiplier = 0.014f;
+            b._arc.widthCurve = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 0.3f));
+            b._arc.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            b._arc.receiveShadows = false;
+            b._arc.positionCount = 0;
+
             _pool.Add(b);
             return b;
         }
@@ -104,12 +147,41 @@ namespace JamKit.SkylineRepo
                 {
                     var c = _hits[bi].collider;
                     if (IsTarget(c) && _target != null) _target.TakeAttack(_damage, _attackerId, _attackerPos);
-                    gameObject.SetActive(false);
+                    // the zap where it struck: a few white-hot sparks (a bolt, not a bot)
+                    Vector3 at = _hits[bi].point == Vector3.zero ? from : _hits[bi].point;
+                    SkylineSpark.Burst(at, _hits[bi].normal, 5, 3.5f);
+                    Stop();
                     return;
                 }
             }
             transform.position = from + step;
-            if (_age > MaxAge) gameObject.SetActive(false);
+            DrawArc();
+            if (_age > MaxAge) Stop();
+        }
+
+        /// <summary>The crackle: a jagged line from the core back along the streak, re-jittered every frame.</summary>
+        void DrawArc()
+        {
+            Vector3 head = transform.position;
+            Vector3 back = -transform.forward;
+            float reach = Mathf.Min(ArcLength, Vector3.Distance(head, _from));
+            if (reach < 0.05f) { _arc.positionCount = 0; return; }
+            Vector3 side = transform.right, up = transform.up;
+            for (int i = 0; i < ArcPoints; i++)
+            {
+                float t = (float)i / (ArcPoints - 1);
+                float j = i == 0 ? 0f : ArcJitter * (1f - 0.5f * t);
+                _arcPts[i] = head + back * (reach * t) + side * Random.Range(-j, j) + up * Random.Range(-j, j);
+            }
+            _arc.positionCount = ArcPoints;
+            _arc.SetPositions(_arcPts);
+        }
+
+        void Stop()
+        {
+            if (_trail != null) { _trail.emitting = false; _trail.Clear(); }
+            if (_arc != null) _arc.positionCount = 0;
+            gameObject.SetActive(false);
         }
 
         bool IsTarget(Collider c)

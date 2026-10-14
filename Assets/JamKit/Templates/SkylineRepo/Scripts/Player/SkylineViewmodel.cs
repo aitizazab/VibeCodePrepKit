@@ -9,7 +9,8 @@ namespace JamKit.SkylineRepo
     /// The first-person guns and robot arms, code-animated from the handling clips (docs/SKYLINE-DESIGN.md 2.3). Every frame
     /// it samples the active gun's <see cref="HandlingPlayer.Pose"/> and applies gunOffset / gunEuler to the gun's root and
     /// magOffset to its <c>Mag</c>; with no clip playing, the rest pose plus a small walk bob from the stride. An equip starts
-    /// at its clip's first frame, so the gun rises into view.
+    /// at its clip's first frame, so the gun rises into view. Each gun has a rest place and a rest turn: the turn is a small
+    /// convergence yaw toward the crosshair, applied before the clip's own turn (root = restRot * Euler(gunEuler)).
     ///
     /// Layer-free: the rig lives at a far-away anchor with its own 60-degree overlay camera (stacked on the main camera; URP overlays clear depth,
     /// with a 5 m far plane), which copies the main camera's rotation each frame. The main camera never sees the
@@ -23,13 +24,21 @@ namespace JamKit.SkylineRepo
         // Presentation constants.
         public static readonly Vector3 Anchor = new Vector3(0f, -1000f, 0f);   // beyond the main camera's 600 m far plane; near enough for fine float precision
         const float Fov = 60f, Near = 0.01f, Far = 5f;
-        static readonly Vector3 WritRest = new Vector3(0.16f, -0.15f, 0.36f);
-        static readonly Vector3 BreacherRest = new Vector3(0.17f, -0.18f, 0.40f);
+        // Task 18 fix round 1 (judge C 4-6): further out and higher, so the robot hands, the Writ's column grip and the drum
+        // or cell are on screen at the hip, with each gun's top still under the crosshair; the Writ turns 9 degrees toward the
+        // crosshair (it converges about 1 m ahead) so its colonnade shows. The Writ's inspect sight check is computed from
+        // these (SkylineGuns.WritSightCheck): change them together. Checked from this camera by
+        // tools/skyline/guns/writ/model/preview.py.
+        static readonly Vector3 WritRest = new Vector3(0.2f, -0.13f, 0.5f);
+        static readonly Vector3 WritRestEuler = new Vector3(0f, -9f, 0f);
+        static readonly Vector3 BreacherRest = new Vector3(0.2f, -0.13f, 0.5f);
+        static readonly Vector3 BreacherRestEuler = new Vector3(0f, -5f, 0f);
         const float BobSide = 0.008f, BobUp = 0.012f, BobFullSpeed = 8f;
 
         public SkylinePlayer player;
 
         Camera _main, _cam;
+        bool _mainPostBefore;   // the main camera's post-processing flag, handed to the overlay while the guns are up
         GameObject _rigRoot;
         readonly GunRig[] _guns = new GunRig[2];
         float _bobWeight;
@@ -38,6 +47,7 @@ namespace JamKit.SkylineRepo
         {
             public Transform root, mag, muzzle;
             public Vector3 rest, magRest;
+            public Quaternion restRot = Quaternion.identity;
         }
 
         /// <summary>The overlay camera (null before Start).</summary>
@@ -56,6 +66,7 @@ namespace JamKit.SkylineRepo
             {
                 var data = _main.GetUniversalAdditionalCameraData();
                 if (data != null && data.cameraStack != null) data.cameraStack.Remove(_cam);
+                if (data != null) data.renderPostProcessing = _mainPostBefore;
             }
             if (_rigRoot != null) Destroy(_rigRoot);
         }
@@ -80,10 +91,21 @@ namespace JamKit.SkylineRepo
                 var stack = mainData != null ? mainData.cameraStack : null;
                 if (stack == null) Debug.LogWarning("SkylineViewmodel: the main camera has no camera stack (not a Base camera, or its renderer can't stack); the guns won't show");
                 else if (!stack.Contains(_cam)) stack.Add(_cam);
+                // URP grades a stack once, at the last camera with post-processing on: give it to the overlay so the guns
+                // are graded with the scene (ungraded, a sunlit orange clipped to the bots' yellow; judge A6), and take it
+                // off the main camera so the scene isn't graded twice.
+                if (stack != null && mainData != null)
+                {
+                    _mainPostBefore = mainData.renderPostProcessing;
+                    data.renderPostProcessing = _mainPostBefore;
+                    mainData.renderPostProcessing = false;
+                }
             }
 
             _guns[0] = MakeGun(camGo.transform, SkylineGuns.WritId, WritRest);
+            _guns[0].restRot = Quaternion.Euler(WritRestEuler);
             _guns[1] = MakeGun(camGo.transform, SkylineGuns.BreacherId, BreacherRest);
+            _guns[1].restRot = Quaternion.Euler(BreacherRestEuler);
         }
 
         GunRig MakeGun(Transform parent, string gun, Vector3 rest)
@@ -238,7 +260,7 @@ namespace JamKit.SkylineRepo
                     offset += new Vector3(Mathf.Sin(ph) * BobSide, -Mathf.Abs(Mathf.Sin(ph)) * BobUp, 0f) * _bobWeight;
                 }
                 g.root.localPosition = g.rest + offset;
-                g.root.localRotation = Quaternion.Euler(euler);
+                g.root.localRotation = g.restRot * Quaternion.Euler(euler);
                 if (g.mag != null) g.mag.localPosition = g.magRest + mag;
             }
         }

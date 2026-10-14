@@ -20,7 +20,10 @@ namespace JamKit.SkylineRepo
     /// missing. Every Event cue with a sound is recorded as {t, gun, clip, id, sound}, t in seconds after the marker, and
     /// written to &lt;OutDir&gt;/firing-range-schedule.json; then <c>SKYLINE_RANGE done events=&lt;n&gt;</c>. Each clip start
     /// logs <c>SKYLINE_RANGE &lt;gun&gt; &lt;clip&gt;</c>. A last pad-look segment sweeps across a plate so aim assist logs
-    /// <c>SKYLINE_AIMASSIST</c> (amendment 11).
+    /// <c>SKYLINE_AIMASSIST</c> (amendment 11). After it, the Breacher's shove (judge round 1, C1): a practice drone is
+    /// put up at 6 m and the Breacher blasts it three times, so the recording shows the bot sliding back, its plates flying
+    /// off along the shot and the camera kicking (<c>SKYLINE_RANGE shove ...</c> lines; outside the schedule, so the sync
+    /// check is unchanged). The view turns to it smoothly, never in one frame.
     /// <para>The clock is <c>Time.time</c>, the game clock, not <c>Time.unscaledTime</c> (Task 17 revises amendment 4). Hit
     /// stop is off for the demo, so <c>Time.timeScale</c> stays 1 and <c>Time.time</c> is the clock the guns tick on. Under
     /// the Recorder's constant step it advances exactly one step per frame, which is the recording's own clock: its video
@@ -43,6 +46,11 @@ namespace JamKit.SkylineRepo
         const float RetryFor = 1.5f;
         const float ReloadStartWait = 2f;
         const float PadSweepDeg = 24f, PadSweepSeconds = 2.5f;
+        /// <summary>The shove segment: the practice drone's place (left of the plates' lane, clear behind it), the turn to
+        /// it, the gap between blasts, and the wait after the last.</summary>
+        static readonly Vector3 ShoveBotAt = new Vector3(-3f, 1.5f, 6.5f);
+        const float ShoveTurnDegPerSec = 140f, ShoveSettle = 0.6f, ShoveGap = 0.9f, ShoveAfter = 1.6f;
+        const int ShoveShots = 3;
         const int SampleRate = 48000;
 
         public SkylinePlayer player;
@@ -62,6 +70,10 @@ namespace JamKit.SkylineRepo
         float _marker;
         bool _markerSet, _padLook;
         float _padYawRate;
+        /// <summary>Degrees a second the view may turn toward <see cref="_aimAt"/>; 0 snaps (the scheduled sets keep their
+        /// timing; only the shove segment turns smoothly).</summary>
+        float _turnRate;
+        int _shedCount;
         /// <summary>Fire and DryFire clip starts so far: each one confirms a trigger press.</summary>
         int _triggerClips;
 
@@ -83,6 +95,7 @@ namespace JamKit.SkylineRepo
 
         void OnDestroy()
         {
+            SkylineBot.PlateShed -= OnPlateShed;
             if (player != null)
             {
                 player.CueRaised -= OnCue;
@@ -103,7 +116,14 @@ namespace JamKit.SkylineRepo
             {
                 Vector3 d = _aimAt.Value - player.EyePosition;
                 float flat = new Vector2(d.x, d.z).magnitude;
-                player.SetAim(Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg, Mathf.Atan2(-d.y, flat) * Mathf.Rad2Deg);
+                float yaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg, pitch = Mathf.Atan2(-d.y, flat) * Mathf.Rad2Deg;
+                if (_turnRate > 0f)
+                {
+                    float step = _turnRate * Time.deltaTime;
+                    yaw = Mathf.MoveTowardsAngle(player.Yaw, yaw, step);
+                    pitch = Mathf.MoveTowards(player.Pitch, pitch, step);
+                }
+                player.SetAim(yaw, pitch);
             }
             return f;
         }
@@ -225,7 +245,58 @@ namespace JamKit.SkylineRepo
             yield return Wait(PadSweepSeconds);
             _padLook = false;
             Debug.Log("SKYLINE_RANGE pad-look end");
+
+            yield return Shove();
         }
+
+        /// <summary>The Breacher's identity on a live bot: a practice drone (never attacks, regrows its plates) 6 m out; the
+        /// view turns to it; three blasts; then a wait while the plates land. The Breacher is in hand and full after its set.</summary>
+        IEnumerator Shove()
+        {
+            int slot = player.Loadout.ActiveIndex;
+            var gun = player.Loadout[slot];
+            if (gun.Def.id != SkylineGuns.BreacherId)
+            {
+                Debug.Log("SKYLINE_RANGE shove skipped (the Breacher isn't in hand)");
+                yield break;
+            }
+            Vector3 eye = player.EyePosition;
+            float yaw = Mathf.Atan2(eye.x - ShoveBotAt.x, eye.z - ShoveBotAt.z) * Mathf.Rad2Deg;
+            var bot = SkylineBot.Spawn(SkylineEnemies.DroneId, ShoveBotAt, yaw, 11UL, player, player.Writ, transform);
+            if (bot == null)
+            {
+                Debug.Log("SKYLINE_RANGE shove skipped (no practice drone)");
+                yield break;
+            }
+            bot.practice = true;
+            bot.gameObject.name = "Practice " + bot.gameObject.name;
+            _shedCount = 0;
+            SkylineBot.PlateShed += OnPlateShed;
+            Debug.Log("SKYLINE_RANGE shove start " + bot.name);
+
+            _turnRate = ShoveTurnDegPerSec;
+            _aimAt = bot.Center;
+            yield return Wait(ShoveSettle);
+            for (int i = 0; i < ShoveShots && bot != null; i++)
+            {
+                float from = Now;
+                _aimAt = bot.Center;
+                yield return null;                              // one frame to settle on where it is now
+                Vector3 before = bot.transform.position;
+                yield return PullTrigger(gun, "shove " + (i + 1));
+                yield return Wait(ShoveGap - (Now - from));
+                if (bot != null)
+                    Debug.Log("SKYLINE_RANGE shove shot " + (i + 1) + " slid " +
+                              (bot.transform.position - before).magnitude.ToString("0.00", CultureInfo.InvariantCulture) + " m, plates shed " + _shedCount);
+            }
+            _aimAt = bot != null ? bot.Center : _aimAt;
+            yield return Wait(ShoveAfter);
+            SkylineBot.PlateShed -= OnPlateShed;
+            _turnRate = 0f;
+            Debug.Log("SKYLINE_RANGE shove end plates shed " + _shedCount);
+        }
+
+        void OnPlateShed(SkylineBot bot, int plate) => _shedCount++;
 
         /// <summary>One gun's set. The gun has just been equipped (re-equip or swap) on the frame before.</summary>
         IEnumerator GunPart(int slot)

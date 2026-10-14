@@ -40,6 +40,10 @@ namespace JamKit.SkylineRepo
             bool anyRange = false;
             int rank = 0;
             bool hitSounded = false, worldSounded = false;   // one hit sound and one world sound a shot, however many pellets
+            // One hit sound a shot comes from the gun's own impact (writ/impact, writ/impact_weak, breacher/impact, played by
+            // its fx on onHit); impact/hit is only the fallback for a gun with no "<gun>/impact" sound. A Writ spot adds the
+            // spot's own sound (spot_form / spot_break), so two at most. World hits keep impact/world, once a shot.
+            bool ownImpact = SkylineSounds.Get(gun.id + "/impact") != null;
             for (int p = 0; p < pellets; p++)
             {
                 Vector3 dir = aim;
@@ -90,6 +94,7 @@ namespace JamKit.SkylineRepo
                         }
                     }
                     SkylineImpact.Spawn(hit.point, hit.normal, onHittable);
+                    if (onHittable && !hitSounded && ownImpact) hitSounded = true;   // the gun's fx plays its own impact
                     if (onHittable ? !hitSounded : !worldSounded)
                     {
                         SkylineSounds.PlayAt(onHittable ? SkylineImpact.HitSound : SkylineImpact.WorldSound, hit.point, onHittable ? 0.8f : 0.5f);

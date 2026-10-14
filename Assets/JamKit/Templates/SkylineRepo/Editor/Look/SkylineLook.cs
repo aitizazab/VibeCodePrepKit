@@ -38,6 +38,9 @@ namespace JamKit.SkylineRepo.EditorTools
         public const float SunElevation = 41f, SunAzimuth = 235f;
         public const float SunIntensity = 2.6f;
         public static readonly Color SunColor = new Color(1f, 0.95f, 0.87f);
+        /// <summary>The ambient (linear): from above, round the horizon, from below (see ApplyAfternoon).</summary>
+        public static readonly Color AmbientSky = new Color(0.6f, 0.66f, 0.78f), AmbientEquator = new Color(0.62f, 0.61f, 0.59f),
+            AmbientGround = new Color(0.64f, 0.58f, 0.5f);
         public const string ProfilePath = SkylineLookLibrary.LookRoot + "SK_Afternoon.asset";
 
         public const string RootName = "Skyline Look (afternoon)";
@@ -83,7 +86,15 @@ namespace JamKit.SkylineRepo.EditorTools
 
             RenderSettings.skybox = skyMaterial;
             RenderSettings.sun = sun;
-            RenderSettings.ambientMode = AmbientMode.Skybox;
+            // Fix round 1 (judge A 5): the sky's own ambient left the shaded walls at about a tenth of the light they need
+            // and blue (RGB ~70/80/95 on white plaster in the build). A white atrium in sun is filled by its sunlit floor and
+            // walls: a three-colour ambient, cool from above, warm-neutral round the horizon, warm from below (the sunlit
+            // floor's bounce), so white in shade reads light warm grey-white, not slate. Linear values, handed over as sRGB
+            // (Unity linearises the ambient colours; near 0.6 the two readings differ by only a few percent).
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = AmbientSky.gamma;
+            RenderSettings.ambientEquatorColor = AmbientEquator.gamma;
+            RenderSettings.ambientGroundColor = AmbientGround.gamma;
             RenderSettings.ambientIntensity = 1f;
             RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
             RenderSettings.defaultReflectionResolution = 256;
@@ -117,8 +128,8 @@ namespace JamKit.SkylineRepo.EditorTools
             var bounce = new GameObject("Bounce (sunlit floor, fill)").AddComponent<Light>();
             bounce.transform.SetParent(root.transform, false);
             bounce.type = LightType.Directional;
-            bounce.color = new Color(0.96f, 0.94f, 0.88f);
-            bounce.intensity = 0.28f;
+            bounce.color = new Color(1f, 0.93f, 0.82f);    // the sunlit cream floor's colour
+            bounce.intensity = 0.42f;
             bounce.shadows = LightShadows.None;
             bounce.lightmapBakeType = LightmapBakeType.Realtime;
             bounce.bounceIntensity = 0f;
@@ -197,22 +208,34 @@ namespace JamKit.SkylineRepo.EditorTools
             ca.saturation.Override(6f);
             ca.colorFilter.Override(Color.white);
 
+            // Fix round 1 (judge A 5): the white walls in shade read slate blue; the grade no longer cools the shadows as much.
             var wb = Comp<WhiteBalance>(p);
-            wb.temperature.Override(-3f);
+            wb.temperature.Override(-1f);
             wb.tint.Override(0f);
 
             var st = Comp<SplitToning>(p);
-            st.shadows.Override(new Color(0.44f, 0.48f, 0.56f));
+            st.shadows.Override(new Color(0.47f, 0.49f, 0.53f));
             st.highlights.Override(new Color(0.53f, 0.51f, 0.48f));
             st.balance.Override(5f);
 
             var smh = Comp<ShadowsMidtonesHighlights>(p);
-            smh.shadows.Override(new Vector4(0.98f, 1f, 1.05f, 0.03f));
+            smh.shadows.Override(new Vector4(1f, 1f, 1.02f, 0.02f));
             smh.midtones.Override(new Vector4(1f, 1f, 1f, 0f));
             smh.highlights.Override(new Vector4(1.02f, 1.01f, 0.98f, 0f));
 
+            // Fix round 1 (judge A 6: in the sun the firm's orange read as the same lemon yellow as the bots' gold). ACES, like
+            // every per-channel curve, slides a bright orange towards yellow as its red channel reaches the shoulder (the green
+            // keeps climbing). Pulling the orange hues a little towards red BEFORE the curve (hue vs hue, in the grading
+            // space) keeps them orange in the sun, and pulls gold less, so the two stay apart. Simulated with URP's own ACES
+            // (tools/skyline/look/grade-check.py): the Breacher's orange (0.95, 0.45, 0.08) lit at 2.0-2.8 lands at hue 29-34
+            // (was 38-43); the bots' gold (0.86, 0.66, 0.22) at 48-50 (was 49.5-51); white is unchanged.
+            var curves = Comp<ColorCurves>(p);
+            curves.hueVsHue.Override(new TextureCurve(HueVsHueKeys(), 0.5f, true, new Vector2(0f, 1f)));
+
             var bloom = Comp<Bloom>(p);
-            bloom.threshold.Override(1.0f);
+            // 1.6, not 1.0: with the library's albedo right (fix round 1), sunlit white sits at ~1.4 before the grade and
+            // must not glow; signs (~2.3), light panels (~5) and sun glints still do.
+            bloom.threshold.Override(1.6f);
             bloom.intensity.Override(0.65f);
             bloom.scatter.Override(0.62f);
             bloom.tint.Override(new Color(1f, 0.97f, 0.92f));
@@ -226,6 +249,23 @@ namespace JamKit.SkylineRepo.EditorTools
 
             EditorUtility.SetDirty(p);
             return p;
+        }
+
+        /// <summary>The hue-vs-hue curve: hue (0..1) to 0.5 + shift (in turns). Orange (10-32 degrees in the grading space)
+        /// moves up to 8 degrees towards red, gold (40-48) 2 degrees, nothing beyond 60 or below 0.</summary>
+        static Keyframe[] HueVsHueKeys()
+        {
+            var pts = new[] { (0f, 0f), (10f, -4f), (22f, -8f), (32f, -6f), (40f, -2f), (48f, -2f), (60f, 0f) };
+            var keys = new Keyframe[pts.Length];
+            for (int i = 0; i < pts.Length; i++)
+            {
+                // Linear tangents between the points (a piecewise-linear curve, as simulated).
+                float t = pts[i].Item1 / 360f, v = 0.5f + pts[i].Item2 / 360f;
+                float inT = i > 0 ? (v - (0.5f + pts[i - 1].Item2 / 360f)) / (t - pts[i - 1].Item1 / 360f) : 0f;
+                float outT = i < pts.Length - 1 ? ((0.5f + pts[i + 1].Item2 / 360f) - v) / (pts[i + 1].Item1 / 360f - t) : 0f;
+                keys[i] = new Keyframe(t, v, inT, outT);
+            }
+            return keys;
         }
 
         // ------------------------------------------------------------------------------------------------ cameras
@@ -268,13 +308,14 @@ namespace JamKit.SkylineRepo.EditorTools
             string dir = Path.GetDirectoryName(scenePath).Replace('\\', '/');
             string name = Path.GetFileNameWithoutExtension(scenePath);
             WarmUpPipeline();
-            Bake(hall, dir + "/" + name + "_Reflections_Hall.exr");
-            Bake(warm, dir + "/" + name + "_Reflections_Warmup.exr");
+            // The hall at 256 (judge A 13: at 128 the polished floor showed a red menu board as a soft red stain).
+            Bake(hall, dir + "/" + name + "_Reflections_Hall.exr", 256);
+            Bake(warm, dir + "/" + name + "_Reflections_Warmup.exr", 128);
         }
 
-        static void Bake(ReflectionProbe p, string path)
+        static void Bake(ReflectionProbe p, string path, int resolution)
         {
-            p.resolution = 128;
+            p.resolution = resolution;
             p.hdr = true;
             p.blendDistance = 1f;
             p.clearFlags = ReflectionProbeClearFlags.Skybox;

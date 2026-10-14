@@ -192,6 +192,17 @@ def shot_body():
     return boom * boom_gain + thump * thump_gain + roar * roar_gain + punch * 0.3
 
 
+def shot_crack():
+    """The snap (fix round 1: the shot had no crack above 4 kHz): a sharp broadband report, the gavel's brass band ringing
+    like a struck nail, and the slug's short whiz as it leaves, so the shot cracks over its body."""
+    n = n_of(0.35)
+    snap = noise_burst(n, 0.0, 15, 1500, 15000, 0.0004, 0.014, gain=0.6)
+    snap += noise_burst(n, 0.0015, 16, 3000, 12000, 0.0005, 0.03, gain=0.35)
+    nail = modal(n, [(3610, 0.11, 0.5), (5270, 0.08, 0.38), (7930, 0.05, 0.26), (11200, 0.03, 0.15)], start=0.0005, seed=17)
+    whiz = sweep_noise(n, 18, 9500, 3800, q=3.0, length=0.04) * decay_env(n, 0.05, attack=0.002)
+    return snap + nail * 0.45 + whiz * 0.3
+
+
 def shot_hydraulic():
     n = n_of(0.12)
     breath = noise_burst(n, 0.004, 21, 700, 3200, 0.002, 0.035, gain=0.8)
@@ -208,8 +219,8 @@ def shot_hall():
         k = n_of(d)
         seg = bp(src, None, 2400)[: n - k]
         excite[k:k + len(seg)] += seg * g
-    tail_l = hall(n, 31, rt60=2.0)
-    tail_r = hall(n, 32, rt60=2.05)
+    tail_l = hall(n, 31, rt60=1.5, lp_start=6000.0, lp_end=700.0) + late_hall(n, 33)
+    tail_r = hall(n, 32, rt60=1.55, lp_start=6000.0, lp_end=700.0) + late_hall(n, 34)
     # the hall is excited by the shot's mid-band roar and knock (the stone answers in the mids, like a real room)
     feed = bp(shot_body()[: n_of(0.25)], 200, 2400)
     knock = bp(shot_gavel(), 200, 3000)[: len(feed)]
@@ -219,14 +230,51 @@ def shot_hall():
     return wet_l, wet_r
 
 
+def late_hall(n, seed):
+    """The stone room's late tail: a slower second slope that holds the hall at about -20 to -35 dB from 0.5 to 2 s."""
+    t = t_of(n)
+    x = rng(seed).standard_normal(n)
+    env = np.exp(-np.maximum(t - 0.08, 0) * 6.9078 / 3.6) * np.clip((t - 0.06) / 0.25, 0, 1)
+    return sweep_lp(x, 4200.0, 1100.0, n) * env * 0.11
+
+
+ROOM_RT = 30.0
+
+
+def shot_room(seed):
+    """The courtroom's stone room after the shot (fix round 1: the tail fell to -40 dB by 1 s; a hand cannon's room holds):
+    a bright early wash that darkens (5 kHz to 900 Hz) and a slow second slope (RT60 about 4 s)."""
+    n = n_of(2.3)
+    t = t_of(n)
+    x = rng(seed).standard_normal(n)
+    env = np.clip((t - 0.02) / 0.3, 0, 1) * np.exp(-np.maximum(t - 0.32, 0) * 6.9078 / ROOM_RT)
+    env *= np.where(t > 1.0, np.exp(-(t - 1.0) * 6.9078 / 4.3), 1.0)        # the second slope: about -14 dB a second
+    return bp(sweep_lp(x, 420.0, 170.0, n), 70, None) * env
+
+
+def shot_air(seed):
+    """The room's bright early reflections (the crack coming back off stone and brass): 3.5-13 kHz, fading over about 0.5 s (-60 dB at 1.5 s)."""
+    n = n_of(0.9)
+    t = t_of(n)
+    x = rng(seed).standard_normal(n)
+    early = np.exp(-np.maximum(t - 0.008, 0) * 6.9078 / 1.5) * np.clip((t - 0.004) / 0.02, 0, 1)
+    return sweep_lp(bp(x, 3500, None), 13000.0, 5500.0, n) * early
+
+
 def shot_mech():
-    """The gavel's hydraulic return (the fire clip's "mech" event, 99 ms after the shot): a piston's sigh and an oiled
-    clack as it lifts back over the bench."""
-    n = n_of(0.22)
-    sigh = sweep_noise(n, 41, 3800, 1200, q=2.5, length=0.07) * decay_env(n, 0.09, attack=0.008)
-    clack = gavel_knock(n, seed=42, pitch=1.6, bright=0.7)
-    clack = np.roll(clack, n_of(0.045)) * np.r_[np.zeros(n_of(0.045)), np.ones(n - n_of(0.045))]
-    return sigh * 0.7 + clack * 0.45
+    """The gavel's hydraulic return (the fire clip's "mech" event, 99 ms after the shot), the well-oiled machine you can
+    hear: a pneumatic "psshh" in 2-8 kHz (where the shot's body has nothing, so it reads over it), a piston's brass
+    ka-chunk, and a latch tick as the gavel locks back up over the bench."""
+    n = n_of(0.26)
+    t = t_of(n)
+    held = np.clip(t / 0.006, 0, 1) * np.where(t < 0.075, 1.0, np.exp(-(t - 0.075) * 6.9078 / 0.12))   # a held breath
+    psh = sweep_noise(n, 41, 7200, 2400, q=1.4, length=0.11) * held
+    psh += noise_burst(n, 0.004, 43, 2500, 9000, 0.004, 0.08, gain=0.35)
+    piston = (modal(n, [(1820, 0.05, 0.6), (2930, 0.04, 0.5), (4350, 0.03, 0.35)], start=0.05, seed=44)
+              + click(n, 0.05, 45, lo=1500, decay=0.002, gain=1.0)
+              + glide(n, 260, 160, curve=30, start=0.05) * decay_env(n, 0.06, attack=0.001, start=0.05) * 0.35)
+    tick = modal(n, [(4100, 0.02, 0.4)], start=0.085, seed=46) + click(n, 0.085, 47, lo=3000, decay=0.001, gain=0.5)
+    return psh * 0.9 + piston * 0.8 + tick * 0.5
 
 
 # ---------------------------------------------------------------- handling
@@ -268,7 +316,7 @@ def equip_lock():
 def mag_out():
     n = n_of(0.4)
     latch = modal(n, [(2400, 0.02, 0.7), (3700, 0.014, 0.4)], seed=81) + click(n, 0.0, 82, lo=2500, decay=0.0012)
-    hiss = noise_burst(n, 0.006, 83, 2000, 7000, 0.004, 0.13, gain=0.2)
+    hiss = noise_burst(n, 0.006, 83, 2000, 7000, 0.004, 0.16, gain=0.4)
     r = rng(84)
     am = np.abs(bp(r.standard_normal(n), 20, 90)) * 6
     scrape = bp(r.standard_normal(n), 500, 2600) * am * decay_env(n, 0.2, attack=0.04, start=0.04) * 0.45
@@ -290,13 +338,14 @@ def cell_in():
 def seat():
     """The hydraulic seat: a pressurised breath, then a heavy lock, then the cell lighting up with a low hum."""
     n = n_of(0.6)
-    pssh = sweep_noise(n, 101, 6200, 2200, q=2.0, length=0.05) * decay_env(n, 0.06, attack=0.008)
+    pssh = sweep_noise(n, 101, 7600, 2600, q=1.6, length=0.08) * decay_env(n, 0.11, attack=0.006)
+    pssh += noise_burst(n, 0.03, 104, 3000, 10000, 0.01, 0.16, gain=0.3)          # the bleed after the lock
     lock = (glide(n, 140, 72, curve=18, start=0.022) * decay_env(n, 0.16, attack=0.001, start=0.022) * HANDLING_LOW * 1.3
-            + modal(n, [(900, 0.06, 0.6), (2300, 0.05, 0.6), (3700, 0.035, 0.5), (5600, 0.02, 0.3)], start=0.022, seed=102)
+            + modal(n, [(900, 0.06, 0.6), (2300, 0.09, 0.7), (3700, 0.07, 0.55), (5600, 0.04, 0.35)], start=0.022, seed=102)
             + click(n, 0.022, 103, lo=1800, decay=0.003, gain=1.5))
     t = t_of(n)
     hum = (np.sin(2 * np.pi * 120 * t) + 0.5 * np.sin(2 * np.pi * 240 * t)) * decay_env(n, 0.4, attack=0.05, start=0.06) * 0.12
-    return pssh * 0.6 + lock + hum * 0.5
+    return pssh * 1.1 + lock + hum * 0.25
 
 
 def bolt():
@@ -438,7 +487,9 @@ def R(length, layers, limit=-1.6, seed=1):
 
 
 STEMS = {
-    "shot_gavel": shot_gavel, "shot_body": shot_body, "shot_hydraulic": shot_hydraulic, "shot_mech": shot_mech,
+    "shot_gavel": shot_gavel, "shot_body": shot_body, "shot_crack": shot_crack,
+    "shot_room_l": lambda: shot_room(35), "shot_room_r": lambda: shot_room(36),
+    "shot_air_l": lambda: shot_air(37), "shot_air_r": lambda: shot_air(38), "shot_hydraulic": shot_hydraulic, "shot_mech": shot_mech,
     "dry_click": dry_click, "equip_unfold": equip_unfold, "equip_lock": equip_lock, "mag_out": mag_out, "cell_in": cell_in,
     "seat": seat, "bolt": bolt, "inspect_turn": inspect_turn, "inspect_tap": inspect_tap, "inspect_settle": inspect_settle,
     "spot_form": spot_form, "spot_break": spot_break, "impact": impact, "impact_weak": impact_weak, "spot_pop": spot_pop,
@@ -446,26 +497,29 @@ STEMS = {
 }
 
 # the mix of the shot's layers (dB, relative to each stem's -1.5 dBFS peak): tuned against the measurements
-SHOT_MIX = {"gavel": -4.0, "body": -2.0, "hydraulic": -13.0, "hall": -3.0}
+SHOT_MIX = {"gavel": -8.0, "body": -2.0, "crack": 3.0, "hydraulic": -9.0, "hall": -3.0, "room": -8.0, "air": 1.0}
 
 
 def recipes():
     m = SHOT_MIX
     one = lambda name, length, gain=0.0: R(length, [S(name, gain)])  # noqa: E731
     return {
-        "shot": R(2.3, [S("shot_gavel", m["gavel"]), S("shot_body", m["body"]), S("shot_hydraulic", m["hydraulic"], pan=0.1),
+        "shot": R(2.3, [S("shot_gavel", m["gavel"]), S("shot_body", m["body"]), S("shot_crack", m["crack"]),
+                        S("shot_hydraulic", m["hydraulic"], pan=0.1),
+                        S("shot_room_l", m["room"], pan=-0.9), S("shot_room_r", m["room"], pan=0.9),
+                        S("shot_air_l", m["air"], pan=-0.7), S("shot_air_r", m["air"], pan=0.7),
                         S("shot_hall_l", m["hall"], pan=-0.85), S("shot_hall_r", m["hall"], pan=0.85)]),
-        "shot_mech": one("shot_mech", 0.22, -9.0),
-        "dry_click": one("dry_click", 0.3, -6.0),
-        "equip_unfold": one("equip_unfold", 0.45, -8.0),
-        "equip_lock": one("equip_lock", 0.7, -5.0),
-        "mag_out": one("mag_out", 0.4, -5.0),
-        "cell_in": one("cell_in", 0.35, -4.0),
-        "seat": one("seat", 0.6, -2.0),
-        "bolt": one("bolt", 0.45, -3.0),
-        "inspect_turn": one("inspect_turn", 0.5, -10.0),
-        "inspect_tap": one("inspect_tap", 0.45, -9.0),
-        "inspect_settle": one("inspect_settle", 0.4, -8.0),
+        "shot_mech": one("shot_mech", 0.26, 3.0),
+        "dry_click": one("dry_click", 0.3, 0.5),
+        "equip_unfold": one("equip_unfold", 0.45, -10.0),
+        "equip_lock": one("equip_lock", 0.7, -1.5),
+        "mag_out": one("mag_out", 0.4, 3.0),
+        "cell_in": one("cell_in", 0.35, 3.0),
+        "seat": one("seat", 0.6, 3.0),
+        "bolt": one("bolt", 0.45, 3.0),
+        "inspect_turn": one("inspect_turn", 0.5, -10.5),
+        "inspect_tap": one("inspect_tap", 0.45, -2.0),
+        "inspect_settle": one("inspect_settle", 0.4, -5.0),
         "spot_form": one("spot_form", 0.7, -3.0),
         "spot_break": one("spot_break", 0.7, -2.0),
         "impact": one("impact", 0.22, -5.0),

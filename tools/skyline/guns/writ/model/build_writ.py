@@ -102,7 +102,18 @@ def body_parts():
     mid_col = (COL_Z0 + COL_Z1) / 2
     # the rear receiver: dark wood, a brass nameplate on each side, three iron slats behind it, a brass trim at the back
     P.append(box((0, (BOTTOM + DECK0) / 2, (RCV_Z0 + COL_Z0) / 2), (0.05, DECK0 - BOTTOM, COL_Z0 - RCV_Z0), WOOD))
-    P.append(box((0, (BOTTOM + DECK0) / 2, RCV_Z0 - 0.0015), (0.052, DECK0 - BOTTOM + 0.002, 0.003), BRASS))
+    # the receiver's rear face (the player sees it under the chair): a brass-framed maroon panel with the court's seal
+    # (fix round 1: it was one flat brass slab)
+    rz = RCV_Z0 - 0.0006
+    for (cy, sy, sx) in ((DECK0 - 0.003, 0.002, 0.046), (BOTTOM + 0.004, 0.002, 0.046)):
+        P.append(box((0, cy, rz), (sx, sy, 0.0016), BRASS))
+    for sx_ in (-0.022, 0.022):
+        P.append(box((sx_, (BOTTOM + DECK0) / 2, rz), (0.002, DECK0 - BOTTOM - 0.006, 0.0016), BRASS))
+    P.append(box((0, (BOTTOM + DECK0) / 2, rz + 0.0002), (0.04, DECK0 - BOTTOM - 0.012, 0.0008), MAROON))
+    P.append(cylinder((0, (BOTTOM + DECK0) / 2, rz - 0.0008), 0.0085, 0.0018, BRASS, axis="z", n=20))
+    P.append(cylinder((0, (BOTTOM + DECK0) / 2, rz - 0.0016), 0.0055, 0.0012, IRON, axis="z", n=16))
+    P.append(box((0, (BOTTOM + DECK0) / 2, rz - 0.0022), (0.0016, 0.007, 0.0008), BRASS))         # the seal's scales: a beam
+    P.append(box((0, (BOTTOM + DECK0) / 2 + 0.0025, rz - 0.0022), (0.007, 0.0012, 0.0008), BRASS))
     for s in (-1, 1):
         P.append(box((s * 0.0255, 0.011, -0.010), (0.0018, 0.017, 0.052), BRASS))
         P.append(box((s * 0.0262, 0.011, -0.010), (0.0006, 0.012, 0.046), IRON))       # the plate's engraved field
@@ -189,7 +200,7 @@ def raked(parts):
 def grip_parts():
     P = []
     # the capital: an abacus, a flared bell, eight acanthus leaves
-    P.append(box((0, -0.003, 0), (0.046, 0.006, 0.05), STONE_LIGHT))
+    P.append(box((0, -0.003, 0), (0.046, 0.006, 0.05), STONE_DARK))
     P.append(cylinder((0, -0.012, 0), 0.0165, 0.012, STONE_LIGHT, n=20, r_end=0.0225))
     for k in range(8):
         leaf = box((0, -0.0125, 0.0185), (0.0072, 0.011, 0.0028), STONE_LIGHT, e=(-22, 0, 0))
@@ -265,16 +276,41 @@ def bench_parts():
     ring_out = K.circle(0, SIGHT_Y, 0.0168, n=32)
     P.append(slab([ring_out, list(reversed(K.circle(0, SIGHT_Y, WIN_R, n=32)))], WIN_Z0 - 0.0015, WIN_Z1 + 0.0015, BRASS))
     P.append(box((0, SIGHT_Y, (WIN_Z0 + WIN_Z1) / 2), (2 * WIN_R + 0.002, 0.0008, 0.003), BRASS))      # the bar (thin: the bead shows above and below it)
-    P.append(box((0, 0.052, WIN_Z0 - 0.0004), (0.030, 0.022, 0.0008), MAROON))                     # the back's rear panel
-    P.append(box((0, 0.0635, WIN_Z0 - 0.0006), (0.032, 0.0012, 0.0006), BRASS))
+    # the chair back's rear face (what the player sees at the hip): two gothic lancet panels, a pointed-arch tracery
+    # frame around the round window, brass rivets (fix round 1: it was a plain box)
+    for x in (-0.0085, 0.0085):
+        lancet, _ = K.pointed_arch(0.0055, 0.056, c_ratio=0.5, n=6)
+        loop = [(x - 0.0055, 0.039)] + [(x + px, py) for (px, py) in lancet] + [(x + 0.0055, 0.039)]
+        P.append(slab([_ccw(loop)], WIN_Z0 - 0.0009, WIN_Z0 + 0.0002, MAROON))
+        frame, _ = K.pointed_arch(0.0068, 0.056, c_ratio=0.5, n=6)
+        floop = [(x - 0.0068, 0.0375)] + [(x + px, py) for (px, py) in frame] + [(x + 0.0068, 0.0375)]
+        P.append(slab([_ccw(floop)], WIN_Z0 - 0.0006, WIN_Z0 + 0.0002, IRON))
+    P.append(box((0, 0.0375, WIN_Z0 - 0.0008), (0.034, 0.0018, 0.0012), BRASS))
+    outer, _ = K.pointed_arch(0.0195, 0.082, c_ratio=0.5, n=10)
+    inner, _ = K.pointed_arch(0.0172, 0.082, c_ratio=0.5 * 0.0195 / 0.0172, n=10)
+    tracery = [(-0.0195, 0.07)] + outer + [(0.0195, 0.07), (0.0172, 0.07)] + list(reversed(inner)) + [(-0.0172, 0.07)]
+    P.append(slab([_ccw(tracery)], WIN_Z0 - 0.0012, WIN_Z0 + 0.0002, IRON))
+    for k in range(4):
+        a = math.radians(45 + 90 * k)
+        P.append(sphere((0.0152 * math.cos(a), SIGHT_Y + 0.0152 * math.sin(a), WIN_Z0 - 0.0016), 0.0011, BRASS, rings=4, segs=6))
     for s in (-1, 1):
-        P.append(box((s * 0.025, (DECK1 + 0.118) / 2, -0.079), (0.006, 0.118 - DECK1, 0.0085), WOOD))
-        P.append(cylinder((s * 0.025, 0.121, -0.079), 0.0032, 0.006, BRASS, n=10, r_end=0.0012))
-        P.append(sphere((s * 0.025, 0.1255, -0.079), 0.0018, BRASS))
+        P.append(box((s * 0.025, (DECK1 + 0.122) / 2, -0.079), (0.006, 0.122 - DECK1, 0.0085), WOOD))
+        P.append(box((s * 0.025, 0.1235, -0.079), (0.0075, 0.003, 0.0095), BRASS))
+        P.append(frustum_box((s * 0.025, 0.1335, -0.079), (0.0058, 0.0058), (0.0004, 0.0004), 0.017, WOOD))   # a pinnacle
+        for k in range(3):                                                                                   # its crockets
+            P.append(box((s * 0.025, 0.128 + 0.004 * k, -0.079), (0.0062 - 0.0014 * k, 0.0012, 0.0012), BRASS, e=(0, 45, 0)))
+        P.append(sphere((s * 0.025, 0.1425, -0.079), 0.0013, BRASS, rings=4, segs=6))
     # the crest: a cornice, a little pediment, a brass medallion
     P.append(box((0, 0.1145, -0.079), (0.056, 0.005, 0.016), WOOD))
-    P.append(slab([[(-0.022, 0.117), (0.022, 0.117), (0.0, 0.1285)]], -0.083, -0.075, WOOD, uv=("box", 0.05)))
-    P.append(cylinder((0, 0.1215, -0.0835), 0.0036, 0.0016, BRASS, axis="z", n=16))
+    P.append(box((0, 0.1172, -0.079), (0.058, 0.0012, 0.0172), BRASS))
+    gable = [(-0.021, 0.1175), (0.021, 0.1175), (0.0, 0.1365)]
+    P.append(slab([gable], -0.083, -0.075, WOOD, uv=("box", 0.05)))
+    for side in (-1, 1):                                                       # a brass edge up each slope of the gable
+        P.append(box((side * 0.0105, 0.127, -0.0835), (0.024, 0.0014, 0.0012), BRASS, e=(0, 0, -side * 42.0)))
+    P.append(cylinder((0, 0.1235, -0.0835), 0.0042, 0.0016, BRASS, axis="z", n=16))     # the court's medallion
+    P.append(cylinder((0, 0.1235, -0.0846), 0.0026, 0.0008, IRON, axis="z", n=12))
+    P.append(box((0, 0.1405, -0.079), (0.0016, 0.008, 0.0016), BRASS))               # a cross finial on the apex
+    P.append(box((0, 0.1415, -0.079), (0.0055, 0.0014, 0.0014), BRASS))
     return P
 
 

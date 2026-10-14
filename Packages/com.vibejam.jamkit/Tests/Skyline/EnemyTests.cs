@@ -324,5 +324,67 @@ namespace JamKit.Tests.Skyline
             var noPlating = new PlayerArmor(0f, float.PositiveInfinity);
             Assert.That(noPlating.Damage(float.PositiveInfinity).wrecked, Is.True, "one capped hit can wreck the Unit");
         }
+
+        // ---------------- floor-care units keep apart (judge round 1: three merged into one pile at the player's feet)
+
+        [Test]
+        public void FloorSeparationPushesOverlappingUnitsHalfWayApartAndLeavesALoneUnitAlone()
+        {
+            var p = new System.Numerics.Vector2(0f, 0f);
+            var none = new System.Collections.Generic.List<System.Numerics.Vector2>();
+            Assert.That(FloorSeparation.Push(p, 0.5f, none, new float[0], 1f, 0).Length(), Is.EqualTo(0f), "nobody near: no push");
+
+            var far = new[] { new System.Numerics.Vector2(1.3f, 0f) };
+            Assert.That(FloorSeparation.Push(p, 0.5f, far, new[] { 0.5f }, 1f, 0).Length(), Is.EqualTo(0f), "1.3 m apart is clear (1.25 wanted)");
+
+            var near = new[] { new System.Numerics.Vector2(0.8f, 0f) };
+            var push = FloorSeparation.Push(p, 0.5f, near, new[] { 0.5f }, 1f, 0);
+            Assert.That(push.X, Is.EqualTo(-(1.25f - 0.8f) * 0.5f).Within(1e-5f), "half the overlap, straight away from the other");
+            Assert.That(push.Y, Is.EqualTo(0f).Within(1e-5f));
+            Assert.That(FloorSeparation.Push(p, 0.5f, near, new[] { 0.5f }, 0.05f, 0).Length(), Is.EqualTo(0.05f).Within(1e-5f), "never faster than its step");
+
+            var same = new[] { p };
+            var a = FloorSeparation.Push(p, 0.5f, same, new[] { 0.5f }, 1f, 1);
+            var b = FloorSeparation.Push(p, 0.5f, same, new[] { 0.5f }, 1f, 1);
+            Assert.That(a.Length(), Is.GreaterThan(0.5f), "two on one spot still part");
+            Assert.That(a, Is.EqualTo(b), "deterministic");
+        }
+
+        [Test]
+        public void ThreeFloorCareUnitsDrivingAtAStillPlayerEndUpApartNotInAPile()
+        {
+            var player = new System.Numerics.Vector3(10f, 0f, -17f);
+            var spawns = new[]
+            {
+                new Spawn(SkylineEnemies.FloorCareId, new System.Numerics.Vector3(9.6f, 0f, -10.5f), 0),
+                new Spawn(SkylineEnemies.FloorCareId, new System.Numerics.Vector3(10f, 0f, -10.3f), 0),
+                new Spawn(SkylineEnemies.FloorCareId, new System.Numerics.Vector3(10.4f, 0f, -10.1f), 0),
+            };
+            var e = new EncounterDef { id = "separation", anchor = GalleriaArena.HallEntry, spawns = spawns };
+            var fight = new FightSim(e, FightTests.Hall(), new StillBot(), GalleriaArena.FightCover(), player, 5);
+            foreach (var s in spawns)
+                Assert.That(fight.Clear(s.position + new System.Numerics.Vector3(0f, 0.4f, 0f), player + new System.Numerics.Vector3(0f, 1.2f, 0f)), Is.True, "setup: an open run at the player");
+            float minEnd = float.PositiveInfinity;
+            for (int i = 0; i < (int)(8f / FightSim.Step); i++)
+            {
+                fight.Tick();
+                if (fight.Time < 6f) continue;
+                for (int x = 0; x < 3; x++)
+                    for (int y = x + 1; y < 3; y++)
+                    {
+                        var d = fight.Enemies[x].Position - fight.Enemies[y].Position;
+                        minEnd = System.Math.Min(minEnd, (float)System.Math.Sqrt(d.X * d.X + d.Z * d.Z));
+                    }
+            }
+            foreach (var u in fight.Enemies) Assert.That(u.Awake, Is.True, "they all came for the player");
+            float bodies = 2f * SkylineEnemies.FloorCareUnit().bodyRadius;
+            TestContext.WriteLine($"Three floor-care units at a still player, 6-8 s: closest pair {minEnd:0.00} m apart (bodies touch at {bodies:0.00})");
+            Assert.That(minEnd, Is.GreaterThanOrEqualTo(bodies), "no two bodies inside each other");
+        }
+
+        sealed class StillBot : IFightBot
+        {
+            public FightInput Next(FightSim fight, float h) => new FightInput { holdFire = true };
+        }
     }
 }

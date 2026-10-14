@@ -10,20 +10,24 @@ namespace JamKit.SkylineRepo
     /// <see cref="SkylinePlayer.HitLanded"/>, so the player's code doesn't know it exists. It adds itself to every
     /// SkylinePlayer when a Skyline scene loads (no builder or scene edit needed). Its knockback is felt three ways:
     /// <list type="bullet">
-    /// <item>the shot: a muzzle blast on the viewmodel (a white-hot core and spikes for three frames, then smoke), a flash of
-    /// light on the world, a shockwave ring thrown out along the aim, a dust kick where the centre of the spread lands
-    /// within 4 m, and the cell's window dimming as its charge is spent;</item>
+    /// <item>the shot: a hot muzzle blast on the viewmodel (a fireball core and a star of flame for about four frames, then a
+    /// wisp of smoke), a flash of light on the world, a soft pressure ring and a short blast cloud out of the muzzle, a dust
+    /// kick where the centre of the spread lands on the world within 4 m, and the cell's window dimming as its charge is
+    /// spent;</item>
     /// <item>bots: dark chips and flakes of their white-and-gold casing and a dull grey dust puff at every pellet that
     /// lands, one heavy <c>breacher/impact</c> per shot, and plates the Breacher sheds kicked away along the shot (the bots'
     /// own code already slides them). No glow and no sparks on a live bot: there they mean a Writ spot (the spec's
     /// damage-feedback rule, docs/SKYLINE-DESIGN.md 14), and the spot's spark pool is never touched;</item>
     /// <item>a boost (an accepted self-push in the air, read from the decision log): <c>breacher/boost</c>, and a blast under
     /// your feet: a dust ring racing out over the floor the spread hit, or, with no floor within 6 m, a pressure puff of
-    /// white rings and vapour under you.</item>
+    /// soft rings and vapour under you.</item>
     /// </list>
     /// After each shot the cell vents (the "vent" event): a jet of vapour from its port. A seated cell flashes hot.
-    /// Everything is pooled and made up front (a plate kick uses a non-allocating physics overlap); materials are
-    /// SkylineBotLook's shared lit and glowing ones, except the cell's window, whose copies are freed with the component.
+    /// <para>Smoke, dust, vapour, flame and the pressure rings are soft particles: camera-facing quads with a generated
+    /// radial texture, drawn with the always-included Sprites/Default shader (unlit, alpha-blended, never writing depth),
+    /// fading out as they grow. Only the casing chips and the floor's debris chunks are solid (lit, small, short-lived).
+    /// Everything is pooled and made up front (a plate kick uses a non-allocating physics overlap); the cell's window
+    /// material copies are freed with the component.</para>
     /// </summary>
     [DefaultExecutionOrder(150)]
     public sealed class SkylineBreacherFx : MonoBehaviour
@@ -31,22 +35,26 @@ namespace JamKit.SkylineRepo
         public const string BoostSound = "breacher/boost", ImpactSound = "breacher/impact";
 
         // ---- tuning (presentation only; the gun's numbers live in SkylineGuns.Breacher and BreacherBoostDef)
-        const float FlashLife = 0.045f, SpikeLength = 0.13f, LightLife = 0.07f, LightRange = 7f, LightIntensity = 4f;
-        // the ring: 2.6 m out, at most 0.6 m wide (about 26 degrees of view), a thin hollow annulus centred on the aim,
-        // so the target at the crosshair is never behind it
-        const float RingLife = 0.14f, RingDistance = 2.6f, RingFrom = 0.1f, RingTo = 0.6f;
+        const float FlashLife = 0.065f, LightLife = 0.07f, LightRange = 7f, LightIntensity = 4f;
+        // the pressure ring: centred on the muzzle (low right of the view), 0.7 m out along the aim, at most 0.55 m wide,
+        // soft and gone in 0.2 s, so it reads as the blast leaving the barrel, not a reticle over the target
+        const float RingLife = 0.2f, RingDistance = 0.7f, RingFrom = 0.12f, RingTo = 0.55f;
         const float DustRange = 4f, BoostFloorRange = 6f, DustRingTo = 2.6f, DustRingLife = 0.28f;
         const float PlateFling = 7f, PlateLift = 2f, PlateSearch = 1.3f;
         const float CellDip = 0.4f, CellHot = 0.35f;
-        const int Chunks = 40, Puffs = 28, Rings = 6, Spikes = 6, Smokes = 6, Vents = 8, Chips = 40, Dusts = 16;
+        const int Chunks = 40, Chips = 40, Rings = 4, Softs = 64, SoftRings = 6, VmSofts = 24, Flames = 8;
 
-        static readonly Color Hot = new Color(6f, 3.6f, 1.4f);
+        static readonly Color Hot = new Color(5f, 2.6f, 0.8f, 1f);
+        static readonly Color FlameHot = new Color(4f, 1.7f, 0.45f, 1f);
         static readonly Color RingHot = new Color(2.6f, 2.1f, 1.5f);
-        static readonly Color BoostRing = new Color(2.2f, 2.4f, 2.6f);
+        static readonly Color PressureRing = new Color(2.0f, 1.45f, 0.85f, 0.75f);
+        static readonly Color BoostRing = new Color(1.6f, 1.75f, 1.9f, 0.7f);
         static readonly Color Dust = new Color(0.6f, 0.56f, 0.5f);
-        static readonly Color DullDust = new Color(0.4f, 0.4f, 0.42f);
-        static readonly Color Smoke = new Color(0.52f, 0.52f, 0.55f);
-        static readonly Color Vapour = new Color(0.86f, 0.88f, 0.92f);
+        static readonly Color DustSoft = new Color(0.66f, 0.62f, 0.55f, 0.45f);
+        static readonly Color DullDust = new Color(0.45f, 0.45f, 0.47f, 0.4f);
+        static readonly Color BlastSmoke = new Color(0.55f, 0.5f, 0.46f, 0.32f);
+        static readonly Color GunSmoke = new Color(0.62f, 0.62f, 0.64f, 0.3f);
+        static readonly Color Vapour = new Color(0.9f, 0.92f, 0.95f, 0.5f);
         static readonly Color CellFull = new Color(1f, 0.6f, 0.12f), CellSpent = new Color(0.22f, 0.08f, 0.02f), CellSeat = new Color(1f, 0.95f, 0.7f);
 
         public SkylinePlayer player;
@@ -56,28 +64,31 @@ namespace JamKit.SkylineRepo
             public Transform t;
             public Renderer r;
             public Vector3 vel;
-            public float age, life, size, to, drag, gravity;
-            public int kind;          // 0 chunk (shrinks), 1 puff (grows, then shrinks), 2 ring (eases out), 3 spike, 4 core,
-                                      // 5 flake (a flat chip that shrinks)
+            public float age, life, size, to, drag, gravity, spin, length;
+            // 0 chunk (shrinks), 2 glow ring (eases out), 5 flake (a flat chip that shrinks),
+            // 6 soft puff (camera-facing, grows and fades), 7 soft ring (faces its own way, grows and fades),
+            // 8 flame petal (camera-facing, stretched, shrinks fast)
+            public int kind;
             public bool local;        // moves in its parent's space (the viewmodel)
-            public Vector3 baseScale; // spikes: (w, w, length)
+            public Color color;       // soft kinds: HDR tint, alpha = starting opacity
         }
 
-        readonly List<Bit> _chunks = new List<Bit>(), _puffs = new List<Bit>(), _rings = new List<Bit>();
-        readonly List<Bit> _spikes = new List<Bit>(), _smokes = new List<Bit>(), _vents = new List<Bit>();
-        readonly List<Bit> _chips = new List<Bit>(), _dusts = new List<Bit>();
+        readonly List<Bit> _chunks = new List<Bit>(), _rings = new List<Bit>(), _chips = new List<Bit>();
+        readonly List<Bit> _softs = new List<Bit>(), _softRings = new List<Bit>(), _vmSofts = new List<Bit>(), _flames = new List<Bit>();
         readonly List<Bit> _live = new List<Bit>();
         static readonly Collider[] _overlap = new Collider[48];
         readonly List<(Vector3 point, Vector3 dir)> _plateKicks = new List<(Vector3, Vector3)>();
         readonly HashSet<int> _kicked = new HashSet<int>();
-        int _nChunk, _nPuff, _nRing, _nSmoke, _nVent, _nChip, _nDust;
-        Bit _core;
+        int _nChunk, _nRing, _nChip, _nSoft, _nSoftRing, _nVmSoft;
         Transform _worldRoot, _vmRoot, _flashRoot;
         Light _light;
         float _lightLeft;
         int _lightPrewarm = 3;   // the first frames: a faint light at the eye, so the extra-light shader variants are built at
                                  // scene start (Task 17's hitch rule), not on the first shot
-        static Mesh _ringMesh;
+        MaterialPropertyBlock _block;
+        static Mesh _ringMesh, _quad;
+        static Texture2D _puffTex, _ringTex;
+        static Material _puffMat, _ringMat;
 
         // the viewmodel's Breacher (found once the viewmodel has built its rig)
         Transform _vmCam, _gunRoot, _muzzle, _mag, _ventPort;
@@ -101,6 +112,11 @@ namespace JamKit.SkylineRepo
         {
             _installed = false;
             _ringMesh = null;
+            _quad = null;
+            _puffTex = null;
+            _ringTex = null;
+            _puffMat = null;
+            _ringMat = null;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -156,16 +172,15 @@ namespace JamKit.SkylineRepo
 
         void Start()
         {
+            _block = new MaterialPropertyBlock();
             _worldRoot = new GameObject("Breacher FX").transform;
             var lit = SkylineBotLook.Lit(Dust);
             for (int i = 0; i < Chunks; i++) _chunks.Add(MakeBit(PrimitiveType.Cube, _worldRoot, lit, 0));
-            for (int i = 0; i < Puffs; i++) _puffs.Add(MakeBit(PrimitiveType.Sphere, _worldRoot, SkylineBotLook.Lit(Vapour), 1));
             for (int i = 0; i < Rings; i++) _rings.Add(MakeRing(_worldRoot, SkylineBotLook.Glow(RingHot)));
             for (int i = 0; i < Chips; i++) _chips.Add(MakeBit(PrimitiveType.Cube, _worldRoot, SkylineBotLook.Lit(SkylineBotLook.White), 5));
-            for (int i = 0; i < Dusts; i++) _dusts.Add(MakeBit(PrimitiveType.Sphere, _worldRoot, SkylineBotLook.Lit(DullDust), 1));
+            for (int i = 0; i < Softs; i++) _softs.Add(MakeSoft(_worldRoot, PuffMaterial(), 6));
+            for (int i = 0; i < SoftRings; i++) _softRings.Add(MakeSoft(_worldRoot, RingMaterial(), 7));
             SkylineBotLook.Lit(SkylineBotLook.Gold);
-            SkylineBotLook.Glow(BoostRing);
-            SkylineBotLook.Lit(Smoke);
             var lightGo = new GameObject("Breacher flash light");
             lightGo.transform.SetParent(_worldRoot, false);
             _light = lightGo.AddComponent<Light>();
@@ -175,7 +190,14 @@ namespace JamKit.SkylineRepo
             _light.intensity = 0.001f;
             _light.shadows = LightShadows.None;
             _light.enabled = true;
-            if (player != null) _light.transform.position = player.EyePosition;
+            if (player != null)
+            {
+                _light.transform.position = player.EyePosition;
+                // one invisible puff and ring in front of the eye for the first frames: their shader is built at scene start
+                Vector3 front = player.EyePosition + player.AimDirection * 0.6f;
+                Soft(Next(_softs, ref _nSoft), front, Vector3.zero, 0.1f, 0.01f, 0.01f, 0f, 0f, new Color(1f, 1f, 1f, 0.004f));
+                Soft(Next(_softRings, ref _nSoftRing), front, Vector3.zero, 0.1f, 0.01f, 0.01f, 0f, 0f, new Color(1f, 1f, 1f, 0.004f));
+            }
         }
 
         void OnDestroy()
@@ -195,6 +217,21 @@ namespace JamKit.SkylineRepo
             return new Bit { t = go.transform, r = go.GetComponent<Renderer>(), kind = kind };
         }
 
+        static Bit MakeSoft(Transform parent, Material m, int kind)
+        {
+            var go = new GameObject(kind == 7 ? "fx soft ring" : kind == 8 ? "fx flame" : "fx puff");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = Quad();
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            go.SetActive(false);
+            return new Bit { t = go.transform, r = r, kind = kind };
+        }
+
         Bit MakeRing(Transform parent, Material m)
         {
             var go = new GameObject("fx ring");
@@ -208,7 +245,82 @@ namespace JamKit.SkylineRepo
             return new Bit { t = go.transform, r = r, kind = 2 };
         }
 
-        /// <summary>A flat ring (inner radius 0.86, outer 1) in the XY plane, facing both ways.</summary>
+        // ---------------------------------------------------------------- soft particle assets (made once, in code)
+
+        /// <summary>A unit quad facing +Z with white vertex colours (the sprite shader multiplies by them).</summary>
+        static Mesh Quad()
+        {
+            if (_quad != null) return _quad;
+            _quad = new Mesh { name = "Breacher soft quad" };
+            _quad.vertices = new[] { new Vector3(-0.5f, -0.5f, 0f), new Vector3(0.5f, -0.5f, 0f), new Vector3(0.5f, 0.5f, 0f), new Vector3(-0.5f, 0.5f, 0f) };
+            _quad.uv = new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(0f, 1f) };
+            _quad.colors = new[] { Color.white, Color.white, Color.white, Color.white };
+            _quad.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+            _quad.RecalculateBounds();
+            return _quad;
+        }
+
+        /// <summary>A soft, lumpy round puff: alpha falls off smoothly from the centre, broken by a few low-frequency lumps so
+        /// it reads as smoke rather than a disc.</summary>
+        static Texture2D PuffTexture()
+        {
+            if (_puffTex != null) return _puffTex;
+            const int n = 64;
+            _puffTex = new Texture2D(n, n, TextureFormat.RGBA32, true) { name = "Breacher puff", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float u = (x + 0.5f) / n * 2f - 1f, v = (y + 0.5f) / n * 2f - 1f;
+                    float r = Mathf.Sqrt(u * u + v * v);
+                    float a = Mathf.Atan2(v, u);
+                    float lump = 0.82f + 0.1f * Mathf.Sin(a * 3f + 0.7f) + 0.08f * Mathf.Sin(a * 5f + 2.1f) + 0.06f * Mathf.Sin(r * 9f);
+                    float k = Mathf.Clamp01(1f - r / lump);
+                    float alpha = k * k * (3f - 2f * k);
+                    byte shade = (byte)(215 + 40 * Mathf.Clamp01(1f - r));
+                    px[y * n + x] = new Color32(shade, shade, shade, (byte)(alpha * 255f));
+                }
+            _puffTex.SetPixels32(px);
+            _puffTex.Apply(true, true);
+            return _puffTex;
+        }
+
+        /// <summary>A soft ring: a bright band at 80% of the radius with feathered edges.</summary>
+        static Texture2D RingTexture()
+        {
+            if (_ringTex != null) return _ringTex;
+            const int n = 128;
+            _ringTex = new Texture2D(n, n, TextureFormat.RGBA32, true) { name = "Breacher ring", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float u = (x + 0.5f) / n * 2f - 1f, v = (y + 0.5f) / n * 2f - 1f;
+                    float r = Mathf.Sqrt(u * u + v * v);
+                    float d = (r - 0.8f) / 0.11f;
+                    float alpha = r > 1f ? 0f : Mathf.Exp(-d * d) + 0.12f * Mathf.Clamp01(1f - Mathf.Abs(r - 0.6f) / 0.25f);
+                    px[y * n + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(alpha) * 255f));
+                }
+            _ringTex.SetPixels32(px);
+            _ringTex.Apply(true, true);
+            return _ringTex;
+        }
+
+        /// <summary>The soft particles' material: Sprites/Default (in GraphicsSettings' always-included shaders, so it is in
+        /// every build; unlit, alpha-blended, no depth write, both faces), tinted per particle through _Color.</summary>
+        static Material SoftMaterial(Texture2D tex, string name)
+        {
+            var sh = Shader.Find("Sprites/Default");
+            Material m = sh != null ? new Material(sh) : new Material(SkylineBotLook.Glow(Color.white));
+            m.name = name;
+            m.mainTexture = tex;
+            return m;
+        }
+
+        static Material PuffMaterial() => _puffMat != null ? _puffMat : (_puffMat = SoftMaterial(PuffTexture(), "Breacher puff"));
+        static Material RingMaterial() => _ringMat != null ? _ringMat : (_ringMat = SoftMaterial(RingTexture(), "Breacher ring"));
+
+        /// <summary>A flat ring (inner radius 0.86, outer 1) in the XY plane, facing both ways (the boost's floor ring).</summary>
         static Mesh RingMesh()
         {
             if (_ringMesh != null) return _ringMesh;
@@ -253,26 +365,17 @@ namespace JamKit.SkylineRepo
             _vmRoot.SetParent(_vmCam, false);
             _flashRoot = new GameObject("Breacher muzzle blast").transform;
             _flashRoot.SetParent(_muzzle != null ? _muzzle : _gunRoot, false);
-            var hot = SkylineBotLook.Glow(Hot);
-            _core = MakeBit(PrimitiveType.Sphere, _flashRoot, hot, 4);
-            _core.local = true;
-            for (int i = 0; i < Spikes; i++)
+            for (int i = 0; i < Flames; i++)
             {
-                var s = MakeBit(PrimitiveType.Cube, _flashRoot, hot, 3);
-                s.local = true;
-                _spikes.Add(s);
+                var f = MakeSoft(_flashRoot, PuffMaterial(), 8);
+                f.local = true;
+                _flames.Add(f);
             }
-            for (int i = 0; i < Smokes; i++)
+            for (int i = 0; i < VmSofts; i++)
             {
-                var s = MakeBit(PrimitiveType.Sphere, _vmRoot, SkylineBotLook.Lit(Smoke), 1);
+                var s = MakeSoft(_vmRoot, PuffMaterial(), 6);
                 s.local = true;
-                _smokes.Add(s);
-            }
-            for (int i = 0; i < Vents; i++)
-            {
-                var s = MakeBit(PrimitiveType.Sphere, _vmRoot, SkylineBotLook.Lit(Vapour), 1);
-                s.local = true;
-                _vents.Add(s);
+                _vmSofts.Add(s);
             }
             SetupCell();
             return true;
@@ -342,7 +445,7 @@ namespace JamKit.SkylineRepo
 
         void OnHit(SkylineHitInfo info, SkylineHitResult r)
         {
-            if (info.gun == null || info.gun.id != SkylineGuns.BreacherId) return;
+            if (_worldRoot == null || info.gun == null || info.gun.id != SkylineGuns.BreacherId) return;
             CasingChips(info.point, info.normal, info.direction);
             if (_impactFrame != Time.frameCount)
             {
@@ -362,29 +465,32 @@ namespace JamKit.SkylineRepo
             _shotAim = aim;
             _dipLeft = CellDip;
 
-            // the viewmodel's muzzle blast: a white-hot core and spikes for three frames
-            if (_core != null && _gunRoot != null && _flashRoot != null)
+            // the viewmodel's muzzle blast: a fireball core with two smaller balls down the barrel's line, and a star of
+            // flame petals in the view's plane, for about four frames; then a wisp of smoke off the muzzle
+            if (_gunRoot != null && _flashRoot != null && _vmCam != null)
             {
-                _flashRoot.rotation = _gunRoot.rotation;
-                Spawn(_core, Vector3.zero, Vector3.zero, FlashLife, 0.11f, 0f, 0f, 0f);
-                for (int i = 0; i < _spikes.Count; i++)
+                Vector3 fwd = _gunRoot.forward;
+                int f = 0;
+                for (int k = 0; k < 3 && f < _flames.Count; k++, f++)
                 {
-                    var s = _spikes[i];
-                    float a = (i / (float)_spikes.Count) * 360f + Random.Range(-20f, 20f);
-                    var dir = Quaternion.Euler(0f, 0f, a) * Quaternion.Euler(Random.Range(28f, 70f), 0f, 0f) * Vector3.forward;
-                    if (i == 0) dir = Vector3.forward;
-                    float len = SpikeLength * (i == 0 ? 1.6f : Random.Range(0.6f, 1.1f));
-                    s.baseScale = new Vector3(0.016f, 0.016f, len);
-                    Spawn(s, dir * len * 0.5f, Vector3.zero, FlashLife, 1f, 0f, 0f, 0f);
-                    s.t.localRotation = Quaternion.LookRotation(dir);
+                    var b = _flames[f];
+                    Vector3 at = _flashRoot.position + fwd * (0.05f * k);
+                    Flame(b, at, 0f, 0.2f - 0.05f * k, 0f, FlashLife * (1f - 0.15f * k), FlameHot * (k == 0 ? 1.25f : 1f));
                 }
-                // smoke rolling off the muzzle (in the viewmodel camera's space, so it hangs while the gun kicks)
-                Vector3 mz = _vmCam.InverseTransformPoint(_muzzle != null ? _muzzle.position : _gunRoot.position);
+                for (; f < _flames.Count; f++)
+                {
+                    var b = _flames[f];
+                    float angle = (f - 3) * (360f / (_flames.Count - 3)) + Random.Range(-18f, 18f);
+                    float len = Random.Range(0.14f, 0.24f);
+                    Vector3 dir = _vmCam.rotation * (Quaternion.Euler(0f, 0f, angle) * Vector3.up);
+                    Flame(b, _flashRoot.position + dir * (len * 0.45f), angle, 0.06f, len, FlashLife, FlameHot);
+                }
+                Vector3 mz = _vmCam.InverseTransformPoint(_flashRoot.position);
                 for (int k = 0; k < 3; k++)
                 {
-                    var s = Next(_smokes, ref _nSmoke);
-                    var v = new Vector3(Random.Range(-0.08f, 0.08f), Random.Range(0.05f, 0.18f), Random.Range(0.15f, 0.4f));
-                    Spawn(s, mz + v * 0.05f, v, 0.5f, 0.025f, 0.11f, 3f, -0.05f);
+                    var s = Next(_vmSofts, ref _nVmSoft);
+                    var v = new Vector3(Random.Range(-0.03f, 0.08f), Random.Range(0.08f, 0.2f), Random.Range(0.05f, 0.2f));
+                    Soft(s, mz + v * 0.1f, v, Random.Range(0.4f, 0.6f), 0.04f, 0.15f, 2.5f, -0.06f, GunSmoke);
                 }
             }
 
@@ -394,11 +500,16 @@ namespace JamKit.SkylineRepo
             _light.enabled = true;
             _lightLeft = LightLife;
 
-            // the shockwave thrown out along the aim
-            var ring = Next(_rings, ref _nRing);
-            ring.r.sharedMaterial = SkylineBotLook.Glow(RingHot);
-            Spawn(ring, eye + aim * RingDistance, Vector3.zero, RingLife, RingFrom, RingTo, 0f, 0f);
+            // the pressure leaving the barrel: a soft warm ring and a short blast cloud from the muzzle along the aim
+            var ring = Next(_softRings, ref _nSoftRing);
+            Soft(ring, muzzleWorld + aim * RingDistance, Vector3.zero, RingLife, RingFrom, RingTo, 0f, 0f, PressureRing);
             ring.t.rotation = Quaternion.LookRotation(aim);
+            for (int k = 0; k < 4; k++)
+            {
+                var c = Next(_softs, ref _nSoft);
+                Vector3 v = (aim + Random.insideUnitSphere * 0.25f).normalized * Random.Range(4f, 6.5f);
+                Soft(c, muzzleWorld + aim * 0.25f, v, Random.Range(0.35f, 0.5f), 0.15f, Random.Range(0.45f, 0.65f), 7f, -0.2f, BlastSmoke);
+            }
 
             // a dust kick where the centre of the spread lands, when it lands close
             // (the world only: a bot's own hits are its casing chips, from HitLanded; no sparks anywhere, since the effects
@@ -418,9 +529,9 @@ namespace JamKit.SkylineRepo
             Vector3 fwd = _vmCam.InverseTransformDirection(_gunRoot.forward);
             for (int k = 0; k < 5; k++)
             {
-                var s = Next(_vents, ref _nVent);
+                var s = Next(_vmSofts, ref _nVmSoft);
                 Vector3 v = side * Random.Range(0.5f, 0.9f) + fwd * Random.Range(0.05f, 0.3f) + Vector3.up * Random.Range(0.0f, 0.12f);
-                Spawn(s, p, v, Random.Range(0.25f, 0.4f), 0.008f, 0.05f, 5f, 0.1f);
+                Soft(s, p, v, Random.Range(0.3f, 0.45f), 0.015f, 0.08f, 5f, 0.05f, Vapour);
             }
         }
 
@@ -434,14 +545,12 @@ namespace JamKit.SkylineRepo
             if (Physics.Raycast(player.EyePosition, aim, out var hit, BoostFloorRange, SkylineShooting.Mask, QueryTriggerInteraction.Ignore)
                 && hit.normal.y > 0.5f)
             {
-                // the blast hit the floor: a dust ring races out over it, with a pressure ring and a flash
+                // the blast hit the floor: a hot ring races out over it, debris skids outward, a dust cloud rolls up
                 var ring = Next(_rings, ref _nRing);
                 ring.r.sharedMaterial = SkylineBotLook.Glow(RingHot);
                 Spawn(ring, hit.point + hit.normal * 0.04f, Vector3.zero, DustRingLife, 0.3f, DustRingTo, 0f, 0f);
                 ring.t.rotation = Quaternion.LookRotation(hit.normal);
-                Vector3 tangent = Vector3.Cross(hit.normal, Vector3.right);
-                if (tangent.sqrMagnitude < 0.01f) tangent = Vector3.Cross(hit.normal, Vector3.forward);
-                tangent.Normalize();
+                Vector3 tangent = Tangent(hit.normal);
                 for (int i = 0; i < 18; i++)
                 {
                     var c = Next(_chunks, ref _nChunk);
@@ -450,12 +559,12 @@ namespace JamKit.SkylineRepo
                     Spawn(c, hit.point + hit.normal * 0.05f, v, Random.Range(0.45f, 0.7f), Random.Range(0.05f, 0.09f), 0f, 3.5f, 9.8f);
                     c.t.rotation = Random.rotation;
                 }
-                for (int i = 0; i < 8; i++)
+                for (int i = 0; i < 10; i++)
                 {
-                    var p = Next(_puffs, ref _nPuff);
-                    Vector3 d = Quaternion.AngleAxis(i * 45f + Random.Range(-10f, 10f), hit.normal) * tangent;
-                    Spawn(p, hit.point + d * 0.3f + hit.normal * 0.1f, d * Random.Range(1.5f, 2.5f) + hit.normal * 0.6f, 0.65f, 0.12f, 0.45f, 2.5f, -0.3f);
-                    p.r.sharedMaterial = SkylineBotLook.Lit(Dust);
+                    var p = Next(_softs, ref _nSoft);
+                    Vector3 d = Quaternion.AngleAxis(i * 36f + Random.Range(-10f, 10f), hit.normal) * tangent;
+                    Soft(p, hit.point + d * 0.3f + hit.normal * 0.15f, d * Random.Range(2f, 3.5f) + hit.normal * 0.5f,
+                         Random.Range(0.7f, 0.95f), 0.3f, Random.Range(0.9f, 1.3f), 2.5f, -0.3f, DustSoft);
                 }
                 _light.transform.position = hit.point + hit.normal * 0.5f;
                 _light.enabled = true;
@@ -463,27 +572,30 @@ namespace JamKit.SkylineRepo
             }
             else
             {
-                // nothing under you: the pressure itself, a pale ring and vapour bursting out under your feet
+                // nothing under you: the pressure itself, soft pale rings and vapour bursting out under your feet
                 Vector3 at = feet - aim * 0.2f;
                 Vector3 n = -aim;
                 for (int k = 0; k < 2; k++)
                 {
-                    var ring = Next(_rings, ref _nRing);
-                    ring.r.sharedMaterial = SkylineBotLook.Glow(BoostRing);
-                    Spawn(ring, at - n * (0.25f * k), Vector3.zero, DustRingLife * (1f + 0.4f * k), 0.2f, 1.6f + 0.6f * k, 0f, 0f);
+                    var ring = Next(_softRings, ref _nSoftRing);
+                    Soft(ring, at - n * (0.25f * k), Vector3.zero, DustRingLife * (1.2f + 0.4f * k), 0.3f, 1.8f + 0.6f * k, 0f, 0f, BoostRing);
                     ring.t.rotation = Quaternion.LookRotation(n);
                 }
-                Vector3 tangent = Vector3.Cross(n, Vector3.right);
-                if (tangent.sqrMagnitude < 0.01f) tangent = Vector3.Cross(n, Vector3.forward);
-                tangent.Normalize();
+                Vector3 tangent = Tangent(n);
                 for (int i = 0; i < 10; i++)
                 {
-                    var p = Next(_puffs, ref _nPuff);
+                    var p = Next(_softs, ref _nSoft);
                     Vector3 d = Quaternion.AngleAxis(i * 36f + Random.Range(-10f, 10f), n) * tangent;
-                    Spawn(p, at + d * 0.15f, d * Random.Range(2f, 3.2f) - n * Random.Range(0.5f, 1.5f), 0.55f, 0.1f, 0.35f, 3f, 0f);
-                    p.r.sharedMaterial = SkylineBotLook.Lit(Vapour);
+                    Soft(p, at + d * 0.15f, d * Random.Range(2f, 3.2f) - n * Random.Range(0.5f, 1.5f), 0.6f, 0.2f, 0.7f, 3f, 0f, Vapour);
                 }
             }
+        }
+
+        static Vector3 Tangent(Vector3 n)
+        {
+            Vector3 t = Vector3.Cross(n, Vector3.right);
+            if (t.sqrMagnitude < 0.01f) t = Vector3.Cross(n, Vector3.forward);
+            return t.normalized;
         }
 
         void DustBurst(Vector3 point, Vector3 normal, int count, float speed)
@@ -495,13 +607,15 @@ namespace JamKit.SkylineRepo
                 Spawn(c, point + normal * 0.04f, v, Random.Range(0.35f, 0.55f), Random.Range(0.03f, 0.06f), 0f, 4f, 9.8f);
                 c.t.rotation = Random.rotation;
             }
-            var p = Next(_puffs, ref _nPuff);
-            Spawn(p, point + normal * 0.12f, normal * 0.8f, 0.5f, 0.08f, 0.32f, 3f, -0.2f);
-            p.r.sharedMaterial = SkylineBotLook.Lit(Dust);
+            for (int k = 0; k < 2; k++)
+            {
+                var p = Next(_softs, ref _nSoft);
+                Soft(p, point + normal * 0.12f, (normal + Random.insideUnitSphere * 0.4f) * 0.8f, Random.Range(0.45f, 0.6f), 0.12f, 0.45f, 3f, -0.2f, DustSoft);
+            }
         }
 
         /// <summary>A pellet on a live bot: three dark chips and flakes of its white-and-gold casing knocked off along the
-        /// shot and the surface, and a dull grey dust puff. Lit, never glowing.</summary>
+        /// shot and the surface, and a soft dull grey dust puff that fades in a third of a second. Never glowing.</summary>
         void CasingChips(Vector3 point, Vector3 normal, Vector3 dir)
         {
             Vector3 n = normal.sqrMagnitude > 1e-6f ? normal.normalized : -dir.normalized;
@@ -514,8 +628,8 @@ namespace JamKit.SkylineRepo
                 Spawn(c, point + n * 0.03f, v, Random.Range(0.4f, 0.6f), Random.Range(0.025f, 0.045f), 0f, 2.5f, 9.8f);
                 c.t.rotation = Random.rotation;
             }
-            var p = Next(_dusts, ref _nDust);
-            Spawn(p, point + n * 0.06f, n * 0.5f + d * 0.4f, 0.45f, 0.05f, 0.22f, 3f, -0.1f);
+            var p = Next(_softs, ref _nSoft);
+            Soft(p, point + n * 0.08f, n * 0.6f + d * 0.4f, 0.35f, 0.06f, 0.26f, 3f, -0.1f, DullDust);
         }
 
         // ---------------------------------------------------------------- particles
@@ -544,28 +658,73 @@ namespace JamKit.SkylineRepo
             Shape(b, 0f);
         }
 
-        static void Shape(Bit b, float u)
+        void Soft(Bit b, Vector3 pos, Vector3 vel, float life, float size, float to, float drag, float gravity, Color color)
+        {
+            if (b == null) return;
+            b.color = color;
+            b.spin = Random.Range(0f, 360f);
+            Spawn(b, pos, vel, life, size, to, drag, gravity);
+        }
+
+        /// <summary>A flame petal or fireball (world position <paramref name="at"/>, under the muzzle's blast root).</summary>
+        void Flame(Bit b, Vector3 at, float angle, float width, float length, float life, Color color)
+        {
+            if (b == null) return;
+            b.color = color;
+            b.spin = angle;
+            b.length = length;
+            Spawn(b, _flashRoot.InverseTransformPoint(at), Vector3.zero, life, width, 0f, 0f, 0f);
+        }
+
+        void Shape(Bit b, float u)
         {
             switch (b.kind)
             {
                 case 0: b.t.localScale = Vector3.one * (b.size * (1f - u)); break;
-                case 1:
-                {
-                    float s = Mathf.Lerp(b.size, b.to, 1f - (1f - u) * (1f - u));
-                    if (u > 0.65f) s *= 1f - (u - 0.65f) / 0.35f;
-                    b.t.localScale = Vector3.one * s;
-                    break;
-                }
                 case 2:
                 {
                     float r = Mathf.Lerp(b.size, b.to, 1f - (1f - u) * (1f - u) * (1f - u));
                     b.t.localScale = new Vector3(r, r, 1f);
                     break;
                 }
-                case 3: b.t.localScale = new Vector3(b.baseScale.x * (1f - u * 0.5f), b.baseScale.y * (1f - u * 0.5f), b.baseScale.z * (1f - u)); break;
-                case 4: b.t.localScale = Vector3.one * (b.size * (1f - u * 0.6f)); break;
                 case 5: b.t.localScale = new Vector3(b.size, b.size * 0.25f, b.size * 0.7f) * (1f - u); break;
+                case 6:
+                case 7:
+                {
+                    float s = Mathf.Lerp(b.size, b.to, 1f - (1f - u) * (1f - u));
+                    b.t.localScale = new Vector3(s, s, 1f);
+                    float fadeIn = Mathf.Clamp01(u / 0.08f);
+                    Tint(b, b.color.a * fadeIn * Mathf.Pow(1f - u, 1.6f), 1f);
+                    if (b.kind == 6) Face(b, b.spin);
+                    break;
+                }
+                case 8:
+                {
+                    float w = b.size * (1f - 0.4f * u);
+                    float l = b.length > 0f ? b.length * (1f - 0.7f * u) : w;
+                    b.t.localScale = new Vector3(w, l, 1f);
+                    Tint(b, Mathf.Clamp01(1.2f * (1f - u)), 1f - 0.5f * u);
+                    Face(b, b.spin);
+                    break;
+                }
             }
+        }
+
+        void Tint(Bit b, float alpha, float intensity)
+        {
+            if (b.r == null || _block == null) return;
+            var c = b.color;
+            _block.SetColor("_Color", new Color(c.r * intensity, c.g * intensity, c.b * intensity, alpha));
+            b.r.SetPropertyBlock(_block);
+        }
+
+        /// <summary>Turns a soft quad to face the camera that draws it (the main camera in the world, the viewmodel's overlay
+        /// camera for the gun's own effects), rolled by <paramref name="roll"/> degrees.</summary>
+        void Face(Bit b, float roll)
+        {
+            Transform cam = b.local ? _vmCam : (player != null && player.Camera != null ? player.Camera.transform : null);
+            if (cam == null) return;
+            b.t.rotation = cam.rotation * Quaternion.Euler(0f, 0f, roll);
         }
 
         void Update()

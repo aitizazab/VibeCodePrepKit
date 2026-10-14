@@ -34,6 +34,10 @@ namespace JamKit.SkylineRepo
             {
                 _material = _renderer.material;     // its own instance: the texture changes per bot
                 _material.color = Color.white;
+                // the screen never sits in its own cap's or brim's shadow (judge round 1: the drone's face read as a black
+                // band under its visor): still lit, but not shadowed
+                _renderer.receiveShadows = false;
+                _renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
             Show(BotFace.Happy);
         }

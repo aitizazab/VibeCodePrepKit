@@ -633,8 +633,48 @@ namespace JamKit.Skyline
                 return;
             }
             if (e.Brain.State == BotState.Telegraph) return;
-            if (flat < d.sweepRadius * 0.5f) return;   // close enough: it wants the player inside its arc, not under it
-            Drive(e, new Vector2(feet.X, feet.Z), d.moveSpeed * h);
+            // close enough (half its sweep radius): it wants the player inside its arc, not under it, so it stops driving
+            if (flat >= d.sweepRadius * 0.5f) Drive(e, new Vector2(feet.X, feet.Z), d.moveSpeed * h);
+            Separate(e, h);
+        }
+
+        readonly List<Vector2> _sepAt = new List<Vector2>();
+        readonly List<float> _sepR = new List<float>();
+
+        /// <summary>The floor-care units keep apart (<see cref="FloorSeparation"/>): an awake unit free to move steps out of any
+        /// other live unit it overlaps, never into a box or out of the hall (a blocked push is tried along each axis alone).</summary>
+        void Separate(FightEnemy e, float h)
+        {
+            _sepAt.Clear();
+            _sepR.Clear();
+            foreach (var o in _enemies)
+            {
+                if (o == e || o.Wrecked || !(o.Def.moveSpeed > 0f)) continue;
+                _sepAt.Add(new Vector2(o.Position.X, o.Position.Z));
+                _sepR.Add(o.Def.bodyRadius);
+            }
+            var p = new Vector2(e.Position.X, e.Position.Z);
+            float r = e.Def.bodyRadius;
+            Vector2 push = FloorSeparation.Push(p, r, _sepAt, _sepR, e.Def.moveSpeed * h, e.Index);
+            if (push.LengthSquared() < 1e-10f) return;
+            if (!FloorFree(p + push, r))
+            {
+                if (FloorFree(p + new Vector2(push.X, 0f), r)) push = new Vector2(push.X, 0f);
+                else if (FloorFree(p + new Vector2(0f, push.Y), r)) push = new Vector2(0f, push.Y);
+                else return;
+            }
+            Vector2 q = p + push;
+            e.Position = new Vector3(q.X, e.Position.Y, q.Y);
+        }
+
+        /// <summary>A floor unit of radius <paramref name="r"/> at <paramref name="q"/> stands inside the hall and clear of every box.</summary>
+        bool FloorFree(Vector2 q, float r)
+        {
+            float m = r + 0.05f;
+            if (q.X < GalleriaArena.HallMinX + m || q.X > GalleriaArena.HallMaxX - m || q.Y < GalleriaArena.HallMinZ + m || q.Y > GalleriaArena.HallMaxZ - m) return false;
+            foreach (var b in _floorCover)
+                if (q.X > b.min.X - r && q.X < b.max.X + r && q.Y > b.min.Z - r && q.Y < b.max.Z + r) return false;
+            return true;
         }
 
         /// <summary>Toward the target, round the cover: when a box stands on the straight line, it heads for the corner of that
@@ -944,5 +984,45 @@ namespace JamKit.Skyline
         }
 
         static float Clamp01(float v) => v < 0f ? 0f : v > 1f ? 1f : v;
+    }
+
+    /// <summary>
+    /// Floor-care units keep apart (judge round 1: three units drove into one pile at the player's feet, faces and canisters
+    /// inside each other). Each step, a unit free to move (awake, not telegraphing or sweeping) steps half-way out of every
+    /// other live unit it overlaps: closer than the two radii plus <see cref="Gap"/> (flat), no faster than its own drive.
+    /// Both units do the same in their turn, so a pair parts evenly; units bunched on the ring round the player spread along
+    /// it. FightSim and Unity's SkylineBot run this same code (the cover check is each side's own).
+    /// </summary>
+    public static class FloorSeparation
+    {
+        /// <summary>The clear gap kept between two units' bodies (m).</summary>
+        public const float Gap = 0.25f;
+
+        /// <summary>The flat push (x, z) for a unit at <paramref name="p"/> of radius <paramref name="r"/> from the others at
+        /// <paramref name="others"/> (radii <paramref name="radii"/>), at most <paramref name="maxStep"/> long. Two units on
+        /// the same spot part along a direction set by <paramref name="salt"/> (deterministic).</summary>
+        public static Vector2 Push(Vector2 p, float r, IReadOnlyList<Vector2> others, IReadOnlyList<float> radii, float maxStep, int salt)
+        {
+            if (others == null || !(maxStep > 0f)) return Vector2.Zero;
+            Vector2 sum = Vector2.Zero;
+            for (int i = 0; i < others.Count; i++)
+            {
+                float want = r + (radii != null && i < radii.Count ? radii[i] : r) + Gap;
+                Vector2 d = p - others[i];
+                float dist = d.Length();
+                if (dist >= want) continue;
+                Vector2 dir;
+                if (dist > 1e-4f) dir = d / dist;
+                else
+                {
+                    float a = (salt * 2.399963f + i * 0.7f) % (2f * MathF.PI);
+                    dir = new Vector2(MathF.Sin(a), MathF.Cos(a));
+                }
+                sum += dir * ((want - dist) * 0.5f);
+            }
+            float len = sum.Length();
+            if (len > maxStep) sum *= maxStep / len;
+            return sum;
+        }
     }
 }

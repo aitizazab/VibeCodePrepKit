@@ -58,7 +58,7 @@
       "start": 0.0,
       "attack": 0.0,
       "decay": 30.0,
-      "gain_db": -3,
+      "gain_db": 3,
       "pan": 0.25
     },
     {
@@ -80,6 +80,24 @@
       "pan": 0.75
     },
     {
+      "type": "sample",
+      "path": "../samples/blast_hang_l.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -22.0,
+      "pan": -0.6
+    },
+    {
+      "type": "sample",
+      "path": "../samples/blast_hang_r.wav",
+      "start": 0.0,
+      "attack": 0.0,
+      "decay": 30.0,
+      "gain_db": -22.0,
+      "pan": 0.6
+    },
+    {
       "type": "noise",
       "start": 0.0,
       "attack": 0.0003,
@@ -90,6 +108,6 @@
     }
   ],
   "master": {
-    "limit_db": -1.5
+    "limit_db": -3.0
   }
 }

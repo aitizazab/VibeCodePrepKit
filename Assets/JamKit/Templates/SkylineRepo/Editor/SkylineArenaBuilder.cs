@@ -22,10 +22,11 @@ namespace JamKit.SkylineRepo.EditorTools
     /// <item><b>The main hall</b> (x -25..25, z -20..20, walls 14 m, a glass skylight roof at 14 m): runnable walls all
     /// round (the side walls by the gondolas' rails are a wall-run route; Task 21's dressing draws their shopfronts and
     /// curtain wall inside their volumes); the mezzanine deck exactly as <see cref="GalleriaArena.MezzanineDeck"/> (solid,
-    /// so it blocks sight above and below except past its open edge at z 12) with a glass balustrade and two plinths under
-    /// the spotlights' bases (both dressing, no colliders); the cover exactly as <see cref="GalleriaArena.HallCover"/> (14 boxes, solid, not
-    /// runnable), a pillar's top split where it meets the deck so no two solids overlap; the three encounter zones and
-    /// their spawn markers; the entry lane's floor marker (shown while the next fight waits).</item>
+    /// so it blocks sight above and below except past its open edge at z 12) with a solid glass upstand and two plinths under
+    /// the spotlights' bases (<see cref="GalleriaArena.MezzanineRail"/>); the cover exactly as <see cref="GalleriaArena.HallCover"/>
+    /// (14 boxes, solid; the tall ones runnable), a pillar's top split where it meets the deck so no two solids overlap; the
+    /// three encounter zones along the route and their spawn markers; each later fight's lit floor marker (shown while it
+    /// waits); the far goal, the service lift's lobby (<see cref="GalleriaArena.LiftLobby"/>) with its roll-up shutter.</item>
     /// <item>The HUD, a 2D voice source, the <see cref="SkylineArenaDirector"/>, the <see cref="SkylineArenaDemo"/> and eight
     /// <see cref="SkylineStillCamera"/>s. The sun at 50 degrees with a procedural sky is only the fallback now.</item>
     /// <item><b>Task 21</b> replaces the sun and sky with the afternoon look (<see cref="SkylineLook.ApplyAfternoon"/>; the plain sun
@@ -37,14 +38,12 @@ namespace JamKit.SkylineRepo.EditorTools
     {
         const float WarmupHeight = 8f, HallHeight = 14f, WallThick = 0.4f, RoofThick = 0.2f;
         const float DoorHalfWidth = 3f, DoorHeight = 5f;
-        /// <summary>The spotlight body's base sits 0.88 m under its centre (SkylineBotBodies' spotlight mount).</summary>
-        const float SpotlightBaseBelow = 0.88f;
         const string PanelSettingsPath = "Assets/JamKit/UI/JamKitPanelSettings.asset";
 
         static readonly string[] CoverNames =
         {
             "Pillar West", "Pillar Middle", "Pillar East",
-            "Food Stall Back SW", "Food Stall Back NW", "Food Stall Back SE", "Food Stall Back NE",
+            "Food Stall Back SW", "Food Stall Back Centre West", "Food Stall Back SE", "Food Stall Back Centre East",
             "Info Booth Screen West", "Info Booth Screen East", "Info Booth Screen Back",
             "Kiosk West", "Kiosk East",
             "Planter West", "Planter East",
@@ -122,6 +121,12 @@ namespace JamKit.SkylineRepo.EditorTools
             var cache = cacheGo.AddComponent<SkylineScrapCache>();
             cache.visual = Box(cacheGo.transform, "Crate", V(top.x - 0.35f, top.y, top.z - 0.25f), V(top.x + 0.35f, top.y + 0.4f, top.z + 0.25f), mCache, false, null, true);
 
+            // the practice counter (Nan's lesson): a jump, a double jump and a mantle reach its top, a single jump doesn't
+            var pc = U(GalleriaArena.PracticeLedgeTop);
+            float ph = GalleriaArena.PracticeLedgeSize * 0.5f;
+            Box(warm, "Practice Counter", V(pc.x - ph, 0f, pc.z - ph), V(pc.x + ph, pc.y, pc.z + ph), mKiosk, true, false);
+            Box(warm, "Practice Counter Edge", V(pc.x - ph, pc.y, pc.z + ph - 0.12f), V(pc.x + ph, pc.y + 0.04f, pc.z + ph), mSign, false, null, true);
+
             // ---------------------------------------------------------- the main hall
             float x0 = GalleriaArena.HallMinX, x1 = GalleriaArena.HallMaxX, z0 = GalleriaArena.HallMinZ, z1 = GalleriaArena.HallMaxZ;
             Box(hall, "Floor", V(x0, -0.5f, z0), V(x1, 0f, z1), mFloor, true, null);
@@ -134,25 +139,24 @@ namespace JamKit.SkylineRepo.EditorTools
             Box(hall, "Doorway Sign", V(-DoorHalfWidth, DoorHeight + 0.2f, z0 - WallThick - 0.03f), V(DoorHalfWidth, DoorHeight + 0.5f, z0 - WallThick), mExit, false, null, true);
             NoShadow(Box(hall, "Skylight Roof (glass)", V(x0 - WallThick, HallHeight, z0 - WallThick), V(x1 + WallThick, HallHeight + RoofThick, z1 + WallThick), mRoof, true, null));
 
-            // the mezzanine deck, exactly the data's slab; a glass balustrade at its open edge (no collider, so it changes no
-            // sightline) and a plinth under each spotlight's base
+            // the mezzanine deck, exactly the data's slab; on its open edge the glass upstand and a plinth under each
+            // spotlight's base, solid (judge round 1: every visible solid has a collider) and exactly GalleriaArena.MezzanineRail(),
+            // which FightSim's sightlines include. The upstand's top is out of a boosted mantle's reach: no unplanned perch.
             var deck = GalleriaArena.MezzanineDeck;
             Box(hall, "Mezzanine Deck", U(deck.min), U(deck.max), mDeck, true, false);
-            Box(hall, "Mezzanine Balustrade (glass)", V(x0, deck.max.Y, deck.min.Z), V(x1, deck.max.Y + 1.05f, deck.min.Z + 0.05f), mRail, false, null, true);
-            foreach (var s in GalleriaArena.Skylight().spawns)
-            {
-                if (s.enemy != SkylineEnemies.SpotlightId) continue;
-                float baseY = s.position.Y - SpotlightBaseBelow;
-                if (baseY <= deck.max.Y + 0.01f) continue;
-                // dressing only: no collider, so FightSim's sightlines (HallCover + the deck) are exactly the arena's
-                Box(hall, "Spotlight Plinth " + (s.position.X < 0f ? "West" : "East"), V(s.position.X - 0.5f, deck.max.Y, deck.min.Z),
-                    V(s.position.X + 0.5f, baseY, s.position.Z + 0.4f), mDeck, false, null, true);
-            }
+            var rail = GalleriaArena.MezzanineRail();
+            Box(hall, "Mezzanine Balustrade (glass)", U(rail[0].min), U(rail[0].max), mRail, true, false);
+            for (int i = 1; i < rail.Length; i++)
+                Box(hall, "Spotlight Plinth " + (rail[i].min.X < 0f ? "West" : "East"), U(rail[i].min), U(rail[i].max), mDeck, true, false);
 
-            // the entry lane where every fight after the food court starts: a plain lit floor marker, shown by the director
-            // while the next fight is armed
-            var entryMarker = Box(hall, "Entry Marker", V(GalleriaArena.EntryZoneMinX, 0f, GalleriaArena.EntryZoneMinZ),
-                V(GalleriaArena.EntryZoneMaxX, 0.01f, GalleriaArena.EntryZoneMaxZ), Lit("SK_EntryMarker", new Color(0.95f, 0.72f, 0.2f)), false, null, true);
+            // the far goal: the service lift's lobby under the mezzanine (GalleriaArena.LiftLobby), its shutter down until the
+            // hall is cleared; then it rolls up to GalleriaArena.ShutterGap and the Unit slides under it to the lift
+            var lift = BuildLift(hall, mWall, mExit, mSign);
+
+            // the next fight's lane along the route: a plain lit floor marker, shown by the director while that fight is armed
+            // and waiting (the second fight's; the third's is a copy of it once the look has dressed it: both lanes are 12 x 6 m)
+            GalleriaArena.ZoneOf(GalleriaArena.Encounters()[1], out float mx0, out float mx1, out float mz0, out float mz1);
+            var entryMarker = Box(hall, "Entry Marker", V(mx0, 0f, mz0), V(mx1, 0.01f, mz1), Lit("SK_EntryMarker", new Color(0.95f, 0.72f, 0.2f)), false, null, true);
             NoShadow(entryMarker);
 
             // the cover: exactly HallCover()'s boxes; where a box reaches into the deck's slab, the part inside is left out
@@ -164,8 +168,10 @@ namespace JamKit.SkylineRepo.EditorTools
                 string name = cover.Length == CoverNames.Length ? CoverNames[i] : "Cover " + (i + 1);
                 var mat = name.StartsWith("Pillar") ? mPillar : name.StartsWith("Food") ? mStall : name.StartsWith("Info") ? mScreen
                     : name.StartsWith("Planter") ? mPlanter : mKiosk;
+                // the tall pieces (booth screens, stall backs, pillars) look like the hall's walls, so they run like them
+                bool tall = cover[i].max.Y >= 4f;
                 foreach (var part in OutsideDeck(cover[i], deck))
-                    Box(coverRoot, part.Value == 0 ? name : name + " Cap", U(part.Key.min), U(part.Key.max), mat, true, false);
+                    Box(coverRoot, part.Value == 0 ? name : name + " Cap", U(part.Key.min), U(part.Key.max), mat, true, tall);
             }
 
             // ---------------------------------------------------------- the player, the HUD, the director, the demo
@@ -194,6 +200,8 @@ namespace JamKit.SkylineRepo.EditorTools
             director.voice = voice;
             director.botsRoot = new GameObject("Bots").transform;
             director.entryMarker = entryMarker;
+            director.liftShutter = lift.shutter;
+            director.liftZone = lift.zone;
             // the cracks' and sparks' glow copies this scene material (its URP Unlit variant is in the build), not a shader
             // looked up by name at run time
             director.glowTemplate = mSign;
@@ -208,6 +216,7 @@ namespace JamKit.SkylineRepo.EditorTools
             // ---------------------------------------------------------- the look's dressing (Task 21)
             try { Dress(arena, warm, hall, entryMarker); }
             catch (System.Exception e) { Debug.LogError("SKYLINE_LOOK dressing failed: " + e); }
+            director.zoneMarkers = ZoneMarkers(entryMarker);
             SkylineLook.SetupCameras(scene);
             if (look) SkylineLook.BakeReflections(scene, path, arena);
             AssetDatabase.SaveAssets();
@@ -252,24 +261,21 @@ namespace JamKit.SkylineRepo.EditorTools
             return parts;
         }
 
-        /// <summary>The three encounter zones (no colliders: the director tests the player's feet), each with its spawn markers.
-        /// The food court: the hall south of z 5, so it starts as the player comes through the doorway. The skylight and the
-        /// facade: the entry lane round the anchor (x -6..6, z -20..-14), each armed once the fight before is cleared, so
-        /// every fight starts from <see cref="GalleriaArena.HallEntry"/>, where its balance (dodge ratio, clean line,
-        /// bearings) was measured.</summary>
+        /// <summary>The three encounter zones (no colliders: the director tests the player's feet), each with its spawn markers:
+        /// <see cref="GalleriaArena.ZoneOf"/>, the lane round each fight's own anchor along the route (the food court's is the
+        /// entry lane), where its balance (dodge ratio, clean line, bearings) was measured. Each is armed once the fight before is
+        /// cleared.</summary>
         static SkylineEncounterZone[] Zones()
         {
             var root = new GameObject("Encounter Zones").transform;
-            float x0 = GalleriaArena.HallMinX, x1 = GalleriaArena.HallMaxX, z0 = GalleriaArena.HallMinZ, z1 = GalleriaArena.HallMaxZ;
             var defs = GalleriaArena.Encounters();
-            var entry = Bounds(GalleriaArena.EntryZoneMinX, GalleriaArena.EntryZoneMaxX, GalleriaArena.EntryZoneMinZ, GalleriaArena.EntryZoneMaxZ);
-            var bounds = new[] { Bounds(x0, x1, z0, 5f), entry, entry };
             var zones = new SkylineEncounterZone[defs.Length];
             for (int i = 0; i < defs.Length; i++)
             {
                 var go = new GameObject("Zone " + defs[i].id);
                 go.transform.SetParent(root, false);
-                var b = i < bounds.Length ? bounds[i] : Bounds(x0, x1, z0, z1);
+                GalleriaArena.ZoneOf(defs[i], out float bx0, out float bx1, out float bz0, out float bz1);
+                var b = Bounds(bx0, bx1, bz0, bz1);
                 go.transform.position = b.center;
                 var z = go.AddComponent<SkylineEncounterZone>();
                 z.encounterIndex = i;
@@ -292,6 +298,58 @@ namespace JamKit.SkylineRepo.EditorTools
             return zones;
         }
 
+        struct Lift
+        {
+            public Transform shutter;
+            public SkylineEncounterZone zone;
+        }
+
+        /// <summary>The lift lobby: two side walls (runnable), a fascia carrying the lit sign, the roll-up shutter (down: the
+        /// lobby is the solid box FightSim knows; the director rolls it up once the hall is cleared), the lift's doors on the
+        /// north wall (visual) and the exit zone inside.</summary>
+        static Lift BuildLift(Transform hall, Material wall, Material glow, Material sign)
+        {
+            var l = GalleriaArena.LiftLobby;
+            float t = GalleriaArena.LobbyWall, top = l.max.Y, fascia = top - 1f;
+            var root = Group(hall, "Service Lift");
+            Box(root, "Lift Wall West", V(l.min.X, 0f, l.min.Z), V(l.min.X + t, top, l.max.Z), wall, true, true);
+            Box(root, "Lift Wall East", V(l.max.X - t, 0f, l.min.Z), V(l.max.X, top, l.max.Z), wall, true, true);
+            Box(root, "Lift Fascia", V(l.min.X + t, fascia, l.min.Z), V(l.max.X - t, top, l.min.Z + 0.2f), wall, true, false);
+            NoShadow(Box(root, "Lift Sign", V(l.min.X + t + 0.3f, fascia + 0.2f, l.min.Z - 0.03f), V(l.max.X - t - 0.3f, top - 0.2f, l.min.Z), sign, false, null, true));
+            var shutter = Box(root, "Lift Shutter", V(l.min.X + t, 0f, l.min.Z), V(l.max.X - t, fascia, l.min.Z + 0.2f), wall, true, false);
+            float cx = (l.min.X + l.max.X) * 0.5f;
+            Box(root, "Lift Doors", V(cx - 1f, 0f, l.max.Z - 0.03f), V(cx + 1f, 2.6f, l.max.Z), glow, false, null, true);
+            var go = new GameObject("Zone lift");
+            go.transform.SetParent(root, false);
+            var b = Bounds(l.min.X + t, l.max.X - t, l.min.Z + 0.6f, l.max.Z);
+            go.transform.position = b.center;
+            var zone = go.AddComponent<SkylineEncounterZone>();
+            zone.encounterIndex = -1;
+            zone.encounterId = "lift";
+            zone.size = b.size;
+            return new Lift { shutter = shutter.transform, zone = zone };
+        }
+
+        /// <summary>One floor marker per fight after the first (index = encounter): the dressed entry marker for the second,
+        /// a copy of it moved to each later lane (every lane is the same size).</summary>
+        static GameObject[] ZoneMarkers(GameObject first)
+        {
+            var defs = GalleriaArena.Encounters();
+            var markers = new GameObject[defs.Length];
+            if (first == null || defs.Length < 2) return markers;
+            markers[1] = first;
+            GalleriaArena.ZoneOf(defs[1], out float ax0, out float ax1, out float az0, out float az1);
+            for (int i = 2; i < defs.Length; i++)
+            {
+                GalleriaArena.ZoneOf(defs[i], out float x0, out float x1, out float z0, out float z1);
+                var copy = Object.Instantiate(first, first.transform.parent);
+                copy.name = "Entry Marker " + defs[i].id;
+                copy.transform.position = first.transform.position + new Vector3((x0 + x1 - ax0 - ax1) * 0.5f, 0f, (z0 + z1 - az0 - az1) * 0.5f);
+                markers[i] = copy;
+            }
+            return markers;
+        }
+
         static Bounds Bounds(float x0, float x1, float z0, float z1)
         {
             var b = new Bounds();
@@ -312,6 +370,8 @@ namespace JamKit.SkylineRepo.EditorTools
             Still(root, "06-mezzanine", V(0f, 3.2f, 0f), V(0f, 5.5f, 16f));
             Still(root, "07-hall-wide", V(-23.5f, 9f, -18.5f), V(4f, 1.5f, 6f));
             Still(root, "08-skylight", V(0f, 2f, -4f), V(0f, 14f, 8f));
+            var l = GalleriaArena.LiftLobby;
+            Still(root, "09-lift", V((l.min.X + l.max.X) * 0.5f - 1f, 2.2f, 7f), V((l.min.X + l.max.X) * 0.5f, 2.4f, l.min.Z));
         }
 
         static void Still(Transform parent, string shot, Vector3 at, Vector3 lookAt)

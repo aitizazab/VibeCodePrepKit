@@ -298,7 +298,7 @@ namespace JamKit.Tests.Skyline
                 int never = 0;
                 for (ulong s = 101; s < 131; s++)
                 {
-                    var f = FightTests.Make(id, new TacticalBot(s, FightTiming.Human()), s, GalleriaArena.HallEntry);
+                    var f = FightTests.Make(id, new TacticalBot(s, FightTiming.Human()), s, FightTests.ById(id).anchor);
                     var woke = new Dictionary<int, bool>();
                     while (!f.Over && f.Time < 180f)
                     {

@@ -1,0 +1,14 @@
+{
+  "sample_rate": 48000,
+  "length": 1.5,
+  "seed": 47,
+  "layers": [
+    {"type": "sine", "freq": 659.3, "attack": 0.004, "decay": 1.0, "gain_db": -6},
+    {"type": "sine", "freq": 1318.5, "attack": 0.004, "decay": 0.5, "gain_db": -18},
+    {"type": "sine", "freq": 1977.8, "attack": 0.004, "decay": 0.25, "gain_db": -26},
+    {"type": "sine", "freq": 523.3, "start": 0.32, "attack": 0.004, "decay": 1.1, "gain_db": -6},
+    {"type": "sine", "freq": 1046.5, "start": 0.32, "attack": 0.004, "decay": 0.5, "gain_db": -18},
+    {"type": "sine", "freq": 1569.8, "start": 0.32, "attack": 0.004, "decay": 0.25, "gain_db": -26}
+  ],
+  "master": {"limit_db": -3.0}
+}

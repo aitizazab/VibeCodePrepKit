@@ -24,10 +24,18 @@ namespace JamKit.SkylineRepo
     /// face it; jump, double jump at the jump's apex, at the double jump's apex the view is down at 85 degrees (it starts
     /// pitching down at the first apex) and it fires (the boost), holding forward throughout (the mantle); take the cache on
     /// top; swap back to the Writ; drop off the north side.</item>
-    /// <item>Through the doorway into the hall, then each encounter in order (food-court, skylight, facade): walk into its
-    /// zone (the food court's to the information booth's U, every later one's in the entry lane, where the fight was
-    /// balanced), shooting anything in its line of fire on the way, then fight until it is cleared, then salvage (strip the
-    /// fresh wrecks it can reach in time while the plating has room) and top up the magazine.</item>
+    /// <item>Through the doorway into the hall, then each encounter in order along the route (food-court by the entrance,
+    /// facade in the middle, skylight by the mezzanine; judge round 1): walk into its zone, the lane round its own anchor
+    /// (the food court's to the information booth's U; the facade's to the two staggered stall backs; the skylight's under
+    /// the mezzanine), shooting anything in its line of fire on the way, then fight until it is cleared, then salvage (strip
+    /// the fresh wrecks it can reach in time while the plating has room) and top up the magazine. Then the far goal: to the
+    /// service lift, whose shutter rolls up once the hall is cleared, and a slide under it (<c>to-lift</c>,
+    /// <c>slide-under-shutter</c>, <c>lift</c>).</item>
+    /// <item><b>The eyes</b> (judge round 1: a third of the old recording was a wall at a metre): on a target, the target; in
+    /// cover, the corner it will peek from (past the cover's edge, where the threat will show), never the bot behind the
+    /// wall; running, the way ahead; otherwise the nearest live bot only along a line that is open for at least 6 m (else
+    /// the open bearing nearest it). Looks without a target turn at a calm 200 degrees a second at most; the boost's look
+    /// down starts at the jump and is spread over the climb.</item>
     /// <item><b>The fight</b> is a cover cycle, as a player plays a shooter. It picks a <b>cover point</b> (a spot beside a
     /// piece of cover that no live drone or spotlight sees, even after a couple of metres of their patrol, with a peek spot
     /// next to it that has a line of fire; near it, and toward the bots), runs there (sprinting, now and then sliding or
@@ -105,13 +113,29 @@ namespace JamKit.SkylineRepo
         bool _hasLastDuck, _slideTried;
         float _tacUntil, _tacRetryAt, _moveGiveUp, _nextDuckCheck, _platingAtPeek, _peekNoSight, _nextHop;
         int _peeksLeft;
+        Vector3 _nextPeek;
+        bool _hasNextPeek;
+        float _nextPeekLook;
         readonly List<Vector3> _candidates = new List<Vector3>();
         readonly List<float> _scores = new List<float>();
 
         static readonly Vector3 BoothHide = new Vector3(0f, 0f, -12.2f);
-        /// <summary>The middle of the entry lane, where every fight after the food court starts (GalleriaArena.EntryZone*).</summary>
-        static readonly Vector3 EntryPoint = new Vector3(
-            (GalleriaArena.EntryZoneMinX + GalleriaArena.EntryZoneMaxX) * 0.5f, 0f, (GalleriaArena.EntryZoneMinZ + GalleriaArena.EntryZoneMaxZ) * 0.5f);
+        /// <summary>Each fight's pocket, where it opens (and falls back to when hurt in the open game): the booth's U for the
+        /// food court, between the two staggered stall backs for the facade, under the mezzanine for the skylight.</summary>
+        static Vector3 HideOf(string id)
+        {
+            switch (id)
+            {
+                case "food-court": return BoothHide;
+                case "facade": return SkylineArenaDirector.U(GalleriaArena.FacadeAnchor);
+                case "skylight": return new Vector3(-6.5f, 0f, 14f);
+                default: return BoothHide;
+            }
+        }
+
+        /// <summary>The calm turn rate (degrees a second) of a look with nothing to shoot; a target gets the hands' full rate.</summary>
+        const float CalmRate = 200f, FullRate = 650f;
+        bool _calm;
 
         void Start()
         {
@@ -141,6 +165,8 @@ namespace JamKit.SkylineRepo
         {
             _cover.Clear();
             foreach (var b in GalleriaArena.HallCover()) _cover.Add(Rect.MinMaxRect(b.min.X, b.min.Z, b.max.X, b.max.Z));
+            var lobby = GalleriaArena.LiftLobby;
+            _cover.Add(Rect.MinMaxRect(lobby.min.X, lobby.min.Z, lobby.max.X, lobby.max.Z));
             var k = GalleriaArena.BoostLedgeTop;
             float h = GalleriaArena.BoostLedgeSize * 0.5f;
             _cover.Add(Rect.MinMaxRect(k.X - h, k.Z - h, k.X + h, k.Z + h));
@@ -180,6 +206,7 @@ namespace JamKit.SkylineRepo
             }
             else { _wantYaw = _hand.Yaw; _wantPitch = _hand.Pitch; }
             _wantPitch = Mathf.Clamp(_wantPitch, -SkylinePlayer.MaxPitch, SkylinePlayer.MaxPitch);
+            _hand.maxRate = _calm ? CalmRate : FullRate;
             if (_snapAim) _hand.Snap(_wantYaw, _wantPitch);
             else _hand.Step(Time.deltaTime, _wantYaw, _wantPitch);
             player.SetAim(_hand.Yaw, _hand.Pitch);
@@ -309,6 +336,7 @@ namespace JamKit.SkylineRepo
             Log("doorway");
 
             for (int i = 0; i < director.EncounterCount; i++) yield return Fight(i);
+            yield return ToTheLift();
             Log("done");
             _move = Vector2.zero;
             _sprint = false;
@@ -392,6 +420,9 @@ namespace JamKit.SkylineRepo
             Log("jump");
             _jump = true;
             yield return UntilAirborne(0.5f);
+            // the look down starts with the climb and is spread over it (a readable tilt, not a whip at the apex)
+            _calm = true;
+            _aimPitch = 55f;
             yield return UntilApex(2f);
             _aimPitch = SkylinePlayer.MaxPitch;
             Log("double-jump");
@@ -404,6 +435,7 @@ namespace JamKit.SkylineRepo
             _fire = true;
             yield return null;
             Log("mantle");
+            _aimPitch = 10f;
             float top = k.y;
             float until = Time.time + 3f;
             while (Time.time < until && !(Grounded && Feet().y > top - 0.2f)) yield return null;
@@ -418,6 +450,7 @@ namespace JamKit.SkylineRepo
             _move = Vector2.zero;
             _sprint = false;
             _aimFixed = false;
+            _calm = false;
 
             Log("swap-writ");
             _swap = true;
@@ -426,6 +459,43 @@ namespace JamKit.SkylineRepo
             yield return MoveTo(new Vector3(k.x, Feet().y, k.z + half + 1.5f), false, CoarseArrive, 3f);
             yield return Wait(0.5f);
             Log("run-to-doorway");
+        }
+
+        /// <summary>The far goal: once the shutter is up, run at the lift lobby, slide under the shutter (crouch pressed 3.5 m
+        /// short of it, held) and stop inside, looking at the lift's doors.</summary>
+        IEnumerator ToTheLift()
+        {
+            float wait = Time.time + 6f;
+            while (!director.LiftOpen && Time.time < wait) yield return null;
+            if (!director.LiftOpen) { Log("lift-shut"); yield break; }
+            var l = GalleriaArena.LiftLobby;
+            float cx = (l.min.X + l.max.X) * 0.5f;
+            Vector3 start = new Vector3(cx, 0f, l.min.Z - 9f), doors = new Vector3(cx, 1.6f, l.max.Z);
+            Log("to-lift");
+            _calm = true;
+            yield return MoveTo(start, true, CoarseArrive, 12f, () => doors);
+            _aimFixed = false;
+            _aimPoint = doors;
+            float settle = Time.time + 1.2f;
+            while (Time.time < settle && Mathf.Abs(Mathf.DeltaAngle(player.Yaw, 0f)) > 4f) yield return null;
+            Log("slide-under-shutter");
+            float until = Time.time + 5f;
+            bool pressed = false;
+            while (Time.time < until && !director.ExitReached)
+            {
+                Vector3 feet = Feet();
+                ApplyMove(new Vector3(cx - feet.x, 0f, 6f).normalized, true);
+                if (feet.z > l.min.Z - 3.5f)
+                {
+                    if (!pressed) { _crouchPress = true; pressed = true; }
+                    _crouchUntil = Time.time + 0.2f;
+                }
+                yield return null;
+            }
+            _move = Vector2.zero;
+            _sprint = false;
+            Log(director.ExitReached ? "lift" : "lift-missed");
+            yield return Wait(1.5f);
         }
 
         IEnumerator UntilAirborne(float max)
@@ -452,11 +522,9 @@ namespace JamKit.SkylineRepo
         {
             string id = director.IdOf(i);
             Log("fight " + id);
-            // the food court starts on coming through the doorway; every later fight in the entry lane, where it was balanced.
-            // The hide is the information booth's U for all three: its screens and back wall block the side groups, the
-            // gondolas' walls and the spotlights on the mezzanine, and it is 5 m from the entry lane.
-            Vector3 entry = i == 0 ? BoothHide : EntryPoint;
-            Vector3 hide = BoothHide;
+            // each fight starts in the lane round its own anchor along the route and opens by getting into its own pocket
+            Vector3 hide = HideOf(id);
+            Vector3 entry = i == 0 ? hide : SkylineArenaDirector.U(director.AnchorOf(i));
             while (director.PhaseOf(i) == SkylineArenaDirector.Phase.Waiting) yield return null;
             _fighting = true;
             if (director.PhaseOf(i) == SkylineArenaDirector.Phase.Armed) Log("walk-to-entry " + id);
@@ -564,6 +632,7 @@ namespace JamKit.SkylineRepo
                 // aim, fire and reload: the trigger is pulled while the crosshair is on the target (NextFrame checks the ray)
                 if (player.Loadout.ActiveIndex != 0) _swap = true;
                 _aimFixed = false;
+                _calm = target == null && !grace;
                 if (target != null)
                 {
                     _aimPoint = aim;
@@ -613,6 +682,7 @@ namespace JamKit.SkylineRepo
                 yield return null;
             }
             _fighting = false;
+            _calm = true;
             _tac = Tactic.None;
             _move = Vector2.zero;
             _aimPoint = null;
@@ -688,8 +758,14 @@ namespace JamKit.SkylineRepo
                         // a drone's patrol (or a search) found the cover point: go elsewhere
                         if (!Covered(i, _duck, 0f)) { Leave(now); return "duck"; }
                     }
+                    if (!_hasNextPeek && now >= _nextPeekLook)
+                    {
+                        _nextPeekLook = now + 0.5f;
+                        _hasNextPeek = FindPeek(i, _duck, out _nextPeek);
+                    }
                     if (now >= _tacUntil && !reloading && gun.Ammo > mag / 2)
                     {
+                        _hasNextPeek = false;
                         if (_peeksLeft <= 0 || !FindPeek(i, _duck, out _peek)) { Leave(now); return "duck"; }
                         _tac = Tactic.Peek;
                         float len = Range(PeekMin, PeekMax) * (hurt ? 0.6f : 1f);
@@ -709,6 +785,8 @@ namespace JamKit.SkylineRepo
                     else if (inSight) _peekNoSight = 0f;
                     if (now >= _tacUntil || gun.Ammo <= 0 || _platingAtPeek - plating >= PeekHurt || _peekNoSight > 1f)
                     {
+                        _nextPeek = _peek;   // back in cover, it watches the corner it just peeked from
+                        _hasNextPeek = true;
                         _tac = Tactic.Duck;
                         _tacUntil = now + Range(DuckMin, DuckMax) + (hurt ? 0.6f : 0f);
                         _nextDuckCheck = now + 0.3f;
@@ -721,6 +799,7 @@ namespace JamKit.SkylineRepo
         /// <summary>Done with this cover point: the next one is looked for at once, elsewhere.</summary>
         void Leave(float now)
         {
+            _hasNextPeek = false;
             _lastDuck = _duck;
             _hasLastDuck = true;
             _tac = Tactic.None;
@@ -814,7 +893,7 @@ namespace JamKit.SkylineRepo
 
         void AddCandidate(Vector3 p, Vector3 feet, Vector3 nearestBot)
         {
-            if (p.x < GalleriaArena.HallMinX + 1.2f || p.x > GalleriaArena.HallMaxX - 1.2f || p.z < GalleriaArena.HallMinZ + 1.2f || p.z > 11f) return;
+            if (p.x < GalleriaArena.HallMinX + 1.2f || p.x > GalleriaArena.HallMaxX - 1.2f || p.z < GalleriaArena.HallMinZ + 1.2f || p.z > GalleriaArena.HallMaxZ - 1.2f) return;
             if (InCover(p)) return;
             float d = Flat(feet, p);
             if (d > CoverSearch) return;
@@ -885,8 +964,50 @@ namespace JamKit.SkylineRepo
                 float d = Vector3.Distance(eye, b.Center);
                 if (d < nd) { nd = d; nearest = b; }
             }
-            return nearest != null ? nearest.Center : (Vector3?)null;
+            // in cover: the corner it will peek from, past the cover's edge, at the threat's height
+            if (_tac == Tactic.Duck && _hasNextPeek)
+            {
+                Vector3 out_ = new Vector3(_nextPeek.x - feet.x, 0f, _nextPeek.z - feet.z);
+                if (out_.sqrMagnitude > 0.04f)
+                {
+                    Vector3 past = _nextPeek + out_.normalized * 6f;
+                    float y = nearest != null ? Mathf.Lerp(eye.y, nearest.Center.y, 0.5f) : eye.y;
+                    if (nearest != null)
+                    {
+                        // lean the look from the corner toward the threat beyond it
+                        Vector3 toBot = new Vector3(nearest.Center.x - _nextPeek.x, 0f, nearest.Center.z - _nextPeek.z);
+                        if (toBot.sqrMagnitude > 1e-4f) past = _nextPeek + (out_.normalized + toBot.normalized).normalized * 6f;
+                    }
+                    return OpenLook(eye, new Vector3(past.x, y, past.z));
+                }
+            }
+            return nearest != null ? OpenLook(eye, nearest.Center) : (Vector3?)null;
         }
+
+        /// <summary>A point to look at toward <paramref name="want"/>: itself if the line there is open for 6 m, else the
+        /// nearest bearing (turning either way in 20 degree steps) whose line is open for 6 m: never a wall at a metre.</summary>
+        static Vector3 OpenLook(Vector3 eye, Vector3 want)
+        {
+            Vector3 d = want - eye;
+            float len = d.magnitude;
+            if (len < 1e-3f) return want;
+            Vector3 dir = d / len;
+            if (Open(eye, dir, Mathf.Min(6f, len))) return want;
+            Vector3 flat = new Vector3(dir.x, 0f, dir.z);
+            if (flat.sqrMagnitude < 1e-4f) return want;
+            flat.Normalize();
+            for (int step = 1; step <= 8; step++)
+                for (int sign = -1; sign <= 1; sign += 2)
+                {
+                    Vector3 r = Quaternion.AngleAxis(sign * step * 20f, Vector3.up) * flat;
+                    Vector3 tilt = (r + Vector3.up * dir.y).normalized;
+                    if (Open(eye, tilt, 6f)) return eye + tilt * 10f;
+                }
+            return want;
+        }
+
+        static bool Open(Vector3 eye, Vector3 dir, float dist) =>
+            !Physics.Raycast(eye, dir, dist, SkylineShooting.Mask, QueryTriggerInteraction.Ignore);
 
         /// <summary>After a fight: strip the fresh wrecks it can reach before they go stale while the plating has room, then
         /// top up the magazine.</summary>
@@ -996,6 +1117,7 @@ namespace JamKit.SkylineRepo
                 float score = dist;
                 if (b.Def.id == SkylineEnemies.SpotlightId) score -= 100f;
                 else if (b.Def.moveSpeed > 0f && Flat(feet, b.transform.position) < 7f) score -= 60f;
+                else if (b.Def.layer == ThreatLayer.Walls) score -= 8f;   // the gondola on its rail: on screen, not left for last
                 if (score >= bestScore) continue;
                 if (!LineOfFire(b, eye, out Vector3 p)) continue;
                 best = b;
@@ -1135,6 +1257,7 @@ namespace JamKit.SkylineRepo
             if (player.Loadout.ActiveIndex != 0) _swap = true;
             Vector3 dir = Flat(feet, goal) > CoarseArrive ? PathDirection(feet, goal) : Vector3.zero;
             _aimFixed = false;
+            _calm = target == null;
             if (target != null)
             {
                 _aimPoint = aim;

@@ -77,18 +77,23 @@ namespace JamKit.SkylineRepo
         static readonly Dictionary<AudioClip, AudioClip> _capped = new Dictionary<AudioClip, AudioClip>();
         const float CapFade = 0.08f;
 
-        /// <summary>Seconds a teaching line lasts: its reading time (<see cref="TeachingQueue.LineSeconds"/>, 1.5 to 4 s). The
-        /// spoken babble is cut to it and the subtitle stays up for it.</summary>
+        /// <summary>Seconds a teaching line lasts: its reading time (<see cref="TeachingQueue.LineSeconds"/>: 15 characters a
+        /// second plus a 0.5 s lead, 2 to 10 s). The spoken babble is cut to it and the subtitle stays up for it.</summary>
         public static float LineSeconds(string text) => TeachingQueue.LineSeconds(text);
 
-        /// <summary>Speaks <paramref name="text"/> in <paramref name="speaker"/>'s voice from <paramref name="source"/>, cut to the
-        /// line's reading time (<see cref="LineSeconds"/>) with a short fade.</summary>
-        public static void Speak(Speaker speaker, string text, AudioSource source)
+        /// <summary>Speaks <paramref name="text"/> in <paramref name="speaker"/>'s voice from <paramref name="source"/>,
+        /// <paramref name="delay"/> seconds from now (after CONCIERGE's PA chime), cut to the line's reading time
+        /// (<see cref="LineSeconds"/>) with a short fade. The source says one line at a time: a line that cuts in stops the one
+        /// before.</summary>
+        public static void Speak(Speaker speaker, string text, AudioSource source, float delay = 0f)
         {
             if (source == null) return;
             var clip = Make(VoiceOf(speaker), text, (int)speaker + 11);
             if (clip == null) return;
-            source.PlayOneShot(Cap(clip, LineSeconds(text)), 1f);
+            source.Stop();
+            source.clip = Cap(clip, LineSeconds(text));
+            if (delay > 0f) source.PlayDelayed(delay);
+            else source.Play();
         }
 
         /// <summary>Makes (and caches) the clip <see cref="Speak"/> would play for this line, so speaking it later costs

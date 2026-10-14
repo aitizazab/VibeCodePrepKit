@@ -154,3 +154,37 @@ What to listen for, in the files under `out/skyline-forge/writ/` (whole clips) a
 8. `impact` (dull) against `impact_weak` (crack and ring): can you tell them apart without looking?
 9. `hush`: the quiet court while the Writ is out (played at a tenth of full volume). Keep it, or drop it?
 10. `Inspect.wav`: the two brass taps on the nameplate.
+
+## Fix round 1 (judge C, 2026-10-14): what changed
+
+- **The shot cracks.** A new crack layer: a sharp report, the gavel's brass band ringing like a struck nail, and the
+  slug's short whiz. There are also bright early reflections (an "air" stem, 3.5-13 kHz, fading over about 0.5 s) and
+  a stone room tail that holds (a second slope; about -17 dB at 1 s and -23 dB at 1.5 s, like the reference).
+  Presence plus air is 2.9% (was 0.2%); centroid 464 Hz (reference 476).
+- **The hydraulics sing.** The gavel's return is now a held pneumatic "psshh" in 2-8 kHz with a brass piston ka-chunk
+  and a latch tick. It lifts its window above the shot's own first 99 ms (above 2 kHz: +4.2 dB over the shot alone).
+- **The handling sits 9-14 dB under the shot,** like the Breacher's (was 18-25 dB). The seat's "pssh" is real now (low
+  band 56%, was 95%).
+- **The framing.** The rests moved out and up (`SkylineViewmodel`: the Writ at 0.2, -0.13, 0.5, turned 9 degrees toward
+  the crosshair; the Breacher at the same place, turned 5 degrees), so the robot hand on the column grip shows at the
+  hip and the gun reads as a pistol. The old "home" layer in `SkylineWritFx` is gone.
+- **The arms.** Each forearm is its own piece, aimed every frame at a shoulder below the screen, so it always runs out
+  of the bottom of the view. The Breacher's left hand cups the pump with its fingers up the near side.
+- **The reload shows its mechanism.** The gun lifts and rolls so the column's base faces you. The drum drops 8 cm (not
+  25) with the left hand on it, spinning out as it goes; the new drum goes in a quarter turn off and twists home on the
+  hydraulic seat, with a kick.
+- **The draw assembles the court:** the bench and chair rise, the gavel drops in, the doors swing shut, the lamps catch.
+- **The look.** The chair back the player sees is carved: gothic lancet panels, pointed-arch tracery round the window,
+  brass rivets, pinnacles with crockets on its posts, a gable with a brass edge and a cross finial. The receiver's rear
+  is a brass-framed maroon panel with the court's seal (it was one flat brass slab).
+- **Effects at range:** the muzzle burst sits in front of the gatehouse and above its arch, so it shows from behind.
+  World hits get a hot flash, 10 sparks and a decal twice the size. The spot's seal and pop grow with distance (x1 to
+  6 m, then in proportion). A kill is a white starburst, not a ring, so it can't be taken for a spot's gold pop.
+
+### One hit sound per shot (the layering rule, agreed for both guns)
+
+For a shot that lands on a bot, the shooter's side plays exactly one hit layer: the gun's own impact (`writ/impact`,
+`writ/impact_weak` or `breacher/impact`). The generic `impact/hit` is for guns without their own and is skipped for the
+Writ and the Breacher. A Writ spot event adds the spot's own world sound as the one allowed second layer: a forming spot
+plays `impact_weak` and `spot_form`; a spot hit plays `spot_pop` (in place of the impact) and `spot_break`. A world hit
+plays `impact/world` once. So a hit is one sound, and a spot event is two.

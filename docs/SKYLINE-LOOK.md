@@ -11,11 +11,12 @@ seen in Unity: the next pass (Task 22) builds it, lints it, records it and measu
 | The afternoon rig | `Editor/Look/SkylineLook.cs` | Visiting Hours' golden-hour rig, copied with afternoon values (calling `VhLook.ApplyGoldenHour` would rebuild Visiting Hours' own profile and sky material, which are not in this tree, so it would write new files into their folders every pass). One Mixed sun with medium soft shadows, a shadowless bounce fill, Visiting Hours' runtime `VhLookRig` aiming them and the sky, a global post volume, render settings (sky ambient, sky reflections, no fog). |
 | The sun | same | 41 degrees up from the west-south-west (bearing 235), intensity 2.6, warm white (1, 0.95, 0.87). It rakes in over the south-west walls, lights the north half, the mezzanine and the east shops, and the skylight's beams stripe the floor. Shadows: 80 m, four cascades, 2048 (the golden hour asks 160 m at 4096). |
 | The sky | `ThirdParty/Sky/Sky_Kloofendal38d_4k.hdr` (Poly Haven `kloofendal_38d_partly_cloudy_puresky`, CC0), material `Look/SK_Sky_Kloofendal38d.mat` | Blue sky with thin high cloud round a 38-degree sun; a pure sky, so the towers stand in front of it. Prepared by Visiting Hours' `tools/look/hdri-prep.py` (sun found and clamped out, colours measured into `sky.json`). Shown on Visiting Hours' sky shader (`JamKit/Look/Sky`): turned so its sun sits on the light, a drawn disc, slow cloud drift; bluer tint (0.86, 0.9, 1), exposure normalised to Visiting Hours' brightness (x1.92). |
-| Post | `Look/SK_Afternoon.asset` (built by `SkylineLook.Afternoon()`) | ACES; exposure +0.1, contrast +12, saturation +6; white balance -3 (the sun is the only warm thing); split toning with sky-cool shadows; bloom threshold 1.0 / intensity 0.65 / scatter 0.62, no HQ filtering, quarter-resolution start; vignette 0.16; no grain, no haze pass. |
-| Cameras | `SkylineLook.SetupCameras` | `VhLook.SetupCamera` on the player's and the stills' cameras: HDR, post on, SMAA high, NaN guard, dithering. The far clip is kept (600 m: the viewmodel rig sits 1 km below). |
-| Reflections | `SkylineLook.BakeReflections` | Two box-projected probes (`VhLook.AddReflectionProbe`): the main hall and the warm-up hall, 128 px HDR, baked once at build time to `Generated/SkylineArena_Reflections_*.exr` and set as custom cubemaps (the project's quality levels have realtime probes off). A failed bake leaves the sky's reflection and logs `SKYLINE_LOOK reflections NOT baked`. |
+| Ambient | same | Three-colour (Trilight), linear: from above (0.6, 0.66, 0.78), round the horizon (0.62, 0.61, 0.59), from below (0.64, 0.58, 0.5), the sunlit floor's warm bounce; plus the bounce fill (0.42, warm cream). Fix round 1: the sky's own ambient left white walls in shade at about a tenth of the light they needed, slate blue. |
+| Post | `Look/SK_Afternoon.asset` (built by `SkylineLook.Afternoon()`) | ACES; exposure +0.1, contrast +12, saturation +6; white balance -1; split toning with slightly cool shadows; **hue vs hue**: oranges pulled up to 8 degrees towards red before the tonemap, gold 2 (keeps the firm's orange orange and CONCIERGE's gold gold in the sun; `tools/skyline/look/grade-check.py` checks the rule: orange hue 20-35, gold 40-50 at sunlit levels); bloom threshold 1.6 / intensity 0.65 / scatter 0.62, no HQ filtering, quarter-resolution start; vignette 0.16; no grain, no haze pass. |
+| Cameras | `SkylineLook.SetupCameras` | `VhLook.SetupCamera` on the player's and the stills' cameras: HDR, post on, SMAA high, NaN guard, dithering. The far clip is kept (600 m: the viewmodel rig sits 1 km below). The stills render into a half-float target and are converted to sRGB afterwards (`Editor/Recording/SkylineCapture.cs`): URP renders a camera with a target texture in that texture's format, so the old 8-bit target clamped the scene before the grade (no bloom, nothing above 223). |
+| Reflections | `SkylineLook.BakeReflections` | Two box-projected probes (`VhLook.AddReflectionProbe`): the main hall (256 px) and the warm-up hall (128 px), HDR, baked once at build time to `Generated/SkylineArena_Reflections_*.exr` and set as custom cubemaps (the project's quality levels have realtime probes off). A failed bake leaves the sky's reflection and logs `SKYLINE_LOOK reflections NOT baked`. |
 | The dressing | `Editor/SkylineArenaDress.cs` (the builder's `Dress(...)`) | See below. Visual-only geometry merged per material by `Editor/Look/SkylineKit.cs` (a few draw calls for hundreds of pieces), every piece under a `SkylineNoCollider` root. |
-| Haze | `SkylineLookLibrary.Facade` | Aerial perspective baked into the towers' materials: surface x (1 - h) + the sky's horizon colour x h as emission, in four distance bands (h 0.34, 0.49, 0.64, 0.77). No renderer feature needed (Visiting Hours' atmosphere pass is not installed on this project's renderer). |
+| Haze | `SkylineLookLibrary.Facade` | Aerial perspective baked into the towers: URP **Unlit** materials (the shader the signs already use in the build) whose textures are baked on each arena build into `Look/Textures/Hazed/` (surface x (1 - h) x the sunlit face's light + the sky's horizon colour x h), one material per haze band and per way a face meets the sun (sunlit / slanting / shaded), in three distance bands (h 0.40, 0.59, 0.76). Fix round 1: the old Lit-with-emission facades used a keyword set nothing else uses, and rendered as plain white boxes in the build. No renderer feature needed. |
 
 **Bevels (fix round 1):** the visible edges are chamfered through `VhLookUv.BevelBox` (the kit's bevel path): the cover pieces, the boost kiosk and the spotlight plinths are drawn as bevelled boxes of their exact bounds (their renderers go; colliders untouched), and so are the cornices, the skylight and roof beams, the mezzanine's edge and handrail, the portal, the pilasters, the planters' rims, mullions, sills and the bases, bands and capitals (collars). Long flush wall cladding stays square (its joints are covered by the reveals, wainscots and skirtings).
 
@@ -29,7 +30,12 @@ Materials are assets in `Assets/JamKit/Templates/SkylineRepo/Look/Library/` (`SK
 glowing `SK_Emissive_*`), rebuilt on every arena build. Pick by name in editor code:
 `SkylineLookLibrary.Get("Terrazzo_White")`, `SkylineLookLibrary.Variant("Plaster_White", "Sage", tint)`.
 **UV convention (Visiting Hours'): 1 UV unit = 1 metre**; tiling is 1 / tile size. Every library material carries Skyline's
-own low-frequency macro variation (`ThirdParty/Library/SK_MacroVariation.png`, the detail map) against visible repetition.
+own low-frequency macro variation (`ThirdParty/Library/SK_MacroVariation.png`, the detail map) against visible repetition;
+the white plaster takes a gentler one (`Look/Textures/SK_MacroSoft.png`, +-8%). **Both maps are imported linear**: URP
+multiplies the albedo by twice the detail map's sampled value, so mid-grey is neutral only when it isn't sRGB-decoded.
+Until fix round 1 they were sRGB, which halved every library surface's albedo and turned the noise's dark patches into
+blotches (the "stained grey concrete" walls). Visiting Hours' own macro map (`VH_MacroVariation.png`) is imported the
+same old way; their session may want the same fix.
 
 | Name | For | Tile (m) | Source |
 |---|---|---|---|
@@ -45,13 +51,14 @@ own low-frequency macro variation (`ThirdParty/Library/SK_MacroVariation.png`, t
 | Soil | Planter soil | 1.5 | Visiting Hours' Dirt (PH forest_ground_04), read by path |
 | Steel_Brushed | Shopfront frames, mullions, rails, kick plates, the portal | 1 | procedural (`make-textures.py`) |
 | Gold_Brushed | CONCIERGE's gold: reveals, capitals, frames, the floor inlay | 1 | procedural brushed maps, gold tint |
-| Steel_Dark | Graphite: fascias, skirting, transoms, sign frames | 1 | procedural brushed maps, graphite tint |
+| Steel_Dark | Graphite powder-coat: fascias, skirting, transoms, sign frames (nearly flat normal, satin: brushed streaks on a frame's underside read as a stretched texture) | 1 | procedural brushed maps, graphite tint |
 | Hazard_Orange | Kestrel & Daughters' orange with hazard stripes: the practice gantry only | 1 | procedural |
-| Products / EntryMarker | Shelves of goods (atlas rows) / the entry lane's gold chevrons | atlas | procedural |
-| Facade_<Blue/White/Green/Dark>_Haze<0-3> | The far towers' curtain walls, hazed by band | 13 | procedural |
-| Ground_Hazed | The city's paving outside | 2 | Visiting Hours' Concrete_Kerb, hazed |
+| Products / EntryMarker / Banners | Shelves of goods (one kind a row: books, shoe boxes, bottles, jars, folded clothes, boxed electronics, cosmetics, toys) / the entry lane's gold chevrons / fabric banners (THE GALLERIA, AT YOUR SERVICE, FOOD COURT, SKY TERRACE) | atlas | procedural |
+| Shutter_Painted__Navy / Sage / Sand | The warm-up's closed shops in four colours | 2 | as Shutter_Painted, tinted |
+| Facade_<kind>_Band<0-2>_<Sun/Slant/Shade> | The far towers (URP Unlit, light and haze baked; kinds Blue, White, Green, Dark, Bronze, Silver, Stone) | 13 | procedural, baked to `Look/Textures/Hazed/` |
+| Ground_Sun | The city's paving outside (Unlit, baked) | 2 | Visiting Hours' Concrete_Kerb, hazed |
 | SK_Emissive_Signs / Posters / LightPanel / GoldGlow | Signs, lightbox posters, ceiling panels and downlights (URP Unlit, HDR for bloom) | atlas | procedural |
-| SK_Glass_Shopfront / Curtain / Skylight / Counter / Balustrade / Vitrine | Glass (URP Lit, transparent, specular kept: it reflects the probes and the sky) | - | - |
+| SK_Glass_Shopfront / Curtain / Skylight / Counter / Balustrade / Vitrine / Frit | Glass (URP Lit, transparent, specular kept: it reflects the probes and the sky). The skylight: alpha 0.2, a faint blue-green, smoothness 0.97; fritted (milky) bands a metre wide along every beam and round the edge | - | - |
 | SKL_Prop_Calathea / Fern / WetFloorSign | Planter and shop plants (alpha-clipped), a wet-floor sign | - | PH calathea_orbifolia_01, fern_02, WetFloorSign_01 (1K) |
 
 Every downloaded source is Poly Haven (CC0; ambientCG was unreachable from this machine on 2026-10-14). The procedural
@@ -61,37 +68,68 @@ repo) and Bahnschrift (Windows): the images are ours; no font file is shipped. N
 ## The dressing (what is where)
 
 - **Main hall walls** (the runnable boxes keep their colliders, lose their renderers): white cladding with marble
-  wainscot and steel skirting between the shops; 24 glass shopfronts flush with the runnable face (a wall-run runs on the
+  wainscot and steel skirting between the shops; 23 glass shopfronts flush with the runnable face (a wall-run runs on the
   glass; the gondolas' mines sit on it), each with its sign on a graphite fascia and a lit room 4.2 m deep behind (floor,
-  painted walls in one of six colours, ceiling with light panels, shelves of goods, a lightbox poster, a display table or
-  plants, one warm point light without shadows); a gold reveal; a glass curtain wall (its pane at the runnable face, so a wall-run above 6 m runs on the glass) with steel mullions behind it from 6 m (10 m on
-  the north wall, which has a second row of shops above the mezzanine; 8.2 m on the south wall, above the warm-up roof);
-  a white cornice. South wall: four lit vitrines, THE GALLERIA over the doorway, the doorway's steel-and-gold portal.
-- **Skylight**: white beams every 5 m with a gold underline, steel mullions every 2.5 m.
+  painted walls in one of six colours, ceiling with light panels, the brand's own lightbox advert, one warm point light
+  without shadows) fitted out by what it sells: shelves of one kind of goods (books, shoe boxes, bottles, jars, folded
+  clothes, cosmetics, toys; every shelf a different stretch of its row), clothes rails hung with garments, white display
+  plinths with gold tops, a wall of glowing screens, or plants. 19 brands, so no wall shows a shop twice (23 shops: the
+  bay behind the service lift's lobby has the lift doors). A gold reveal; a
+  glass curtain wall (its pane at the runnable face, so a wall-run above 6 m runs on the glass) with steel mullions
+  behind it from 6 m (10 m on the north wall, which has a second row of shops above the mezzanine; 8.2 m on the south
+  wall, above the warm-up roof); a white cornice. South wall: four lit vitrines, THE GALLERIA over the doorway, the
+  doorway's steel-and-gold portal.
+- **The far goal** (fix round 1; the lobby itself is the level's `GalleriaArena.LiftLobby`, under the deck at x 4..8):
+  its back wall, in the north wall's bay at x 7 under the deck, is lift doors instead of a shop: brushed-gold doors in a
+  steel frame on a cream marble recess, two glowing light columns and an indicator, SKY TERRACE on the fascia; two SKY
+  TERRACE banners hang from the beam in front of the deck, over the lobby. Visual only (inside the wall's slab).
+- **Skylight**: white beams every 5 m with a gold underline, steel mullions every 2.5 m, tinted glass (alpha 0.2) with
+  fritted bands along the beams and round the edge. **Banners** hang from the beams (bottom 10 m, out of reach): navy
+  THE GALLERIA and white AT YOUR SERVICE over the west aisle, teal FOOD COURT over the east one, so the hall's halves
+  differ at a glance.
 - **Mezzanine**: terrazzo deck, white body, ceiling-tile soffit with 36 downlights, graphite and gold lines on its edge,
   a steel handrail and posts behind the glass; the spotlight plinths in graphite with a gold band.
-- **Cover**: pillars in white cladding with a graphite base, a gold band and a gold capital; food stalls in pine with
-  two menu boards each (NOODLE BAR, TACO SOL, BAO HAUS, JUICE LAB) and a steel ledge; the info booth in white with a marble
-  base and CONCIERGE's screens; kiosks in marble with lightbox adverts; hollow marble planters with soil and plants.
+- **Cover**: pillars in white cladding with a graphite base, a gold band and a gold capital; food stalls in pine, each
+  with its own menu on both faces (NOODLE BAR, TACO SOL, BAO HAUS, JUICE LAB) and a steel ledge; the info booth in white
+  with a marble base and CONCIERGE's screens; kiosks in marble with lightbox adverts; hollow marble planters with soil
+  and plants.
 - **Floors**: a gold inlay in the terrazzo (a border 1.2 m in, two aisle lines at x = +-10, an octagonal medallion between
   the kiosks), cream marble under the mezzanine.
-- **Warm-up hall**: wainscot, pilasters, a cornice with a gold line under the glass roof and its beams; eight closed shops
-  (shutters, signs, CONCIERGE's remodel notices); CONCIERGE's welcome screen and two lightboxes behind the start; on the
-  doorway's side the GALLERIA sign over the portal, THE GALLERIA and FOOD COURT screens either side; the espresso kiosk
-  (the boost ledge) with glowing ESPRESSO signs on all four sides, a gold cornice at the ledge, goods behind its counter
-  glass; the practice gantry and its floor mark in the firm's hazard orange. (The wet-floor sign stands only inside a shop, behind glass: a walk-through prop in the open would read as phasing.)
-- **The city** (backdrop): 30 glass towers 110-520 m out with setbacks and crowns, three sky-bridges, a monorail on
+- **Warm-up hall**: wainscot, cream-marble pilasters with gold bases and capitals, a graphite frieze with a gold line at
+  4.6 m, fabric banners between the pilasters, a glowing cove line under the cornice, the glass roof and its beams; eight
+  closed shops (shutters in four colours, signs, CONCIERGE's remodel notices); CONCIERGE's welcome screen and two
+  lightboxes behind the start; on the doorway's side the GALLERIA sign over the portal, THE GALLERIA and FOOD COURT
+  screens either side; the espresso kiosk (the boost ledge) with glowing ESPRESSO signs on all four sides, a gold cornice
+  at the ledge, bottles and jars behind its counter glass; the practice gantry and its floor mark in the firm's hazard
+  orange. (The wet-floor sign stands only inside a shop, behind glass: a walk-through prop in the open would read as
+  phasing.)
+- **The city** (backdrop): 34 towers 110-520 m out in seven facades (blue, white, teal, dark, bronze, silver ribbon
+  windows, stone) and five shapes (a slab with a setback and a crown, a slender tower with a spire on a stone podium, a
+  stepped tower with banded tiers, twin towers on a podium, a slab turned off the grid), three sky-bridges, a monorail on
   piers 160 m north, paved ground; all hazed by distance.
 
 ## Sign words (drafts for the creator)
 
 THE GALLERIA / Halcyon Row · est. 2051; CONCIERGE / At your service, always; PLEASE DO NOT RUN / Floor care in progress;
 REMODEL IN PROGRESS / Thank you for your patience; WELCOME, VALUED GUEST / Your visit is being recorded; GALLERIA;
-ESPRESSO · KIOSK ·; FOOD COURT (arrow); SECURITY RE-DEPLOYMENT (the entry lane). Shops: VELLUM BOOKS, ORBIT TOYS,
-HALCYON OPTICS, NIMBUS TEA, PARCEL & PINE, LUMEN AUDIO, MERIDIAN SHOES, KITE & CO, BLOOM FLORIST, AURA SKIN, NOVA PHONES,
-SOLSTICE SPORTS. Food stalls: NOODLE BAR, TACO SOL, BAO HAUS, JUICE LAB (dishes: Signature bowl, Spicy special, Combo
-deal, Side of greens, Daily soup, Iced drink). Posters: NEW SEASON, SALE, SUMMER, LIMITED, NOW OPEN, FRESH, ICONS, THE
-EDIT, FREE GIFT, MEMBERS, LAUNCH, STYLE, TASTE, SOUND, LIGHT, PLAY. Change them in `make-textures.py` and re-run it.
+ESPRESSO · KIOSK ·; FOOD COURT (arrow); SECURITY RE-DEPLOYMENT (the entry lane); SKY TERRACE / Lifts · Observation deck
+(the lifts). Shops: VELLUM BOOKS, ORBIT TOYS, HALCYON OPTICS, NIMBUS TEA, PARCEL & PINE, LUMEN AUDIO, MERIDIAN SHOES,
+KITE & CO, BLOOM FLORIST, AURA SKIN, NOVA PHONES, SOLSTICE SPORTS, GILT & GRAIN, COBALT DENIM, PIXEL ARCADE, ATLAS
+TRAVEL, HEARTH HOME, VERDE MARKET, QUILL STATIONERY. Menus: NOODLE BAR (Beef pho 12.50, Dan dan noodles 11.00, Chilli
+wontons 8.50, Miso ramen 13.25, Spring rolls 6.00, Jasmine tea 3.50); TACO SOL (Al pastor tacos 9.75, Fish tacos 10.50,
+Loaded nachos 8.25, Street corn 5.00, Churros 4.75, Horchata 3.75); BAO HAUS (Pork belly bao 7.50, Crispy tofu bao
+6.75, Chicken bao 7.25, Sesame fries 4.50, Quick pickles 3.00, Yuzu soda 3.95); JUICE LAB (Green machine 6.50, Sunrise
+press 6.25, Acai bowl 9.00, Protein shake 7.00, Ginger shot 2.75, Cold brew 4.25). Posters (brand: headline / line):
+VELLUM BOOKS: READ THE SUMMER / 3 for 2 on paperbacks; ORBIT TOYS: PLAY BIG / the new rocket kits; HALCYON OPTICS: SEE
+CLEARLY / eye tests, free; NIMBUS TEA: SLOW DOWN / first-flush oolong; PARCEL & PINE: GIFTS, WRAPPED / free wrapping
+today; LUMEN AUDIO: HEAR EVERYTHING / noise cancelling, all day; MERIDIAN SHOES: STEP OUT / the city runner; KITE & CO:
+THE LINEN EDIT / light layers for the season; BLOOM FLORIST: FRESH TODAY / the peonies are in; AURA SKIN: GLOW / vitamin
+C serum; NOVA PHONES: NOVA 9 / brighter. thinner. yours.; SOLSTICE SPORTS: GO FURTHER / members save 20%; THE GALLERIA:
+MEMBERS' EVENING / Thursday, late opening; CONCIERGE: AT YOUR SERVICE / ask at the info desk; GILT & GRAIN: WARM FROM
+THE OVEN / sourdough, all day; PIXEL ARCADE: HIGH SCORE / new cabinets in store. Banners: THE GALLERIA / Halcyon Row; AT
+YOUR SERVICE / CONCIERGE; FOOD COURT / Level 0 · east; SKY TERRACE / Opening soon. Change them in `make-textures.py`
+and re-run it.
+
 
 ## Rebuilding the textures
 
@@ -100,6 +138,7 @@ uv run python -I tools/skyline/look/fetch.py out/skyline-look-src               
 uv run --with numpy --with pillow python -I tools/skyline/look/prep.py out/skyline-look-src Assets/JamKit/Templates/SkylineRepo/ThirdParty
 uv run --with numpy python -I tools/look/hdri-prep.py out/skyline-look-src/hdri/kloofendal_38d_partly_cloudy_puresky_4k.hdr Assets/JamKit/Templates/SkylineRepo/ThirdParty/Sky/Sky_Kloofendal38d_4k.hdr Assets/JamKit/Templates/SkylineRepo/ThirdParty/Sky/sky.json 12
 uv run --with numpy --with pillow python -I tools/skyline/look/make-textures.py Assets/JamKit/Templates/SkylineRepo/Look/Textures
+uv run --with numpy python -I tools/skyline/look/grade-check.py      # the grade's orange/gold rule, no Unity needed
 ```
 
 Import settings (normal maps, linear masks, alpha for the leaves, the HDR sky) are set from code by
@@ -107,7 +146,8 @@ Import settings (normal maps, linear masks, alpha for the leaves, the HDR sky) a
 
 ## Cost (estimates for the RTX 3050 laptop at 1080p, unmeasured until the pass)
 
-About 120 dressing draw calls (merged per material per area), ~40k dressing vertices, 24 small point lights without
+About 170 dressing draw calls (merged per material per area; about 60 of them the city's Unlit facades), ~50k dressing
+vertices, 23 small point lights without
 shadows (Forward+), one shadowed sun (80 m, four cascades, 2048, medium soft shadows), post (bloom quarter-res,
-tonemapping, grading, vignette) ~0.3 ms, SMAA ~0.3 ms, two baked probes (no runtime cost), the towers cheap and
-shadowless. Texture memory: 7 library sets at 2K (BC1/BC5/BC3), the 4K sky (BC6H, 8 MB), atlases at 1-2K.
+tonemapping, grading, vignette) ~0.3 ms, SMAA ~0.3 ms, two baked probes (no runtime cost), the towers Unlit (cheaper than the Lit
+they replaced) and shadowless; the skylight's frit adds a few transparent quads when looking up. Texture memory: 7 library sets at 2K (BC1/BC5/BC3), the 4K sky (BC6H, 8 MB), atlases at 1-2K.

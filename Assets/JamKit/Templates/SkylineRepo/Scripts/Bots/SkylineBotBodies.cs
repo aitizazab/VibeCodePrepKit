@@ -75,6 +75,21 @@ namespace JamKit.SkylineRepo
             return m;
         }
 
+        static readonly Dictionary<Color, Material> _wet = new Dictionary<Color, Material>();
+
+        /// <summary>A shared lit material of <paramref name="c"/> that reads wet: very smooth, so it catches the sun and the
+        /// sky's reflection (acid, puddles).</summary>
+        public static Material Wet(Color c)
+        {
+            if (_wet.TryGetValue(c, out var m) && m != null) return m;
+            m = new Material(Template()) { color = c };
+            if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.93f);
+            if (m.HasProperty("_Glossiness")) m.SetFloat("_Glossiness", 0.93f);
+            if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0f);
+            _wet[c] = m;
+            return m;
+        }
+
         /// <summary>A shared unlit material for the few things that glow (HDR colours read as hot under bloom): URP's Unlit,
         /// else Sprites/Default (always in a build), else the lit template.</summary>
         public static Material Glow(Color hdr)
@@ -110,6 +125,54 @@ namespace JamKit.SkylineRepo
             go.transform.localRotation = Quaternion.Euler(euler);
             go.transform.localScale = scale;
             return go;
+        }
+
+        /// <summary>How many shard shapes <see cref="ShardMesh"/> makes.</summary>
+        public const int ShardVariants = 4;
+        static readonly Mesh[] _shards = new Mesh[ShardVariants];
+
+        /// <summary>A broken-off piece of shell about 1 unit across (scale it to size): an irregular five- to seven-sided plate,
+        /// domed a little on top like a piece of a curved casing, with hard edges. A wreck's debris, in the bot's own material.</summary>
+        public static Mesh ShardMesh(int variant)
+        {
+            variant = ((variant % ShardVariants) + ShardVariants) % ShardVariants;
+            if (_shards[variant] != null) return _shards[variant];
+            var rng = new System.Random(7919 * (variant + 1));
+            int n = 5 + variant % 3;
+            const float Thick = 0.14f, Dome = 0.1f;
+            var rim = new Vector3[n];
+            for (int i = 0; i < n; i++)
+            {
+                float a = (i + (float)rng.NextDouble() * 0.6f) / n * Mathf.PI * 2f;
+                float r = 0.3f + 0.25f * (float)rng.NextDouble() + (i == 0 ? 0.2f : 0f);   // one long point: a torn corner
+                rim[i] = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
+            }
+            var verts = new List<Vector3>();
+            var tris = new List<int>();
+            Vector3 top = new Vector3(0f, Thick * 0.5f + Dome, 0f), bottom = new Vector3(0f, -Thick * 0.5f + Dome * 0.6f, 0f);
+            for (int i = 0; i < n; i++)
+            {
+                Vector3 a = rim[i], b = rim[(i + 1) % n];
+                Vector3 at = a + Vector3.up * Thick * 0.5f, bt = b + Vector3.up * Thick * 0.5f;
+                Vector3 ab = a - Vector3.up * Thick * 0.5f, bb = b - Vector3.up * Thick * 0.5f;
+                int k = verts.Count;
+                verts.Add(top); verts.Add(bt); verts.Add(at);                       // the domed top
+                tris.Add(k); tris.Add(k + 1); tris.Add(k + 2);
+                k = verts.Count;
+                verts.Add(bottom); verts.Add(ab); verts.Add(bb);                    // the underside
+                tris.Add(k); tris.Add(k + 1); tris.Add(k + 2);
+                k = verts.Count;
+                verts.Add(at); verts.Add(bt); verts.Add(bb); verts.Add(ab);         // the broken edge
+                tris.Add(k); tris.Add(k + 1); tris.Add(k + 2);
+                tris.Add(k); tris.Add(k + 2); tris.Add(k + 3);
+            }
+            var m = new Mesh { name = "Wreck shard " + variant };
+            m.SetVertices(verts);
+            m.SetTriangles(tris, 0);
+            m.RecalculateNormals();
+            m.RecalculateBounds();
+            _shards[variant] = m;
+            return m;
         }
 
         public static Transform Empty(string name, Transform parent, Vector3 localPos)
@@ -238,7 +301,68 @@ namespace JamKit.SkylineRepo
                 foreach (var r in p.mount.GetComponentsInChildren<Renderer>(true))
                     if (r.GetComponent<Collider>() == null && r is MeshRenderer) r.gameObject.AddComponent<BoxCollider>();
             }
+            ClearWeakPoint(p);
         }
+
+        /// <summary>
+        /// Keeps the weak point shootable (judge round 1: no Writ shot could reach the drone's lens, so the spot lesson
+        /// failed). A box collider is a mesh's bounds, and a round part's box swallows what stands proud of its true surface:
+        /// the drone's egg got a box reaching z 0.374 with the lens (front at 0.337) inside it, so every shot at the lens hit
+        /// the body. Any body or plate box that holds the weak point's centre has its face on the weak point's side pulled
+        /// back to the weak point's inner face, so the weak point's outer half stands clear. Worked in each box's own frame;
+        /// <c>tools/skyline/bots/weakpoint_reach.py</c> mirrors this rule and ray-tests every bot's front arc.
+        /// </summary>
+        static void ClearWeakPoint(SkylineBotParts p)
+        {
+            if (p.weakPoint == null) return;
+            var corners = new List<Vector3>();
+            foreach (var mf in p.weakPoint.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null) continue;
+                var b = mf.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                    corners.Add(mf.transform.TransformPoint(new Vector3((i & 1) == 0 ? b.min.x : b.max.x, (i & 2) == 0 ? b.min.y : b.max.y, (i & 4) == 0 ? b.min.z : b.max.z)));
+            }
+            if (corners.Count == 0) return;
+            Vector3 wc = Vector3.zero;
+            {
+                Vector3 lo = corners[0], hi = corners[0];
+                for (int i = 1; i < corners.Count; i++) { lo = Vector3.Min(lo, corners[i]); hi = Vector3.Max(hi, corners[i]); }
+                wc = (lo + hi) * 0.5f;
+            }
+            var boxes = new List<BoxCollider>(p.rig.GetComponentsInChildren<BoxCollider>(true));
+            if (p.mount != null) boxes.AddRange(p.mount.GetComponentsInChildren<BoxCollider>(true));
+            foreach (var box in boxes)
+            {
+                if (box.transform.IsChildOf(p.weakPoint)) continue;
+                var t = box.transform;
+                Vector3 c = t.InverseTransformPoint(wc);
+                Vector3 bmin = box.center - box.size * 0.5f, bmax = box.center + box.size * 0.5f;
+                if (c.x < bmin.x || c.x > bmax.x || c.y < bmin.y || c.y > bmax.y || c.z < bmin.z || c.z > bmax.z) continue;
+                // the weak point's bounds in this box's frame
+                Vector3 wlo = t.InverseTransformPoint(corners[0]), whi = wlo;
+                for (int i = 1; i < corners.Count; i++)
+                {
+                    Vector3 q = t.InverseTransformPoint(corners[i]);
+                    wlo = Vector3.Min(wlo, q);
+                    whi = Vector3.Max(whi, q);
+                }
+                // the axis the weak point sits furthest out along (relative to the box's half size)
+                int a = 0;
+                float best = -1f;
+                for (int k = 0; k < 3; k++)
+                {
+                    float r = Mathf.Abs(c[k] - box.center[k]) / Mathf.Max(1e-6f, box.size[k] * 0.5f);
+                    if (r > best) { best = r; a = k; }
+                }
+                if (c[a] >= box.center[a]) bmax[a] = Mathf.Max(bmin[a] + MinBoxThickness, wlo[a]);
+                else bmin[a] = Mathf.Min(bmax[a] - MinBoxThickness, whi[a]);
+                box.center = (bmin + bmax) * 0.5f;
+                box.size = bmax - bmin;
+            }
+        }
+
+        const float MinBoxThickness = 0.02f;
 
         static Transform Need(EnemyDef def, Transform rig, string name)
         {

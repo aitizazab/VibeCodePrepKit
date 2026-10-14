@@ -22,9 +22,10 @@ namespace JamKit.SkylineRepo
     /// and sparks on a live bot only ever mark a Writ spot (spec 14, the damage-feedback rule); the spot's own crack, sparks
     /// and sounds are SkylineSpotMarker's.</item>
     /// <item>At rest: a hushed-court air (<c>writ/hush</c>) loops quietly while the Writ is out.</item>
-    /// <item>The home pose: a yaw of <see cref="HomeYaw"/> toward the crosshair and a small lift, layered on the viewmodel's
-    /// pose each frame, so the colonnade's side shows at the hip. The inspect's sight check undoes it in its pose data
-    /// (SkylineGuns.WritSightCheck).</item>
+    /// <item>The draw assembles the court on screen: the bench and chair rise into place, the gavel drops in over the bench,
+    /// the doors swing shut and the lamps catch. The reload is a twist-lock: the drum spins out as it drops and the new one
+    /// twists home a quarter turn on the hydraulic seat. (The Writ's rest turn toward the crosshair, once a "home" layer
+    /// here, is SkylineViewmodel's WritRestEuler since fix round 1.)</item>
     /// </list>
     /// Everything is pooled and made in Start; no per-shot searches or allocations.
     /// </summary>
@@ -33,8 +34,6 @@ namespace JamKit.SkylineRepo
     {
         public const string ImpactSound = "writ/impact", ImpactWeakSound = "writ/impact_weak", SpotPopSound = "writ/spot_pop",
             HushSound = "writ/hush";
-        public const float HomeYaw = -9f;
-        public static readonly Vector3 HomeOffset = new Vector3(0f, 0.015f, 0f);
 
         // ---- presentation tuning (the gun's numbers live in SkylineGuns.Writ)
         const int FlashFrames = 3;
@@ -42,7 +41,9 @@ namespace JamKit.SkylineRepo
         const float GavelDown = 0.0077f, GavelStrike = 0.025f, GavelReturn = 0.16f, GavelTilt = 10f;
         const float DoorsOpen = 68f, DoorsClose = 0.2f, BenchKick = 0.005f, BenchRack = 0.018f;
         const float RibbonLife = 0.09f, RibbonWidth = 0.006f;
-        const float DecalLife = 5f, DecalFade = 0.6f, DecalSize = 0.07f;
+        // fix round 1 (judge C 11-12): impacts and spot marks read at fight range: the decal is twice the size, and the seal
+        // and the pop scale up with distance (x1 to 6 m, then in proportion, so they keep about the same size on screen)
+        const float DecalLife = 5f, DecalFade = 0.6f, DecalSize = 0.13f, ReadDistance = 6f;
         const float HushVolume = 0.1f;
         const int Sparks = 40, Flakes = 24, Rings = 10, Rays = 24, Decals = 16, Ribbons = 6, Spikes = 5;
 
@@ -88,7 +89,10 @@ namespace JamKit.SkylineRepo
 
         // ---------------------------------------------------------------- the viewmodel's Writ
 
-        Transform _vmCam, _gunRoot, _muzzle, _bench, _gavel, _doorL, _doorR;
+        Transform _vmCam, _gunRoot, _muzzle, _bench, _gavel, _doorL, _doorR, _mag;
+        Quaternion _magRot;
+        float _drumAngle, _drumSpin, _twistFrom, _twistAge = 99f;
+        static readonly Vector3 GripAxis = Quaternion.Euler(16f, 0f, 0f) * Vector3.up;   // the column grip's axis (raked 16 degrees)
         Vector3 _benchRest, _gavelRest, _doorLRest, _doorRRest;
         Quaternion _gavelRot, _doorLRot, _doorRRot;
         bool _resolved;
@@ -102,13 +106,14 @@ namespace JamKit.SkylineRepo
             public Vector3 vel, normal, baseScale;
             public float age, life, size, to;
             public int kind;   // 0 spark (falls, shrinks), 1 flake (falls, tumbles), 2 ring (grows, thins), 3 ray (grows out),
-                               // 4 decal (holds, then shrinks), 5 ribbon (thins), 6 seal (stamps in, holds, shrinks)
+                               // 4 decal (holds, then shrinks), 5 ribbon (thins), 6 seal (stamps in, holds, shrinks),
+                               // 7 burst (a hot flash, about four frames)
         }
 
         readonly List<Bit> _sparks = new List<Bit>(), _flakes = new List<Bit>(), _rings = new List<Bit>(), _rays = new List<Bit>();
-        readonly List<Bit> _decals = new List<Bit>(), _ribbons = new List<Bit>(), _seals = new List<Bit>();
+        readonly List<Bit> _decals = new List<Bit>(), _ribbons = new List<Bit>(), _seals = new List<Bit>(), _bursts = new List<Bit>();
         readonly List<Bit> _live = new List<Bit>();
-        int _nSpark, _nFlake, _nRing, _nRay, _nDecal, _nRibbon, _nSeal;
+        int _nSpark, _nFlake, _nRing, _nRay, _nDecal, _nRibbon, _nSeal, _nBurst;
         Transform _worldRoot, _flashRoot;
         readonly List<Transform> _spikes = new List<Transform>();
         Light _light;
@@ -202,6 +207,7 @@ namespace JamKit.SkylineRepo
             for (int i = 0; i < Decals; i++) _decals.Add(MakeDecal());
             for (int i = 0; i < Ribbons; i++) _ribbons.Add(MakeBit(PrimitiveType.Cube, _worldRoot, SkylineBotLook.Glow(Amber), 5));
             for (int i = 0; i < 6; i++) _seals.Add(MakeRing(_worldRoot, seal, 6));
+            for (int i = 0; i < 8; i++) _bursts.Add(MakeBit(PrimitiveType.Sphere, _worldRoot, SkylineBotLook.Glow(Hot), 7));
             SkylineBotLook.Glow(KillWhite);
             var lightGo = new GameObject("Writ flash light");
             lightGo.transform.SetParent(_worldRoot, false);
@@ -313,6 +319,8 @@ namespace JamKit.SkylineRepo
             _gavel = SkylineBotBodies.Find(_gunRoot, "Gavel");
             _doorL = SkylineBotBodies.Find(_gunRoot, "DoorL");
             _doorR = SkylineBotBodies.Find(_gunRoot, "DoorR");
+            _mag = SkylineBotBodies.Find(_gunRoot, "Mag");
+            if (_mag != null) _magRot = _mag.localRotation;
             if (_bench != null) _benchRest = _bench.localPosition;
             if (_gavel != null) { _gavelRest = _gavel.localPosition; _gavelRot = _gavel.localRotation; }
             if (_doorL != null) { _doorLRest = _doorL.localPosition; _doorLRot = _doorL.localRotation; }
@@ -415,8 +423,14 @@ namespace JamKit.SkylineRepo
             _flashRoot.SetParent(_gunRoot, false);
             _flashRoot.localPosition = _muzzle != null ? _gunRoot.InverseTransformPoint(_muzzle.position) : new Vector3(0f, 0.012f, 0.214f);
             var hot = SkylineBotLook.Glow(Hot);
+            // the core sits in front of the gatehouse and is taller than its arch (top 0.075), so the player, behind and above
+            // the gun, sees the burst (judge C 11: the doorway's flash faced away)
             var core = SkylineBotLook.Visual(PrimitiveType.Sphere, "core", _flashRoot, hot, false).transform;
-            core.localScale = new Vector3(0.03f, 0.05f, 0.02f);
+            core.localScale = new Vector3(0.075f, 0.1f, 0.11f);
+            core.localPosition = new Vector3(0f, 0.022f, 0.055f);
+            var halo = SkylineBotLook.Visual(PrimitiveType.Sphere, "halo", _flashRoot, SkylineBotLook.Glow(Amber), false).transform;
+            halo.localScale = new Vector3(0.13f, 0.13f, 0.05f);
+            halo.localPosition = new Vector3(0f, 0.03f, 0.03f);
             for (int i = 0; i < Spikes; i++)
             {
                 var s = SkylineBotLook.Visual(PrimitiveType.Cube, "spike", _flashRoot, hot, false).transform;
@@ -456,8 +470,10 @@ namespace JamKit.SkylineRepo
                     if (cue.clip == HandlingClipKind.DryFire) { _shotAge = 0f; _strikeScale = 0.4f; }
                     break;
                 case GunCueKind.Event:
-                    if (cue.ev.id == "seat") _seatFlash = 1f;
+                    if (cue.ev.id == "seat") { _seatFlash = 1f; _twistFrom = _drumAngle; _twistAge = 0f; _drumSpin = 0f; }
                     if (cue.ev.id == "bolt") _rackAge = 0f;
+                    if (cue.ev.id == "mag_out") _drumSpin = 720f;                       // the old drum spins out as it drops
+                    if (cue.ev.id == "cell_in") { _drumSpin = 0f; _drumAngle = -90f; }  // the new one goes in a quarter turn off
                     break;
             }
         }
@@ -466,23 +482,26 @@ namespace JamKit.SkylineRepo
         {
             if (!info.fromWrit || !r.hit) return;
             Vector3 n = info.normal.sqrMagnitude > 1e-6f ? info.normal.normalized : -info.direction;
+            float far = player != null ? Mathf.Max(1f, Vector3.Distance(player.EyePosition, info.point) / ReadDistance) : 1f;
             if (r.writ.spotHit)
             {
                 SkylineSounds.PlayViewmodel(SpotPopSound, 0.9f);
-                Ring(info.point + n * 0.02f, n, 0.05f, 0.42f, 0.2f);
-                Ring(info.point + n * 0.02f, n, 0.02f, 0.26f, 0.13f);
+                Ring(info.point + n * 0.02f, n, 0.05f * far, 0.42f * far, 0.22f);
+                Ring(info.point + n * 0.02f, n, 0.02f * far, 0.26f * far, 0.15f);
                 Flash(info.point + n * 0.3f, new Color(1f, 0.8f, 0.35f), 0.06f, 3f);
             }
+            // the layering rule (docs/SKYLINE-GUN-WRIT.md): one hit layer from the shooter's side; a spot hit's is spot_pop
+            // (above), so impact_weak / impact play only when no spot was hit
             else if (info.zone == HitZone.WeakPoint) SkylineSounds.PlayAt(ImpactWeakSound, info.point, 0.9f);
             else SkylineSounds.PlayAt(ImpactSound, info.point, 0.8f);
-            if (r.writ.spotCreated) Seal(info.point + n * 0.012f, n);
+            if (r.writ.spotCreated) Seal(info.point + n * 0.012f, n, far);
             if (!r.writ.spotHit && !r.writ.spotCreated)
-                for (int i = 0; i < 3; i++) Flake(info.point + n * 0.02f, n);     // ordinary damage is dark
+                for (int i = 0; i < 4; i++) Flake(info.point + n * 0.02f, n, far);    // ordinary damage is dark
             if (r.killed)
             {
-                Vector3 toEye = player != null ? (player.EyePosition - info.point).normalized : n;
-                Ring(info.point, toEye, 0.1f, 0.95f, 0.26f, true);
-                for (int i = 0; i < 10; i++) Spark(info.point, n, 3.5f);         // a dead bot may spark
+                // a kill is a white starburst, not a ring, so it can't be taken for a spot's gold pop (judge C 12)
+                Burst(info.point, 0.35f * Mathf.Min(far, 2.5f));
+                for (int i = 0; i < 12; i++) Spark(info.point, Random.onUnitSphere + Vector3.up, 4.5f, 1f);   // a dead bot may spark
             }
         }
 
@@ -496,13 +515,6 @@ namespace JamKit.SkylineRepo
             int slot = WritSlot();
             var gun = slot >= 0 && l != null ? l[slot] : null;
             bool out_ = gun != null && gun.Equipped && l.ActiveIndex == slot && _gunRoot.gameObject.activeInHierarchy;
-
-            if (out_)
-            {
-                // the home pose, on top of what the viewmodel set this frame
-                _gunRoot.localRotation = Quaternion.Euler(0f, HomeYaw, 0f) * _gunRoot.localRotation;
-                _gunRoot.localPosition += HomeOffset;
-            }
 
             _shotAge += dt;
             _rackAge += dt;
@@ -531,6 +543,10 @@ namespace JamKit.SkylineRepo
         void AnimateModel(SkylineGun gun)
         {
             float t = Time.time;
+            // the draw assembles the court: 0 at the start of the equip, 1 once it's in place
+            float e = _equipSeconds > 0f ? Mathf.Clamp01(_equipAge / _equipSeconds) : 1f;
+            float benchUp = Smooth(Mathf.InverseLerp(0.05f, 0.5f, e));
+            float gavelIn = Smooth(Mathf.InverseLerp(0.35f, 0.75f, e));
             // the gavel: a slow hover, and on a shot a strike down onto the bench, then back
             if (_gavel != null)
             {
@@ -539,12 +555,13 @@ namespace JamKit.SkylineRepo
                 if (_shotAge < GavelStrike) strike = _shotAge / GavelStrike;
                 else if (_shotAge < GavelStrike + GavelReturn) { float u = (_shotAge - GavelStrike) / GavelReturn; strike = 1f - u * u * (3f - 2f * u); }
                 strike *= _strikeScale;
-                _gavel.localPosition = _gavelRest + ParentVector(_gavel, new Vector3(0f, hover * (1f - strike) - GavelDown * strike, 0f));
+                _gavel.localPosition = _gavelRest + ParentVector(_gavel, new Vector3(0f, hover * (1f - strike) - GavelDown * strike + 0.05f * (1f - gavelIn), 0f));
                 _gavel.localRotation = ParentRotation(_gavel, Quaternion.Euler(GavelTilt * strike + Mathf.Sin(t * 2.3f) * 2f, 0f, 0f)) * _gavelRot;
             }
             // the doors: thrown open (outward, toward the target) by the flash, swinging shut
             float open = _shotAge < 0.03f ? 1f : Mathf.Clamp01(1f - (_shotAge - 0.03f) / DoorsClose);
             open = open * open * (_strikeScale >= 1f ? 1f : 0f);
+            open = Mathf.Max(open, 1f - Smooth(Mathf.InverseLerp(0.4f, 0.8f, e)));     // open while drawn, shut as it locks
             if (_doorL != null) _doorL.localRotation = ParentRotation(_doorL, Quaternion.Euler(0f, -DoorsOpen * open, 0f)) * _doorLRot;
             if (_doorR != null) _doorR.localRotation = ParentRotation(_doorR, Quaternion.Euler(0f, DoorsOpen * open, 0f)) * _doorRRot;
             // the bench and chair (the slide): a small kick on each shot, a full rack on the bolt
@@ -553,12 +570,25 @@ namespace JamKit.SkylineRepo
                 float kick = _shotAge < 0.02f ? _shotAge / 0.02f : Mathf.Clamp01(1f - (_shotAge - 0.02f) / 0.1f);
                 float rack = _rackAge < 0.06f ? _rackAge / 0.06f : Mathf.Clamp01(1f - (_rackAge - 0.06f) / 0.07f);
                 float back = BenchKick * kick * _strikeScale + BenchRack * rack;
-                _bench.localPosition = _benchRest + ParentVector(_bench, new Vector3(0f, 0f, -back));
+                _bench.localPosition = _benchRest + ParentVector(_bench, new Vector3(0f, -0.04f * (1f - benchUp), -back));
+            }
+            // the drum: spins out as it drops, goes in a quarter turn off, twists home on the seat
+            if (_mag != null)
+            {
+                float dt = Time.deltaTime;
+                _drumAngle += _drumSpin * dt;
+                _drumSpin = Mathf.MoveTowards(_drumSpin, 0f, 1400f * dt);
+                _twistAge += dt;
+                if (_twistAge < 0.08f) _drumAngle = Mathf.Lerp(_twistFrom, 0f, Smooth(_twistAge / 0.08f));
+                else if (_twistAge < 0.2f) _drumAngle = 0f;
+                _mag.localRotation = ParentRotation(_mag, Quaternion.AngleAxis(_drumAngle, GripAxis)) * _magRot;
             }
             // the glows: lamps flicker and light up on the draw; the doorway flares with the shot; the cell shows the charge
             float drawn = Mathf.Clamp01(_equipAge / (_equipSeconds * 0.7f));
             float flicker = 0.92f + 0.08f * Mathf.PerlinNoise(t * 6f, 0.3f);
-            SetGlow(_lamp, _lampBase * (drawn * flicker * (1f + 1.5f * ShotGlow())));
+            // the lamps catch as it's drawn: a stutter like gas taking, then steady
+            float lit = drawn >= 1f ? 1f : drawn * (0.55f + 0.45f * Mathf.Abs(Mathf.Sin(drawn * 31f)));
+            SetGlow(_lamp, _lampBase * (lit * flicker * (1f + 1.5f * ShotGlow())));
             SetGlow(_door, _doorBase * (Mathf.Lerp(0.2f, 1f, drawn) * (1f + 4f * ShotGlow())));
             if (gun != null)
             {
@@ -567,6 +597,8 @@ namespace JamKit.SkylineRepo
                 SetGlow(_cell, _cellBase * (0.15f + 0.85f * charge) + Color.white * (2.5f * _seatFlash));
             }
         }
+
+        static float Smooth(float u) { u = Mathf.Clamp01(u); return u * u * (3f - 2f * u); }
 
         float ShotGlow() => _strikeScale >= 1f ? Mathf.Clamp01(1f - _shotAge / 0.25f) : 0f;
 
@@ -608,11 +640,11 @@ namespace JamKit.SkylineRepo
                     for (int i = 0; i < _spikes.Count; i++)
                     {
                         float a = 360f * i / _spikes.Count + Random.Range(-12f, 12f);
-                        float len = Random.Range(0.03f, 0.055f);
+                        float len = Random.Range(0.07f, 0.11f);
                         var s = _spikes[i];
                         s.localRotation = Quaternion.Euler(0f, 0f, a);
-                        s.localPosition = s.localRotation * new Vector3(len * 0.5f, 0f, 0.004f);
-                        s.localScale = new Vector3(len, 0.0045f, 0.0045f);
+                        s.localPosition = new Vector3(0f, 0.022f, 0.05f) + s.localRotation * new Vector3(len * 0.5f, 0f, 0f);
+                        s.localScale = new Vector3(len, 0.008f, 0.008f);
                     }
                 }
                 float k = (float)_flashLeft / FlashFrames;
@@ -636,7 +668,9 @@ namespace JamKit.SkylineRepo
                 end = hit.point;
                 if (hit.collider.GetComponent<SkylineHitZone>() == null)
                 {
-                    for (int i = 0; i < 6; i++) Spark(hit.point + hit.normal * 0.01f, hit.normal, 2.6f);
+                    float far = Mathf.Max(1f, hit.distance / ReadDistance);
+                    for (int i = 0; i < 10; i++) Spark(hit.point + hit.normal * 0.01f, hit.normal, 3f, Mathf.Min(far, 3f));
+                    Burst(hit.point + hit.normal * 0.03f, 0.09f * Mathf.Min(far, 3f));
                     Decal(hit.point, hit.normal);
                 }
             }
@@ -656,22 +690,22 @@ namespace JamKit.SkylineRepo
             return b;
         }
 
-        void Spark(Vector3 at, Vector3 n, float speed)
+        void Spark(Vector3 at, Vector3 n, float speed, float scale)
         {
             var b = Take(_sparks, ref _nSpark);
             b.vel = (n + Random.insideUnitSphere * 0.7f).normalized * speed * Random.Range(0.5f, 1f);
             b.life = Random.Range(0.18f, 0.3f);
-            b.size = Random.Range(0.012f, 0.02f);
+            b.size = Random.Range(0.016f, 0.026f) * scale;
             b.t.position = at;
             b.t.localScale = Vector3.one * b.size;
         }
 
-        void Flake(Vector3 at, Vector3 n)
+        void Flake(Vector3 at, Vector3 n, float scale)
         {
             var b = Take(_flakes, ref _nFlake);
             b.vel = (n + Random.insideUnitSphere * 0.6f).normalized * Random.Range(1.2f, 2.4f);
             b.life = Random.Range(0.35f, 0.55f);
-            b.size = Random.Range(0.025f, 0.04f);
+            b.size = Random.Range(0.03f, 0.05f) * Mathf.Min(scale, 2.5f);
             b.t.SetPositionAndRotation(at, Random.rotation);
             b.t.localScale = new Vector3(b.size, b.size * 0.25f, b.size * 0.8f);
             b.baseScale = b.t.localScale;
@@ -690,11 +724,11 @@ namespace JamKit.SkylineRepo
 
         /// <summary>A spot forming: a gold ring pressed onto the casing like a seal (it lands big and stamps down to size),
         /// and six short rays.</summary>
-        void Seal(Vector3 at, Vector3 n)
+        void Seal(Vector3 at, Vector3 n, float scale)
         {
             var b = Take(_seals, ref _nSeal);
             b.t.SetPositionAndRotation(at, Quaternion.LookRotation(n));
-            b.size = 0.075f;
+            b.size = 0.075f * scale;
             b.life = 0.45f;
             b.t.localScale = Vector3.one * b.size * 2.4f;
             Quaternion face = Quaternion.LookRotation(n);
@@ -704,10 +738,23 @@ namespace JamKit.SkylineRepo
                 Vector3 dir = face * (Quaternion.Euler(0f, 0f, 60f * i + 30f) * Vector3.right);
                 r.normal = dir;
                 r.vel = at;
-                r.life = 0.14f;
+                r.life = 0.16f;
+                r.size = scale;
                 r.t.SetPositionAndRotation(at, Quaternion.LookRotation(dir, n));
-                r.t.localScale = new Vector3(0.006f, 0.006f, 0.01f);
+                r.t.localScale = new Vector3(0.006f, 0.006f, 0.01f) * scale;
             }
+        }
+
+        /// <summary>A hot flash at a point for about four frames: white on a kill (a starburst, never a ring), amber where a
+        /// slug hits the world.</summary>
+        void Burst(Vector3 at, float size)
+        {
+            var b = Take(_bursts, ref _nBurst);
+            b.t.GetComponent<MeshRenderer>().sharedMaterial = SkylineBotLook.Glow(size >= 0.2f ? KillWhite : Hot);
+            b.t.SetPositionAndRotation(at, Quaternion.identity);
+            b.size = size;
+            b.life = 0.07f;
+            b.t.localScale = Vector3.one * size * 0.6f;
         }
 
         void Decal(Vector3 at, Vector3 n)
@@ -772,8 +819,11 @@ namespace JamKit.SkylineRepo
                         break;
                     }
                     case 3:
-                        b.t.position = b.vel + b.normal * (0.05f + 0.07f * u);
-                        b.t.localScale = new Vector3(0.006f * (1f - u), 0.006f * (1f - u), 0.03f + 0.04f * u);
+                        b.t.position = b.vel + b.normal * ((0.05f + 0.07f * u) * b.size);
+                        b.t.localScale = new Vector3(0.006f * (1f - u), 0.006f * (1f - u), 0.03f + 0.04f * u) * b.size;
+                        break;
+                    case 7:
+                        b.t.localScale = Vector3.one * (b.size * (0.6f + 0.6f * u) * (1f - u * u));
                         break;
                     case 4:
                     {

@@ -210,21 +210,27 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
             {
                 var cam = shot.Enforce();                         // disabled, Base
                 if (cam == null) continue;
-                var rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+                // URP renders a camera with a target texture IN that texture's format (it replaces the HDR intermediate), so
+                // an 8-bit target clamps the scene at 1.0 before the grade: no bloom, ACES tops out near 223. Render into a
+                // half-float (linear) target like the player's HDR buffer, then convert to sRGB 8-bit for the PNG.
+                var hdr = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+                var rt = new RenderTexture(1920, 1080, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
                 var tex = new Texture2D(1920, 1080, TextureFormat.RGB24, false);
                 var previousTarget = cam.targetTexture;
                 var previousActive = RenderTexture.active;
                 try
                 {
+                    hdr.Create();
                     rt.Create();
-                    var request = new UnityEngine.Rendering.RenderPipeline.StandardRequest { destination = rt };
+                    var request = new UnityEngine.Rendering.RenderPipeline.StandardRequest { destination = hdr };
                     if (UnityEngine.Rendering.RenderPipeline.SupportsRenderRequest(cam, request))
                         UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(cam, request);
                     else
                     {
-                        cam.targetTexture = rt;
+                        cam.targetTexture = hdr;
                         cam.Render();
                     }
+                    Graphics.Blit(hdr, rt);                       // linear (already tonemapped by the post) -> sRGB
                     RenderTexture.active = rt;
                     tex.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0);
                     tex.Apply();
@@ -236,6 +242,8 @@ namespace JamKit.SkylineRepo.EditorTools.Recording
                 {
                     cam.targetTexture = previousTarget;
                     RenderTexture.active = previousActive;
+                    hdr.Release();
+                    UnityEngine.Object.DestroyImmediate(hdr);
                     rt.Release();
                     UnityEngine.Object.DestroyImmediate(rt);
                     UnityEngine.Object.DestroyImmediate(tex);

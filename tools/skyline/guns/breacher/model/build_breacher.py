@@ -158,7 +158,11 @@ def join(name, objects, origin):
 
 def build():
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    orange = mat("Breacher_Orange", (0.93, 0.36, 0.04), rough=0.42)
+    # The firm's orange, deep and a little red (hue about 16 degrees, linear value 0.70): sunlit through ACES the old
+    # (0.93, 0.36, 0.04) clipped to lemon yellow (hue 50, the bots' gold; judge round 1, A6). Matte, so the sun's
+    # highlight doesn't wash it out either.
+    orange = mat("Breacher_Orange", (0.70, 0.19, 0.02), rough=0.6)
+    seam = mat("Breacher_Seam", (0.12, 0.05, 0.02), rough=0.8)
     steel = mat("Breacher_Steel", (0.2, 0.2, 0.22), rough=0.32, metal=0.85)
     dark = mat("Breacher_Dark", (0.07, 0.07, 0.08), rough=0.75)
     yellow = mat("Breacher_Cell", (1.0, 0.78, 0.1), rough=0.38)
@@ -173,6 +177,15 @@ def build():
     body.append(box("Shroud", (0, 0.078, 0.12), (0.062, 0.022, 0.22), steel, bevel=0.004))
     for i in range(4):
         body.append(box(f"Slot{i}", (0, 0.0895, 0.05 + 0.045 * i), (0.042, 0.004, 0.02), black))
+    # panel seams and rivets on the receiver's sides, so it isn't a flat slab
+    for side in (-1, 1):
+        x = side * 0.0432
+        for z in (0.06, 0.15):
+            body.append(box(f"Seam{side}{z}", (x + side * 0.0006, 0.02, z), (0.0016, 0.09, 0.003), seam))
+        body.append(box(f"SeamH{side}", (x + side * 0.0006, -0.018, 0.1), (0.0016, 0.003, 0.2), seam))
+        for z in (0.035, 0.085, 0.125, 0.175):
+            for y in (0.055, -0.008):
+                body.append(cylinder(f"Rivet{side}{z}{y}", (x + side * 0.002, y, z), 0.0035, 0.004, steel, axis="x", verts=8))
     # hazard-striped side plates (yellow with four black diagonals each side)
     for side in (-1, 1):
         x = side * 0.0435
