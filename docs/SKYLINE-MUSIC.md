@@ -39,3 +39,12 @@ near or the objective is simpler** (parkour between sections).
 - **Rights:** it is the original recording, so it is fine in private builds and playtests, but it must not ship in anything
   public (a published build, a store or itch.io page, a video) without the owner's permission. Before anything goes public,
   do ONE swap: our instruments play the melody pitch-tracked from base A, the creator compares once, and it replaces the recording.
+
+## Riser to pre-drop: decided (the creator, 2026-10-14 evening)
+- **`FableAnimationTests/audio/skyline-music/step6d-t2-3.5-harsh.wav`**: C, E, G and A as they were; then B-flat repeats
+  every 3.5 sixteenths (slightly off the grid, so it floats against the pulse), each repeat with more wub; the repeats
+  stay at full volume (no level-keeping) and drop harshly over the last three (about -6, -15, -26 dB). Under them the
+  original pre-drop (base A) starts at the bar line 30 dB down and swells up over about 1.5 s. Script:
+  `FableAnimationTests/.work/music_step6d.py` (on `music_step5.py`).
+- Riser instrument candidates (brass, accordion, reed, pairs, with/without a bass and hi-hats): `skyline-music-step6-2.html`;
+  not chosen yet.
