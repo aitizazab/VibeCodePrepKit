@@ -219,3 +219,21 @@ damage happening."
   of sparks), not a silent swap. **One hit that crosses several thresholds plays each stage's animation in quick
   succession** (above 90% to below 30% shows the 70% and the 30% damage happening, back to back).
 - Damage states are separate from Writ spots (the cracked casing with yellow outlines) and stack with them.
+
+## Damage states (every bot; the creator, 2026-10-14)
+
+"I want to see model state changes when taking damage changes health thresholds, for example a hit that takes a drone
+from above 90% to less than 30% of its health should show that damage in the model, with an animation that shows that
+damage happening."
+- Each bot has **visible damage stages at health thresholds** (starting set: 70%, 30%): panels cracked or torn off,
+  dents, exposed wiring, sparks and smoke, a wobble in its movement, its face reacting.
+- **Crossing a threshold plays the damage happening** (a panel snapping off and tumbling, a rotor guard bending, a burst
+  of sparks), not a silent swap. **One hit that crosses several thresholds plays each stage in quick succession.**
+- Separate from Writ spots (the cracked casing with yellow outlines); they stack.
+
+## The gondola rides OUTSIDE the glass (the creator, 2026-10-14)
+
+"Why were the gondolas on this side of the walls? Shouldn't they be on the outside, looking in? So they can plant the
+mines through the glass?" The window-washer gondola rides the façade's outside face, looking in through the glass, and
+lays its mines on the inside of the wall-run (through the façade's service hatches). Built so in the Food Court floor's
+east façade.
