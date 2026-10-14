@@ -31,3 +31,11 @@ near or the objective is simpler** (parkour between sections).
 - **Horizontal re-sequencing:** sections (muzak, riser, pre-drop, drop, main loop, calm loop) change only on bar lines;
   a section loops until its trigger, so any player pace stays in sync with set-pieces (the lobby's doors).
 - Changes are smoothed (seconds, not frames) so the music never flickers with a single bot.
+
+## The pre-drop: decided (the creator, 2026-10-14 evening)
+- **Base A** (the original pre-drop, unfiltered, shifted to C and stretched onto our timing after our riser) is the pre-drop:
+  "Base A and B both have the melody, but it sounds better in A." The creator doesn't want to iterate on it further.
+  File: `FableAnimationTests/audio/skyline-music/predrop-base-A-full-original.wav` (step3f).
+- **Rights:** it is the original recording, so it is fine in private builds and playtests, but it must not ship in anything
+  public (a published build, a store or itch.io page, a video) without the owner's permission. Before anything goes public,
+  do ONE swap: our instruments play the melody pitch-tracked from base A, the creator compares once, and it replaces the recording.
