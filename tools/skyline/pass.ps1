@@ -10,6 +10,9 @@
 # If stage A shows the project doesn't compile (no editor-batch.json, an error in the job, or "error CS" in its log), B, C and
 # D are skipped with a note. Exit code: 0 whenever manifest.json was written (its "ok" field carries pass or fail), non-zero
 # only when the runner itself crashed before writing one.
+# Stages B and D are muted on the speakers (Windows per-app session volume, tools/skyline/mute-app.ps1; the recording is made inside
+# Unity, so it keeps its sound); the volume is put back when the stage's result file appears. If a pass dies mid-stage and Unity stays
+# silent: powershell -NoProfile -File tools/skyline/mute-app.ps1 -RestoreName Unity
 # -NoWindows runs only the batch stages (A, C, E): B and D open normal windows that take focus, so they wait until the
 # creator is away from the PC (the creator's rule, 2026-10-12).
 # -CapShare 0.45 raises the memory cap's share of RAM for the capped stages (the build's shader compiler ran out of memory at
@@ -21,6 +24,7 @@ param([string]$Out = '', [switch]$SelfTest, [switch]$NoWindows, [string]$Only = 
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\..\unity-env.ps1"
 . "$PSScriptRoot\unity-lock.ps1"
+. "$PSScriptRoot\mute-app.ps1"
 
 function Get-FreePhysicalGB {
     return [double](Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory / 1MB      # the OS reports KB
@@ -58,10 +62,36 @@ function Get-StageLaunch {
 # invalidate the recording and the frame-time measurement. A and C (batch work) stay minimized.
 # -Capped: launched through capped-run (batch stages). -MinFreeGB: wait for that much free physical memory before starting
 # (the uncapped GPU stages). The timeout and kill act on the whole process tree, so a killed capped-run takes Unity with it.
+# -MuteAudio (stages B and D, which play sound through the speakers while the creator works): the process's Windows
+# per-app audio session volume is held at zero (tools/skyline/mute-app.ps1) while it runs; the recording is made inside Unity,
+# so it keeps its sound. -DoneFile: when that result file appears the stage's work is over, and the volume is put back at
+# once (Windows may remember an app's volume by exe path); it is also put back before a timed-out stage is killed.
+function Wait-StageProcess {
+    param($Process, [int]$TimeoutSec, [switch]$MuteAudio, [string]$DoneFile = '')
+    if (-not $MuteAudio) { return $Process.WaitForExit($TimeoutSec * 1000) }
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    $ids = [uint32[]]@([uint32]$Process.Id); $nextTree = Get-Date; $restored = $false
+    while (-not $Process.WaitForExit(200)) {
+        if ((Get-Date) -ge $deadline) {
+            if (-not $restored) { $null = Set-AppAudioMuted -ProcessIds $ids -Muted $false }
+            return $false
+        }
+        if ($restored) { continue }
+        if ($DoneFile -and (Test-Path -LiteralPath $DoneFile)) {
+            $null = Set-AppAudioMuted -ProcessIds $ids -Muted $false
+            $restored = $true
+            continue
+        }
+        if ((Get-Date) -ge $nextTree) { $ids = Get-ProcessTreeIds -RootId $Process.Id; $nextTree = (Get-Date).AddSeconds(2) }
+        $null = Set-AppAudioMuted -ProcessIds $ids -Muted $true
+    }
+    return $true
+}
+
 function Invoke-Stage {
     param([string]$Name, [string]$Exe, [string[]]$StageArgs, [int]$TimeoutSec, [string]$Log, [switch]$Locked,
           [string]$WindowStyle = 'Minimized', [switch]$Capped, [double]$MinFreeGB = 0, [int]$MemWaitSec = 600, [int]$MemPollSec = 30,
-          [switch]$CheckProject)
+          [switch]$CheckProject, [switch]$MuteAudio, [string]$DoneFile = '')
     $started = Get-Date
     $ok = $false; $note = ''
     try {
@@ -75,7 +105,7 @@ function Invoke-Stage {
         $launch = Get-StageLaunch -Exe $Exe -StageArgs $StageArgs -Capped:$Capped
         $p = Start-Process -FilePath $launch.File -ArgumentList $launch.Args -PassThru -WindowStyle $WindowStyle
         $null = $p.Handle
-        if (-not $p.WaitForExit($TimeoutSec * 1000)) {
+        if (-not (Wait-StageProcess -Process $p -TimeoutSec $TimeoutSec -MuteAudio:$MuteAudio -DoneFile $DoneFile)) {
             $note = "timed out after $TimeoutSec s; killed"
             & taskkill /PID $p.Id /T /F 2>$null | Out-Null
             # wait for the process to be really gone before the lock is released, or the next job meets a dying editor
@@ -288,6 +318,15 @@ if ($SelfTest) {
     $l2 = Get-StageLaunch -Exe 'C:\x.exe' -StageArgs @('-a')
     if ($l2.File -ne 'C:\x.exe' -or ($l2.Args -join ' ') -ne '-a') { throw 'self-test: an uncapped launch must start the program itself' }
 
+    # the muted wait loop (stages B and D): a quick exit is reported ok, a hang times out (volume restored first), and the
+    # result file path is accepted; no real audio session is touched (the test processes play nothing)
+    $r6 = Invoke-Stage -Name 'muted ok' -Exe 'powershell' -StageArgs @('-NoProfile', '-Command', 'exit 0') -TimeoutSec 30 -Log '' -Locked -MuteAudio -DoneFile (Join-Path ([IO.Path]::GetTempPath()) "skyline-no-such-file-$PID.json")
+    if (-not $r6.ok) { throw "self-test: a muted passing stage was reported as failed ($($r6 | ConvertTo-Json -Compress))" }
+    $r7 = Invoke-Stage -Name 'muted hang' -Exe 'powershell' -StageArgs @('-NoProfile', '-Command', 'Start-Sleep 600') -TimeoutSec 4 -Log '' -Locked -MuteAudio
+    if ($r7.ok -or $r7.note -notlike 'timed out*') { throw "self-test: a muted hung stage was not reported ($($r7 | ConvertTo-Json -Compress))" }
+    if (Test-Path $script:LockDir) { throw 'self-test: lock left behind after a muted timeout' }
+    if ((Set-AppAudioMuted -ProcessIds @([uint32]4294967295) -Muted $true) -gt 0) { throw 'self-test: the mute touched a session of a process that does not exist' }
+
     # an editor opened on the project while the stage waited for the lock: that stage fails, the runner doesn't crash, the lock is released
     $origAssert = ${function:Assert-ProjectUnlocked}
     try {
@@ -489,7 +528,7 @@ try {
             } elseif ($NoWindows) {
                 $stages += [pscustomobject]@{ name = 'B recording'; ok = $false; seconds = 0; log = ''; note = 'skipped: -NoWindows (needs a normal window)' }
             } else {
-            $b = Invoke-Stage -Name 'B recording' -Exe $unity -Locked -CheckProject -MinFreeGB 3 -TimeoutSec 900 -Log $log -WindowStyle Normal -StageArgs @(
+            $b = Invoke-Stage -Name 'B recording' -Exe $unity -Locked -CheckProject -MinFreeGB 3 -TimeoutSec 900 -Log $log -WindowStyle Normal -MuteAudio -DoneFile (Join-Path $Out 'capture.json') -StageArgs @(
                 '-projectPath', $proj, '-logFile', "`"$log`"", '-silent-crashes',
                 '-executeMethod', 'JamKit.SkylineRepo.EditorTools.Recording.SkylineCapture.RunFromCommandLine', '-skylineOut', "`"$Out`"")
             Update-CaptureStage -Stage $b -JsonPath (Join-Path $Out 'capture.json')
@@ -525,7 +564,7 @@ try {
                 $stages += [pscustomobject]@{ name = 'D perf'; ok = $false; seconds = 0; log = ''; note = 'skipped: -NoWindows (needs a normal window)' }
             } elseif (Test-Path $exe) {
                 $log = Join-Path $Out 'stage-d-perf.log'
-                $d = Invoke-Stage -Name 'D perf' -Exe $exe -Locked -MinFreeGB 3 -TimeoutSec 240 -Log $log -WindowStyle Normal -StageArgs @(
+                $d = Invoke-Stage -Name 'D perf' -Exe $exe -Locked -MinFreeGB 3 -TimeoutSec 240 -Log $log -WindowStyle Normal -MuteAudio -DoneFile (Join-Path $Out 'perf.json') -StageArgs @(
                     '-screen-fullscreen', '0', '-screen-width', '1920', '-screen-height', '1080', '-logFile', "`"$log`"", '-silent-crashes',
                     '-skyline-perf', "`"$Out`"")
                 Update-PerfStage -Stage $d -PerfPath (Join-Path $Out 'perf.json')
