@@ -145,3 +145,39 @@ Newest first. Every agent result and every Unity pass gets an entry (what was do
   variant), no aim down sights, no pause menu or rebinding or volume, a grating practice drone (all three added), a
   plain Breacher, a low-quality Writ, and level design that forces peeking from cover.
 - Their calls and the work queue are in `docs/SKYLINE-PLAYTEST-1.md` (start there). Build: `out/skyline-play/2026-10-14-m1b/`.
+
+## 2026-10-14 (afternoon): the level design and the art style
+
+- **The Food Court floor** designed and approved: `docs/SKYLINE-FLOOR-REPOSSESS.md` (repossess three assets in tow
+  circles; waves every 30 s, flanking; a three-level arena). Not built until the style exists in the game.
+- **The art style** chosen from a comparison of 17 first-person games: `docs/SKYLINE-STYLE.md` (comic ink; thick hued
+  outlines: hostile red-magenta, objective cyan, scrap green, Writ spots yellow, a bot's own weak points red tinted
+  yellow with a pulse; light that takes over a room; colour-free zones; Team Fortress 2's level of detail).
+- **Concepts in the style:** the redesigned drone, on patrol and shot by the Writ
+  (`FableAnimationTests/art/review/2026-10-14/skyline-style-drone.html`). The creator: "the scene reads like what I
+  meant", but wants it in the game.
+- **The look test** (`docs/SKYLINE-PLAN-STYLE.md`, Tasks 1-4) built by a Sonnet agent (commits 8305d360..f72e9042):
+  `Skyline/InkLit`, `SkylineInkFeature` (gated by the `SkylineInk` override), the palette and converter, the ink rig,
+  the violet lift lobby, the grey warm-up, the `drone-idle` still with a display drone. Shaders unverified until the pass.
+
+## 2026-10-14 (evening): the look, sounds, music sketches, and floor 1's code (no Unity pass yet)
+
+- **Look:** comic-ink rig with two fix rounds (bluer white walls, warm floors, cool shade, rotors-only weak-point pulse,
+  gallery display bots); the creator: "our look is now more defined". Writ: gavel-smack reload, quill thwip, weak-spot
+  gavel crack, ink tracer, FOV slider. Mix pass (voice limits, ducking, harsh-band cuts) and the creator's four sound
+  picks installed. Perf round 5 (prewarm of every material/variant), sprint FOV kick removed, automated runs muted.
+  None of the perf/mix/picks verified in Unity yet: the last pass (perf5) stalled for memory; a waiter re-runs it at 5 GB
+  free (pass folder out/skyline/20261014-perf6).
+- **Music** (with the creator, `docs/SKYLINE-MUSIC.md`): the riser's rhythm (sixteenths 0,4,8,11,14,16, from the
+  creator's recording) and instrument (additive, matched to the original's measured harmonics) are agreed; the
+  PopularMMOs pre-drop is still being matched (the creator's hum gives four dotted quarters: three held wubs, a dive;
+  bases A/B with more of the original on `art/review/2026-10-14/skyline-music-step3f.html` await the creator).
+- **Floor 1 build** (`docs/SKYLINE-PLAN-FLOOR1.md`, Sonnet agents, all pure-C# tests green: 849 Skyline, 210 Movement):
+  F0, F1 (arena data, 80 breakable façade panes), F2 (27 spawn doors after the corner-coverage fix, sockets, routes),
+  F3 (lint + nav; the real arena passes after D23), W1 (wave clock), W2 (bearings), W3 (RepossessSim) + W4 (bot
+  arrival) joined, R1 (objective), L1 (lobby data), M1 (music sequencer), A1 (special ammo), C1 (comic lettering),
+  V1 (HUD models incl. the wreck sequence), S0 (outline hues, x-ray objective), H2 (HUD base, Anton ammo), H4 (subtitles),
+  B1/B2 (floor and lobby builders, grey-box). Decisions D20-D23 in the plan (job sheet in the lobby; glass and shots;
+  the corridor-camper pincer; the lint fixes).
+- **Held** until a Unity pass verifies the above: X0 (director), G1 (gondola), M2, L2, R2, SD1, A2, C2, H3, H5, DM1-3,
+  D0, DR1-5, P1, J1, and the D22 pincer.
