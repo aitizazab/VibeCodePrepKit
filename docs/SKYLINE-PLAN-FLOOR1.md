@@ -279,7 +279,7 @@ tight (the week is in the red); run at most 3-4 agents at once, cheapest and mos
 | ID | Task | Kind | Size | Owns (create / modify) | Needs |
 |---|---|---|---|---|---|
 | F0 | Floor contracts, beat triggers, doc fixes | pure | S | `FloorTypes.cs`; `Encounters.cs` (enum values only), `TeachingQueue.cs` (`UrgencyOf` only); 3 docs | none |
-| F1 | Arena geometry data + test world | pure | L | `RepossessArena.cs`, `Tests/.../FloorWorld.cs`, `RepossessArenaTests.cs` | F0 |
+| F1 | Arena geometry data + test world (DONE 2026-10-14) | pure | L | `RepossessArena.cs`, `Tests/.../FloorWorld.cs`, `RepossessArenaTests.cs` | F0 |
 | F2 | Sockets, spawn doors, circles, assets, routes (DONE 2026-10-14) | pure | M | `RepossessSites.cs`, `RepossessSitesTests.cs` | F0 (F1 for the final check) |
 | W1 | Wave clock, composition, cap (DONE 2026-10-14) | pure | M | `WaveClock.cs`, `WaveClockTests.cs` | F0 |
 | W2 | Spawn bearings, door choice, telegraphs (DONE 2026-10-14) | pure | M | `SpawnBearings.cs`, `SpawnBearingsTests.cs` | F0 |
