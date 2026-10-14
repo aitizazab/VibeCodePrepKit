@@ -292,7 +292,7 @@ tight (the week is in the red); run at most 3-4 agents at once, cheapest and mos
 | S0 | Ink roles: hues, wreck thinning, x-ray objective, hostile-hue lint (DONE 2026-10-14) | Unity | M | `InkLit.shader`, `SkylineInk*.cs`, `SkylineInkRoles.cs`, `SkylineWreck.cs`, a new editor lint | none |
 | D0 | Materials, palette and the colour-free zone helper | Unity | M | `SkylineLookLibrary.cs`, `SkylineInkPalette.cs`, `SkylineInkConvert.cs`, `make-textures.py` | none |
 | F3 | Layout lint + navigation graph + base-kit routes | pure | L | `ArenaNav.cs`, `ArenaLint.cs`, tests | F1, F2 |
-| W3 | `RepossessSim`: headless floor, `FightArea`, `AddEnemy` | pure | L | `RepossessSim.cs`, `FightSim.cs`, `FightBots.cs`, `IdleWork.cs`, tests | F1, F2, W1, W2, R1 |
+| W3 | `RepossessSim`: headless floor, `FightArea`, `AddEnemy` (DONE 2026-10-14; the constructor also takes the `IMoveWorld`; bots hold at their door until W4 is wired in) | pure | L | `RepossessSim.cs`, `FightSim.cs`, `FightBots.cs`, `IdleWork.cs`, tests | F1, F2, W1, W2, R1 |
 | W4 | Door-spawned bots: arrival and engagement | pure + Unity hook | M | `BotArrival.cs`, `HoverPatrol.cs`, `SkylineBot.cs`, tests | F0 (W3 for the sim) |
 | B1 | Floor builder: the scene from data (grey-box) | Unity | M | `SkylineArenaBuilder.Floor.cs`, `SkylineScenes.cs`, `SkylineLint.cs` | F1, F2 |
 | B2 | Lobby builder (grey-box) | Unity | M | `SkylineArenaBuilder.Lobby.cs` | L1, B1 |

@@ -476,8 +476,8 @@ namespace JamKit.Skyline
             var floor = new List<CoverBox>();
             foreach (var b in f.Cover) if (b.min.Y <= 0.5f) floor.Add(b);
             var grid = new List<Vector2>();
-            for (float x = GalleriaArena.HallMinX + 1f; x <= GalleriaArena.HallMaxX - 1f; x += Grid)
-                for (float z = GalleriaArena.HallMinZ + 1f; z <= GalleriaArena.HallMaxZ - 1f; z += Grid)
+            for (float x = f.Area.minX + 1f; x <= f.Area.maxX - 1f; x += Grid)
+                for (float z = f.Area.minZ + 1f; z <= f.Area.maxZ - 1f; z += Grid)
                     if (CoverGeometry.DistanceToCover(new Vector3(x, 0f, z), floor) >= 0.7f) grid.Add(new Vector2(x, z));
             return grid;
         }

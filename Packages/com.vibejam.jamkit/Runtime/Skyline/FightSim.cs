@@ -56,6 +56,40 @@ namespace JamKit.Skyline
         FightInput Next(FightSim fight, float h);
     }
 
+    /// <summary>The ground a fight happens on (docs/SKYLINE-PLAN-FLOOR1.md Task W3): the box (x, z) the floor units and the
+    /// patrols stay inside, and the furthest +Z the drone search may go. <see cref="Galleria"/> is the old hall (the default,
+    /// so the M1 fights behave exactly as before); <see cref="Floor1"/> is the Food Court.</summary>
+    public struct FightArea
+    {
+        public float minX, maxX, minZ, maxZ;
+        /// <summary>The furthest +Z a searching drone may go (the old hall stops south of the mezzanine deck's edge).</summary>
+        public float searchMaxZ;
+        /// <summary>Added to a rail bot's rail ends to get the rail its MINES are laid along (zero: the rail itself). On the
+        /// Food Court the gondola rides outside the glass but lays its mines on the inside of the wall-run.</summary>
+        public Vector3 mineRailOffset;
+
+        /// <summary>The M1 warm-up hall (<see cref="GalleriaArena"/>'s hall box).</summary>
+        public static readonly FightArea Galleria = new FightArea
+        {
+            minX = GalleriaArena.HallMinX, maxX = GalleriaArena.HallMaxX, minZ = GalleriaArena.HallMinZ, maxZ = GalleriaArena.HallMaxZ, searchMaxZ = 11f,
+        };
+
+        /// <summary>Floor 1: the Food Court (interior x -35..35, z -28..28). The gondola's mines go on the inside face of the
+        /// façade (x 34.9) at the hatches' height (2.5 m), docs/SKYLINE-FLOOR-REPOSSESS.md section 10.</summary>
+        public static readonly FightArea Floor1 = new FightArea
+        {
+            minX = -35f, maxX = 35f, minZ = -28f, maxZ = 28f, searchMaxZ = 28f, mineRailOffset = new Vector3(-1.6f, -0.5f, 0f),
+        };
+    }
+
+    /// <summary>A glass pane a shot through breaks (the Food Court's façade, docs/SKYLINE-FLOOR-REPOSSESS.md section 10).</summary>
+    public sealed class BreakablePane
+    {
+        public string id = "";
+        public CoverBox box;
+        public bool broken;
+    }
+
     /// <summary>One bot in a fight: its body, its behaviour clock and what its kind does.</summary>
     public sealed class FightEnemy
     {
@@ -94,6 +128,8 @@ namespace JamKit.Skyline
         public TelegraphedShot Beam { get; internal set; }
         // the gondola
         public GondolaRail Rail { get; internal set; }
+        /// <summary>The rail its mines are laid along when that differs from <see cref="Rail"/> (<see cref="FightArea.mineRailOffset"/>), or null.</summary>
+        public GondolaRail MineRail { get; internal set; }
         public MineLayer Mines { get; internal set; }
         /// <summary>The drone's hover patrol round <see cref="Position"/> (its post), or null for bots that hold still.</summary>
         public HoverPatrol Patrol { get; internal set; }
@@ -186,6 +222,8 @@ namespace JamKit.Skyline
         /// <summary>The acid jet's height above the floor for its cover test (m).</summary>
         const float JetHeight = 0.2f;
         const float MaxBoltAge = 4f;
+        /// <summary>A floor unit does not reach a player standing more than this far below its own floor (the pit, seen from the rim).</summary>
+        const float FloorUnitDropReach = 1.5f;
 
         struct Bolt
         {
@@ -200,9 +238,16 @@ namespace JamKit.Skyline
         readonly List<Bolt> _bolts = new List<Bolt>();
         readonly CoverBox[] _cover;
         readonly CoverBox[] _floorCover;
+        /// <summary>What stops a Writ shot or a bolt: <see cref="_cover"/>, plus any shot-only blockers (glass balustrades).</summary>
+        CoverBox[] _shotCover;
+        readonly List<BreakablePane> _panes = new List<BreakablePane>();
         readonly DifficultyDef _difficulty;
         readonly FightPlayerDef _pd;
-        readonly SkylineGun _gun;
+        readonly FightArea _area;
+        readonly ulong _seed;
+        readonly Func<string, EnemyDef> _lookup;
+        readonly GunDef _gunDef;
+        SkylineGun _gun;
         /// <summary>Two streams: the enemies' aim error, and the player's hit rolls, so two runs with one seed draw the same
         /// enemy aim errors in the same order however differently the player shoots.</summary>
         readonly Rng _rng, _playerRng;
@@ -224,8 +269,17 @@ namespace JamKit.Skyline
         /// <summary>Shots at the player (bolts, beams, sweeps) by the bots of <paramref name="group"/>.</summary>
         public int ShotsAtPlayerByGroup(int group) => _shotsByGroup.TryGetValue(group, out int n) ? n : 0;
 
+        public FightArea Area => _area;
+        /// <summary>Whether the fight ends once every enemy is wrecked (there must have been one). The floor sim turns this off, since waves keep adding bots.</summary>
+        public bool EndsOnClear { get => _endsOnClear; set => _endsOnClear = value; }
+        bool _endsOnClear = true;
+        /// <summary>The glass panes that shots break (see SetPanes); none on the M1 fights.</summary>
+        public IReadOnlyList<BreakablePane> Panes => _panes;
+        /// <summary>A shot passed through a pane and broke it: the world should stop colliding with it.</summary>
+        public event Action<BreakablePane> PaneBroken;
+
         public MoveSim Player => _player;
-        public PlayerArmor Armor { get; }
+        public PlayerArmor Armor { get; private set; }
         public SkylineGun Gun => _gun;
         public IReadOnlyList<FightEnemy> Enemies => _enemies;
         public IReadOnlyList<FightWreck> Wrecks => _wrecks;
@@ -241,15 +295,20 @@ namespace JamKit.Skyline
         /// <param name="cover">What blocks sight and shots (e.g. <see cref="GalleriaArena.FightCover"/>).</param>
         public FightSim(EncounterDef encounter, IMoveWorld world, IFightBot bot, IReadOnlyList<CoverBox> cover, Vector3 start,
             ulong seed, DifficultyDef difficulty = null, Func<string, EnemyDef> lookup = null, FightPlayerDef player = null, GunDef gun = null,
-            float startYaw = 0f)
+            float startYaw = 0f, FightArea? area = null)
         {
             if (encounter?.spawns == null) throw new ArgumentException("an encounter with spawns is needed", nameof(encounter));
             if (world == null) throw new ArgumentNullException(nameof(world));
             _bot = bot ?? throw new ArgumentNullException(nameof(bot));
             _difficulty = difficulty ?? Difficulties.Normal();
             _pd = player ?? new FightPlayerDef();
+            _area = area ?? FightArea.Galleria;
+            _seed = seed;
+            _gunDef = gun ?? SkylineGuns.Writ();
             lookup = lookup ?? SkylineEnemies.Find;
+            _lookup = lookup;
             _cover = cover != null ? new List<CoverBox>(cover).ToArray() : new CoverBox[0];
+            _shotCover = _cover;
             var floor = new List<CoverBox>();
             foreach (var b in _cover)
                 if (b.min.Y <= 0.5f) floor.Add(b);
@@ -273,41 +332,51 @@ namespace JamKit.Skyline
             _player = new MoveSim(world, new MoveDef());
             _player.Teleport(start, startYaw, Vector3.Zero);
             Armor = new PlayerArmor(_pd.platingMax, _pd.chassisMax);
-            _gun = new SkylineGun(gun ?? SkylineGuns.Writ());
+            _gun = new SkylineGun(_gunDef);
             _gun.Equip(null);
             _gun.Tick(1f, false, false, null);   // the gun is out before the fight starts
-            for (int i = 0; i < encounter.spawns.Length; i++)
-            {
-                var s = encounter.spawns[i];
-                var def = lookup(s.enemy);
-                if (def == null) throw new ArgumentException("unknown enemy " + s.enemy);
-                var e = new FightEnemy
-                {
-                    Index = i, Def = def, Group = s.group, Body = new EnemyBody(def),
-                    Brain = new BotBrain(def, seed * 7919UL + (ulong)i * 104729UL + 1UL), Position = s.position, Home = s.position,
-                };
-                if (def.aim == AimModel.FiresAtWhereYouAre && def.projectileSpeed <= 0f)
-                    e.Beam = new TelegraphedShot
-                    {
-                        telegraph = def.telegraphSeconds, lockBefore = def.beamLockBefore, followRate = def.beamFollowRate, hitRadius = def.beamHitRadius,
-                    };
-                if (def.layer == ThreatLayer.Walls)
-                {
-                    e.Rail = new GondolaRail(s.position, s.railEnd, def.railSpeed);
-                    e.Mines = new MineLayer(def);
-                }
-                // its own stream, so the patrol never shifts the enemies' aim errors
-                if (e.Beam == null && e.Rail == null && !(def.moveSpeed > 0f) && HoverPatrol.Moves(def))
-                    e.Patrol = new HoverPatrol(def, PatrolSeed(seed, i));
-                // the idle work before waking (its own stream too)
-                if (FloorCareIdle.Works(def)) e.Cleaning = new FloorCareIdle(def, PatrolSeed(seed, i));
-                if (e.Rail != null && GondolaIdle.Works(def)) e.Washing = new GondolaIdle(def, e.Rail.Length, PatrolSeed(seed, i));
-                _enemies.Add(e);
-            }
+            for (int i = 0; i < encounter.spawns.Length; i++) AddEnemy(encounter.spawns[i], i);
             _r = new FightResult { clearSeconds = -1f, wreckedAt = -1f, minPlating = Armor.Plating, enemies = _enemies.Count };
-            _cleaningBlocked = (a, b, r) => FloorCareIdle.FloorBlocked(a, b, r, _floorCover);
-            _patrolBlocked = (a, b, r) => HoverPatrol.LeavesArea(a, b, GalleriaArena.HallMinX + 1f, GalleriaArena.HallMaxX - 1f, GalleriaArena.HallMinZ + 1f, SearchMaxZ)
+            _cleaningBlocked = (a, b, r) => FloorCareIdle.FloorBlocked(a, b, r, _floorCover, _area);
+            _patrolBlocked = (a, b, r) => HoverPatrol.LeavesArea(a, b, _area.minX + 1f, _area.maxX - 1f, _area.minZ + 1f, _area.searchMaxZ)
                 || CoverGeometry.BlockedThick(a, b, _cover, r);
+        }
+
+        /// <summary>Adds one enemy to the fight, as the constructor does for each of its spawns: <paramref name="index"/> seeds its
+        /// brain and its patrol or idle work (the constructor passes the spawn's place in the list), so the same spawn and index give
+        /// the same enemy whenever it is added. The enemy starts asleep; <see cref="FightEnemy.Awake"/> or <see cref="Wake"/> wakes it.</summary>
+        public FightEnemy AddEnemy(Spawn s, int index)
+        {
+            var def = _lookup(s.enemy);
+            if (def == null) throw new ArgumentException("unknown enemy " + s.enemy);
+            ulong seed = _seed;
+            int i = index;
+            var e = new FightEnemy
+            {
+                Index = i, Def = def, Group = s.group, Body = new EnemyBody(def),
+                Brain = new BotBrain(def, seed * 7919UL + (ulong)i * 104729UL + 1UL), Position = s.position, Home = s.position,
+            };
+            if (def.aim == AimModel.FiresAtWhereYouAre && def.projectileSpeed <= 0f)
+                e.Beam = new TelegraphedShot
+                {
+                    telegraph = def.telegraphSeconds, lockBefore = def.beamLockBefore, followRate = def.beamFollowRate, hitRadius = def.beamHitRadius,
+                };
+            if (def.layer == ThreatLayer.Walls)
+            {
+                e.Rail = new GondolaRail(s.position, s.railEnd, def.railSpeed);
+                if (_area.mineRailOffset != Vector3.Zero)
+                    e.MineRail = new GondolaRail(s.position + _area.mineRailOffset, s.railEnd + _area.mineRailOffset, def.railSpeed);
+                e.Mines = new MineLayer(def);
+            }
+            // its own stream, so the patrol never shifts the enemies' aim errors
+            if (e.Beam == null && e.Rail == null && !(def.moveSpeed > 0f) && HoverPatrol.Moves(def))
+                e.Patrol = new HoverPatrol(def, PatrolSeed(seed, i));
+            // the idle work before waking (its own stream too)
+            if (FloorCareIdle.Works(def)) e.Cleaning = new FloorCareIdle(def, PatrolSeed(seed, i));
+            if (e.Rail != null && GondolaIdle.Works(def)) e.Washing = new GondolaIdle(def, e.Rail.Length, PatrolSeed(seed, i));
+            _enemies.Add(e);
+            if (_enemies.Count > _r.enemies) _r.enemies = _enemies.Count;
+            return e;
         }
 
         /// <summary>The seed of spawn <paramref name="index"/>'s hover patrol in a fight seeded <paramref name="seed"/> (the Unity
@@ -323,6 +392,66 @@ namespace JamKit.Skyline
         public Vector3 EyeAt(Vector3 feet) => feet + new Vector3(0f, _player.Height * (_player.def.eyeHeight / _player.def.standHeight), 0f);
 
         public bool Clear(Vector3 a, Vector3 b) => !CoverGeometry.Blocked(a, b, _cover);
+
+        /// <summary>Whether a Writ shot (or a bolt's line) from <paramref name="a"/> to <paramref name="b"/> is unblocked: the
+        /// cover, plus the shot-only blockers (<see cref="SetShotBlockers"/>).</summary>
+        public bool ShotClear(Vector3 a, Vector3 b) => !CoverGeometry.Blocked(a, b, _shotCover);
+
+        /// <summary>Boxes that stop shots and bolts but not sight (the Food Court's glass balustrades: glass is never free to
+        /// shoot through, docs/SKYLINE-FLOOR-REPOSSESS.md section 10). Call before the run; the M1 fights have none.</summary>
+        public void SetShotBlockers(IEnumerable<CoverBox> extra)
+        {
+            var l = new List<CoverBox>(_cover);
+            if (extra != null) l.AddRange(extra);
+            _shotCover = l.ToArray();
+        }
+
+        /// <summary>The panes a Writ shot breaks when its line passes through one (the Food Court's façade). A pane is neither
+        /// sight nor shot cover; breaking it raises <see cref="PaneBroken"/> so the world can stop colliding with it. Call before the run.</summary>
+        public void SetPanes(IEnumerable<BreakablePane> panes)
+        {
+            _panes.Clear();
+            if (panes != null) _panes.AddRange(panes);
+        }
+
+        /// <summary>Every pane whole again (the floor restarts).</summary>
+        public void RestorePanes()
+        {
+            foreach (var p in _panes) p.broken = false;
+        }
+
+        void BreakPanes(Vector3 from, Vector3 to)
+        {
+            foreach (var p in _panes)
+            {
+                if (p.broken || !CoverGeometry.SegmentHitsBox(from, to, p.box)) continue;
+                p.broken = true;
+                PaneBroken?.Invoke(p);
+            }
+        }
+
+        /// <summary>A wreck on a restarting fight: every enemy, wreck and bolt gone, the Unit whole again (new armour, a full
+        /// Writ) and standing at <paramref name="start"/> facing <paramref name="startYaw"/>; the clock, the counters, the random
+        /// streams and the panes are kept (call <see cref="RestorePanes"/> to mend them).</summary>
+        public void Restart(Vector3 start, float startYaw)
+        {
+            _enemies.Clear();
+            _wrecks.Clear();
+            _bolts.Clear();
+            _cues.Clear();
+            _gunCues.Clear();
+            _blasts.Clear();
+            _target = null;
+            _aimDir = new Vector3(0f, 0f, 1f);
+            _readyAt = 0f;
+            Armor = new PlayerArmor(_pd.platingMax, _pd.chassisMax);
+            _player.Teleport(start, startYaw, Vector3.Zero);
+            _gun = new SkylineGun(_gunDef);
+            _gun.Equip(null);
+            _gun.Tick(1f, false, false, null);
+            _r.playerWrecked = false;
+            _over = false;
+        }
 
         /// <summary>Whether <paramref name="e"/> would see a player standing with its feet at <paramref name="feet"/> (its chest or
         /// eye, within its range, nothing between).</summary>
@@ -358,7 +487,7 @@ namespace JamKit.Skyline
         public bool CanShoot(Vector3 feet, FightEnemy e)
         {
             Vector3 eye = EyeAt(feet);
-            return Vector3.Distance(eye, e.Center) <= _gun.Def.range && Clear(eye, e.Center);
+            return Vector3.Distance(eye, e.Center) <= _gun.Def.range && ShotClear(eye, e.Center);
         }
 
         bool SeesNow(FightEnemy e, out Vector3 aimAt)
@@ -412,7 +541,7 @@ namespace JamKit.Skyline
                 _over = true;
                 return;
             }
-            bool all = true;
+            bool all = _enemies.Count > 0 && _endsOnClear;
             foreach (var e in _enemies)
                 if (!e.Wrecked) { all = false; break; }
             if (all)
@@ -432,7 +561,7 @@ namespace JamKit.Skyline
             {
                 if (e.Wrecked || !e.Awake) continue;
                 float d = Vector3.Distance(eye, e.Center);
-                if (d >= bestD || d > _gun.Def.range || !Clear(eye, e.Center)) continue;
+                if (d >= bestD || d > _gun.Def.range || !ShotClear(eye, e.Center)) continue;
                 best = e;
                 bestD = d;
             }
@@ -464,6 +593,7 @@ namespace JamKit.Skyline
             {
                 if (c.kind != GunCueKind.Shot) continue;
                 _r.shotsFired++;
+                if (_target != null && _panes.Count > 0) BreakPanes(eye, _target.Center);
                 if (_target == null || _target.Wrecked) continue;
                 float dist = Vector3.Distance(eye, _target.Center);
                 if (!(_playerRng.NextFloat() < _pd.HitChance(dist, _player.HorizontalSpeed))) continue;
@@ -528,9 +658,10 @@ namespace JamKit.Skyline
                 if (e.Awake)
                 {
                     // woken: on along the rail at full speed from where the washing left it
-                    if (!e.railStarted && e.Washing != null) e.Rail.StartAt(e.Washing.Along);
+                    if (!e.railStarted && e.Washing != null) { e.Rail.StartAt(e.Washing.Along); e.MineRail?.StartAt(e.Washing.Along); }
                     e.railStarted = true;
                     e.Rail.Tick(h);
+                    e.MineRail?.Tick(h);
                     e.Position = e.Rail.Position;
                 }
                 else if (e.Washing != null)
@@ -576,7 +707,7 @@ namespace JamKit.Skyline
         void TickMines(FightEnemy e, float h, bool laying)
         {
             _blasts.Clear();
-            e.Mines.Tick(h, e.Rail, laying, Chest, _blasts);
+            e.Mines.Tick(h, e.MineRail ?? e.Rail, laying, Chest, _blasts);
             foreach (float d in _blasts) HitPlayer(d);
         }
 
@@ -600,7 +731,7 @@ namespace JamKit.Skyline
             float dx = feet.X - e.Position.X, dz = feet.Z - e.Position.Z;
             float flat = MathF.Sqrt(dx * dx + dz * dz);
             Vector3 nozzle = e.Position + new Vector3(0f, JetHeight, 0f), ankle = new Vector3(feet.X, JetHeight, feet.Z);
-            bool reach = e.Awake && flat <= d.sweepRadius && Clear(nozzle, ankle);
+            bool reach = e.Awake && flat <= d.sweepRadius && feet.Y > e.Position.Y - FloorUnitDropReach && Clear(nozzle, ankle);
             e.Brain.Tick(h, reach, _cues);
             foreach (var c in _cues)
                 if (c.kind == BotCueKind.Attack && reach)
@@ -613,7 +744,7 @@ namespace JamKit.Skyline
                 }
             if (e.Sweeping)
             {
-                if (!e.sweepHit && AcidSweep.Touches(e.Position, e.SweepYaw, e.SweepTime, feet, e.Position.Y, d) && Clear(nozzle, ankle))
+                if (!e.sweepHit && feet.Y > e.Position.Y - FloorUnitDropReach && AcidSweep.Touches(e.Position, e.SweepYaw, e.SweepTime, feet, e.Position.Y, d) && Clear(nozzle, ankle))
                 {
                     e.sweepHit = true;
                     HitPlayer(d.attackDamage);
@@ -671,7 +802,7 @@ namespace JamKit.Skyline
         bool FloorFree(Vector2 q, float r)
         {
             float m = r + 0.05f;
-            if (q.X < GalleriaArena.HallMinX + m || q.X > GalleriaArena.HallMaxX - m || q.Y < GalleriaArena.HallMinZ + m || q.Y > GalleriaArena.HallMaxZ - m) return false;
+            if (q.X < _area.minX + m || q.X > _area.maxX - m || q.Y < _area.minZ + m || q.Y > _area.maxZ - m) return false;
             foreach (var b in _floorCover)
                 if (q.X > b.min.X - r && q.X < b.max.X + r && q.Y > b.min.Z - r && q.Y < b.max.Z + r) return false;
             return true;
@@ -779,8 +910,8 @@ namespace JamKit.Skyline
             }
             Vector2 q = p + step;
             float m = r + 0.05f;
-            q.X = Math.Max(GalleriaArena.HallMinX + m, Math.Min(GalleriaArena.HallMaxX - m, q.X));
-            q.Y = Math.Max(GalleriaArena.HallMinZ + m, Math.Min(GalleriaArena.HallMaxZ - m, q.Y));
+            q.X = Math.Max(_area.minX + m, Math.Min(_area.maxX - m, q.X));
+            q.Y = Math.Max(_area.minZ + m, Math.Min(_area.maxZ - m, q.Y));
             foreach (var b in _floorCover)
                 if (q.X > b.min.X - r && q.X < b.max.X + r && q.Y > b.min.Z - r && q.Y < b.max.Z + r) return;   // a corner it can't slide out of: it stalls this step
             e.Position = new Vector3(q.X, e.Position.Y, q.Y);
@@ -800,11 +931,11 @@ namespace JamKit.Skyline
                 if (SegmentsCloserThan(from, p.pos, a, b, r + p.radius))
                 {
                     // the player is hit unless cover stood between it and the point of contact
-                    if (!CoverGeometry.BlockedThick(from, ClosestOn(from, p.pos, a, b), _cover, p.radius)) HitPlayer(p.damage);
+                    if (!CoverGeometry.BlockedThick(from, ClosestOn(from, p.pos, a, b), _shotCover, p.radius)) HitPlayer(p.damage);
                     _bolts.RemoveAt(i);
                     continue;
                 }
-                if (CoverGeometry.BlockedThick(from, p.pos, _cover, p.radius) || p.age > MaxBoltAge)
+                if (CoverGeometry.BlockedThick(from, p.pos, _shotCover, p.radius) || p.age > MaxBoltAge)
                 {
                     _bolts.RemoveAt(i);
                     continue;
@@ -818,9 +949,6 @@ namespace JamKit.Skyline
             _r.shotsAtPlayer++;
             _shotsByGroup[e.Group] = ShotsAtPlayerByGroup(e.Group) + 1;
         }
-
-        /// <summary>Lowest and highest z a flying bot may search to: inside the hall, and south of the mezzanine deck's edge.</summary>
-        const float SearchMaxZ = 11f;
 
         /// <summary>
         /// The drone search (the reference rule; the Unity drone does exactly this). Only awake bots with a
@@ -894,7 +1022,7 @@ namespace JamKit.Skyline
                 {
                     float a = k * (MathF.PI / 8f);
                     var p = e.Position + new Vector3(MathF.Sin(a) * dist, 0f, MathF.Cos(a) * dist);
-                    if (p.X < GalleriaArena.HallMinX + 1f || p.X > GalleriaArena.HallMaxX - 1f || p.Z < GalleriaArena.HallMinZ + 1f || p.Z > SearchMaxZ) continue;
+                    if (p.X < _area.minX + 1f || p.X > _area.maxX - 1f || p.Z < _area.minZ + 1f || p.Z > _area.searchMaxZ) continue;
                     if (CoverGeometry.BlockedThick(p, p, _cover, r)) continue;   // inside a piece
                     float toLast = Vector3.Distance(p, e.LastKnown);
                     if (toLast >= best || toLast > e.Def.range || !Clear(p, e.LastKnown)) continue;

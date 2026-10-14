@@ -197,10 +197,10 @@ namespace JamKit.Skyline
 
         /// <summary>FightSim's cover test for a cleaning unit: a move whose end lies inside a floor box grown by the radius (and
         /// whose start didn't), or that leaves the hall (less the radius) further than it started.</summary>
-        public static bool FloorBlocked(Vector3 a, Vector3 b, float r, CoverBox[] floorCover)
+        public static bool FloorBlocked(Vector3 a, Vector3 b, float r, CoverBox[] floorCover, FightArea? area = null)
         {
-            if (HoverPatrol.LeavesArea(a, b, GalleriaArena.HallMinX + r + 0.05f, GalleriaArena.HallMaxX - r - 0.05f,
-                GalleriaArena.HallMinZ + r + 0.05f, GalleriaArena.HallMaxZ - r - 0.05f)) return true;
+            FightArea ar = area ?? FightArea.Galleria;
+            if (HoverPatrol.LeavesArea(a, b, ar.minX + r + 0.05f, ar.maxX - r - 0.05f, ar.minZ + r + 0.05f, ar.maxZ - r - 0.05f)) return true;
             if (floorCover == null) return false;
             foreach (var box in floorCover)
                 if (Inside(b, box, r) && !Inside(a, box, r)) return true;
