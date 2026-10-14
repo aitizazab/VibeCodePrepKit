@@ -237,3 +237,53 @@ three idle loops are heard. The recipes themselves are untouched. See `docs/SKYL
 spotlight `hurt` = dying bulb, spotlight `attack` = the rifle muffled at 1.5 kHz with static and sparse crackle clicks (2-5 kHz share
 0-4%). Their recipes: `bots/mall-cop-drone/recipes/telegraph.json`, `bots/floor-care-unit/recipes/hurt.json`, and the spotlight's
 two from `bots/spotlight/make_recipes.py` (`attack()`, `hurt()`).
+
+## Planned: the melee assassin, "the Valet" (`valet`; the creator's ask, 2026-10-14; plan, not built)
+
+> "Add plans for some enemy melee assassin bots, who hide behind corners waiting for you, lunge at you, and vanish after
+> hitting you in a drive-by, or when they miss, they stagger a bit after the lunge, and then vanish."
+
+**Personality.** CONCIERGE's valet service: impeccably polite, silent, quick. It "takes care of" guests the way a valet
+takes your keys: one smooth pass and it's gone. Aim tag: melee. Layer: floor. The name is a draft for the creator.
+
+**Body.** A slim humanoid about 1.7 m tall in CONCIERGE white and gold (a valet's short jacket and cap), long arms, a
+face screen with a polite closed-eye smile that snaps to a cold stare. Its one weapon is a forearm blade that slides out of
+the cuff. The weak point is a gold **key-ring tag on its back** (the yellow-tinted hostile outline, like the drone's
+rotors), so a dodge that turns you round it is rewarded.
+
+**The loop (states).**
+
+| State | What happens | Tell (enemy clarity: it must never rely on a text bubble) |
+|---|---|---|
+| Lurk | Waits behind a corner on the player's likely route (an ambush corner, below), out of sight, still. | A soft **bellhop bell "ding"** when you come within about 8 m of an occupied corner (positional, through walls), and its hostile outline glints at the corner's edge if you look straight at it. |
+| Telegraph (0.35 s) | When you come within about 6 m with a clear line, it steps out and crouches. | The face snaps to the stare (a red flash), a sharp inhale, the blade's metallic "shing". |
+| Lunge | A straight dash of about 10 m at 14 m/s toward **where you were when the telegraph started** (no homing, the same rule as the drones' lagged aim: moving fast makes it miss). | A whoosh; motion-smeared ink lines behind it. |
+| Hit (drive-by) | 25 damage and a small shove; it passes through you, keeps going and **vanishes** at the end of the dash. | A slash, then a comic-lettered "POOF" and a puff of ink. |
+| Miss | It overshoots and **staggers for 0.9 s**, open (weak point up, double damage), then vanishes. | It stumbles, the face goes to a flustered ">_<", a cloth-and-metal clatter. |
+| Vanish | It's gone; after about 10 s it returns at a different ambush corner, at least 15 m from you. | The "POOF"; the next "ding" tells you it's back. |
+
+**Numbers to start from.** Low health (two Writ body shots, one weak-point shot or one Breacher blast kills it). At
+most one alive in early waves, two later; not in waves 1-3; it counts toward the alive cap. A Breacher shove during the
+lunge cancels it into the stagger.
+
+**The habit it punishes.** Creeping slowly along walls and round corners (it complements the corridor-camper flush,
+D22): slow players get lunged; fast players make it whiff and get a free stagger to punish.
+
+**Ambush corners.** Computed, not hand-placed: points just behind convex corners of the nav graph (`ArenaNav`) that are
+hidden from the route on one side and open onto it on the other, at least 4 m from any spawn door and never inside a
+colour-free zone's entrance; a lint (`ArenaLint`) checks every corner has a visible approach for at least 6 m.
+
+**Build plan (tasks, when the floor director exists).**
+1. Pure: `AmbushCorners` (from `ArenaNav`, with tests), `ValetBrain` (lurk, telegraph, lunge, hit/miss, stagger, vanish,
+   reposition) on the shared bot clock, and the `valet` def in `Enemies.cs`.
+2. Sim: add it to `FightSim`/`RepossessSim`; assert a standing target is hit by most lunges, a target at 8 m/s or more
+   across is missed by most, and a miss always leaves the 0.9 s stagger.
+3. Unity: the body (CC0 base first, then the comic-ink outline), the vanish effect with the "POOF" lettering, its sounds
+   (identity first: say what each sound physically is before the creator picks), barks as drafts.
+4. Teaching: a CONCIERGE notice the first time one appears (a draft for the creator), and a wave-table slot.
+
+**Barks** (drafts for the creator): telegraph "Allow me."; hit "Your coat, sir."; miss "...Pardon."; wrecked "Tip...
+not... included...".
+
+**Open questions for the creator.** The name; whether the "ding" should be audible through walls at all (fairness vs
+surprise); damage (25 is a quarter of the chassis); whether it may also lunge at a Unit on a wall-run.
