@@ -45,6 +45,7 @@ namespace JamKit.SkylineRepo.EditorTools
             mc.body = move;
             mc.rig = rig;
             mc.cam = cam;
+            SkylinePlayer.ApplyViewFeel(mc);   // no view kick on a sprint start; the speed widening only well above sprint speed
 
             var player = body.AddComponent<SkylinePlayer>();
             player.movement = move;

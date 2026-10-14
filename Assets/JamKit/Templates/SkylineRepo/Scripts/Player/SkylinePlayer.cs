@@ -108,10 +108,23 @@ namespace JamKit.SkylineRepo
         bool _aimWanted, _cancelSprint;
         string _aimGun = "";
 
+        /// <summary>Skyline's own values for the shared movement camera's speed effects (<see cref="SkylineViewFeel"/>): no
+        /// view kick when a sprint starts, and the speed widening only well above sprint speed. Also applied by the player
+        /// builder; done here too so an older generated scene gets them. The shared defaults (Visiting Hours) are untouched.</summary>
+        public static void ApplyViewFeel(MovementCamera mc)
+        {
+            if (mc == null) return;
+            mc.sprintKickFov = SkylineViewFeel.SprintKickFov;
+            mc.fovFromSpeed = SkylineViewFeel.SpeedFovFrom;
+            mc.fovFullSpeed = SkylineViewFeel.SpeedFovFull;
+            mc.fovRate = SkylineViewFeel.SpeedFovRate;
+        }
+
         void Awake()
         {
             if (movement == null) movement = GetComponent<MovementController>();
             if (cam == null) cam = GetComponentInChildren<Camera>();
+            ApplyViewFeel(GetComponent<MovementCamera>());
             if (movement != null)
             {
                 movement.managePointerLock = false;   // Skyline locks the cursor itself

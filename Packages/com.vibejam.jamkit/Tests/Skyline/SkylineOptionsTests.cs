@@ -198,5 +198,17 @@ namespace JamKit.Tests.Skyline
             Assert.That(m.X, Is.EqualTo(0f).Within(1e-6f));
             Assert.That(m.Y, Is.EqualTo(-0.02f).Within(1e-6f));
         }
+
+        [Test]
+        public void PlainSprintingNeverWidensTheView()
+        {
+            // the creator, 2026-10-14: the view's kick is for much faster movement than a sprint
+            float sprint = new JamKit.Movement.MoveDef().sprintSpeed;
+            Assert.That(SkylineViewFeel.SprintKickFov, Is.EqualTo(0f), "starting a sprint must not punch the view out");
+            Assert.That(SkylineViewFeel.SpeedFovFrom, Is.GreaterThanOrEqualTo(sprint + 3f), "the widening starts a good margin above sprint speed");
+            Assert.That(SkylineViewFeel.SpeedFovFull, Is.GreaterThan(SkylineViewFeel.SpeedFovFrom + 8f), "and eases in over a wide range of speed");
+            Assert.That(SkylineViewFeel.SpeedFovRate, Is.LessThan(SkylineViewFeel.OldSpeedFovRate));
+            Assert.That(JamKit.Movement.MoveMath.SmoothStep(SkylineViewFeel.SpeedFovFrom, SkylineViewFeel.SpeedFovFull, sprint), Is.EqualTo(0f));
+        }
     }
 }

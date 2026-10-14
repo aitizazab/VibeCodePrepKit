@@ -175,4 +175,25 @@ namespace JamKit.Skyline
 
         static float Clamp01(float v) => v < 0f ? 0f : v > 1f ? 1f : v;
     }
+
+    /// <summary>
+    /// How Skyline sets the shared movement camera's speed effects on its own player (the shared code and Visiting Hours'
+    /// values are untouched; SkylinePlayer and the player builder apply these to the MovementCamera).
+    /// The creator (2026-10-14): sprinting from a dead stop kicked the view wider for a moment; that is reserved for much
+    /// faster movement. Before: the sprint kick (fired when sprint starts below 60% of sprint speed) punched the view out
+    /// <see cref="OldSprintKickFov"/> degrees for 0.35 s, and the speed widening ran from 9.5 m/s (exactly sprint speed) to
+    /// 22 m/s at up to +8 degrees. Now: no sprint kick on the view, and the widening starts 3.5 m/s above sprint speed
+    /// (<see cref="SpeedFovFrom"/>) and reaches its full +8 degrees at <see cref="SpeedFovFull"/> (slides at speed, Breacher
+    /// boosts, chained wall-runs), with a slower ease (<see cref="SpeedFovRate"/>).
+    /// </summary>
+    public static class SkylineViewFeel
+    {
+        public const float OldSprintKickFov = 4f, OldSpeedFovFrom = 9.5f, OldSpeedFovFull = 22f, OldSpeedFovRate = 6f;
+        /// <summary>Degrees the view is punched out when a sprint starts from slow (0: never).</summary>
+        public const float SprintKickFov = 0f;
+        /// <summary>The speed widening (m/s): none at or below <see cref="SpeedFovFrom"/>, all of it at <see cref="SpeedFovFull"/>.</summary>
+        public const float SpeedFovFrom = 13f, SpeedFovFull = 26f;
+        /// <summary>The view follows the widening's target at this rate (per second); lower is softer.</summary>
+        public const float SpeedFovRate = 4f;
+    }
 }
