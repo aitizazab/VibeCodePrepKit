@@ -40,11 +40,11 @@ the judge's chair: a round window with one brass bar, crossing a brass obelisk o
 | Shake | **0.07** (was 0.06) | A touch more thump to match the new body; still small. |
 | Aim assist (pad) | slowdown 5° at 0.5, magnet 3° at 8°/s, 50 m | Unchanged; a precise gun gets a narrow cone. |
 | Spots | 2.5x, 3 a bot (5 at level 3), 6 s, consumed on hit, 0.2 m radius | `WritTuning`; the creator's calls (cap by level) and the planner's defaults (consumed, 6 s). Unchanged. |
-| Fire clip | 0.22 s: shot at 0, the gavel's hydraulic return ("mech") at 0.45 (99 ms) | The recoil pose is now 7 cm back and 9° up at 12% (was 6 cm / 7° at 15%), settling through 0.45: the hand-cannon weight. |
+| Fire clip | 0.22 s: shot at 0 (the thwip). The gavel's hydraulic return event ("mech", 99 ms) and its sound are gone (fix round 2) | The recoil pose is now 7 cm back and 9° up at 12% (was 6 cm / 7° at 15%), settling through 0.45: the hand-cannon weight. |
 | Dry fire | 0.25 s, click at 0 | The gavel taps the empty bench (40% of a strike). |
 | Equip | 0.55 s: unfold at 0, lock at 0.7 (0.385 s) | The court assembles; the lamps and the doorway light up over the draw. Unchanged times. |
-| Reload, partial | 1.3 s: drum out 0.18, new drum in 0.52, hydraulic seat 0.68 | The left hand takes the drum as it drops and brings the new one; unchanged times (the sync check was already exact). |
-| Reload, from empty | 1.75 s: out 0.13, in 0.42, seat 0.55, bolt 0.8 | The bolt racks the bench and chair (the slide) and re-cocks the gavel. |
+| Reload, partial | 1.3 s (unchanged): drum out 0.09, new drum in (held 12 mm short) 0.28, **windup 0.34 (animation only), SMACK 0.52, brass seat 0.565** | The reload is a gavel smack (fix round 2): see below. The left hand takes the drum as it drops and holds the new one until the seat. |
+| Reload, from empty | 1.75 s (unchanged): out 0.07, in 0.2, **windup 0.25, SMACK 0.39, seat 0.435**, bolt 0.8 | The same smack, then the bolt racks the bench and chair (the slide) and re-cocks the gavel. |
 | Inspect | 2.4 s: turn 0.1, tap 0.55, settle 0.85 | New pose: show the side (0.18-0.55), tap the plate, **raise to the eye for the sight check (0.68-0.8)**, settle back (0.92). Event times unchanged. |
 
 The home pose: `SkylineWritFx` turns the gun 9° toward the crosshair (it converges about 1 m ahead) and lifts it
@@ -68,14 +68,15 @@ The home pose: `SkylineWritFx` turns the gun 9° toward the crosshair (it conver
 
 | Event | Layers and what each does |
 | --- | --- |
-| `writ/shot` | **Transient:** the gavel strike, a hardwood knock (wood modes at 540, 1230, 2140, 3350, 5100 Hz) on a dry click. **Body:** a saturated low boom gliding 175 to 68 Hz, a mid-band roar (280-1600 Hz), a thump, a short punch. **Hydraulic:** a pneumatic breath and a brass latch inside the first 15 ms (the well-oiled machine). **Tail:** the colonnade's slap-back (17, 29, 43, 61 ms) and a dark stone hall (RT60 about 2 s, its brightness falling from 2.6 kHz to 420 Hz) that settles into a hush. Wide stereo (0.65, like the reference). |
-| `writ/shot_mech` | The gavel's hydraulic return 99 ms after the shot: a piston's sigh sweeping down and an oiled wooden clack. |
+| `writ/shot` | **A quill's thwip** (fix round 2; the old gavel-and-hall shot is gone): a short bright airy whoosh sliding 5.5 to 11 kHz (stereo, 5 ms attack, about 90 ms), a soft feather/paper flutter chopped at 95 Hz, a tiny ink flick (a wet tick and a droplet's "plip"), a soft low-mid "thup" for the wrist (nothing under 250 Hz) and a dark air tail of about 0.2 s. 0.4 s in all, peak -8.5 dBFS. |
+| `writ/impact_crack` | **The gavel crack, for a weak-spot hit only** (fix round 2): a hard dry hardwood crack (gavel modes pitched up, a thud at 125 Hz, a snap) with a short stone-room ring, 0.45 s. Played 2D from the shooter's side on top of the hit feedback when a shot hits a bot's weak point or a Writ spot; never on an ordinary hit or a miss. |
 | `writ/dry_click` | The gavel taps an empty bench: a hollow wooden tock, a tiny latch. |
 | `writ/equip_unfold` | The court assembles: a smooth rising hydraulic glide, a servo whirr, three small clicks as the parts unfold. |
 | `writ/equip_lock` | A solid latch clunk and a small brass bell: the court is in session. |
 | `writ/mag_out` | The stone drum releases: a brass latch, a short pressure hiss, a stone-on-stone scrape. |
 | `writ/cell_in` | The new drum meets the column (a contact click) and slides in to a dense brass-and-stone thunk. |
-| `writ/seat` | The hydraulic seat, the "masterpiece" moment: a pressurised "pssh", a heavy lock, the cell humming awake. |
+| `writ/seat` | **A brass click** (fix round 2): a bright "tink" of the latch with a second tick as it locks and a soft low "tk" under it, 0.3 s. It lands 58 ms (partial) / 79 ms (empty) after the smack. |
+| `writ/smack` | **The reload's gavel smack** (fix round 2): wood on wood, a heavier and lower hit than the crack (modes at 0.82x, a thud at 95 Hz, a snap), a hard dry crack with a short room ring, 0.55 s. |
 | `writ/bolt` | The bench and chair rack back (click, slide) and slam home (a chunk), and the gavel re-cocks (a tick). |
 | `writ/inspect_turn` / `_tap` / `_settle` | A soft handling swish and shift; two brass tinks as a robot finger taps the nameplate; a soft clunk as it settles. |
 | `writ/spot_form` | (Played by the spot itself.) A ceramic crack with three smaller cracks after it, an electric crackle thinning out over 0.35 s, and a tiny seal chime: a writ is issued. |
@@ -96,8 +97,8 @@ The home pose: `SkylineWritFx` turns the gun 9° toward the crosshair (it conver
   a shell in the firm's tow-truck orange with a hazard band at the wrist (yellow with black diagonal stripes), and a
   small amber status lamp.
 - **The shot:** the gavel strikes the bench, the doorway's doors burst open on a hot flash (three frames), the bench and
-  chair kick back 5 mm, the lamps and the doorway flare, an amber light flashes on the world, an amber ribbon follows the
-  slug. On the world: brass sparks and a scorched disc with a brass ring that fades after 5 s.
+  chair kick back 5 mm, the lamps and the doorway flare, an amber light flashes on the world. The tracer is a stroke of quill ink (`SkylineInkTracer`, fix round 2), not a line.
+  On the world: brass sparks and a scorched disc with a brass ring that fades after 5 s.
 - **Spots (distinct from ordinary damage):** an ordinary Writ hit on a bot throws only dark flakes. A spot forming is
   stamped on like a seal (a gold ring lands big and presses down to size, six short rays), then it is the cracked casing
   (glowing seam, sparks, wiring; `SkylineSpotMarker`). A spot hit pops: two gold rings racing out, a gold flash, the
@@ -141,9 +142,9 @@ Out on purpose, and why:
 What to listen for, in the files under `out/skyline-forge/writ/` (whole clips) and
 `Assets/JamKit/Templates/SkylineRepo/Resources/SkylineAudio/writ/` (single events):
 
-1. `Fire.wav` against the Destiny 2 hand cannon (`out/skyline-refs/writ/shot-destiny2-1-clean.wav`): does the shot say
+1. (before fix round 2) `Fire.wav` against the Destiny 2 hand cannon (`out/skyline-refs/writ/shot-destiny2-1-clean.wav`): does the shot say
    *gavel* first and *gun* second? Is the stone hall's tail (about 1.9 s) a courtroom, or too much for 250 RPM?
-2. `shot_mech` (99 ms after each shot): the gavel's hydraulic return. Oiled and satisfying, or fussy at speed?
+2. (before fix round 2: `shot_mech` is gone with the hydraulic return.)
 3. `ReloadPartial.wav` and `ReloadEmpty.wav` against the Witchfire sidearm reload: does `seat` land as the hydraulic
    masterpiece? Is the stone drum heavy enough, or too heavy?
 4. `bolt` against the Destiny 2 cocking click (`cock-destiny2-1.wav`): two strokes and a tick; does it want more body?
@@ -188,3 +189,59 @@ For a shot that lands on a bot, the shooter's side plays exactly one hit layer: 
 Writ and the Breacher. A Writ spot event adds the spot's own world sound as the one allowed second layer: a forming spot
 plays `impact_weak` and `spot_form`; a spot hit plays `spot_pop` (in place of the impact) and `spot_break`. A world hit
 plays `impact/world` once. So a hit is one sound, and a spot event is two.
+
+## Fix round 2 (the creator's playtest, 2026-10-14): what changed
+
+The creator's calls: the reload was "a flop ... instead of something like a smack of the gavel"; the sound "quite grating";
+"the gavel crack only when a weak spot is shot; otherwise the shot is a small thwip, like shooting a small quill"; the
+tracers looked like Chamber's Headhunter, so "ink from a quill"; and the view was narrow.
+
+- **The reload is a gavel smack.** The small gavel on the roof rises over a `windup` event (animation only), falls in
+  the last 3% of the clip before the `smack` event (39 ms in the partial, 52 ms in the empty reload), and smacks the
+  sound block; the gun recoils in its pose frames (3.5 cm down, 3 cm back, the muzzle 8° down), the camera gets a
+  0.7° kick and 0.04 shake (a quarter of a shot's), the lamps and the doorway flare, and the drum, held 12 mm short, is
+  driven home; 58 ms (79 ms) later the `seat` event twists it home and flashes the amber band white-hot, with a brass
+  click. Total times are unchanged (1.3 s, 1.75 s). The `smack` event carries `writ/smack`, so the range director's
+  schedule and the sync check see it like any other counted sound (the ears' onsets on the forge render: smack at
+  0.676 s and seat at 0.7346 s in the partial, exactly the schedule).
+  **Where it lives (so a quill-and-ink animation can replace it):** the events and pose frames are data in
+  `SkylineGuns.Writ()` (`ReloadPartial`, `ReloadEmpty`); the gavel's curve is the pure `SkylineGuns.WritGavelSmack`
+  (unit-tested); the gavel/lamp/camera presentation is `SkylineWritFx` (`GavelSmack`, the `smack` case in `OnCue`).
+  Swapping the animation for another means changing those and keeping a sounded `smack`-like event at the strike, so
+  `tools/skyline/guns/writ/Reload*.timeline.json`, the sound schedule and the sync check follow from the clip data
+  (regenerate the timelines with the explicit test `WriteTheForgeTimelines`).
+- **The sounds** (all in `synth.py`; the old hydraulic shot stems and `shot_mech` are deleted): the shot is a quill's
+  thwip, the gavel crack is `impact_crack`, the reload has `smack` and a brass `seat`. The mix's buses and limiter are
+  unchanged (`writ/impact_crack` joins the Impacts bus by its name).
+- **The crack on a weak-spot hit only:** `SkylineWritFx.OnHit` plays `writ/impact_crack` (2D, volume 0.9) when
+  `r.writ.spotHit || info.zone == WeakPoint`, on top of the hit feedback (`impact_weak` / `spot_pop`, and the spot's own
+  `spot_form` / `spot_break`). An ordinary hit and a miss do not play it. The layering rule above gains this one 2D layer.
+- **The ink tracer:** `SkylineInkTracer` (in `SkylineTracer.cs`): a ribbon of dark indigo ink (#2A1F5C, a wet sheen of
+  #5B4BB4 along its upper edge that dries first, a near-black #0B0817 outline under it), drawn out from the muzzle in
+  0.04 s, 2.2 cm wide at the start and tapering to a point, never thinner than about 2 px; an irregular brush edge;
+  five droplets that flick off its first 60% and fall a little (gravity 3.5 m/s², scaled up with distance) and fade; the
+  whole stroke dries and fades in 0.35 s. It replaces both the old cream bar (for the Writ; the Breacher and the bots
+  keep theirs) and the Writ's amber ribbon. The material is `Sprites/Default` (always in the build), vertex-coloured, so
+  no keyword is turned on at run time.
+- **Field of view:** a "Field of view" slider on the pause menu's Look page, 60 to 110° vertical, 68° by default (what
+  the game had; `SkylineOptions.fieldOfView`, saved in the options string as `fov=`, older saves keep 68). The movement
+  camera sets its own view every frame; `SkylineViewmodel` multiplies it by `option / 68`, and aiming down sights
+  narrows from there by the gun's own factor as before. The guns' overlay camera is unchanged, so the guns stay one size.
+
+### The shot's numbers, old against new (the ears, `listen.py measure` and a Welch spectrum over the first 0.5 s)
+
+| | old `writ/shot` | new `writ/shot` (thwip) |
+| --- | --- | --- |
+| Length, peak, loudness | 2.8 s, -1.6 dBFS, -19.2 LUFS | 0.4 s, -8.5 dBFS, -27.8 LUFS |
+| Tail to -40 dB | 2329 ms | 85 ms |
+| Spectral centroid | 464 Hz | 5331 Hz |
+| Band power, 0-250 Hz | -23.9 dBFS | -83.7 dBFS |
+| Band power, 250-2000 Hz | -24.4 | -46.4 |
+| **Band power, 2-5 kHz** | **-29.9** | **-48.1** (18 dB less) |
+| Band power, 5-10 kHz | -25.3 | -41.4 |
+| Loudest 5 ms of the 2-5 kHz band | -19.8 dBFS | -25.9 dBFS (6 dB less) |
+| Narrow peak in 2-5 kHz over its neighbours | 0.6 dB at 3.8 kHz | 0.9 dB at 4.8 kHz (no spike) |
+
+The new shot sits 7 dB under the old one's peak and 8.6 LU quieter on purpose ("a small thwip"); if it is too small in
+play, raise the recipe's `THWIP_MIX` (in `synth.py`), not the bus. The other new sounds: `smack` peak -1.6 dBFS,
+centroid 525 Hz; `impact_crack` peak -4.5 dBFS, centroid 653 Hz, attack 0.12 ms.
