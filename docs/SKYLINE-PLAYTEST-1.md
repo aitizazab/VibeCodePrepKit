@@ -11,6 +11,29 @@ holds their calls (their words quoted) and the work queue. It overrides older do
   fact, or do a specific thing. The only exception is Weapon Ideas I want in the game immediately."
 - Budget: the week's usage hit 20% with the pace in the red after the overnight run (resets Tue 20 Oct 09:00).
 
+## Later on 2026-10-14: the level is decided; the art style comes first
+
+- **The level design is approved and specced:** `docs/SKYLINE-FLOOR-REPOSSESS.md` (repossess three listed assets in
+  tow circles; waves every 30 s from flanking bearings, at most about 10 bots alive; a pit + ring + shops + galleries
+  arena with a bridge, escalators, a service corridor and a façade wall-run). The creator: "A as the objective is fine,
+  and starting numbers are fine." **Not built until the art style is settled.**
+- **Art style before anything else is built or generated.** The creator: "the game doesn't look fun to play, and the
+  vision I had for the art seems unrealistic with how generated images look like. The weapons, the models for enemies
+  and later friendly AI, and other important stuff stays, but what about the space we're actually in? It's
+  prohibitively expensive to detail it all out like we do for the guns and enemies, but it absolutely needs something
+  better than what we're currently doing. So we need to look at other 3D first-person indie games, to see the kind of
+  aesthetic they push onto their backgrounds and scenery."
+- **Concept art must sit inside a defined style:** "the art looks too AI-Generated, and it's annoying me. It's not
+  coming up with cool visuals, and it's not within a defined art style we have either, which is a massive mistake.
+  Once we have the background, the basic enemy models and the gun models defined, the rest of the art should be based
+  in the same art style." (Cause on our side: every Breacher prompt shared one template, "a premium weapon-skin
+  reveal, three-quarter angle, moody studio light, dark backdrop", so all twelve read alike.)
+- **The Breacher, round 2:** "B. Take 1 looks the best, but only by a bit, and none of them are particularly
+  impressive. They all are very same-y, even if things are changing." The club subwoofer (B) leads; redo it inside the
+  chosen style.
+- The style comparison page: `FableAnimationTests/art/review/2026-10-14/skyline-art-style-2.html` (Steam screenshots of
+  first-person games, grouped by approach).
+
 ## Fixed on 2026-10-14 (commit 96a7338, build `out/skyline-play/2026-10-14-m1b/SkylineRepo.exe`)
 
 - **Invisible bots in the build.** Their painted parts rendered see-through (shadows only). Cause: the bot paint
