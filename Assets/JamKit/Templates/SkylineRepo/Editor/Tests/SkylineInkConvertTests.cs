@@ -25,7 +25,7 @@ namespace JamKit.SkylineRepo.Tests
             Assert.That(SkylineInkPalette.TryGet("SKL_Plaster_White__Mint", out var mint), Is.True);
             Assert.That(mint.color.g, Is.GreaterThan(mint.color.r), "mint (green over red), not the plain white");
             Assert.That(SkylineInkPalette.TryGet("SKL_Plaster_White", out var white), Is.True);
-            AssertHex(white.color, 0xE2, 0xD3, 0xB8);
+            AssertHex(white.color, 0xE9, 0xED, 0xF2);
             Assert.That(SkylineInkPalette.TryGet("SKL_Ground_Hazed", out var ground), Is.True);   // a prefix row: the library's ground family
         }
 

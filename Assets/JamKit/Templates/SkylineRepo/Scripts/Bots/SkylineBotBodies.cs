@@ -638,7 +638,9 @@ namespace JamKit.SkylineRepo
         {
             SkylineInkRoles.Apply(p.rig.gameObject, SkylineInkRoles.Hostile);
             if (p.mount != null) SkylineInkRoles.Apply(p.mount.gameObject, SkylineInkRoles.Hostile);
-            if (p.weakPoint != null) SkylineInkRoles.Apply(p.weakPoint.gameObject, SkylineInkRoles.BotWeakPoint);
+            // the drone's weak point is its rotors (the creator's redesign): its lens (the model's WeakPoint, the body-cam) stays
+            // part of the hostile body; every other body keeps its WeakPoint subtree as the weak part
+            if (p.weakPoint != null && def.id != SkylineEnemies.DroneId) SkylineInkRoles.Apply(p.weakPoint.gameObject, SkylineInkRoles.BotWeakPoint);
             if (def.id == SkylineEnemies.DroneId && p.spinner != null && p.spinner.name == "Rotors")
                 SkylineInkRoles.Apply(p.spinner.gameObject, SkylineInkRoles.BotWeakPoint);
         }

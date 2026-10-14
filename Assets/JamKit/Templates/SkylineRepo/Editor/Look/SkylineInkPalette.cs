@@ -60,13 +60,13 @@ namespace JamKit.SkylineRepo.EditorTools
 
         static readonly Dictionary<string, InkEntry> Table = new Dictionary<string, InkEntry>
         {
-            { "SKL_Plaster_White", Exact("E2D3B8") },
-            { "SKL_Plaster_White__Blush", Paint("E8C9C0") },
-            { "SKL_Plaster_White__Mint", Paint("CFE3D3") },
-            { "SKL_Plaster_White__Sage", Paint("BCC9A8") },
-            { "SKL_Plaster_White__Sand", Paint("E3CFAE") },
-            { "SKL_Plaster_White__Sky", Paint("C4D8E6") },
-            { "SKL_Plaster_White__Slate", Paint("8E9BA8") },
+            { "SKL_Plaster_White", Exact("E9EDF2") },   // fix round 2: walls a cool blue-white (round 1 was warm cream, too muted); floors stay warm
+            { "SKL_Plaster_White__Blush", Exact("F0D5DA") },
+            { "SKL_Plaster_White__Mint", Exact("D2EBDD") },
+            { "SKL_Plaster_White__Sage", Exact("C3D7C2") },
+            { "SKL_Plaster_White__Sand", Exact("E6DCC6") },
+            { "SKL_Plaster_White__Sky", Exact("BFDAF2") },
+            { "SKL_Plaster_White__Slate", Exact("8899B0") },
             { "SKL_Marble_Cream", Exact("CDBB9C", 1f) },
             { "SKL_Terrazzo_White", Exact("CDBB9C", 1f) },
             { "SKL_Parquet_Herringbone", Paint("A0603E", 1f) },

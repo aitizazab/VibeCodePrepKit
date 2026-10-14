@@ -213,7 +213,8 @@ Shader "Skyline/InkLit"
                 // The shade colour is the ambient (SH evaluated per pixel: SampleSHPixel with neither EVALUATE_SH_* keyword).
                 // The Trilight ambient is cool above, so shade takes the sky's tint.
                 half3 ambient = SampleSHPixel(half3(0, 0, 0), normalWS);
-                half3 color = albedo * (ambient * 0.55h + mainLight.color * sunIntensity);
+                // fix round 2: the shade takes a cool blue (sky) tint so lit/shade reads as warm sun against cool sky
+                half3 color = albedo * (ambient * half3(0.86h, 0.96h, 1.14h) * 0.55h + mainLight.color * sunIntensity);
 
                 // ---- hatching in the deepest band only: world-space diagonal lines, a triangle wave thresholded with an
                 // anti-aliased edge, faded out where the lines would be thinner than a pixel.

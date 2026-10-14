@@ -39,7 +39,7 @@ namespace JamKit.SkylineRepo
             HideOthers();
             // a bot needs a target, though this one never uses it: the player, else the gallery's dummy
             ISkylineTarget target = FindFirstObjectByType<SkylinePlayer>();
-            if (target == null) target = FindFirstObjectByType<SkylineDummy>();
+            if (target == null) target = FindFirstObjectByType<SkylineDummy>(FindObjectsInactive.Include);   // the gallery hides its dummies until their segment
             if (target == null)
             {
                 Debug.LogWarning("SKYLINE_STILL display bot: no player or dummy in the scene; the shot has no bot");
@@ -47,12 +47,18 @@ namespace JamKit.SkylineRepo
             }
             var player = target as SkylinePlayer;
             _bot = SkylineBot.Spawn(enemyId, position, yaw, seed, target, player != null ? player.Writ : null, null);
-            if (_bot == null) return;
+            if (_bot == null) { Debug.LogWarning("SKYLINE_STILL display bot " + enemyId + " could not be spawned"); return; }
             _bot.practice = true;
             _bot.gameObject.name = "Display " + _bot.gameObject.name;
             if (!Mathf.Approximately(bodyScale, 1f) && _bot.Rig != null) _bot.Rig.localScale *= bodyScale;
             if (!Mathf.Approximately(rotorScale, 1f) && _bot.Parts != null && _bot.Parts.spinner != null && _bot.Parts.spinner.name == "Rotors")
                 foreach (Transform rotor in _bot.Parts.spinner) rotor.localScale *= rotorScale;
+            // proof for the pass's log: what was made, where, and how many of its renderers are on
+            int visible = 0;
+            foreach (var r in _bot.GetComponentsInChildren<Renderer>(false)) if (r.enabled) visible++;
+            var still = GetComponent<SkylineStillCamera>();
+            Debug.Log("SKYLINE_STILL display bot shot=" + (still != null ? still.shotName : name) + " type=" + enemyId + " at=" +
+                      _bot.transform.position.ToString("0.00") + " visibleRenderers=" + visible + " hiddenOthers=" + _hidden.Count);
         }
 
         public void Hide()
