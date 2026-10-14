@@ -1,19 +1,47 @@
 {
-  "sample_rate": 48000,
-  "length": 0.36,
-  "seed": 1,
-  "layers": [
-    {
-      "type": "sample",
-      "path": "../sources/fc_eep.wav",
-      "start": 0.0,
-      "attack": 0,
-      "decay": 0,
-      "gain_db": 3.0
-    }
-  ],
-  "master": {
-    "limit_db": -1.0
+ "sample_rate": 48000,
+ "length": 0.36,
+ "seed": 32,
+ "layers": [
+  {
+   "type": "sine",
+   "freq": 150,
+   "start": 0.0,
+   "attack": 0.003,
+   "decay": 0.2,
+   "gain_db": 2.0,
+   "freq_end": 70
   },
-  "note": "sample layers +3 dB: a centred layer is panned at -3 dB per side"
+  {
+   "type": "noise",
+   "start": 0.0,
+   "attack": 0.004,
+   "decay": 0.22,
+   "gain_db": -3.0,
+   "color": "pink",
+   "lowpass": 1800,
+   "highpass": 200
+  },
+  {
+   "type": "sine",
+   "freq": 900,
+   "start": 0.03,
+   "attack": 0.004,
+   "decay": 0.08,
+   "gain_db": -4.0,
+   "freq_end": 450
+  },
+  {
+   "type": "noise",
+   "start": 0.1,
+   "attack": 0.03,
+   "decay": 0.2,
+   "gain_db": -9.0,
+   "color": "pink",
+   "lowpass": 1200
+  }
+ ],
+ "master": {
+  "limit_db": -1.0
+ }
 }

@@ -156,25 +156,39 @@ def rifle_layers():
     return layers
 
 
+ATTACK_GAIN_DB = 3.8   # the muffled rifle plus its crackle, level-matched to sit where the old crack did (rms -21 dBFS)
+HURT_GAIN_DB = -3.3    # the dying bulb, level-matched to the old tink (rms -27 dBFS)
+
+
 def attack():
-    # The rifle: the driven stem (sources.py), +3 dB for the centre pan; limit -1.8 dB keeps the true peak under -1 dBTP.
-    layer = {"type": "sample", "path": "../sources/sl_rifle.wav", "start": 0.0, "attack": 0.0, "decay": 0.0, "gain_db": 3.0}
-    save("attack", RIFLE_SECONDS, [layer], seed=11, limit=-1.8)
+    # The creator's pick (2026-10-14, from audio/skyline-sfx-options/spotlight-attack, option c, "a bit more muffling and static,
+    # like electricity crackling"): the rifle stem (sources.py) low-passed at 1.5 kHz as through a wall, a low body, a brief hiss of
+    # static under 3.5 kHz and sparse crackle clicks. Almost nothing in the 2-5 kHz harsh band.
+    rnd = random.Random(23)
+    g = ATTACK_GAIN_DB
+    layers = [
+        {"type": "sample", "path": "../sources/sl_rifle.wav", "start": 0.0, "attack": 0.0, "decay": 0.0, "gain_db": g, "lowpass": 1500},
+        sine(110, end=60, attack=0.002, decay=0.16, gain=g - 9),
+        noise(start=0.0, attack=0.01, decay=0.22, gain=g - 17, hp=500, lp=3500),   # the static
+    ]
+    for i in range(12):   # the crackle: sparse random clicks, band-limited, panned a little
+        at = 0.012 + rnd.uniform(0, 0.4) ** 1.3
+        layers.append(noise(start=at, attack=0.0003, decay=rnd.uniform(0.004, 0.009), gain=g - 9 - rnd.uniform(0, 7), hp=700, lp=3800,
+                            pan=round(rnd.uniform(-0.4, 0.4), 2)))
+    save("attack", RIFLE_SECONDS, layers, seed=23, limit=-1.0)
 
 
 def hurt():
-    # Struck: the lens's glass tink (inharmonic, short), the drum's knock, the lamp sputtering three times.
+    # The creator's pick (spotlight-hurt option b, the dying bulb): a falling filament whine, a soft crackle of band-limited noise
+    # and a final hum-drop, like a lamp shorting out. Nothing above 2.4 kHz.
+    g = HURT_GAIN_DB
     layers = [
-        sine(2830, attack=0.0005, decay=0.16, gain=-9),
-        sine(4120, attack=0.0005, decay=0.12, gain=-12),
-        sine(6310, attack=0.0005, decay=0.08, gain=-16),
-        sine(160, end=90, attack=0.001, decay=0.08, gain=-8),
-        noise(attack=0.0005, decay=0.03, gain=-10, lp=2000, pink=True),
+        sine(1400, end=520, attack=0.004, decay=0.22, gain=-7 + g, lp=2400),
+        noise(start=0.0, attack=0.01, decay=0.16, gain=-13 + g, hp=500, lp=2400),
+        noise(start=0.14, attack=0.01, decay=0.12, gain=-18 + g, hp=400, lp=2000),
+        sine(120, end=60, start=0.1, attack=0.01, decay=0.25, gain=-7 + g),
     ]
-    for at, g in ((0.05, -14), (0.1, -18), (0.17, -16)):
-        layers.append(noise(start=at, attack=0.002, decay=0.04, gain=g, hp=1800, lp=7000))
-        layers.append(sine(100, start=at, attack=0.002, decay=0.05, gain=g - 2))
-    save("hurt", 0.45, layers, seed=13)
+    save("hurt", 0.45, layers, seed=42)
 
 
 def plate_shed():

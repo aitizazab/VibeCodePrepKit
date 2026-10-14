@@ -1,100 +1,44 @@
 {
  "sample_rate": 48000,
  "length": 0.45,
- "seed": 13,
+ "seed": 42,
  "layers": [
   {
    "type": "sine",
-   "freq": 2830,
+   "freq": 1400,
    "start": 0.0,
-   "attack": 0.0005,
-   "decay": 0.16,
-   "gain_db": -9
-  },
-  {
-   "type": "sine",
-   "freq": 4120,
-   "start": 0.0,
-   "attack": 0.0005,
-   "decay": 0.12,
-   "gain_db": -12
-  },
-  {
-   "type": "sine",
-   "freq": 6310,
-   "start": 0.0,
-   "attack": 0.0005,
-   "decay": 0.08,
-   "gain_db": -16
-  },
-  {
-   "type": "sine",
-   "freq": 160,
-   "start": 0.0,
-   "attack": 0.001,
-   "decay": 0.08,
-   "gain_db": -8,
-   "freq_end": 90
+   "attack": 0.004,
+   "decay": 0.22,
+   "gain_db": -10.3,
+   "freq_end": 520,
+   "lowpass": 2400
   },
   {
    "type": "noise",
    "start": 0.0,
-   "attack": 0.0005,
-   "decay": 0.03,
-   "gain_db": -10,
-   "color": "pink",
+   "attack": 0.01,
+   "decay": 0.16,
+   "gain_db": -16.3,
+   "highpass": 500,
+   "lowpass": 2400
+  },
+  {
+   "type": "noise",
+   "start": 0.14,
+   "attack": 0.01,
+   "decay": 0.12,
+   "gain_db": -21.3,
+   "highpass": 400,
    "lowpass": 2000
   },
   {
-   "type": "noise",
-   "start": 0.05,
-   "attack": 0.002,
-   "decay": 0.04,
-   "gain_db": -14,
-   "highpass": 1800,
-   "lowpass": 7000
-  },
-  {
    "type": "sine",
-   "freq": 100,
-   "start": 0.05,
-   "attack": 0.002,
-   "decay": 0.05,
-   "gain_db": -16
-  },
-  {
-   "type": "noise",
+   "freq": 120,
    "start": 0.1,
-   "attack": 0.002,
-   "decay": 0.04,
-   "gain_db": -18,
-   "highpass": 1800,
-   "lowpass": 7000
-  },
-  {
-   "type": "sine",
-   "freq": 100,
-   "start": 0.1,
-   "attack": 0.002,
-   "decay": 0.05,
-   "gain_db": -20
-  },
-  {
-   "type": "noise",
-   "start": 0.17,
-   "attack": 0.002,
-   "decay": 0.04,
-   "gain_db": -16,
-   "highpass": 1800,
-   "lowpass": 7000
-  },
-  {
-   "type": "sine",
-   "freq": 100,
-   "start": 0.17,
-   "attack": 0.002,
-   "decay": 0.05,
-   "gain_db": -18
+   "attack": 0.01,
+   "decay": 0.25,
+   "gain_db": -10.3,
+   "freq_end": 60
   }
  ],
  "master": {

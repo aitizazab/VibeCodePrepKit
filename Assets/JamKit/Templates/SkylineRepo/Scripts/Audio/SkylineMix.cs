@@ -129,13 +129,13 @@ namespace JamKit.SkylineRepo
             // The bots' one-shots, brought to about the same pre-bus level (-21 to -23 dBFS RMS: the shipped WAVs measure from -10.1
             // (drone alert) to -27 (spotlight hurt), the guns' own are at -30 to -34). Measured 2026-10-14 on the WAVs with the ears.
             { "mall-cop-drone/alert", -9f },        // -10.1 RMS: the hottest sound in the game
-            { "mall-cop-drone/telegraph", -6f },    // -13.7, and 68% of its energy in 2-5 kHz (the dodge cue: kept audible, its harsh band is cut by the EQ)
+            { "mall-cop-drone/telegraph", -4f },    // the creator's pick (rotor spool, -15.3 RMS, nothing in 2-5 kHz): the dodge cue, a touch hotter than the old one
             { "mall-cop-drone/hurt", -8f },         // -12.9
             { "mall-cop-drone/attack", -3f },       // -18.5
-            { "floor-care-unit/hurt", -7f },        // -15.5, 54% in 2-5 kHz
+            { "floor-care-unit/hurt", -5f },        // the creator's pick (tank slosh, -17.1 RMS, low)
             { "floor-care-unit/attack", -2f },      // -19.5
             { "floor-care-unit/telegraph", -2f },   // -19.4
-            { "spotlight/attack", -3f },            // -18.3, 33% in 2-5 kHz
+            { "spotlight/attack", 0f },            // the creator's pick (muffled rifle with crackle, -21.4 RMS; the old crack was -18.3 with trim -3)
             { "spotlight/telegraph", -2f },         // -19.2
             { "window-washer-gondola/mine_blast", -3f },   // -16.3
             // The beds. The practice drone's rotor is a soft hum (the creator, 2026-10-14) and sits 6 dB under the rest; the gondola's
@@ -156,11 +156,12 @@ namespace JamKit.SkylineRepo
         /// <see cref="BotHarshCutDb"/> (measured: the share of their energy in 2-5 kHz).</summary>
         static readonly Dictionary<string, float> HarshCutOverrideDb = new Dictionary<string, float>
         {
-            { "mall-cop-drone/telegraph", -5f },    // 68%
-            { "spotlight/hurt", -6f },              // 59%
-            { "floor-care-unit/hurt", -6f },        // 54%
-            { "spotlight/attack", -5f },            // 33%
             { "floor-care-unit/alert", -5f },       // 37%
+            // The creator's four picks (2026-10-14) have almost nothing in 2-5 kHz (0-4%): no cut.
+            { "mall-cop-drone/telegraph", 0f },
+            { "floor-care-unit/hurt", 0f },
+            { "spotlight/hurt", 0f },
+            { "spotlight/attack", 0f },
         };
 
         /// <summary>The peaking cut (dB, 0 or negative) a sound's world voice applies around <see cref="HarshCenterHz"/>: the bots'

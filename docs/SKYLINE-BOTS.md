@@ -243,5 +243,8 @@ east façade.
 The bots' one-shots (alert, telegraph, attack, hurt, plate shed, wreck, mine and acid sounds) go through the voice gate and a gentle
 harsh-band EQ (3.4 kHz, -4 dB; -5 to -6 dB for the drone's telegraph, floor-care hurt and alert, the spotlight's hurt and attack),
 at most 2-3 of each kind at once with the nearest bot winning; their barks are one at a time, quieter and low-passed; only the nearest
-three idle loops are heard. The recipes themselves are untouched. See `docs/SKYLINE-PIPELINE.md`, "The mix". Replacement options for
-the sounds that are grating on their own are rendered in `FableAnimationTests/audio/skyline-sfx-options/` for the creator to choose.
+three idle loops are heard. The recipes themselves are untouched. See `docs/SKYLINE-PIPELINE.md`, "The mix". The creator picked replacements for four sounds that were grating on their own (options in
+`FableAnimationTests/audio/skyline-sfx-options/`), now installed: drone `telegraph` = rotor spool, floor-care `hurt` = tank slosh,
+spotlight `hurt` = dying bulb, spotlight `attack` = the rifle muffled at 1.5 kHz with static and sparse crackle clicks (2-5 kHz share
+0-4%). Their recipes: `bots/mall-cop-drone/recipes/telegraph.json`, `bots/floor-care-unit/recipes/hurt.json`, and the spotlight's
+two from `bots/spotlight/make_recipes.py` (`attack()`, `hurt()`).

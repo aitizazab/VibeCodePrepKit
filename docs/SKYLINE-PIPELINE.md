@@ -103,8 +103,10 @@ What changed (numbers in `SkylineMix.cs`, rules in `SkylineMixRules`):
 - **Beds:** only the nearest 3 idle loops are heard, the rest fade over 0.6 s and are muted; ambience bus -8 dB (was -6) and the
   gondola, spotlight and floor-care beds trimmed (-4, -3, -2 dB).
 - **Harsh band:** a broad peaking cut (3.4 kHz, Q 0.6) on every bot one-shot, set per sound on its world voice (`SkylineVoiceEq`):
-  -4 dB by default, -5 to -6 dB for the harshest (drone telegraph, floor-care hurt and alert, spotlight hurt and attack). Modelled
-  on the WAVs: drone telegraph 2-5 kHz level -32.4 to -37.6 dBFS, spotlight attack -34.1 to -42.6.
+  -4 dB by default, -5 dB for floor-care alert (37% in 2-5 kHz). The four sounds that were grating on their own were replaced by the
+  creator's picks (drone telegraph = rotor spool, floor-care hurt = tank slosh, spotlight hurt = dying bulb, spotlight attack = the
+  rifle muffled at 1.5 kHz with static and crackle; 2-5 kHz share 68/54/59/33% down to 0.1/0.0/0.4/3.7%), so they take no cut. Modelled
+  on the old WAVs before the replacement: drone telegraph 2-5 kHz level -32.4 to -37.6 dBFS, spotlight attack -34.1 to -42.6.
 - **Levels:** Bots bus -12 dB (was -11), the hottest sounds trimmed to a common -21..-23 dBFS RMS before the bus; Guns, Handling,
   Impacts and the new **Feedback** bus (`player/*`, `concierge/*`) at -2 dB (were -4; Feedback was -11).
 - **Ducking:** the teaching line ducks bots -8 dB and beds -9 dB (was -6); the player's shot (0.30 s), impact (0.18 s) and hurt cue
