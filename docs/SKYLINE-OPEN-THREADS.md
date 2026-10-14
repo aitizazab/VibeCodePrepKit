@@ -23,6 +23,9 @@ start goes here with its next step; a thread leaves this list only when it's don
 | Writ reload sounds | The reload is silent except the seat click (the old drum/gavel recipes no longer fit) | Options for the quill leaving the ink, scratching on paper, and dipping back (identity first); creator picks |
 
 ## Waiting on the creator
+- **Balance after the lagged drone aim:** drones now miss a strafing Unit by design, so the skilled line takes too little
+  pressure in the food court and the façade (median lowest plating 76 vs the gate's 60; both tests parked with `[Ignore]`
+  and their numbers). Balance in play together: more drones, other bots (the Valet), or a new gate.
 - The music: the v3 heavenly theme, and which riser hand-over (`art/review/2026-10-15/skyline-music-heaven-v3.html`).
 - The Relay: is the space big enough for an 18 m/s skill check (`SKYLINE-RELAY.md`)?
 - The HUD: does "- RELOADING" under the ammo count go (the gun's name stays)?
