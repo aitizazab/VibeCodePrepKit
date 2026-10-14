@@ -288,7 +288,7 @@ tight (the week is in the red); run at most 3-4 agents at once, cheapest and mos
 | M1 | Music sequencer, lift-ride plan, layers (DONE 2026-10-14) | pure | M | `MusicSequencer.cs`, `MusicLayers.cs`, tests | F0 |
 | A1 | Special-ammo ledger and the finite reserve hook | pure | S | `SpecialAmmo.cs`, `SkylineGun.cs` (additive), `SkylineGuns.cs` (one line), tests | F0 |
 | C1 | Comic lettering core | pure | S | `ComicLettering.cs`, tests | F0 |
-| V1 | HUD models (health, edge marker, subtitles, wave text) | pure | M | `HudModels.cs`, tests | F0 |
+| V1 | HUD models (health, edge marker, subtitles, wave text, wreck sequence) (DONE 2026-10-14) | pure | M | `HudModels.cs`, tests | F0 |
 | S0 | Ink roles: hues, wreck thinning, x-ray objective, hostile-hue lint | Unity | M | `InkLit.shader`, `SkylineInk*.cs`, `SkylineInkRoles.cs`, `SkylineWreck.cs`, a new editor lint | none |
 | D0 | Materials, palette and the colour-free zone helper | Unity | M | `SkylineLookLibrary.cs`, `SkylineInkPalette.cs`, `SkylineInkConvert.cs`, `make-textures.py` | none |
 | F3 | Layout lint + navigation graph + base-kit routes | pure | L | `ArenaNav.cs`, `ArenaLint.cs`, tests | F1, F2 |
@@ -778,6 +778,8 @@ public static class SpeakerColours { public static (float r, float g, float b) O
   `Dialogue` is dropped, `Off` shows nothing, PA lines flagged italic; formats ("NEXT 0:05", "NEXT 0:00", "34 m", "1.2 km"
   never needed); no speaker colour lies in the hostile red-magenta band (hue within 20 degrees of `#FF2E63`).
 - [ ] **Step 2:** write. Commit.
+
+**Added to V1 (section 10 of `SKYLINE-FLOOR-REPOSSESS.md`, the wreck death sequence):** a pure `WreckSequence` timing model in the same file: `WreckSequence(string quote | int length)`, `Sample(t) -> WreckFrame` (phase Stagger 0.7 s, Fall 0.9 s, Lie 0.9 s, FadeOut 0.8 s, Quote, FadeIn 1.2 s, Done; `stagger01`, `fall01`, `blackAlpha`, `quoteAlpha`, `worldMayReset` (from full black), `liftRideRunning` (from the start of the fade-in)), `QuoteHold(length) = clamp(1.5 + 0.06 * length, 2, 8)` s, `TotalSeconds`. The director plays the pose from `stagger01`/`fall01`, draws the black and the quote, resets the world at `worldMayReset` and starts the lift ride (music sync) at `liftRideRunning`.
 
 **Acceptance:** green. **Pass check:** none (H2-H5 draw them).
 
