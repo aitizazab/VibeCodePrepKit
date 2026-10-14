@@ -113,7 +113,7 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
-        public void AReactionCutsTheLineBeingSaidWhichIsSaidAgainAfter()
+        public void AReactionCutsTheLineBeingSaidWhichResumesAfter()
         {
             var q = new TeachingQueue();
             q.Enqueue(Beat("notice", BeatTrigger.FirstSeen, 120), 0f);
@@ -170,27 +170,119 @@ namespace JamKit.Tests.Skyline
         public void ALineWhoseMomentPassesWhileSaidEndsAndTheNextStartsAtOnce()
         {
             var q = new TeachingQueue();
-            q.Enqueue(Beat("concierge-spotlight", BeatTrigger.FirstSeen, 121), 0f);
-            q.Enqueue(Beat("concierge-floor-care", BeatTrigger.FirstSeen, 87), 0f);
-            Assert.That(q.Next(0f, null, null).id, Is.EqualTo("concierge-spotlight"));
-            bool spotlightsWrecked = false;
-            Func<TeachingBeat, bool> passed = b => b.id == "concierge-spotlight" && spotlightsWrecked;
+            q.Enqueue(Beat("dot-boost", BeatTrigger.NearBoostLedge, 80), 0f);
+            q.Enqueue(Beat("nan-warmup", BeatTrigger.WarmupStart, 70), 0f);
+            Assert.That(q.Next(0f, null, null).id, Is.EqualTo("dot-boost"));
+            bool left = false;
+            Func<TeachingBeat, bool> passed = b => b.id == "dot-boost" && left;
             var dropped = new List<TeachingBeat>();
             var cut = new List<TeachingBeat>();
             Assert.That(q.Next(2f, passed, dropped, cut), Is.Null);
-            spotlightsWrecked = true;
-            Assert.That(q.Next(2.1f, passed, dropped, cut).id, Is.EqualTo("concierge-floor-care"), "no gap: the next notice at once");
+            left = true;
+            Assert.That(q.Next(2.1f, passed, dropped, cut).id, Is.EqualTo("nan-warmup"), "no gap: the next line at once");
             Assert.That(cut.Count, Is.EqualTo(1));
             Assert.That(dropped.Count, Is.EqualTo(1), "ended, not said again");
-            Assert.That(q.Contains("concierge-spotlight"), Is.False);
+            Assert.That(q.Contains("dot-boost"), Is.False);
 
             var q2 = new TeachingQueue();
-            q2.Enqueue(Beat("concierge-spotlight", BeatTrigger.FirstSeen, 121), 0f);
+            q2.Enqueue(Beat("dot-boost", BeatTrigger.NearBoostLedge, 80), 0f);
             q2.Next(0f, null, null);
             cut.Clear();
             Assert.That(q2.Next(3f, b => true, null, cut), Is.Null);
             Assert.That(cut.Count, Is.EqualTo(1), "nothing replaces it: the caller takes the subtitle down");
             Assert.That(q2.Current(3.01f), Is.Null);
+        }
+
+        [Test]
+        public void ASafetyNoticeFinishesEvenWhenItsBotsAreGone()
+        {
+            var q = new TeachingQueue();
+            q.Enqueue(Beat("concierge-floor-care", BeatTrigger.FirstSeen, 87), 0f);
+            q.Enqueue(Beat("dot-boost", BeatTrigger.NearBoostLedge, 80), 0f);
+            Assert.That(q.Next(0f, null, null).id, Is.EqualTo("concierge-floor-care"));
+            var cut = new List<TeachingBeat>();
+            Assert.That(q.Next(3f, b => b.id == "concierge-floor-care", null, cut), Is.Null, "the units died: it still finishes");
+            Assert.That(cut, Is.Empty, "and nothing less urgent cuts it");
+            Assert.That(q.Current(3f).id, Is.EqualTo("concierge-floor-care"));
+        }
+
+        [Test]
+        public void ACutLineResumesWhereItWasCutAndACutTwiceLineIsDroppedForGood()
+        {
+            var q = new TeachingQueue();
+            q.Enqueue(Beat("nan-warmup", BeatTrigger.WarmupStart, 105), 0f);   // 7.5 s
+            Assert.That(q.Next(0f, null, null).id, Is.EqualTo("nan-warmup"));
+            Assert.That(q.StartOffset, Is.EqualTo(0f));
+            q.Enqueue(Beat("dot-spots", BeatTrigger.PracticeBotSeen, 30), 2f);   // 2.5 s
+            var cut = new List<TeachingBeat>();
+            Assert.That(q.Next(2f, null, null, cut).id, Is.EqualTo("dot-spots"));
+            Assert.That(cut[0].id, Is.EqualTo("nan-warmup"));
+            float back = 2f + TeachingQueue.LineSeconds(new string('a', 30)) + TeachingQueue.Gap;
+            Assert.That(q.Next(back, null, null).id, Is.EqualTo("nan-warmup"), "resumed");
+            Assert.That(q.StartOffset, Is.EqualTo(2f).Within(1e-4f), "from where it was cut, not from the top");
+            Assert.That(q.CurrentSeconds, Is.EqualTo(7.5f - 2f + TeachingQueue.ResumeLead).Within(1e-3f));
+
+            q.Enqueue(Beat("dot-kiosk", BeatTrigger.NearBoostLedge, 30), back + 1.5f);
+            cut.Clear();
+            Assert.That(q.Next(back + 1.5f, null, null, cut).id, Is.EqualTo("dot-kiosk"));
+            Assert.That(cut[0].id, Is.EqualTo("nan-warmup"));
+            Assert.That(q.Contains("nan-warmup"), Is.False, "cut twice: dropped for good");
+            Assert.That(q.Enqueue(Beat("nan-warmup", BeatTrigger.WarmupStart, 105), back + 2f), Is.False, "and never queued again");
+        }
+
+        [Test]
+        public void ALineCutWhenMostlySaidCountsAsSaid()
+        {
+            var q = new TeachingQueue();
+            q.Enqueue(Beat("nan-warmup", BeatTrigger.WarmupStart, 30), 0f);   // 2.5 s
+            q.Next(0f, null, null);
+            q.Enqueue(Beat("dot-spots", BeatTrigger.PracticeBotSeen, 30), 2.1f);
+            Assert.That(q.Next(2.1f, null, null).id, Is.EqualTo("dot-spots"));
+            Assert.That(q.Contains("nan-warmup"), Is.False, "84% said: not said again");
+        }
+
+        [Test]
+        public void ALearnedLineIsNeverSaidAgainButTheNextFightNoticeRepeats()
+        {
+            var q = new TeachingQueue();
+            var spot = Beat("dot-writ-spot-made", BeatTrigger.FirstSpotCreated, 46);
+            Assert.That(q.Enqueue(spot, 0f), Is.True);
+            Assert.That(q.Next(0f, null, null).id, Is.EqualTo("dot-writ-spot-made"));
+            var dropped = new List<TeachingBeat>();
+            q.Next(1.5f, b => true, dropped, null);   // the spot is gone mid-line: it ends
+            Assert.That(q.WasSaid("dot-writ-spot-made"), Is.True);
+            Assert.That(q.Enqueue(spot, 60f), Is.False, "a new spot in the food court: no second 'That glowing crack'");
+            Assert.That(q.Next(60f, null, null), Is.Null);
+
+            var next = new TeachingBeat { id = "concierge-next-fight", trigger = BeatTrigger.NextFightArmed, repeats = true, text = "abc" };
+            Assert.That(q.Enqueue(next, 70f), Is.True);
+            Assert.That(q.Next(70f, null, null).id, Is.EqualTo("concierge-next-fight"));
+            Assert.That(q.Enqueue(next, 90f), Is.True, "the next-fight notice comes every time");
+        }
+
+        [Test]
+        public void TheCloserBotsNoticeCutsAFartherOnesAndTheFartherResumes()
+        {
+            var q = new TeachingQueue();
+            var dist = new Dictionary<string, float> { { "concierge-drone", 30f }, { "concierge-floor-care", 9f } };
+            Func<TeachingBeat, float> order = b => dist.TryGetValue(b.id, out var d) ? d : 0f;
+            q.Enqueue(Beat("concierge-drone", BeatTrigger.FirstSeen, 109), 0f);
+            Assert.That(q.Next(0f, b => false, null, null, order).id, Is.EqualTo("concierge-drone"));
+            q.Enqueue(Beat("concierge-floor-care", BeatTrigger.FirstSeen, 87), 1f);
+            Assert.That(q.Next(1f, b => false, null, null, order), Is.Null, "the drone notice has been up under the minimum");
+            var cut = new List<TeachingBeat>();
+            Assert.That(q.Next(1.3f, b => false, null, cut, order).id, Is.EqualTo("concierge-floor-care"), "on first sight");
+            Assert.That(cut[0].id, Is.EqualTo("concierge-drone"));
+            Assert.That(q.Contains("concierge-drone"), Is.True, "resumes after");
+
+            // a notice that isn't closer by the margin doesn't cut, and nothing less urgent ever cuts a notice
+            var q2 = new TeachingQueue();
+            dist["concierge-floor-care"] = 25f;
+            q2.Enqueue(Beat("concierge-drone", BeatTrigger.FirstSeen, 109), 0f);
+            q2.Next(0f, b => false, null, null, order);
+            q2.Enqueue(Beat("concierge-floor-care", BeatTrigger.FirstSeen, 87), 1f);
+            q2.Enqueue(Beat("dot-boost", BeatTrigger.NearBoostLedge, 80), 1f);
+            Assert.That(q2.Next(3f, b => false, null, null, order), Is.Null);
         }
 
         [Test]

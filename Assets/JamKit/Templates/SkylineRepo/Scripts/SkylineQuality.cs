@@ -40,6 +40,14 @@ namespace JamKit.SkylineRepo
             if (Application.isEditor) return;
             SceneManager.sceneLoaded -= OnLoaded;
             SceneManager.sceneLoaded += OnLoaded;
+            EnsurePinned();
+        }
+
+        /// <summary>Pins once, in a player whose active scene is a Skyline scene (the perf probe calls it before it starts its
+        /// pipeline-state trace, whichever start-up hook runs first).</summary>
+        public static void EnsurePinned()
+        {
+            if (_pinned || Application.isEditor) return;
             if (IsSkyline(SceneManager.GetActiveScene().name)) Pin();
         }
 

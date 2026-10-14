@@ -82,6 +82,8 @@ namespace JamKit.SkylineRepo
         Vector3 _offset;
         float _left, _alpha;
         SkylineHud.BarkTag _tag;
+        SkylineBot _bot;
+        const float HideFade = 0.06f;
 
         public static SkylineBarkBubble Create(Transform anchor, Vector3 offset, string text)
         {
@@ -93,6 +95,7 @@ namespace JamKit.SkylineRepo
             var hud = SkylineHud.Instance;
             bool tiny = anchor != null && anchor.lossyScale.x < 0.05f;   // the prewarm's copy warms the world card
             if (hud != null && !tiny) b._tag = hud.ShowBark(text);
+            if (anchor != null) b._bot = anchor.GetComponent<SkylineBot>();
             if (b._tag == null) b.BuildWorldCard(text);
             b.Follow();
             return b;
@@ -150,14 +153,25 @@ namespace JamKit.SkylineRepo
                 transform.rotation = Quaternion.LookRotation(transform.position - cam.transform.position, Vector3.up);
                 return;
             }
-            // on the HUD: hidden while something stands between the camera and the bubble (as the world card was)
-            Vector3 eye = cam.transform.position, d = transform.position - eye;
-            float dist = d.magnitude;
-            bool seen = dist < 1e-3f || !SkylineBot.CastClear(eye, d / dist, Mathf.Max(0f, dist - 0.3f), _anchor, out _);
+            // on the HUD: shown only while the camera sees both the bot itself and the bubble's spot (judge round 3: a card
+            // was drawn over a wall that hid its bot); it drops out fast when the bot goes out of sight. The bark's voice
+            // still plays.
+            Vector3 eye = cam.transform.position;
+            bool seen = Clear(eye, transform.position) && (_bot == null || Clear(eye, _bot.Center));
             float dt = Time.unscaledDeltaTime;
             bool on = seen && _left > FadeOut;
-            _alpha = on ? Mathf.Min(1f, _alpha + dt / FadeIn) : Mathf.Max(0f, _alpha - dt / FadeOut);
+            _alpha = on ? Mathf.Min(1f, _alpha + dt / FadeIn) : Mathf.Max(0f, _alpha - dt / (seen ? FadeOut : HideFade));
             if (hud != null) hud.PlaceBark(_tag, transform.position, cam, _alpha);
+        }
+
+        /// <summary>Nothing solid (cover, walls, pillars) between <paramref name="eye"/> and <paramref name="to"/>, the bot's
+        /// own colliders aside.</summary>
+        bool Clear(Vector3 eye, Vector3 to)
+        {
+            Vector3 d = to - eye;
+            float dist = d.magnitude;
+            if (dist < 0.35f) return true;
+            return !SkylineBot.CastClear(eye, d / dist, dist - 0.3f, _anchor, out _);
         }
     }
 }

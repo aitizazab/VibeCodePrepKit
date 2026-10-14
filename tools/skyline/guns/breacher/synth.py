@@ -404,14 +404,15 @@ def breacher_hit() -> np.ndarray:
     for k in range(9):
         at = 0.045 * rng.random() ** 1.3
         x += tick(n, at, 162 + k, 2000, 14000, 0.005, -rng.uniform(0, 5))
-        x += 0.28 * modal(n, [(1900 + 1200 * rng.random(), 0.09, 0), (3300 + 1300 * rng.random(), 0.06, -3)], start=at)
+        x += 0.4 * modal(n, [(1900 + 1200 * rng.random(), 0.13, 0), (3300 + 1300 * rng.random(), 0.09, -3)], start=at)
     for k in range(6):
         at = 0.07 + 0.03 * k + 0.012 * rng.random()
         x += tick(n, at, 180 + k, 1500, 7000, 0.004, -10 - 2.5 * k)
         x += 0.1 * modal(n, [(2200 + 900 * rng.random(), 0.05, 0)], start=at)
     x += thump(n, 0.0, 170, 80, 0.12, -9)
-    # pressed: louder for its peak, so the rattle carries over the blast (the forge masters every sound to a peak)
-    return np.tanh(2.2 * x / (np.abs(x).max() or 1.0))
+    # lightly rounded only (round 3: the heavy press made it louder than the blast); it cuts through by its band, not
+    # its level: the recipe sets it about 7 LU under the blast
+    return np.tanh(1.1 * x / (np.abs(x).max() or 1.0))
 
 
 def boost_whump() -> np.ndarray:
@@ -489,6 +490,8 @@ def R(length: float, layers: list[dict], limit: float = -1.5, seed: int = 19) ->
 
 HANG = -22.0   # the hang level in the blast (dB)
 
+IMPACT_DB = -10.0   # breacher/impact's level: about 7 LU under the blast (judge round 3)
+
 RECIPES = {
     # The blast: crack, a mid blast of air, the punch, the held boom, debris, and the room (wide).
     "blast": R(2.5, [
@@ -516,7 +519,9 @@ RECIPES = {
     "inspect_knock": R(0.3, [S("inspect_knock", -5, 0.1)]),
     "inspect_settle": R(0.22, [S("inspect_settle", -8)]),
     # Played by SkylineBreacherFx: once per shot that lands on a bot (at the hit), and on a boost (under your feet).
-    "impact": R(0.4, [S("breacher_hit", -1)]),
+    # starts 40 ms in: the pellets' flight and the hit's sound coming back (about 30-40 ms at 6-15 m), which also lands
+    # the crunch after the blast's crack has fallen, so it is heard by its band rather than by being loud
+    "impact": R(0.44, [S("breacher_hit", IMPACT_DB, start=0.04)]),
     "boost": R(0.75, [S("boost_whump", -1), N(-18, 0.05, 0.0003, hp=3000, lp=9000)]),
 }
 

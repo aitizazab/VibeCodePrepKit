@@ -95,6 +95,7 @@ namespace JamKit.SkylineRepo
         Transform _vmCam, _gunRoot, _muzzle, _mag, _ventPort;
         Material _cellMat;
         Material[] _cellMats;   // the cell renderer's own material copies (destroyed in OnDestroy)
+        SkylineBreacherLook _look;   // the gun's painted-metal, gunmetal and polymer materials (made in code)
         bool _cellEmission;
         Color _cellShown = new Color(-1f, 0f, 0f);
         float _dipLeft, _hotLeft;
@@ -208,6 +209,8 @@ namespace JamKit.SkylineRepo
             if (_cellMats != null)
                 for (int i = 0; i < _cellMats.Length; i++) if (_cellMats[i] != null) Destroy(_cellMats[i]);
             _cellMats = null;
+            if (_look != null) _look.Dispose();
+            _look = null;
             _cellMat = null;
         }
 
@@ -378,6 +381,8 @@ namespace JamKit.SkylineRepo
                 s.local = true;
                 _vmSofts.Add(s);
             }
+            _look = new SkylineBreacherLook();
+            _look.Apply(_gunRoot);   // before SetupCell, so the cell's own copies are made from the textured materials
             SetupCell();
             return true;
         }

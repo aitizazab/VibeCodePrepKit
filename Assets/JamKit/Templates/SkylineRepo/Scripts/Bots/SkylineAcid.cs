@@ -25,8 +25,8 @@ namespace JamKit.SkylineRepo
         const float RadiusNozzle = 0.028f, RadiusEnd = 0.07f, Flatten = 1.5f;
         public static readonly Color AcidWet = new Color(0.36f, 0.66f, 0.08f);
         /// <summary>The stream: a brighter, more saturated green, glowing a little more than the puddles.</summary>
-        static readonly Color StreamColor = new Color(0.42f, 0.82f, 0.1f), StreamGlow = new Color(0.12f, 0.38f, 0.02f);
-        static readonly Color DropletColor = new Color(0.45f, 0.8f, 0.12f), DropletGlow = new Color(0.08f, 0.24f, 0.01f);
+        static readonly Color StreamColor = new Color(0.1f, 0.38f, 0.02f), StreamGlow = new Color(0.03f, 0.14f, 0f);
+        static readonly Color DropletColor = new Color(0.1f, 0.4f, 0.02f), DropletGlow = new Color(0.03f, 0.12f, 0f);
 
         EnemyDef _def;
         GameObject _jet;
@@ -57,13 +57,13 @@ namespace JamKit.SkylineRepo
             a._tube = a.BuildTube();
             a._jet.AddComponent<MeshFilter>().sharedMesh = a._tube;
             var r = a._jet.AddComponent<MeshRenderer>();
-            r.sharedMaterial = SkylineBotLook.AcidMaterial(StreamColor, StreamGlow, 0.97f);
+            r.sharedMaterial = SkylineBotLook.AcidMaterial(StreamColor, StreamGlow, 0.98f);
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             a._jet.SetActive(false);
             a._drops = new Transform[DropletCount];
             a._dropVel = new Vector3[DropletCount];
             a._dropFloor = new float[DropletCount];
-            var dropMat = SkylineBotLook.AcidMaterial(DropletColor, DropletGlow, 0.97f);
+            var dropMat = SkylineBotLook.AcidMaterial(DropletColor, DropletGlow, 0.98f);
             for (int i = 0; i < DropletCount; i++)
             {
                 var d = SkylineBotLook.Visual(PrimitiveType.Sphere, "Acid Drop", null, dropMat, false);
@@ -230,8 +230,10 @@ namespace JamKit.SkylineRepo
     {
         const float Life = 2.5f, Size = 0.5f, Splat = 0.12f, Height = 0.016f;
         const int PrewarmCount = 110, Shapes = 4;
-        static readonly Color PoolColor = new Color(0.3f, 0.6f, 0.06f), PoolGlow = new Color(0.05f, 0.15f, 0.01f);
-        static readonly Color RimColor = new Color(0.12f, 0.24f, 0.03f), RimGlow = new Color(0.01f, 0.03f, 0f);
+        // a deep, saturated toxic green, not lime (judge round 3: it read as turf): dark enough that the sky and sun highlights
+        // on the very smooth surface are what read, with a low glow from within
+        static readonly Color PoolColor = new Color(0.05f, 0.24f, 0.015f), PoolGlow = new Color(0.015f, 0.07f, 0f);
+        static readonly Color RimColor = new Color(0.03f, 0.08f, 0.01f), RimGlow = new Color(0f, 0.01f, 0f);
         static readonly List<SkylinePuddle> _pool = new List<SkylinePuddle>();
         static readonly Mesh[] _shapes = new Mesh[Shapes];
         static int _scan, _flowFrame = -1;
@@ -272,7 +274,7 @@ namespace JamKit.SkylineRepo
             var go = new GameObject("Acid Puddle");
             go.AddComponent<MeshFilter>().sharedMesh = Shape(_pool.Count % Shapes);
             var r = go.AddComponent<MeshRenderer>();
-            r.sharedMaterials = new[] { SkylineBotLook.AcidMaterial(PoolColor, PoolGlow, 0.96f), SkylineBotLook.AcidMaterial(RimColor, RimGlow, 0.7f) };
+            r.sharedMaterials = new[] { SkylineBotLook.AcidMaterial(PoolColor, PoolGlow, 0.98f), SkylineBotLook.AcidMaterial(RimColor, RimGlow, 0.85f) };
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             go.SetActive(false);
             var p = go.AddComponent<SkylinePuddle>();

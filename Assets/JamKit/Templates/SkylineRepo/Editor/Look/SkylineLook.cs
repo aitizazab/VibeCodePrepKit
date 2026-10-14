@@ -144,9 +144,13 @@ namespace JamKit.SkylineRepo.EditorTools
             rig.hdriSunElevation = info.sun_elevation;
             rig.cloudDrift = 0.6f;
             rig.lightingBaked = false;
-            // The arena is ~90 m end to end: 80 m of shadow in four cascades at 2048 (the golden hour asks 160 m / 4096).
-            rig.shadowDistance = 80f;
-            rig.shadowCascades = 4;
+            // The arena is ~90 m end to end. Perf round 3: 60 m of shadow in three cascades at 2048 (was 80 m in four): the
+            // fourth cascade re-drew the whole mall's casters every frame for the far 34-80 m; three cascades still split the
+            // 2048 atlas into 1024 tiles, and the pipeline asset's three-cascade splits (10% / 30%) put them at 6 m and 18 m,
+            // about where the first two were (4.8 m, 14.4 m), so near shadows keep their sharpness. Beyond 60 m (the far end
+            // of the hall seen from the other) shadows fade out. The golden hour asks 160 m / 4096.
+            rig.shadowDistance = 60f;
+            rig.shadowCascades = 3;
             rig.cascadeSplits = new Vector3(0.06f, 0.18f, 0.42f);
             rig.shadowResolution = 2048;
             // For the Look's own shaders only (foliage, far land; none used here): a clear afternoon's hemisphere.
@@ -279,6 +283,10 @@ namespace JamKit.SkylineRepo.EditorTools
                 foreach (var cam in go.GetComponentsInChildren<Camera>(true))
                 {
                     VhLook.SetupCamera(cam, 0f);
+                    // perf round 3: nothing in Skyline samples the camera's opaque copy, but the PC pipeline asset asks for one
+                    // (a full-screen copy every frame at 1080p): the cameras opt out
+                    var data = cam.GetComponent<UniversalAdditionalCameraData>();
+                    if (data != null) data.requiresColorOption = CameraOverrideOption.Off;
                     n++;
                 }
             return n;

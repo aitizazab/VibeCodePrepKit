@@ -214,6 +214,7 @@ namespace JamKit.SkylineRepo.EditorTools
             Cover(kit, m, root, props, hall);
             Floors(kit, m, root);
             WarmupHall(kit, m, root, props, warm);
+            LevelPieces(kit, m, root, warm, hall);
             City(kit, m, root, rng);
 
             int renderers = root.GetComponentsInChildren<MeshRenderer>(true).Length;
@@ -949,6 +950,110 @@ namespace JamKit.SkylineRepo.EditorTools
                 }
             }
             k.Flush(root, "Warm-up Dressing");
+        }
+
+        // ================================================================================================ the level's own pieces
+
+        /// <summary>
+        /// Final fix round (judge A round 3, defects 1 and 2): the level's pieces dressed in the look's white, gold and stone.
+        /// Their colliders, transforms and positions stay exactly as built; only renderers are swapped for dressing drawn
+        /// inside (or at most 2 cm proud of) their volumes.
+        /// <list type="bullet">
+        /// <item>The practice counter: a gift kiosk (graphite kick, marble base to a gold counter band, white upper body with
+        /// a lightbox advert on each face, a gold cornice at the ledge you mantle).</item>
+        /// <item>The wall-run lockers: a bank of white lacquered locker doors with gold pulls on a graphite frame, a marble
+        /// plinth and a gold cornice (they were a teal crate wrapped in shutter slats).</item>
+        /// <item>The service lift: the blank glowing panel on its fascia becomes a graphite sign board with SKY TERRACE lit
+        /// on it between gold rules; the blank bar over the doors becomes a small lit SKY TERRACE indicator.</item>
+        /// </list>
+        /// </summary>
+        static void LevelPieces(SkylineKit k, Mats m, Transform root, Transform warm, Transform hall)
+        {
+            var counter = warm != null ? warm.Find("Practice Counter") : null;
+            if (counter != null && counter.GetComponent<MeshRenderer>() != null)
+            {
+                var b = counter.GetComponent<MeshRenderer>().bounds;
+                Bevelled(k, counter, m.plaster, 0.02f);
+                Collar(k, m.dark, b, 0f, 0.15f, 0.015f, 0.008f);
+                Collar(k, m.marble, b, 0.15f, 1.1f, 0.012f, 0.008f);
+                Collar(k, m.gold, b, 1.1f, 1.16f, 0.018f, 0.006f);
+                Ring(k, m.dark, b, b.max.y - 0.2f, b.max.y - 0.12f, 0.012f);
+                Ring(k, m.gold, b, b.max.y - 0.12f, b.max.y, 0.02f);
+                int cell = 4;
+                foreach (var n in new[] { Vector3.forward, Vector3.back, Vector3.left, Vector3.right })
+                {
+                    var face = b.center + Vector3.Scale(b.extents, n);
+                    ScreenPoster(k, m, new Vector3(face.x, 2.2f, face.z), n, 1.35f, cell);
+                    cell += 3;
+                }
+            }
+
+            var lockers = warm != null ? warm.Find("Wall-run Lockers") : null;
+            if (lockers != null && lockers.GetComponent<MeshRenderer>() != null)
+            {
+                var b = lockers.GetComponent<MeshRenderer>().bounds;
+                Bevelled(k, lockers, m.dark, 0.015f);
+                Collar(k, m.marble, b, 0f, 0.3f, 0.012f, 0.008f);
+                Ring(k, m.gold, b, b.max.y - 0.14f, b.max.y, 0.02f);
+                // Doors on all four faces: columns ~0.5 m wide, five rows from the plinth to the cornice, 1 cm proud, with gaps.
+                foreach (var n in new[] { Vector3.forward, Vector3.back, Vector3.left, Vector3.right })
+                {
+                    bool alongX = Mathf.Abs(n.z) > 0.5f;
+                    float s = alongX ? n.z : n.x;
+                    float lo = alongX ? b.min.x : b.min.z, hi = alongX ? b.max.x : b.max.z;
+                    float facePos = alongX ? (s > 0 ? b.max.z : b.min.z) : (s > 0 ? b.max.x : b.min.x);
+                    int cols = Mathf.Max(1, Mathf.RoundToInt((hi - lo - 0.1f) / 0.5f));
+                    float colW = (hi - lo - 0.1f) / cols, y0 = 0.36f, y1 = b.max.y - 0.2f;
+                    const int rows = 5;
+                    float rowH = (y1 - y0) / rows;
+                    for (int c = 0; c < cols; c++)
+                        for (int r = 0; r < rows; r++)
+                        {
+                            float u0 = lo + 0.05f + c * colW + 0.015f, u1 = u0 + colW - 0.03f;
+                            float v0 = y0 + r * rowH + 0.015f, v1 = v0 + rowH - 0.03f;
+                            float d0 = facePos, d1 = facePos + s * 0.01f;
+                            k.Box(m.plaster, alongX ? new Vector3(u0, v0, d0) : new Vector3(d0, v0, u0), alongX ? new Vector3(u1, v1, d1) : new Vector3(d1, v1, u1));
+                            // the pull: a short gold bar near the door's free edge, 1 cm proud of the door
+                            float pu = c % 2 == 0 ? u1 - 0.06f : u0 + 0.04f, pv = (v0 + v1) * 0.5f, e1 = d1 + s * 0.01f;
+                            k.Box(m.gold, alongX ? new Vector3(pu, pv - 0.08f, d1) : new Vector3(d1, pv - 0.08f, pu),
+                                alongX ? new Vector3(pu + 0.02f, pv + 0.08f, e1) : new Vector3(e1, pv + 0.08f, pu + 0.02f));
+                        }
+                }
+            }
+
+            var lift = hall != null ? hall.Find("Service Lift") : null;
+            if (lift != null)
+            {
+                var sign = lift.Find("Lift Sign");
+                var fascia = lift.Find("Lift Fascia");
+                if (sign != null && fascia != null && fascia.GetComponent<Renderer>() != null)
+                {
+                    StripRenderer(sign);
+                    var fb = fascia.GetComponent<Renderer>().bounds;
+                    float z = fb.min.z;   // the fascia's open (south) face
+                    // A graphite board across the fascia, gold rules top and bottom, SKY TERRACE lit in the middle (2 cm proud).
+                    k.Box(m.dark, new Vector3(fb.min.x + 0.08f, fb.min.y + 0.06f, z - 0.012f), new Vector3(fb.max.x - 0.08f, fb.max.y - 0.06f, z));
+                    k.Box(m.gold, new Vector3(fb.min.x + 0.08f, fb.max.y - 0.1f, z - 0.016f), new Vector3(fb.max.x - 0.08f, fb.max.y - 0.07f, z - 0.012f));
+                    k.Box(m.gold, new Vector3(fb.min.x + 0.08f, fb.min.y + 0.07f, z - 0.016f), new Vector3(fb.max.x - 0.08f, fb.min.y + 0.1f, z - 0.012f));
+                    float h = Mathf.Min(0.76f, fb.size.y - 0.26f);
+                    PanelAt(k, m.signs, new Vector3(fb.center.x, fb.center.y, z - 0.018f), Vector3.back, h * 2f, h, SignUv(SignLift));
+                    // Two glowing uprights either side of the lettering.
+                    foreach (float sx in new[] { -1f, 1f })
+                        PanelAt(k, m.panel, new Vector3(fb.center.x + sx * (h + 0.35f), fb.center.y, z - 0.018f), Vector3.back, 0.08f, h * 0.8f, new Rect(0f, 0f, 1f, 1f));
+                }
+                var ind = lift.Find("Lift Indicator");
+                if (ind != null && ind.GetComponent<Renderer>() != null)
+                {
+                    var ib = ind.GetComponent<Renderer>().bounds;
+                    StripRenderer(ind);
+                    float z = ib.min.z, cx = ib.center.x, cy = ib.center.y + 0.08f;
+                    // A gold-framed lit panel over the doors, its face just in front of where the bar was.
+                    k.Box(m.gold, new Vector3(cx - 0.55f, cy - 0.3f, z + 0.006f), new Vector3(cx + 0.55f, cy + 0.3f, ib.max.z));
+                    k.Box(m.dark, new Vector3(cx - 0.5f, cy - 0.25f, z), new Vector3(cx + 0.5f, cy + 0.25f, ib.max.z));
+                    PanelAt(k, m.signs, new Vector3(cx, cy, z - 0.004f), Vector3.back, 0.92f, 0.46f, SignUv(SignLift));
+                }
+            }
+            k.Flush(root, "Level Pieces Dressing");
         }
 
         /// <summary>A room wall's trim: steel skirting, marble wainscot to 1.1 m, a white cornice with a gold line under the

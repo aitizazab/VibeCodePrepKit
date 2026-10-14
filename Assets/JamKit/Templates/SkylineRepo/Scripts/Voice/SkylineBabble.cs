@@ -84,14 +84,18 @@ namespace JamKit.SkylineRepo
         /// <summary>Speaks <paramref name="text"/> in <paramref name="speaker"/>'s voice from <paramref name="source"/>,
         /// <paramref name="delay"/> seconds from now (after CONCIERGE's PA chime), cut to the line's reading time
         /// (<see cref="LineSeconds"/>) with a short fade. The source says one line at a time: a line that cuts in stops the one
-        /// before.</summary>
-        public static void Speak(Speaker speaker, string text, AudioSource source, float delay = 0f)
+        /// before. <paramref name="startAt"/> (seconds) resumes a line that was cut, from where it was cut; past the voice's
+        /// end, nothing plays.</summary>
+        public static void Speak(Speaker speaker, string text, AudioSource source, float delay = 0f, float startAt = 0f)
         {
             if (source == null) return;
             var clip = Make(VoiceOf(speaker), text, (int)speaker + 11);
             if (clip == null) return;
             source.Stop();
-            source.clip = Cap(clip, LineSeconds(text));
+            var c = Cap(clip, LineSeconds(text));
+            if (startAt >= c.length - 0.05f) return;
+            source.clip = c;
+            source.time = Mathf.Max(0f, startAt);
             if (delay > 0f) source.PlayDelayed(delay);
             else source.Play();
         }

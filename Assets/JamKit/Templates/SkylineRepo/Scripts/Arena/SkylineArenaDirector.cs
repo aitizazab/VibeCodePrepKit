@@ -561,7 +561,7 @@ namespace JamKit.SkylineRepo
         {
             _dropped.Clear();
             _cut.Clear();
-            var b = _lines.Next(now, MomentPassed, _dropped, _cut);
+            var b = _lines.Next(now, MomentPassed, _dropped, _cut, LineOrder);
             foreach (var d in _dropped)
             {
                 bool rearm = !d.repeats && !Learned(d);
@@ -580,12 +580,31 @@ namespace JamKit.SkylineRepo
                 }
                 return;
             }
-            float seconds = SkylineBabble.LineSeconds(b.text);
+            // a cut line resumes where it was cut (judge round 3: Nan's opener restarted five times): the subtitle shows the
+            // whole line for what was left of it, and the voice picks up from there, with no second chime
+            float offset = _lines.StartOffset;
             var hud = SkylineHud.Instance;
-            if (hud != null) hud.Say(b.speaker, b.text, seconds);
-            float delay = b.speaker == Speaker.Concierge ? SkylineDamageFeedback.ConciergeChime() : 0f;
-            SkylineBabble.Speak(b.speaker, b.text, voice, delay);
-            Debug.Log("SKYLINE_LINE " + b.id);
+            if (hud != null) hud.Say(b.speaker, b.text, _lines.CurrentSeconds);
+            float delay = b.speaker == Speaker.Concierge && offset <= 0f ? SkylineDamageFeedback.ConciergeChime() : 0f;
+            SkylineBabble.Speak(b.speaker, b.text, voice, delay, offset);
+            Debug.Log("SKYLINE_LINE " + b.id + (offset > 0f ? " resumed" : ""));
+        }
+
+        /// <summary>Ranks lines of one kind: a safety notice by how far the nearest live bot of its kind is (the closer
+        /// threat is warned about first, and cuts a notice about one 8 m or more farther); every other line 0.</summary>
+        float LineOrder(TeachingBeat b)
+        {
+            if (b.trigger != BeatTrigger.FirstSeen || player == null) return 0f;
+            float best = 999f;
+            Vector3 eye = player.EyePosition;
+            foreach (var e in _encounters)
+            {
+                if (e.phase != Phase.Fighting) continue;
+                foreach (var bot in e.bots)
+                    if (bot != null && bot.Alive && bot.Def != null && bot.Def.id == b.enemy)
+                        best = Mathf.Min(best, Vector3.Distance(eye, bot.Center));
+            }
+            return best;
         }
 
         /// <summary>Whether a teaching line's moment is over (spec 6.8's table; judge round 1): Nan's opener, while the player
@@ -626,6 +645,7 @@ namespace JamKit.SkylineRepo
         /// once; the Writ lesson is learned once a spot is made, the kiosk lessons once the ledge is reached.</summary>
         bool Learned(TeachingBeat b)
         {
+            if (_lines.WasSaid(b.id)) return true;   // judge round 3: a line once said never comes back
             switch (b.trigger)
             {
                 case BeatTrigger.WarmupStart:

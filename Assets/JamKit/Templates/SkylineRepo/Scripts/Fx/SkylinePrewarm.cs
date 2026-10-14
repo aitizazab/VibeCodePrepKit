@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using JamKit.Skyline;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -115,6 +116,177 @@ namespace JamKit.SkylineRepo
             if (bubble != null) Object.Destroy(bubble.gameObject);
             Object.Destroy(root.gameObject);
             Object.Destroy(faceMat);
+            if (cam == null) yield break;
+            yield return DrawEverythingOnce(cam);
+            yield return WarmGlyphs();
+        }
+
+        // ------------------------------------------------------------------ perf round 3: first-use hitches
+
+        /// <summary>
+        /// Perf round 3: round 3's perf run had a 197 ms frame right as the food court's first floor-care unit opened up, and
+        /// fight frames of 20-25 ms with no garbage collection. On Direct3D 12 the first draw of any new combination of shader
+        /// variant, mesh layout and render state builds a pipeline state on the main thread, so the first acid stream, puddle,
+        /// bolt, spark, impact or gun effect each stalled a frame mid-fight. The shipped pipeline-state trace
+        /// (<see cref="SkylineStartCover"/>) is the full fix, but it takes a pass to record. This one works now: two frames
+        /// after the scene starts (the pools and the guns' effects are built by then), every switched-off pooled renderer's
+        /// mesh and materials are drawn once, tiny, 0.6 m in front of the camera (one per distinct mesh layout and material
+        /// set), and so are the acid's materials on its stream's and droplets' mesh layouts and every material in
+        /// <c>Resources/SkylineFx</c>, with their shadows. Two frames later they are gone. It all happens behind the start cover.
+        /// </summary>
+        static IEnumerator DrawEverythingOnce(Camera cam)
+        {
+            var root = new GameObject("Prewarm (every pooled drawing, two frames)").transform;
+            root.SetPositionAndRotation(cam.transform.position + cam.transform.forward * 0.6f, cam.transform.rotation);
+            var seen = new HashSet<string>();
+            var temp = new List<Object>();
+            int n = 0;
+            Vector3 Slot() { int i = n++; return new Vector3((i % 12 - 6) * 0.004f, (i / 12 % 12 - 6) * 0.004f, 0f); }
+
+            foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (r == null || r.gameObject.activeInHierarchy || n >= 300) continue;
+                var mf = r.GetComponent<MeshFilter>();
+                var mesh = mf != null ? mf.sharedMesh : null;
+                var mats = r.sharedMaterials;
+                if (mesh == null || mats == null || mats.Length == 0) continue;
+                if (!seen.Add(Layout(mesh) + Ids(mats))) continue;
+                Draw(root, mesh, mats, r.shadowCastingMode, Slot());
+            }
+            foreach (var lr in Object.FindObjectsByType<LineRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (lr != null && !lr.gameObject.activeInHierarchy && lr.sharedMaterial != null && seen.Add("line" + lr.sharedMaterial.GetInstanceID()))
+                    Line(root, lr.sharedMaterial, Slot());
+            foreach (var tr in Object.FindObjectsByType<TrailRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (tr != null && tr.sharedMaterial != null && seen.Add("line" + tr.sharedMaterial.GetInstanceID()))
+                    Line(root, tr.sharedMaterial, Slot());
+
+            // the acid: its stream (positions, normals and UVs, rebuilt each frame) and its droplets (spheres)
+            var tube = StripMesh();
+            temp.Add(tube);
+            var sphere = SkylineBotLook.PrimitiveMesh(PrimitiveType.Sphere);
+            foreach (var m in AcidMaterials())
+            {
+                if (m == null) continue;
+                Draw(root, tube, new[] { m }, UnityEngine.Rendering.ShadowCastingMode.Off, Slot());
+                if (sphere != null) Draw(root, sphere, new[] { m }, UnityEngine.Rendering.ShadowCastingMode.Off, Slot());
+            }
+            if (sphere != null)
+                foreach (var m in Resources.LoadAll<Material>("SkylineFx"))
+                    if (m != null && seen.Add("fx" + m.GetInstanceID()))
+                        Draw(root, sphere, new[] { m }, UnityEngine.Rendering.ShadowCastingMode.On, Slot());
+
+            yield return null;
+            yield return null;
+            Object.Destroy(root.gameObject);
+            foreach (var o in temp) if (o != null) Object.Destroy(o);
+            Debug.Log("SKYLINE_PREWARM drew " + n + " pooled drawings once");
+        }
+
+        static Material[] AcidMaterials() => new[]
+        {
+            SkylineBotLook.AcidMaterial(new Color(0.42f, 0.82f, 0.1f), new Color(0.12f, 0.38f, 0.02f), 0.97f),
+            SkylineBotLook.Wet(SkylineAcid.AcidWet),
+        };
+
+        static void Draw(Transform root, Mesh mesh, Material[] mats, UnityEngine.Rendering.ShadowCastingMode shadows, Vector3 at)
+        {
+            var go = new GameObject("warm");
+            go.transform.SetParent(root, false);
+            go.transform.localPosition = at;
+            go.transform.localScale = Vector3.one * 0.003f / Mathf.Max(0.01f, mesh.bounds.extents.magnitude);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterials = mats;
+            r.shadowCastingMode = shadows;
+        }
+
+        static void Line(Transform root, Material m, Vector3 at)
+        {
+            var go = new GameObject("warm line");
+            go.transform.SetParent(root, false);
+            var lr = go.AddComponent<LineRenderer>();
+            lr.sharedMaterial = m;
+            lr.useWorldSpace = false;
+            lr.positionCount = 2;
+            lr.SetPosition(0, at);
+            lr.SetPosition(1, at + Vector3.right * 0.003f);
+            lr.widthMultiplier = 0.002f;
+            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        /// <summary>A tiny strip with positions, normals and UVs (the acid stream's mesh layout).</summary>
+        static Mesh StripMesh()
+        {
+            var m = new Mesh { name = "Prewarm strip" };
+            m.vertices = new[] { new Vector3(0f, 0f, 0f), new Vector3(1f, 0f, 0f), new Vector3(0f, 1f, 0f), new Vector3(1f, 1f, 0f) };
+            m.uv = new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f) };
+            m.normals = new[] { Vector3.back, Vector3.back, Vector3.back, Vector3.back };
+            m.triangles = new[] { 0, 2, 1, 1, 2, 3 };
+            m.RecalculateBounds();
+            return m;
+        }
+
+        static string Layout(Mesh mesh)
+        {
+            var sb = new System.Text.StringBuilder(64);
+            foreach (var a in mesh.GetVertexAttributes()) sb.Append((int)a.attribute).Append(':').Append((int)a.format).Append('x').Append(a.dimension).Append(';');
+            sb.Append("sub").Append(mesh.subMeshCount);
+            return sb.ToString();
+        }
+
+        static string Ids(Material[] mats)
+        {
+            var sb = new System.Text.StringBuilder(32);
+            foreach (var m in mats) sb.Append('|').Append(m != null ? m.GetInstanceID() : 0);
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Perf round 3: the HUD (UI Toolkit) draws its text from a dynamic font atlas, so the first time a character shows (a
+        /// new line's or a bark's letters) its glyph is rendered into the atlas on the main thread, and a line full of new
+        /// characters (CONCIERGE's notices are long) costs a long frame. Every printable ASCII character plus every character
+        /// of the teaching lines and barks is shown once, regular and bold, nearly transparent, for three frames (behind the
+        /// start cover), so the atlas holds them all before the first fight.
+        /// </summary>
+        static IEnumerator WarmGlyphs()
+        {
+            for (int i = 0; i < 60 && SkylineHud.Instance == null; i++) yield return null;
+            var hud = SkylineHud.Instance;
+            var doc = hud != null ? hud.GetComponent<UnityEngine.UIElements.UIDocument>() : null;
+            var docRoot = doc != null ? doc.rootVisualElement : null;
+            if (docRoot == null) yield break;
+            var chars = new HashSet<char>();
+            for (char c = ' '; c <= '~'; c++) chars.Add(c);
+            foreach (char c in "·…—–’‘“”•×°") chars.Add(c);
+            foreach (var b in TeachingBeats.M1()) if (b != null && b.text != null) foreach (char c in b.text) chars.Add(c);
+            foreach (var def in SkylineEnemies.All())
+                foreach (var bark in SkylineBarks.Ids)
+                {
+                    var line = SkylineBarks.Line(def.id, bark);
+                    if (line != null) foreach (char c in line) chars.Add(c);
+                }
+            var sb = new System.Text.StringBuilder(chars.Count);
+            foreach (char c in chars) sb.Append(c);
+            string text = sb.ToString();
+            var labels = new List<UnityEngine.UIElements.Label>();
+            foreach (var bold in new[] { false, true })
+                foreach (var size in new[] { 12f, 24f })
+                {
+                    var l = new UnityEngine.UIElements.Label(text) { pickingMode = UnityEngine.UIElements.PickingMode.Ignore };
+                    l.style.position = UnityEngine.UIElements.Position.Absolute;
+                    l.style.left = 0f;
+                    l.style.top = 0f;
+                    l.style.fontSize = size;
+                    l.style.opacity = 0.01f;
+                    l.style.unityFontStyleAndWeight = bold ? FontStyle.Bold : FontStyle.Normal;
+                    docRoot.Add(l);
+                    labels.Add(l);
+                }
+            yield return null;
+            yield return null;
+            yield return null;
+            foreach (var l in labels) l.RemoveFromHierarchy();
+            Debug.Log("SKYLINE_PREWARM glyphs shown: " + text.Length + " characters");
         }
     }
 }

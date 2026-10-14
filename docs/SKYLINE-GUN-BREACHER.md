@@ -249,3 +249,22 @@ Reload sync (`listen.py events` on the rendered clips; every event found at its 
   heavy part. `seat` adds a held hydraulic press (a low rumble and a mid groan) under a hiss that is 10 dB lower. This
   moves the reload away from the Witchfire Echo's airy brightness (centroid about 1.3 kHz against 4.8 kHz). Weight was
   the call here; the creator's ears decide between the two.
+
+## Fix round 3 (judge round 3, 2026-10-14)
+
+- **PBR surfaces** (`Fx/Breacher/SkylineBreacherLook.cs`, made in code at scene start, no texture assets):
+  - the firm's orange, the hazard yellow and the stripes' black are painted metal: a mottled coat with grime,
+    chipped and scuffed through to bright bare steel along every edge of every part, a few chips and 26 scratches
+    across the faces, the chips recessed in a normal map;
+  - dark gunmetal (barrel, shroud, ribs, sights, rail, clamps) has brushed streaks and edges worn bright;
+  - a dark stippled polymer for the grip, the pump and the standoff.
+
+  The model now has UVs, so every part's edge falls on the texture's worn border. The colours are unchanged, so the
+  orange stays the deep red one that holds its hue in the sun.
+- **Shape detail:** front and rear sights, a charging handle in a slot, a trigger, a notched accessory rail on the
+  left, two barrel clamps with a perforated heat-shield strap, the cell's guard rails, and six bolt heads on the
+  standoff (2,824 vertices, was 2,120).
+- **The hit:** `breacher/impact` now sits 6.8 LU under the blast (-25.4 against -18.6 LUFS; it had been 4.5 LU *over*
+  it) and is only lightly rounded (crest 17.6 dB). It starts 40 ms in, the pellets' flight and the sound coming back,
+  which lands it after the blast's crack. It is heard by its band: in that window it adds +2.2 dB in 2-4 kHz over the
+  blast alone.

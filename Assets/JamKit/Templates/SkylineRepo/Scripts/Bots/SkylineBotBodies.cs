@@ -140,10 +140,228 @@ namespace JamKit.SkylineRepo
             m.EnableKeyword("_EMISSION");
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             m.SetTexture("_BumpMap", Ripples());
-            m.SetFloat("_BumpScale", 0.7f);
+            // gentle, broad ripples (judge round 3: the old busy ripple read as turf): the highlights do the work
+            m.SetTextureScale("_BumpMap", new Vector2(0.45f, 0.45f));
+            m.SetFloat("_BumpScale", 0.28f);
             m.EnableKeyword("_NORMALMAP");
             _acid[key] = m;
             return m;
+        }
+
+        // ---------------- the bots' surfaces (judge round 3: flat, untextured colour next to the textured Writ and mall)
+
+        /// <summary>The bots' PBR material asset (URP Lit with its normal-map variant on), copied once per surface kind.</summary>
+        public const string BotPaintResource = "SkylineFx/SK_Bot_Paint";
+
+        enum Surface { Keep, Paint, Gold, Rubber, Gunmetal, Steel, Copper }
+
+        static readonly Dictionary<Material, Material> _dressed = new Dictionary<Material, Material>();
+        static Material _botAsset;
+        static Texture2D _panelAlbedo, _panelNormal, _brushedAlbedo, _brushedNormal;
+
+        /// <summary>Gives a bot model's parts real surfaces in place of the FBX's flat colours, by the source material's name:
+        /// CONCIERGE white becomes painted metal (soft sheen, panel seams, rivets, a little grime and wear, an orange-peel
+        /// normal); gold becomes brushed gold metal; the dark trims rubber or gunmetal; steel and copper brushed metal. Each
+        /// keeps its source colour, so the white and gold stay exactly CONCIERGE's. Faces, lenses, screens, lights, glass, acid
+        /// and suds are left as they are. Shared materials (one per source material, all one shader variant), so the SRP
+        /// Batcher keeps batching; the only per-renderer blocks stay the face, the hit flash and the wear.</summary>
+        public static void Dress(Transform model)
+        {
+            if (model == null) return;
+            foreach (var r in model.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                bool changed = false;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var d = Dressed(mats[i]);
+                    if (d != null && d != mats[i]) { mats[i] = d; changed = true; }
+                }
+                if (changed) r.sharedMaterials = mats;
+            }
+        }
+
+        static Surface KindOf(string name)
+        {
+            string n = name.ToLowerInvariant();
+            if (n.Contains("face") || n.Contains("lens") || n.Contains("glass") || n.Contains("screen") || n.Contains("led") || n.Contains("beacon")
+                || n.Contains("acid") || n.Contains("suds") || n.Contains("rec_") || n.Contains("bristle")) return Surface.Keep;
+            if (n.Contains("white")) return Surface.Paint;
+            if (n.Contains("gold")) return Surface.Gold;
+            if (n.Contains("rubber") || n.Contains("dark")) return Surface.Rubber;
+            if (n.Contains("gunmetal")) return Surface.Gunmetal;
+            if (n.Contains("steel") || n.Contains("grey") || n.Contains("gray") || n.Contains("rotor") || n.Contains("blade")) return Surface.Steel;
+            if (n.Contains("copper")) return Surface.Copper;
+            return Surface.Keep;
+        }
+
+        static Material Dressed(Material src)
+        {
+            if (src == null) return null;
+            if (_dressed.TryGetValue(src, out var m)) return m != null ? m : src;
+            var kind = KindOf(src.name);
+            if (kind == Surface.Keep) { _dressed[src] = src; return src; }
+            if (_botAsset == null) _botAsset = Resources.Load<Material>(BotPaintResource);
+            if (_botAsset == null) { _dressed[src] = src; return src; }
+            m = new Material(_botAsset) { name = src.name + " (dressed)" };
+            Color c = src.HasProperty("_BaseColor") ? src.GetColor("_BaseColor") : src.color;
+            c.a = 1f;
+            bool panel = kind == Surface.Paint || kind == Surface.Rubber;
+            float metallic, smooth, bump;
+            switch (kind)
+            {
+                case Surface.Paint: metallic = 0.05f; smooth = 0.58f; bump = 0.8f; break;
+                case Surface.Gold: metallic = 0.9f; smooth = 0.62f; bump = 0.5f; break;
+                case Surface.Rubber: metallic = 0f; smooth = 0.28f; bump = 0.5f; break;
+                case Surface.Gunmetal: metallic = 0.75f; smooth = 0.45f; bump = 0.6f; break;
+                case Surface.Copper: metallic = 0.9f; smooth = 0.55f; bump = 0.6f; break;
+                default: metallic = 0.75f; smooth = 0.5f; bump = 0.6f; break;
+            }
+            m.color = c;
+            m.SetColor("_BaseColor", c);
+            m.SetTexture("_BaseMap", panel ? PanelAlbedo() : BrushedAlbedo());
+            m.SetTexture("_BumpMap", panel ? PanelNormal() : BrushedNormal());
+            m.SetFloat("_BumpScale", bump);
+            m.SetFloat("_Metallic", metallic);
+            m.SetFloat("_Smoothness", smooth);
+            m.EnableKeyword("_NORMALMAP");
+            _dressed[src] = m;
+            return m;
+        }
+
+        const int SurfaceSize = 256;
+
+        static float Hash(int x, int y, int seed)
+        {
+            unchecked
+            {
+                uint h = (uint)(x * 374761393 + y * 668265263 + seed * 2147483647);
+                h = (h ^ (h >> 13)) * 1274126177u;
+                return ((h ^ (h >> 16)) & 0xFFFFFF) / 16777215f;
+            }
+        }
+
+        /// <summary>Smooth tiling value noise at <paramref name="cells"/> cells across the texture.</summary>
+        static float Noise(float x, float y, int cells, int seed)
+        {
+            float fx = x / SurfaceSize * cells, fy = y / SurfaceSize * cells;
+            int x0 = Mathf.FloorToInt(fx), y0 = Mathf.FloorToInt(fy);
+            float tx = fx - x0, ty = fy - y0;
+            tx = tx * tx * (3f - 2f * tx);
+            ty = ty * ty * (3f - 2f * ty);
+            int a = ((x0 % cells) + cells) % cells, b = ((y0 % cells) + cells) % cells, a1 = (a + 1) % cells, b1 = (b + 1) % cells;
+            return Mathf.Lerp(Mathf.Lerp(Hash(a, b, seed), Hash(a1, b, seed), tx), Mathf.Lerp(Hash(a, b1, seed), Hash(a1, b1, seed), tx), ty);
+        }
+
+        /// <summary>The painted panels' height (one 0.5 m tile, see blender_kit.box_uvs): seams round the tile and one across it,
+        /// rivets along them, and a fine orange peel.</summary>
+        static float PanelHeight(int x, int y, out float seam, out float rivet)
+        {
+            const int N = SurfaceSize;
+            // seams: the tile's edges and a cross seam at 5/8 of the way up
+            float dx = Mathf.Min(x, N - x), dy = Mathf.Min(y, N - y), dc = Mathf.Abs(y - N * 5 / 8);
+            float d = Mathf.Min(dx, Mathf.Min(dy, dc));
+            seam = Mathf.Clamp01(1f - d / 2.2f);
+            // rivets every 32 px along the seams, 6 px in from them
+            rivet = 0f;
+            for (int k = 0; k < N; k += 32)
+            {
+                float r1 = Vector2.Distance(new Vector2(x, y), new Vector2(k + 16, 7)), r2 = Vector2.Distance(new Vector2(x, y), new Vector2(7, k + 16));
+                float r3 = Vector2.Distance(new Vector2(x, y), new Vector2(k + 16, N * 5 / 8 + 7));
+                rivet = Mathf.Max(rivet, Mathf.Clamp01(1f - Mathf.Min(r1, Mathf.Min(r2, r3)) / 2.6f));
+            }
+            float peel = Noise(x, y, 64, 11) * 0.25f + Noise(x, y, 32, 12) * 0.15f;
+            return -seam * 1.6f + rivet * 1.2f + peel;
+        }
+
+        static Texture2D PanelAlbedo()
+        {
+            if (_panelAlbedo != null) return _panelAlbedo;
+            const int N = SurfaceSize;
+            var px = new Color32[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    PanelHeight(x, y, out float seam, out float rivet);
+                    float mottle = 0.95f + 0.05f * Noise(x, y, 8, 3);
+                    // grime gathers along the seams and in blotches; wear lightens a few scuffs
+                    float grime = Mathf.Clamp01(Noise(x, y, 16, 5) * 1.6f - 0.95f) * 0.18f;
+                    float near = Mathf.Clamp01(1f - Mathf.Min(Mathf.Min(x, N - x), Mathf.Min(Mathf.Min(y, N - y), Mathf.Abs(y - N * 5 / 8))) / 14f);
+                    float scuff = Mathf.Clamp01(Noise(x * 3, y * 0.35f, 24, 9) * 2.2f - 1.75f) * 0.12f;
+                    float v = mottle - grime - near * 0.07f - seam * 0.45f - rivet * 0.12f + scuff;
+                    byte b = (byte)(Mathf.Clamp01(v) * 255f);
+                    px[y * N + x] = new Color32(b, b, b, 255);
+                }
+            _panelAlbedo = Make(px, false, "Bot panels");
+            return _panelAlbedo;
+        }
+
+        static Texture2D PanelNormal()
+        {
+            if (_panelNormal != null) return _panelNormal;
+            const int N = SurfaceSize;
+            var h = new float[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                    h[y * N + x] = PanelHeight(x, y, out _, out _);
+            _panelNormal = Make(NormalsFrom(h, 1.4f), true, "Bot panels normal");
+            return _panelNormal;
+        }
+
+        static Texture2D BrushedAlbedo()
+        {
+            if (_brushedAlbedo != null) return _brushedAlbedo;
+            const int N = SurfaceSize;
+            var px = new Color32[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float streak = Noise(x * 0.06f, y, 128, 21) * 0.08f + Noise(x * 0.1f, y, 64, 22) * 0.06f;
+                    float v = 0.88f + streak + 0.04f * Noise(x, y, 6, 23) - Mathf.Clamp01(Noise(x, y, 12, 24) * 1.7f - 1.2f) * 0.15f;
+                    byte b = (byte)(Mathf.Clamp01(v) * 255f);
+                    px[y * N + x] = new Color32(b, b, b, 255);
+                }
+            _brushedAlbedo = Make(px, false, "Bot brushed metal");
+            return _brushedAlbedo;
+        }
+
+        static Texture2D BrushedNormal()
+        {
+            if (_brushedNormal != null) return _brushedNormal;
+            const int N = SurfaceSize;
+            var h = new float[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                    h[y * N + x] = Noise(x * 0.05f, y, 128, 31) * 0.5f + Noise(x, y, 48, 32) * 0.12f;
+            _brushedNormal = Make(NormalsFrom(h, 1.2f), true, "Bot brushed metal normal");
+            return _brushedNormal;
+        }
+
+        /// <summary>A tiling normal map from a height field (RGB with alpha 1: both of Unity's normal decoders read it).</summary>
+        static Color32[] NormalsFrom(float[] h, float strength)
+        {
+            const int N = SurfaceSize;
+            var px = new Color32[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float gx = h[y * N + (x + 1) % N] - h[y * N + (x + N - 1) % N];
+                    float gy = h[((y + 1) % N) * N + x] - h[((y + N - 1) % N) * N + x];
+                    var n = new Vector3(-gx * strength, -gy * strength, 1f).normalized;
+                    px[y * N + x] = new Color32((byte)(n.x * 127.5f + 127.5f), (byte)(n.y * 127.5f + 127.5f), (byte)(n.z * 127.5f + 127.5f), 255);
+                }
+            return px;
+        }
+
+        static Texture2D Make(Color32[] px, bool linear, string name)
+        {
+            var t = new Texture2D(SurfaceSize, SurfaceSize, TextureFormat.RGBA32, true, linear)
+            {
+                name = name, wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Trilinear, anisoLevel = 4,
+            };
+            t.SetPixels32(px);
+            t.Apply(true, true);
+            return t;
         }
 
         /// <summary>Moves every acid material's ripples on (a slow drift, so the liquid's highlights crawl). Call once a frame.</summary>
@@ -399,6 +617,9 @@ namespace JamKit.SkylineRepo
                     if (r.GetComponent<Collider>() == null && r is MeshRenderer) r.gameObject.AddComponent<BoxCollider>();
             }
             ClearWeakPoint(p);
+            // real surfaces in place of the FBX's flat colours (judge round 3)
+            SkylineBotLook.Dress(p.rig);
+            if (p.mount != null) SkylineBotLook.Dress(p.mount);
         }
 
         /// <summary>

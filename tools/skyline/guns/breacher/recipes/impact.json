@@ -1,15 +1,15 @@
 {
   "sample_rate": 48000,
-  "length": 0.4,
+  "length": 0.44,
   "seed": 19,
   "layers": [
     {
       "type": "sample",
       "path": "../samples/breacher_hit.wav",
-      "start": 0.0,
+      "start": 0.04,
       "attack": 0.0,
       "decay": 30.0,
-      "gain_db": -1,
+      "gain_db": -10.0,
       "pan": 0.0
     }
   ],

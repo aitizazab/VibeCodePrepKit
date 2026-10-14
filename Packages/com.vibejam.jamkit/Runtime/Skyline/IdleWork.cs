@@ -78,8 +78,15 @@ namespace JamKit.Skyline
                     _runLeft -= step;
                     if (_runLeft <= 1e-4f)
                     {
-                        // a gentle turn, either way
+                        // a gentle turn, either way; once it is out past half its leash, the way that heads back toward
+                        // its post, so its runs curl round the patch instead of ending at the leash in a turn on the spot
+                        // (judge round 3: the idle read as turning on the spot). The same two draws either way.
                         float by = _rng.Range(TurnMin, TurnMax) * (_rng.NextFloat() < 0.5f ? -1f : 1f);
+                        if (Length(_flat) > leash * 0.5f)
+                        {
+                            float home = DeltaAngle(_heading, Bearing(-_flat));
+                            if (Math.Abs(home) > 1f) by = Math.Abs(by) * Math.Sign(home);
+                        }
                         StartTurn(_heading + by, TurnRate, true);
                     }
                     break;
@@ -168,7 +175,8 @@ namespace JamKit.Skyline
         void TurnHome()
         {
             float to = Bearing(-_flat) + _rng.Range(-HomeSpread, HomeSpread);
-            StartTurn(to, TurnRate * 1.5f, false);
+            // a curve where it can (it creeps on whenever that stays inside the leash), not a pivot
+            StartTurn(to, TurnRate * 1.5f, true);
         }
 
         static float Bearing(Vector3 v) => MathF.Atan2(v.X, v.Z) * (180f / MathF.PI);

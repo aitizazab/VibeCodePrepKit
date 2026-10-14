@@ -37,8 +37,11 @@ namespace JamKit.SkylineRepo
 
         // ---- presentation tuning (the gun's numbers live in SkylineGuns.Writ)
         const int FlashFrames = 3;
-        static readonly float[] FlashSize = { 0.11f, 0.15f, 0.17f }, FlashAlpha = { 1f, 0.7f, 0.32f }, FlashReach = { 0.8f, 1.1f, 1.25f };
-        const float LightLife = 0.05f, LightRange = 5f, LightIntensity = 2.6f;
+        // round 3 (judge C R1: the flash was light against the shot's weight): a core about twice the size, a hot inner core,
+        // streaks about twice as long, and a brief light on the gun and the hands as well as on the world
+        static readonly float[] FlashSize = { 0.21f, 0.27f, 0.29f }, FlashAlpha = { 1f, 0.8f, 0.4f }, FlashReach = { 0.85f, 1.15f, 1.3f };
+        const float LightLife = 0.05f, LightRange = 6f, LightIntensity = 3.6f;
+        const float GunLightRange = 0.7f, GunLightIntensity = 3f;   // the viewmodel's own light: 2 frames, no shadows
         const float GavelDown = 0.0077f, GavelStrike = 0.025f, GavelReturn = 0.16f, GavelTilt = 10f;
         const float DoorsOpen = 68f, DoorsClose = 0.2f, BenchKick = 0.005f, BenchRack = 0.018f;
         const float RibbonLife = 0.09f, RibbonWidth = 0.006f;
@@ -118,14 +121,15 @@ namespace JamKit.SkylineRepo
         Transform _worldRoot, _flashRoot;
         readonly List<Transform> _streaks = new List<Transform>();
         readonly float[] _streakLen = new float[Spikes];
-        Transform _flashCore;
+        Transform _flashCore, _flashInner;
+        Light _gunLight;
         Material _flashMat, _streakMat;
         Texture2D _flashTex, _streakTex;
         Mesh _quad, _streakQuad;
         float _flashRoll;
         Light _light;
         float _lightLeft;
-        int _lightPrewarm = 3, _flashLeft;
+        int _lightPrewarm = 3, _flashLeft, _gunLightWarm = 3;
         static Mesh _ringMesh;
         AudioSource _hush;
 
@@ -435,7 +439,7 @@ namespace JamKit.SkylineRepo
             // judge C 11). Round 2 (judge C N1): soft camera-facing quads with textures made here (a hot white core fading to
             // amber, five tapering streaks) on Sprites/Default (always in a build, alpha-blended, unlit), so it reads as a
             // soft hot flash with or without the scene's bloom, not as a solid disc.
-            _flashRoot.localPosition += new Vector3(0f, 0.022f, 0.05f);
+            _flashRoot.localPosition += new Vector3(0f, 0.035f, 0.075f);    // further out and up: clear of the arch (top 0.075)
             _flashTex = FlashTexture();
             _streakTex = StreakTexture();
             _flashMat = SoftMaterial(_flashTex, "Writ flash");
@@ -443,8 +447,23 @@ namespace JamKit.SkylineRepo
             _quad = QuadMesh(-0.5f, 0.5f, "Writ flash quad");
             _streakQuad = QuadMesh(0f, 1f, "Writ streak quad");
             _flashCore = MakeQuad("core", _flashRoot, _quad, _flashMat);
+            _flashInner = MakeQuad("inner core", _flashRoot, _quad, _flashMat);   // a second layer: a denser white-hot middle
+            _flashInner.localPosition = new Vector3(0f, 0f, -0.002f);
             for (int i = 0; i < Spikes; i++) _streaks.Add(MakeQuad("streak", _flashRoot, _streakQuad, _streakMat));
             _flashRoot.gameObject.SetActive(false);
+            // the viewmodel lives at its own far anchor, so the world's flash light can't reach the gun or the hands: a small
+            // point light of its own, beside the flash, on for the flash's first two frames (lit faintly for the first frames
+            // of the scene, like the world light, so its shader variants are built before any shot)
+            var gl = new GameObject("Writ gun flash light");
+            gl.transform.SetParent(_gunRoot, false);
+            gl.transform.localPosition = _flashRoot.localPosition + new Vector3(0f, 0.02f, -0.06f);
+            _gunLight = gl.AddComponent<Light>();
+            _gunLight.type = LightType.Point;
+            _gunLight.color = new Color(1f, 0.72f, 0.38f);
+            _gunLight.range = GunLightRange;
+            _gunLight.shadows = LightShadows.None;
+            _gunLight.intensity = 0.001f;
+            _gunLight.enabled = true;
         }
 
         static Transform MakeQuad(string name, Transform parent, Mesh mesh, Material m)
@@ -737,20 +756,30 @@ namespace JamKit.SkylineRepo
                 if (f == 0)
                     for (int i = 0; i < _streaks.Count; i++)
                     {
-                        _streakLen[i] = Random.Range(0.08f, 0.15f);
+                        _streakLen[i] = Random.Range(0.16f, 0.28f);
                         _streaks[i].localRotation = Quaternion.Euler(0f, 0f, 360f * i / _streaks.Count + Random.Range(-14f, 14f));
                     }
                 // facing the viewmodel camera, wherever the gun's pose has turned it
                 if (_vmCam != null) _flashRoot.rotation = _vmCam.rotation * Quaternion.Euler(0f, 0f, _flashRoll);
                 float[] size = FlashSize, alpha = FlashAlpha, reach = FlashReach;
                 _flashCore.localScale = Vector3.one * size[f];
-                for (int i = 0; i < _streaks.Count; i++) _streaks[i].localScale = new Vector3(_streakLen[i] * reach[f], 0.022f, 1f);
+                _flashInner.localScale = Vector3.one * (size[f] * 0.5f);
+                if (_gunLight != null)
+                {
+                    _gunLight.enabled = f < 2;
+                    _gunLight.intensity = f == 0 ? GunLightIntensity : GunLightIntensity * 0.5f;
+                }
+                for (int i = 0; i < _streaks.Count; i++) _streaks[i].localScale = new Vector3(_streakLen[i] * reach[f], 0.034f, 1f);
                 _flashMat.color = new Color(1f, 1f, 1f, alpha[f]);
                 _streakMat.color = new Color(1f, 1f, 1f, alpha[f] * 0.9f);
                 _flashRoot.gameObject.SetActive(true);
                 _flashLeft--;
             }
-            else if (_flashRoot.gameObject.activeSelf) _flashRoot.gameObject.SetActive(false);
+            else
+            {
+                if (_flashRoot.gameObject.activeSelf) _flashRoot.gameObject.SetActive(false);
+                if (_gunLight != null && _gunLight.enabled && _gunLightWarm-- <= 0) _gunLight.enabled = false;   // lit faintly for its first 3 frames
+            }
         }
 
         /// <summary>The shot's world side: the flash light, the amber ribbon to where it landed, and on the world (not a bot)
