@@ -14,6 +14,8 @@ holds their calls (their words quoted) and the work queue. It overrides older do
 
 ## Where we are (updated 2026-10-15 after pass perf10; read this first in a fresh session)
 
+- **The plan (what to do next, the slice, and beyond) is at the top of `docs/SKYLINE-OPEN-THREADS.md`.**
+
 - **Latest build:** `out/skyline/20261015-perf10/build/SkylineRepo.exe` (the M1 arena in the comic-ink look; the Relay
   from the pause menu). In it: the reworked Writ (no chair or gavel, clean ADS, the curling quill, the paper-writing
   reload, the indigo gleam), halved hip aim assist, the new bot-hit sounds (no bot hurt sounds), the cheaper ink pass,

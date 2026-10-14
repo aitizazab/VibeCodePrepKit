@@ -129,3 +129,14 @@ near or the objective is simpler** (parkour between sections).
   pre-drop is brighter: 2.7 -> 3.7 kHz centroid). The level step is 0.1-0.5 dB in every version.
 - Page: `FableAnimationTests/art/review/2026-10-15/skyline-music-heaven-v3.html`. **Waiting on the creator:** the v3
   verdict and the hand-over pick. Then the next steps above (danger, quiet, speed, M2) are built against v3's stems.
+
+## Approved: "Heaven" (v3) is the normal layer; the named variants to make next (2026-10-15)
+The creator: "The new heavenly theme is great, make a note to get started on the other variants (make sure they're named)."
+- **"Heaven"**: the normal layer (v3, approved).
+- **"Judgement"**: danger (many bots near). The Empress of Light's first 17 s as the reference: the same 32 bars on the
+  same clock, darker (harmonic minor colour, the pre-drop's A-flat/E-flat), driving low strings, choir, fast high bells, heavier drums.
+- **"Sanctuary"**: quiet (traversal, few bots). Stonewood and Plankerton as the references: the same chords, soft keys,
+  plucked guitar, strings, no drums.
+- **"Updraft"** (drive, fast) and **"Rapture"** (peak, flying): the speed stems on top of whichever mood plays.
+- The riser into the pre-drop is being redone from scratch (the creator's four sources): a "perfect" transition and a
+  step transition (one detail of the sound changes at a time).

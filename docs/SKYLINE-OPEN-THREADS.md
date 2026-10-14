@@ -1,5 +1,44 @@
 # Skyline Repo: open threads (check this before switching topics; never drop a thread silently)
 
+## THE PLAN (top of the list; the creator, 2026-10-15: "name at the top everything that needs to be done next for the full plan of the vertical slice, and then beyond that")
+
+**The vertical slice** (`SKYLINE-DESIGN.md`): the Galleria, built to the full quality bar on data-driven systems: its
+floors, the atrium climb, the boss LOSS PREVENTION, and the sky-bridge to the offices tower as the closing shot.
+
+**Stage 1: floor 1 (the Food Court repossession) playable end to end**
+1. **Music, now:** the riser into the pre-drop redone from scratch (the creator's sources: the PopularMMOs theme, the Subway
+   Surfers six-step riser, the creator's two imitation recordings): a "perfect" transition and a step-by-step one. Then the
+   named variants of the approved theme **"Heaven"** (the normal layer, v3): **"Judgement"** (danger; the Empress of Light's
+   first 17 s), **"Sanctuary"** (quiet; Stonewood and Plankerton), and the speed stems **"Updraft"** (drive, fast) and
+   **"Rapture"** (peak, flying). Then **M2** (the music director in the game) and the lift-ride opening.
+2. **X0, the floor director:** wires the waves, repossession, spawn doors, gondola, HUD, Dot's beats, the wreck sequence
+   and restart into one playable floor; **L2** the lobby runtime (desk, practice drone, lift ride). Then **X1**: floor 1
+   replaces the M1 arena as the game.
+3. **Bots:** the remaining playtest-1 redesigns (floor-care: face on its top, the canister its only protrusion, wind-up
+   then molly acid, 15 s recharge unless the canister is shot; spotlight: a larger humanoid with a charging railgun);
+   verify the new sizes and damage states in stills; **enemy cries** to replace the removed hurt sounds.
+4. **Balance with the creator in play:** the drone pressure gap (lagged aim), wave tables, Breacher ammo, the Relay clock.
+5. **Content and feel:** dressing DR1-DR5 (the look passed), the Writ's reload sounds, the Breacher redesign (club
+   subwoofer in the comic-ink style), line weight checked in play.
+6. **Quality:** the remaining CPU spikes (perf), P1 prewarm, DM1-DM3 (the demo pilot and the camper on floor 1), J1
+   captures and judges.
+
+**Stage 2: the rest of the Galleria (the slice)**
+7. Floor generation (CONCIERGE's remodel: rooms as chunks, a first set of the 16 normal and 8 special rooms, two exits
+   with rewards); objectives beyond repossession (the Relay as an end-of-floor boss objective).
+8. The Ledger (CONCIERGE learns your habits and counters them).
+9. The hires (the Galleria's recruits, slots, bonds).
+10. Rewards and progress: repossessed in-run rewards, commission (permanent), difficulty.
+11. New enemies (the Valet, planned), LOSS PREVENTION (the boss mech), the atrium climbing set-piece, the sky-bridge.
+12. Story: a subplot per floor, the creator's dialogue; movement upgrades in the slice (anchor hook, jump upgrade).
+
+**Beyond the slice**
+- Districts 2-6 as content on the same systems (the offices, the R&D labs, the hydroponic gardens, the casino, the
+  penthouses), getting more serious as you climb; each district's music.
+- Baja, the secret boss (data recorded from the start); the glider and the true grapple; more weapons.
+- Before anything is public: swap the borrowed recordings (the PopularMMOs pre-drop and drop, any Subway Surfers material)
+  for our own instruments, and check the event's or store's rules.
+
 Started 2026-10-14 after the creator asked: "can we stop randomly dropping things we were developing?" Every thread we
 start goes here with its next step; a thread leaves this list only when it's done (with the commit) or the creator drops it.
 
