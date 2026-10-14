@@ -14,8 +14,8 @@ namespace JamKit.SkylineRepo
     /// (one copy per material, freed with the component); the gaslamps flicker, the gavel hovers over the bench, the drum's
     /// amber band shows the magazine's charge, and the lamps and the doorway light up as the gun is drawn.</item>
     /// <item>The shot: the gavel strikes the bench (the shot's visible beat), the doorway's doors burst open on a flash (at
-    /// most three frames), the bench and chair (the "slide") kick back, an amber light flashes on the world, and a thin
-    /// amber ribbon follows the shot. On the world: brass sparks and a scorched decal with a brass ring.</item>
+    /// most three frames), the bench and chair (the "slide") kick back, and an amber light flashes on the world. The shot's
+    /// tracer is the ink stroke (<see cref="SkylineInkTracer"/>, spawned by the shooting code), not an amber ribbon. On the world: brass sparks and a scorched decal with a brass ring.</item>
     /// <item>Bots: an ordinary Writ hit stays dark (dark flakes, <c>writ/impact</c>); a weak-point hit plays
     /// <c>writ/impact_weak</c> and the gavel's crack (<c>writ/impact_crack</c>, 2D, weak points only); a spot forming is stamped on like a seal (a gold ring pressed onto the casing, short rays);
     /// a spot hit pops (two gold rings, a flash, <c>writ/spot_pop</c> for the shooter); a kill adds a white-gold ring. Glow
@@ -53,12 +53,11 @@ namespace JamKit.SkylineRepo
         const float SmackGlowSeconds = 0.18f, SmackShake = 0.04f;
         static readonly CameraKickDef SmackKick = new CameraKickDef { pitchDeg = 0.7f, yawDeg = 0f, recoverRate = 13f };
         const float DoorsOpen = 68f, DoorsClose = 0.2f, BenchKick = 0.005f, BenchRack = 0.018f;
-        const float RibbonLife = 0.09f, RibbonWidth = 0.006f;
         // fix round 1 (judge C 11-12): impacts and spot marks read at fight range: the decal is twice the size, and the seal
         // and the pop scale up with distance (x1 to 6 m, then in proportion, so they keep about the same size on screen)
         const float DecalLife = 5f, DecalFade = 0.6f, DecalSize = 0.13f, ReadDistance = 6f;
         const float HushVolume = 0.1f;
-        const int Sparks = 40, Flakes = 24, Rings = 10, Rays = 24, Decals = 16, Ribbons = 6, Spikes = 5;
+        const int Sparks = 40, Flakes = 24, Rings = 10, Rays = 24, Decals = 16, Spikes = 5;
 
         static readonly Color Hot = new Color(6f, 3.9f, 1.6f);
         static readonly Color Amber = new Color(3.2f, 1.7f, 0.45f);
@@ -119,14 +118,14 @@ namespace JamKit.SkylineRepo
             public Vector3 vel, normal, baseScale;
             public float age, life, size, to;
             public int kind;   // 0 spark (falls, shrinks), 1 flake (falls, tumbles), 2 ring (grows, thins), 3 ray (grows out),
-                               // 4 decal (holds, then shrinks), 5 ribbon (thins), 6 seal (stamps in, holds, shrinks),
+                               // 4 decal (holds, then shrinks), 5 (unused), 6 seal (stamps in, holds, shrinks),
                                // 7 burst (a hot flash, about four frames)
         }
 
         readonly List<Bit> _sparks = new List<Bit>(), _flakes = new List<Bit>(), _rings = new List<Bit>(), _rays = new List<Bit>();
-        readonly List<Bit> _decals = new List<Bit>(), _ribbons = new List<Bit>(), _seals = new List<Bit>(), _bursts = new List<Bit>();
+        readonly List<Bit> _decals = new List<Bit>(), _seals = new List<Bit>(), _bursts = new List<Bit>();
         readonly List<Bit> _live = new List<Bit>();
-        int _nSpark, _nFlake, _nRing, _nRay, _nDecal, _nRibbon, _nSeal, _nBurst;
+        int _nSpark, _nFlake, _nRing, _nRay, _nDecal, _nSeal, _nBurst;
         Transform _worldRoot, _flashRoot;
         readonly List<Transform> _streaks = new List<Transform>();
         readonly float[] _streakLen = new float[Spikes];
@@ -225,7 +224,6 @@ namespace JamKit.SkylineRepo
             for (int i = 0; i < Rings; i++) _rings.Add(MakeRing(_worldRoot, seal, 2));
             for (int i = 0; i < Rays; i++) _rays.Add(MakeBit(PrimitiveType.Cube, _worldRoot, seal, 3));
             for (int i = 0; i < Decals; i++) _decals.Add(MakeDecal());
-            for (int i = 0; i < Ribbons; i++) _ribbons.Add(MakeBit(PrimitiveType.Cube, _worldRoot, SkylineBotLook.Glow(Amber), 5));
             for (int i = 0; i < 6; i++) _seals.Add(MakeRing(_worldRoot, seal, 6));
             for (int i = 0; i < 8; i++) _bursts.Add(MakeBit(PrimitiveType.Sphere, _worldRoot, SkylineBotLook.Glow(Hot), 7));
             SkylineBotLook.Glow(KillWhite);
@@ -832,7 +830,7 @@ namespace JamKit.SkylineRepo
             }
         }
 
-        /// <summary>The shot's world side: the flash light, the amber ribbon to where it landed, and on the world (not a bot)
+        /// <summary>The shot's world side: the flash light, and on the world (not a bot)
         /// brass sparks and a scorched decal. One raycast per shot (the shooting code has already resolved the hit).</summary>
         void WorldShot()
         {
@@ -847,8 +845,6 @@ namespace JamKit.SkylineRepo
                 Burst(end + _shotNormal * 0.03f, 0.09f * Mathf.Min(far, 3f));
                 Decal(end, _shotNormal);
             }
-            Vector3 from = player.viewmodel != null ? player.viewmodel.MuzzleWorld() : _shotEye + aim * 0.5f;
-            Ribbon(from, end);
         }
 
         // ---------------------------------------------------------------- spawning
@@ -939,18 +935,6 @@ namespace JamKit.SkylineRepo
             b.t.localScale = Vector3.one * b.size;
         }
 
-        void Ribbon(Vector3 from, Vector3 to)
-        {
-            Vector3 d = to - from;
-            float len = d.magnitude;
-            if (!(len > 0.1f)) return;
-            var b = Take(_ribbons, ref _nRibbon);
-            b.t.SetPositionAndRotation(from + d * 0.5f, Quaternion.LookRotation(d / len));
-            b.size = len;
-            b.life = RibbonLife;
-            b.t.localScale = new Vector3(RibbonWidth, RibbonWidth, len);
-        }
-
         void Flash(Vector3 at, Color c, float life, float intensity)
         {
             _light.transform.position = at;
@@ -1005,9 +989,6 @@ namespace JamKit.SkylineRepo
                         b.t.localScale = Vector3.one * (b.size * k);
                         break;
                     }
-                    case 5:
-                        b.t.localScale = new Vector3(RibbonWidth * (1f - u), RibbonWidth * (1f - u), b.size);
-                        break;
                     case 6:
                     {
                         float s = u < 0.15f ? Mathf.Lerp(2.4f, 1f, u / 0.15f) : u < 0.5f ? 1f : Mathf.Lerp(1f, 0f, (u - 0.5f) / 0.5f);

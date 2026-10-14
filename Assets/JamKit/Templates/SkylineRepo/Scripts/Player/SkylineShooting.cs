@@ -103,7 +103,9 @@ namespace JamKit.SkylineRepo
                         if (onHittable) hitSounded = true; else worldSounded = true;
                     }
                 }
-                SkylineTracer.Spawn(muzzle, end, new Color(1f, 0.92f, 0.7f));
+                // the Writ draws its shot as a stroke of quill ink; the Breacher's pellets keep the thin bar
+                if (fromWrit) SkylineInkTracer.Spawn(muzzle, end);
+                else SkylineTracer.Spawn(muzzle, end, new Color(1f, 0.92f, 0.7f));
             }
             return o;
         }
