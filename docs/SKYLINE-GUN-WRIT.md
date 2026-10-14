@@ -245,3 +245,52 @@ tracers looked like Chamber's Headhunter, so "ink from a quill"; and the view wa
 The new shot sits 7 dB under the old one's peak and 8.6 LU quieter on purpose ("a small thwip"); if it is too small in
 play, raise the recipe's `THWIP_MIX` (in `synth.py`), not the bus. The other new sounds: `smack` peak -1.6 dBFS,
 centroid 525 Hz; `impact_crack` peak -4.5 dBFS, centroid 653 Hz, attack 0.12 ms.
+
+## The back: inkwell and quill (the creator's pick, 2026-10-14)
+
+The back above the grip, facing the player, was "a boring box". The creator picked the concept "A take 2: inkwell and
+quill" (`FableAnimationTests/art/review/2026-10-14/skyline-writ-back-a-inkwell-take2.jpg`): a brass-and-glass inkwell of
+glowing indigo ink set into the masonry under the clock tower, like part of the building, with a quill leaning back over
+the hand. Their notes: the quill blocked the aim-down-sights sightline a bit, and they wanted it tied into the animations
+and abilities. The front of the gun is unchanged.
+
+**The model** (`tools/skyline/guns/writ/model/build_writ.py`, `inkwell_parts` / `ink_parts` / `quill_parts`; re-export
+`writ.fbx` with that script). Three new top-level objects, all in the gun's frame like the rest:
+
+- `Inkwell` (static): a stone shelf from the receiver's bottom and a pointed-arch alcove of masonry against its rear face (a
+  lighter stone frame proud of it), a brass-framed glass jar standing on the shelf (brass base rings, four ribs, a glass body
+  and shoulder, a brass rim with an opening). It sits right of centre on the rear face (x 0.012, z -0.100), under the deck
+  (0.026) and 7 cm under the sight line (0.088). The seal on the rear panel is left as it was, partly behind the alcove.
+- `InkLevel`: the glowing indigo ink, a cylinder from the jar's floor to the full level with its **pivot at the bottom of
+  the well**, so scaling its height is the level.
+- `Quill`: shaft, iron nib and a feather vane (two tilted halves), a separate object with its **pivot at the nib, the
+  well's mouth** (0.012, 0.002, -0.100). It is modelled in the hip pose: leaning back toward the player and out to the
+  right, away from the sight line (axis 0.42, 0.78, -0.46).
+- New materials `Writ_Ink` (flat indigo with the glow treatment the lamps get: an emission set at run time), `Writ_Feather`
+  and `Writ_Glass`. The glass is a pale, 20% alpha, unlit `Sprites/Default` copy made in `SkylineWritFx.Copy` (always in a
+  build, so the ink shows through under any lighting). Flat painted colours, no new textures.
+
+**The behaviour** (maths in `Runtime/Skyline/WritQuill.cs`, tested in `Tests/Skyline/WritQuillTests.cs`; applied by
+`SkylineWritFx.AnimateBack`):
+
+- **The ink is the ammo.** The `InkLevel` height scale follows the magazine fraction (full 1, half 0.53, empty a thin film
+  of 0.06, never nothing), smoothed (rises at 12/s, falls at 8/s, a refill at 16/s) with a small spring slosh kicked by each
+  shot, the reload's smack and the gun's own movement (the change of the gun's velocity).
+- **Each shot the quill flicks**: a quick swing toward the muzzle (30 degrees at the hip) in 0.04 s and back to rest by 0.12 s,
+  on the same beat as the gavel's strike (`_shotAge`); a dry fire flicks at 40%. The quill's thwip and the ink tracer stay.
+- **At the hip the quill leans out of the sight line; in ADS it lies flat**, nearly horizontal, pointing back at the player
+  and a little out, 6 to 8 cm under the sight window (blended by `SkylinePlayer.AimEased`); the flick is 70% smaller there.
+- **The reload keeps the gavel smack** and the quill joins it: as the drum drops (from `mag_out`) the ink sinks to 10% (the
+  well is empty with the drum out), the quill dips 6 mm into the well and stirs once (one full turn, 14 degrees off
+  vertical) before the gavel's `windup`, then returns to its lean; on the `seat` event the ink refills to full and glows
+  white-hot for a moment, with the cell's amber band.
+- **A weak-spot hit (the spot pop)** makes the quill do a double flick, 0.26 s in all; never in ADS (only when the aim is
+  below 20%).
+- Nothing here has a motion-scale option to respect (the file has none); every step is skipped when a frame has no time.
+
+**Checked without Unity** (`WritQuillTests`): the ink mapping (full, half, empty, the drum-out sink, the refill on the
+seat), the pose states (hip lean, ADS flat, a flick returning to rest, the flourish under 0.3 s with two peaks, the reload's
+dip and stir), the sight line (the eye from `AimDownSights.SolveSights`: every point of the quill's envelope stays more
+than 15 degrees outside the window's cone, and below the window, for every flick from hip-to-ADS blend 0.8 to 1), and that
+the Python's constants match `WritQuill.cs`. The change list for Unity's pass: the FBX import scale and axes of the three new
+objects, the glass's look, and the ADS and hip views (the quill and the hand around the shelf).

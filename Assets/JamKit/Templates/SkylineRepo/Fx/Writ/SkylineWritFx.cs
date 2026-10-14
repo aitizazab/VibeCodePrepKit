@@ -29,6 +29,11 @@ namespace JamKit.SkylineRepo
     /// which drives the drum home; it twists a quarter turn and seats on the "seat" event, the amber band flashing white-hot.
     /// (The Writ's rest turn toward the crosshair, once a "home" layer
     /// here, is SkylineViewmodel's WritRestEuler since fix round 1.)</item>
+    /// <item>The back (the creator's pick, 2026-10-14: an inkwell and a quill; maths in <see cref="WritQuill"/>): the ink
+    /// (<c>InkLevel</c>) is the ammo, its height follows the magazine with a small slosh, sinks while the drum is out and
+    /// refills on the "seat" event; the quill (<c>Quill</c>, pivot at the nib) flicks on every shot, leans out of the sight
+    /// line at the hip and lies flat in ADS, does a double flick on a spot hit (never in ADS), and dips into the well and
+    /// stirs once as the drum drops in a reload.</item>
     /// </list>
     /// Everything is pooled and made in Start; no per-shot searches or allocations.
     /// </summary>
@@ -51,6 +56,9 @@ namespace JamKit.SkylineRepo
         // (about a quarter of a shot's) and shake, and the lamps and the doorway flare for a moment
         const float GavelLift = 0.055f, GavelLiftBack = 0.012f, GavelLiftTilt = 38f, GavelPress = 0.0125f, GavelPressTilt = 14f;
         const float SmackGlowSeconds = 0.18f, SmackShake = 0.04f;
+        // the back: the ink's slosh (spring impulses) on a shot, on the smack and from the gun's own movement; the flourish
+        // only plays when the aim is mostly down (the sight window stays clear)
+        const float SloshShot = 1.4f, SloshSmack = 1.0f, SloshMove = 0.15f, FlourishMaxAim = 0.2f;
         static readonly CameraKickDef SmackKick = new CameraKickDef { pitchDeg = 0.7f, yawDeg = 0f, recoverRate = 13f };
         const float DoorsOpen = 68f, DoorsClose = 0.2f, BenchKick = 0.005f, BenchRack = 0.018f;
         // fix round 1 (judge C 11-12): impacts and spot marks read at fight range: the decal is twice the size, and the seal
@@ -93,20 +101,34 @@ namespace JamKit.SkylineRepo
             new Look { name = "Writ_DoorGlow", tint = new Color(1f, 0.6f, 0.25f), emission = new Color(2.6f, 1.3f, 0.36f), smoothness = 0.6f },
             new Look { name = "Writ_Bead", tint = new Color(1f, 0.62f, 0.12f), emission = new Color(3.4f, 1.9f, 0.3f), smoothness = 0.8f },
             new Look { name = "Writ_CellGlow", tint = new Color(1f, 0.6f, 0.18f), emission = new Color(2.6f, 1.3f, 0.3f), smoothness = 0.7f },
+            // the back: glowing indigo ink, a cream feather; the jar's glass is a translucent unlit look (see Copy)
+            new Look { name = "Writ_Ink", tint = new Color(0.2f, 0.1f, 0.75f), emission = new Color(0.4f, 0.2f, 2.2f), smoothness = 0.75f },
+            new Look { name = "Writ_Feather", tint = new Color(0.94f, 0.94f, 0.97f), smoothness = 0.25f },
+            new Look { name = "Writ_Glass", tint = new Color(0.72f, 0.86f, 1f, 0.2f) },
         };
+        const string GlassName = "Writ_Glass";
 
         readonly Dictionary<string, Material> _mats = new Dictionary<string, Material>();
-        Material _lamp, _door, _cell, _bead;
-        Color _lampBase, _doorBase, _cellBase;
+        Material _lamp, _door, _cell, _bead, _inkMat;
+        Color _lampBase, _doorBase, _cellBase, _inkBase;
 
         // ---------------------------------------------------------------- the viewmodel's Writ
 
-        Transform _vmCam, _gunRoot, _muzzle, _bench, _gavel, _doorL, _doorR, _mag;
+        Transform _vmCam, _gunRoot, _muzzle, _bench, _gavel, _doorL, _doorR, _mag, _quill, _ink;
         Quaternion _magRot;
         float _drumAngle, _drumSpin, _twistFrom, _twistAge = 99f;
         static readonly Vector3 GripAxis = Quaternion.Euler(16f, 0f, 0f) * Vector3.up;   // the column grip's axis (raked 16 degrees)
         Vector3 _benchRest, _gavelRest, _doorLRest, _doorRRest;
         Quaternion _gavelRot, _doorLRot, _doorRRot;
+        // the back: the quill's rest (the model's own hip pose) and the ink's rest scale, with the ink's height axis (the local
+        // axis that runs up the gun, whatever the FBX import did to the node's frame)
+        Vector3 _quillPos, _inkScale;
+        Quaternion _quillRot;
+        int _inkAxis = 1;
+        float _inkFrac, _flourishAge = 99f;
+        bool _inkInit, _haveGunMotion;
+        Vector3 _prevGunPos, _prevGunVel;
+        readonly WritQuill.InkSlosh _slosh = new WritQuill.InkSlosh();
         bool _resolved;
         int _slot = -1;
 
@@ -345,6 +367,10 @@ namespace JamKit.SkylineRepo
             if (_gavel != null) { _gavelRest = _gavel.localPosition; _gavelRot = _gavel.localRotation; }
             if (_doorL != null) { _doorLRest = _doorL.localPosition; _doorLRot = _doorL.localRotation; }
             if (_doorR != null) { _doorRRest = _doorR.localPosition; _doorRRot = _doorR.localRotation; }
+            _quill = SkylineBotBodies.Find(_gunRoot, "Quill");
+            _ink = SkylineBotBodies.Find(_gunRoot, "InkLevel");
+            if (_quill != null) { _quillPos = _quill.localPosition; _quillRot = _quill.localRotation; }
+            if (_ink != null) { _inkScale = _ink.localScale; _inkAxis = UpAxis(_ink); }
             if (_bench == null && _gavel == null)
                 Debug.Log("SKYLINE_WRIT_FX no courtroom model under the Writ (primitives in use): the model's beats are off");
             CheckFacing();
@@ -385,6 +411,8 @@ namespace JamKit.SkylineRepo
             _door = Mat("Writ_DoorGlow");
             _cell = Mat("Writ_CellGlow");
             _bead = Mat("Writ_Bead");
+            _inkMat = Mat("Writ_Ink");
+            _inkBase = LookOf("Writ_Ink").emission;
             _lampBase = LookOf("Writ_LampGlow").emission;
             _doorBase = LookOf("Writ_DoorGlow").emission;
             _cellBase = LookOf("Writ_CellGlow").emission;
@@ -406,6 +434,18 @@ namespace JamKit.SkylineRepo
             if (look < 0) return null;
             var L = Looks[look];
             if (_mats.TryGetValue(L.name, out var have) && have != null) return have;
+            if (L.name == GlassName)
+            {
+                // the jar's glass: Sprites/Default (always in a build; unlit, alpha-blended, both faces, no depth write), so the
+                // ink shows through whatever the scene's lighting does; a pale blue tint at 20% alpha
+                var sh = Shader.Find("Sprites/Default");
+                var g = sh != null ? new Material(sh) : new Material(original);
+                g.name = L.name + " (Writ)";
+                g.color = L.tint;
+                if (g.HasProperty("_BaseColor")) g.SetColor("_BaseColor", L.tint);
+                _mats[L.name] = g;
+                return g;
+            }
             var m = new Material(original) { name = L.name + " (Writ)" };
             if (!string.IsNullOrEmpty(L.texture))
             {
@@ -577,6 +617,7 @@ namespace JamKit.SkylineRepo
                     _shotAim = player.AimDirection;
                     _shotRange = player.Loadout[slot].Def.range;
                     _flashRoll = Random.Range(0f, 360f);
+                    _slosh.Kick(SloshShot);
                     // where the slug goes, read now (CueRaised comes before the shooting code), so a plate's wobble or a bot's
                     // knockback can't move the target before the world effects look (round 2: a plate hit drew a wall decal)
                     _shotEnd = _shotEye + _shotAim * _shotRange;
@@ -601,6 +642,7 @@ namespace JamKit.SkylineRepo
                         // the gavel lands on the roof: the camera feels it (small) and the lamps flare; the gun's own recoil is in
                         // the reload's pose frames
                         _smackAge = 0f;
+                        _slosh.Kick(SloshSmack);
                         if (player != null)
                         {
                             player.Kick.Kick(SmackKick, 0f);
@@ -621,6 +663,7 @@ namespace JamKit.SkylineRepo
             float far = player != null ? Mathf.Max(1f, Vector3.Distance(player.EyePosition, info.point) / ReadDistance) : 1f;
             if (r.writ.spotHit)
             {
+                if (player == null || player.AimEased <= FlourishMaxAim) _flourishAge = 0f;     // the quill's double flick, never in ADS
                 SkylineSounds.PlayViewmodel(SpotPopSound, 0.9f);
                 Ring(info.point + n * 0.02f, n, 0.05f * far, 0.42f * far, 0.22f);
                 Ring(info.point + n * 0.02f, n, 0.02f * far, 0.26f * far, 0.15f);
@@ -659,6 +702,7 @@ namespace JamKit.SkylineRepo
             _rackAge += dt;
             _equipAge += dt;
             _smackAge += dt;
+            _flourishAge += dt;
             AnimateModel(out_ ? gun : null);
             if (_pendingShot) { _pendingShot = false; WorldShot(); }
             MuzzleFlash();
@@ -740,6 +784,104 @@ namespace JamKit.SkylineRepo
                 _seatFlash = Mathf.MoveTowards(_seatFlash, 0f, Time.deltaTime * 2.5f);
                 SetGlow(_cell, _cellBase * (0.15f + 0.85f * charge) + Color.white * (2.5f * _seatFlash));
             }
+            AnimateBack(gun);
+        }
+
+        // ---------------------------------------------------------------- the back: inkwell and quill
+
+        /// <summary>The ink's height and glow, and the quill's pose (docs/SKYLINE-GUN-WRIT.md, "The back").</summary>
+        void AnimateBack(SkylineGun gun)
+        {
+            float dt = Time.deltaTime;
+            float flick = Mathf.Max(WritQuill.Flick(_shotAge) * _strikeScale, WritQuill.Flourish(_flourishAge));
+            if (_ink != null) AnimateInk(gun, dt, flick);
+            if (_quill != null) AnimateQuill(gun, flick);
+        }
+
+        void AnimateInk(SkylineGun gun, float dt, float flick)
+        {
+            // the target: the magazine's fraction; sunk while the drum is out, full once the new one has seated
+            float target = _inkFrac;
+            bool seated = false;
+            if (gun != null)
+            {
+                var stage = WritQuill.InkReload.None;
+                var h = gun.Handling;
+                var c = h != null ? h.Clip : null;
+                if (c != null && h.Playing && IsReload(c))
+                {
+                    float outAt = EventAt(c, "mag_out"), seatAt = EventAt(c, "seat");
+                    if (outAt >= 0f && seatAt >= 0f) stage = WritQuill.ReloadStage(h.Progress01, outAt, seatAt);
+                }
+                seated = stage == WritQuill.InkReload.Seated;
+                target = WritQuill.InkTarget(gun.Ammo, gun.Def.weapon.magazineSize, stage);
+                if (!_inkInit) { _inkFrac = target; _inkInit = true; }
+            }
+            if (dt > 0f)
+            {
+                _inkFrac = WritQuill.InkStep(_inkFrac, target, dt, seated);
+                // the gun's own movement (the walk bob, a pose jump, a recoil) sloshes the surface: its change of velocity
+                Vector3 pos = _gunRoot.localPosition;
+                if (_haveGunMotion)
+                {
+                    Vector3 vel = (pos - _prevGunPos) / dt, dv = vel - _prevGunVel;
+                    _slosh.Kick(Mathf.Clamp(-dv.y * SloshMove + Mathf.Abs(dv.x) * SloshMove * 0.5f, -1.5f, 1.5f));
+                    _prevGunVel = vel;
+                }
+                _prevGunPos = pos;
+                _haveGunMotion = true;
+                _slosh.Step(dt);
+            }
+            Vector3 sc = _inkScale;
+            sc[_inkAxis] = _inkScale[_inkAxis] * WritQuill.InkDrawScale(_inkFrac, _slosh.Offset);
+            _ink.localScale = sc;
+            // the glow: a slow breath, brighter on a flick and flashing as the new drum seats
+            float breath = 0.92f + 0.08f * Mathf.Sin(Time.time * 3.1f);
+            SetGlow(_inkMat, _inkBase * (breath + 0.6f * flick + 1.2f * _seatFlash));
+        }
+
+        void AnimateQuill(SkylineGun gun, float flick)
+        {
+            float ads = player != null ? player.AimEased : 0f;
+            float stir = 0f, angle = 0f;
+            var h = gun != null ? gun.Handling : null;
+            var c = h != null ? h.Clip : null;
+            if (c != null && h.Playing && IsReload(c))
+            {
+                float outAt = EventAt(c, "mag_out"), windup = EventAt(c, "windup");
+                if (outAt >= 0f && windup >= 0f) WritQuill.Stir(h.Progress01, outAt, windup, out stir, out angle);
+            }
+            WritQuill.Pose(ads, flick, stir, angle, out System.Numerics.Vector3 dir, out float dip);
+            var d = new Vector3(dir.X, dir.Y, dir.Z);
+            var hip = new Vector3(WritQuill.HipDirection.X, WritQuill.HipDirection.Y, WritQuill.HipDirection.Z);
+            // about the nib (the object's pivot), relative to the model's own hip pose; the dip moves it down its own axis
+            _quill.localRotation = ParentRotation(_quill, Quaternion.FromToRotation(hip, d)) * _quillRot;
+            _quill.localPosition = _quillPos + ParentVector(_quill, -d * dip);
+        }
+
+        static bool IsReload(HandlingClip c) => c.kind == HandlingClipKind.ReloadPartial || c.kind == HandlingClipKind.ReloadEmpty;
+
+        /// <summary>A clip event's place in the clip (0..1), or -1 if the clip has none by that id.</summary>
+        static float EventAt(HandlingClip c, string id)
+        {
+            for (int i = 0; i < c.events.Length; i++) if (c.events[i].id == id) return c.events[i].at;
+            return -1f;
+        }
+
+        /// <summary>The local axis (0 x, 1 y, 2 z) of <paramref name="t"/> that runs most nearly up the gun (a scale along it
+        /// changes the part's height, whatever the FBX import did to the node's frame).</summary>
+        int UpAxis(Transform t)
+        {
+            int best = 1;
+            float most = -1f;
+            for (int i = 0; i < 3; i++)
+            {
+                Vector3 axis = Vector3.zero;
+                axis[i] = 1f;
+                float up = Mathf.Abs(_gunRoot.InverseTransformDirection(t.TransformDirection(axis)).y);
+                if (up > most) { most = up; best = i; }
+            }
+            return best;
         }
 
         static float Smooth(float u) { u = Mathf.Clamp01(u); return u * u * (3f - 2f * u); }
