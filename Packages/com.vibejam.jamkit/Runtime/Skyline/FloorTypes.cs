@@ -96,7 +96,10 @@ namespace JamKit.Skyline
     {
         /// <summary>Seconds inside a tow circle that take an asset; the circle's radius (a 6 m circle); the wave interval;
         /// the warning a spawn door gives before it opens.</summary>
-        public const float TowSeconds = 10f, CircleRadius = 3f, WaveSeconds = 30f, DoorTelegraphSeconds = 2f;
+        /// <summary>The floor song's tempo (docs/SKYLINE-MUSIC.md). A wave every 16 bars (31.35 s), so each one lands on a phrase
+        /// with a fill in the bar before it (the creator agreed to stretch it from 30 s, 2026-10-14).</summary>
+        public const float MusicBpm = 122.5f;
+        public const float TowSeconds = 10f, CircleRadius = 3f, WaveSeconds = 16 * 4 * 60f / MusicBpm, DoorTelegraphSeconds = 2f;
         /// <summary>At most this many living bots; a wave that would pass it waits.</summary>
         public const int WaveCap = 10;
         /// <summary>Every wave spawns from two points at least this many degrees apart as seen from the player; the first

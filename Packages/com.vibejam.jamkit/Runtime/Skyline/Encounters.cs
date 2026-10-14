@@ -381,7 +381,9 @@ namespace JamKit.Skyline
     public enum BeatTrigger { WarmupStart, PracticeBotSeen, FirstSpotCreated, NearBoostLedge, BoostLedgeReached, FirstPlatingBreak, FirstSeen, NextFightArmed, NearPracticeLedge, LiftOpened,
         // Floor 1 (docs/SKYLINE-PLAN-FLOOR1.md, task F0): the lobby, the repossession and the waves.
         LobbyArrive, LobbyDesk, LobbyLiftNear, LiftRiding, FloorStart, CircleNear, MeterStarted, AssetTowed, WaveAnnounce,
-        AlarmRaised, AllTowed, FirstSpecialAmmo }
+        AlarmRaised, AllTowed, FirstSpecialAmmo,
+        /// <summary>The first time the Unit leaves an asset's circle while its tow is under way (once per floor).</summary>
+        LeftCircleMidTow }
 
     /// <summary>One teaching line (6.8): who says it, when, and the words. Drafts are for the creator to rewrite.</summary>
     public sealed class TeachingBeat

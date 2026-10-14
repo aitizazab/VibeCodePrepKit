@@ -22,7 +22,7 @@ namespace JamKit.Tests.Skyline
         {
             var w = WavePlans.For(n, false);
             Assert.That(w.number, Is.EqualTo(n));
-            Assert.That(w.time, Is.EqualTo((n - 1) * 30f));
+            Assert.That(w.time, Is.EqualTo((n - 1) * FloorRules.WaveSeconds));
             Assert.That(Count(w, D), Is.EqualTo(drones));
             Assert.That(Count(w, F), Is.EqualTo(floorCare));
             Assert.That(Count(w, G), Is.EqualTo(gondolas));
@@ -114,7 +114,7 @@ namespace JamKit.Tests.Skyline
 
         static List<(int number, double at)> Run(float dt, float total, int living = 0)
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             clock.Start();
             var got = new List<(int, double)>();
             var buf = new List<WaveDef>();
@@ -132,7 +132,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void NothingIsReleasedBeforeStart()
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             var buf = new List<WaveDef>();
             clock.Tick(10f, 0, false, buf);
             Assert.That(buf, Is.Empty);
@@ -143,7 +143,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void WaveOneComesOnTheFirstTickAndTheRestEveryThirtySeconds()
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             Assert.That(clock.Running, Is.True);
@@ -175,7 +175,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void AHugeHitchReleasesEveryDueWaveOnceInOrder()
         {
-            var clock = new WaveClock(cap: 100);
+            var clock = new WaveClock(cap: 100, interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             clock.Tick(95f, 0, false, buf);
@@ -188,7 +188,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void BotsReleasedInTheSameCallCountAgainstTheCap()
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             // waves 1 (3) + 2 (4) = 7; wave 3 (4) would make 11 > 10 and waits; wave 4 (due at 90 s) is skipped.
@@ -202,7 +202,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void AWaveThatWouldPassTheCapWaitsAndIsReleasedWhenThereIsRoom()
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             clock.Tick(0.1f, 0, false, buf);              // wave 1
@@ -222,7 +222,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void TheNextIntervalWhileOneWaitsIsSkippedAndCounted()
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             clock.Tick(0.1f, 0, false, buf);              // wave 1
@@ -246,7 +246,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void TheClockKeepsItsOwnTimeWhileAWaveWaits()
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             clock.Tick(0.1f, 0, false, buf);
@@ -259,7 +259,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void AGondolaReleasedInTheSameCallStopsAnotherJoining()
         {
-            var clock = new WaveClock(cap: 100);
+            var clock = new WaveClock(cap: 100, interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             clock.Tick(215f, 0, false, buf);              // waves 1..8 all due; wave 4 brings a gondola, wave 8 would too
@@ -270,7 +270,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void TheGondolaFlagDecidesWaveEightAtItsReleaseTime()
         {
-            var clock = new WaveClock(cap: 100);
+            var clock = new WaveClock(cap: 100, interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             clock.Tick(215f, 0, false, buf);
@@ -287,7 +287,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void StopCancelsTheWaitingWaveAndNothingMoreComes()
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             clock.Tick(0.1f, 0, false, buf);
@@ -304,7 +304,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void ResetClearsEverythingForTheNextRun()
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             clock.Tick(0.1f, 0, false, buf);
@@ -326,7 +326,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void StartingARunningClockDoesNotRestartIt()
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             clock.Tick(0.1f, 0, false, buf);
@@ -344,7 +344,7 @@ namespace JamKit.Tests.Skyline
         [TestCase(float.NegativeInfinity)]
         public void ZeroNegativeAndNonFiniteStepsDoNothing(float dt)
         {
-            var clock = new WaveClock();
+            var clock = new WaveClock(interval: 30f);
             var buf = new List<WaveDef>();
             clock.Start();
             clock.Tick(dt, 0, false, buf);

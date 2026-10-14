@@ -14,7 +14,7 @@ namespace JamKit.Tests.Skyline
         {
             Assert.That(FloorRules.TowSeconds, Is.EqualTo(10f));
             Assert.That(FloorRules.CircleRadius, Is.EqualTo(3f), "a 6 m tow circle");
-            Assert.That(FloorRules.WaveSeconds, Is.EqualTo(30f));
+            Assert.That(FloorRules.WaveSeconds, Is.EqualTo(64 * 60f / 122.5f).Within(1e-4f));   // 16 bars of the floor song
             Assert.That(FloorRules.DoorTelegraphSeconds, Is.EqualTo(2f));
             Assert.That(FloorRules.WaveCap, Is.EqualTo(10));
             Assert.That(FloorRules.MinBearingSpread, Is.EqualTo(90f));

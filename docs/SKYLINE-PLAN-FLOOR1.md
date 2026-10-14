@@ -61,7 +61,7 @@ found and how this plan resolves it.
   the Unit's feet reach the lift. **Wrecked:** the arena restarts (now at the lobby), assets go back on their sockets
   (same sockets this run), the clock resets.
 - **Waves (Normal, starting numbers, balanced with the creator in play):** the clock starts at the drop (section 9: the
-  lift doors open; section 3's "feet cross from the warm-up" is superseded). Wave 1 at 0 s, then **a new wave every 30 s**
+  lift doors open; section 3's "feet cross from the warm-up" is superseded). Wave 1 at 0 s, then **a new wave every 31.35 s (16 bars of the floor song at 122.5 BPM; stretched from 30 s, 2026-10-14)**
   until the third asset is towed. Nothing the player does delays the clock. **Cap: at most 10 living bots**; a wave that
   would pass the cap waits until there is room (**one waiting wave at most**; the clock keeps running for the next).
 
@@ -625,7 +625,7 @@ Beats (ids, speaker, trigger; every text a draft except the quoted ones): `conci
 opener), `dot-writ-spots` / `dot-writ-spot-made` / `dot-breacher-boost` / `dot-boost-done` / `nan-double-jump-mantle` (the
 M1 lessons, kept, moved to the lobby: same triggers `PracticeBotSeen`, `FirstSpotCreated`, `NearBoostLedge`,
 `BoostLedgeReached`, `NearPracticeLedge`), `nan-job-sheet` (Nan, `LiftRiding`: the job sheet, the tow circle, "the clock's
-running, love"), `concierge-first-wave` (`FloorStart`), `dot-clamped` (Dot, `AssetTowed`, the FIRST tow only, when the tow ends (the creator, 2026-10-14): "Clamped! Hold still-ish."),
+running, love"), `concierge-first-wave` (`FloorStart`), `dot-clamped` (Dot, `AssetTowed`, the FIRST tow only, when the tow ends (the creator, 2026-10-14): "Clamped! Get Moving!"), `dot-stay-near` (Dot, `LeftCircleMidTow`: X0 fires it once per floor, the first time the Unit leaves an asset's circle while that tow's meter is above 0 and not done: "Don't go too far, you need to stay nearby to transmat!"),
 `concierge-alarm` (`AlarmRaised`), `dot-towed` (Dot, `AssetTowed`, repeats; X0 skips it on the first tow, which `dot-clamped` answers), `concierge-wave` (`WaveAnnounce`, repeats,
 at most every 3rd wave), `concierge-concede` (`AllTowed`: "Asset transfer... acknowledged. Under protest." verbatim),
 the three bot notices (drone, floor-care verbatim as M1; gondola re-worded for "outside the glass"), `dot-plating`

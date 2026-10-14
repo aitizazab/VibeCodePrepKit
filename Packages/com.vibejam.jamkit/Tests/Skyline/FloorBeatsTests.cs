@@ -47,8 +47,15 @@ namespace JamKit.Tests.Skyline
             Assert.That(concede.trigger, Is.EqualTo(BeatTrigger.AllTowed));
 
             var clamped = Beat("dot-clamped");
-            Assert.That(clamped.text, Is.EqualTo("Clamped! Hold still-ish."));
-            Assert.That(clamped.draft, Is.True, "Claude's draft, wrongly marked as the creator's (corrected 2026-10-14)");
+            Assert.That(clamped.text, Is.EqualTo("Clamped! Get Moving!"));
+            Assert.That(clamped.draft, Is.False, "the creator's line (2026-10-14)");
+
+            var stay = Beat("dot-stay-near");
+            Assert.That(stay.text, Is.EqualTo("Don't go too far, you need to stay nearby to transmat!"));
+            Assert.That(stay.draft, Is.False);
+            Assert.That(stay.speaker, Is.EqualTo(Speaker.Dot));
+            Assert.That(stay.trigger, Is.EqualTo(BeatTrigger.LeftCircleMidTow));
+            Assert.That(stay.repeats, Is.False);
             Assert.That(clamped.speaker, Is.EqualTo(Speaker.Dot));
             Assert.That(clamped.trigger, Is.EqualTo(BeatTrigger.AssetTowed));
 
@@ -68,7 +75,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void EveryOtherLineIsADraftForTheCreator()
         {
-            var verbatim = new HashSet<string> { "concierge-concede", "dot-plating", "concierge-floor-care" };
+            var verbatim = new HashSet<string> { "concierge-concede", "dot-clamped", "dot-stay-near", "dot-plating", "concierge-floor-care" };
             foreach (var b in FloorBeats.Floor1())
                 Assert.That(b.draft, Is.EqualTo(!verbatim.Contains(b.id)), b.id);
         }

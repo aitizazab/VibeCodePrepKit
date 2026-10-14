@@ -267,7 +267,7 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
-        public void WavesComeEveryThirtySecondsWithTheTablesCompositions()
+        public void WavesComeOnTheWaveClockWithTheTablesCompositions()
         {
             var w = Make(o => { o.invulnerable = true; o.waveCap = 100; });
             var sim = Sim(new StandBot { holdFire = true }, 12, w);
@@ -281,10 +281,10 @@ namespace JamKit.Tests.Skyline
                 sizes[wave] = (sizes.ContainsKey(wave) ? sizes[wave] : 0) + 1;
                 if (e.Def.id == SkylineEnemies.GondolaId) gondolas[wave] = 1;
             };
-            sim.Run(125f);
-            Assert.That(firstSpawn.Count, Is.EqualTo(5), "waves 1 to 5 inside 125 s");
+            sim.Run(4 * FloorRules.WaveSeconds + 5f);   // wave 5 is due at 4 intervals, its first bot 2 s later
+            Assert.That(firstSpawn.Count, Is.EqualTo(5), "waves 1 to 5 inside four intervals and 5 s");
             for (int n = 1; n <= 5; n++)
-                Assert.That(firstSpawn[n], Is.EqualTo((n - 1) * 30f + 2f).Within(0.1f), "wave " + n);
+                Assert.That(firstSpawn[n], Is.EqualTo((n - 1) * FloorRules.WaveSeconds + 2f).Within(0.1f), "wave " + n);
             Assert.That(sizes[1], Is.EqualTo(3));
             Assert.That(sizes[2], Is.EqualTo(4));
             Assert.That(sizes[3], Is.EqualTo(4));

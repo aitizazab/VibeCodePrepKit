@@ -95,6 +95,7 @@ namespace JamKit.Skyline
                 case BeatTrigger.AssetTowed:
                 case BeatTrigger.MeterStarted:
                 case BeatTrigger.FirstSpecialAmmo:
+                case BeatTrigger.LeftCircleMidTow:
                     return LineUrgency.Reaction;
                 case BeatTrigger.FirstSeen:
                 case BeatTrigger.NextFightArmed:

@@ -107,6 +107,13 @@ namespace JamKit.SkylineRepo
         int _life;
         bool _lessonsDone, _fighting, _djArmed, _djTakeoff;
         float _acidJumpAt = -1f, _stuckSince = -1f, _sideStepUntil = -1f, _sideSign = 1f;
+        // A floor-care unit telegraphs again on the same beat the pilot lands, so jumping every sweep looped forever (the
+        // canister is never hit from mid-air; the creator saw it in the pass, 2026-10-14). After two jumps over the same unit
+        // in a row, the next sweep is met by backing out of its reach on the ground, still shooting.
+        SkylineBot _acidBot;
+        int _acidJumpsInARow;
+        float _backOffUntil = -1f;
+        const int AcidJumpsBeforeBackOff = 2;
         Vector3 _stuckFrom;
         /// <summary>Every choice the run makes by chance (strafe timing, peek lengths, slides, hops, reaction beats) draws from
         /// this one seeded stream, so a recording repeats.</summary>
@@ -201,6 +208,15 @@ namespace JamKit.SkylineRepo
 
         static void Log(string step) => Debug.Log("SKYLINE_DEMO " + step);
 
+        /// <summary>The Breacher (slot 1) has a round in the magazine or one in the special reserve to reload.</summary>
+        bool BreacherHasShots()
+        {
+            var lo = player.Loadout;
+            if (lo == null || lo.Count < 2) return false;
+            var g = lo[1];
+            return g != null && (g.Ammo > 0 || !g.Def.special || g.State.Reserve > 0);
+        }
+
         static void BuildCover()
         {
             _cover.Clear();
@@ -234,13 +250,14 @@ namespace JamKit.SkylineRepo
             {
                 move = _move,
                 sprintHeld = _sprint,
-                jumpPressed = _jump,
-                jumpHeld = _jump,
+                jumpPressed = _jump && now >= _backOffUntil,
+                jumpHeld = _jump && now >= _backOffUntil,
                 crouchPressed = _crouchPress,
                 crouchHeld = _crouchPress || now < _crouchUntil,
                 swapPressed = _swap,
                 reloadPressed = _reload,
             };
+            if (now < _backOffUntil) { f.move = new Vector2(0f, -1f); f.sprintHeld = false; }   // backpedal out of the sweep, facing it
 
             // the hands: turn toward what is wanted like a wrist, never a snap (bar the one scripted settle at the boost)
             if (!_handReady)
@@ -321,7 +338,16 @@ namespace JamKit.SkylineRepo
             if (!_fighting || bot == null || bot.practice || state != BotState.Telegraph || bot.Def == null || !(bot.Def.moveSpeed > 0f)) return;
             Vector3 p = bot.transform.position, f = Feet();
             float flat = new Vector2(p.x - f.x, p.z - f.z).magnitude;
-            if (flat > bot.Def.sweepRadius + 1.5f || _acidJumpAt >= 0f || _djArmed) return;
+            if (flat > bot.Def.sweepRadius + 1.5f || _acidJumpAt >= 0f || _djArmed || Time.time < _backOffUntil) return;
+            _acidJumpsInARow = bot == _acidBot ? _acidJumpsInARow + 1 : 1;
+            _acidBot = bot;
+            if (_acidJumpsInARow > AcidJumpsBeforeBackOff)
+            {
+                _acidJumpsInARow = 0;
+                _backOffUntil = Time.time + bot.Def.telegraphSeconds + 0.6f;
+                Log("acid-back-off");
+                return;
+            }
             _acidJumpAt = Time.time + Mathf.Max(0f, bot.Def.telegraphSeconds - 0.15f);
         }
 
@@ -339,6 +365,9 @@ namespace JamKit.SkylineRepo
             _fighting = false;
             _djArmed = false;
             _acidJumpAt = -1f;
+            _acidBot = null;
+            _acidJumpsInARow = 0;
+            _backOffUntil = -1f;
             _tac = Tactic.None;
             _hasLastDuck = false;
             _watch = null;
@@ -780,10 +809,12 @@ namespace JamKit.SkylineRepo
                 bool watching = _watch != null;
                 if (watching) { target = _watch; aim = _watch.Center; }
                 // the Breacher for bots within 5 m in the line of fire
-                bool close = target != null && Flat(feet, target.transform.position) <= BreacherRange;
+                // ... only while it has shots: a special gun has no reserve until kills feed it, so an empty Breacher can't be
+                // reloaded (the pilot sat on a dry Breacher pressing reload and hopping a floor-care's sweeps; the creator, 2026-10-14)
+                bool close = target != null && Flat(feet, target.transform.position) <= BreacherRange && BreacherHasShots();
                 if (close && !_breacher) { _breacher = true; Log(id + " breacher-on"); }
                 if (close) _breacherOffAt = now + 1.5f;
-                else if (_breacher && now > _breacherOffAt) { _breacher = false; Log(id + " breacher-off"); }
+                else if (_breacher && (now > _breacherOffAt || !BreacherHasShots())) { _breacher = false; Log(id + " breacher-off"); }
                 if (target != null)
                 {
                     if (target != lastTarget) _hand.React(Range(0.05f, 0.12f));   // a new target: a beat before the wrist moves

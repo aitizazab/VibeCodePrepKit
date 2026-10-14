@@ -44,7 +44,7 @@ strategy." Three causes, fixed together:
 ## 3. The waves: on a clock
 
 - **The clock starts at the drop (section 9):** the moment the lift doors open onto the food court. Wave 1 arrives then, and **a new wave
-  every 30 s (Normal)** until the third asset is towed. Nothing the player does delays the clock.
+  every 31.35 s (16 bars of the floor song at 122.5 BPM; stretched from 30 s, 2026-10-14) (Normal)** until the third asset is towed. Nothing the player does delays the clock.
 - **Cap:** at most **10 living bots**. A wave that would pass the cap waits until there is room (one waiting wave at
   most; the clock keeps running for the next).
 - **Composition (Normal, starting numbers for balancing together):**
@@ -114,7 +114,7 @@ SHOP = walk-in (front door to the ring, back door to the service corridor).
 ## 5. Teaching and voice
 
 - Nan teaches the objective at the floor's start (design 6.8: objectives belong to Nan): the job sheet, the tow circle,
-  "the clock's running, love". Dot calls each tow as it ends ("Clamped! Hold still-ish." on the first, the creator's call on 2026-10-14). CONCIERGE announces waves and alarms.
+  "the clock's running, love". Dot calls each tow as it ends ("Clamped! Get Moving!" on the first, the creator's line, 2026-10-14). CONCIERGE announces waves and alarms.
 - Every line is a draft for the creator to rewrite; they go into `docs/SKYLINE-DRAFT-LINES.md` under this floor.
 
 ## 6. HUD additions
