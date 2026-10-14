@@ -32,60 +32,19 @@ namespace JamKit.Skyline
         public static readonly Vector3 WritSightCheck = new Vector3(-0.2f, 0.042f, -0.291f);
         public static readonly Vector3 WritSightCheckEuler = new Vector3(0f, 9f, 0f);
 
-        /// <summary>The Writ's reload is a gavel smack (the creator, 2026-10-14: "a smack of the gavel"). The small gavel on its
-        /// roof rises over the "windup" event, falls in the last <see cref="WritStrikeFraction"/> of the clip before the "smack"
-        /// event (a fast strike onto the sound block, the gun's whole body recoiling in its pose frames), rebounds a little, and
-        /// the new charge seats on the "seat" event a moment later. The fractions are the clip's, so a faster reload moves the
-        /// strike with it.</summary>
-        public const float WritStrikeFraction = 0.03f, WritReboundFraction = 0.04f, WritReboundHeight = 0.14f;
-
-        /// <summary>The gavel's state at <paramref name="t01"/> of a reload clip: <paramref name="lift"/> 0 (resting over the
-        /// block) to 1 (raised at the top of the windup), and <paramref name="press"/> 1 at the instant of the smack (the head
-        /// pressed onto the block) falling to 0 as it rebounds. Before the windup and after the rebound both are 0; at
-        /// <paramref name="smackAt"/> the lift is 0 and the press 1.</summary>
-        public static void WritGavelSmack(float t01, float windupAt, float smackAt, out float lift, out float press)
-        {
-            lift = 0f;
-            press = 0f;
-            float strikeStart = smackAt - WritStrikeFraction;
-            if (!(t01 > windupAt) || !(strikeStart > windupAt)) return;
-            if (t01 < strikeStart)
-            {
-                float u = (t01 - windupAt) / (strikeStart - windupAt);
-                lift = 1f - (1f - u) * (1f - u);    // up fast, slowing at the top
-            }
-            else if (t01 < smackAt)
-            {
-                float u = (t01 - strikeStart) / WritStrikeFraction;
-                lift = 1f - u * u;                  // down slowly, then very fast
-            }
-            else
-            {
-                float v = (t01 - smackAt) / WritReboundFraction;
-                if (v >= 1f) return;
-                press = (1f - v) * (1f - v);
-                lift = WritReboundHeight * MathF.Sin(MathF.PI * v);
-            }
-        }
-
         /// <summary>The Writ: a precise sidearm. Every weak-point hit leaves a weak spot that takes more than a headshot (2.2).
-        /// 250 RPM, 8 rounds; a magazine-and-cell reload with a bolt from empty.</summary>
+        /// 250 RPM, 8 rounds; the reload is the quill leaving the ink well, writing on a sheet of paper on the table while the
+        /// ink refills behind it (docs/SKYLINE-GUN-WRIT.md).</summary>
         public static GunDef Writ()
         {
-            // the reload's held pose (fix round 1, judge C 4): the gun lifted toward the middle, muzzle dipped and turned in,
-            // rolled so the column grip's base faces the camera and the drum drops out of it on screen (8 cm, not 25 cm)
-            var tilt = V(-0.07f, 0.07f, -0.1f);
-            var tiltEuler = V(28f, -18f, 22f);
-            var drumOut = V(0.02f, -0.08f, 0f);
-            var seatKick = V(-0.06f, 0.05f, -0.08f);
-            var seatEuler = V(22f, -14f, 16f);
-            // the smack: the drum waits 12 mm short of home, the gun rises a little with the windup, and the strike knocks it down
-            // and back (3.5 cm, 3 cm, the muzzle 8 degrees down) while the drum is driven home
-            var drumWaits = V(0f, -0.012f, 0f);
-            var liftUp = V(0f, 0.01f, 0.01f);
-            var liftEuler = V(-3f, 0f, 0f);
-            var knock = V(0f, -0.035f, -0.03f);
-            var knockEuler = V(8f, 0f, 0f);
+            // The reload (the creator, 2026-10-14): no magazine, no drum, nothing for the hands to do, so the hands stay on the
+            // grip (SkylineRobotArms leaves the left hand alone for the Writ) and the whole gun tilts slightly UP (the muzzle 16
+            // degrees up, a touch nearer the eye) for the reload's duration: the table with its paper turns toward the player
+            // while the quill writes on it. It settles back at the end. Every frame's magOffset is zero.
+            var up = V(0f, 0.012f, -0.015f);
+            var upEuler = V(-16f, 0f, 0f);
+            var sway = V(0.004f, 0.012f, -0.015f);
+            var swayEuler = V(-15f, 1.5f, 0f);
             return new GunDef
             {
                 id = WritId,
@@ -106,8 +65,11 @@ namespace JamKit.Skyline
                 // 7% (0.2 degrees) by the next shot 0.24 s later at rate 11, so the sights are back on target every time.
                 shakePerShot = 0.07f,
                 kick = new CameraKickDef { pitchDeg = 2.8f, yawDeg = 0.6f, recoverRate = 11f },
-                aimAssist = new AimAssistDef { slowdownConeDeg = 5f, slowdownScale = 0.5f, magnetConeDeg = 3f, magnetDegPerSec = 8f, range = 50f },
-                // Aim down sights: through the judge's chair window, so the view narrows most and slows most (no spread to tighten).
+                aimAssist = new AimAssistDef { slowdownConeDeg = 5f, slowdownScale = 0.5f, magnetConeDeg = 3f, magnetDegPerSec = 8f, range = 50f,
+                    // aimed (ADS) these are the numbers; at the hip the cones halve, the magnet halves and the slowdown halves
+                    // (the creator, 2026-10-14: "aim assist is too strong when hip-firing")
+                    hipConeScale = 0.5f, hipMagnetScale = 0.5f, hipSlowdownStrength = 0.5f },
+                // Aim down sights: through the round brass sight window, so the view narrows most and slows most (no spread to tighten).
                 aimFovScale = 0.75f, aimLookScale = 0.65f, aimMoveScale = 0.8f, aimSpreadScale = 1f,
                 clips = new[]
                 {
@@ -122,33 +84,26 @@ namespace JamKit.Skyline
                     C(HandlingClipKind.DryFire, 0.25f,
                         new[] { E(0f, "click", "writ/dry_click") },
                         new[] { P(0f, O, O), P(0.3f, V(0f, 0f, -0.01f), V(-1f, 0f, 0f)), P(1f, O, O) }),
-                    // The reload is a gavel smack (see WritGavelSmack): the old drum drops, the new one is held a few millimetres
-                    // short of home, the gavel on the roof rises ("windup") and smacks the top of the gun ("smack"), which knocks
-                    // the whole gun down and drives the drum home, and the charge seats ("seat": a brass click).
+                    // The reload: the quill leaves the ink well ("lift"), writes three strokes on the sheet of paper on the table
+                    // while the ink refills behind it, and returns to the well ("return"); the ink is full on the "seat" event (a
+                    // brass click) and the quill settles into its lean. The model's behaviour is WritQuill.Reload. From empty it is
+                    // the same, longer, and ends with a flourish of the quill ("flourish", animation only). No sound but the seat
+                    // is made yet (a quill's scratch is wanted, see the identity sheet).
                     C(HandlingClipKind.ReloadPartial, 1.3f,
-                        new[] { E(0.09f, "mag_out", "writ/mag_out"), E(0.28f, "cell_in", "writ/cell_in"), E(0.34f, "windup", null),
-                                E(0.52f, "smack", "writ/smack"), E(0.565f, "seat", "writ/seat") },
+                        new[] { E(0.08f, "lift", null), E(0.70f, "return", null), E(0.76f, "seat", "writ/seat") },
                         new[]
                         {
-                            P(0f, O, O), P(0.08f, tilt, tiltEuler), P(0.09f, tilt, tiltEuler), P(0.19f, tilt, tiltEuler, drumOut),
-                            P(0.26f, tilt, tiltEuler, V(0.01f, -0.04f, 0f)), P(0.28f, tilt, tiltEuler, drumWaits),
-                            P(0.5f, tilt + liftUp, tiltEuler + liftEuler, drumWaits), P(0.52f, tilt + liftUp, tiltEuler + liftEuler, drumWaits),
-                            P(0.535f, tilt + knock, tiltEuler + knockEuler), P(0.62f, seatKick, seatEuler), P(1f, O, O),
+                            P(0f, O, O), P(0.07f, up, upEuler), P(0.35f, sway, swayEuler), P(0.6f, up, upEuler), P(0.84f, up, upEuler), P(1f, O, O),
                         }),
                     C(HandlingClipKind.ReloadEmpty, 1.75f,
-                        new[] { E(0.07f, "mag_out", "writ/mag_out"), E(0.2f, "cell_in", "writ/cell_in"), E(0.25f, "windup", null),
-                                E(0.39f, "smack", "writ/smack"), E(0.435f, "seat", "writ/seat"), E(0.8f, "bolt", "writ/bolt") },
+                        new[] { E(0.06f, "lift", null), E(0.74f, "return", null), E(0.80f, "seat", "writ/seat"), E(0.88f, "flourish", null) },
                         new[]
                         {
-                            P(0f, O, O), P(0.06f, tilt, tiltEuler), P(0.07f, tilt, tiltEuler), P(0.14f, tilt, tiltEuler, drumOut),
-                            P(0.185f, tilt, tiltEuler, V(0.01f, -0.04f, 0f)), P(0.2f, tilt, tiltEuler, drumWaits),
-                            P(0.37f, tilt + liftUp, tiltEuler + liftEuler, drumWaits), P(0.39f, tilt + liftUp, tiltEuler + liftEuler, drumWaits),
-                            P(0.405f, tilt + knock, tiltEuler + knockEuler), P(0.47f, seatKick, seatEuler),
-                            P(0.72f, V(-0.03f, 0.04f, -0.06f), V(8f, -24f, 6f)), P(0.8f, V(-0.02f, 0.05f, -0.07f), V(4f, -20f, 10f)), P(1f, O, O),
+                            P(0f, O, O), P(0.05f, up, upEuler), P(0.3f, sway, swayEuler), P(0.55f, up, upEuler), P(0.86f, up, upEuler), P(1f, O, O),
                         }),
                     // The inspect turns the courtroom to show its side (the colonnade, the lamps, the brass plate), taps the
                     // plate, then raises the gun to the eye for a sight check: the gun centred so the eye looks along the sight
-                    // line through the chair's round window, its brass bar crossing the obelisk on the crosshair.
+                    // line through the rear sight's round window, the amber bead alone in it on the crosshair.
                     C(HandlingClipKind.Inspect, 2.4f,
                         new[] { E(0.1f, "turn", "writ/inspect_turn"), E(0.55f, "tap", "writ/inspect_tap"), E(0.85f, "settle", "writ/inspect_settle") },
                         new[]
@@ -200,7 +155,8 @@ namespace JamKit.Skyline
                 // Task 19: "the camera kicks hard" (2.2). 8 degrees up, recovered to 0.5% by the next shot (0.75 s at rate 7).
                 shakePerShot = 0.3f,
                 kick = new CameraKickDef { pitchDeg = 8f, yawDeg = 2f, recoverRate = 7f },
-                aimAssist = new AimAssistDef { slowdownConeDeg = 8f, slowdownScale = 0.6f, magnetConeDeg = 5f, magnetDegPerSec = 12f, range = 20f },
+                aimAssist = new AimAssistDef { slowdownConeDeg = 8f, slowdownScale = 0.6f, magnetConeDeg = 5f, magnetDegPerSec = 12f, range = 20f,
+                    hipConeScale = 0.5f, hipMagnetScale = 0.5f, hipSlowdownStrength = 0.5f },
                 // Aim down sights: shouldered, a little narrower and slower, the pellets 20% tighter.
                 aimFovScale = 0.88f, aimLookScale = 0.8f, aimMoveScale = 0.8f, aimSpreadScale = 0.8f,
                 clips = new[]

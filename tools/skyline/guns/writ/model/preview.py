@@ -30,10 +30,10 @@ import build_writ as W  # noqa: E402
 # now its rest rotation, not SkylineWritFx's "home" layer)
 WRIT_REST, WRIT_REST_EULER = (0.2, -0.13, 0.5), (0.0, -9.0, 0.0)
 BREACHER_REST, BREACHER_REST_EULER = (0.2, -0.13, 0.5), (0.0, -5.0, 0.0)
-# poses to check (offset, euler, mag offset) from SkylineGuns.Writ(): the reload's held pose and the equip's middle
+# poses to check (offset, euler, mag offset) from SkylineGuns.Writ(): the reload's held pose (the gun tilted 16 degrees up, the
+# hands and the grip still: no magazine) and the equip's middle
 POSES = {
-    "reload": ((-0.07, 0.07, -0.1), (28.0, -18.0, 22.0), (0.02, -0.08, 0.0)),
-    "reload-out": ((-0.07, 0.07, -0.1), (28.0, -18.0, 22.0), (0.0, 0.0, 0.0)),
+    "reload": ((0.0, 0.012, -0.015), (-16.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
     "equip": ((-0.03, 0.03, -0.04), (-5.0, -35.0, -8.0), (0.0, 0.0, 0.0)),
 }
 SIGHT_Y, SIGHT_REAR_Z, SIGHT_FRONT_Z = 0.088, -0.079, 0.202
@@ -248,11 +248,9 @@ def screen(eye, p, yaw=0.0):
 def report_hip(eye, label, yaw=0.0):
     targets = {
         "bead (front sight)": (0, SIGHT_Y, SIGHT_FRONT_Z),
-        "obelisk tip": (0, 0.115, SIGHT_FRONT_Z),
         "window centre (rear sight)": (0, SIGHT_Y + 0.006, SIGHT_REAR_Z),
         "muzzle": (0, 0.012, 0.214),
-        "gavel": (-0.026, 0.093, -0.040),
-        "chair crest": (0, 0.127, -0.079),
+        "paper on the table": (0.002, 0.0671, -0.036),
         "grip base": (0, -0.131, -0.08),
     }
     for name, p in targets.items():
@@ -275,10 +273,7 @@ def report_sight(eye):
                 continue
             n += 1
             hit, mat, dist = first_hit(eye, (px, SIGHT_Y + py, SIGHT_REAR_Z), max_d=3.0)
-            hit2 = None
-            if hit == "Bench" and mat and "Brass" in mat and dist < 0.135 and abs(py) < 0.0005:
-                key = "the bar"
-            elif hit is None:
+            if hit is None:
                 key = "open sky"
             else:
                 key = f"{hit}/{mat}"
@@ -336,7 +331,7 @@ def main():
             if view == "hip":
                 report_hip(eye, "HIP", 0.0)
             for name, p in (("right fist", (0.01, -0.07, -0.06)), ("grip base", (0, -0.131, -0.08)), ("drum", K.add((0, -0.115, -0.075), mag)),
-                            ("chair crest", (0, 0.137, -0.079)), ("bead", (0, SIGHT_Y, SIGHT_FRONT_Z)), ("muzzle", (0, 0.012, 0.214))):
+                            ("paper", (0.002, 0.0671, -0.036)), ("bead", (0, SIGHT_Y, SIGHT_FRONT_Z)), ("muzzle", (0, 0.012, 0.214))):
                 sc = screen_of(pos, R, p)
                 print(f"SIGHT_SCREEN {view} {name}", None if sc is None else tuple(round(v, 3) for v in sc))
             fp_camera(pos, R)

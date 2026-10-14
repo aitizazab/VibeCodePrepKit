@@ -19,7 +19,7 @@ namespace JamKit.SkylineRepo
     /// Resources/SkylineModels/arms/arms (children HandR, HandL) when present; primitives otherwise.
     /// <para>Aim down sights: each gun has an aim pose that puts its sights on the screen centre, solved at build time from the
     /// sight children in the model (SightRear, SightFront; <see cref="AimDownSights.SolveSights"/>): the Writ's round window
-    /// 13 cm from the eye with the brass bar crossing the obelisk's bead (the same pose its inspect's sight check uses), the
+    /// 13 cm from the eye with the amber bead alone in it (the same pose its inspect's sight check uses), the
     /// Breacher's rear notch and front sight 20 cm out. With no sight children a gun's muzzle line is centred just under the
     /// screen centre. While aim is held the gun eases from its rest pose to the aim pose (<see cref="SkylinePlayer.AimEased"/>),
     /// the walk bob fades out, and this component narrows the main and the viewmodel camera by the gun's <c>aimFovScale</c>.</para>
