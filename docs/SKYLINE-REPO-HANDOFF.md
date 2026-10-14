@@ -1,5 +1,9 @@
 # Skyline Repo: the handoff (a new game, started 2026-10-12)
 
+> **Latest (2026-10-14): read `docs/SKYLINE-PLAYTEST-1.md` first.** M1 is built and judged; the creator's first playtest set
+> the current work (level design and the objective, bot redesigns, the Writ and the Breacher, fidelity). It overrides
+> older pages where they disagree.
+
 You're starting a new game prototype in the VibeJamKit Unity repo
 (`C:\Users\User\Desktop\yougotgamesonyophone\VibeJamKit`, branch `main`, Unity 6000.3, URP 17.3). Another session is
 working on Visiting Hours in the same repo at the same time. Read this whole page first.

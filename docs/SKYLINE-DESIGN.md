@@ -831,3 +831,11 @@ Fixed (technical and clarity):
    10-15 seconds, then its own tune (see the creator's calls above).* The theme belongs to SYBO; quoting its opening is
    the part to check against the jam's rules before the game is published. Still to map: the floors in between, and
    how serious the top gets.
+
+### 2026-10-14: the creator's first playtest
+The objective moves away from "clear every enemy", the arena becomes more complex, and waves spawn in succession on a
+timer; the bots grow and are redesigned (floor-care: top-face screen, a molly-style acid with a 15 s recharge unless
+its canister is shot; drone: big rotors as the weak spot; spotlights: humanoid robots with charging railguns); the
+Writ's shot is a quill thwip with the gavel crack only on weak-spot hits, ink tracers, a gavel-smack reload, and a
+designed back; the Breacher becomes a sound-system weapon; enemies must read clearly at range without text bubbles.
+Full calls and the work queue: `docs/SKYLINE-PLAYTEST-1.md`.

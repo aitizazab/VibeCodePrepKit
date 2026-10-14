@@ -138,3 +138,10 @@ Newest first. Every agent result and every Unity pass gets an entry (what was do
   `docs/SKYLINE-DRAFT-LINES-OVERNIGHT.md`. Judge reports: `docs/skyline-judge/`.
 - **Memory:** whole Unity passes kept being stopped for low memory while the session was idle; `pass.ps1 -Only` now runs
   the stages one at a time.
+
+## 2026-10-14 (morning): the creator's first playtest
+
+- Played the overnight build. Found integral problems: bots near-invisible in the build (fixed: a stripped shader
+  variant), no aim down sights, no pause menu or rebinding or volume, a grating practice drone (all three added), a
+  plain Breacher, a low-quality Writ, and level design that forces peeking from cover.
+- Their calls and the work queue are in `docs/SKYLINE-PLAYTEST-1.md` (start there). Build: `out/skyline-play/2026-10-14-m1b/`.
