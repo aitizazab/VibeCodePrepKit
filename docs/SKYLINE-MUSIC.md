@@ -176,3 +176,12 @@ The creator: "The new heavenly theme is great, make a note to get started on the
   - **Phrase boundaries:** a big change waits for a section boundary when one is within about a bar. Danger never waits
     longer than one bar.
   - **Speed:** the muffled-to-open filter follows speed continuously; the speed stems enter on bar lines.
+
+## The creator's notes on the layered speed page (2026-10-15 night, for the next session)
+> "All the quiet variants need to get a bit less intense, especially the rapture one. And the Still Danger variant needs
+> to get more dangerous and less muddled, maybe swapping a bit of the danger out for ominous-ness."
+- **Sanctuary at every speed (still, fast, flying):** a bit less intense. Above all **Sanctuary + Rapture**: thin or soften
+  Rapture over Sanctuary (a quieter, sparser pluck and shimmer; maybe its own lighter Rapture for the quiet mood).
+- **Judgement, still (muffled):** more dangerous and less muddled; trade some of the danger for ominousness. The 700 Hz
+  muffle likely smears its mids (ostinato, choir, bells all under 700 Hz): try a clearer still mix (a higher cutoff or a
+  dedicated still arrangement: low drones, a slow pulse, sparse dark hits) instead of the plain low-pass.

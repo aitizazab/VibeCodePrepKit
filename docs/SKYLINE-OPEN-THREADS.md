@@ -7,7 +7,8 @@ floors, the atrium climb, the boss LOSS PREVENTION, and the sky-bridge to the of
 
 **Paused 2026-10-15 night (state and next steps: `SKYLINE-PLAYTEST-1.md`, "Tonight first"):** the riser into the pre-drop
 and the PopularMMOs intro (next: the a cappella rebuild, `audio/skyline-music/research/ACAPELLA-METHOD.md`); the creator's
-verdict on the layered speed page and Rapture's new pluck; the perf A/B windowed runs; the floor-care redesign (RESUME.md
+notes on the layered speed page (`SKYLINE-MUSIC.md`, last section: Sanctuary less intense at every speed, above all with
+Rapture; Judgement's still layer more dangerous, less muddled, more ominous); the perf A/B windowed runs; the floor-care redesign (RESUME.md
 in the `VibeJamKit-floorcare` worktree); the spotlight humanoid (not started).
 
 **Stage 1: floor 1 (the Food Court repossession) playable end to end**
