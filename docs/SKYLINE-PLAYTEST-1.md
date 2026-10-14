@@ -12,23 +12,28 @@ holds their calls (their words quoted) and the work queue. It overrides older do
 - **Never drop a thread silently:** every open thread and its next step lives in `docs/SKYLINE-OPEN-THREADS.md`; re-ask
   unanswered questions in the next summary. (The creator, 2026-10-14: "can we stop randomly dropping things".)
 
-## Where we are (updated 2026-10-15 after pass perf10; read this first in a fresh session)
+## Where we are (updated 2026-10-15 after pass perf11; read this first in a fresh session)
 
 - **The plan (what to do next, the slice, and beyond) is at the top of `docs/SKYLINE-OPEN-THREADS.md`.**
-
-- **Latest build:** `out/skyline/20261015-perf10/build/SkylineRepo.exe` (the M1 arena in the comic-ink look; the Relay
-  from the pause menu). In it: the reworked Writ (no chair or gavel, clean ADS, the curling quill, the paper-writing
-  reload, the indigo gleam), halved hip aim assist, the new bot-hit sounds (no bot hurt sounds), the cheaper ink pass,
-  and floor-1 runtime pieces that are not playable until the floor director (X0) exists. Not in it: the drone agent's
-  work (lagged drone aim, bots blocked by rails/balustrades, bigger bots and weak points, damage states), on branch
-  `skyline-drone` in `../VibeJamKit-drone` until it reports.
+- **Latest build:** `out/skyline/20261015-perf11/build/SkylineRepo.exe` (the M1 arena in the comic-ink look, line weight
+  on; the Relay from the pause menu). In it: the reworked Writ (no chair or gavel, clean ADS, the curling quill, the
+  paper-writing reload, the indigo gleam), halved hip aim assist, the new bot-hit sounds (no bot hurt sounds), the drones'
+  lagged aim (they fire where you were 0.2 s ago), rails stopping bot bolts, bigger bots and much bigger weak points
+  (drone rotors), damage states on every bot, and floor-1 runtime pieces that are not playable until the floor director
+  (X0) exists.
+- **Pass perf11:** 1118 EditMode tests pass, 1 balance gate parked (the food court's steady pressure, like the façade's:
+  the lagged aim misses strafers by design; a balance question for the creator), lint 0, build OK, sync 5/5.
+  **Perf regressed** since perf10: slowest 1% of frames 22.3 ms (perf10: 16.3), worst fight 28.2 ms; in the food-court
+  fight both the GPU (15 ms wait) and the CPU (12.8 ms) rose. Suspects: the drone branch (bigger bots = more outline
+  pixels, damage-state sparks and smoke) and line weight. Next: A/B with each switched off.
+- **Music:** "Heaven" (v3) is approved as the normal layer; the named variants Judgement, Sanctuary, Updraft and Rapture
+  come next; the riser into the pre-drop was redone from scratch (perfect and step versions) and waits on the creator.
 - **Every open thread and its next step:** `docs/SKYLINE-OPEN-THREADS.md`. **History:** `docs/SKYLINE-WORKLOG.md`.
-  **Music:** `docs/SKYLINE-MUSIC.md`. **The Writ:** `docs/SKYLINE-GUN-WRIT.md`. **Bots and the planned Valet:**
-  `docs/SKYLINE-BOTS.md`. **Floor 1 plan and task map:** `docs/SKYLINE-PLAN-FLOOR1.md`. **Relay:** `docs/SKYLINE-RELAY.md`.
-- **The creator's priorities (2026-10-15):** perf (done for the ink; CPU spikes remain), damage states, and bigger
-  bots with bigger weak points ("impossible to land a headshot on a drone"); then the music layers; the look "even more
-  stylized" (options captured as stills for the creator to pick).
+  **Music:** `docs/SKYLINE-MUSIC.md`. **The Writ:** `docs/SKYLINE-GUN-WRIT.md`. **Bots, the drone aim table, the planned
+  Valet:** `docs/SKYLINE-BOTS.md`. **Floor 1 plan and task map:** `docs/SKYLINE-PLAN-FLOOR1.md`. **Relay:** `docs/SKYLINE-RELAY.md`.
+  **Style (line weight on; the other options off):** `docs/SKYLINE-STYLE.md`.
 - **Usage:** the week is in the red: well-scoped Sonnet agents only (Opus agents only if the creator forces it).
+- **Disk:** keep it clear: after each pass delete the previous pass folder's build/, *.mp4 and stills (literal paths).
 
 ## How we work now (the creator, 2026-10-14)
 

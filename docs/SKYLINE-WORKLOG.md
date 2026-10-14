@@ -206,3 +206,20 @@ Newest first. Every agent result and every Unity pass gets an entry (what was do
   (Empress of Light, first 17 s), quiet (Stonewood, Plankerton) and the main theme (Subway Surfers after 16 s).
 - **Planned:** the Valet (melee assassin, `SKYLINE-BOTS.md`). **Tracked:** `docs/SKYLINE-OPEN-THREADS.md` (new; the
   creator asked to stop dropping threads).
+
+## 2026-10-15 (early morning): the drone work, the Writ rework, music v2-v3, the riser redone
+
+- **Merged:** the drone branch (lagged aim 0.2 s; rails stop bot bolts; bigger bots, drone rotors 2.8x as the weak zone;
+  damage states), the Writ rework (no chair/gavel, curling quill, paper-writing reload, gleam, halved hip aim assist),
+  the ink perf fix and stylization options (only line weight on, the creator's pick). Five hand-written GUID-only metas
+  from the drone branch removed (Unity makes them).
+- **Passes:** perf10 (1097 tests pass; ink perf 30.4 -> 16.3 ms 1% low), perf11 (1118 pass, 1 balance gate parked; perf
+  regressed to 22.3 ms 1% low; see the open threads).
+- **Music:** v2 with sampled instruments (GeneralUser GS via FluidSynth, checked with the ears skill) and the settle grown
+  from the drop's last hit; the creator loved the settle's "heavenly" feel, so **v3 "Heaven"** was remade from it and
+  approved; the variants are named (Judgement, Sanctuary, Updraft, Rapture). The riser into the pre-drop redone from the
+  original recordings and the creator's imitations (perfect and step versions).
+- **Housekeeping:** disk was at 4.2 GB free: old pass builds/recordings/stills deleted (about 17.5 GB), XXL-McDonalds'
+  old takes deleted (842 MB; its voice toolchain kept for the creator's call).
+- **Docs:** THE PLAN at the top of `SKYLINE-OPEN-THREADS.md`; standing rules on the start page (restart docs after every
+  build; never drop a thread).
