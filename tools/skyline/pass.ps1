@@ -19,10 +19,12 @@
 # 0.30 on 2026-10-14 with the arena's new materials: "out of memory while parsing", 290 errors).
 # -PerfArgs '-skyline-no-ink' adds arguments to the stage D player (an A/B run: the ink passes switched off, to price them; the
 # probe writes "inkOff": true). Use it with -Only D -Out <an existing pass folder>, and copy perf.json away first (D sweeps it).
+# -CaptureArgs '-skyline-ink-style halftone' adds arguments to the stage B graphics editor (the stills): the ink pass's optional
+# stylization (docs/SKYLINE-STYLE.md, "Optional stylization"), e.g. one run per option into its own folder with -Only B -Out <folder>.
 # -Only <letters> -Out <folder> runs only those stages into an existing pass folder (e.g. -Only A, then -Only B, -Only CD,
 # -Only E), sweeping only their own old results; its manifest is manifest-<letters>.json. For a machine so short of memory
 # that a whole pass can't finish in one sitting: each Unity stage then runs as its own short command.
-param([string]$Out = '', [switch]$SelfTest, [switch]$NoWindows, [string]$Only = '', [double]$CapShare = 0, [string]$PerfArgs = '')
+param([string]$Out = '', [switch]$SelfTest, [switch]$NoWindows, [string]$Only = '', [double]$CapShare = 0, [string]$PerfArgs = '', [string]$CaptureArgs = '')
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\..\unity-env.ps1"
 . "$PSScriptRoot\unity-lock.ps1"
@@ -530,9 +532,9 @@ try {
             } elseif ($NoWindows) {
                 $stages += [pscustomobject]@{ name = 'B recording'; ok = $false; seconds = 0; log = ''; note = 'skipped: -NoWindows (needs a normal window)' }
             } else {
-            $b = Invoke-Stage -Name 'B recording' -Exe $unity -Locked -CheckProject -MinFreeGB 3 -TimeoutSec 900 -Log $log -WindowStyle Normal -MuteAudio -DoneFile (Join-Path $Out 'capture.json') -StageArgs @(
+            $b = Invoke-Stage -Name 'B recording' -Exe $unity -Locked -CheckProject -MinFreeGB 3 -TimeoutSec 900 -Log $log -WindowStyle Normal -MuteAudio -DoneFile (Join-Path $Out 'capture.json') -StageArgs (@(
                 '-projectPath', $proj, '-logFile', "`"$log`"", '-silent-crashes',
-                '-executeMethod', 'JamKit.SkylineRepo.EditorTools.Recording.SkylineCapture.RunFromCommandLine', '-skylineOut', "`"$Out`"")
+                '-executeMethod', 'JamKit.SkylineRepo.EditorTools.Recording.SkylineCapture.RunFromCommandLine', '-skylineOut', "`"$Out`"") + @($CaptureArgs -split '\s+' | Where-Object { $_ }))
             Update-CaptureStage -Stage $b -JsonPath (Join-Path $Out 'capture.json')
             $stages += $b
             }
