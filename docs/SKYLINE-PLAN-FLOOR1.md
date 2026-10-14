@@ -280,12 +280,12 @@ tight (the week is in the red); run at most 3-4 agents at once, cheapest and mos
 |---|---|---|---|---|---|
 | F0 | Floor contracts, beat triggers, doc fixes | pure | S | `FloorTypes.cs`; `Encounters.cs` (enum values only), `TeachingQueue.cs` (`UrgencyOf` only); 3 docs | none |
 | F1 | Arena geometry data + test world | pure | L | `RepossessArena.cs`, `Tests/.../FloorWorld.cs`, `RepossessArenaTests.cs` | F0 |
-| F2 | Sockets, spawn doors, circles, assets, routes | pure | M | `RepossessSites.cs`, `RepossessSitesTests.cs` | F0 (F1 for the final check) |
+| F2 | Sockets, spawn doors, circles, assets, routes (DONE 2026-10-14) | pure | M | `RepossessSites.cs`, `RepossessSitesTests.cs` | F0 (F1 for the final check) |
 | W1 | Wave clock, composition, cap (DONE 2026-10-14) | pure | M | `WaveClock.cs`, `WaveClockTests.cs` | F0 |
-| W2 | Spawn bearings, door choice, telegraphs | pure | M | `SpawnBearings.cs`, `SpawnBearingsTests.cs` | F0 |
+| W2 | Spawn bearings, door choice, telegraphs (DONE 2026-10-14) | pure | M | `SpawnBearings.cs`, `SpawnBearingsTests.cs` | F0 |
 | R1 | Tow meter, repossession, floor flow (DONE 2026-10-14) | pure | M | `Repossession.cs`, `FloorFlow.cs`, tests | F0 |
 | L1 | Lobby data and the floor's teaching beats (DONE 2026-10-14) | pure | M | `HotelLobby.cs`, `FloorBeats.cs`, tests | F0 |
-| M1 | Music sequencer, lift-ride plan, layers | pure | M | `MusicSequencer.cs`, `MusicLayers.cs`, tests | F0 |
+| M1 | Music sequencer, lift-ride plan, layers (DONE 2026-10-14) | pure | M | `MusicSequencer.cs`, `MusicLayers.cs`, tests | F0 |
 | A1 | Special-ammo ledger and the finite reserve hook | pure | S | `SpecialAmmo.cs`, `SkylineGun.cs` (additive), `SkylineGuns.cs` (one line), tests | F0 |
 | C1 | Comic lettering core | pure | S | `ComicLettering.cs`, tests | F0 |
 | V1 | HUD models (health, edge marker, subtitles, wave text) | pure | M | `HudModels.cs`, tests | F0 |
