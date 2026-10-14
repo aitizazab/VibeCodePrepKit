@@ -284,7 +284,7 @@ tight (the week is in the red); run at most 3-4 agents at once, cheapest and mos
 | W1 | Wave clock, composition, cap (DONE 2026-10-14) | pure | M | `WaveClock.cs`, `WaveClockTests.cs` | F0 |
 | W2 | Spawn bearings, door choice, telegraphs | pure | M | `SpawnBearings.cs`, `SpawnBearingsTests.cs` | F0 |
 | R1 | Tow meter, repossession, floor flow (DONE 2026-10-14) | pure | M | `Repossession.cs`, `FloorFlow.cs`, tests | F0 |
-| L1 | Lobby data and the floor's teaching beats | pure | M | `HotelLobby.cs`, `FloorBeats.cs`, tests | F0 |
+| L1 | Lobby data and the floor's teaching beats (DONE 2026-10-14) | pure | M | `HotelLobby.cs`, `FloorBeats.cs`, tests | F0 |
 | M1 | Music sequencer, lift-ride plan, layers | pure | M | `MusicSequencer.cs`, `MusicLayers.cs`, tests | F0 |
 | A1 | Special-ammo ledger and the finite reserve hook | pure | S | `SpecialAmmo.cs`, `SkylineGun.cs` (additive), `SkylineGuns.cs` (one line), tests | F0 |
 | C1 | Comic lettering core | pure | S | `ComicLettering.cs`, tests | F0 |

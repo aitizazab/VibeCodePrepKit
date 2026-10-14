@@ -31,3 +31,32 @@ Each bot has four: when it spots you, when it's hurt, when it loses you, when it
 | Floor-care unit | Oh! A stain! | Rude! | All clean! | Out of... order... |
 | Spotlight | Target acquired. Smile. | Lens damage reported. | Scanning. | Lights... out. |
 | Window-washer gondola | Mind the squeegee! | Window's dirty! | Shift's over. | Hanging... up... |
+
+## Floor 1 lobby (the Halcyon Grand) and the Food Court: teaching lines
+
+All drafts for you to rewrite, except the lines marked **(yours)**: those the specs quote. They live in `FloorBeats.cs`
+(`FloorBeats.Floor1()`). The lessons from the warm-up hall moved into the lobby with their words unchanged.
+
+| When it plays | Who | Line |
+|---|---|---|
+| The Unit arrives in the staff hallway | Nan | Unit's live. This is the Halcyon Grand. Warm up in the lobby, then the lift takes you down to the Galleria. |
+| You come within 8 m of the front desk, in sight | CONCIERGE | Welcome to the Halcyon Grand. Guests are reminded that nothing in this lobby is for sale, and nothing in it is yours. |
+| You first see the practice bot (the bellhop demo) | Dot | Practice bot! Tag its lens with the Writ: it cracks open a weak spot. Then hit the spot. |
+| Your first weak spot appears | Dot | That glowing crack? That's the spot. Shoot it! |
+| You get near the practice counter | Nan | That counter's your practice. Tap jump twice for a second hop, then catch its lip and pull yourself up. |
+| You get near the luggage stack (the boost ledge) | Dot | Breacher kicks both ways. Jump, jump again, then blast the floor. Scrap's up top! |
+| You reach the top of the stack | Dot | Ha! Doesn't hurt you, either. Shoot again mid-air to climb higher. |
+| The lift ride starts (the riser) | Nan | Job sheet: three assets in the food court. Stand in a tow circle for ten seconds to take one. The clock's running, love. (the phrase "the clock's running, love" is **yours**) |
+| The drop: the doors open, the first wave arrives | CONCIERGE | Security has been informed of your arrival. Security would like a word. Security is on its way. |
+| A tow circle's meter first starts | Dot | Clamped! Hold still-ish. **(yours)** |
+| That first meter sounds the alarm | CONCIERGE | Attention: an item is leaving the premises without a receipt. Security has been invited to take an interest. |
+| Each asset is towed | Dot | Got it! Up and away. Next one, go go go. |
+| A wave arrives (said on every third wave: 3, 6, 9...) | CONCIERGE | Reinforcements are arriving. Guests are advised that this is not an invitation to wait. |
+| The third asset is towed | CONCIERGE | Asset transfer... acknowledged. Under protest. **(yours)** |
+| First floor-care unit | CONCIERGE | Please note: the floor-care unit operates at ankle height. Guests are advised to jump. **(yours)** |
+| First drone | CONCIERGE | Please note: security drones anticipate where guests are going. Guests are advised to change their minds. |
+| First gondola (outside the glass; it lays mines, it never shoots) | CONCIERGE | Please note: window cleaning is in progress outside the glass. Guests are advised that the squeegee leaves things behind. |
+| Your plating first breaks | Dot | Strip it! Scrap's armour! **(yours)** |
+| You first pick up special ammo | Dot | Special rounds! Kill with the Writ and the wreck drops one. The Breacher runs dry; the Writ never does. |
+
+The spotlight has no notice here: it is not on this floor.
