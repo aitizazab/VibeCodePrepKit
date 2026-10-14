@@ -5,6 +5,11 @@
 **The vertical slice** (`SKYLINE-DESIGN.md`): the Galleria, built to the full quality bar on data-driven systems: its
 floors, the atrium climb, the boss LOSS PREVENTION, and the sky-bridge to the offices tower as the closing shot.
 
+**Paused 2026-10-15 night (state and next steps: `SKYLINE-PLAYTEST-1.md`, "Tonight first"):** the riser into the pre-drop
+and the PopularMMOs intro (next: the a cappella rebuild, `audio/skyline-music/research/ACAPELLA-METHOD.md`); the creator's
+verdict on the layered speed page and Rapture's new pluck; the perf A/B windowed runs; the floor-care redesign (RESUME.md
+in the `VibeJamKit-floorcare` worktree); the spotlight humanoid (not started).
+
 **Stage 1: floor 1 (the Food Court repossession) playable end to end**
 1. **Music, now:** the riser into the pre-drop redone from scratch (the creator's sources: the PopularMMOs theme, the Subway
    Surfers six-step riser, the creator's two imitation recordings): a "perfect" transition and a step-by-step one. Then the

@@ -12,6 +12,27 @@ holds their calls (their words quoted) and the work queue. It overrides older do
 - **Never drop a thread silently:** every open thread and its next step lives in `docs/SKYLINE-OPEN-THREADS.md`; re-ask
   unanswered questions in the next summary. (The creator, 2026-10-14: "can we stop randomly dropping things".)
 
+## Tonight first (2026-10-15 night, paused at the creator's call; read before "Where we are")
+
+- **Music approved:** Judgement v2 (danger, the Empress of Light opening) and Sanctuary v2 (quiet, Plankerton part 2); Heaven
+  stays the normal layer. **Updraft and Rapture** (the speed stems) are rendered per mood; Rapture's celesta became a saw-synth
+  pluck (too close to Judgement's sparkle). Waiting on the creator: the layered page (each mood at still / fast / flying),
+  `FableAnimationTests/art/review/2026-10-15/skyline-music-speed-layered.html`.
+- **The riser into the pre-drop: not solved.** v4 (5 bars), v5 (note-wise) and v6/v6b (both sides meeting in the middle, about
+  4 s to the drop) were judged too long or not a conversion; "the riser bleed-in is bad, made worse by how bad the PopularMMOs
+  theme was recreated". **The PopularMMOs intro in our instruments failed twice** (synth/sampled rebuild; a layered analysis-by-
+  synthesis replica, stopped, notes in `audio/skyline-music/pmmo-replica/RESUME.md`). **Next: an a cappella rebuild** from the
+  creator's own voice: method in `FableAnimationTests/audio/skyline-music/research/ACAPELLA-METHOD.md` (record near final
+  pitch; pitch with ffmpeg rubberband + pyworld; the sub synthesised from the hum's pitch; the hidden layers). Then the riser.
+- **Perf A/B:** switches `-skyline-no-lineweight`, `-skyline-no-damage-fx`, `-skyline-old-bot-sizes` built and merged to main
+  (batch pass `out/skyline/20261015-0349`: 1123 tests pass, lint 0, build OK). Next: the windowed runs (stage D): a baseline,
+  then each switch alone, via `pass.ps1 -Only D -Out out/skyline/20261015-0349 -PerfArgs '<switch>'`, copying perf.json away
+  between runs. **The per-assembly compile check** is built (`core-tests/SkylineUnity/check-asmdefs.ps1`; all 9 pass).
+- **Floor-care redesign:** paused before code; plan and code map in `VibeJamKit-floorcare/RESUME.md` (worktree, branch
+  `skyline-floorcare`). The spotlight humanoid not started.
+- **Agents:** the creator saw a drop in quality from the Sonnet agents: only short agent tasks (about 1-2% of usage) run to
+  completion; longer work waits for the creator.
+
 ## Where we are (updated 2026-10-15 after pass perf11; read this first in a fresh session)
 
 - **The plan (what to do next, the slice, and beyond) is at the top of `docs/SKYLINE-OPEN-THREADS.md`.**

@@ -223,3 +223,14 @@ Newest first. Every agent result and every Unity pass gets an entry (what was do
   old takes deleted (842 MB; its voice toolchain kept for the creator's call).
 - **Docs:** THE PLAN at the top of `SKYLINE-OPEN-THREADS.md`; standing rules on the start page (restart docs after every
   build; never drop a thread).
+
+## 2026-10-15 night: the moods, the speed stems, the riser attempts, perf switches
+- **Music:** Judgement v2 (the Empress of Light opening, both parts, transcribed to A minor) and Sanctuary v2 (Plankerton
+  part 2's arpeggio and sigh) approved; the v1s kept. Updraft and Rapture rendered per mood after two script bugs (an
+  invalid filter type; Updraft assumed Judgement's roots equal Heaven's); Rapture's celesta swapped for a saw pluck.
+  The riser into the pre-drop: v4 (step/perfect), v5 (note-wise), v6/v6b (meet in the middle) all not right; the PopularMMOs
+  intro rebuilt twice without success; next an a cappella rebuild (research written). M2 plan for smooth mood swaps in
+  `SKYLINE-MUSIC.md`.
+- **Perf:** A/B switches and the per-assembly compile check built and merged (pass 20261015-0349: 1123 pass, lint 0, build OK);
+  the windowed perf runs next.
+- **Process:** the creator judged the Sonnet agents' output lower quality; long agent work waits for the creator.
