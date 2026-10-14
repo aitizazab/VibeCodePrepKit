@@ -55,3 +55,7 @@ notices, and a compass.
   the slanted chassis bar, ink keylines, hard edges); the ammo counter uses a **display font with character** (a bold
   comic/condensed face that fits the ink style, never the UI default), big magazine digits, a small reserve. The whole
   HUD shares the style sheet's ink keyline and palette.
+- **The ammo face is Luckiest Guy** (the creator, 2026-10-14, from `art/review/2026-10-14/skyline-hud-fonts.html`). A later
+  "Condensed" UI option may switch to **Anton** with the digits set closer together.
+- **No label text** (the creator, 2026-10-14): "That's bad comic lettering, there shouldn't be any text that says Plating."
+  The bars, flashes and colours say what they are; no captions, no names spelled out over the bars.

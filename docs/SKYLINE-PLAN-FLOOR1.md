@@ -625,8 +625,8 @@ Beats (ids, speaker, trigger; every text a draft except the quoted ones): `conci
 opener), `dot-writ-spots` / `dot-writ-spot-made` / `dot-breacher-boost` / `dot-boost-done` / `nan-double-jump-mantle` (the
 M1 lessons, kept, moved to the lobby: same triggers `PracticeBotSeen`, `FirstSpotCreated`, `NearBoostLedge`,
 `BoostLedgeReached`, `NearPracticeLedge`), `nan-job-sheet` (Nan, `LiftRiding`: the job sheet, the tow circle, "the clock's
-running, love"), `concierge-first-wave` (`FloorStart`), `dot-clamped` (Dot, `MeterStarted`: "Clamped! Hold still-ish."),
-`concierge-alarm` (`AlarmRaised`), `dot-towed` (Dot, `AssetTowed`, repeats), `concierge-wave` (`WaveAnnounce`, repeats,
+running, love"), `concierge-first-wave` (`FloorStart`), `dot-clamped` (Dot, `AssetTowed`, the FIRST tow only, when the tow ends (the creator, 2026-10-14): "Clamped! Hold still-ish."),
+`concierge-alarm` (`AlarmRaised`), `dot-towed` (Dot, `AssetTowed`, repeats; X0 skips it on the first tow, which `dot-clamped` answers), `concierge-wave` (`WaveAnnounce`, repeats,
 at most every 3rd wave), `concierge-concede` (`AllTowed`: "Asset transfer... acknowledged. Under protest." verbatim),
 the three bot notices (drone, floor-care verbatim as M1; gondola re-worded for "outside the glass"), `dot-plating`
 (verbatim "Strip it! Scrap's armour!"), `dot-special-ammo` (`FirstSpecialAmmo`).
@@ -1027,8 +1027,7 @@ create `Assets/.../ThirdParty/Fonts/` with the chosen OFL face and its licence, 
   tints the screen edges red (`HealthBarModel.EdgeTint`).
 - Ammo: the magazine count in the display font at 96 px reference size (digits), the reserve at 36 px beside it (special
   weapons only), a small gun icon (about 64 px, a silhouette path drawn with `Painter2D`), all with the same keyline.
-- Font: **Bangers** (OFL) for digits and lettering; **Anton** (OFL) if Bangers reads badly in the stills; chosen by the
-  creator from a still (open question). Loaded as `FontDefinition.FromFont`; a missing font logs `SKYLINE_HUD font missing`
+- Font: **Luckiest Guy** (Apache 2.0) for the digits (the creator, 2026-10-14); Anton kept for a later "Condensed" UI option. Loaded as `FontDefinition.FromFont`; a missing font logs `SKYLINE_HUD font missing`
   and falls back to the project font.
 
 - [ ] **Step 1:** compile-check tests are not enough: add EditMode tests that instantiate the hud on a fake panel and assert

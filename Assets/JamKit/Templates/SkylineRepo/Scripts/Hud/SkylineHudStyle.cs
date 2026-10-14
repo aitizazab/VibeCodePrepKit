@@ -7,8 +7,8 @@ namespace JamKit.SkylineRepo
     /// <summary>
     /// The HUD's shared style (docs/SKYLINE-STYLE.md, docs/SKYLINE-HUD.md): the ink keyline, the palette, and the display-font
     /// loader. Nothing here is a rounded box; the HUD is slanted hard-edged shapes with ink keylines and a display face.
-    /// <para><b>The ammo font is one setting</b>: <see cref="AmmoFontName"/> ("Anton" today, the candidate the creator will judge;
-    /// "Bangers" is the other face on disk). Change <see cref="AmmoFontDefault"/> to swap it for good, or launch with
+    /// <para><b>The ammo font is one setting</b>: <see cref="AmmoFontName"/> ("LuckiestGuy", the creator's pick on 2026-10-14;
+    /// "Anton" and "Bangers" are also on disk; Anton is kept for a later "Condensed" UI option, digits set closer together). Change <see cref="AmmoFontDefault"/> to swap it for good, or launch with
     /// <c>-skyline-ammo-font Bangers</c> to try one in a still. Faces live under <c>ThirdParty/Fonts/Resources/SkylineFonts/</c>,
     /// each beside its licence; a face that fails to load logs <c>SKYLINE_HUD font missing</c> once and the project font is used.</para>
     /// </summary>
@@ -26,12 +26,13 @@ namespace JamKit.SkylineRepo
         public static readonly Color Track = new Color(0.086f, 0.078f, 0.122f, 0.80f);    // the empty part of a bar: ink, see-through
 
         // ---- the display font (one swappable setting)
-        public const string AmmoFontDefault = "Anton";
+        public const string AmmoFontDefault = "LuckiestGuy";
         /// <summary>The faces on disk: name to Resources path (no extension).</summary>
         public static readonly Dictionary<string, string> Faces = new Dictionary<string, string>
         {
             { "Anton", "SkylineFonts/Anton/Anton-Regular" },
             { "Bangers", "SkylineFonts/Bangers/Bangers-Regular" },
+            { "LuckiestGuy", "SkylineFonts/LuckiestGuy/LuckiestGuy-Regular" },
         };
 
         static string _ammoFont;

@@ -112,10 +112,11 @@ namespace JamKit.SkylineRepo.Tests
         [Test]
         public void TheAmmoFaceIsOneSwappableSetting()
         {
-            Assert.That(SkylineHudStyle.AmmoFontDefault, Is.EqualTo("Anton"));
+            Assert.That(SkylineHudStyle.AmmoFontDefault, Is.EqualTo("LuckiestGuy"));
+            Assert.That(SkylineHudStyle.Faces.ContainsKey("LuckiestGuy"), Is.True);
             Assert.That(SkylineHudStyle.Faces.ContainsKey("Anton"), Is.True);
             Assert.That(SkylineHudStyle.Faces.ContainsKey("Bangers"), Is.True);
-            Assert.That(SkylineHudStyle.AmmoFontName, Is.EqualTo("Anton"));
+            Assert.That(SkylineHudStyle.AmmoFontName, Is.EqualTo("LuckiestGuy"));
             SkylineHudStyle.AmmoFontName = "Bangers";
             Assert.That(SkylineHudStyle.AmmoFontName, Is.EqualTo("Bangers"));
         }
@@ -125,6 +126,7 @@ namespace JamKit.SkylineRepo.Tests
         {
             Assert.That(SkylineHudStyle.LoadFace("Anton"), Is.Not.Null, "ThirdParty/Fonts/Resources/SkylineFonts/Anton");
             Assert.That(SkylineHudStyle.LoadFace("Bangers"), Is.Not.Null);
+            Assert.That(SkylineHudStyle.LoadFace("LuckiestGuy"), Is.Not.Null, "ThirdParty/Fonts/Resources/SkylineFonts/LuckiestGuy");
         }
 
         [Test]

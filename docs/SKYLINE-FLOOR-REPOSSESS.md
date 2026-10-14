@@ -114,7 +114,7 @@ SHOP = walk-in (front door to the ring, back door to the service corridor).
 ## 5. Teaching and voice
 
 - Nan teaches the objective at the floor's start (design 6.8: objectives belong to Nan): the job sheet, the tow circle,
-  "the clock's running, love". Dot calls each tow ("Clamped! Hold still-ish."). CONCIERGE announces waves and alarms.
+  "the clock's running, love". Dot calls each tow as it ends ("Clamped! Hold still-ish." on the first, the creator's call on 2026-10-14). CONCIERGE announces waves and alarms.
 - Every line is a draft for the creator to rewrite; they go into `docs/SKYLINE-DRAFT-LINES.md` under this floor.
 
 ## 6. HUD additions
@@ -163,8 +163,9 @@ loading in".
   shooting through glass, so it costs panes. "A skilled player can give up a bit of wall tiling here and there to
   eliminate all the Gondolas to safeguard the rest of it from mines, or completely ignore the mines, pathing around,
   below or above them."
-- **Fonts:** the comic lettering uses **Luckiest Guy and Bangers, interchangeably**. The ammo font is to be judged:
-  show **Anton** on a mock-up first.
+- **Fonts:** the comic lettering uses **Luckiest Guy and Bangers, interchangeably**. The ammo font is **Luckiest Guy** (the creator,
+  2026-10-14); a later "Condensed" UI option may use **Anton** with the digits set closer together. **No label text on the HUD**
+  (no "PLATING", no captions): bad comic lettering.
 - **Being wrecked** (replaces the instant restart): the Unit **staggers, clutches at itself as it falls, then lands with
   its head turned to the side and an arm stretched out**; the screen fades to black; **a quote** shows for a moment
   ("to ragebait the player"; CONCIERGE's passive-aggressive voice fits), **held for a time that scales with its

@@ -50,7 +50,7 @@ namespace JamKit.Tests.Skyline
             Assert.That(clamped.text, Is.EqualTo("Clamped! Hold still-ish."));
             Assert.That(clamped.draft, Is.False);
             Assert.That(clamped.speaker, Is.EqualTo(Speaker.Dot));
-            Assert.That(clamped.trigger, Is.EqualTo(BeatTrigger.MeterStarted));
+            Assert.That(clamped.trigger, Is.EqualTo(BeatTrigger.AssetTowed));
 
             var plating = Beat("dot-plating");
             Assert.That(plating.text, Is.EqualTo("Strip it! Scrap's armour!"));
