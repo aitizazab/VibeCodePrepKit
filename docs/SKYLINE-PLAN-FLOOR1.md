@@ -1413,3 +1413,14 @@ the open edge are a hazard); **balustrades / glass rails** (bridge and galleries
 through); the **skylight** and the **bridge floor**: a shot stops. So `SkylineShooting` (A2) and the bots' bolts must
 decide by the solid's role, not by the layer alone; W4's "bolts pass through glass" is wrong for balustrades and must
 follow this table. `RepossessArena.ShotBlockers()` (balustrades in, panes out) is already right.
+
+### D22 (main session, 2026-10-14): flushing a corridor camper (closes the exploit the sim found)
+The W3+W4 sim (commit e7dd86ed) showed the hidden west ends of both service corridors are a safe camp: 6/6 seeds
+survive 240 s; drones never get a line in; floor-care units arrive one at a time. Rule, for the director (X0) and the
+spawner (W2's caller): **when the Unit has been in a service-corridor zone for 8 s, the next waves swap their drones
+for floor-care units spawned from the corridor's hatches at BOTH ends (a pincer), and the drones that can't fit hold at
+the corridor's exits (waiting outside, so leaving is dangerous too)**. The floor-care redesign's acid molly makes a
+narrow corridor untenable. CONCIERGE gets a draft line for it ("Pest control to the service corridor."). The 15 m
+minimum spawn distance still holds (the hatch at (26, +-26) about 4 m from corridor positions must not be used when the
+Unit is that close: check W2's distance rule is applied in the sim's spawn path too). Flip the sim's pinned
+`ACamperHiddenInTheWestCorridors...` test when this lands; the camper must be wrecked or forced out within ~60 s.
