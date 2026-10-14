@@ -16,6 +16,27 @@ namespace JamKit.Skyline
         public float magnetDegPerSec = 8f;
         /// <summary>Targets farther than this (m) get no assist.</summary>
         public float range = 40f;
+        // Hip-fire is assisted less than aiming down sights (the creator, 2026-10-14: "aim assist is too strong when
+        // hip-firing"). The numbers above are the ADS numbers (aim 1); at the hip (aim 0) the two cones are scaled by
+        // hipConeScale, the magnet's speed by hipMagnetScale, and the slowdown's strength (how far the turn scale is below 1)
+        // by hipSlowdownStrength; in between they blend with the eased aim amount.
+        public float hipConeScale = 0.5f;
+        public float hipMagnetScale = 0.5f;
+        public float hipSlowdownStrength = 0.5f;
+
+        static float Blend(float hip, float aim) => hip + (1f - hip) * (aim < 0f ? 0f : aim > 1f ? 1f : aim);
+
+        /// <summary>The slowdown cone (degrees) at an aim amount (0 hip .. 1 aimed).</summary>
+        public float SlowdownCone(float aim) => slowdownConeDeg * Blend(hipConeScale, aim);
+
+        /// <summary>The magnet cone (degrees) at an aim amount.</summary>
+        public float MagnetCone(float aim) => magnetConeDeg * Blend(hipConeScale, aim);
+
+        /// <summary>The magnet's speed (degrees per second) at an aim amount.</summary>
+        public float MagnetSpeed(float aim) => magnetDegPerSec * Blend(hipMagnetScale, aim);
+
+        /// <summary>The stick's turn scale inside the slowdown cone at an aim amount (1 = no slowdown).</summary>
+        public float SlowdownTurnScale(float aim) => 1f - (1f - slowdownScale) * Blend(hipSlowdownStrength, aim);
     }
 
     /// <summary>Something aim assist can settle on: a bot's centre and radius (m). The caller passes only targets in line of sight.</summary>
@@ -68,7 +89,13 @@ namespace JamKit.Skyline
         /// <paramref name="playerTurningOrMoving"/> nudges the view toward the target's centre inside
         /// <see cref="AimAssistDef.magnetConeDeg"/>, never past it.</summary>
         public static AimAssistResult Compute(Vector3 eye, float yaw, float pitch, IReadOnlyList<AimTarget> targets,
-            bool playerTurningOrMoving, float dt, AimAssistDef d)
+            bool playerTurningOrMoving, float dt, AimAssistDef d) =>
+            Compute(eye, yaw, pitch, targets, playerTurningOrMoving, dt, d, 1f);
+
+        /// <summary>As above for an aim amount: 0 hip-fire (the gun's reduced hip cones, magnet and slowdown), 1 aimed down
+        /// sights (the gun's full numbers), blending in between.</summary>
+        public static AimAssistResult Compute(Vector3 eye, float yaw, float pitch, IReadOnlyList<AimTarget> targets,
+            bool playerTurningOrMoving, float dt, AimAssistDef d, float aim)
         {
             var r = new AimAssistResult { turnScale = 1f, target = -1 };
             if (targets == null || d == null) return r;
@@ -94,12 +121,13 @@ namespace JamKit.Skyline
                     best = i;
                 }
             }
-            if (best < 0 || (bestEdge > d.slowdownConeDeg && bestEdge > d.magnetConeDeg)) return r;
+            float slowCone = d.SlowdownCone(aim), magnetCone = d.MagnetCone(aim);
+            if (best < 0 || (bestEdge > slowCone && bestEdge > magnetCone)) return r;
             r.target = best;
-            if (bestEdge <= d.slowdownConeDeg) r.turnScale = d.slowdownScale;
-            if (playerTurningOrMoving && bestEdge <= d.magnetConeDeg && bestCentre > 1e-4f && dt > 0f)
+            if (bestEdge <= slowCone) r.turnScale = d.SlowdownTurnScale(aim);
+            if (playerTurningOrMoving && bestEdge <= magnetCone && bestCentre > 1e-4f && dt > 0f)
             {
-                float step = MathF.Min(d.magnetDegPerSec * dt, bestCentre);
+                float step = MathF.Min(d.MagnetSpeed(aim) * dt, bestCentre);
                 r.yawNudge = bestDy / bestCentre * step;
                 r.pitchNudge = bestDp / bestCentre * step;
             }

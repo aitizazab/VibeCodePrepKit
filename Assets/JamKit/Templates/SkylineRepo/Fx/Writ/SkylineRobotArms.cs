@@ -11,9 +11,10 @@ namespace JamKit.SkylineRepo
     /// <item>The right hand holds both guns unchanged (the Writ's grip column sits on the Breacher's grip axis).</item>
     /// <item>The left hand cups the Writ's grip under the right hand; for the Breacher it cups the pump from below with its
     /// fingers up the receiver's left side, where the camera sees them.</item>
-    /// <item>During a reload the left hand leaves its hold, takes the magazine as it drops (the Writ's stone drum, the
-    /// Breacher's cell), brings the new one up and lets go after the seat: it follows the clip's magOffset between the
-    /// "mag_out"/"cell_out" and "seat" events, so a faster reload moves it in step.</item>
+    /// <item>During the Breacher's reload the left hand leaves its hold, takes the cell as it drops, brings the new one up and
+    /// lets go after the seat: it follows the clip's magOffset between the "cell_out" and "seat" events, so a faster reload
+    /// moves it in step. The Writ's hands never move on the gun (the creator, 2026-10-14: "make sure our hands don't move"):
+    /// its reload has no magazine, the quill does the work, and the gun itself tilts up.</item>
     /// <item>Each forearm stays on its hand's wrist and is aimed every frame at a shoulder below and behind the screen
     /// (camera space), so whatever the hand does the arm runs out of the bottom of the view (fix round 1: a forearm baked to
     /// the hand jutted sideways in the reload and hid the Breacher's pump hand).</item>
@@ -126,7 +127,7 @@ namespace JamKit.SkylineRepo
                     Pose hold = a.breacher ? HandLBreacher : HandLWrit;
                     Vector3 pos = hold.origin;
                     Quaternion turn = hold.Rotation;
-                    float w = gun != null ? ReloadWeight(gun.Handling) : 0f;
+                    float w = gun != null && a.breacher ? ReloadWeight(gun.Handling) : 0f;   // the Writ's hands stay where they are
                     if (w > 0f)
                     {
                         var mo = gun.Handling.Pose.magOffset;
@@ -158,8 +159,8 @@ namespace JamKit.SkylineRepo
             l.forearm.SetPositionAndRotation(wrist, Quaternion.FromToRotation(from, to) * rest);
         }
 
-        /// <summary>0 holding, 1 carrying the magazine: up from (out - Reach) to the mag-out event, held to the seat, down by
-        /// (seat + Reach).</summary>
+        /// <summary>0 holding, 1 carrying the Breacher's cell: up from (out - Reach) to the cell-out event, held to the seat, down
+        /// by (seat + Reach).</summary>
         static float ReloadWeight(HandlingPlayer h)
         {
             var c = h != null ? h.Clip : null;
@@ -168,7 +169,7 @@ namespace JamKit.SkylineRepo
             for (int i = 0; i < c.events.Length; i++)
             {
                 var id = c.events[i].id;
-                if (outAt < 0f && (id == "mag_out" || id == "cell_out")) outAt = c.events[i].at;
+                if (outAt < 0f && id == "cell_out") outAt = c.events[i].at;
                 if (seatAt < 0f && id == "seat") seatAt = c.events[i].at;
             }
             if (outAt < 0f || seatAt < outAt) return 0f;

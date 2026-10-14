@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using JamKit.Combat;
 using JamKit.Skyline;
@@ -104,55 +105,46 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
-        public void TheWritsReloadIsAGavelSmackAtAFixedFraction()
+        public void TheWritsReloadIsTheQuillWritingOnPaperWithTheHandsStillAndTheGunTiltedUp()
         {
             var w = SkylineGuns.Writ();
             foreach (var kind in new[] { HandlingClipKind.ReloadPartial, HandlingClipKind.ReloadEmpty })
             {
                 var c = w.Clip(kind);
                 int Index(string id) { for (int i = 0; i < c.events.Length; i++) if (c.events[i].id == id) return i; return -1; }
-                int mag = Index("mag_out"), cell = Index("cell_in"), windup = Index("windup"), smack = Index("smack"), seat = Index("seat");
-                Assert.That(new[] { mag, cell, windup, smack, seat }, Is.All.GreaterThanOrEqualTo(0), kind.ToString());
-                Assert.That(c.events[windup].sound, Is.Null.Or.Empty, "the windup is animation only");
-                Assert.That(c.events[smack].sound, Is.EqualTo("writ/smack"), "the smack is a heard (and sync-checked) event");
-                Assert.That(c.events[seat].sound, Is.EqualTo("writ/seat"));
-                Assert.That(c.events[windup].at - c.events[cell].at, Is.GreaterThan(0f), "the gavel rises after the drum is in");
-                Assert.That(c.events[smack].at - c.events[windup].at, Is.InRange(0.1f, 0.25f), "a visible windup");
-                float strikeSeconds = SkylineGuns.WritStrikeFraction * c.seconds;
-                Assert.That(strikeSeconds, Is.InRange(0.03f, 0.06f), "a fast strike");
-                float seatGap = (c.events[seat].at - c.events[smack].at) * c.seconds;
-                Assert.That(seatGap, Is.InRange(0.05f, 0.09f), "the charge seats a moment after the smack");
+                int lift = Index("lift"), ret = Index("return"), seat = Index("seat");
+                Assert.That(new[] { lift, ret, seat }, Is.All.GreaterThanOrEqualTo(0), kind.ToString());
+                Assert.That(lift, Is.LessThan(ret)); Assert.That(ret, Is.LessThan(seat));
+                // the gavel, the drum and the bolt are gone (the creator, 2026-10-14)
+                foreach (var gone in new[] { "windup", "smack", "mag_out", "cell_in", "bolt", "cell_out" })
+                    Assert.That(Index(gone), Is.EqualTo(-1), kind + " has no " + gone);
+                Assert.That(c.events[seat].sound, Is.EqualTo("writ/seat"), "the ink is full: a brass click");
+                Assert.That(ForgeExport.Sounds(w), Does.Not.Contain("writ/smack"));
+                float writing = (c.events[ret].at - c.events[lift].at) * c.seconds;
+                Assert.That(writing, Is.InRange(0.6f, 1.5f), "time to leave the well, write three strokes and come back");
+                float seatGap = (c.events[seat].at - c.events[ret].at) * c.seconds;
+                Assert.That(seatGap, Is.InRange(0.03f, 0.15f), "the ink seats a moment after the quill is back");
+                // the hands stay still: nothing is carried (every frame's magOffset is zero), and the gun pitches UP, not down
+                foreach (var f in c.pose) Assert.That(f.magOffset.Length(), Is.LessThan(1e-6f), kind + " frame " + f.at);
+                float up = 0f;
+                foreach (var f in c.pose)
+                {
+                    Assert.That(f.gunEuler.X, Is.LessThanOrEqualTo(0f), kind + " frame " + f.at + ": the muzzle is never pitched down");
+                    Assert.That(Math.Abs(f.gunEuler.Z), Is.LessThan(5f), "no roll: it is not turned over to show a drum");
+                    up = Math.Min(up, f.gunEuler.X);
+                }
+                Assert.That(up, Is.InRange(-30f, -8f), "slightly up");
+                // up for the reload's duration, then settled back
+                for (float p = 0.15f; p < c.events[seat].at; p += 0.02f)
+                    Assert.That(c.SamplePose(p).gunEuler.X, Is.LessThan(-8f), kind + " at " + p);
+                var end = c.SamplePose(1f);
+                Assert.That(end.gunEuler.Length(), Is.LessThan(1e-4f));
+                Assert.That(end.gunOffset.Length(), Is.LessThan(1e-6f));
             }
             Assert.That(w.Clip(HandlingClipKind.ReloadPartial).seconds, Is.EqualTo(1.3f), "the reload's total time is unchanged");
             Assert.That(w.Clip(HandlingClipKind.ReloadEmpty).seconds, Is.EqualTo(1.75f));
-        }
-
-        [Test]
-        public void TheGavelRisesStrikesAndRebounds()
-        {
-            const float windup = 0.34f, smack = 0.52f;
-            float lift, press;
-            SkylineGuns.WritGavelSmack(0.2f, windup, smack, out lift, out press);
-            Assert.That(lift, Is.EqualTo(0f));
-            Assert.That(press, Is.EqualTo(0f));
-            float prev = 0f;
-            for (float t = windup + 0.005f; t < smack - SkylineGuns.WritStrikeFraction; t += 0.005f)
-            {
-                SkylineGuns.WritGavelSmack(t, windup, smack, out lift, out press);
-                Assert.That(lift, Is.GreaterThanOrEqualTo(prev), "the windup only rises");
-                prev = lift;
-            }
-            Assert.That(prev, Is.GreaterThan(0.95f), "it reaches the top before it strikes");
-            SkylineGuns.WritGavelSmack(smack - SkylineGuns.WritStrikeFraction * 0.5f, windup, smack, out lift, out press);
-            Assert.That(lift, Is.InRange(0.5f, 0.9f), "halfway through the strike it is still well up (it accelerates)");
-            SkylineGuns.WritGavelSmack(smack, windup, smack, out lift, out press);
-            Assert.That(lift, Is.EqualTo(0f).Within(1e-4f), "at the smack it is on the block");
-            Assert.That(press, Is.EqualTo(1f).Within(1e-4f));
-            SkylineGuns.WritGavelSmack(smack + SkylineGuns.WritReboundFraction * 0.5f, windup, smack, out lift, out press);
-            Assert.That(lift, Is.GreaterThan(0.05f).And.LessThan(SkylineGuns.WritReboundHeight + 1e-3f), "a small rebound");
-            SkylineGuns.WritGavelSmack(smack + 0.2f, windup, smack, out lift, out press);
-            Assert.That(lift, Is.EqualTo(0f));
-            Assert.That(press, Is.EqualTo(0f));
+            Assert.That(w.Clip(HandlingClipKind.ReloadEmpty).events[w.Clip(HandlingClipKind.ReloadEmpty).events.Length - 1].id, Is.EqualTo("flourish"),
+                "from empty it ends with a flourish of the quill");
         }
 
         [Test]
