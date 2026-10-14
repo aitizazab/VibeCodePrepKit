@@ -17,14 +17,17 @@ namespace JamKit.SkylineRepo
     /// most three frames), the bench and chair (the "slide") kick back, an amber light flashes on the world, and a thin
     /// amber ribbon follows the shot. On the world: brass sparks and a scorched decal with a brass ring.</item>
     /// <item>Bots: an ordinary Writ hit stays dark (dark flakes, <c>writ/impact</c>); a weak-point hit plays
-    /// <c>writ/impact_weak</c>; a spot forming is stamped on like a seal (a gold ring pressed onto the casing, short rays);
+    /// <c>writ/impact_weak</c> and the gavel's crack (<c>writ/impact_crack</c>, 2D, weak points only); a spot forming is stamped on like a seal (a gold ring pressed onto the casing, short rays);
     /// a spot hit pops (two gold rings, a flash, <c>writ/spot_pop</c> for the shooter); a kill adds a white-gold ring. Glow
     /// and sparks on a live bot only ever mark a Writ spot (spec 14, the damage-feedback rule); the spot's own crack, sparks
     /// and sounds are SkylineSpotMarker's.</item>
     /// <item>At rest: a hushed-court air (<c>writ/hush</c>) loops quietly while the Writ is out.</item>
     /// <item>The draw assembles the court on screen: the bench and chair rise into place, the gavel drops in over the bench,
-    /// the doors swing shut and the lamps catch. The reload is a twist-lock: the drum spins out as it drops and the new one
-    /// twists home a quarter turn on the hydraulic seat. (The Writ's rest turn toward the crosshair, once a "home" layer
+    /// the doors swing shut and the lamps catch. The reload is a gavel smack: the drum spins out as it drops, the new one is
+    /// held a few millimetres short, and the small gavel on the roof rises (the "windup" event), falls fast and SMACKS the top
+    /// of the gun (the "smack" event: the gun recoils in its pose frames, the camera gives a small kick, the lamps flare),
+    /// which drives the drum home; it twists a quarter turn and seats on the "seat" event, the amber band flashing white-hot.
+    /// (The Writ's rest turn toward the crosshair, once a "home" layer
     /// here, is SkylineViewmodel's WritRestEuler since fix round 1.)</item>
     /// </list>
     /// Everything is pooled and made in Start; no per-shot searches or allocations.
@@ -33,7 +36,7 @@ namespace JamKit.SkylineRepo
     public sealed class SkylineWritFx : MonoBehaviour
     {
         public const string ImpactSound = "writ/impact", ImpactWeakSound = "writ/impact_weak", SpotPopSound = "writ/spot_pop",
-            HushSound = "writ/hush";
+            HushSound = "writ/hush", ImpactCrackSound = "writ/impact_crack";
 
         // ---- presentation tuning (the gun's numbers live in SkylineGuns.Writ)
         const int FlashFrames = 3;
@@ -43,6 +46,12 @@ namespace JamKit.SkylineRepo
         const float LightLife = 0.05f, LightRange = 6f, LightIntensity = 3.6f;
         const float GunLightRange = 0.7f, GunLightIntensity = 3f;   // the viewmodel's own light: 2 frames, no shadows
         const float GavelDown = 0.0077f, GavelStrike = 0.025f, GavelReturn = 0.16f, GavelTilt = 10f;
+        // the reload's smack (SkylineGuns.WritGavelSmack): the gavel rises 5.5 cm and tips its head back 38 degrees, falls onto the
+        // sound block (the head presses 1.2 cm into its rest and tips 14 degrees forward on impact); the camera gets a small kick
+        // (about a quarter of a shot's) and shake, and the lamps and the doorway flare for a moment
+        const float GavelLift = 0.055f, GavelLiftBack = 0.012f, GavelLiftTilt = 38f, GavelPress = 0.0125f, GavelPressTilt = 14f;
+        const float SmackGlowSeconds = 0.18f, SmackShake = 0.04f;
+        static readonly CameraKickDef SmackKick = new CameraKickDef { pitchDeg = 0.7f, yawDeg = 0f, recoverRate = 13f };
         const float DoorsOpen = 68f, DoorsClose = 0.2f, BenchKick = 0.005f, BenchRack = 0.018f;
         const float RibbonLife = 0.09f, RibbonWidth = 0.006f;
         // fix round 1 (judge C 11-12): impacts and spot marks read at fight range: the decal is twice the size, and the seal
@@ -134,7 +143,7 @@ namespace JamKit.SkylineRepo
         AudioSource _hush;
 
         // the shot's beats
-        float _shotAge = 99f, _rackAge = 99f, _equipAge = 99f, _equipSeconds = 0.55f, _seatFlash, _strikeScale = 1f;
+        float _shotAge = 99f, _rackAge = 99f, _equipAge = 99f, _equipSeconds = 0.55f, _seatFlash, _strikeScale = 1f, _smackAge = 99f;
         bool _pendingShot, _shotLanded, _shotHitWorld;
         Vector3 _shotEye, _shotAim, _shotEnd, _shotNormal;
         float _shotRange, _shotDistance;
@@ -589,6 +598,17 @@ namespace JamKit.SkylineRepo
                 case GunCueKind.Event:
                     if (cue.ev.id == "seat") { _seatFlash = 1f; _twistFrom = _drumAngle; _twistAge = 0f; _drumSpin = 0f; }
                     if (cue.ev.id == "bolt") _rackAge = 0f;
+                    if (cue.ev.id == "smack")
+                    {
+                        // the gavel lands on the roof: the camera feels it (small) and the lamps flare; the gun's own recoil is in
+                        // the reload's pose frames
+                        _smackAge = 0f;
+                        if (player != null)
+                        {
+                            player.Kick.Kick(SmackKick, 0f);
+                            player.Shake.AddTrauma(SmackShake);
+                        }
+                    }
                     if (cue.ev.id == "mag_out") _drumSpin = 720f;                       // the old drum spins out as it drops
                     if (cue.ev.id == "cell_in") { _drumSpin = 0f; _drumAngle = -90f; }  // the new one goes in a quarter turn off
                     break;
@@ -612,6 +632,9 @@ namespace JamKit.SkylineRepo
             // (above), so impact_weak / impact play only when no spot was hit
             else if (info.zone == HitZone.WeakPoint) SkylineSounds.PlayAt(ImpactWeakSound, info.point, 0.9f);
             else SkylineSounds.PlayAt(ImpactSound, info.point, 0.8f);
+            // the gavel crack (the creator, 2026-10-14): only when the shot hits a weak spot (a Writ spot or a bot's weak point),
+            // from the shooter's side (2D), on top of the hit feedback above; never on an ordinary hit or a miss
+            if (r.writ.spotHit || info.zone == HitZone.WeakPoint) SkylineSounds.PlayViewmodel(ImpactCrackSound, 0.9f);
             if (r.writ.spotCreated) Seal(info.point + n * 0.012f, n, far);
             if (!r.writ.spotHit && !r.writ.spotCreated)
                 for (int i = 0; i < 4; i++) Flake(info.point + n * 0.02f, n, far);    // ordinary damage is dark
@@ -637,6 +660,7 @@ namespace JamKit.SkylineRepo
             _shotAge += dt;
             _rackAge += dt;
             _equipAge += dt;
+            _smackAge += dt;
             AnimateModel(out_ ? gun : null);
             if (_pendingShot) { _pendingShot = false; WorldShot(); }
             MuzzleFlash();
@@ -673,8 +697,12 @@ namespace JamKit.SkylineRepo
                 if (_shotAge < GavelStrike) strike = _shotAge / GavelStrike;
                 else if (_shotAge < GavelStrike + GavelReturn) { float u = (_shotAge - GavelStrike) / GavelReturn; strike = 1f - u * u * (3f - 2f * u); }
                 strike *= _strikeScale;
-                _gavel.localPosition = _gavelRest + ParentVector(_gavel, new Vector3(0f, hover * (1f - strike) - GavelDown * strike + 0.05f * (1f - gavelIn), 0f));
-                _gavel.localRotation = ParentRotation(_gavel, Quaternion.Euler(GavelTilt * strike + Mathf.Sin(t * 2.3f) * 2f, 0f, 0f)) * _gavelRot;
+                // the reload's smack: raised for the windup, then falling fast onto the block, then a small rebound
+                GavelSmack(gun, out float lift, out float press);
+                float y = hover * (1f - strike) - GavelDown * strike + 0.05f * (1f - gavelIn) + GavelLift * lift - GavelPress * press;
+                float tilt = GavelTilt * strike + Mathf.Sin(t * 2.3f) * 2f * (1f - lift) - GavelLiftTilt * lift + GavelPressTilt * press;
+                _gavel.localPosition = _gavelRest + ParentVector(_gavel, new Vector3(0f, y, -GavelLiftBack * lift));
+                _gavel.localRotation = ParentRotation(_gavel, Quaternion.Euler(tilt, 0f, 0f)) * _gavelRot;
             }
             // the doors: thrown open (outward, toward the target) by the flash, swinging shut
             float open = _shotAge < 0.03f ? 1f : Mathf.Clamp01(1f - (_shotAge - 0.03f) / DoorsClose);
@@ -706,8 +734,8 @@ namespace JamKit.SkylineRepo
             float flicker = 0.92f + 0.08f * Mathf.PerlinNoise(t * 6f, 0.3f);
             // the lamps catch as it's drawn: a stutter like gas taking, then steady
             float lit = drawn >= 1f ? 1f : drawn * (0.55f + 0.45f * Mathf.Abs(Mathf.Sin(drawn * 31f)));
-            SetGlow(_lamp, _lampBase * (lit * flicker * (1f + 1.5f * ShotGlow())));
-            SetGlow(_door, _doorBase * (Mathf.Lerp(0.2f, 1f, drawn) * (1f + 4f * ShotGlow())));
+            SetGlow(_lamp, _lampBase * (lit * flicker * (1f + 1.5f * ShotGlow() + 2f * SmackGlow())));
+            SetGlow(_door, _doorBase * (Mathf.Lerp(0.2f, 1f, drawn) * (1f + 4f * ShotGlow() + 2f * SmackGlow())));
             if (gun != null)
             {
                 float charge = gun.Def.weapon.magazineSize > 0 ? (float)gun.Ammo / gun.Def.weapon.magazineSize : 1f;
@@ -717,6 +745,28 @@ namespace JamKit.SkylineRepo
         }
 
         static float Smooth(float u) { u = Mathf.Clamp01(u); return u * u * (3f - 2f * u); }
+
+        /// <summary>The gavel's lift (0 rest, 1 raised) and press (1 at the instant of the smack) while a reload plays: from the
+        /// clip's own "windup" and "smack" events, so a faster reload moves the strike with it. Both 0 outside a reload.</summary>
+        static void GavelSmack(SkylineGun gun, out float lift, out float press)
+        {
+            lift = 0f;
+            press = 0f;
+            var h = gun != null ? gun.Handling : null;
+            var c = h != null ? h.Clip : null;
+            if (c == null || !h.Playing || (c.kind != HandlingClipKind.ReloadPartial && c.kind != HandlingClipKind.ReloadEmpty)) return;
+            float windup = -1f, smack = -1f;
+            for (int i = 0; i < c.events.Length; i++)
+            {
+                if (c.events[i].id == "windup") windup = c.events[i].at;
+                else if (c.events[i].id == "smack") smack = c.events[i].at;
+            }
+            if (windup < 0f || smack < 0f) return;
+            SkylineGuns.WritGavelSmack(h.Progress01, windup, smack, out lift, out press);
+        }
+
+        /// <summary>1 at the smack, falling to 0 over <see cref="SmackGlowSeconds"/>.</summary>
+        float SmackGlow() => Mathf.Clamp01(1f - _smackAge / SmackGlowSeconds);
 
         float ShotGlow() => _strikeScale >= 1f ? Mathf.Clamp01(1f - _shotAge / 0.25f) : 0f;
 

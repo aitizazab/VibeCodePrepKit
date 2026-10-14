@@ -6,11 +6,11 @@ namespace JamKit.SkylineRepo
     /// <summary>What a sound is, for the mix: its bus gain, how far it ducks under speech, and its voice priority.</summary>
     public enum SkylineSoundCategory
     {
-        /// <summary>The player's shots: writ/shot, writ/shot_mech, breacher/blast, breacher/vent_hiss, breacher/boost.</summary>
+        /// <summary>The player's shots: writ/shot, breacher/blast, breacher/vent_hiss, breacher/boost.</summary>
         Guns,
         /// <summary>The player's gun handling: reloads, equips, inspects, dry fire (every other writ/ and breacher/ sound).</summary>
         Handling,
-        /// <summary>What a shot hits: impact/*, writ/impact*, writ/spot_*, breacher/impact.</summary>
+        /// <summary>What a shot hits: impact/*, writ/impact* (incl. the weak-spot gavel crack), writ/spot_*, breacher/impact.</summary>
         Impacts,
         /// <summary>The bots' one-shots: &lt;bot id&gt;/alert, telegraph, attack, hurt, plate_shed, wreck, ...</summary>
         Bots,

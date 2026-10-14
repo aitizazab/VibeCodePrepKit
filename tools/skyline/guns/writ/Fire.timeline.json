@@ -1,7 +1,6 @@
 {
   "duration": 0.22,
   "events": [
-    {"at": 0, "recipe": "recipes/shot.json"},
-    {"at": 0.45, "recipe": "recipes/shot_mech.json"}
+    {"at": 0, "recipe": "recipes/shot.json"}
   ]
 }

@@ -104,6 +104,68 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
+        public void TheWritsReloadIsAGavelSmackAtAFixedFraction()
+        {
+            var w = SkylineGuns.Writ();
+            foreach (var kind in new[] { HandlingClipKind.ReloadPartial, HandlingClipKind.ReloadEmpty })
+            {
+                var c = w.Clip(kind);
+                int Index(string id) { for (int i = 0; i < c.events.Length; i++) if (c.events[i].id == id) return i; return -1; }
+                int mag = Index("mag_out"), cell = Index("cell_in"), windup = Index("windup"), smack = Index("smack"), seat = Index("seat");
+                Assert.That(new[] { mag, cell, windup, smack, seat }, Is.All.GreaterThanOrEqualTo(0), kind.ToString());
+                Assert.That(c.events[windup].sound, Is.Null.Or.Empty, "the windup is animation only");
+                Assert.That(c.events[smack].sound, Is.EqualTo("writ/smack"), "the smack is a heard (and sync-checked) event");
+                Assert.That(c.events[seat].sound, Is.EqualTo("writ/seat"));
+                Assert.That(c.events[windup].at - c.events[cell].at, Is.GreaterThan(0f), "the gavel rises after the drum is in");
+                Assert.That(c.events[smack].at - c.events[windup].at, Is.InRange(0.1f, 0.25f), "a visible windup");
+                float strikeSeconds = SkylineGuns.WritStrikeFraction * c.seconds;
+                Assert.That(strikeSeconds, Is.InRange(0.03f, 0.06f), "a fast strike");
+                float seatGap = (c.events[seat].at - c.events[smack].at) * c.seconds;
+                Assert.That(seatGap, Is.InRange(0.05f, 0.09f), "the charge seats a moment after the smack");
+            }
+            Assert.That(w.Clip(HandlingClipKind.ReloadPartial).seconds, Is.EqualTo(1.3f), "the reload's total time is unchanged");
+            Assert.That(w.Clip(HandlingClipKind.ReloadEmpty).seconds, Is.EqualTo(1.75f));
+        }
+
+        [Test]
+        public void TheGavelRisesStrikesAndRebounds()
+        {
+            const float windup = 0.34f, smack = 0.52f;
+            float lift, press;
+            SkylineGuns.WritGavelSmack(0.2f, windup, smack, out lift, out press);
+            Assert.That(lift, Is.EqualTo(0f));
+            Assert.That(press, Is.EqualTo(0f));
+            float prev = 0f;
+            for (float t = windup + 0.005f; t < smack - SkylineGuns.WritStrikeFraction; t += 0.005f)
+            {
+                SkylineGuns.WritGavelSmack(t, windup, smack, out lift, out press);
+                Assert.That(lift, Is.GreaterThanOrEqualTo(prev), "the windup only rises");
+                prev = lift;
+            }
+            Assert.That(prev, Is.GreaterThan(0.95f), "it reaches the top before it strikes");
+            SkylineGuns.WritGavelSmack(smack - SkylineGuns.WritStrikeFraction * 0.5f, windup, smack, out lift, out press);
+            Assert.That(lift, Is.InRange(0.5f, 0.9f), "halfway through the strike it is still well up (it accelerates)");
+            SkylineGuns.WritGavelSmack(smack, windup, smack, out lift, out press);
+            Assert.That(lift, Is.EqualTo(0f).Within(1e-4f), "at the smack it is on the block");
+            Assert.That(press, Is.EqualTo(1f).Within(1e-4f));
+            SkylineGuns.WritGavelSmack(smack + SkylineGuns.WritReboundFraction * 0.5f, windup, smack, out lift, out press);
+            Assert.That(lift, Is.GreaterThan(0.05f).And.LessThan(SkylineGuns.WritReboundHeight + 1e-3f), "a small rebound");
+            SkylineGuns.WritGavelSmack(smack + 0.2f, windup, smack, out lift, out press);
+            Assert.That(lift, Is.EqualTo(0f));
+            Assert.That(press, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void TheWritsShotIsASingleQuietThwipWithNoHydraulicReturn()
+        {
+            var fire = SkylineGuns.Writ().Clip(HandlingClipKind.Fire);
+            Assert.That(ForgeExport.Sounds(SkylineGuns.Writ()), Does.Not.Contain("writ/shot_mech"));
+            int sounds = 0;
+            foreach (var e in fire.events) if (!string.IsNullOrEmpty(e.sound)) sounds++;
+            Assert.That(sounds, Is.EqualTo(1), "the thwip alone");
+        }
+
+        [Test]
         public void FindReturnsAFreshCopy()
         {
             var a = SkylineGuns.Find("writ");

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
@@ -31,6 +32,42 @@ namespace JamKit.Skyline
         public static readonly Vector3 WritSightCheck = new Vector3(-0.2f, 0.042f, -0.291f);
         public static readonly Vector3 WritSightCheckEuler = new Vector3(0f, 9f, 0f);
 
+        /// <summary>The Writ's reload is a gavel smack (the creator, 2026-10-14: "a smack of the gavel"). The small gavel on its
+        /// roof rises over the "windup" event, falls in the last <see cref="WritStrikeFraction"/> of the clip before the "smack"
+        /// event (a fast strike onto the sound block, the gun's whole body recoiling in its pose frames), rebounds a little, and
+        /// the new charge seats on the "seat" event a moment later. The fractions are the clip's, so a faster reload moves the
+        /// strike with it.</summary>
+        public const float WritStrikeFraction = 0.03f, WritReboundFraction = 0.04f, WritReboundHeight = 0.14f;
+
+        /// <summary>The gavel's state at <paramref name="t01"/> of a reload clip: <paramref name="lift"/> 0 (resting over the
+        /// block) to 1 (raised at the top of the windup), and <paramref name="press"/> 1 at the instant of the smack (the head
+        /// pressed onto the block) falling to 0 as it rebounds. Before the windup and after the rebound both are 0; at
+        /// <paramref name="smackAt"/> the lift is 0 and the press 1.</summary>
+        public static void WritGavelSmack(float t01, float windupAt, float smackAt, out float lift, out float press)
+        {
+            lift = 0f;
+            press = 0f;
+            float strikeStart = smackAt - WritStrikeFraction;
+            if (!(t01 > windupAt) || !(strikeStart > windupAt)) return;
+            if (t01 < strikeStart)
+            {
+                float u = (t01 - windupAt) / (strikeStart - windupAt);
+                lift = 1f - (1f - u) * (1f - u);    // up fast, slowing at the top
+            }
+            else if (t01 < smackAt)
+            {
+                float u = (t01 - strikeStart) / WritStrikeFraction;
+                lift = 1f - u * u;                  // down slowly, then very fast
+            }
+            else
+            {
+                float v = (t01 - smackAt) / WritReboundFraction;
+                if (v >= 1f) return;
+                press = (1f - v) * (1f - v);
+                lift = WritReboundHeight * MathF.Sin(MathF.PI * v);
+            }
+        }
+
         /// <summary>The Writ: a precise sidearm. Every weak-point hit leaves a weak spot that takes more than a headshot (2.2).
         /// 250 RPM, 8 rounds; a magazine-and-cell reload with a bolt from empty.</summary>
         public static GunDef Writ()
@@ -42,6 +79,13 @@ namespace JamKit.Skyline
             var drumOut = V(0.02f, -0.08f, 0f);
             var seatKick = V(-0.06f, 0.05f, -0.08f);
             var seatEuler = V(22f, -14f, 16f);
+            // the smack: the drum waits 12 mm short of home, the gun rises a little with the windup, and the strike knocks it down
+            // and back (3.5 cm, 3 cm, the muzzle 8 degrees down) while the drum is driven home
+            var drumWaits = V(0f, -0.012f, 0f);
+            var liftUp = V(0f, 0.01f, 0.01f);
+            var liftEuler = V(-3f, 0f, 0f);
+            var knock = V(0f, -0.035f, -0.03f);
+            var knockEuler = V(8f, 0f, 0f);
             return new GunDef
             {
                 id = WritId,
@@ -73,27 +117,34 @@ namespace JamKit.Skyline
                         new[] { P(0f, V(0.06f, -0.28f, -0.12f), V(40f, 10f, 30f)), P(0.45f, V(-0.03f, 0.03f, -0.04f), V(-5f, -35f, -8f)),
                                 P(0.7f, V(0f, 0.01f, 0f), V(-3f, 0f, 0f)), P(1f, O, O) }),
                     C(HandlingClipKind.Fire, 0.22f,
-                        new[] { E(0f, "shot", "writ/shot"), E(0.45f, "mech", "writ/shot_mech") },
+                        new[] { E(0f, "shot", "writ/shot") },
                         new[] { P(0f, O, O), P(0.12f, V(0f, 0.02f, -0.07f), V(-9f, 0f, 1.5f)), P(0.45f, V(0f, 0.004f, -0.012f), V(-2f, 0f, 0.3f)), P(1f, O, O) }),
                     C(HandlingClipKind.DryFire, 0.25f,
                         new[] { E(0f, "click", "writ/dry_click") },
                         new[] { P(0f, O, O), P(0.3f, V(0f, 0f, -0.01f), V(-1f, 0f, 0f)), P(1f, O, O) }),
+                    // The reload is a gavel smack (see WritGavelSmack): the old drum drops, the new one is held a few millimetres
+                    // short of home, the gavel on the roof rises ("windup") and smacks the top of the gun ("smack"), which knocks
+                    // the whole gun down and drives the drum home, and the charge seats ("seat": a brass click).
                     C(HandlingClipKind.ReloadPartial, 1.3f,
-                        new[] { E(0.18f, "mag_out", "writ/mag_out"), E(0.52f, "cell_in", "writ/cell_in"), E(0.68f, "seat", "writ/seat") },
+                        new[] { E(0.09f, "mag_out", "writ/mag_out"), E(0.28f, "cell_in", "writ/cell_in"), E(0.34f, "windup", null),
+                                E(0.52f, "smack", "writ/smack"), E(0.565f, "seat", "writ/seat") },
                         new[]
                         {
-                            P(0f, O, O), P(0.15f, tilt, tiltEuler), P(0.18f, tilt, tiltEuler), P(0.3f, tilt, tiltEuler, drumOut),
-                            P(0.45f, tilt, tiltEuler, V(0.01f, -0.04f, 0f)), P(0.52f, tilt, tiltEuler, V(0f, -0.012f, 0f)),
-                            P(0.68f, seatKick, seatEuler), P(1f, O, O),
+                            P(0f, O, O), P(0.08f, tilt, tiltEuler), P(0.09f, tilt, tiltEuler), P(0.19f, tilt, tiltEuler, drumOut),
+                            P(0.26f, tilt, tiltEuler, V(0.01f, -0.04f, 0f)), P(0.28f, tilt, tiltEuler, drumWaits),
+                            P(0.5f, tilt + liftUp, tiltEuler + liftEuler, drumWaits), P(0.52f, tilt + liftUp, tiltEuler + liftEuler, drumWaits),
+                            P(0.535f, tilt + knock, tiltEuler + knockEuler), P(0.62f, seatKick, seatEuler), P(1f, O, O),
                         }),
                     C(HandlingClipKind.ReloadEmpty, 1.75f,
-                        new[] { E(0.13f, "mag_out", "writ/mag_out"), E(0.42f, "cell_in", "writ/cell_in"), E(0.55f, "seat", "writ/seat"), E(0.8f, "bolt", "writ/bolt") },
+                        new[] { E(0.07f, "mag_out", "writ/mag_out"), E(0.2f, "cell_in", "writ/cell_in"), E(0.25f, "windup", null),
+                                E(0.39f, "smack", "writ/smack"), E(0.435f, "seat", "writ/seat"), E(0.8f, "bolt", "writ/bolt") },
                         new[]
                         {
-                            P(0f, O, O), P(0.11f, tilt, tiltEuler), P(0.13f, tilt, tiltEuler), P(0.25f, tilt, tiltEuler, drumOut),
-                            P(0.36f, tilt, tiltEuler, V(0.01f, -0.04f, 0f)), P(0.42f, tilt, tiltEuler, V(0f, -0.012f, 0f)),
-                            P(0.55f, seatKick, seatEuler), P(0.72f, V(-0.03f, 0.04f, -0.06f), V(8f, -24f, 6f)),
-                            P(0.8f, V(-0.02f, 0.05f, -0.07f), V(4f, -20f, 10f)), P(1f, O, O),
+                            P(0f, O, O), P(0.06f, tilt, tiltEuler), P(0.07f, tilt, tiltEuler), P(0.14f, tilt, tiltEuler, drumOut),
+                            P(0.185f, tilt, tiltEuler, V(0.01f, -0.04f, 0f)), P(0.2f, tilt, tiltEuler, drumWaits),
+                            P(0.37f, tilt + liftUp, tiltEuler + liftEuler, drumWaits), P(0.39f, tilt + liftUp, tiltEuler + liftEuler, drumWaits),
+                            P(0.405f, tilt + knock, tiltEuler + knockEuler), P(0.47f, seatKick, seatEuler),
+                            P(0.72f, V(-0.03f, 0.04f, -0.06f), V(8f, -24f, 6f)), P(0.8f, V(-0.02f, 0.05f, -0.07f), V(4f, -20f, 10f)), P(1f, O, O),
                         }),
                     // The inspect turns the courtroom to show its side (the colonnade, the lamps, the brass plate), taps the
                     // plate, then raises the gun to the eye for a sight check: the gun centred so the eye looks along the sight

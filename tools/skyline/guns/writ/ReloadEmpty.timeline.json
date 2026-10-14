@@ -1,9 +1,10 @@
 {
   "duration": 1.75,
   "events": [
-    {"at": 0.13, "recipe": "recipes/mag_out.json"},
-    {"at": 0.42, "recipe": "recipes/cell_in.json"},
-    {"at": 0.55, "recipe": "recipes/seat.json"},
+    {"at": 0.07, "recipe": "recipes/mag_out.json"},
+    {"at": 0.2, "recipe": "recipes/cell_in.json"},
+    {"at": 0.39, "recipe": "recipes/smack.json"},
+    {"at": 0.435, "recipe": "recipes/seat.json"},
     {"at": 0.8, "recipe": "recipes/bolt.json"}
   ]
 }
