@@ -37,6 +37,10 @@ namespace JamKit.SkylineRepo
         /// <summary>True when the override exists and is on: the whole feature's gate (public for the tests).</summary>
         public static bool ShouldRun(SkylineInk ink) => ink != null && ink.IsActive();
 
+        /// <summary>A measurement switch, never set in play: the perf run's <c>-skyline-no-ink</c> argument turns the whole feature
+        /// off, so one extra stage D run says how much of the frame time the ink passes cost (docs/SKYLINE-LOOK.md, perf round 5).</summary>
+        public static bool ForceOff;
+
         public override void Create()
         {
             _pass = new InkPass { renderPassEvent = passEvent, requiresIntermediateTexture = true };
@@ -52,7 +56,7 @@ namespace JamKit.SkylineRepo
             if (add != null) stack = add.volumeStack;
             if (stack == null) stack = VolumeManager.instance.stack;
             var ink = stack != null ? stack.GetComponent<SkylineInk>() : null;
-            if (!ShouldRun(ink)) return;
+            if (ForceOff || !ShouldRun(ink)) return;
             if (renderingData.cameraData.cameraTargetDescriptor.msaaSamples > 1)
             {
                 if (!_warnedMsaa) { _warnedMsaa = true; Debug.LogWarning("SKYLINE_INK the ink pass skips cameras with MSAA on (the mask and the depth would differ in sample count)"); }

@@ -151,3 +151,44 @@ vertices, 23 small point lights without
 shadows (Forward+), one shadowed sun (80 m, four cascades, 2048, medium soft shadows), post (bloom quarter-res,
 tonemapping, grading, vignette) ~0.3 ms, SMAA ~0.3 ms, two baked probes (no runtime cost), the towers Unlit (cheaper than the Lit
 they replaced) and shadowless; the skylight's frit adds a few transparent quads when looking up. Texture memory: 7 library sets at 2K (BC1/BC5/BC3), the 4K sky (BC6H, 8 MB), atlases at 1-2K.
+
+## Frame-time hitches after the ink look (perf round 5, 2026-10-14; from code and logs, not yet re-measured)
+
+**Evidence** (`out/skyline/20261014-full/perf.json`, `stage-d-perf.log`): average 6.9 ms (was 4.6), 1% low 28.9 ms (was 14.7). The 1% low
+is the mean of the slowest 1% of frames, here 221 frames, so it is not ten stalls: the ten worst frames (222, 145, 138, 103, 100, 77,
+62, 62, 55, 50 ms) add up to about 1 s of the 6.4 s those 221 frames take; the rest is a long tail of 20-40 ms frames. In the three
+worst mid-play frames the main thread is idle (cpu 3 to 13 ms, "wait" 72 to 208 ms: it waits for the render thread), and each follows
+something drawn for the first time: the first Writ shot (145 ms), the food court coming into view with the first wrecks (222 ms), the
+Breacher swap (62 ms). No frame had a garbage collection outside the start-up ones (`gcs` 0), the pipeline-state trace is empty
+(`SkylineArena.graphicsstate` is 289 bytes in every pass, so the start cover's "warm from trace" never had anything to warm), and
+`SKYLINE_PREWARM drew 38 idle drawings once`: the old warm-up drew only 38 switched-off pooled things.
+
+**Cause (the best fit; the next pass checks it):** on Direct3D 12 the first draw of any shader variant x mesh layout x pass builds a
+pipeline state on the render thread. InkLit has four passes (forward, shadow caster, DepthNormals, and the mask for any role), the ink
+feature makes the camera render DepthNormals, and the look added ~150 new materials, so the number of states a fight can meet for the
+first time went up several times, while the warm-up still covered only hidden pooled objects. Two gaps in particular: (a) every
+material of the scene that is not in view in the warm-up hall (the food court's) was first drawn when it came into view; (b) a wreck's
+shard mesh has no UVs (a layout nothing else drew) and the mask pass of a role material was never drawn on any layout but the bots'.
+
+**Checked and cleared:** the ink tracer (pooled meshes, no allocation per frame or shot, material from Sprites/Default made once), the
+ink feature (no per-frame allocation: static property block, non-capturing lambdas, struct descriptors), `SkylineInkRoles` (materials
+cached per source and role, `SetShaderPassEnabled` only when a material is made), the wreck tint materials (shared per colour). Display
+bots are capture only.
+
+**Changed:**
+- `SkylinePrewarm.DrawEverythingOnce` now also draws, in a player (not the editor, so the recordings are untouched), (1) every material of
+  every renderer that is drawing, once, on its own mesh, and (2) every InkLit template (plain, normal, emission, both), with the mask pass
+  off and on, on every mesh layout the scene, the bot models, the primitives and the four shard meshes use (up to 14 layouts). Done in chunks
+  of 60 drawings, two frames each, within a 12 s budget (it logs `SKYLINE_PREWARM drew N drawings once (...)` and says if it stopped).
+- `SkylineStartCover`: the cover may hold up to 20 s (was 8) because the warm-up takes longer; `SkylineStartCover.Done` says when it has lifted.
+- `SkylinePerfProbe`: the measured window now starts after both the 3 s warm-up and the cover's lift (the load is behind the cover for
+  the player, so it is not play time; `warmupWorstMs` still reports it). It also writes `over` (frames over 16.7, 25, 33, 50, 100 ms),
+  `spikes` (the first 80 frames over 25 ms with cpu/physics/wait, the phase and the last `SKYLINE_*` line) and `inkOff`.
+- `-skyline-no-ink` (the player argument; `pass.ps1 -Only D -Out <folder> -PerfArgs '-skyline-no-ink'`) switches the ink feature off: one extra
+  stage D run prices the ink passes (the full-resolution colour copy, mask, composite and the DepthNormals prepass).
+
+**Expected, not verified:** hitches at first sight of an area and at the first wreck/shot should go; the long tail of 20-40 ms frames should
+shrink if it was first-use work. If the new `spikes` still follow no event and the no-ink run is much faster, the cost is the ink passes
+themselves (GPU/render thread: 3 shadow cascades at 80 m, a second full-scene pass for DepthNormals, the mask lists, a colour copy at
+1080p) and the next step is GPU-side (a half-resolution mask, one renderer list, fewer cascades). Also unexplained: a 93 ms physics step
+at 19.9 s, right after the mantle line (`nan-double-jump-mantle`); check whether it repeats.

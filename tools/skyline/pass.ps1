@@ -17,10 +17,12 @@
 # creator is away from the PC (the creator's rule, 2026-10-12).
 # -CapShare 0.45 raises the memory cap's share of RAM for the capped stages (the build's shader compiler ran out of memory at
 # 0.30 on 2026-10-14 with the arena's new materials: "out of memory while parsing", 290 errors).
+# -PerfArgs '-skyline-no-ink' adds arguments to the stage D player (an A/B run: the ink passes switched off, to price them; the
+# probe writes "inkOff": true). Use it with -Only D -Out <an existing pass folder>, and copy perf.json away first (D sweeps it).
 # -Only <letters> -Out <folder> runs only those stages into an existing pass folder (e.g. -Only A, then -Only B, -Only CD,
 # -Only E), sweeping only their own old results; its manifest is manifest-<letters>.json. For a machine so short of memory
 # that a whole pass can't finish in one sitting: each Unity stage then runs as its own short command.
-param([string]$Out = '', [switch]$SelfTest, [switch]$NoWindows, [string]$Only = '', [double]$CapShare = 0)
+param([string]$Out = '', [switch]$SelfTest, [switch]$NoWindows, [string]$Only = '', [double]$CapShare = 0, [string]$PerfArgs = '')
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\..\unity-env.ps1"
 . "$PSScriptRoot\unity-lock.ps1"
@@ -564,9 +566,9 @@ try {
                 $stages += [pscustomobject]@{ name = 'D perf'; ok = $false; seconds = 0; log = ''; note = 'skipped: -NoWindows (needs a normal window)' }
             } elseif (Test-Path $exe) {
                 $log = Join-Path $Out 'stage-d-perf.log'
-                $d = Invoke-Stage -Name 'D perf' -Exe $exe -Locked -MinFreeGB 3 -TimeoutSec 240 -Log $log -WindowStyle Normal -MuteAudio -DoneFile (Join-Path $Out 'perf.json') -StageArgs @(
+                $d = Invoke-Stage -Name 'D perf' -Exe $exe -Locked -MinFreeGB 3 -TimeoutSec 240 -Log $log -WindowStyle Normal -MuteAudio -DoneFile (Join-Path $Out 'perf.json') -StageArgs (@(
                     '-screen-fullscreen', '0', '-screen-width', '1920', '-screen-height', '1080', '-logFile', "`"$log`"", '-silent-crashes',
-                    '-skyline-perf', "`"$Out`"")
+                    '-skyline-perf', "`"$Out`"") + @($PerfArgs -split '\s+' | Where-Object { $_ }))
                 Update-PerfStage -Stage $d -PerfPath (Join-Path $Out 'perf.json')
                 $stages += $d
             } else {

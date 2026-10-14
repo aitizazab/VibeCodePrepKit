@@ -24,12 +24,22 @@ namespace JamKit.SkylineRepo
     public sealed class SkylineStartCover : MonoBehaviour
     {
         public const string TraceFolder = "Skyline";
-        const float MinHold = 0.3f, MaxHold = 8f, Fade = 0.5f, SmoothMs = 50f;
+        // perf round 5: MaxHold 8 -> 20 s; the warm-up now also draws every scene material and every ink template on every mesh
+        // layout (SkylinePrewarm.DrawEverythingOnce), so its pipeline-state builds take a few seconds more behind the cover
+        const float MinHold = 0.3f, MaxHold = 20f, Fade = 0.5f, SmoothMs = 50f;
         const int SmoothFrames = 8;
 
         float _born, _fadeFrom = -1f, _slowest;
         int _smooth;
         static Texture2D _black;
+        static bool _covering;
+
+        /// <summary>False while the black cover is up (the scene is still warming); true once it starts to fade, and always in the editor
+        /// and in batch mode (no cover). The perf probe starts measuring only when this is true, so the load is not counted as play.</summary>
+        public static bool Done => !_covering;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => _covering = false;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -40,6 +50,7 @@ namespace JamKit.SkylineRepo
             WarmFromTrace(scene);
             var go = new GameObject("Skyline start cover");
             go.AddComponent<SkylineStartCover>()._born = Time.realtimeSinceStartup;
+            _covering = true;
         }
 
         static void WarmFromTrace(string scene)
@@ -79,12 +90,15 @@ namespace JamKit.SkylineRepo
                 if ((held >= MinHold && _smooth >= SmoothFrames) || held >= MaxHold)
                 {
                     _fadeFrom = now;
+                    _covering = false;
                     Debug.Log("SKYLINE_START cover lifted after " + held.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) +
                               " s (slowest frame under it " + _slowest.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " ms)");
                 }
             }
             else if (now - _fadeFrom >= Fade) Destroy(gameObject);
         }
+
+        void OnDestroy() => _covering = false;
 
         void OnGUI()
         {

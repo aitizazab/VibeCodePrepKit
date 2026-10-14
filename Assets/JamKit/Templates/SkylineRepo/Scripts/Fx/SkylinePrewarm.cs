@@ -140,6 +140,20 @@ namespace JamKit.SkylineRepo
 
         // ------------------------------------------------------------------ perf round 3: first-use hitches
 
+        /// <summary>One tiny drawing of the warm-up: a mesh with its materials (or a line renderer's material), on a layer.</summary>
+        struct WarmJob
+        {
+            public Mesh mesh;
+            public Material[] mats;
+            public UnityEngine.Rendering.ShadowCastingMode shadows;
+            public int layer;
+            public Material line;
+        }
+
+        /// <summary>Drawings per chunk (a chunk lives two frames), and the time the extra warm-up may take before it stops (s).</summary>
+        const int ChunkSize = 60;
+        const float WarmBudgetSeconds = 12f;
+
         /// <summary>
         /// Perf round 3: round 3's perf run had a 197 ms frame right as the food court's first floor-care unit opened up, and
         /// fight frames of 20-25 ms with no garbage collection. On Direct3D 12 the first draw of any new combination of shader
@@ -158,73 +172,168 @@ namespace JamKit.SkylineRepo
             // disabling the renderer, not the object, so round 3's scan (switched-off objects only, all drawn in front of the
             // main camera) missed them. Now every renderer that isn't drawing (object off, or renderer off) is warmed, on its
             // own layer, in front of a camera that draws that layer (the main camera when it does, else the viewmodel's).
+            //
+            // Perf round 5 (the comic-ink look): the same stalls came back, now 60-220 ms, because the look multiplied what a
+            // first draw has to build: every InkLit material needs a forward, a shadow, a DepthNormals (the ink feature asks for
+            // normals) and, for a role, a SkylineInkMask pipeline state, per mesh layout. So the warm-up also draws (in a
+            // player; the editor's recordings are left alone) (a) every material of every renderer that IS drawing, once, on its
+            // own mesh: the scene's variants and textures that the camera isn't looking at yet (the food court is out of sight
+            // in the warm-up hall, and its materials were first drawn the moment it came into view: the 208 ms frame); and
+            // (b) every InkLit template, with its mask pass off and on, on every mesh layout the scene, the bot models, the
+            // primitives and the wreck shards use (a wreck's shard has no UVs, a layout nothing else had drawn). The drawings
+            // are made in chunks of <see cref="ChunkSize"/>, two frames each, within <see cref="WarmBudgetSeconds"/>.
             var roots = new Dictionary<Camera, Transform>();
             var seen = new HashSet<string>();
+            var seenMat = new HashSet<int>();
+            var seenMesh = new HashSet<Mesh>();
+            var layouts = new Dictionary<string, Mesh>();
             var temp = new List<Object>();
-            int n = 0;
-            Vector3 Slot() { int i = n++; return new Vector3((i % 12 - 6) * 0.004f, (i / 12 % 12 - 6) * 0.004f, 0f); }
+            var jobs = new List<WarmJob>();
+            int idle = 0, scene = 0, matrix = 0;
+            bool inPlayer = !Application.isEditor;
+
+            Camera PickFor(int layer)
+            {
+                if ((cam.cullingMask & (1 << layer)) != 0) return cam;
+                foreach (var c in Camera.allCameras)
+                    if (c != null && (c.cullingMask & (1 << layer)) != 0) return c;
+                return null;
+            }
+            void Place(Camera pick, Transform t)
+            {
+                float d = Mathf.Clamp(0.6f, pick.nearClipPlane * 4f, Mathf.Max(pick.nearClipPlane * 4f, pick.farClipPlane * 0.5f));
+                t.SetPositionAndRotation(pick.transform.position + pick.transform.forward * d, pick.transform.rotation);
+            }
             Transform RootFor(int layer)
             {
-                Camera pick = (cam.cullingMask & (1 << layer)) != 0 ? cam : null;
-                if (pick == null)
-                    foreach (var c in Camera.allCameras)
-                        if (c != null && (c.cullingMask & (1 << layer)) != 0) { pick = c; break; }
+                Camera pick = PickFor(layer);
                 if (pick == null) return null;
                 if (roots.TryGetValue(pick, out var t) && t != null) return t;
-                float d = Mathf.Clamp(0.6f, pick.nearClipPlane * 4f, Mathf.Max(pick.nearClipPlane * 4f, pick.farClipPlane * 0.5f));
                 t = new GameObject("Prewarm (every pooled drawing, two frames) " + pick.name).transform;
-                t.SetPositionAndRotation(pick.transform.position + pick.transform.forward * d, pick.transform.rotation);
+                Place(pick, t);
                 roots[pick] = t;
                 return t;
+            }
+            void AddLayout(Mesh m)
+            {
+                if (m == null || !seenMesh.Add(m) || layouts.Count >= 14) return;
+                string key = Layout(m);
+                if (!layouts.ContainsKey(key)) layouts[key] = m;
             }
             var root = RootFor(cam.gameObject.layer) ?? RootFor(0);
             if (root == null) yield break;
 
             foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                if (r == null || (r.enabled && r.gameObject.activeInHierarchy) || n >= 400) continue;
+                if (r == null) continue;
                 var mf = r.GetComponent<MeshFilter>();
                 var mesh = mf != null ? mf.sharedMesh : null;
                 var mats = r.sharedMaterials;
                 if (mesh == null || mats == null || mats.Length == 0) continue;
+                AddLayout(mesh);
                 int layer = r.gameObject.layer;
-                if (!seen.Add(layer + "/" + Layout(mesh) + Ids(mats))) continue;
-                var at = RootFor(layer);
-                if (at != null) Draw(at, mesh, mats, r.shadowCastingMode, Slot()).layer = layer;
+                bool drawing = r.enabled && r.gameObject.activeInHierarchy;
+                if (!drawing)
+                {
+                    if (idle >= 400 || !seen.Add(layer + "/" + Layout(mesh) + Ids(mats))) continue;
+                    jobs.Add(new WarmJob { mesh = mesh, mats = mats, shadows = r.shadowCastingMode, layer = layer });
+                    idle++;
+                }
+                else if (inPlayer && scene < 600)
+                {
+                    foreach (var m in mats)
+                        if (m != null && seenMat.Add(m.GetInstanceID()))
+                        {
+                            jobs.Add(new WarmJob { mesh = mesh, mats = new[] { m }, shadows = r.shadowCastingMode, layer = layer });
+                            scene++;
+                        }
+                }
             }
             foreach (var lr in Object.FindObjectsByType<LineRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (lr != null && !(lr.enabled && lr.gameObject.activeInHierarchy) && lr.sharedMaterial != null && seen.Add(lr.gameObject.layer + "line" + lr.sharedMaterial.GetInstanceID()))
-                {
-                    var at = RootFor(lr.gameObject.layer);
-                    if (at != null) Line(at, lr.sharedMaterial, Slot()).layer = lr.gameObject.layer;
-                }
+                    jobs.Add(new WarmJob { line = lr.sharedMaterial, layer = lr.gameObject.layer });
             foreach (var tr in Object.FindObjectsByType<TrailRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (tr != null && tr.sharedMaterial != null && seen.Add(tr.gameObject.layer + "line" + tr.sharedMaterial.GetInstanceID()))
-                {
-                    var at = RootFor(tr.gameObject.layer);
-                    if (at != null) Line(at, tr.sharedMaterial, Slot()).layer = tr.gameObject.layer;
-                }
+                    jobs.Add(new WarmJob { line = tr.sharedMaterial, layer = tr.gameObject.layer });
 
             // the acid: its stream (positions, normals and UVs, rebuilt each frame) and its droplets (spheres)
             var tube = StripMesh();
             temp.Add(tube);
             var sphere = SkylineBotLook.PrimitiveMesh(PrimitiveType.Sphere);
+            int layer0 = cam.gameObject.layer;
             foreach (var m in AcidMaterials())
             {
                 if (m == null) continue;
-                Draw(root, tube, new[] { m }, UnityEngine.Rendering.ShadowCastingMode.Off, Slot());
-                if (sphere != null) Draw(root, sphere, new[] { m }, UnityEngine.Rendering.ShadowCastingMode.Off, Slot());
+                jobs.Add(new WarmJob { mesh = tube, mats = new[] { m }, shadows = UnityEngine.Rendering.ShadowCastingMode.Off, layer = layer0 });
+                if (sphere != null) jobs.Add(new WarmJob { mesh = sphere, mats = new[] { m }, shadows = UnityEngine.Rendering.ShadowCastingMode.Off, layer = layer0 });
             }
             if (sphere != null)
                 foreach (var m in Resources.LoadAll<Material>("SkylineFx"))
                     if (m != null && seen.Add("fx" + m.GetInstanceID()))
-                        Draw(root, sphere, new[] { m }, UnityEngine.Rendering.ShadowCastingMode.On, Slot());
+                        jobs.Add(new WarmJob { mesh = sphere, mats = new[] { m }, shadows = UnityEngine.Rendering.ShadowCastingMode.On, layer = layer0 });
 
-            yield return null;
-            yield return null;
+            if (inPlayer)
+            {
+                for (int v = 0; v < SkylineBotLook.ShardVariants; v++) AddLayout(SkylineBotLook.ShardMesh(v));
+                foreach (var pt in new[] { PrimitiveType.Cube, PrimitiveType.Sphere, PrimitiveType.Cylinder, PrimitiveType.Capsule, PrimitiveType.Quad })
+                    AddLayout(SkylineBotLook.PrimitiveMesh(pt));
+                foreach (var model in _models)
+                    if (model != null)
+                        foreach (var mf in model.GetComponentsInChildren<MeshFilter>(true)) AddLayout(mf.sharedMesh);
+                var inks = new List<Material>();
+                foreach (var name in new[] { SkylineInkRoles.TemplatePlain, SkylineInkRoles.TemplateNormal, SkylineInkRoles.TemplateEmission, SkylineInkRoles.TemplateNormalEmission })
+                {
+                    var template = Resources.Load<Material>(SkylineInkRoles.TemplateFolder + name);
+                    if (template == null) continue;
+                    inks.Add(template);                                           // mask pass off
+                    var on = new Material(template) { name = "Prewarm role" };
+                    SkylineInkRoles.SetRole(on, SkylineInkRoles.Hostile);         // mask pass on
+                    temp.Add(on);
+                    inks.Add(on);
+                }
+                foreach (var kv in layouts)
+                    foreach (var m in inks)
+                    {
+                        jobs.Add(new WarmJob { mesh = kv.Value, mats = new[] { m }, shadows = UnityEngine.Rendering.ShadowCastingMode.On, layer = layer0 });
+                        matrix++;
+                    }
+            }
+
+            float t0 = Time.realtimeSinceStartup;
+            int drawn = 0, chunks = 0;
+            var made = new List<GameObject>(ChunkSize);
+            for (int start = 0; start < jobs.Count; start += ChunkSize)
+            {
+                if (Time.realtimeSinceStartup - t0 > WarmBudgetSeconds)
+                {
+                    Debug.Log("SKYLINE_PREWARM stopped at its " + WarmBudgetSeconds + " s budget: " + drawn + " of " + jobs.Count + " drawings made");
+                    break;
+                }
+                foreach (var kv in roots) if (kv.Key != null && kv.Value != null) Place(kv.Key, kv.Value);   // the camera may have moved
+                int slot = 0;
+                for (int i = start; i < jobs.Count && i < start + ChunkSize; i++)
+                {
+                    var j = jobs[i];
+                    var at = RootFor(j.layer);
+                    if (at == null) continue;
+                    var pos = new Vector3((slot % 12 - 6) * 0.004f, (slot / 12 % 12 - 6) * 0.004f, 0f);
+                    slot++;
+                    var go = j.line != null ? Line(at, j.line, pos) : Draw(at, j.mesh, j.mats, j.shadows, pos);
+                    go.layer = j.layer;
+                    made.Add(go);
+                    drawn++;
+                }
+                chunks++;
+                yield return null;
+                yield return null;
+                foreach (var go in made) if (go != null) Object.Destroy(go);
+                made.Clear();
+            }
             foreach (var t in roots.Values) if (t != null) Object.Destroy(t.gameObject);
             foreach (var o in temp) if (o != null) Object.Destroy(o);
-            Debug.Log("SKYLINE_PREWARM drew " + n + " idle drawings once (" + roots.Count + " cameras)");
+            Debug.Log("SKYLINE_PREWARM drew " + drawn + " drawings once (" + idle + " idle pooled, " + scene + " scene materials, " + matrix +
+                      " ink template x layout, " + layouts.Count + " mesh layouts; " + chunks + " chunks, " + roots.Count + " cameras, " +
+                      (Time.realtimeSinceStartup - t0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s)");
         }
 
         static Material[] AcidMaterials() => new[]

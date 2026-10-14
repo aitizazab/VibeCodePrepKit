@@ -68,6 +68,13 @@ namespace JamKit.SkylineRepo
 
         readonly List<float> _frames = new List<float>(32768);
         readonly List<Hitch> _worst = new List<Hitch>(WorstCount + 1);
+        // perf round 5: how the slow frames are spread (a 1% low of 29 ms can be 30 stalls or 200 mid-size frames), and the first
+        // SpikeKeep frames over SpikeMs with what had just happened, so the next pass can say which events they follow
+        const float SpikeMs = 25f;
+        const int SpikeKeep = 80;
+        readonly List<Hitch> _spikes = new List<Hitch>(SpikeKeep);
+        int _over17, _over25, _over33, _over50, _over100;
+        bool _lastCoverDone;
         readonly List<Phase> _phases = new List<Phase>();
         Phase _phase;
         string _outDir;
@@ -95,6 +102,7 @@ namespace JamKit.SkylineRepo
             DontDestroyOnLoad(go);
             var probe = go.AddComponent<SkylinePerfProbe>();
             probe._outDir = dir;
+            SkylineInkFeature.ForceOff = SkylineRunArgs.Has("-skyline-no-ink");   // measurement only: the cost of the ink passes
             probe._start = Time.realtimeSinceStartup;
             probe._lastGc = GC.CollectionCount(0);
             string cap = SkylineRunArgs.Value("-skyline-perf-seconds");
@@ -242,8 +250,11 @@ namespace JamKit.SkylineRepo
             int gc = GC.CollectionCount(0);
             int gcs = gc - _lastGc;
             _lastGc = gc;
-            bool startedAfterWarmup = _lastT >= Warmup;
+            // the window starts after the warm-up seconds AND once the start cover has begun to lift (the scene's load-time
+            // drawings run behind it; in the editor there is no cover), judged on the previous frame so the straddling frame is out
+            bool startedAfterWarmup = _lastT >= Warmup && _lastCoverDone;
             _lastT = t;
+            _lastCoverDone = SkylineStartCover.Done;
             if (!startedAfterWarmup)
             {
                 if (dt > _warmupWorst) _warmupWorst = dt;
@@ -255,6 +266,11 @@ namespace JamKit.SkylineRepo
             if (wrecks > _maxWrecks) _maxWrecks = wrecks;
             _frames.Add(dt);
             float ms = dt * 1000f;
+            if (ms > 16.7f) _over17++;
+            if (ms > 25f) _over25++;
+            if (ms > 33.4f) _over33++;
+            if (ms > 50f) _over50++;
+            if (ms > 100f) _over100++;
             // the frame that just ended (unscaledDeltaTime's frame) is the one whose split EndOfFrames stored
             float cpu = _prevCpu, phys = _prevPhys, wait = Mathf.Max(0f, ms - cpu - phys);
             if (_phase != null)
@@ -266,6 +282,8 @@ namespace JamKit.SkylineRepo
                 _phase.to = t;
                 if (ms > _phase.worstMs) { _phase.worstMs = ms; _phase.worstAfter = _lastLine; }
             }
+            if (ms >= SpikeMs && _spikes.Count < SpikeKeep)
+                _spikes.Add(new Hitch { ms = ms, at = t, gcs = gcs, after = _lastLine, phase = _phase != null ? _phase.name : "", bots = bots, wrecks = wrecks, cpu = cpu, phys = phys, wait = wait, gpu = -1f });
             if (_worst.Count < WorstCount || ms > _worst[WorstCount - 1].ms)
             {
                 float gpu = -1f;
@@ -335,6 +353,20 @@ namespace JamKit.SkylineRepo
                           ", wait " + F(h.wait) + ", gpu " + F(h.gpu) + "; batches " + h.batches + ", setpass " + h.setPass + ", casters " + h.casters +
                           ", tris " + h.tris + "), gcs " + h.gcs + ", phase " + h.phase + ", bots " + h.bots + ", wrecks " + h.wrecks + ", after: " + h.after);
             }
+            var spikes = new StringBuilder();
+            for (int i = 0; i < _spikes.Count; i++)
+            {
+                var h = _spikes[i];
+                if (i > 0) spikes.Append(',');
+                spikes.Append("{\"ms\":").Append(F(h.ms)).Append(",\"at\":").Append(F(h.at)).Append(",\"gcs\":").Append(h.gcs)
+                    .Append(",\"after\":\"").Append(Esc(h.after)).Append("\",\"phase\":\"").Append(Esc(h.phase))
+                    .Append("\",\"bots\":").Append(h.bots).Append(",\"wrecks\":").Append(h.wrecks)
+                    .Append(",\"cpuMs\":").Append(F(h.cpu)).Append(",\"physMs\":").Append(F(h.phys)).Append(",\"waitMs\":").Append(F(h.wait)).Append('}');
+                Debug.Log("SKYLINE_PERF spike " + F(h.ms) + " ms at " + F(h.at) + " s (cpu " + F(h.cpu) + ", physics " + F(h.phys) + ", wait " + F(h.wait) +
+                          "), gcs " + h.gcs + ", phase " + h.phase + ", bots " + h.bots + ", wrecks " + h.wrecks + ", after: " + h.after);
+            }
+            Debug.Log("SKYLINE_PERF frames over 16.7 ms: " + _over17 + ", over 25 ms: " + _over25 + ", over 33 ms: " + _over33 + ", over 50 ms: " + _over50 +
+                      ", over 100 ms: " + _over100 + " of " + _frames.Count + " (the first " + _spikes.Count + " over " + F(SpikeMs) + " ms are listed as spikes)");
             var phases = new StringBuilder();
             float worstFight = 0f;
             int fightsMeasured = 0, written = 0;
@@ -382,6 +414,9 @@ namespace JamKit.SkylineRepo
                     ",\"renderScale\":" + F(asset != null ? asset.renderScale : 1f) + ",\"upscaling\":\"" + (asset != null ? asset.upscalingFilter.ToString() : "") + "\"" +
                     ",\"shadows\":\"" + Esc(asset != null ? asset.shadowDistance.ToString("0", CultureInfo.InvariantCulture) + " m x" + asset.shadowCascadeCount : "") + "\"" +
                     ",\"gpuTiming\":" + (_timingOn ? "true" : "false") +
+                    ",\"inkOff\":" + (SkylineInkFeature.ForceOff ? "true" : "false") +
+                    ",\"over\":{\"ms16_7\":" + _over17 + ",\"ms25\":" + _over25 + ",\"ms33\":" + _over33 + ",\"ms50\":" + _over50 + ",\"ms100\":" + _over100 + "}" +
+                    ",\"spikes\":[" + spikes + "]" +
                     ",\"phases\":[" + phases + "]" +
                     ",\"worst\":[" + worst + "]}");
             }
