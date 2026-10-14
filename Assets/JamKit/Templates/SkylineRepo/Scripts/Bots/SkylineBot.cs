@@ -55,7 +55,7 @@ namespace JamKit.SkylineRepo
     /// from the shooter); only a Writ spot (<see cref="SkylineSpotMarker"/>) glows and sparks on a live bot; a fresh wreck
     /// sparks (<see cref="SkylineWreck"/>).
     /// </summary>
-    public sealed class SkylineBot : MonoBehaviour, ISkylineHittable, ISkylineAimable
+    public sealed partial class SkylineBot : MonoBehaviour, ISkylineHittable, ISkylineAimable
     {
         // ------------------------------------------------------------------ statics
 
@@ -541,6 +541,7 @@ namespace JamKit.SkylineRepo
             Knockback(dt);
             Face(dt, sees, live);
             Pose(dt);
+            TickDamage(dt);
             TickFlash(dt);
         }
 
@@ -1158,6 +1159,7 @@ namespace JamKit.SkylineRepo
             if (plateWasOn && Parts.plates[plate] != null) Flash(Parts.plates[plate].GetComponentsInChildren<Renderer>());
             else if (hit.zone == HitZone.Body || hit.zone == HitZone.Plate) Flash(Parts.bodyRenderers);
             ApplyWear();
+            OnDamageHealth();
             if (r.damage.plateShed >= 0) ShedPlate(r.damage.plateShed, hit.normal);
             Knock(hit.direction, hit.knockback);
             if (r.damage.wrecked)
@@ -1378,6 +1380,7 @@ namespace JamKit.SkylineRepo
                 if (Parts.plates[i] != null) Parts.plates[i].gameObject.SetActive(true);
             }
             ApplyWear(true);
+            ResetDamage();
             Debug.Log("SKYLINE_BOT " + Id + " practice refill");
         }
 
@@ -1524,7 +1527,7 @@ namespace JamKit.SkylineRepo
 
         void Face(float dt, bool sees, bool live)
         {
-            _face.Show(Brain.Face);
+            _face.Show(DamageGlitch ? BotFace.Hurt : Brain.Face);
             if (Beam != null)
             {
                 // the spotlight turns: onto the beam's point, else the target, else a slow idle scan
@@ -1590,7 +1593,7 @@ namespace JamKit.SkylineRepo
                 rig.rotation = Quaternion.Euler(-_bumpTilt, _yaw, 0f);
                 bool fast = Brain.State == BotState.Telegraph || (_acid != null && _acid.Running);
                 bool cleaning = !IsAwake && _cleaning != null && !practice;
-                _spin += (fast ? 1440f : cleaning ? 300f : 120f) * dt;
+                _spin += (fast ? 1440f : cleaning ? 300f : 120f) * _damageSpin * dt;
                 if (Parts.spinner != null) Parts.spinner.localRotation = Quaternion.Euler(0f, _spin, 0f);
             }
             else
@@ -1614,11 +1617,12 @@ namespace JamKit.SkylineRepo
                 // the lean in the drone's own frame: forward motion pitches it, sideways motion rolls it
                 Vector3 leanLocal = Quaternion.Euler(0f, -_yaw, 0f) * lean;
                 rig.rotation = Quaternion.Euler(Mathf.Clamp(leanLocal.z, -25f, 25f), _yaw, Mathf.Clamp(-leanLocal.x, -25f, 25f));
-                _spin += 1800f * dt;
+                _spin += 1800f * _damageSpin * dt;
                 if (Parts.spinner != null)
                     for (int i = 0; i < Parts.spinner.childCount; i++) Parts.spinner.GetChild(i).localRotation = Quaternion.Euler(0f, _spin * (i % 2 == 0 ? 1f : -1f), 0f);
                 ChargeBall(dt);
             }
+            if (_lookStage > 0) rig.rotation = rig.rotation * DamageTilt();   // the limp damage puts in the pose (SkylineBotDamage.cs)
         }
 
         /// <summary>The drone's telegraph: a red ball swelling at the muzzle until it fires (lit, not glowing).</summary>
@@ -1645,7 +1649,8 @@ namespace JamKit.SkylineRepo
         public Collider PlateCollider(int i) =>
             Parts.plates != null && i >= 0 && i < Parts.plates.Length && Parts.plates[i] != null ? Parts.plates[i].GetComponentInChildren<Collider>() : null;
 
-        public Collider WeakPointCollider => Parts.weakPoint != null ? Parts.weakPoint.GetComponentInChildren<Collider>() : null;
+        public Collider WeakPointCollider =>
+            Parts.weakParts.Count > 0 ? Parts.weakParts[0].GetComponentInChildren<Collider>() : Parts.weakPoint != null ? Parts.weakPoint.GetComponentInChildren<Collider>() : null;
 
         /// <summary>The largest body-zone collider (the chassis).</summary>
         public Collider BodyCollider

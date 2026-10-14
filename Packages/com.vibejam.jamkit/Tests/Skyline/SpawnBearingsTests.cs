@@ -77,7 +77,7 @@ namespace JamKit.Tests.Skyline
                     Assert.That(Ang(Brg(q.player, d.position), q.viewYawDeg), Is.GreaterThan(half), d.id + " is in view");
             }
             if (used.Count == 2)
-                Assert.That(Ang(Brg(q.player, used[0].position), Brg(q.player, used[1].position)), Is.GreaterThanOrEqualTo(90.0 - Eps));
+                Assert.That(Ang(Brg(q.player, used[0].position), Brg(q.player, used[1].position)), Is.GreaterThanOrEqualTo(90.0 - FloorRules.BearingSlack - Eps));
             if (c.relaxed == 0 && q.lastMeanBearing.HasValue && used.Count == 2)
             {
                 double far = used.Max(d => Ang(Brg(q.player, d.position), q.lastMeanBearing.Value));
@@ -85,7 +85,7 @@ namespace JamKit.Tests.Skyline
             }
         }
 
-        /// <summary>Brute force: is there ANY legal choice at the loosest level (15 m, 90 degrees, allowed kinds, both doors used)?</summary>
+        /// <summary>Brute force: is there ANY legal choice at the loosest level (15 m, 90 degrees less the slack, allowed kinds, both doors used)?</summary>
         static bool AnyLegalAtLoosest(SpawnQuery q, IReadOnlyList<SpawnDoor> doors)
         {
             var far = doors.Where(d => (q.busyDoors == null || !q.busyDoors.Contains(d.id)) && Flat(q.player, d.position) >= 15.0).ToList();
@@ -93,7 +93,7 @@ namespace JamKit.Tests.Skyline
             for (int i = 0; i < far.Count; i++)
                 for (int j = i + 1; j < far.Count; j++)
                 {
-                    if (Ang(Brg(q.player, far[i].position), Brg(q.player, far[j].position)) < 90.0) continue;
+                    if (Ang(Brg(q.player, far[i].position), Brg(q.player, far[j].position)) < 90.0 - FloorRules.BearingSlack) continue;
                     for (int mask = 0; mask < (1 << e.Length); mask++)
                     {
                         bool good = true, a = false, b = false;
@@ -298,7 +298,7 @@ namespace JamKit.Tests.Skyline
                 var others = c.assignments.Where(a => a.enemy == D).Select(a => a.door).Distinct().ToList();
                 Assert.That(others.Count, Is.EqualTo(1), "the drones share the other point");
                 Assert.That(SpawnBearings.AngleBetween(SpawnBearings.Bearing(q.player, gon.position),
-                    SpawnBearings.Bearing(q.player, others[0].position)), Is.GreaterThanOrEqualTo(90f - 1e-3f));
+                    SpawnBearings.Bearing(q.player, others[0].position)), Is.GreaterThanOrEqualTo(90f - FloorRules.BearingSlack - 1e-3f));
             }
         }
 
@@ -440,7 +440,7 @@ namespace JamKit.Tests.Skyline
                 for (int j = i + 1; j < ok.Count; j++)
                 {
                     double ba = Brg(q.player, ok[i].position), bb = Brg(q.player, ok[j].position);
-                    if (Ang(ba, bb) < 90.0) continue;
+                    if (Ang(ba, bb) < 90.0 - FloorRules.BearingSlack) continue;
                     if (relaxed == 0 && q.lastMeanBearing.HasValue
                         && Math.Max(Ang(ba, q.lastMeanBearing.Value), Ang(bb, q.lastMeanBearing.Value)) < 120.0) continue;
                     bool feasible = false;

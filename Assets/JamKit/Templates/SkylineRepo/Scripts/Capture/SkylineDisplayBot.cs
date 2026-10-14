@@ -26,6 +26,8 @@ namespace JamKit.SkylineRepo
         public float bodyScale = 1f;
         [Tooltip("Display only: each rotor (the children of the drone's Rotors) is scaled by this about its own centre.")]
         public float rotorScale = 1f;
+        [Tooltip("The bot is shown as it looks at this damage stage (0 undamaged, 1 at 70% health, 2 at 30%), with no animation.")]
+        public int damageStage;
 
         SkylineBot _bot;
         readonly List<Renderer> _hidden = new List<Renderer>();
@@ -53,6 +55,7 @@ namespace JamKit.SkylineRepo
             if (!Mathf.Approximately(bodyScale, 1f) && _bot.Rig != null) _bot.Rig.localScale *= bodyScale;
             if (!Mathf.Approximately(rotorScale, 1f) && _bot.Parts != null && _bot.Parts.spinner != null && _bot.Parts.spinner.name == "Rotors")
                 foreach (Transform rotor in _bot.Parts.spinner) rotor.localScale *= rotorScale;
+            if (damageStage > 0) _bot.ForceDamageStage(damageStage);
             // proof for the pass's log: what was made, where, and how many of its renderers are on
             int visible = 0;
             foreach (var r in _bot.GetComponentsInChildren<Renderer>(false)) if (r.enabled) visible++;

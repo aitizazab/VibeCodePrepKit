@@ -152,7 +152,7 @@ namespace JamKit.Skyline
                 for (int j = i + 1; j < legal.Count; j++)
                 {
                     var a = legal[i]; var b = legal[j];
-                    if (AngleBetween(a.bearing, b.bearing) < FloorRules.MinBearingSpread) continue;
+                    if (AngleBetween(a.bearing, b.bearing) < FloorRules.MinBearingSpread - FloorRules.BearingSlack) continue;
                     if (useLast)
                     {
                         // The pair's "first" door is the one further from the last wave; it must clear the 120.

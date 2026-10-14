@@ -499,6 +499,10 @@ namespace JamKit.SkylineRepo
         /// <summary>Plate_&lt;plateId&gt; per PlateDef, in the def's order (null where the model lacks one).</summary>
         public Transform[] plates;
         public Transform weakPoint, face, muzzle, nozzle, lamp, rail, mineDrop;
+        /// <summary>The transforms whose colliders are the weak zone, when that is not <see cref="weakPoint"/>: the drone's rotors (the
+        /// <c>Rotors</c> blades and their <c>Duct*</c> rings), whose lens stays part of the body (the creator's redesign). Empty: the
+        /// weak zone is <see cref="weakPoint"/>.</summary>
+        public readonly List<Transform> weakParts = new List<Transform>();
         /// <summary>Moving bits: the drone's rotors, the floor-care unit's brush, the gondola's squeegee (may be null).</summary>
         public Transform spinner, squeegee;
         /// <summary>Where it is shot at and sees from, in rig space.</summary>
@@ -547,9 +551,11 @@ namespace JamKit.SkylineRepo
                     case SkylineEnemies.GondolaId: Gondola(def, parts); break;
                     default: Drone(def, parts); break;
                 }
+                ScaleWeakParts(def, parts);
                 InkRoles(def, parts);
             }
             AssignZones(def, parts, owner);
+            ScaleBody(def, parts);
             return parts;
         }
 
@@ -563,6 +569,7 @@ namespace JamKit.SkylineRepo
             var parts = new SkylineBotParts { fromModel = true };
             FromModel(def, holder, model, parts);
             AssignZones(def, parts, null);
+            ScaleBody(def, parts);
             return parts;
         }
 
@@ -623,6 +630,7 @@ namespace JamKit.SkylineRepo
                 foreach (var r in p.mount.GetComponentsInChildren<Renderer>(true))
                     if (r.GetComponent<Collider>() == null && r is MeshRenderer) r.gameObject.AddComponent<BoxCollider>();
             }
+            ScaleWeakParts(def, p);
             ClearWeakPoint(p);
             // real surfaces in place of the FBX's flat colours (judge round 3)
             SkylineBotLook.Dress(p.rig);
@@ -641,8 +649,43 @@ namespace JamKit.SkylineRepo
             // the drone's weak point is its rotors (the creator's redesign): its lens (the model's WeakPoint, the body-cam) stays
             // part of the hostile body; every other body keeps its WeakPoint subtree as the weak part
             if (p.weakPoint != null && def.id != SkylineEnemies.DroneId) SkylineInkRoles.Apply(p.weakPoint.gameObject, SkylineInkRoles.BotWeakPoint);
-            if (def.id == SkylineEnemies.DroneId && p.spinner != null && p.spinner.name == "Rotors")
-                SkylineInkRoles.Apply(p.spinner.gameObject, SkylineInkRoles.BotWeakPoint);
+            if (def.id == SkylineEnemies.DroneId)
+                foreach (var w in p.weakParts) SkylineInkRoles.Apply(w.gameObject, SkylineInkRoles.BotWeakPoint);
+        }
+
+        /// <summary>The larger bots (the creator, 2026-10-15: "It was impossible to land a headshot on a drone"). The weak part grows
+        /// first, by <see cref="EnemyDef.weakPointScale"/> about its own centre, so <see cref="ClearWeakPoint"/> trims the body boxes round
+        /// what it will be; the whole body then grows by <see cref="EnemyDef.bodyScale"/> in <see cref="ScaleBody"/>. The hit zones are the
+        /// visible parts' own colliders, so they grow with the parts and nothing invisible is added. The drone's weak part is its rotors:
+        /// each rotor blade set and each duct ring scales about its own hub, and they become <see cref="SkylineBotParts.weakParts"/>.</summary>
+        static void ScaleWeakParts(EnemyDef def, SkylineBotParts p)
+        {
+            if (def.id == SkylineEnemies.DroneId)
+            {
+                p.weakParts.Clear();
+                if (p.spinner != null && p.spinner.name == "Rotors")
+                {
+                    p.weakParts.Add(p.spinner);
+                    foreach (Transform rotor in p.spinner) rotor.localScale *= def.weakPointScale;
+                }
+                foreach (var t in p.rig.GetComponentsInChildren<Transform>(true))
+                    if (t.name.StartsWith("Duct") && (p.spinner == null || !t.IsChildOf(p.spinner)))
+                    {
+                        p.weakParts.Add(t);
+                        t.localScale *= def.weakPointScale;
+                    }
+                return;
+            }
+            if (p.weakPoint != null && !Mathf.Approximately(def.weakPointScale, 1f)) p.weakPoint.localScale *= def.weakPointScale;
+        }
+
+        /// <summary>The whole body (and the spotlight's stand) by <see cref="EnemyDef.bodyScale"/> about the root: the floor-care unit's
+        /// feet stay on the floor, a hovering bot grows round its centre.</summary>
+        static void ScaleBody(EnemyDef def, SkylineBotParts p)
+        {
+            if (Mathf.Approximately(def.bodyScale, 1f)) return;
+            p.rig.localScale *= def.bodyScale;
+            if (p.mount != null) p.mount.localScale *= def.bodyScale;
         }
 
         /// <summary>
@@ -730,7 +773,9 @@ namespace JamKit.SkylineRepo
         {
             foreach (var c in p.rig.GetComponentsInChildren<Collider>(true)) Zone(c, owner, HitZone.Body, -1);
             if (p.mount != null) foreach (var c in p.mount.GetComponentsInChildren<Collider>(true)) Zone(c, owner, HitZone.Body, -1);
-            if (p.weakPoint != null) foreach (var c in p.weakPoint.GetComponentsInChildren<Collider>(true)) Zone(c, owner, HitZone.WeakPoint, -1);
+            if (p.weakParts.Count > 0)
+                foreach (var w in p.weakParts) foreach (var c in w.GetComponentsInChildren<Collider>(true)) Zone(c, owner, HitZone.WeakPoint, -1);
+            else if (p.weakPoint != null) foreach (var c in p.weakPoint.GetComponentsInChildren<Collider>(true)) Zone(c, owner, HitZone.WeakPoint, -1);
             if (p.plates != null)
                 for (int i = 0; i < p.plates.Length; i++)
                     if (p.plates[i] != null)

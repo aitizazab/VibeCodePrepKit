@@ -106,6 +106,9 @@ namespace JamKit.Skyline
         /// is at least <see cref="MinFromLastWave"/> degrees from the previous wave's mean bearing; never closer than
         /// <see cref="MinSpawnDistance"/> m; never a point in the player's view within <see cref="ViewExclusionRange"/> m.</summary>
         public const float MinBearingSpread = 90f, MinFromLastWave = 120f, MinSpawnDistance = 15f, ViewExclusionRange = 25f;
+        /// <summary>The slack (degrees) the spawn choice allows on <see cref="MinBearingSpread"/>. The larger bots (2026-10-15) need their end doors
+        /// 0.63 m off the walls, so a player in a hall corner sees the two end doors 89.3 degrees apart instead of 90.2; nobody can see 0.7 degrees.</summary>
+        public const float BearingSlack = 1.5f;
         /// <summary>Layout rule 1: every standable point has at least this many exits that leave a 10 m radius
         /// (<see cref="ExitRadius"/>) by different routes.</summary>
         public const int MinExits = 2;

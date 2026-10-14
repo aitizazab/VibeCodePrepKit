@@ -262,6 +262,43 @@ pane (`SkylineFacade.TryBreak`) and flies on, as the player's shots do. Sight st
 see-through for sight"; the pure sim and the player's `SkylineShooting.Mask` do the same), so a drone behind a rail sees you,
 telegraphs, and its bolt hits the rail.
 
+## Sizes (the creator, 2026-10-15, from the first playtest)
+
+"It was impossible to land a headshot on a drone in the last build." The drone was "tiny. I could barely see it at the ranges I was
+fighting it." All three main bots are larger and their weak parts more than proportionally. In `EnemyDef`: `bodyScale` (the whole
+rig, and the spotlight's stand, scaled about the bot's origin: the floor-care unit stays on the floor), `weakPointScale` (the weak
+part's extra scale about its own centre, applied before the body boxes are trimmed round it, so the weak part stays reachable) and
+`weakPointRadius` (its visible radius in the unscaled model). `bodyRadius`, which the sims use for sight, nav and clearances, is the
+old radius times the body scale. The hit zones are the visible parts' own colliders (box colliders fitted to the meshes), so they grow
+with the parts and no invisible box was added. The gondola is unchanged (not yet played).
+
+| Bot | Body scale | Body radius (m) | Weak part | Its extra scale | Weak radius (m) |
+|---|---|---|---|---|---|
+| Mall-cop drone | 1.4 (the creator's preview) | 0.45 -> 0.63 | the rotors with their ducts (not the lens) | 2.0 (the preview) | 0.175 -> 0.49 |
+| Floor-care unit | 1.25 | 0.5 -> 0.625 | the acid canister | 1.8 | 0.13 -> 0.29 |
+| Spotlight | 1.3 | 0.6 -> 0.78 | the lens | 1.3 | 0.33 -> 0.56 |
+
+How wide the weak part looks (degrees, `2 atan(radius / range)`; `BotSizeTests.PrintTheAngularSizes`):
+
+| Weak part | 10 m | 20 m | 30 m |
+|---|---|---|---|
+| Drone rotors | 2.0 -> 5.6 | 1.0 -> 2.8 | 0.67 -> 1.9 |
+| Floor-care canister | 1.5 -> 3.4 | 0.74 -> 1.7 | 0.50 -> 1.1 |
+| Spotlight lens | 3.8 -> 6.4 | 1.9 -> 3.2 | 1.3 -> 2.1 |
+
+The drone's weak zone is now its rotors: the `Rotors` blade sets and the `Duct*` rings around them (the ring's box is the rotor
+disc's hit area; the blades alone are a 0.3 x 0.04 m bar) get the weak-point hit zone and the pulsing weak-point outline; the lens
+(the model's `WeakPoint`) is part of the body. `SkylineBotParts.weakParts` carries them, and `SkylineBot.WeakPointCollider` returns
+the first of them. The display-only preview scale in `SkylineArenaDress` (1.4 and 2) is gone: it is the gameplay bot now.
+
+What the larger radii moved (floor sims): the end doors had to come in off the walls (a body needs its radius clear of the wall, the lint's
+door-body check): vents at z +-26.85, x -34.35 and 34.35 (they were 27.05 and 34.55), the corridor hatches at z +-26.85 and x -12 (the
+5.86 m to the nearest shop circle needed the 6 m rule: it was x -10). A player in a hall corner now sees the two end doors 89.3 degrees
+apart instead of 90.2, so the spawn choice allows `FloorRules.BearingSlack` = 1.5 degrees on the 90 (the four spawn tests allow the
+same). The camper test's bound went from 40 to 45 s (see its comment). To check in Unity: gallery stills of each bot, a weak-point
+still from 20 m, the drone's rotors against its egg (a 2.8x rotor on a 1.4x body leaves the ducts 0.14 m into the egg), the drone's
+hover height against the ceilings, the floor-care unit through the corridors and hatches.
+
 ## Damage states (every bot; the creator, 2026-10-14)
 
 "I want to see model state changes when taking damage changes health thresholds, for example a hit that takes a drone
@@ -273,6 +310,19 @@ damage happening."
   of sparks), not a silent swap. **One hit that crosses several thresholds plays each stage's animation in quick
   succession** (above 90% to below 30% shows the 70% and the 30% damage happening, back to back).
 - Damage states are separate from Writ spots (the cracked casing with yellow outlines) and stack with them.
+
+**Implemented (2026-10-15).** `DamageStates` (pure, tested): the stage is how many of the thresholds (70%, 30%) the bot's chassis is at
+or below; `Observe` reports each stage a drop crosses, in order, so one hit from above 90% to below 30% reports both. The plates are
+armour over the chassis and shed on their own. In Unity (`SkylineBotDamage.cs`, a partial of `SkylineBot`): crossing a stage plays the
+damage happening (a hard spark burst at the damage point, three or four torn shards thrown off, the panel-pop sound, a shake and a
+kick, the face flashing its hurt screen); a stage queued behind another plays 0.3 s later. What stays: a scorched patch and two
+dangling wires at the damage, sparks now and then (every 1.6-3 s at stage 1, 0.7-1.4 s at stage 2), smoke puffs from stage 2, the
+face glitching to its hurt screen every few seconds, rotors and brushes slower (70%, then 40%), and a limp in the pose: the drone
+rolls and lists and bends its left rotor duct 14 degrees at stage 1 and the right one 22 degrees the other way at stage 2, the
+floor-care unit shimmies, the spotlight's head droops 4 then 10 degrees and twitches, the gondola sags 2 then 5 degrees. A practice
+bot's refill clears it. `SkylineDisplayBot.damageStage` shows a bot at a stage with no animation (for gallery stills). Where the
+damage sits on each body (`DamagePoint`) is a guess from the model files: check it in a still.
+
 
 ## The gondola rides OUTSIDE the glass (the creator, 2026-10-14)
 

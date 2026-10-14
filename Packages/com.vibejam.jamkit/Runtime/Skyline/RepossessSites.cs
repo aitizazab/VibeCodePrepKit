@@ -130,12 +130,12 @@ namespace JamKit.Skyline
                     // Roof vents added so every spot of the hall has a legal spawn pair (W2's SpawnBearings: 15 m away, 90 degrees
                     // apart; the drone and gondola waves too). Without them the end bands (x beyond 21 m, the leg, the corridor ends)
                     // had none. Above the corridors, the west leg, the east promenade, and the skylight frame's west edge.
-                    Vent("vent-corridor-n", 10f, 27.05f),
-                    Vent("vent-corridor-s", 10f, -27.05f),
-                    Vent("vent-leg-n", -34.55f, 10f),
-                    Vent("vent-leg-s", -34.55f, -10f),
-                    Vent("vent-promenade-n", 34.55f, 10f),
-                    Vent("vent-promenade-s", 34.55f, -10f),
+                    Vent("vent-corridor-n", 10f, 26.85f),
+                    Vent("vent-corridor-s", 10f, -26.85f),
+                    Vent("vent-leg-n", -34.35f, 10f),
+                    Vent("vent-leg-s", -34.35f, -10f),
+                    Vent("vent-promenade-n", 34.35f, 10f),
+                    Vent("vent-promenade-s", 34.35f, -10f),
                     Vent("vent-w-frame-n", -30f, 18f),
                     Vent("vent-w-frame-s", -30f, -18f),
                     // Service hatches: the corridors' east ends open east onto the promenade; the west leg's open east into the hall.
@@ -144,8 +144,8 @@ namespace JamKit.Skyline
                     Door("hatch-w-n", DoorKind.ServiceHatch, -33f, 0f, 14f, 90f),
                     Door("hatch-w-s", DoorKind.ServiceHatch, -33f, 0f, -14f, 90f),
                     // Corridor hatches (added with the roof vents above): a floor-care unit starts in the corridor behind the shop row.
-                    Door("hatch-corridor-n", DoorKind.ServiceHatch, -10f, 0f, 27f, 180f),
-                    Door("hatch-corridor-s", DoorKind.ServiceHatch, -10f, 0f, -27f, 0f),
+                    Door("hatch-corridor-n", DoorKind.ServiceHatch, -12f, 0f, 26.85f, 180f),
+                    Door("hatch-corridor-s", DoorKind.ServiceHatch, -12f, 0f, -26.85f, 0f),
                     // The façade rail's ends, outside the glass, facing in (west).
                     Door("rail-n", DoorKind.RailEnd, 36.5f, RailY, 27f, 270f),
                     Door("rail-s", DoorKind.RailEnd, 36.5f, RailY, -27f, 270f),
