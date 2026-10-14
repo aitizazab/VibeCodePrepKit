@@ -62,8 +62,8 @@ namespace JamKit.SkylineRepo
             if (source != null)
             {
                 var clip = SkylineBabble.Make(voice, text, seed);
-                if (clip != null) source.PlayOneShot(clip, 0.9f * SkylineMix.UserGain(SkylineSoundCategory.Voices));
-                if (clip != null) SkylineSounds.NoteSpeech(source, clip.length);   // the mix ducks the effects under the bark
+                // the mix decides whether it is heard (one bark at a time, never over a teaching line), at the bark level, ducked under the player's shots
+                if (clip != null) SkylineSounds.PlayBark(source, clip, SkylineMix.UserGain(SkylineSoundCategory.Voices));
             }
             return bubble;
         }

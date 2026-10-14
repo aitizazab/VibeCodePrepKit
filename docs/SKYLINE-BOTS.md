@@ -237,3 +237,11 @@ damage happening."
 mines through the glass?" The window-washer gondola rides the façade's outside face, looking in through the glass, and
 lays its mines on the inside of the wall-run (through the façade's service hatches). Built so in the Food Court floor's
 east façade.
+
+## How the bots' sounds are mixed (2026-10-14)
+
+The bots' one-shots (alert, telegraph, attack, hurt, plate shed, wreck, mine and acid sounds) go through the voice gate and a gentle
+harsh-band EQ (3.4 kHz, -4 dB; -5 to -6 dB for the drone's telegraph, floor-care hurt and alert, the spotlight's hurt and attack),
+at most 2-3 of each kind at once with the nearest bot winning; their barks are one at a time, quieter and low-passed; only the nearest
+three idle loops are heard. The recipes themselves are untouched. See `docs/SKYLINE-PIPELINE.md`, "The mix". Replacement options for
+the sounds that are grating on their own are rendered in `FableAnimationTests/audio/skyline-sfx-options/` for the creator to choose.

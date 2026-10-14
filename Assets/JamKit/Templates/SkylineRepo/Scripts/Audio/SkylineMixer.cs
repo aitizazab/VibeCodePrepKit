@@ -100,7 +100,7 @@ namespace JamKit.SkylineRepo
 
         void OnDestroy()
         {
-            if (SkylineSounds.Started > 0) Debug.Log(SkylineSounds.Report());
+            if (SkylineSounds.Started > 0) { Debug.Log(SkylineSounds.Report()); Debug.Log(SkylineSounds.ReportSounds()); }
         }
     }
 }

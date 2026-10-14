@@ -19,7 +19,7 @@ namespace JamKit.SkylineRepo
         sealed class Voice
         {
             public Waveform wave;
-            public float baseHz, spreadSemis, blip, gap, volume, duty = 0.5f;
+            public float baseHz, spreadSemis, blip, gap, volume, duty = 0.5f, lowPassHz;
             public bool radio;
         }
 
@@ -28,10 +28,10 @@ namespace JamKit.SkylineRepo
             { "dot", new Voice { wave = Waveform.Square, baseHz = 620f, spreadSemis = 5f, blip = 0.045f, gap = 0.018f, volume = 0.32f, duty = 0.35f, radio = true } },
             { "concierge", new Voice { wave = Waveform.Sine, baseHz = 440f, spreadSemis = 2f, blip = 0.06f, gap = 0.02f, volume = 0.4f } },
             { "nan", new Voice { wave = Waveform.Triangle, baseHz = 330f, spreadSemis = 4f, blip = 0.07f, gap = 0.03f, volume = 0.42f } },
-            { SkylineEnemies.DroneId, new Voice { wave = Waveform.Square, baseHz = 520f, spreadSemis = 2f, blip = 0.04f, gap = 0.012f, volume = 0.28f, duty = 0.5f } },
-            { SkylineEnemies.FloorCareId, new Voice { wave = Waveform.Triangle, baseHz = 760f, spreadSemis = 7f, blip = 0.05f, gap = 0.015f, volume = 0.4f } },
-            { SkylineEnemies.SpotlightId, new Voice { wave = Waveform.Saw, baseHz = 240f, spreadSemis = 1f, blip = 0.06f, gap = 0.02f, volume = 0.26f } },
-            { SkylineEnemies.GondolaId, new Voice { wave = Waveform.Square, baseHz = 380f, spreadSemis = 5f, blip = 0.055f, gap = 0.02f, volume = 0.28f, duty = 0.25f } },
+            { SkylineEnemies.DroneId, new Voice { wave = Waveform.Square, baseHz = 520f, spreadSemis = 2f, blip = 0.04f, gap = 0.012f, volume = 0.28f, duty = 0.5f, lowPassHz = SkylineMix.BarkLowPassHz } },
+            { SkylineEnemies.FloorCareId, new Voice { wave = Waveform.Triangle, baseHz = 760f, spreadSemis = 7f, blip = 0.05f, gap = 0.015f, volume = 0.4f, lowPassHz = SkylineMix.BarkLowPassHz } },
+            { SkylineEnemies.SpotlightId, new Voice { wave = Waveform.Saw, baseHz = 240f, spreadSemis = 1f, blip = 0.06f, gap = 0.02f, volume = 0.26f, lowPassHz = SkylineMix.BarkLowPassHz } },
+            { SkylineEnemies.GondolaId, new Voice { wave = Waveform.Square, baseHz = 380f, spreadSemis = 5f, blip = 0.055f, gap = 0.02f, volume = 0.28f, duty = 0.25f, lowPassHz = SkylineMix.BarkLowPassHz } },
         };
 
         static readonly Dictionary<string, AudioClip> _cache = new Dictionary<string, AudioClip>();
@@ -67,6 +67,12 @@ namespace JamKit.SkylineRepo
             }
             if (notes.Count == 0) return null;
             float[] data = ToneSynth.Sequence(SampleRate, (uint)(seed == 0 ? 1 : seed), notes.ToArray());
+            if (v.lowPassHz > 0f)   // the bots' square and saw blips were most of the 2-5 kHz energy of a bark (the mix pass, 2026-10-14)
+            {
+                var lp = new SkylineBiquad();
+                lp.SetLowPass(SampleRate, v.lowPassHz);
+                lp.ProcessMono(data);
+            }
             if (v.radio) Radio(data, (uint)(seed + 7));
             var clip = AudioClip.Create("babble-" + (voice ?? "x"), data.Length, 1, SampleRate, false);
             clip.SetData(data, 0);

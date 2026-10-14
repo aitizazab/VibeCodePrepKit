@@ -25,7 +25,7 @@ namespace JamKit.SkylineRepo
         public const string StingSound = "concierge/sting", ChimeSound = "concierge/chime";
         /// <summary>How long CONCIERGE's voice waits after its chime starts.</summary>
         public const float ChimeLead = 0.6f;
-        const float HurtSoundGap = 0.09f, StingQuiet = 1.6f;
+        const float HurtSoundGap = 0.18f, StingQuiet = 1.6f;
 
         static readonly CameraKickDef HurtKick = new CameraKickDef { pitchDeg = -1.1f, yawDeg = 1.5f, recoverRate = 8f };
         static readonly CameraKickDef BreakKick = new CameraKickDef { pitchDeg = -2.4f, yawDeg = 3f, recoverRate = 6f };
