@@ -4,6 +4,7 @@
     "references": [
         "JamKit.SkylineRepo",
         "JamKit.Skyline",
+        "JamKit.Core",
         "JamKit.SkylineRepo.Editor",
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
