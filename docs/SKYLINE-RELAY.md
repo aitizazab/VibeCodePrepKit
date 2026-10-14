@@ -172,3 +172,9 @@ much fire stretches the movement is for the creator's feel; 45 s is the next ste
   `SkylineRelayStage` (walls, blocks, turns M1's cover and glass upstand off), `SkylineRelayTether`, `SkylineRelayHud`.
 * Hooks into existing files: `SkylineArenaDirector.Start` (stays off in the Relay), `SkylinePlayer` (`MoveScale`, `SprintBlocked`),
   `SkylinePauseMenu` (the entry).
+
+## The creator's note on the skill check (2026-10-14, before playing it)
+"Sprinting, jumping and mantling is way too easy, you'd need going at least 18 m/s for just that to be worth being called
+a skill check. Maybe the space is too small for that, I'll judge it when I see it." The fast routes should demand chained
+movement (wall-runs, slide-hops, the Breacher boost) at 18 m/s or more; the hall may be too small. Waits on the creator's
+playtest of build `out/skyline/20261014-perf8/build/SkylineRepo.exe`.
