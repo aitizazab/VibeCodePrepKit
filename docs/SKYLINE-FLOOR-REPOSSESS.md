@@ -134,3 +134,19 @@ The job sheet (three assets, ticked when towed), a direction marker per asset, t
 
 The bot redesigns (sizes, rotors as the weak spot, floor-care's top screen and molly acid, spotlight humanoids), the
 art style itself, the chase objective (the next floor type), difficulty variants beyond Normal.
+
+## 9. The lobby: floor 1's fixed entrance (approved by the creator, 2026-10-14)
+
+The tower above the Galleria is the **Halcyon Grand** hotel. Floor 1 always opens in its lobby: hand-made, never
+generated, so the music can be synced to it. **It replaces the warm-up hall** (the practice drone and the boost ledge
+move in). A 2D stylised start menu comes before it later.
+1. **The staff hallway (spawn):** Dot's tow drone drops the Unit off; dim, the lobby glowing at the end. The music's
+   intro plays as tinny hotel muzak from ceiling speakers.
+2. **The lobby:** two storeys; CONCIERGE's front-desk screen gives its first greeting; luggage carts; a chandelier (the
+   light that takes the room over, style rule 3); a mezzanine lounge. The practice drone works as the bellhop demo (the
+   Writ's spots); a luggage stack is the boost ledge. The music loops while the player is here.
+3. **The lift to the Galleria:** stepping in starts the opening sequence on the next bar (`docs/SKYLINE-MUSIC.md`): the
+   riser while the lift rises, the pre-drop as the doors are about to open, **the drop as the doors open onto the food
+   court and the wave clock starts**.
+The creator: "the hotel needs a lobby for the first floor" and "it doesn't immediately drop us into the action upon
+loading in".
