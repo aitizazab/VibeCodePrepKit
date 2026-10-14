@@ -2,9 +2,11 @@
 // One full-screen pass over the camera colour:
 //   1. thin ink from the depth and normal edges (a Roberts-style cross of four diagonal neighbours), fading with distance;
 //      sky pixels take a line only where a neighbour is geometry;
-//   2. the thick hued outline from the mask SkylineInkMask drew: 12 taps on a circle and 8 on an inner circle, outside the
-//      silhouette only; the weak-spot yellow wins over every other hue, then a bot's own weak point (red-magenta pulsing
-//      towards yellow), and both draw on hostile bodies too.
+//   2. the thick hued outline from the mask SkylineInkMask drew: 12 taps on a circle, 8 on an inner circle and 4 on a tiny one,
+//      outside the silhouette only; the weak-spot yellow wins over every other hue, then a bot's own weak point (red-magenta
+//      pulsing towards yellow), and both draw on hostile bodies too. Then hostile red-magenta / objective violet, then the
+//      strippable wreck's light blue (its alpha carries its width fraction: a tap counts only when its circle is inside that
+//      width, so the outline thins as the strip window runs out), then the objective seen through a wall (violet at 45%).
 // URP-standard HLSL: Core.hlsl and core's Blit.hlsl (full-screen triangle, _BlitTexture), as Visiting Hours' atmosphere pass.
 // Texture coordinates follow Unity's render-texture layout, the same for colour, depth, normals and the mask.
 Shader "Hidden/Skyline/InkComposite"
@@ -74,31 +76,49 @@ Shader "Hidden/Skyline/InkComposite"
                 return SAMPLE_TEXTURE2D_X_LOD(_SkInkMask, sampler_PointClamp, uv, 0);
             }
 
-            // Mask alpha classes (see SkylineInkMask in InkLit.shader): 1.0 hued, 0.9 bot weak point, 0.8 weak spot, 0.6 thin ink.
+            // Mask alpha classes (see SkylineInkMask / SkylineInkXray in InkLit.shader): 1.0 hued (hostile, objective), 0.9 bot weak
+            // point, 0.8 weak spot, 0.6 thin ink, 0.4 objective seen through a wall, 0.11 + 0.19 * width fraction strippable wreck.
             bool SkIsHued(float a) { return a > 0.95; }
             bool SkIsBotWeak(float a) { return a > 0.85 && a <= 0.95; }
             bool SkIsWeak(float a) { return a > 0.7 && a <= 0.85; }
             bool SkIsThin(float a) { return a > 0.5 && a <= 0.7; }
+            bool SkIsXray(float a) { return a > 0.32 && a <= 0.5; }
+            bool SkIsWreck(float a) { return a > 0.1 && a <= 0.32; }
+            float SkWreckWidth(float a) { return saturate((a - 0.11) / 0.19); }
 
-            // Hostile (r high) beats objective (b high, r low) beats scrap.
+            // The role hues, sRGB (converted with SRGBToLinear where they are drawn).
+            static const float3 kObjectiveHue = float3(0.7020, 0.4196, 1.0);   // #B36BFF
+            static const float3 kWreckHue = float3(0.5608, 0.8275, 1.0);       // #8FD3FF
+            static const float kXrayStrength = 0.45;
+
+            // Hostile red-magenta (r high) beats the objective violet.
             float SkHueRank(float3 rgb)
             {
-                return rgb.r > 0.9 ? 3.0 : (rgb.b > 0.9 ? 2.0 : 1.0);
+                return rgb.r > 0.9 ? 3.0 : 2.0;
             }
 
-            // Counts one mask tap into its class. Thin ink counts only from the inner circle.
-            void SkTap(float4 m, bool inner, inout float weak, inout float botWeak, inout float hue, inout float thin,
-                inout float bestRank, inout float3 bestHue)
+            struct SkHits
             {
-                if (SkIsWeak(m.a)) weak += 1.0;
-                else if (SkIsBotWeak(m.a)) botWeak += 1.0;
+                float weak, botWeak, hue, thin, wreck, xray, bestRank;
+                float3 bestHue;
+            };
+
+            // Counts one mask tap, taken on a circle of the given fraction of the outline radius (1, 0.6, 0.35), into its class.
+            // Thin ink counts only from the inner circle (0.6). A wreck's tap counts in full when its circle lies inside the
+            // wreck's current width fraction (a short ramp, so the thinning is smooth rather than stepped).
+            void SkTap(float4 m, float fraction, inout SkHits h)
+            {
+                if (SkIsWeak(m.a)) h.weak += 1.0;
+                else if (SkIsBotWeak(m.a)) h.botWeak += 1.0;
                 else if (SkIsHued(m.a))
                 {
-                    hue += 1.0;
+                    h.hue += 1.0;
                     float rank = SkHueRank(m.rgb);
-                    if (rank > bestRank) { bestRank = rank; bestHue = m.rgb; }
+                    if (rank > h.bestRank) { h.bestRank = rank; h.bestHue = m.rgb; }
                 }
-                else if (inner && SkIsThin(m.a)) thin += 1.0;
+                else if (SkIsWreck(m.a)) h.wreck += saturate((SkWreckWidth(m.a) - fraction) / 0.08 + 1.0);
+                else if (SkIsXray(m.a)) h.xray += 1.0;
+                else if (fraction > 0.5 && fraction < 0.7 && SkIsThin(m.a)) h.thin += 1.0;
             }
 
             half4 FragComposite(Varyings i) : SV_Target
@@ -151,8 +171,7 @@ Shader "Hidden/Skyline/InkComposite"
                 if (!centreWeak)
                 {
                     float2 R = _SkInkLine.y * texel;
-                    float weakHits = 0.0, botWeakHits = 0.0, hueHits = 0.0, thinHits = 0.0, bestRank = 0.0;
-                    float3 bestHue = float3(0, 0, 0);
+                    SkHits h = (SkHits)0;
 
                     // outer circle: 12 taps at the full radius
                     [unroll]
@@ -160,7 +179,7 @@ Shader "Hidden/Skyline/InkComposite"
                     {
                         float s, c;
                         sincos((a + 0.5) * 0.5235988, s, c);              // 2*pi/12, offset half a step
-                        SkTap(SkMask(uv + float2(c, s) * R), false, weakHits, botWeakHits, hueHits, thinHits, bestRank, bestHue);
+                        SkTap(SkMask(uv + float2(c, s) * R), 1.0, h);
                     }
                     // inner circle: 8 taps at 0.6 of the radius (a viewmodel's thin ink reaches only this far)
                     [unroll]
@@ -168,34 +187,54 @@ Shader "Hidden/Skyline/InkComposite"
                     {
                         float s, c;
                         sincos(b * 0.7853982, s, c);                      // 2*pi/8
-                        SkTap(SkMask(uv + float2(c, s) * R * 0.6), true, weakHits, botWeakHits, hueHits, thinHits, bestRank, bestHue);
+                        SkTap(SkMask(uv + float2(c, s) * R * 0.6), 0.6, h);
+                    }
+                    // tiny circle: 4 taps at 0.35 of the radius (a strippable wreck's outline, thinned to 40%, lives only here)
+                    [unroll]
+                    for (int d = 0; d < 4; d++)
+                    {
+                        float s, c;
+                        sincos(d * 1.5707963 + 0.7853982, s, c);          // 2*pi/4, offset an eighth turn
+                        SkTap(SkMask(uv + float2(c, s) * R * 0.35), 0.35, h);
                     }
 
                     float3 outlineRgb = float3(0, 0, 0);
                     float cover = 0.0;
-                    if (weakHits > 0.0)
+                    if (h.weak > 0.0)
                     {
                         // priority 5 over 6 over 1: the Writ's yellow wins over everything, and also draws on a hostile body
                         // (the centre may be hostile)
                         outlineRgb = SRGBToLinear(float3(1.0, 0.8392, 0.0392));
-                        cover = smoothstep(0.0, 4.0, weakHits);
+                        cover = smoothstep(0.0, 4.0, h.weak);
                     }
-                    else if (botWeakHits > 0.0 && !SkIsBotWeak(m0.a))
+                    else if (h.botWeak > 0.0 && !SkIsBotWeak(m0.a))
                     {
                         // a bot's own weak point: the hostile red-magenta tinted towards yellow, t pulsing 0.35..0.6 at 1.2 Hz
                         float t = lerp(0.35, 0.6, 0.5 + 0.5 * sin(_SkInkTime.x * 7.5398));   // 2*pi*1.2
                         outlineRgb = SRGBToLinear(lerp(float3(1.0, 0.1804, 0.3882), float3(1.0, 0.8392, 0.0392), t));
-                        cover = smoothstep(0.0, 4.0, botWeakHits);
+                        cover = smoothstep(0.0, 4.0, h.botWeak);
                     }
-                    else if (!centreHas && hueHits > 0.0)
+                    else if (!centreHas && h.hue > 0.0)
                     {
-                        outlineRgb = SRGBToLinear(bestHue);
-                        cover = smoothstep(0.0, 4.0, hueHits);
+                        outlineRgb = SRGBToLinear(h.bestHue);
+                        cover = smoothstep(0.0, 4.0, h.hue);
                     }
-                    else if (!centreHas && thinHits > 0.0)
+                    else if (!centreHas && h.wreck > 0.0)
+                    {
+                        // a strippable wreck: light blue, thinner as its strip window runs out (the width is in the mask alpha)
+                        outlineRgb = SRGBToLinear(kWreckHue);
+                        cover = smoothstep(0.0, 2.5, h.wreck);
+                    }
+                    else if (!centreHas && h.xray > 0.0)
+                    {
+                        // the objective behind a wall: the same violet, dimmer
+                        outlineRgb = SRGBToLinear(kObjectiveHue);
+                        cover = smoothstep(0.0, 4.0, h.xray) * kXrayStrength;
+                    }
+                    else if (!centreHas && h.thin > 0.0)
                     {
                         outlineRgb = _SkInkColor.rgb;
-                        cover = smoothstep(0.0, 3.0, thinHits);
+                        cover = smoothstep(0.0, 3.0, h.thin);
                     }
                     col = lerp(col, outlineRgb, cover);
                 }

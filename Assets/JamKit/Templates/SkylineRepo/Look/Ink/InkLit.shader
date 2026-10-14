@@ -8,8 +8,12 @@
 // ShaderLibrary/Lighting.hlsl (UniversalFragmentBlinnPhong), and ShadowCaster / DepthOnly / DepthNormals include URP's own
 // pass files, so their bias, clamping and normal packing are URP's.
 //
-// Roles (_InkRole): 0 none, 1 hostile, 2 objective, 3 scrap, 4 viewmodel (thin ink), 5 weak spot (Writ), 6 bot weak point. Pass SkylineInkMask draws
-// only when the material has the role set and the pass enabled (Material.SetShaderPassEnabled).
+// Roles (_InkRole): 0 none, 1 hostile #FF2E63, 2 objective violet #B36BFF, 3 strippable wreck light blue #8FD3FF (its width in
+// _InkWidth), 4 viewmodel (thin ink), 5 weak spot (Writ) #FFD60A, 6 bot weak point, 7 objective x-ray only. Pass SkylineInkMask
+// draws only when the material has the role set and the pass enabled (Material.SetShaderPassEnabled); pass SkylineInkXray
+// (ZTest Greater: only where a nearer surface hides the object) draws roles 2 and 7, so the objective shows through walls.
+// Mask alpha classes (read by InkComposite.shader): 1.0 hued (hostile, objective), 0.9 bot weak point, 0.8 weak spot,
+// 0.6 thin ink, 0.4 objective seen through a wall, 0.11..0.30 strippable wreck (0.11 + 0.19 * width fraction).
 Shader "Skyline/InkLit"
 {
     Properties
@@ -26,7 +30,8 @@ Shader "Skyline/InkLit"
         _GradHeight("Gradient: height to full (m)", Float) = 6
         _Desaturate("Desaturate (colour-free zone)", Range(0, 1)) = 0
         _HatchStrength("Deep-shade hatching", Range(0, 1)) = 0.08
-        _InkRole("Ink role (0 none, 1 hostile, 2 objective, 3 scrap, 4 viewmodel, 5 weak spot, 6 bot weak point)", Float) = 0
+        _InkRole("Ink role (0 none, 1 hostile, 2 objective, 3 strippable wreck, 4 viewmodel, 5 weak spot, 6 bot weak point, 7 objective x-ray only)", Float) = 0
+        _InkWidth("Wreck outline width (fraction of full, role 3)", Range(0, 1)) = 1
         [Toggle] _Unlit("Unlit glow (no lighting)", Float) = 0
         _RimStrength("Rim", Range(0, 1)) = 0.25
 
@@ -342,7 +347,8 @@ Shader "Skyline/InkLit"
         // ------------------------------------------------------------------ SkylineInkMask
         // Drawn by SkylineInkFeature's renderer list against the camera depth (LEqual, no depth write): only the visible
         // surface of a role > 0 object lands in the mask. rgb = the role's hue (sRGB, converted by the composite); alpha is the
-        // class: 1.0 hued outline, 0.9 bot weak point (pulsing red-yellow), 0.8 weak spot (yellow), 0.6 thin ink (the viewmodel).
+        // class: 1.0 hued outline, 0.9 bot weak point (pulsing red-yellow), 0.8 weak spot (yellow), 0.6 thin ink (the viewmodel),
+        // 0.11..0.30 strippable wreck (the width fraction in the alpha). Role 7 draws nothing here (the x-ray pass only).
         Pass
         {
             Name "SkylineInkMask"
@@ -390,11 +396,70 @@ Shader "Skyline/InkLit"
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 int role = (int)(_InkRole + 0.5h);
                 if (role == 1) return half4(1.0h, 0.1804h, 0.3882h, 1.0h);        // #FF2E63 hostile
-                if (role == 2) return half4(0.1804h, 0.9020h, 1.0h, 1.0h);        // #2EE6FF objective
-                if (role == 3) return half4(0.3608h, 1.0h, 0.5412h, 1.0h);        // #5CFF8A scrap
+                if (role == 2) return half4(0.7020h, 0.4196h, 1.0h, 1.0h);        // #B36BFF objective
+                // #8FD3FF strippable wreck: its own alpha class, carrying the outline width fraction (0.4..1) for the composite
+                if (role == 3) return half4(0.5608h, 0.8275h, 1.0h, 0.11h + 0.19h * saturate(_InkWidth));
                 if (role == 4) return half4(0.0863h, 0.0784h, 0.1216h, 0.6h);     // #16141F ink: thin outline
                 if (role == 5) return half4(1.0h, 0.8392h, 0.0392h, 0.8h);        // #FFD60A weak spot (the Writ's)
                 if (role == 6) return half4(1.0h, 0.1804h, 0.3882h, 0.9h);        // a bot's own weak point: hostile hue in the mask, pulsed towards yellow by the composite
+                discard;
+                return half4(0, 0, 0, 0);
+            }
+            ENDHLSL
+        }
+
+        // ------------------------------------------------------------------ SkylineInkXray
+        // The objective seen through walls (D4). Drawn by SkylineInkFeature FIRST, from the renderers in SkylineInkRoles.ObjectiveQueue
+        // only, into the same mask: ZTest Greater keeps just the fragments a nearer surface hides (Unity flips the comparison itself
+        // on reversed-Z platforms). The ordinary mask pass draws after it, so wherever the objective is visible its full-strength
+        // outline overwrites this. Alpha 0.4 is the "seen through a wall" class; the composite draws it at 45%.
+        Pass
+        {
+            Name "SkylineInkXray"
+            Tags { "LightMode" = "SkylineInkXray" }
+
+            ZTest Greater
+            ZWrite Off
+            Cull Back
+            Blend Off
+
+            HLSLPROGRAM
+            #pragma target 2.0
+            #pragma vertex XrayVertex
+            #pragma fragment XrayFragment
+            #pragma multi_compile_instancing
+
+            #include "Assets/JamKit/Templates/SkylineRepo/Look/Ink/InkLitInput.hlsl"
+
+            struct XrayAttributes
+            {
+                float4 positionOS : POSITION;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct XrayVaryings
+            {
+                float4 positionCS : SV_POSITION;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
+
+            XrayVaryings XrayVertex(XrayAttributes input)
+            {
+                XrayVaryings output = (XrayVaryings)0;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
+                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                return output;
+            }
+
+            half4 XrayFragment(XrayVaryings input) : SV_Target
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+                int role = (int)(_InkRole + 0.5h);
+                if (role == 2 || role == 7) return half4(0.7020h, 0.4196h, 1.0h, 0.4h);   // #B36BFF objective, x-ray class
                 discard;
                 return half4(0, 0, 0, 0);
             }

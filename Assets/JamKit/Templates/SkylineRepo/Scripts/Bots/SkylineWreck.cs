@@ -34,8 +34,20 @@ namespace JamKit.SkylineRepo
         /// <summary>Every husk in the scene (enabled ones), so nothing has to search the scene for them.</summary>
         public static readonly List<SkylineWreck> All = new List<SkylineWreck>();
 
+        /// <summary>Raised once when the player strips a wreck and gains plating (wreck, plating gained; always above 0): the
+        /// light-blue screen-edge flash (docs/SKYLINE-HUD.md) listens to it. Raised from <c>Update</c> on the main thread.</summary>
+        public static event System.Action<SkylineWreck, float> Stripped;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() => All.Clear();
+        static void ResetStatics() { All.Clear(); Stripped = null; }
+
+        /// <summary>The strippable-wreck outline strength now (1 full, 0.4 thinnest, 0 none or blinked off): the pure
+        /// <see cref="SkylineWreckOutline.Strength"/> of the seconds left in the strip window. 0 once stripped or stale.</summary>
+        public float OutlineStrength()
+        {
+            if (Data == null || !Data.Fresh(Time.time)) return 0f;
+            return SkylineWreckOutline.Strength(SkylineWreckOutline.Left(Time.time, Data.wreckedAt, Data.freshSeconds), Data.freshSeconds);
+        }
 
         void OnEnable() { if (!All.Contains(this)) All.Add(this); }
 
@@ -123,7 +135,8 @@ namespace JamKit.SkylineRepo
 
             foreach (var r in GetComponentsInChildren<Renderer>(true)) _renderers.Add(r);
             BakeBlocks();
-            SetInkRole(SkylineInkRoles.Scrap);   // fresh and unstripped: outlined green (comic ink, rule 2)
+            for (int i = 0; i < _renderers.Count; i++) _inkBase.Add(_renderers[i] != null ? _renderers[i].sharedMaterials : null);
+            ApplyOutline(SkylineWreckOutline.Steps);   // fresh and unstripped: outlined light blue at full width (comic ink, rule 2)
         }
 
         // ------------------------------------------------------------------ drawing cost (judge round 2, perf)
@@ -199,22 +212,30 @@ namespace JamKit.SkylineRepo
             }
         }
 
-        /// <summary>Gives every part of the wreck an ink copy of its material with <paramref name="role"/> (shared per material
-        /// and role, so the SRP Batcher keeps batching): scrap green while the wreck is fresh and worth stripping.</summary>
-        void SetInkRole(int role)
+        readonly List<Material[]> _inkBase = new List<Material[]>();   // each renderer's materials before any ink role (the outline steps are made from them)
+        int _outlineStep = -1;
+
+        /// <summary>Gives every part of the wreck an ink copy of its material at outline width step <paramref name="step"/>
+        /// (<see cref="SkylineWreckOutline.Step"/>; 0 = no outline, the role-less ink copy). The copies are shared per material and
+        /// step, so the SRP Batcher keeps batching; the outline is light blue while the wreck is fresh and worth stripping,
+        /// thinner as the window runs out, blinked off in its last 0.4 s.</summary>
+        void ApplyOutline(int step)
         {
+            if (step == _outlineStep) return;
+            _outlineStep = step;
+            int role = step > 0 ? SkylineInkRoles.Scrap : SkylineInkRoles.None;
             for (int i = 0; i < _renderers.Count; i++)
             {
                 var r = _renderers[i];
-                if (r == null) continue;
-                var mats = r.sharedMaterials;
+                var src = i < _inkBase.Count ? _inkBase[i] : null;
+                if (r == null || src == null) continue;
+                var mats = new Material[src.Length];
                 bool changed = false;
-                for (int k = 0; k < mats.Length; k++)
+                for (int k = 0; k < src.Length; k++)
                 {
-                    var ink = SkylineInkRoles.FromLit(mats[k], role);
-                    if (ink == null) continue;
-                    mats[k] = ink;
-                    changed = true;
+                    var ink = SkylineInkRoles.FromLit(src[k], role, step);
+                    mats[k] = ink != null ? ink : src[k];
+                    if (ink != null) changed = true;
                 }
                 if (changed) r.sharedMaterials = mats;
             }
@@ -365,6 +386,7 @@ namespace JamKit.SkylineRepo
             if (Data.Fresh(now))
             {
                 TryStrip(now);
+                if (Data.Fresh(now)) ApplyOutline(SkylineWreckOutline.Step(OutlineStrength()));
                 _nextSpark -= dt;
                 if (_nextSpark <= 0f && !Data.stripped && _renderers.Count > 0)
                 {
@@ -471,7 +493,10 @@ namespace JamKit.SkylineRepo
             if (dx * dx + dz * dz > StripRadius * StripRadius || feet.y - at.y >= MaxStripHeight) return;
             float gained = p.Armor.Strip(Data, now, _scrapScale);
             if (Data.stripped)
+            {
                 Debug.Log("SKYLINE_BOT stripped " + botName + " plating +" + gained.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture));
+                if (gained > 0f) Stripped?.Invoke(this, gained);
+            }
         }
 
         /// <summary>Stale or stripped: the screen switches off and the body dulls (each part's own colour, darkened), by
@@ -504,7 +529,7 @@ namespace JamKit.SkylineRepo
                     var m = plain[k];
                     Color c = m != null ? m.color : Color.grey;
                     dark[k] = m != null ? Tinted(m, new Color(c.r * DarkScale, c.g * DarkScale, c.b * DarkScale, c.a)) : null;
-                    if (dark[k] != null) dark[k] = SkylineInkRoles.FromLit(dark[k], SkylineInkRoles.None) ?? dark[k];   // stripped or stale: the green goes
+                    if (dark[k] != null) dark[k] = SkylineInkRoles.FromLit(dark[k], SkylineInkRoles.None) ?? dark[k];   // stripped or stale: the light-blue outline goes
                 }
                 r.SetPropertyBlock(null);
                 r.sharedMaterials = dark;

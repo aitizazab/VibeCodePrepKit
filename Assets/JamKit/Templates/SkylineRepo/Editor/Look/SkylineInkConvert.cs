@@ -80,6 +80,7 @@ namespace JamKit.SkylineRepo.EditorTools
                 }
             AssetDatabase.SaveAssets();
             Debug.Log("SKYLINE_INK converted " + n + " material slots (" + session.Count + " twins)");
+            foreach (var line in SkylineHueLint.Run(scene)) Debug.LogWarning("SKYLINE_HUE " + line);   // the hostile hue is reserved (S0's lint)
             return n;
         }
 

@@ -153,9 +153,48 @@ namespace JamKit.SkylineRepo.Tests
         public void TheRoleHuesAreTheStyleSheets()
         {
             AssertHex(SkylineInkRoles.Hue(SkylineInkRoles.Hostile), 0xFF, 0x2E, 0x63);
-            AssertHex(SkylineInkRoles.Hue(SkylineInkRoles.Objective), 0x2E, 0xE6, 0xFF);
-            AssertHex(SkylineInkRoles.Hue(SkylineInkRoles.Scrap), 0x5C, 0xFF, 0x8A);
+            AssertHex(SkylineInkRoles.Hue(SkylineInkRoles.Objective), 0xB3, 0x6B, 0xFF);
+            AssertHex(SkylineInkRoles.Hue(SkylineInkRoles.ObjectiveXray), 0xB3, 0x6B, 0xFF);
+            AssertHex(SkylineInkRoles.Hue(SkylineInkRoles.Scrap), 0x8F, 0xD3, 0xFF);
             AssertHex(SkylineInkRoles.Hue(SkylineInkRoles.WeakSpot), 0xFF, 0xD6, 0x0A);
+        }
+
+        [Test]
+        public void TheRoleNumbersAreTheStyleSheets()
+        {
+            Assert.That(new[] { SkylineInkRoles.None, SkylineInkRoles.Hostile, SkylineInkRoles.Objective, SkylineInkRoles.Scrap,
+                SkylineInkRoles.Viewmodel, SkylineInkRoles.WeakSpot, SkylineInkRoles.BotWeakPoint, SkylineInkRoles.ObjectiveXray },
+                Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7 }));
+            Assert.That(SkylineInkRoles.ObjectiveQueue, Is.LessThan(SkylineInkRoles.BotWeakQueue), "6 and 5 still draw after the objective");
+        }
+
+        [Test]
+        public void TheObjectiveXrayRoleDrawsOnlyThroughWalls()
+        {
+            var m = new Material(Shader.Find(SkylineInkRoles.ShaderName));
+            try
+            {
+                SkylineInkConvert.SetRole(m, SkylineInkRoles.ObjectiveXray);
+                Assert.That(SkylineInkRoles.GetRole(m), Is.EqualTo(SkylineInkRoles.ObjectiveXray));
+                Assert.That(m.GetShaderPassEnabled(SkylineInkRoles.MaskPass), Is.False, "no depth-tested outline: it would draw it where it is visible too");
+                Assert.That(m.GetShaderPassEnabled(SkylineInkRoles.ObjectiveXrayPass), Is.True);
+            }
+            finally { Object.DestroyImmediate(m); }
+        }
+
+        [Test]
+        public void TheRoleMaterialsLeftOnDiskDrawNoXray()
+        {
+            // EnsureResourceMaterials saves the four templates and the bot paint with a role below the objective's: their x-ray
+            // pass is off, so a run-time clone that is not an objective never enters the x-ray list.
+            SkylineInkConvert.EnsureResourceMaterials();
+            foreach (var name in new[] { SkylineInkRoles.TemplatePlain, SkylineInkRoles.TemplateNormal, SkylineInkRoles.TemplateEmission,
+                SkylineInkRoles.TemplateNormalEmission, "SK_Bot_Paint", "SK_Fx_Acid", "SK_Emissive_FxGlow" })
+            {
+                var m = Resources.Load<Material>(SkylineInkRoles.TemplateFolder + name);
+                Assert.That(m, Is.Not.Null, name);
+                Assert.That(m.GetShaderPassEnabled(SkylineInkRoles.ObjectiveXrayPass), Is.False, name);
+            }
         }
     }
 }

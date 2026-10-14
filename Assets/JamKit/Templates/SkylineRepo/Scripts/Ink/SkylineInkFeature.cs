@@ -82,6 +82,7 @@ namespace JamKit.SkylineRepo
         sealed class InkPass : ScriptableRenderPass
         {
             static readonly ShaderTagId MaskTag = new ShaderTagId(SkylineInkRoles.MaskPass);
+            static readonly ShaderTagId XrayTag = new ShaderTagId(SkylineInkRoles.ObjectiveXrayPass);
             static readonly int BlitTextureId = Shader.PropertyToID("_BlitTexture");
             static readonly int BlitScaleBiasId = Shader.PropertyToID("_BlitScaleBias");
             static readonly int DepthId = Shader.PropertyToID("_SkInkDepth");
@@ -102,7 +103,7 @@ namespace JamKit.SkylineRepo
 
             sealed class MaskPassData
             {
-                public RendererListHandle ordinary, late, botWeak, weak;
+                public RendererListHandle xray, ordinary, late, botWeak, weak;
             }
 
             sealed class CompositePassData
@@ -170,6 +171,15 @@ namespace JamKit.SkylineRepo
                         var sort = cameraData.defaultOpaqueSortFlags;
                         var drawing = RenderingUtils.CreateDrawingSettings(MaskTag, renderingData, cameraData, lightData, sort);
                         drawing.perObjectData = PerObjectData.None;
+                        // The objective seen through walls: first, so the ordinary pass overwrites it wherever the objective is
+                        // visible. Only renderers in the objective queue (roles 2 and 7), so scenery whose x-ray pass is still
+                        // enabled on an old material never costs a second draw.
+                        var xrayDrawing = RenderingUtils.CreateDrawingSettings(XrayTag, renderingData, cameraData, lightData, sort);
+                        xrayDrawing.perObjectData = PerObjectData.None;
+                        int objQ = SkylineInkRoles.ObjectiveQueue;
+                        data.xray = renderGraph.CreateRendererList(new RendererListParams(renderingData.cullResults, xrayDrawing,
+                            new FilteringSettings(new RenderQueueRange { lowerBound = objQ, upperBound = objQ }, -1)));
+                        builder.UseRendererList(data.xray);
                         // Queues: ordinary roles below BotWeakQueue, then the bots' own weak points, then the Writ's weak spots, so
                         // where parts overlap in depth the later one overwrites the earlier (5 over 6 over 1). Anything above the
                         // weak-spot queue (a transparent role, none today) is drawn before them.
@@ -191,6 +201,7 @@ namespace JamKit.SkylineRepo
                         builder.AllowPassCulling(false);
                         builder.SetRenderFunc((MaskPassData d, RasterGraphContext ctx) =>
                         {
+                            ctx.cmd.DrawRendererList(d.xray);   // first: the visible outline of the ordinary pass overwrites it
                             ctx.cmd.DrawRendererList(d.ordinary);
                             ctx.cmd.DrawRendererList(d.late);
                             ctx.cmd.DrawRendererList(d.botWeak);
