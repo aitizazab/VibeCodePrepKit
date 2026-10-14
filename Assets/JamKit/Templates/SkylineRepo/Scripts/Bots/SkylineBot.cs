@@ -44,6 +44,11 @@ namespace JamKit.SkylineRepo
     /// (<see cref="GondolaRail"/>, start to <c>railEnd</c>, from where the washing left it) while awake and lays wall
     /// mines (<see cref="MineLayer"/>, <see cref="WallMine"/>) by the pure rules; the mines live on after a wreck. Its brain
     /// still telegraphs and "attacks" (a squeegee slap, no damage: FightSim's gondola ignores its attack cues).</item>
+    /// <item><b>Door-spawned</b> (task W4, the <c>Spawn(enemyId, SpawnDoor, ...)</c> overload): awake from the start, and
+    /// <see cref="Arriving"/> until a <see cref="BotArrival"/> (pure, shared with the headless sim) has brought it to work: the
+    /// drone flies from its vent or shutter to a hover point 12..28 m from the Unit and re-picks it every 6..9 s (no search, no
+    /// attack while it flies), the floor-care unit drives on <see cref="Nav"/>. Bots placed at posts (the old arena, the gallery)
+    /// never get one and behave as before.</item>
     /// </list>
     /// Damage feedback follows the creator's rules: no numbers, no bars; plates and body flash white (the shot's chip comes
     /// from the shooter); only a Writ spot (<see cref="SkylineSpotMarker"/>) glows and sparks on a live bot; a fresh wreck
@@ -72,11 +77,46 @@ namespace JamKit.SkylineRepo
         public static event Action<SkylineBot, SkylineMineEvent, Vector3> MineEvent;
         /// <summary>A bark: its id ("spotted", "hurt", "lost", "wrecked") and its line.</summary>
         public static event Action<SkylineBot, string, string> Barked;
+        /// <summary>A bot was wrecked by a hit (task W4; the practice bot, which refills, never raises it): the killing hit's
+        /// gun (<see cref="SkylineHitInfo.gun"/>; null when the hit carried none). Raised right after <see cref="Wrecked"/>, so
+        /// the special-ammo ledger credits the gun of the killing blow.</summary>
+        public static event Action<SkylineBot, GunDef> Killed;
 
         /// <summary>Where a searching drone may go (x, z): FightSim's hall less 1 m, south of the mezzanine's edge (z 11). The
-        /// arena or the gallery sets its own.</summary>
+        /// arena or the gallery sets its own. For door-spawned bots (task W4) the floor director sets it from the floor's flight
+        /// area (the hall, <c>FightArea.Floor1</c> when W3 lands): <see cref="BotArrival"/> picks no hover point outside it.</summary>
         public static Rect SearchArea = DefaultSearchArea;
         static Rect DefaultSearchArea => Rect.MinMaxRect(GalleriaArena.HallMinX + 1f, GalleriaArena.HallMinZ + 1f, GalleriaArena.HallMaxX - 1f, 11f);
+
+        static ArenaNav _nav;
+        static IReadOnlyList<CoverBox> _arrivalBlockers;
+        /// <summary>The walkable graph door-spawned floor-care units path on; built from <see cref="RepossessArena"/> on first
+        /// use unless the director sets one.</summary>
+        public static ArenaNav Nav
+        {
+            get => _nav ?? (_nav = ArenaNav.Build(RepossessArena.Solids()));
+            set => _nav = value;
+        }
+        /// <summary>The cover door-spawned bots route round (the pure data the scene is built from); defaults to
+        /// <see cref="RepossessArena.SightBlockers"/>.</summary>
+        public static IReadOnlyList<CoverBox> ArrivalBlockers
+        {
+            get => _arrivalBlockers ?? (_arrivalBlockers = RepossessArena.SightBlockers());
+            set => _arrivalBlockers = value;
+        }
+
+        /// <summary>The physics layer the glass panes (the façade's, the bridge's) are on (task B1 adds it): bots see and shoot
+        /// through it, as guns do not. -1 while the project has no such layer.</summary>
+        public const string GlassLayerName = "SkylineGlass";
+        static int _glassLayer = int.MinValue;
+        static int GlassLayer
+        {
+            get
+            {
+                if (_glassLayer == int.MinValue) _glassLayer = LayerMask.NameToLayer(GlassLayerName);
+                return _glassLayer;
+            }
+        }
 
         static readonly Dictionary<string, int> _numbers = new Dictionary<string, int>();
         static readonly RaycastHit[] _hits = new RaycastHit[64];
@@ -91,8 +131,9 @@ namespace JamKit.SkylineRepo
             Live.Clear();
             _numbers.Clear();
             SpotCreated = null; FirstSeenAny = null; Wrecked = null; PlateShed = null; SpotHit = null;
-            StateEntered = null; Attacked = null; MineEvent = null; Barked = null;
+            StateEntered = null; Attacked = null; MineEvent = null; Barked = null; Killed = null;
             SearchArea = DefaultSearchArea;
+            _glassLayer = int.MinValue;
         }
 
         /// <summary>Makes a bot of <paramref name="enemyId"/> at <paramref name="position"/> (a floor-care unit's on the floor,
@@ -121,6 +162,46 @@ namespace JamKit.SkylineRepo
             var bot = go.AddComponent<SkylineBot>();
             bot.Init(def, n, position, yaw, seed, target, writ, group, railEnd);
             return bot;
+        }
+
+        /// <summary>
+        /// A bot of <paramref name="enemyId"/> through a spawn door (task W4): it appears at the door (<see cref="BotArrival.StartPosition"/>,
+        /// moved clear of cover) facing the way the door faces, already awake (a wave arrives hunting), and is in
+        /// <see cref="Arriving"/> until it reaches its work: a drone flies to a hover point 12..28 m from the Unit, a floor-care
+        /// unit drives at the Unit along <see cref="Nav"/>; neither attacks before then. The gondola (a rail-end door) rides its
+        /// rail to the facade's other end (<see cref="OtherRailEnd"/>) facing in, and its mines go on the side it faces (the
+        /// glass); it never uses the arrival. Set <see cref="SearchArea"/> to the floor's flight area first.
+        /// </summary>
+        public static SkylineBot Spawn(string enemyId, SpawnDoor door, ulong seed, ISkylineTarget target, WritTuning writ, Transform parent, int group = -1)
+        {
+            var def = SkylineEnemies.Find(enemyId);
+            if (def == null || door == null)
+            {
+                Debug.LogWarning("SKYLINE_BOT unknown enemy or door " + enemyId);
+                return null;
+            }
+            var arrival = BotArrival.Applies(def) ? new BotArrival(def, door, seed, def.moveSpeed > 0f ? Nav : null, ArrivalBlockers) : null;
+            Vector3 at = arrival != null ? U(arrival.Start) : U(BotArrival.StartPosition(def, door));
+            Vector3 railEnd = def.layer == ThreatLayer.Walls ? U(OtherRailEnd(door)) : at;
+            var bot = Spawn(enemyId, at, door.yawDeg, seed, target, writ, parent, group, railEnd);
+            if (bot == null) return null;
+            bot.Door = door;
+            bot._arrival = arrival;
+            bot.IsAwake = true;
+            if (def.layer == ThreatLayer.Walls && door.kind == DoorKind.RailEnd)
+            {
+                bot._wallBack = Quaternion.Euler(0f, door.yawDeg, 0f) * Vector3.forward;   // it faces in, the glass is ahead
+                bot._wallBackSet = true;
+            }
+            return bot;
+        }
+
+        /// <summary>The other end of the facade's rail: the other <see cref="DoorKind.RailEnd"/> door, else this one mirrored in z.</summary>
+        public static NVec3 OtherRailEnd(SpawnDoor door)
+        {
+            foreach (var d in RepossessSites.Doors())
+                if (d.kind == DoorKind.RailEnd && d.id != door.id) return d.position;
+            return new NVec3(door.position.X, door.position.Y, -door.position.Z);
         }
 
         /// <summary>Wakes every live bot of <paramref name="group"/> (a negative group wakes only <paramref name="who"/>).</summary>
@@ -155,6 +236,8 @@ namespace JamKit.SkylineRepo
         public static bool IgnoredBySight(Collider c, Transform self)
         {
             if (c == null || c.isTrigger) return true;
+            int glass = GlassLayer;
+            if (glass >= 0 && c.gameObject.layer == glass) return true;   // the gondola outside the façade sees the Unit through it
             if (c.TryGetComponent<SkylineHitZone>(out _) || c.TryGetComponent<SkylineDebris>(out _)) return true;
             return self != null && c.transform.IsChildOf(self);
         }
@@ -195,6 +278,14 @@ namespace JamKit.SkylineRepo
         public MineLayer Mines { get; private set; }
         public SkylineWreck WreckObject { get; private set; }
         public WritTuning WritTuning => _writ;
+        /// <summary>The spawn door this bot came through (null: placed at a post, the old arena's and the gallery's way).</summary>
+        public SpawnDoor Door { get; private set; }
+        /// <summary>A door-spawned drone or floor-care unit's way to work; null for the others.</summary>
+        public BotArrival Arrival => _arrival;
+        /// <summary>A door-spawned drone or floor-care unit that has not yet reached its work: it does not attack yet.</summary>
+        public bool Arriving => _arrival != null && !_arrival.Engaged;
+        /// <summary>The gun of the hit that wrecked it (null while alive, or when the hit carried none).</summary>
+        public GunDef KilledBy { get; private set; }
 
         // ISkylineAimable
         public Vector3 Center => Parts != null ? Rig.TransformPoint(Parts.centerLocal) : transform.position;
@@ -202,6 +293,10 @@ namespace JamKit.SkylineRepo
         public bool Alive => _initialized && Body != null && !Body.Wrecked;
 
         bool _initialized, _everSeen, _sawLastStep, _beamStartedThisFrame, _lockBeeped, _practiceNoticed, _practiceBarked;
+        BotArrival _arrival;
+        // the direction from the gondola to the wall it lays its mines on (default: behind it; a facade gondola faces the glass)
+        Vector3 _wallBack;
+        bool _wallBackSet;
         ulong _seed;
         Rng _rng;
         WritTuning _writ;
@@ -403,19 +498,24 @@ namespace JamKit.SkylineRepo
             }
             else
             {
-                Brain.Tick(dt, IsAwake && sees, _cues);
+                // a door-spawned drone (task W4) flies to its hover point first, then the post is the engage point and re-picks
+                // every 6..9 s; it attacks only once it has got there
+                if (_arrival != null && live) _pos = U(_arrival.Step(N(_pos), N(target.Root.position), ArrivalBlockers, dt,
+                    SearchArea.xMin, SearchArea.xMax, SearchArea.yMin, SearchArea.yMax));
+                bool arriving = Arriving;
+                Brain.Tick(dt, IsAwake && sees && !arriving, _cues);
                 if (sees)
                 {
                     _lastSeenAt = _clock;
                     _hasGoal = false;
                     _returning = false;
                 }
-                else if (IsAwake && Def.searchSpeed > 0f && _lastSeenAt > float.NegativeInfinity && live) Search(dt, _sawLastStep);
+                else if (_arrival == null && IsAwake && Def.searchSpeed > 0f && _lastSeenAt > float.NegativeInfinity && live) Search(dt, _sawLastStep);
                 _sawLastStep = sees;
                 HandleCues(_cues, sees, aimAt, false);
                 StepBeam(dt, live);
                 // the drone's hover patrol round its post (FightSim's, the same code): strafes across the line to the target
-                if (_patrol != null)
+                if (_patrol != null && !arriving)
                 {
                     Vector3 to = live ? target.Chest - (_pos + U(_patrol.Offset)) : Vector3.zero;
                     _patrol.Tick(dt, N(_pos), IsAwake && !practice, Brain.State == BotState.Telegraph, N(to), _patrolBlocked);
@@ -635,6 +735,8 @@ namespace JamKit.SkylineRepo
             float flat = Mathf.Sqrt(dx * dx + dz * dz);
             Vector3 nozzle = _pos + new Vector3(0f, 0.2f, 0f), ankle = new Vector3(feet.x, _pos.y + 0.2f, feet.z);
             bool reach = live && IsAwake && flat <= d.sweepRadius && Clear(nozzle, ankle);
+            // a door-spawned unit works on one level at a time: it does not sweep under a gallery at the Unit above
+            if (_arrival != null && live && Mathf.Abs(feet.y - _pos.y) > BotArrival.FloorEngageHeight) reach = false;
             Brain.Tick(dt, reach, _cues);
             HandleCues(_cues, sees, aimAt, reach);
             if (_acid != null && _acid.Running)
@@ -663,10 +765,15 @@ namespace JamKit.SkylineRepo
                 return;
             }
             if (!live) return;
-            if (flat > 1e-3f) _yaw = Mathf.MoveTowardsAngle(_yaw, Mathf.Atan2(dx, dz) * Mathf.Rad2Deg, 360f * dt);
+            if (_arrival != null && !_arrival.Engaged && _arrival.Velocity.LengthSquared() > 0.25f)
+                _yaw = Mathf.MoveTowardsAngle(_yaw, _arrival.HeadingDeg, 360f * dt);   // on its way: it faces where it is going
+            else if (flat > 1e-3f) _yaw = Mathf.MoveTowardsAngle(_yaw, Mathf.Atan2(dx, dz) * Mathf.Rad2Deg, 360f * dt);
             if (Brain.State == BotState.Telegraph) return;
+            if (_arrival != null)
+                // a door-spawned unit paths on the nav graph (ramps, escalators) and stops half its sweep radius short on the Unit's level
+                _pos = U(_arrival.Step(N(_pos), N(feet), ArrivalBlockers, dt, SearchArea.xMin, SearchArea.xMax, SearchArea.yMin, SearchArea.yMax));
             // close enough (half its sweep radius): it wants the target inside its arc, not under it, so it stops driving
-            if (flat >= d.sweepRadius * 0.5f) Drive(feet, d.moveSpeed * dt);
+            else if (flat >= d.sweepRadius * 0.5f) Drive(feet, d.moveSpeed * dt);
             Separate(dt);
         }
 
@@ -899,7 +1006,7 @@ namespace JamKit.SkylineRepo
                 if (_mineViews.ContainsKey(m)) continue;
                 Vector3 at = U(m.Position);
                 Vector3 drop = Parts.mineDrop != null && Parts.rig.gameObject.activeInHierarchy ? Parts.mineDrop.position : at;
-                var v = new SkylineMineView(m, at, drop, -(Quaternion.Euler(0f, _spawnYaw, 0f) * Vector3.forward), Def.mineTriggerRadius, transform);
+                var v = new SkylineMineView(m, at, drop, _wallBackSet ? _wallBack : -(Quaternion.Euler(0f, _spawnYaw, 0f) * Vector3.forward), Def.mineTriggerRadius, transform);
                 v.lastState = MineState.Arming;
                 _mineViews[m] = v;
                 SkylineSounds.PlayAt(Def.id + "/mine_lay", at);
@@ -1034,7 +1141,9 @@ namespace JamKit.SkylineRepo
                 else
                 {
                     r.killed = true;
+                    KilledBy = hit.gun;
                     WreckNow(hit.normal);
+                    Killed?.Invoke(this, hit.gun);
                 }
             }
             return r;
@@ -1417,6 +1526,7 @@ namespace JamKit.SkylineRepo
                 Vector3 d = Vector3.zero;
                 if (sees && live) d = target.Chest - Center;
                 else if (_hasGoal) d = _goal - _pos;
+                else if (Arriving) d = U(_arrival.Velocity);
                 d.y = 0f;
                 if (d.sqrMagnitude > 1e-4f) _yaw = Mathf.MoveTowardsAngle(_yaw, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg, 270f * dt);
             }
