@@ -48,7 +48,7 @@ namespace JamKit.Tests.Skyline
 
             var clamped = Beat("dot-clamped");
             Assert.That(clamped.text, Is.EqualTo("Clamped! Hold still-ish."));
-            Assert.That(clamped.draft, Is.False);
+            Assert.That(clamped.draft, Is.True, "Claude's draft, wrongly marked as the creator's (corrected 2026-10-14)");
             Assert.That(clamped.speaker, Is.EqualTo(Speaker.Dot));
             Assert.That(clamped.trigger, Is.EqualTo(BeatTrigger.AssetTowed));
 
@@ -68,7 +68,7 @@ namespace JamKit.Tests.Skyline
         [Test]
         public void EveryOtherLineIsADraftForTheCreator()
         {
-            var verbatim = new HashSet<string> { "concierge-concede", "dot-clamped", "dot-plating", "concierge-floor-care" };
+            var verbatim = new HashSet<string> { "concierge-concede", "dot-plating", "concierge-floor-care" };
             foreach (var b in FloorBeats.Floor1())
                 Assert.That(b.draft, Is.EqualTo(!verbatim.Contains(b.id)), b.id);
         }

@@ -49,7 +49,7 @@ All drafts for you to rewrite, except the lines marked **(yours)**: those the sp
 | The lift ride starts (the riser) | Nan | Job sheet: three assets in the food court. Stand in a tow circle for ten seconds to take one. The clock's running, love. (the phrase "the clock's running, love" is **yours**) |
 | The drop: the doors open, the first wave arrives | CONCIERGE | Security has been informed of your arrival. Security would like a word. Security is on its way. |
 | That first meter sounds the alarm | CONCIERGE | Attention: an item is leaving the premises without a receipt. Security has been invited to take an interest. |
-| The first asset is towed (the tow ends; moved from the meter starting, the creator, 2026-10-14) | Dot | Clamped! Hold still-ish. **(yours)** |
+| The first asset is towed (the tow ends; moved from the meter starting, the creator, 2026-10-14) | Dot | Clamped! Hold still-ish. (Claude's draft; it was wrongly marked as yours. The creator may cut it to "Clamped!") |
 | Each later asset is towed (the second and third) | Dot | Got it! Up and away. Next one, go go go. |
 | A wave arrives (said on every third wave: 3, 6, 9...) | CONCIERGE | Reinforcements are arriving. Guests are advised that this is not an invitation to wait. |
 | The third asset is towed | CONCIERGE | Asset transfer... acknowledged. Under protest. **(yours)** |

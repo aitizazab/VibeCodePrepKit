@@ -41,7 +41,7 @@ namespace JamKit.Skyline
             new TeachingBeat { id = "concierge-first-wave", speaker = Speaker.Concierge, trigger = BeatTrigger.FloorStart,
                 text = "Security has been informed of your arrival. Security would like a word. Security is on its way." },
             // the first tow ENDING (the creator, 2026-10-14); dot-towed answers the second and later tows, not the first
-            new TeachingBeat { id = "dot-clamped", speaker = Speaker.Dot, trigger = BeatTrigger.AssetTowed, draft = false,
+            new TeachingBeat { id = "dot-clamped", speaker = Speaker.Dot, trigger = BeatTrigger.AssetTowed,
                 text = "Clamped! Hold still-ish." },
             new TeachingBeat { id = "concierge-alarm", speaker = Speaker.Concierge, trigger = BeatTrigger.AlarmRaised,
                 text = "Attention: an item is leaving the premises without a receipt. Security has been invited to take an interest." },
