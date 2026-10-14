@@ -122,3 +122,19 @@ Newest first. Every agent result and every Unity pass gets an entry (what was do
 - **Build to play:** `out/skyline-play/2026-10-14-greybox/SkylineRepo.exe` (opens on the arena).
 - **The Writ** takes the courtroom diorama direction (round 4 refines it); the clockwork heart is kept for another gun
   (`docs/SKYLINE-CONCEPTS.md`). The PopularMMOs intro is Spag Heddy's "Pink Koeks".
+
+## 2026-10-14 (overnight): content, three judge rounds, the first floor ready to play
+
+- **Content (Tasks 18-21):** the Writ in the creator's courtroom design (round 5, take 1: the round-window sight), the
+  shared robot arms, both guns' effects and sounds; the four bots' models, faces, sounds and barks; the arena's sunny
+  white-and-gold mall look. Then a moving drone patrol, idle work for the floor-care unit and the gondola, a human-like
+  demo player.
+- **Judges (Task 23), three rounds:** scores went from 3-6 to 6-8. Big finds: the build ran Visiting Hours' quality
+  level at 80% resolution; a stale shader cache gave magenta materials in the build; every wall rendered at half
+  brightness (detail maps imported as sRGB); the mix clipped (now a limiter, -18 LUFS, 0 clipped); one cover piece won
+  every fight (now a route: food court, facade, skylight, then the service lift).
+- **Final pass** (20261014-0800): every stage green; 1% low 14.7 ms (worst fight 16.3), all three fights cleared.
+- **Build to play:** `out/skyline-play/2026-10-14-m1/SkylineRepo.exe`. Lines to rewrite:
+  `docs/SKYLINE-DRAFT-LINES-OVERNIGHT.md`. Judge reports: `docs/skyline-judge/`.
+- **Memory:** whole Unity passes kept being stopped for low memory while the session was idle; `pass.ps1 -Only` now runs
+  the stages one at a time.
