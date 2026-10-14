@@ -29,8 +29,9 @@ namespace JamKit.SkylineRepo.EditorTools
     /// collider's bounds equal the data's box and its top is the data's slope.</item>
     /// <item><b>Glass</b> solids (<c>FloorSolid.glass</c>) sit on the <see cref="FloorGlassLayer"/> layer (made in
     /// ProjectSettings/TagManager.asset on first build): movement still collides with it (the controller's mask is everything
-    /// but Ignore Raycast); sight and bullets are meant to pass, which needs <c>SkylineBot.IgnoredBySight</c> and
-    /// <c>SkylineShooting.Mask</c> to skip that layer (W4's and A2's files, not this task's).</item>
+    /// but Ignore Raycast); bots' sight skips it (<c>SkylineBot.IgnoredBySight</c>, W4); the player's bullets are meant to pass
+    /// too, which needs <c>SkylineShooting.Mask</c> to skip the layer (A2's file, not this task's; note
+    /// <c>RepossessArena.ShotBlockers</c> keeps the glass balustrades as shot-blockers).</item>
     /// <item>One marker per socket (<c>Socket &lt;id&gt;</c>, a flat violet disc as the circle decal root) and per spawn door
     /// (<c>Door &lt;id&gt;</c>, yawed like the data), the exit lift's zone, the arrival point, the player at the hotel hallway's
     /// start, the HUD, the ink rig and look, three reflection probes (the lobby and hallway, the pit, the ring and halls) and a
@@ -47,7 +48,7 @@ namespace JamKit.SkylineRepo.EditorTools
     public static partial class SkylineArenaBuilder
     {
         /// <summary>The layer glass solids sit on (movement collides with it; sight and bullets pass).</summary>
-        public const string FloorGlassLayer = "SkylineGlass";
+        public const string FloorGlassLayer = SkylineBot.GlassLayerName;
 
         // ------------------------------------------------------------------ extension points
 
