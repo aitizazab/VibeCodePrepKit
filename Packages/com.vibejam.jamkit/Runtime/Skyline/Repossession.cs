@@ -88,6 +88,9 @@ namespace JamKit.Skyline
             _startedFired = new bool[n];
         }
 
+        /// <summary>The floor's own ten sockets (<c>RepossessSites.Sockets()</c>).</summary>
+        public Repossession(IReadOnlyList<AssetDef> assets, ulong seed) : this(assets, seed, RepossessSites.Sockets()) { }
+
         public IReadOnlyList<JobEntry> Sheet => _sheet;
         public int TowedCount => _towed;
         public bool AllTowed => _sheet.Length > 0 && _towed == _sheet.Length;
@@ -157,6 +160,9 @@ namespace JamKit.Skyline
             _active = -1;
             _allFired = false;
         }
+
+        /// <summary>One socket per group from the floor's own ten (<c>RepossessSites.Sockets()</c>).</summary>
+        public static SocketDef[] Pick(ulong seed) => Pick(seed, RepossessSites.Sockets());
 
         /// <summary>One socket per group (Pit, Inside, High order), chosen from <paramref name="sockets"/> by
         /// <paramref name="seed"/>; the same seed always gives the same picks.</summary>
