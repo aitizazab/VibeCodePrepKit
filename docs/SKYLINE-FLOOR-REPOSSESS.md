@@ -36,14 +36,14 @@ strategy." Three causes, fixed together:
 - **The end:** when the third asset is towed, the waves stop, CONCIERGE concedes ("Asset transfer... acknowledged.
   Under protest."), and the **service lift on the west side** rolls its shutter up. Living bots keep fighting; the
   floor ends when the Unit's feet reach the lift. The run for the lift is the finale.
-- **Wrecked:** as now, the arena restarts at the warm-up; assets go back on their sockets (same sockets this run), the
+- **Wrecked:** the arena restarts at the lobby (section 9); assets go back on their sockets (same sockets this run), the
   clock resets.
 - Data shape for the generator later (design 6.2): the floor declares its socket groups; the Repossess card needs three
   sockets on at least two levels.
 
 ## 3. The waves: on a clock
 
-- **The clock starts** when the Unit's feet cross from the warm-up into the hall. Wave 1 arrives then, and **a new wave
+- **The clock starts at the drop (section 9):** the moment the lift doors open onto the food court. Wave 1 arrives then, and **a new wave
   every 30 s (Normal)** until the third asset is towed. Nothing the player does delays the clock.
 - **Cap:** at most **10 living bots**. A wave that would pass the cap waits until there is room (one waiting wave at
   most; the clock keeps running for the next).
@@ -83,7 +83,7 @@ strategy." Three causes, fixed together:
    ───────────── ring concourse (0 m) ─────────────────    ║
    [shop][SHOP][shop][SHOP][shop]     south gallery (+6 m) above
    ░░░░░░░░░░░ service corridor ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-                  SOUTH: doorway from the warm-up (kept)
+                  SOUTH: arrival alcove, the lift cab from the lobby (section 9)
 ```
 SHOP = walk-in (front door to the ring, back door to the service corridor).
 
@@ -101,7 +101,7 @@ SHOP = walk-in (front door to the ring, back door to the service corridor).
 - **The east façade:** a glass wall-run the length of the hall, ending at each gallery's lip (mantle up); the gondola's
   rail runs along it.
 - **The skylight** (+14 m): the drone vents; hook anchors when the hook exists (design 6.5).
-- **The warm-up hall stays** as it is (its doorway moves to the new south wall).
+- **The warm-up hall is replaced by the lobby (section 9)**; the practice drone and the boost ledge move into it. The lobby meets the arena at the **arrival alcove**: the south shop row's third slot is the lift cab's mouth, so the south row has four shops and the alcove (the north row keeps five). The cab sits in the south service corridor's line, so that corridor is cut in two: its west part joins the west leg, its east part is a dead end with a hatch (docs/SKYLINE-PLAN-FLOOR1.md, D2).
 - **Rules the layout must pass (measured):**
   - every standable point has at least two exits that leave a 10 m radius by different routes;
   - no standable point sees more than 60% of the spawn points;

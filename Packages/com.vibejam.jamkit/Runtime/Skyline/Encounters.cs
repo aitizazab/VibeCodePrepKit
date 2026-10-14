@@ -378,7 +378,10 @@ namespace JamKit.Skyline
 
     public enum Speaker { Dot, Concierge, Nan }
 
-    public enum BeatTrigger { WarmupStart, PracticeBotSeen, FirstSpotCreated, NearBoostLedge, BoostLedgeReached, FirstPlatingBreak, FirstSeen, NextFightArmed, NearPracticeLedge, LiftOpened }
+    public enum BeatTrigger { WarmupStart, PracticeBotSeen, FirstSpotCreated, NearBoostLedge, BoostLedgeReached, FirstPlatingBreak, FirstSeen, NextFightArmed, NearPracticeLedge, LiftOpened,
+        // Floor 1 (docs/SKYLINE-PLAN-FLOOR1.md, task F0): the lobby, the repossession and the waves.
+        LobbyArrive, LobbyDesk, LobbyLiftNear, LiftRiding, FloorStart, CircleNear, MeterStarted, AssetTowed, WaveAnnounce,
+        AlarmRaised, AllTowed, FirstSpecialAmmo }
 
     /// <summary>One teaching line (6.8): who says it, when, and the words. Drafts are for the creator to rewrite.</summary>
     public sealed class TeachingBeat

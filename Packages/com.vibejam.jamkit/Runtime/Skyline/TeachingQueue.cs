@@ -92,14 +92,24 @@ namespace JamKit.Skyline
                 case BeatTrigger.FirstSpotCreated:
                 case BeatTrigger.BoostLedgeReached:
                 case BeatTrigger.FirstPlatingBreak:
+                case BeatTrigger.AssetTowed:
+                case BeatTrigger.MeterStarted:
+                case BeatTrigger.FirstSpecialAmmo:
                     return LineUrgency.Reaction;
                 case BeatTrigger.FirstSeen:
                 case BeatTrigger.NextFightArmed:
                 case BeatTrigger.LiftOpened:
+                case BeatTrigger.WaveAnnounce:
+                case BeatTrigger.AlarmRaised:
+                case BeatTrigger.AllTowed:
+                case BeatTrigger.FloorStart:
                     return LineUrgency.Notice;
                 case BeatTrigger.PracticeBotSeen:
                 case BeatTrigger.NearBoostLedge:
                 case BeatTrigger.NearPracticeLedge:
+                case BeatTrigger.CircleNear:
+                case BeatTrigger.LobbyDesk:
+                case BeatTrigger.LobbyLiftNear:
                     return LineUrgency.Lesson;
                 default:
                     return LineUrgency.Hint;

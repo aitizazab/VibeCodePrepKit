@@ -200,6 +200,11 @@ found and how this plan resolves it.
 | D12 | Every Skyline directory test, pass script and the frame-time probe assume one scene named `SkylineArena` (first in the build, 180 s recording). | The new floor is built as `SkylineFloor1.unity` outside `SkylineScenes.All` until X1 swaps it in as `Arena`. |
 | D13 | `SKYLINE-PLAYTEST-1.md`: the level "is not built until the art style is settled"; the style is decided but the creator "will wait for the scenes from the game to judge" the look test. | Gate G0: the pure tasks and the grey-box builder may start now; the dressing tasks (DR*) start only after the creator has judged the look-test stills. |
 | D14 | The last recorded perf (`SKYLINE-LOOK.md` round 5) was 1% low 28.9 ms after the ink look (target 16.7 ms), with a fix "expected, not verified". | P0 (main session) re-measures the CURRENT arena first. If still over, a perf fix outranks new content. |
+| D15 | (Creator's defaults applied by F0, 2026-10-14.) The lobby replaces the warm-up hall: `FLOOR-REPOSSESS` section 9 wins over sections 3-4. | Done in F0: sections 2-4 of that spec now say the clock starts at the drop, a wreck restarts at the lobby, the warm-up hall is replaced by the lobby, and the south row's third slot is the arrival alcove (D2). |
+| D16 | Hues: the objective is violet `#B36BFF`, a strippable wreck is light blue `#8FD3FF` (`SKYLINE-STYLE.md`); the code still has cyan `#2EE6FF` and green `#5CFF8A`. | The style sheet is final (see D3, D11). The code fix is task S0, not F0. Nothing before S0 may bake the old hues into new data or tests. |
+| D17 | `SKYLINE-HUD.md` and `SKYLINE-BOTS.md` each held a section twice ("Feedback flashes and styling"; "Damage states"). | Done in F0: one copy of each kept, the most complete one (the HUD's first; the bots' first, which has the extra "limp" and "stack with Writ spots" lines). |
+| D18 | Every open question at the end of this plan has a default. | The creator's defaults are in force (questions 1-12 below stay as the record; change one only on a new call from the creator). |
+| D19 | F0's interface block left a few details open. | Chosen in F0, now fixed for every later task: (a) `FloorRules.DoorAllows` takes the `EnemyDef.id` strings (`SkylineEnemies.DroneId` "mall-cop-drone", `FloorCareId` "floor-care-unit", `GondolaId` "window-washer-gondola", `SpotlightId`); an unknown or null id is allowed nowhere. (b) `FloorSolid.TopAt(x, z)` is `box.max.Y` for a flat solid; for a ramp it interpolates linearly from `rampTopStart` at the box's MINIMUM edge on the slope axis (x when `rampAlongX`, else z) to `rampTopEnd` at its MAXIMUM edge, clamped to the box (so a ramp whose high end is at +Z has `rampTopStart` < `rampTopEnd`). A ramp's `box` spans its full footprint, with `box.min.Y` at or below the lower end and `box.max.Y` at the higher end. (c) `SpawnDoor.yawDeg`: degrees, 0 = +Z (north), clockwise seen from above like the player's yaw; it is the way the bot faces on arrival. (d) `FloorPhase`: `Lobby` from the start in the staff hallway until the player steps into the lift; `LiftRide` until the drop (doors open, wave clock starts); `Floor` until the third asset is towed; `Finale` until the Unit's feet reach the west lift; `Done` after. A wreck sends the run back to `Lobby`. (e) `FloorSolid.role` stays a free string; the starting values are floor wall rim shopfront column pilaster escalator ramp deck balustrade table planter lift facade, and F1/F2/L1 may add roles (document them in their own file). (f) All new types are in `FloorTypes.cs`, namespace `JamKit.Skyline`, `System.Numerics.Vector3`; `FloorZone` has no behaviour. (g) The twelve new `BeatTrigger` values are appended after `LiftOpened`, in the order the plan lists them; any value not listed in `UrgencyOf` falls to `Hint`. |
 
 ---
 
@@ -386,6 +391,8 @@ public static class FloorRules {
 
 **Acceptance:** green tests; no behaviour change to M1 (every existing test passes); the three docs read cleanly.
 **Pass check:** none (pure).
+
+**Status: done (2026-10-14).** The names above are exactly as built; the details the block left open are fixed in decision D19. The doc fixes are decisions D15 and D17.
 
 ---
 
@@ -1367,7 +1374,7 @@ needed by the floor tasks above, because the floor reads `EnemyDef.bodyRadius` a
 
 ---
 
-# Questions for the creator (defaults are used until they answer)
+# Questions for the creator (the defaults are in force, decision D18; a new call from the creator overrides one)
 
 1. **Lobby lessons:** the practice counter and the wall-run lockers (M1's judge-round-2 additions) move into the lobby with the
    practice drone and the boost stack, though section 9 names only the last two. Keep them? (default: keep)
