@@ -51,6 +51,15 @@ namespace JamKit.Skyline
         public static readonly CoverBox ExitLiftZone = new CoverBox { min = new Vector3(-31f, 0f, -2f), max = new Vector3(-27f, 2.5f, 2f) };
 
         static readonly float[] Joints = { -26f, -15.6f, -5.2f, 5.2f, 15.6f, 26f };
+        /// <summary>Where the gallery columns stand (x; both rows, z +-16.5; 16.1..16.9): -14 and 14 flank the walk-in shops, -5.2 and 5.2 are
+        /// the joints on each side of the middle shop and the arrival alcove, 26 the east joint. None is in front of a shutter (the
+        /// shutters span x -24.8..-16.8, -4..4 and 16.8..24.8; <see cref="ShutterClearance"/>), the deck is never more than 12 m from a
+        /// column along its front edge (the deck ends at x -26 and the facade), and none is on an escalator's landing. Moved on
+        /// 2026-10-14: the old -20, 20 and (north) 0 columns stood 1.1 m in front of the N1, N5 and N3 shutters.</summary>
+        public static readonly float[] ColumnXs = { -14f, -5.2f, 5.2f, 14f, 26f };
+        /// <summary>Every shop shutter (<see cref="ShutterWidth"/> wide, in the face of its shop at z +-18) has this much clear floor in
+        /// front of it (its full width, out from the shop face into the ring): no column, pilaster or rim.</summary>
+        public const float ShutterClearance = 2.5f, ShutterWidth = 8f;
         static readonly string[] WalkableRoles = { "floor", "deck", "ramp", "escalator", "table", "planter", "kiosk" };
 
         static FloorSolid[] _solids;
@@ -351,13 +360,14 @@ namespace JamKit.Skyline
             B("rail-n-west", "balustrade", -26f, -25.9f, GalleryY, GalleryY + 1f, 15.1f, 23.9f, false, true);
             B("rail-s-west", "balustrade", -26f, -25.9f, GalleryY, GalleryY + 1f, -23.9f, -15.1f, false, true);
             // columns under the decks
-            // (not in front of a walk-in shop door at x +-10.4 or of the arrival alcove, x -5.2..5.2)
-            foreach (float x in new[] { -20f, -14f, -7f, 7f, 14f, 20f, 30f })
+            // at the shop joints (behind each stands a pilaster) and never in front of a shutter: every shutter (8 m wide) keeps
+            // ShutterClearance m clear in front of it, so the columns skip x -24.8..-16.8, -4..4 and 16.8..24.8 (see ColumnXs)
+            for (int i = 0; i < ColumnXs.Length; i++)
             {
-                B("column-n-" + (int)x, "column", x - 0.4f, x + 0.4f, 0f, DeckBottomY, 16.1f, 16.9f);
-                B("column-s-" + (int)x, "column", x - 0.4f, x + 0.4f, 0f, DeckBottomY, -16.9f, -16.1f);
+                float x = ColumnXs[i];
+                B("column-n-" + i, "column", x - 0.4f, x + 0.4f, 0f, DeckBottomY, 16.1f, 16.9f);
+                B("column-s-" + i, "column", x - 0.4f, x + 0.4f, 0f, DeckBottomY, -16.9f, -16.1f);
             }
-            B("column-n-0", "column", -0.4f, 0.4f, 0f, DeckBottomY, 16.1f, 16.9f);
             // the bridge: glass floor, glass balustrades on each side (they block shots)
             B("bridge-floor", "deck", 6f, 10f, DeckBottomY, GalleryY, -15f, 15f, false, true);
             B("bridge-rail-w", "balustrade", 5.9f, 6f, DeckBottomY, GalleryY + 1f, -15f, 15f, false, true);

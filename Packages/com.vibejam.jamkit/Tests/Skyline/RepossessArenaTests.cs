@@ -498,6 +498,49 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
+        public void EveryShopShutterHasTwoAndAHalfMetresClearInFrontOfItAcrossItsWidth()
+        {
+            int shutters = 0;
+            foreach (var d in RepossessSites.Doors())
+            {
+                if (d.kind != DoorKind.ShopShutter) continue;
+                shutters++;
+                float face = d.position.Z, sign = Math.Sign(face);
+                float z0 = sign > 0 ? face - RepossessArena.ShutterClearance : face + 0.01f;
+                float z1 = sign > 0 ? face - 0.01f : face + RepossessArena.ShutterClearance;
+                float x0 = d.position.X - RepossessArena.ShutterWidth * 0.5f, x1 = d.position.X + RepossessArena.ShutterWidth * 0.5f;
+                foreach (var s in RepossessArena.Solids())
+                {
+                    if (s.box.min.Y > 2.5f || s.box.max.Y < 0.3f) continue;          // decks above, floors below
+                    bool hits = s.box.max.X > x0 && s.box.min.X < x1 && s.box.max.Z > z0 && s.box.min.Z < z1;
+                    Assert.That(hits, Is.False, $"{s.id} ({s.role}) stands within {RepossessArena.ShutterClearance} m in front of {d.id}");
+                }
+            }
+            Assert.That(shutters, Is.EqualTo(5));
+        }
+
+        [Test]
+        public void TheGalleryColumnsKeepTheDecksSupportedAlongTheirFrontEdges()
+        {
+            foreach (var row in new[] { 1, -1 })
+            {
+                var xs = new List<float> { -26f, RepossessArena.MaxX };                      // the deck's ends
+                foreach (var s in RepossessArena.Solids())
+                {
+                    if (s.role != "column" || s.box.min.Z * row < 0f || Math.Abs(s.box.min.Z) < 10f || Math.Abs(s.box.min.Z) > 20f) continue;
+                    Assert.That(s.box.min.Y, Is.EqualTo(0f).Within(1e-4f), s.id);
+                    Assert.That(s.box.max.Y, Is.EqualTo(RepossessArena.DeckBottomY).Within(1e-4f), s.id + " ends under the deck");
+                    Assert.That(s.box.min.X, Is.GreaterThanOrEqualTo(-26f), s.id + " is under the deck");
+                    xs.Add((s.box.min.X + s.box.max.X) * 0.5f);
+                }
+                xs.Sort();
+                Assert.That(xs.Count, Is.GreaterThanOrEqualTo(6), "row " + row);
+                for (int i = 1; i < xs.Count; i++)
+                    Assert.That(xs[i] - xs[i - 1], Is.LessThanOrEqualTo(12.5f), $"row {row}: the front edge spans {xs[i - 1]}..{xs[i]} unsupported");
+            }
+        }
+
+        [Test]
         public void TheClosedShopsAndTheShutterAreWalls()
         {
             var map = new Dictionary<string, BoxWorld.Box>();

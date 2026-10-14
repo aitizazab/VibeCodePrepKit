@@ -101,6 +101,9 @@ namespace JamKit.Skyline
         /// <summary>World metres. A floor-care unit's is on the floor; the others' is the body's centre.</summary>
         public Vector3 Position { get; internal set; }
         public bool Awake { get; internal set; }
+        /// <summary>It is still coming through its door to its working point (<see cref="BotArrival"/>): it neither sees nor attacks
+        /// and its brain does not run; whoever moves it (RepossessSim) clears this when it arrives.</summary>
+        public bool Arriving { get; internal set; }
         public bool Wrecked => Body.Wrecked;
         /// <summary>It had the player in sight (and in range) at the end of the last step.</summary>
         public bool SeesPlayer { get; internal set; }
@@ -645,6 +648,11 @@ namespace JamKit.Skyline
             {
                 // a wrecked gondola's mines stay on the wall
                 if (e.Mines != null) TickMines(e, h, false);
+                e.SeesPlayer = false;
+                return;
+            }
+            if (e.Arriving)
+            {
                 e.SeesPlayer = false;
                 return;
             }

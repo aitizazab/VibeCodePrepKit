@@ -567,10 +567,162 @@ namespace JamKit.Tests.Skyline
             Assert.That(HitsFromARimUnit(new Vector3(-8f, -4f, -9f)), Is.EqualTo(0), "in the pit under the rim it cannot");
         }
 
-        // ---- a whole floor, with a stand-in pilot
+        // ---- W4 joined: door-spawned bots arrive before they attack
+
+        static SpawnDoor DoorById(string id)
+        {
+            foreach (var d in RepossessSites.Doors()) if (d.id == id) return d;
+            throw new ArgumentException(id);
+        }
 
         [Test]
-        public void AScriptedTourOfThreeAssetsThenTheLiftFinishesTheFloor()
+        public void ADoorSpawnedDroneFliesToItsHoverPointBeforeItSeesOrShoots()
+        {
+            var w = Make();
+            var sim = Sim(new StandBot { holdFire = true }, 21, w);
+            sim.Clock.Stop();       // no waves: only the staged drone is out there, so any shot at the Unit is its
+            var vent = DoorById("vent-w-frame-n");
+            var e = sim.SpawnNow(SkylineEnemies.DroneId, vent, 5);
+            var start = e.Position;
+            Assert.That(e.Arriving, Is.True);
+            Assert.That(sim.ArrivalOf(e), Is.Not.Null);
+            float doneAt = -1f;
+            sim.ArrivalDone += (b, a) => { if (b == e) doneAt = sim.Time; };
+            int shotsWhileArriving = 0;
+            for (int i = 0; i < 60 * 30 && doneAt < 0f; i++)
+            {
+                sim.Tick();
+                if (e.Arriving)
+                {
+                    Assert.That(e.SeesPlayer, Is.False, "it neither sees nor attacks on the way");
+                    shotsWhileArriving = sim.Fight.Result().shotsAtPlayer;
+                }
+            }
+            Assert.That(doneAt, Is.GreaterThan(0f), "it arrived");
+            Assert.That(doneAt, Is.LessThan(12f), "within a few seconds of flight");
+            Assert.That(e.Arriving, Is.False);
+            var p = sim.Fight.Player.Position;
+            float flat = Flat(e.Position, p);
+            TestContext.WriteLine($"drone from {vent.id}: arrived at {doneAt:0.0} s, {flat:0.0} m from the Unit, {e.Position.Y - p.Y:0.0} m above, moved {Vector3.Distance(start, e.Position):0.0} m");
+            Assert.That(flat, Is.InRange(EngagePoints.MinRange - 4f, EngagePoints.MaxRange + 4f));
+            Assert.That(e.Position.Y - p.Y, Is.InRange(2f, 6f));
+            Assert.That(shotsWhileArriving, Is.LessThanOrEqualTo(0));
+        }
+
+        [Test]
+        public void ADoorSpawnedFloorCareUnitPathsToTheUnitOnArenaNavAndThenWorksOnItsOwn()
+        {
+            var w = Make();
+            var sim = Sim(new StandBot { holdFire = true }, 22, w);
+            sim.Clock.Stop();
+            var door = DoorById("shutter-n5");
+            var e = sim.SpawnNow(SkylineEnemies.FloorCareId, door, 5);
+            Assert.That(e.Arriving, Is.True);
+            float doneAt = -1f;
+            sim.ArrivalDone += (b, a) => { if (b == e) doneAt = sim.Time; };
+            for (int i = 0; i < 60 * 40 && doneAt < 0f; i++)
+            {
+                sim.Tick();
+                if (e.Arriving) Assert.That(e.SeesPlayer, Is.False);
+            }
+            TestContext.WriteLine($"floor-care from {door.id}: arrived at {doneAt:0.0} s, {Flat(e.Position, sim.Fight.Player.Position):0.0} m from the Unit");
+            Assert.That(doneAt, Is.GreaterThan(0f).And.LessThan(30f));
+            Assert.That(Flat(e.Position, sim.Fight.Player.Position), Is.LessThanOrEqualTo(BotArrival.FloorEngageDistance + 0.6f));
+            sim.Run(6f);
+            Assert.That(sim.Fight.Result().hitsTaken, Is.GreaterThan(0), "once there it sprays");
+        }
+
+        [Test]
+        public void TheGondolaAndAnUnjoinedSimStartWhereTheyAlwaysDid()
+        {
+            var w = Make();
+            var sim = Sim(new StandBot { holdFire = true }, 23, w);
+            var rail = DoorById("rail-n");
+            var g = sim.SpawnNow(SkylineEnemies.GondolaId, rail, 5);
+            Assert.That(g.Arriving, Is.False, "the gondola rides its rail: engaged at once");
+            Assert.That(sim.ArrivalOf(g), Is.Null, "no arrival is kept for a bot that engages at once");
+            var off = Make(o => o.arrivals = false);
+            var plain = Sim(new StandBot { holdFire = true }, 23, off);
+            var d = plain.SpawnNow(SkylineEnemies.DroneId, DoorById("shutter-n1"), 5);
+            Assert.That(d.Arriving, Is.False);
+            Assert.That(plain.ArrivalOf(d), Is.Null);
+            Assert.That(d.Position, Is.EqualTo(RepossessSim.SpawnPosition(DoorById("shutter-n1"), SkylineEnemies.Find(SkylineEnemies.DroneId))));
+        }
+
+        // ---- a whole floor: the numbers W3 reported, re-run with arrival (generous bounds; the details go to the test log)
+
+        static string Describe(string label, FloorResult r, RepossessSim sim)
+        {
+            var sb = new System.Text.StringBuilder(label + ": ");
+            sb.Append(r.wrecked ? "WRECKED at " + r.secondsRun.ToString("0.0") + " s (wave " + r.waveAtWreck + ", " + r.aliveAtWreck + " bots alive)" : "not wrecked in " + r.secondsRun.ToString("0") + " s")
+                .Append("; flanked ").Append(r.firstFlankedSeconds < 0f ? "never" : "first at " + r.firstFlankedSeconds.ToString("0.0") + " s (wave " + r.firstFlankedWave + ")")
+                .Append("; waves ").Append(r.wavesReleased).Append("/skipped ").Append(r.wavesSkipped).Append(", bots spawned ").Append(r.botsSpawned)
+                .Append(", peak alive ").Append(r.peakAlive).Append(", hits ").Append(r.hits).Append(", min plating ").Append(r.minPlating.ToString("0"));
+            return sb.ToString();
+        }
+        /// <summary>A Unit that stands where it was dropped and shoots. Per kind of bot, the seconds it had the Unit in sight come back in
+        /// <paramref name="sight"/>; the others are counted by the run's own <see cref="FloorResult"/>.</summary>
+        static FloorResult CampStats(Vector3 at, float seconds, ulong seed, Dictionary<string, float> sight, bool arrivals = true)
+        {
+            var w = Make(o => { o.start = at; o.arrivals = arrivals; });
+            var sim = Sim(new StandBot(), seed, w);
+            int steps = (int)(seconds / FightSim.Step);
+            for (int i = 0; i < steps && !sim.Finished; i++)
+            {
+                sim.Tick();
+                if (sight == null) continue;
+                foreach (var e in sim.Fight.Enemies)
+                    if (!e.Wrecked && e.SeesPlayer)
+                    {
+                        float t;
+                        sight.TryGetValue(e.Def.id, out t);
+                        sight[e.Def.id] = t + FightSim.Step;
+                    }
+            }
+            return sim.Result();
+        }
+
+        static string CampLine(Vector3 at, float seconds, bool arrivals, ulong firstSeed, int seeds)
+        {
+            var sb = new System.Text.StringBuilder();
+            for (ulong seed = firstSeed; seed < firstSeed + (ulong)seeds; seed++)
+            {
+                var sight = new Dictionary<string, float>();
+                var r = CampStats(at, seconds, seed, sight, arrivals);
+                sb.Append(r.wrecked ? " W" + r.secondsRun.ToString("0") + "(w" + r.waveAtWreck + ",a" + r.aliveAtWreck + ")" : " ok(hits" + r.hits + ",minP" + r.minPlating.ToString("0") + ")")
+                  .Append(r.firstFlankedSeconds >= 0f ? "F" + r.firstFlankedSeconds.ToString("0") : "");
+                if (seed == firstSeed) { sb.Append(" [sight s:"); foreach (var kv in sight) sb.Append(' ').Append(kv.Key.Substring(0, 5)).Append('=').Append(kv.Value.ToString("0")); sb.Append(']'); }
+            }
+            return sb.ToString();
+        }
+
+        [Test, Explicit("prints the camper survey (6 seeds, 240 s per spot, about a minute)")]
+        public void ReportCampersAndHolders()
+        {
+            var spots = new (string, Vector3)[]
+            {
+                ("alcove", RepossessArena.ArrivalPoint),
+                ("open east ring", new Vector3(24f, 0f, 6f)),
+                ("open west ring", new Vector3(-24f, 0f, 12f)),
+                ("open south ring", new Vector3(0f, 0f, -12f)),
+                ("north corridor (at the N4 back door)", new Vector3(10f, 0f, 25.75f)),
+                ("north corridor (hidden, west)", new Vector3(-22f, 0f, 25.75f)),
+                ("north corridor (middle)", new Vector3(0f, 0f, 25.75f)),
+                ("south corridor (hidden, west)", new Vector3(-20f, 0f, -25.75f)),
+                ("south corridor (hidden, east end)", new Vector3(22f, 0f, -25.75f)),
+                ("west leg", new Vector3(-33.25f, 0f, 0f)),
+                ("inside shop N2", new Vector3(-10.4f, 0f, 21f)),
+                ("inside shop N2 (corner, off the door line)", new Vector3(-14f, 0f, 21f)),
+                ("inside shop S4", new Vector3(10.4f, 0f, -21f)),
+                ("inside shop S4 (corner)", new Vector3(14f, 0f, -21f)),
+                ("west leg (north end)", new Vector3(-33.25f, 0f, 22f)),
+            };
+            foreach (var (name, at) in spots) TestContext.WriteLine(name + " |" + CampLine(at, 240f, true, 1, 6));
+        }
+
+        // ---- a whole floor, with a stand-in pilot
+
+        static FloorResult RunTour(bool invulnerable, out RepossessSim sim, out World w)
         {
             ulong seed = SeedWithSockets("pit-sw", "inside-n4", "high-bridge");
             var bot = new TourBot();
@@ -584,9 +736,17 @@ namespace JamKit.Tests.Skyline
             var toLift = new List<Vector3> { new Vector3(-10f, -4f, 0f) };
             for (int i = 2; i < lift.Length; i++) toLift.Add(lift[i]);
             bot.legs.Add(new Leg { points = toLift.ToArray() });
-            var w = Make(o => o.invulnerable = true);
-            var sim = Sim(bot, seed, w);
-            var r = sim.Run(420f);
+            w = Make(o => o.invulnerable = invulnerable);
+            sim = Sim(bot, seed, w);
+            return sim.Run(420f);
+        }
+
+        [Test]
+        public void AScriptedTourOfThreeAssetsThenTheLiftFinishesTheFloor()
+        {
+            RepossessSim sim;
+            World w;
+            var r = RunTour(true, out sim, out w);
             var sb = new System.Text.StringBuilder();
             sb.Append("tour: towed ").Append(r.towed).Append(" at");
             foreach (float t in r.towSeconds) sb.Append(' ').Append(t.ToString("0.0"));
@@ -607,6 +767,94 @@ namespace JamKit.Tests.Skyline
             Assert.That(w.log, Does.Contain(RepossessArena.LiftShutterId + "-"), "the west lift's shutter rolled up");
             Assert.That(r.reachedExit, Is.True, "the Unit's feet reached the lift");
             Assert.That(sim.Finished, Is.True);
+            // the numbers (2026-10-14, with arrival): third tow at 57 s, in the lift at 60 s, two waves, never over 4 bots alive
+            Assert.That(r.timeToThird, Is.InRange(40f, 90f));
+            Assert.That(r.secondsRun, Is.LessThan(110f));
+            Assert.That(r.wavesReleased, Is.InRange(1, 4));
+            Assert.That(r.wavesSkipped, Is.EqualTo(0));
+            Assert.That(r.peakAlive, Is.InRange(1, 10));
+        }
+
+        [Test]
+        public void TheSameTourWithoutInvulnerabilityEndsOneWayOrTheOther()
+        {
+            RepossessSim sim;
+            World w;
+            var r = RunTour(false, out sim, out w);
+            TestContext.WriteLine(Describe("vulnerable tour", r, sim) + "; towed " + r.towed + ", exit " + r.reachedExit + " at " + r.secondsRun.ToString("0.0") + " s");
+            // 2026-10-14: this walk-in-the-open stand-in (no cover play, no dodging) is wrecked at 39 s in wave 2 with 4 bots alive; DM1 has to do better
+            Assert.That(r.wrecked || r.reachedExit, Is.True, "the run ends one way or the other inside 420 s");
+        }
+
+        // ---- campers and holders (a Unit that stands and shoots; the hostile spots are hostile, the hidden corridor is not)
+
+        static void AssertWreckedEarly(Vector3 at, float within, params ulong[] seeds)
+        {
+            foreach (var seed in seeds)
+            {
+                var r = CampStats(at, within + 60f, seed, null);
+                Assert.That(r.wrecked, Is.True, $"a Unit standing at {at} with seed {seed} is wrecked ({Describe("run", r, null)})");
+                Assert.That(r.secondsRun, Is.LessThan(within), $"seed {seed}");
+                Assert.That(r.waveAtWreck, Is.InRange(1, 5), $"seed {seed}");
+            }
+        }
+
+        [Test]
+        public void AUnitHoldingTheOpenRingIsWreckedInTheSecondOrThirdWave()
+        {
+            // 2026-10-14, 6 seeds each: east ring 38..66 s, south ring 39..44 s, west ring 40..96 s (waves 2 to 4)
+            AssertWreckedEarly(new Vector3(24f, 0f, 6f), 130f, 1, 2, 3, 4);
+            AssertWreckedEarly(new Vector3(0f, 0f, -12f), 130f, 1, 2, 3, 4);
+        }
+
+        [Test]
+        public void AUnitCampingInTheArrivalAlcoveIsWreckedInTheSecondOrThirdWave()
+        {
+            AssertWreckedEarly(RepossessArena.ArrivalPoint, 130f, 1, 2, 3, 4);        // 41..71 s over 6 seeds
+        }
+
+        [Test]
+        public void AUnitCampingInsideAWalkInShopIsWreckedAndFlankedFromTheDoorsOrTheCorner()
+        {
+            AssertWreckedEarly(new Vector3(-10.4f, 0f, 21f), 150f, 1, 2, 3, 4);       // 38..77 s over 6 seeds
+            AssertWreckedEarly(new Vector3(-14f, 0f, 21f), 170f, 1, 2, 3, 4);         // off the door line: 43..101 s
+            AssertWreckedEarly(new Vector3(10.4f, 0f, -21f), 150f, 1, 2, 3, 4);       // 42..79 s
+        }
+
+        [Test]
+        public void AUnitInTheServiceCorridorAtABackDoorOrTheMiddleIsFoundWithinTheFirstThreeWaves()
+        {
+            AssertWreckedEarly(new Vector3(10f, 0f, 25.75f), 130f, 1, 2, 3, 4);       // in line with the N4 shop's back door: 40..72 s
+        }
+
+        [Test]
+        public void ACamperHiddenInTheWestCorridorsSurvivesBecauseOnlyFloorCareUnitsCanReachIt()
+        {
+            // The exploit this pins (DM2 and the director must close it, then flip this test): drones never enter the corridors and
+            // have no line into the west parts, so only floor-care units come, one at a time down the corridor, into the Writ.
+            // 6 seeds, 240 s each: never wrecked, 1..7 hits, lowest plating 32..86; no drone ever had it in sight.
+            foreach (var at in new[] { new Vector3(-22f, 0f, 25.75f), new Vector3(-20f, 0f, -25.75f) })
+                foreach (ulong seed in new ulong[] { 1, 2, 3 })
+                {
+                    var sight = new Dictionary<string, float>();
+                    var r = CampStats(at, 200f, seed, sight);
+                    Assert.That(r.wrecked, Is.False, $"{at} seed {seed}: {Describe("run", r, null)}");
+                    Assert.That(r.minPlating, Is.GreaterThan(0f), $"{at} seed {seed}");
+                    float drone;
+                    sight.TryGetValue(SkylineEnemies.DroneId, out drone);
+                    Assert.That(drone, Is.LessThan(3f), $"{at} seed {seed}: a drone should not see into the corridor");
+                    float care;
+                    sight.TryGetValue(SkylineEnemies.FloorCareId, out care);
+                    Assert.That(care, Is.GreaterThan(0f), $"{at} seed {seed}: floor-care units do come");
+                }
+        }
+
+        [Test]
+        public void ACamperAtTheEastHatchEndOfTheSouthCorridorIsSprayedInTheFirstWave()
+        {
+            // the hatch at (26, -26) spawns a floor-care unit 4 m from a Unit standing at (22, -25.75): wrecked at 9..15 s, wave 1.
+            // A spawn door this close to a corridor position is a layout finding for F2/F3 (the spawn-distance rule is 6 m to a socket only).
+            AssertWreckedEarly(new Vector3(22f, 0f, -25.75f), 40f, 1, 2, 3);
         }
     }
 }

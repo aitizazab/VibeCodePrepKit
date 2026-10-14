@@ -37,6 +37,9 @@ namespace JamKit.Skyline
         /// <summary>The wave clock's cap and interval (default: the floor's numbers).</summary>
         public int waveCap = FloorRules.WaveCap;
         public float waveSeconds = FloorRules.WaveSeconds;
+        /// <summary>True (the game): door-spawned drones and floor-care units come to their working point through a <see cref="BotArrival"/>
+        /// and neither see nor attack on the way. False: they start at their door and work from there (the W3 stand-in).</summary>
+        public bool arrivals = true;
     }
 
     /// <summary>What a floor run did (see <see cref="RepossessSim.Result"/>). Counters carry across restarts after a wreck.</summary>
@@ -86,10 +89,11 @@ namespace JamKit.Skyline
     /// <para>Stand-ins, stated so nobody mistakes them for the game:</para>
     /// <list type="bullet">
     /// <item>The lobby and the lift ride are skipped: the run starts at the drop, the Unit in the arrival alcove.</item>
-    /// <item>A bot starts at its door (drones at a shutter at head height, a vent where it is) and holds there until W4's arrival
-    /// behaviour exists: drones shoot from the door; floor-care units drive in 2D round the floor-level cover, so they do not
-    /// climb ramps (the pit is safe from them) and can stall at concave corners, and they cannot hurt a Unit more than 1.5 m below
-    /// their floor.</item>
+    /// <item>A drone or floor-care unit leaves its door through a <see cref="BotArrival"/> (W4; <see cref="FloorOptions.arrivals"/>) and
+    /// neither sees nor attacks until it has arrived: a drone flies a swept route to a hover point 12..28 m from the Unit, a floor-care
+    /// unit paths on <see cref="ArenaNav"/> (ramps and escalators included) until it is within 4 m on the Unit's level, then the fight's
+    /// own brain takes over. That brain drives in 2D round the floor-level cover, so a unit that has arrived can stall at a concave
+    /// corner, and it cannot hurt a Unit more than 1.5 m below its floor.</item>
     /// <item>The gondola rides outside the glass and never shoots: it lays its mines along the inside face of the façade
     /// (<see cref="FightArea.mineRailOffset"/>). A Writ shot whose line passes a façade pane breaks it (the pane is gone from the
     /// wall-run); glass balustrades stop shots but not sight.</item>
@@ -115,6 +119,10 @@ namespace JamKit.Skyline
         readonly Dictionary<SpawnAssignment, int> _groupOf = new Dictionary<SpawnAssignment, int>();
         readonly SpawnDoor[] _doors = RepossessSites.Doors();
         readonly List<AliveSample> _history = new List<AliveSample>();
+        readonly Dictionary<FightEnemy, BotArrival> _arrivals = new Dictionary<FightEnemy, BotArrival>();
+        readonly List<FightEnemy> _arrivalList = new List<FightEnemy>();
+        static ArenaNav _nav;
+        static readonly object _navLock = new object();
         float? _lastMean;
         Vector3? _alarm;
         float _stuckFor;
@@ -237,10 +245,29 @@ namespace JamKit.Skyline
         public IReadOnlyList<AliveSample> AliveHistory => _history;
         public float Time => Fight.Time;
 
+        /// <summary>The floor-care units' walkable graph (built once from <see cref="RepossessArena.Solids"/>).</summary>
+        public static ArenaNav Nav
+        {
+            get
+            {
+                lock (_navLock) return _nav ?? (_nav = ArenaNav.Build(RepossessArena.Solids()));
+            }
+        }
+
+        /// <summary>The arrival of a door-spawned bot while it is still being moved (null once it has arrived and does not need it, and for
+        /// bots staged without one).</summary>
+        public BotArrival ArrivalOf(FightEnemy e)
+        {
+            BotArrival a;
+            return _arrivals.TryGetValue(e, out a) ? a : null;
+        }
+
         /// <summary>A door's telegraph started (a sound from its direction, a light, the door moving).</summary>
         public event Action<SpawnAssignment> TelegraphStarted;
         /// <summary>A bot came through its door.</summary>
         public event Action<FightEnemy, SpawnAssignment> BotSpawned;
+        /// <summary>A door-spawned bot reached its working point and now sees and attacks (an arrival that gave up counts too).</summary>
+        public event Action<FightEnemy, BotArrival> ArrivalDone;
         /// <summary>An asset's meter started: CONCIERGE's alarm.</summary>
         public event Action<JobEntry> AlarmRaised;
         public event Action<JobEntry> AssetTowed;
@@ -317,8 +344,9 @@ namespace JamKit.Skyline
         public void Tick()
         {
             if (_finished) return;
-            Fight.Tick();
             float h = FightSim.Step;
+            StepArrivals(h);
+            Fight.Tick();
             if (!Fight.Armor.Wrecked && Fight.Player.Position.Y < _o.fallDeathY) Fight.Armor.Damage(1e6f);
             if (Fight.Armor.Wrecked)
             {
@@ -400,7 +428,10 @@ namespace JamKit.Skyline
         {
             var def = SkylineEnemies.Find(enemyId);
             if (def == null) throw new ArgumentException("unknown enemy " + enemyId);
-            var s = new Spawn(enemyId, SpawnPosition(door, def), group);
+            BotArrival arrival = _o.arrivals && door.kind != DoorKind.RailEnd
+                ? new BotArrival(def, door, _seed ^ ((ulong)(_spawnIndex + 1) * 0xD1B54A32D192ED03UL), Nav, Cover) : null;
+            bool arrives = arrival != null && BotArrival.Applies(def);
+            var s = new Spawn(enemyId, arrives ? arrival.Start : SpawnPosition(door, def), group);
             if (def.layer == ThreatLayer.Walls)
             {
                 s.position = door.position;
@@ -410,8 +441,39 @@ namespace JamKit.Skyline
             }
             var e = Fight.AddEnemy(s, _spawnIndex++);
             e.Awake = true;
+            if (arrives)
+            {
+                e.Arriving = true;
+                _arrivals[e] = arrival;
+            }
             _r.botsSpawned++;
             return e;
+        }
+
+        /// <summary>Moves every door-spawned bot that is still arriving (and the drones that have arrived, which re-pick their hover point
+        /// every 6..9 s) one step, before the fight's own step. A bot does not see or attack until it has arrived. A drone that is
+        /// searching or going home (its brain moves it) is left to the brain until it has a line again.</summary>
+        void StepArrivals(float h)
+        {
+            if (_arrivals.Count == 0) return;
+            _arrivalList.Clear();
+            _arrivalList.AddRange(_arrivals.Keys);
+            var player = Fight.Player.Position;
+            foreach (var e in _arrivalList)
+            {
+                var a = _arrivals[e];
+                if (e.Wrecked) { _arrivals.Remove(e); continue; }
+                bool flies = EngagePoints.Flies(e.Def);
+                if (a.Engaged && !flies) { _arrivals.Remove(e); continue; }
+                if (a.Engaged && (e.HasSearchGoal || e.Returning)) continue;
+                e.Position = a.Step(e.Position, player, Cover, h, Fight.Area);
+                if (a.Engaged && e.Arriving)
+                {
+                    e.Arriving = false;
+                    e.Home = e.Position;
+                    ArrivalDone?.Invoke(e, a);
+                }
+            }
         }
 
         static CoverBox[] _spawnCover;
@@ -479,6 +541,7 @@ namespace JamKit.Skyline
             Clock.Reset();
             Objective.Reset();
             Spawner.Cancel();
+            _arrivals.Clear();
             _queue.Clear();
             _groupOf.Clear();
             _lastMean = null;

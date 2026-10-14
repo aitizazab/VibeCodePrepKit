@@ -191,8 +191,7 @@ namespace JamKit.Skyline
     /// <item>Anything else (the spotlight, the gondola, which rides its rail): engaged at once, <see cref="Step"/> returns the
     /// position unchanged.</item>
     /// </list>
-    /// The flight area is passed as its four edges (the plan's <c>FightArea</c> struct comes with W3; its overload is a
-    /// one-line forwarder). Points outside it are never chosen; a drone that starts outside (a vent at the very edge) just
+    /// The flight area is passed as a <see cref="FightArea"/> or as its four edges. Points outside it are never chosen; a drone that starts outside (a vent at the very edge) just
     /// flies in.
     /// </summary>
     public sealed class BotArrival
@@ -326,6 +325,11 @@ namespace JamKit.Skyline
             _vel = Vector3.Zero;
             return pos;
         }
+
+        /// <summary>The plan's signature (task W4): <see cref="Step(Vector3, Vector3, IReadOnlyList{CoverBox}, float, float, float, float, float)"/>
+        /// with the flight area as a <see cref="FightArea"/>.</summary>
+        public Vector3 Step(Vector3 pos, Vector3 player, IReadOnlyList<CoverBox> blockers, float dt, FightArea area) =>
+            Step(pos, player, blockers, dt, area.minX, area.maxX, area.minZ, area.maxZ);
 
         // ------------------------------------------------------------------ the drone
 
