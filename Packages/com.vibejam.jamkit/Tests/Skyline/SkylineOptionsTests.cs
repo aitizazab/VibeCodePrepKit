@@ -38,6 +38,33 @@ namespace JamKit.Tests.Skyline
         }
 
         [Test]
+        public void TheSubtitleSettingsDefaultToDialogueAtMediumAndRoundTrip()
+        {
+            var d = new SkylineOptions();
+            Assert.That(d.subtitleMode, Is.EqualTo(SubtitleMode.Dialogue));
+            Assert.That(d.subtitleSize, Is.EqualTo(SubtitleSize.Medium));
+            foreach (SubtitleMode m in Enum.GetValues(typeof(SubtitleMode)))
+                foreach (SubtitleSize s in Enum.GetValues(typeof(SubtitleSize)))
+                {
+                    var u = SkylineOptions.Deserialize(new SkylineOptions { subtitleMode = m, subtitleSize = s }.Serialize());
+                    Assert.That(u.subtitleMode, Is.EqualTo(m));
+                    Assert.That(u.subtitleSize, Is.EqualTo(s));
+                }
+        }
+
+        [Test]
+        public void ABadOrMissingSubtitleSettingFallsBackToTheDefault()
+        {
+            var o = SkylineOptions.Deserialize("subtitles=9\nsubtitleSize=-4\n");
+            Assert.That(o.subtitleMode, Is.EqualTo(SubtitleMode.Dialogue));
+            Assert.That(o.subtitleSize, Is.EqualTo(SubtitleSize.Medium));
+            o = SkylineOptions.Deserialize("subtitles=abc\n");
+            Assert.That(o.subtitleMode, Is.EqualTo(SubtitleMode.Dialogue));
+            Assert.That(SkylineOptions.Deserialize("skyline-options 1\nmaster=0.5\n").subtitleMode, Is.EqualTo(SubtitleMode.Dialogue), "a save from before the setting");
+            Assert.That(SkylineOptions.Deserialize("subtitles=0\n").subtitleMode, Is.EqualTo(SubtitleMode.Off));
+        }
+
+        [Test]
         public void SavingAndLoadingRoundTrips()
         {
             var o = new SkylineOptions { master = 0.5f, music = 0.25f, effects = 0.75f, voices = 0.1f, mouseSensitivity = 1.5f, padSensitivity = 0.5f, invertY = true, aimAssist = false };

@@ -298,7 +298,7 @@ tight (the week is in the red); run at most 3-4 agents at once, cheapest and mos
 | B2 | Lobby builder (grey-box) | Unity | M | `SkylineArenaBuilder.Lobby.cs` | L1, B1 |
 | H2 | HUD base: health bar, ammo, font, old boxes removed (DONE 2026-10-14) | Unity | M | `SkylineHud.cs`, `SkylineHudHealth.cs`, `SkylineHudAmmo.cs`, `ThirdParty/Fonts` | V1 |
 | H3 | HUD objective: job strip, markers, tow ring, wave clock | Unity | M | `SkylineHudObjective.cs` | V1, R1, H2 |
-| H4 | Subtitles, settings, bubbles out | Unity | M | `SkylineHudSubtitles.cs`, `SkylineSettings.cs`, `SkylinePauseMenu.cs` | V1, H2, W4 |
+| H4 | Subtitles, settings, bubbles out (DONE 2026-10-14; the two keys live in the pure `SkylineOptions` (`subtitleMode`, `subtitleSize`) and `SkylineSettings.SubtitleMode/SubtitleSize` wrap them; a Subtitles page in the pause menu; barks are subtitled from `SkylineBarks.Say` only when the mix actually played them and the bot is within 40 m, not from the `Barked` event; `SkylineBarkBubble` and `SkylineHud.BarkTag/ShowBark/PlaceBark/HideBark` are gone) | Unity | M | `SkylineHudSubtitles.cs`, `SkylineSettings.cs`, `SkylinePauseMenu.cs` | V1, H2, W4 |
 | H5 | Flashes: plating, ammo, wreck outline timing | Unity | S | `SkylineHudFlashes.cs` | H2, A2, S0 |
 | A2 | Special ammo in play (wreck pickups, Breacher reserve, HUD) | Unity | M | `SkylineAmmo.cs`, `SkylineShooting.cs` | A1, S0, W4, H2 |
 | C2 | Comic lettering in play | Unity | M | `SkylineLettering.cs` | C1, H2, W4 |

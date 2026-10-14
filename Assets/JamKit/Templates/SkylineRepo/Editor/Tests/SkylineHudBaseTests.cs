@@ -25,6 +25,8 @@ namespace JamKit.SkylineRepo.Tests
             _hud = _go.AddComponent<SkylineHud>();
             _tree = new VisualElement();
             _hud.BuildOn(_tree);
+            SkylineSettings.Options.subtitleMode = SubtitleMode.Dialogue;   // whatever the machine's saved options say
+            SkylineSettings.Options.subtitleSize = SubtitleSize.Medium;
         }
 
         [TearDown]
@@ -137,12 +139,17 @@ namespace JamKit.SkylineRepo.Tests
         public void ASubtitleIsAColouredPrefixWithNoBox()
         {
             _hud.Say(Speaker.Concierge, "Please remain calm.", 2f);
+            _hud.Subtitles.Tick(0.1f);
             var say = _tree.Q<VisualElement>("hud-say");
             Assert.That(say.style.backgroundColor.value.a, Is.EqualTo(0f));
-            var lbl = say.Q<Label>();
+            var first = _hud.Subtitles.Lines[0];
+            var lbl = _hud.Subtitles.ElementOf(first).Q<Label>();
             Assert.That(lbl.text, Does.Contain("CONCIERGE:"));
             Assert.That(lbl.style.unityFontStyleAndWeight.value, Is.EqualTo(FontStyle.Italic));   // PA lines are italic
             _hud.Say(Speaker.Dot, "Hello.", 2f);
+            _hud.Subtitles.Tick(0.1f);
+            var second = _hud.Subtitles.Lines[1];
+            lbl = _hud.Subtitles.ElementOf(second).Q<Label>();
             Assert.That(lbl.text, Does.Contain("DOT:"));
             Assert.That(lbl.style.unityFontStyleAndWeight.value, Is.EqualTo(FontStyle.Normal));
         }

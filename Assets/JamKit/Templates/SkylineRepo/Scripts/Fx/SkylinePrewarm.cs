@@ -121,8 +121,6 @@ namespace JamKit.SkylineRepo
             face.transform.localPosition = Vector3.up;
             var faceMat = new Material(face.GetComponent<Renderer>().sharedMaterial) { mainTexture = SkylineBotFace.Texture(SkylineEnemies.DroneId, BotFace.Happy) };
             face.GetComponent<Renderer>().sharedMaterial = faceMat;
-            var bubble = SkylineBarkBubble.Create(root, Vector3.down * 0.01f, "Halt!");
-            bubble.transform.localScale = Vector3.one * 0.01f;
             // one tiny copy of each bot model (no colliders yet: those are added by FromModel at spawn), so its meshes are
             // uploaded and its imported materials' pipeline states built now
             for (int i = 0; i < _models.Length; i++)
@@ -130,7 +128,6 @@ namespace JamKit.SkylineRepo
                     Object.Instantiate(_models[i], root, false).transform.localPosition = new Vector3(2f + i, 0f, 0f);
             yield return null;
             yield return null;
-            if (bubble != null) Object.Destroy(bubble.gameObject);
             Object.Destroy(root.gameObject);
             Object.Destroy(faceMat);
             if (cam == null) yield break;

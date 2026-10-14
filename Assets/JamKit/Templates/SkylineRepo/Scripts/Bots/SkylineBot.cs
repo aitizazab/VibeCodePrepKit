@@ -336,7 +336,6 @@ namespace JamKit.SkylineRepo
         // look and sound
         SkylineBotFace _face;
         AudioSource _voice, _idle;
-        SkylineBarkBubble _bubble;
         readonly Dictionary<int, SkylineSpotMarker> _markers = new Dictionary<int, SkylineSpotMarker>();
         readonly List<int> _markerGone = new List<int>();
         readonly List<Renderer> _flashing = new List<Renderer>();
@@ -438,7 +437,6 @@ namespace JamKit.SkylineRepo
             foreach (var v in _mineViews.Values) v.Destroy();
             _mineViews.Clear();
             if (_railBar != null) Destroy(_railBar);
-            if (_bubble != null) Destroy(_bubble.gameObject);
             if (_chargeBall != null) Destroy(_chargeBall);
         }
 
@@ -719,8 +717,7 @@ namespace JamKit.SkylineRepo
             string line = SkylineBarks.Line(Def.id, bark);
             if (string.IsNullOrEmpty(line)) return;
             Barked?.Invoke(this, bark, line);
-            Vector3 offset = Rig.TransformPoint(Parts.centerLocal) - transform.position + Vector3.up * (Def.bodyRadius + 0.55f);
-            _bubble = SkylineBarks.Say(transform, offset, line, Def.id, (int)(_seed & 0x7FFFFFFFUL), _voice, _bubble);
+            SkylineBarks.Say(transform, line, Def.id, (int)(_seed & 0x7FFFFFFFUL), _voice, Def.displayName);
         }
 
         void Sound(string name) => SkylineSounds.PlayAt(Def.id + "/" + name, Center);

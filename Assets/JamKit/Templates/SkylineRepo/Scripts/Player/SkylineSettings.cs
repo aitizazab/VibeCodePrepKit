@@ -70,6 +70,21 @@ namespace JamKit.SkylineRepo
             Commit();
         }
 
+        /// <summary>Which subtitles show (Off / Dialogue / Dialogue + bot barks); saved with the other options, "Dialogue" by default.
+        /// Setting it saves and raises <see cref="Changed"/>.</summary>
+        public static SubtitleMode SubtitleMode
+        {
+            get => Options.subtitleMode;
+            set { Options.subtitleMode = value; Commit(); }
+        }
+
+        /// <summary>The subtitle text size (28 / 34 / 42 px at the 1080p reference); saved, "Medium" by default.</summary>
+        public static SubtitleSize SubtitleSize
+        {
+            get => Options.subtitleSize;
+            set { Options.subtitleSize = value; Commit(); }
+        }
+
         /// <summary>The factor the main camera's field of view is scaled by for the player's field-of-view option (1 at the
         /// default): the movement camera sets the view afresh every frame from its own base, and the viewmodel multiplies it.</summary>
         public static float FovScale => Options.fieldOfView / SkylineOptions.DefaultFieldOfView;

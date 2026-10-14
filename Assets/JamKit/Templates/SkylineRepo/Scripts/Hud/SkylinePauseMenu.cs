@@ -21,6 +21,8 @@ namespace JamKit.SkylineRepo
     /// <item><b>Controls:</b> the actions with their keyboard-and-mouse and pad bindings; pick one and press a button to rebind
     /// it (Escape or Start cancels); a control another action already uses swaps the two; "Reset to defaults".</item>
     /// <item><b>Look:</b> mouse sensitivity, pad sensitivity, invert Y, aim assist.</item>
+    /// <item><b>Subtitles:</b> Off / Dialogue / Dialogue + bot barks, and the size Small / Medium / Large
+    /// (<see cref="SkylineSettings.SubtitleMode"/>, <see cref="SkylineSettings.SubtitleSize"/>; they act at once).</item>
     /// <item><b>Quit to desktop</b> (asks twice).</item>
     /// </list>
     /// Navigable by pad (D-pad or left stick up and down, left and right to adjust, A or Cross to select, B or Circle for
@@ -49,8 +51,8 @@ namespace JamKit.SkylineRepo
         /// <summary>The menu is open (everything else holds still).</summary>
         public static bool IsOpen { get; private set; }
 
-        enum Page { Main, Audio, Controls, Look }
-        enum Kind { Button, Slider, Toggle, Binding }
+        enum Page { Main, Audio, Controls, Look, Subtitles }
+        enum Kind { Button, Slider, Toggle, Binding, Choice }
 
         sealed class Item
         {
@@ -66,6 +68,9 @@ namespace JamKit.SkylineRepo
             public Action<float> set;
             public Func<bool> getBool;
             public Action<bool> setBool;
+            public string[] choices;           // a Choice row: the words, and which one is set
+            public Func<int> getIndex;
+            public Action<int> setIndex;
             public BindAction action;
         }
 
@@ -283,6 +288,33 @@ namespace JamKit.SkylineRepo
             return it;
         }
 
+        /// <summary>A row that cycles through <paramref name="choices"/> (left and right, Enter, a click).</summary>
+        Item AddChoice(string label, string[] choices, Func<int> get, Action<int> set)
+        {
+            var it = new Item { kind = Kind.Choice, choices = choices, getIndex = get, setIndex = set };
+            it.el = NewRow();
+            it.name = Text(it.el, RowSize, Color.white);
+            it.name.text = label;
+            it.name.style.width = LabelWidth;
+            it.value = Text(it.el, RowSize, Color.white);
+            _items.Add(it);
+            return it;
+        }
+
+        /// <summary>A sample line, so a change of mode or size can be seen behind the menu (nothing in Off).</summary>
+        static void PreviewSubtitle()
+        {
+            var hud = SkylineHud.Instance;
+            if (hud != null) hud.Say(Speaker.Dot, "Clamped! Hold still-ish.", 3f);
+        }
+
+        void Cycle(Item it, int dir)
+        {
+            int n = it.choices.Length;
+            it.setIndex(((it.getIndex() + dir) % n + n) % n);
+            MarkOptions();
+        }
+
         Item AddBinding(BindAction action)
         {
             var it = new Item { kind = Kind.Binding, action = action, cells = new Label[2] };
@@ -320,6 +352,9 @@ namespace JamKit.SkylineRepo
 
         // ------------------------------------------------------------------ pages
 
+        static readonly string[] SubtitleModeNames = { "Off", "Dialogue", "Dialogue + bot barks" };
+        static readonly string[] SubtitleSizeNames = { "Small", "Medium", "Large" };
+
         void ShowPage(Page page)
         {
             CommitOptions();
@@ -339,6 +374,7 @@ namespace JamKit.SkylineRepo
                     AddButton(() => "Audio", () => ShowPage(Page.Audio));
                     AddButton(() => "Controls", () => ShowPage(Page.Controls));
                     AddButton(() => "Look", () => ShowPage(Page.Look));
+                    AddButton(() => "Subtitles", () => ShowPage(Page.Subtitles));
                     AddButton(() => Time.unscaledTime < _quitArmedUntil ? "Quit to desktop: press again to confirm" : "Quit to desktop", QuitPressed);
                     break;
                 case Page.Audio:
@@ -369,6 +405,12 @@ namespace JamKit.SkylineRepo
                         v => Mathf.RoundToInt(v) + " deg");
                     AddToggle("Invert Y", () => o.invertY, v => o.invertY = v);
                     AddToggle("Aim assist (pad)", () => o.aimAssist, v => o.aimAssist = v);
+                    AddButton(() => "Back", () => ShowPage(Page.Main));
+                    break;
+                case Page.Subtitles:
+                    _title.text = "SUBTITLES";
+                    AddChoice("Subtitles", SubtitleModeNames, () => (int)o.subtitleMode, v => { o.subtitleMode = (SubtitleMode)v; PreviewSubtitle(); });
+                    AddChoice("Size", SubtitleSizeNames, () => (int)o.subtitleSize, v => { o.subtitleSize = (SubtitleSize)v; PreviewSubtitle(); });
                     AddButton(() => "Back", () => ShowPage(Page.Main));
                     break;
             }
@@ -422,6 +464,11 @@ namespace JamKit.SkylineRepo
                     case Kind.Toggle:
                         it.value.text = it.getBool() ? "ON" : "OFF";
                         it.value.style.color = it.getBool() ? Gold : Dim;
+                        it.name.style.color = sel ? Gold : Color.white;
+                        break;
+                    case Kind.Choice:
+                        it.value.text = it.choices[Mathf.Clamp(it.getIndex(), 0, it.choices.Length - 1)];
+                        it.value.style.color = Gold;
                         it.name.style.color = sel ? Gold : Color.white;
                         break;
                     case Kind.Binding:
@@ -606,6 +653,7 @@ namespace JamKit.SkylineRepo
                 var it = _items[_sel];
                 if (it.kind == Kind.Slider) { Nudge(it, dir.x); Tick(false); }
                 else if (it.kind == Kind.Toggle) { it.setBool(!it.getBool()); MarkOptions(); Tick(true); }
+                else if (it.kind == Kind.Choice) { Cycle(it, dir.x); Tick(true); }
                 else if (it.kind == Kind.Binding) { _col = dir.x < 0 ? 0 : 1; Tick(false); }
             }
             _dirtyUi = true;
@@ -638,6 +686,10 @@ namespace JamKit.SkylineRepo
                 case Kind.Toggle:
                     it.setBool(!it.getBool());
                     MarkOptions();
+                    Tick(true);
+                    break;
+                case Kind.Choice:
+                    Cycle(it, 1);
                     Tick(true);
                     break;
                 case Kind.Binding:

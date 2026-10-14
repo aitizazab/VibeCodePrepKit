@@ -29,6 +29,10 @@ namespace JamKit.Skyline
         /// <summary>The main camera's resting vertical field of view (degrees); aiming down sights narrows it by the gun's own
         /// factor from there, and the speed effects widen it in proportion.</summary>
         public float fieldOfView = DefaultFieldOfView;
+        /// <summary>Which subtitles show (docs/SKYLINE-HUD.md): dialogue by default; the pause menu's Subtitles page sets it.</summary>
+        public SubtitleMode subtitleMode = SubtitleMode.Dialogue;
+        /// <summary>The subtitle text size.</summary>
+        public SubtitleSize subtitleSize = SubtitleSize.Medium;
 
         public SkylineOptions Clone() => (SkylineOptions)MemberwiseClone();
 
@@ -42,6 +46,8 @@ namespace JamKit.Skyline
             mouseSensitivity = Range(mouseSensitivity, MinSensitivity, MaxSensitivity, 1f);
             padSensitivity = Range(padSensitivity, MinSensitivity, MaxSensitivity, 1f);
             fieldOfView = Range(fieldOfView, MinFieldOfView, MaxFieldOfView, DefaultFieldOfView);
+            if (!Enum.IsDefined(typeof(SubtitleMode), subtitleMode)) subtitleMode = SubtitleMode.Dialogue;
+            if (!Enum.IsDefined(typeof(SubtitleSize), subtitleSize)) subtitleSize = SubtitleSize.Medium;
         }
 
         static float Unit(float v, float fallback) => Range(v, 0f, 1f, fallback);
@@ -63,6 +69,8 @@ namespace JamKit.Skyline
             Add(sb, "mouse", mouseSensitivity);
             Add(sb, "pad", padSensitivity);
             Add(sb, "fov", fieldOfView);
+            sb.Append("subtitles=").Append((int)subtitleMode).Append('\n');
+            sb.Append("subtitleSize=").Append((int)subtitleSize).Append('\n');
             sb.Append("invertY=").Append(invertY ? "1" : "0").Append('\n');
             sb.Append("aimAssist=").Append(aimAssist ? "1" : "0").Append('\n');
             return sb.ToString();
@@ -95,6 +103,8 @@ namespace JamKit.Skyline
                         case "mouse": if (isNumber) o.mouseSensitivity = f; break;
                         case "pad": if (isNumber) o.padSensitivity = f; break;
                         case "fov": if (isNumber) o.fieldOfView = f; break;
+                        case "subtitles": if (isNumber) o.subtitleMode = (SubtitleMode)(int)f; break;
+                        case "subtitleSize": if (isNumber) o.subtitleSize = (SubtitleSize)(int)f; break;
                         case "invertY": o.invertY = value == "1"; break;
                         case "aimAssist": o.aimAssist = value != "0"; break;
                     }
