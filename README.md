@@ -1,6 +1,9 @@
-# VibeJamKit
+# VibeCodePrepKit
 
-A pre-built Unity 6 framework for a 3-day game hackathon, plus the practice game being made with it.
+**Made before the Vibe-Coding Game Dev event (October 2026) and published openly before it.** A pre-built Unity 6
+framework, plus the practice games made with it (Visiting Hours, and Skyline Repo). Formerly "VibeJamKit".
+Code: MIT licence; our own art, audio and music: CC BY 4.0 (credit "Muhammad Aitizaz Abro"); third-party files keep
+their own licences, listed beside them. See [LICENSE](LICENSE).
 It has a shared game shell (menus, settings, pause, game over, ending, credits, dialogue, game feel,
 presenter mode), four genre templates (**2D bullet-hell roguelite**, **DOOM-like 3D shooter**, **story game**,
 **sandbox**), and **Visiting Hours** (the practice game).
